@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "pif.h"
-#if USE_LOG == 1
+#ifndef __PIF_NO_LOG__
 #include "pifLog.h"
 #endif
 
@@ -41,7 +41,7 @@ void pif_Loop()
 {
     if (s_ucPerformaceStep == 2) {
         s_ucPerformaceStep = 1;
-#if USE_LOG == 1
+#ifndef __PIF_NO_LOG__
         if (pif_stLogFlag.btPerformance) {
         	double fValue = 1000000.0 / s_unPerformanceMeasure;
         	pifLog_Printf(LT_enInfo, "Performance: %u, %2fus", s_unPerformanceMeasure, fValue);

@@ -1,6 +1,6 @@
 #include <string.h>
 
-#if USE_LOG == 1
+#ifndef __PIF_NO_LOG__
 #include "pifLog.h"
 #endif
 #include "pifTask.h"
@@ -43,7 +43,7 @@ BOOL pifTask_Init(uint8_t ucSize)
     return TRUE;
 
 fail:
-#if USE_LOG == 1
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Task:Init(S:%u) EC:%d", ucSize, pif_enError);
 #endif
     return FALSE;
@@ -66,10 +66,10 @@ void pifTask_Exit()
  * @brief Task를 추가한다.
  * @param ucRatio Task 동작 속도(1% ~ 100%) 높을수록 빠르다.
  * @param evtLoop Task 함수
- * @param pvParam Task 호출시 전달되는 파라메터 포인터.
+ * @param pvOwner 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvParam)
+PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvOwner)
 {
 	static int base = 0;
 	
@@ -89,7 +89,7 @@ PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvParam)
     pstOwner->ucRatio = ucRatio;
     pstOwner->__unCount = 0;
     pstOwner->__evtLoop = evtLoop;
-    pstOwner->pvParam = pvParam;
+    pstOwner->pvOwner = pvOwner;
 
 	int count = TABLE_SIZE * ucRatio / 101;
 	int gap = TABLE_SIZE - count;
@@ -100,7 +100,7 @@ PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvParam)
 	}
 	base++;
 
-	if (pvParam) {
+	if (pvOwner) {
 		pstOwner->__bTaskLoop = TRUE;
 		(*evtLoop)(pstOwner);
 		pstOwner->__bTaskLoop = FALSE;
@@ -110,7 +110,7 @@ PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvParam)
     return pstOwner;
 
 fail:
-#if USE_LOG == 1
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Task:Add(R:%u) EC:%d", ucRatio, pif_enError);
 #endif
     return NULL;
@@ -178,7 +178,7 @@ void pifTask_Loop()
 
 /**
  * @fn pifTask_Print
- * @brief Task 할당 정보를 표시한다.
+ * @brief Task 할당 정보를 출력한다.
  */
 void pifTask_Print()
 {

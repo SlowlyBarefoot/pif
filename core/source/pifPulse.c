@@ -1,4 +1,4 @@
-#if USE_LOG == 1
+#ifndef __PIF_NO_LOG__
 #include "pifLog.h"
 #endif
 #include "pifPulse.h"
@@ -11,8 +11,8 @@ static uint8_t s_ucPulseArrayPos;
 
 static void _LoopCommon(PIF_stPulse *pstOwner)
 {
-	PIF_unPulseIndex index;
-    PIF_stPulseItem *pstPulseItem;
+	PIF_unPulseItemIndex index;
+	PIF_stPulseItem *pstPulseItem;
 
 	index = pstOwner->__unAllocNext;
 	while (index != PIF_PULSE_INDEX_NULL) {
@@ -52,7 +52,7 @@ BOOL pifPulse_Init(uint8_t ucSize)
     return TRUE;
 
 fail:
-#if USE_LOG == 1
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Pulse:Init(S:%u) EC:%d", ucSize, pif_enError);
 #endif
     return FALSE;
@@ -121,7 +121,7 @@ PIF_stPulse *pifPulse_Add(uint8_t ucSize, uint32_t unScale)
     return pstOwner;
 
 fail:
-#if USE_LOG == 1
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Pulse:Add(SZ:%u SC:%u) EC:%d", ucSize, unScale, pif_enError);
 #endif
     return NULL;
@@ -134,14 +134,14 @@ fail:
  * @param enType Pulse의 종류
  * @return Pulse 항목 번호
  */
-PIF_unPulseIndex pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType)
+PIF_unPulseItemIndex pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType)
 {
 	if (pstOwner->__unFreeNext == PIF_PULSE_INDEX_NULL) {
         pif_enError = E_enOverflowBuffer;
         goto fail;
     }
 
-    PIF_unPulseIndex index = pstOwner->__unFreeNext;
+	PIF_unPulseItemIndex index = pstOwner->__unFreeNext;
     PIF_stPulseItem *pstPulseItem = &pstOwner->__pstItems[index];
     pstPulseItem->enType = enType;
     pstPulseItem->evtFinish = NULL;
@@ -166,7 +166,7 @@ PIF_unPulseIndex pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType)
     return index;
 
 fail:
-#if USE_LOG == 1
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Pulse:AddItem(T:%d) EC:%d", enType, pif_enError);
 #endif
     return PIF_PULSE_INDEX_NULL;
@@ -178,9 +178,9 @@ fail:
  * @param pstOwner Pulse 자신
  * @param unIndex Pulse 항목 번호
  */
-void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex)
+void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex)
 {
-    PIF_unPulseIndex index;
+	PIF_unPulseItemIndex index;
     PIF_stPulseItem *pstPulseItem = &pstOwner->__pstItems[unIndex];
 
     if (pstPulseItem->enStep == TS_enRemove) return;
@@ -205,12 +205,12 @@ void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex)
 
 /**
  * @fn pifPulse_StartItem
- * @brief Pulse 항목을 시작
- * @param pstOwner
- * @param unIndex
- * @param unPulse
+ * @brief Pulse 항목을 시작한다.
+ * @param pstOwner Pulse 자신
+ * @param unIndex Pulse 항목 번호
+ * @param unPulse 이동 pulse 수
  */
-BOOL pifPulse_StartItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex, uint32_t unPulse)
+BOOL pifPulse_StartItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex, uint32_t unPulse)
 {
     if (!unPulse) {
     	pif_enError = E_enInvalidParam;
@@ -226,7 +226,7 @@ BOOL pifPulse_StartItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex, uint32_
     return TRUE;
 
 fail:
-#if USE_LOG == 1
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Pulse:StartItem(I:%u P:%d) EC:%d", unIndex, unPulse, pif_enError);
 #endif
     return FALSE;
@@ -234,11 +234,11 @@ fail:
 
 /**
  * @fn pifPulse_StopItem
- * @brief
- * @param pstOwner
- * @param unIndex
+ * @brief Pulse 항목을 종료한다.
+ * @param pstOwner Pulse 자신
+ * @param unIndex Pulse 항목 번호
  */
-void pifPulse_StopItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex)
+void pifPulse_StopItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex)
 {
 	pstOwner->__pstItems[unIndex].unPulse = 0;
 	pstOwner->__pstItems[unIndex].enStep = TS_enStop;
@@ -246,12 +246,12 @@ void pifPulse_StopItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex)
 
 /**
  * @fn pifPulse_PauseItem
- * @brief
- * @param pstOwner
- * @param unIndex
- * @return
+ * @brief Pulse 항목을 일시정지한다.
+ * @param pstOwner Pulse 자신
+ * @param unIndex Pulse 항목 번호
+ * @return 성공 여부
  */
-BOOL pifPulse_PauseItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex)
+BOOL pifPulse_PauseItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex)
 {
     if (pstOwner->__pstItems[unIndex].enStep == TS_enRunning) {
     	pstOwner->__pstItems[unIndex].enStep = TS_enPause;
@@ -262,47 +262,47 @@ BOOL pifPulse_PauseItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex)
 
 /**
  * @fn pifPulse_RestartItem
- * @brief
- * @param pstOwner
- * @param unIndex
+ * @brief Pulse 항목을 재개한다.
+ * @param pstOwner Pulse 자신
+ * @param unIndex Pulse 항목 번호
  */
-void pifPulse_RestartItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex)
+void pifPulse_RestartItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex)
 {
     pstOwner->__pstItems[unIndex].enStep = TS_enRunning;
 }
 
 /**
  * @fn pifPulse_ResetItem
- * @brief
- * @param pstOwner
- * @param unIndex
- * @param unPulse
+ * @brief Pulse 항목을 재설정한다.
+ * @param pstOwner Pulse 자신
+ * @param unIndex Pulse 항목 번호
+ * @param unPulse 이동 pulse수. 단, 현재 동작에는 영향이 없고 다음 동작부터 변경된다.
  */
-void pifPulse_ResetItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex, uint32_t unPulse)
+void pifPulse_ResetItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex, uint32_t unPulse)
 {
     pstOwner->__pstItems[unIndex].unValue = unPulse / pstOwner->unScale;
 }
 
 /**
  * @fn pifPulse_GetStep
- * @brief
- * @param pstOwner
- * @param unIndex
- * @return
+ * @brief Pulse 항목의 step을 얻는다.
+ * @param pstOwner Pulse 자신
+ * @param unIndex Pulse 항목 번호
+ * @return 현재 step을 반환한다.
  */
-PIF_enPulseStep pifPulse_GetStep(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex)
+PIF_enPulseStep pifPulse_GetStep(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex)
 {
 	return pstOwner->__pstItems[unIndex].enStep;
 }
 
 /**
  * @fn pifPulse_RemainItem
- * @brief
- * @param pstOwner
- * @param unIndex
- * @return
+ * @brief Pulse 항목의 남은 pulse 수를 얻는다.
+ * @param pstOwner Pulse 자신
+ * @param unIndex Pulse 항목 번호
+ * @return 남은 pulse 수를 반환한다.
  */
-uint32_t pifPulse_RemainItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex)
+uint32_t pifPulse_RemainItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex)
 {
 	if (pstOwner->__pstItems[unIndex].enStep != TS_enRunning) return 0;
 	else return pstOwner->__pstItems[unIndex].unPulse;
@@ -311,12 +311,12 @@ uint32_t pifPulse_RemainItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex)
 
 /**
  * @fn pifPulse_ElapsedItem
- * @brief
- * @param pstOwner
- * @param unIndex
- * @return
+ * @brief Pulse 항목의 경과한 pulse 수를 얻는다.
+ * @param pstOwner Pulse 자신
+ * @param unIndex Pulse 항목 번호
+ * @return 경과한 pulse 수를 반환한다.
  */
-uint32_t pifPulse_ElapsedItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex)
+uint32_t pifPulse_ElapsedItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex)
 {
 	if (pstOwner->__pstItems[unIndex].enStep != TS_enRunning) return 0;
 	else return pstOwner->__pstItems[unIndex].unValue - pstOwner->__pstItems[unIndex].unPulse;
@@ -324,8 +324,8 @@ uint32_t pifPulse_ElapsedItem(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex)
 
 /**
  * @fn pifPulse_sigTick
- * @brief Interrupt Function에서 호출할 것
- * @param pstOwner
+ * @brief Pulse를 발생하는 Interrupt 함수에서 호출한다.
+ * @param pstOwner Pulse 자신
  */
 void pifPulse_sigTick(PIF_stPulse *pstOwner)
 {
@@ -333,7 +333,7 @@ void pifPulse_sigTick(PIF_stPulse *pstOwner)
 
     if (!pstOwner) return;
 
-    PIF_unPulseIndex index = pstOwner->__unAllocNext;
+    PIF_unPulseItemIndex index = pstOwner->__unAllocNext;
     while (index != PIF_PULSE_INDEX_NULL) {
         pstPulseItem = &pstOwner->__pstItems[index];
 
@@ -358,13 +358,13 @@ void pifPulse_sigTick(PIF_stPulse *pstOwner)
 
 /**
  * @fn pifPulse_AttachEvtFinish
- * @brief
- * @param pstOwner
- * @param unIndex
- * @param evtFinish
- * @param pvIssuer
+ * @brief Pulse 항목의 이동 완료시 발생시킬 이벤트를 연결한다.
+ * @param pstOwner Pulse 자신
+ * @param unIndex Pulse 항목 번호
+ * @param evtFinish 연결시킬 이벤트
+ * @param pvIssuer 이벤트 발생시 전달할 발행자
  */
-void pifPulse_AttachEvtFinish(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex, PIF_evtPulseFinish evtFinish, void *pvIssuer)
+void pifPulse_AttachEvtFinish(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex, PIF_evtPulseFinish evtFinish, void *pvIssuer)
 {
 	pstOwner->__pstItems[unIndex].evtFinish = evtFinish;
 	pstOwner->__pstItems[unIndex].pvFinishIssuer = pvIssuer;
@@ -372,8 +372,8 @@ void pifPulse_AttachEvtFinish(PIF_stPulse *pstOwner, PIF_unPulseIndex unIndex, P
 
 /**
  * @fn pifPulse_LoopAll
- * @brief
- * @param pstTask
+ * @brief Task에 연결하는 함수이다.
+ * @param pstTask Task에서 결정한다.
  */
 void pifPulse_LoopAll(PIF_stTask *pstTask)
 {
@@ -387,12 +387,12 @@ void pifPulse_LoopAll(PIF_stTask *pstTask)
 
 /**
  * @fn pifPulse_LoopEach
- * @brief
- * @param pstTask
+ * @brief Task에 연결하는 함수이다.
+ * @param pstTask Task에서 결정한다.
  */
 void pifPulse_LoopEach(PIF_stTask *pstTask)
 {
-	PIF_stPulse *pstOwner = pstTask->pvParam;
+	PIF_stPulse *pstOwner = pstTask->pvOwner;
 
 	if (pstTask->__bTaskLoop) {
 		pstOwner->__enTaskLoop = TL_enEach;
@@ -406,9 +406,9 @@ void pifPulse_LoopEach(PIF_stTask *pstTask)
 
 /**
  * @fn pifPulse_CheckItem
- * @brief
- * @param pstOwner
- * @return
+ * @brief Pulse 관리용 변수를 검증하는 함수이다.
+ * @param pstOwner Pulse 자신
+ * @return 성공 여부
  */
 BOOL pifPulse_CheckItem(PIF_stPulse *pstOwner)
 {
@@ -435,27 +435,30 @@ BOOL pifPulse_CheckItem(PIF_stPulse *pstOwner)
 
 /**
  * @fn pifPulse_PrintItemList
- * @brief
- * @param pstOwner
+ * @brief Pulse의 항목을 모두 출력한다.
+ * @param pstOwner Pulse 자신
  */
 void pifPulse_PrintItemList(PIF_stPulse *pstOwner)
 {
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enNone, "\nScale=%u: Free = %d, Alloc = %d\n", pstOwner->unScale, pstOwner->__unFreeNext, pstOwner->__unAllocNext);
 
     for (PIF_unPulseIndex index = 0; index < pstOwner->__ucItemSize; index++) {
     	pifLog_Printf(LT_enNone, "\n  %d, Next = %d, Prev = %d", index, pstOwner->__pstItems[index].unNext, pstOwner->__pstItems[index].unPrev);
     }
+#endif
 }
 
 /**
  * @fn pifPulse_PrintItemFree
- * @brief
- * @param pstOwner
+ * @brief Pulse의 항목중 할당되지 않은 항목을 출력한다.
+ * @param pstOwner Pulse 자신
  */
 void pifPulse_PrintItemFree(PIF_stPulse *pstOwner)
 {
 	PIF_unPulseIndex index;
 
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enNone, "\nScale=%u: Free = %d\n", pstOwner->unScale, pstOwner->__unFreeNext);
 
     if (pstOwner->__unFreeNext == PIF_PULSE_INDEX_NULL) return;
@@ -466,17 +469,19 @@ void pifPulse_PrintItemFree(PIF_stPulse *pstOwner)
 
         index = pstOwner->__pstItems[index].unNext;
     } while (index != PIF_PULSE_INDEX_NULL);
+#endif
 }
 
 /**
  * @fn pifPulse_PrintItemAlloc
- * @brief
- * @param pstOwner
+ * @brief Pulse의 항목중 할당된 항목을 출력한다.
+ * @param pstOwner Pulse 자신
  */
 void pifPulse_PrintItemAlloc(PIF_stPulse *pstOwner)
 {
 	PIF_unPulseIndex index;
 
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enNone, "\nScale=%u: Alloc = %d\n", pstOwner->unScale, pstOwner->__unAllocNext);
 
     if (pstOwner->__unAllocNext == PIF_PULSE_INDEX_NULL) return;
@@ -487,6 +492,7 @@ void pifPulse_PrintItemAlloc(PIF_stPulse *pstOwner)
 
         index = pstOwner->__pstItems[index].unNext;
     } while (index != PIF_PULSE_INDEX_NULL);
+#endif
 }
 
 #endif  // __PIF_DEBUG__

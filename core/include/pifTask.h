@@ -19,10 +19,7 @@ typedef void (*PIF_evtTaskLoop)(PIF_stTask *pstTask);
 
 
 /**
- * @class _PIF_stTask
- * @author SlowlyBarefoot
- * @date 11/06/20
- * @file pifTask.h
+ * @struct _PIF_stTask
  * @brief Task를 관리하는 구조체
  */
 struct _PIF_stTask
@@ -32,7 +29,7 @@ struct _PIF_stTask
 	uint8_t ucId;
 	uint8_t ucRatio;
 	uint16_t usPeriodUs;
-	void *pvParam;
+	void *pvOwner;
 
 	// Private Member Variable
 	BOOL __bPause;
@@ -53,12 +50,12 @@ extern "C" {
 BOOL pifTask_Init(uint8_t ucSize);
 void pifTask_Exit();
 
-PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvParam);
+PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvOwner);
 
 void pifTask_SetName(PIF_stTask *pstOwner, const char *pcName);
 
 void pifTask_Pause(PIF_stTask *pstTask);
-void pifTask_Retart(PIF_stTask *pstTask);
+void pifTask_Restart(PIF_stTask *pstTask);
 
 void pifTask_Loop();
 

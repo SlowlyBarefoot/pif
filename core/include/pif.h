@@ -6,10 +6,11 @@
 #include <stdlib.h>
 
 
+//#define __PIF_DEBUG__
+//#define __PIF_NO_LOG__
+
 #define PIF_VERSION_MAJOR	0
 #define PIF_VERSION_MINOR	1
-
-#define USE_LOG		0
 
 #ifndef BOOL
 #define BOOL   unsigned char
@@ -51,6 +52,10 @@ typedef enum _PIF_enError
 } PIF_enError;
 
 
+/**
+ * @struct _PIF_stDateTime
+ * @brief 날짜 시간 정보
+ */
 typedef struct _PIF_stDateTime
 {
     uint16_t usYear;
@@ -62,10 +67,7 @@ typedef struct _PIF_stDateTime
 } PIF_stDateTime;
 
 /**
- * @class _PIF_stLogFlag
- * @author SlowlyBarefoot
- * @date 26/04/20
- * @file pif.h
+ * @struct _PIF_stLogFlag
  * @brief 항목별 Log 출력 여부
  */
 typedef struct _PIF_stLogFlag
@@ -75,10 +77,7 @@ typedef struct _PIF_stLogFlag
 } PIF_stLogFlag;
 
 /**
- * @class _PIF_stPidControl
- * @author SlowlyBarefoot
- * @date 26/04/20
- * @file pif.h
+ * @struct _PIF_stPidControl
  * @brief PID Control을 계산하기 위한 구조체
  */
 typedef struct _PIF_stPidControl
