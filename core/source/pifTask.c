@@ -87,6 +87,7 @@ PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvOwner)
 
     pstOwner->ucId = s_ucId++;
     pstOwner->ucRatio = ucRatio;
+    pstOwner->__ucArrayIndex = s_ucTaskArrayPos;
     pstOwner->__unCount = 0;
     pstOwner->__evtLoop = evtLoop;
     pstOwner->pvOwner = pvOwner;

@@ -5,12 +5,7 @@
 #include "pifTask.h"
 
 
-#define PIF_PULSE_INDEX_NULL   0xFF
-
-
 typedef void (*PIF_evtPulseFinish)(void *pvIssuer);
-
-typedef uint8_t PIF_unPulseItemIndex;
 
 typedef enum _PIF_enPulseType
 {
@@ -32,17 +27,23 @@ typedef enum _PIF_enPulseStep
  */
 typedef struct _PIF_stPulseItem
 {
+	// Public Member Variable
     PIF_enPulseType enType;
-    PIF_evtPulseFinish evtFinish;
-    void *pvFinishIssuer;
 
-    PIF_enPulseStep enStep;
-	BOOL bEvent;
-    uint32_t unValue;
-    uint32_t unPulse;
+	// Private Member Variable
+    PIF_enPulseStep __enStep;
+	BOOL __bEvent;
+    uint32_t __unValue;
+    uint32_t __unPulse;
+    void *__pvFinishIssuer;
 
-    PIF_unPulseItemIndex unNext;
-    PIF_unPulseItemIndex unPrev;
+	uint8_t __ucArrayIndex;
+    uint8_t __unIndex;
+    uint8_t __unNext;
+    uint8_t __unPrev;
+
+    // Private Member Function
+    PIF_evtPulseFinish __evtFinish;
 } PIF_stPulseItem;
 
 /**
@@ -55,8 +56,9 @@ typedef struct _PIF_stPulse
     uint32_t unScale;
 
 	// Private Member Variable
-    PIF_unPulseItemIndex __unFreeNext;
-    PIF_unPulseItemIndex __unAllocNext;
+	uint8_t __ucArrayIndex;
+    uint8_t __unFreeNext;
+    uint8_t __unAllocNext;
     uint8_t __ucItemSize;
     PIF_stPulseItem *__pstItems;
 
@@ -73,25 +75,25 @@ void pifPulse_Exit();
 
 PIF_stPulse *pifPulse_Add(uint8_t ucSize, uint32_t unScale);
 
-PIF_unPulseItemIndex pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType);
-void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex);
+PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType);
+void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstPulseItem);
 
-BOOL pifPulse_StartItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex, uint32_t unPulse);
-void pifPulse_StopItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex);
-BOOL pifPulse_PauseItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex);
-void pifPulse_RestartItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex);
-void pifPulse_ResetItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex, uint32_t unPulse);
+BOOL pifPulse_StartItem(PIF_stPulseItem *pstPulseItem, uint32_t unPulse);
+void pifPulse_StopItem(PIF_stPulseItem *pstPulseItem);
+BOOL pifPulse_PauseItem(PIF_stPulseItem *pstPulseItem);
+void pifPulse_RestartItem(PIF_stPulseItem *pstPulseItem);
+void pifPulse_ResetItem(PIF_stPulseItem *pstPulseItem, uint32_t unPulse);
 
-PIF_enPulseStep pifPulse_GetStep(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex);
+PIF_enPulseStep pifPulse_GetStep(PIF_stPulseItem *pstPulseItem);
 
-uint32_t pifPulse_RemainItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex);
-uint32_t pifPulse_ElapsedItem(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex);
+uint32_t pifPulse_RemainItem(PIF_stPulseItem *pstPulseItem);
+uint32_t pifPulse_ElapsedItem(PIF_stPulseItem *pstPulseItem);
 
 // Signal Function
 void pifPulse_sigTick(PIF_stPulse *pstOwner);
 
 // Attach Event Function
-void pifPulse_AttachEvtFinish(PIF_stPulse *pstOwner, PIF_unPulseItemIndex unIndex, PIF_evtPulseFinish evtFinish, void *pvIssuer);
+void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstPulseItem, PIF_evtPulseFinish evtFinish, void *pvIssuer);
 
 // Task Function
 void pifPulse_LoopAll(PIF_stTask *pstTask);

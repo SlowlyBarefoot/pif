@@ -32,6 +32,7 @@ struct _PIF_stTask
 	void *pvOwner;
 
 	// Private Member Variable
+	uint8_t __ucArrayIndex;
 	BOOL __bPause;
 	BOOL __bTaskLoop;
 	uint32_t __unPretime;
