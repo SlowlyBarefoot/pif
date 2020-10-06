@@ -153,7 +153,7 @@ PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType)
     pstPulseItem->__pvFinishIssuer = NULL;
     pstPulseItem->__unIndex = index;
 
-    pstPulseItem->__enStep = TS_enStop;
+    pstPulseItem->__enStep = PS_enStop;
 
     pstOwner->__unFreeNext = pstPulseItem->__unNext;
 
@@ -188,7 +188,7 @@ void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstPulseItem)
 {
 	uint8_t index;
 
-    if (pstPulseItem->__enStep == TS_enRemove) return;
+    if (pstPulseItem->__enStep == PS_enRemove) return;
 
     index = pstPulseItem->__unNext;
     if (index != PIF_PULSE_INDEX_NULL) {
@@ -204,7 +204,7 @@ void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstPulseItem)
 
     pstPulseItem->__unNext = pstOwner->__unFreeNext;
     pstPulseItem->__unPrev = PIF_PULSE_INDEX_NULL;
-    pstPulseItem->__enStep = TS_enRemove;
+    pstPulseItem->__enStep = PS_enRemove;
     pstOwner->__unFreeNext = pstPulseItem->__unIndex;
 }
 
@@ -221,8 +221,8 @@ BOOL pifPulse_StartItem(PIF_stPulseItem *pstPulseItem, uint32_t unPulse)
     	goto fail;
     }
 
-    if (pstPulseItem->__enStep == TS_enStop) {
-    	pstPulseItem->__enStep = TS_enRunning;
+    if (pstPulseItem->__enStep == PS_enStop) {
+    	pstPulseItem->__enStep = PS_enRunning;
     	pstPulseItem->__bEvent = FALSE;
     }
     pstPulseItem->__unValue = unPulse / s_pstPulseArray[pstPulseItem->__ucArrayIndex].unScale;
@@ -244,7 +244,7 @@ fail:
 void pifPulse_StopItem(PIF_stPulseItem *pstPulseItem)
 {
 	pstPulseItem->__unPulse = 0;
-	pstPulseItem->__enStep = TS_enStop;
+	pstPulseItem->__enStep = PS_enStop;
 }
 
 /**
@@ -255,8 +255,8 @@ void pifPulse_StopItem(PIF_stPulseItem *pstPulseItem)
  */
 BOOL pifPulse_PauseItem(PIF_stPulseItem *pstPulseItem)
 {
-    if (pstPulseItem->__enStep == TS_enRunning) {
-    	pstPulseItem->__enStep = TS_enPause;
+    if (pstPulseItem->__enStep == PS_enRunning) {
+    	pstPulseItem->__enStep = PS_enPause;
     	return TRUE;
     }
     return FALSE;
@@ -269,12 +269,12 @@ BOOL pifPulse_PauseItem(PIF_stPulseItem *pstPulseItem)
  */
 void pifPulse_RestartItem(PIF_stPulseItem *pstPulseItem)
 {
-	pstPulseItem->__enStep = TS_enRunning;
+	pstPulseItem->__enStep = PS_enRunning;
 }
 
 /**
  * @fn pifPulse_ResetItem
- * @brief Pulse 항목을 재설정한다.
+ * @brief Pulse 항목의 이동 pulse를 재설정한다.
  * @param pstPulseItem Pulse 항목 포인터
  * @param unPulse 이동 pulse수. 단, 현재 동작에는 영향이 없고 다음 동작부터 변경된다.
  */
@@ -302,7 +302,7 @@ PIF_enPulseStep pifPulse_GetStep(PIF_stPulseItem *pstPulseItem)
  */
 uint32_t pifPulse_RemainItem(PIF_stPulseItem *pstPulseItem)
 {
-	if (pstPulseItem->__enStep != TS_enRunning) return 0;
+	if (pstPulseItem->__enStep != PS_enRunning) return 0;
 	else return pstPulseItem->__unPulse;
 
 }
@@ -315,7 +315,7 @@ uint32_t pifPulse_RemainItem(PIF_stPulseItem *pstPulseItem)
  */
 uint32_t pifPulse_ElapsedItem(PIF_stPulseItem *pstPulseItem)
 {
-	if (pstPulseItem->__enStep != TS_enRunning) return 0;
+	if (pstPulseItem->__enStep != PS_enRunning) return 0;
 	else return pstPulseItem->__unValue - pstPulseItem->__unPulse;
 }
 
@@ -334,15 +334,15 @@ void pifPulse_sigTick(PIF_stPulse *pstOwner)
     while (index != PIF_PULSE_INDEX_NULL) {
         pstPulseItem = &pstOwner->__pstItems[index];
 
-        if (pstPulseItem->__enStep != TS_enPause) {
+        if (pstPulseItem->__enStep != PS_enPause) {
 			if (pstPulseItem->__unPulse) {
 				pstPulseItem->__unPulse--;
 				if (!pstPulseItem->__unPulse) {
-					if (pstPulseItem->enType == TT_enRepeat) {
+					if (pstPulseItem->enType == PT_enRepeat) {
 						pstPulseItem->__unPulse = pstPulseItem->__unValue;
 					}
 					else {
-						pstPulseItem->__enStep = TS_enStop;
+						pstPulseItem->__enStep = PS_enStop;
 					}
 					pstPulseItem->__bEvent = TRUE;
 				}

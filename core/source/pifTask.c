@@ -6,8 +6,7 @@
 #include "pifTask.h"
 
 
-#define TABLE_SIZE		32
-#define TABLE_MASK		(TABLE_SIZE - 1)
+#define TASK_TABLE_MASK		(TASK_TABLE_SIZE - 1)
 
 
 static PIF_stTask *s_pstTaskArray;
@@ -15,7 +14,7 @@ static uint8_t s_ucTaskArraySize;
 static uint8_t s_ucTaskArrayPos;
 
 static uint8_t s_ucId = 1;
-static uint32_t s_aunTable[TABLE_SIZE];
+static uint32_t s_aunTable[TASK_TABLE_SIZE];
 
 /**
  * @fn pifTask_Init
@@ -92,11 +91,11 @@ PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvOwner)
     pstOwner->__evtLoop = evtLoop;
     pstOwner->pvOwner = pvOwner;
 
-	int count = TABLE_SIZE * ucRatio / 101;
-	int gap = TABLE_SIZE - count;
+	int count = TASK_TABLE_SIZE * ucRatio / 101;
+	int gap = TASK_TABLE_SIZE - count;
 	int index = base;
 	for (int i = 0; i <= count; i++) {
-		s_aunTable[index & TABLE_MASK] |= 1 << s_ucTaskArrayPos;
+		s_aunTable[index & TASK_TABLE_MASK] |= 1 << s_ucTaskArrayPos;
 		index += gap;
 	}
 	base++;
@@ -172,7 +171,7 @@ void pifTask_Loop()
 		}
 	}
 
-	ucNumber = (ucNumber + 1) & TABLE_MASK;
+	ucNumber = (ucNumber + 1) & TASK_TABLE_MASK;
 }
 
 #ifdef __PIF_DEBUG__

@@ -8,9 +8,14 @@
 
 //#define __PIF_DEBUG__
 //#define __PIF_NO_LOG__
+#ifndef TASK_TABLE_SIZE
+#define TASK_TABLE_SIZE		32
+#endif
+
 
 #define PIF_VERSION_MAJOR	0
 #define PIF_VERSION_MINOR	1
+#define PIF_VERSION_PATCH	0
 
 #ifndef BOOL
 #define BOOL   unsigned char

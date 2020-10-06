@@ -9,16 +9,16 @@ typedef void (*PIF_evtPulseFinish)(void *pvIssuer);
 
 typedef enum _PIF_enPulseType
 {
-    TT_enOnce       = 0,
-    TT_enRepeat		= 1
+    PT_enOnce       = 0,
+    PT_enRepeat		= 1
 } PIF_enPulseType;
 
 typedef enum _PIF_enPulseStep
 {
-    TS_enStop		= 0,
-    TS_enRunning	= 1,
-	TS_enPause		= 2,
-    TS_enRemove		= 3
+    PS_enStop		= 0,
+    PS_enRunning	= 1,
+	PS_enPause		= 2,
+    PS_enRemove		= 3
 } PIF_enPulseStep;
 
 /**
