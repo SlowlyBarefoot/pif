@@ -231,7 +231,7 @@ BOOL pifPulse_StartItem(PIF_stPulseItem *pstPulseItem, uint32_t unPulse)
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Pulse:StartItem(I:%u P:%d) EC:%d", unIndex, unPulse, pif_enError);
+	pifLog_Printf(LT_enError, "Pulse:StartItem(P:%d) EC:%d", unPulse, pif_enError);
 #endif
     return FALSE;
 }

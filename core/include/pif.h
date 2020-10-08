@@ -8,6 +8,7 @@
 
 //#define __PIF_DEBUG__
 //#define __PIF_NO_LOG__
+//#define __PIF_NO_TERMINAL__
 #ifndef TASK_TABLE_SIZE
 #define TASK_TABLE_SIZE		32
 #endif
