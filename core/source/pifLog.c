@@ -11,7 +11,14 @@
 #include "pifLog.h"
 
 
-static PIF_stLog s_stLog = { NULL, NULL, NULL };
+static PIF_stLog s_stLog = {
+		TRUE,
+		NULL,
+#ifndef __PIF_NO_TERMINAL__
+		NULL,
+#endif
+		NULL
+};
 
 const char *c_apcHexChar[2] = {
 		"0123456789abcdef",
@@ -19,14 +26,6 @@ const char *c_apcHexChar[2] = {
 };
 
 
-/**
- * @fn _DecToAscii
- * @brief
- * @param pcBuf
- * @param unVal
- * @param usStrCnt
- * @return
- */
 static int _DecToAscii(char *pcBuf, uint32_t unVal, uint16_t usStrCnt)
 {
     int16_t sExpCnt = 0;
@@ -73,15 +72,6 @@ static int _DecToAscii(char *pcBuf, uint32_t unVal, uint16_t usStrCnt)
     return nIdx;
 }
 
-/**
- * @fn _HexToAscii
- * @brief
- * @param pcBuf
- * @param unVal
- * @param usStrCnt
- * @param bUpper
- * @return
- */
 static int _HexToAscii(char *pcBuf, uint32_t unVal, uint16_t usStrCnt, BOOL bUpper)
 {
 	int i, nIdx = 0;
@@ -110,14 +100,6 @@ static int _HexToAscii(char *pcBuf, uint32_t unVal, uint16_t usStrCnt, BOOL bUpp
     return nIdx;
 }
 
-/**
- * @fn _FloatToAscii
- * @brief
- * @param pcBuf
- * @param dNum
- * @param usPoint
- * @return
- */
 static int _FloatToAscii(char *pcBuf, double dNum, uint16_t usPoint)
 {
 	int i, nIdx = 0;
@@ -139,10 +121,6 @@ static int _FloatToAscii(char *pcBuf, double dNum, uint16_t usPoint)
     return nIdx;
 }
 
-/**
- * @fn _PrintTime
- * @brief
- */
 static void _PrintTime()
 {
 	int nOffset = 0;
@@ -164,13 +142,43 @@ static void _PrintTime()
 }
 
 /**
- * @fn pifLog_AttachBuffer
- * @brief
- * @param pstBuffer
+ * @fn pifLog_Init
+ * @brief Log 구조체 초기화한다.
  */
-void pifLog_AttachBuffer(PIF_stRingBuffer *pstBuffer)
+void pifLog_Init()
 {
-	s_stLog.__pstBuffer = pstBuffer;
+	pifRingBuffer_Init(&s_stLog.__stBuffer);
+}
+
+/**
+ * @fn pifLog_Exit
+ * @brief Log 구조체를 파기하다.
+ */
+void pifLog_Exit()
+{
+	pifRingBuffer_Exit(&s_stLog.__stBuffer);
+}
+
+/**
+ * @fn pifLog_InitBufferAlloc
+ * @brief
+ * @param usSize
+ * @return
+ */
+BOOL pifLog_InitBufferAlloc(uint16_t usSize)
+{
+	return pifRingBuffer_InitAlloc(&s_stLog.__stBuffer, usSize);
+}
+
+/**
+ * @fn pifLog_InitBufferShare
+ * @brief
+ * @param usSize
+ * @param pcBuffer
+ */
+void pifLog_InitBufferShare(uint16_t usSize, char *pcBuffer)
+{
+	pifRingBuffer_InitShare(&s_stLog.__stBuffer, usSize, pcBuffer);
 }
 
 #ifndef __PIF_NO_TERMINAL__
@@ -197,24 +205,44 @@ void pifLog_DetachTerminal()
 #endif
 
 /**
+ * @fn pifLog_Enable
+ * @brief
+ */
+void pifLog_Enable()
+{
+	s_stLog.__bEnable = TRUE;
+}
+
+/**
+ * @fn pifLog_Disable
+ * @brief
+ */
+void pifLog_Disable()
+{
+	s_stLog.__bEnable = FALSE;
+}
+
+/**
  * @fn pifLog_Print
  * @brief
  * @param pcString
  */
 void pifLog_Print(char *pcString)
 {
-	if (s_stLog.__pstBuffer) {
-		pifRingBuffer_PushString(s_stLog.__pstBuffer, pcString);
+	if (pifRingBuffer_IsAlloc(&s_stLog.__stBuffer)) {
+		pifRingBuffer_PushString(&s_stLog.__stBuffer, pcString);
 	}
 
+	if (s_stLog.__bEnable) {
 #ifndef __PIF_NO_TERMINAL__
-	if (s_stLog.__pstTerminal) {
-		pifRingBuffer_PushString(&s_stLog.__pstTerminal->stTxBuffer, pcString);
-	}
+		if (s_stLog.__pstTerminal) {
+			pifRingBuffer_PushString(&s_stLog.__pstTerminal->stTxBuffer, pcString);
+		}
 #endif
 
-	if (s_stLog.__actPrint) {
-		(*s_stLog.__actPrint)(pcString);
+		if (s_stLog.__actPrint) {
+			(*s_stLog.__actPrint)(pcString);
+		}
 	}
 }
 
@@ -332,6 +360,25 @@ NEXT_STR:
 	va_end(data);
 
 	pifLog_Print(acTmpBuf);
+}
+
+/**
+ * @fn pifLog_PrintInBuffer
+ * @brief
+ */
+void pifLog_PrintInBuffer()
+{
+	uint8_t pBuffer[128];
+	uint16_t usLength;
+
+	if (!s_stLog.__actPrint || !pifRingBuffer_IsAlloc(&s_stLog.__stBuffer)) return;
+
+	while (!pifRingBuffer_IsEmpty(&s_stLog.__stBuffer)) {
+		usLength = pifRingBuffer_CopyToArray(pBuffer, &s_stLog.__stBuffer, 127);
+		pBuffer[usLength] = 0;
+		(*s_stLog.__actPrint)((char *)pBuffer);
+		pifRingBuffer_Remove(&s_stLog.__stBuffer, usLength);
+	}
 }
 
 /**

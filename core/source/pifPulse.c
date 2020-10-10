@@ -7,7 +7,7 @@
 #define PIF_PULSE_INDEX_NULL   0xFF
 
 
-static PIF_stPulse *s_pstPulseArray;
+static PIF_stPulse *s_pstPulseArray = NULL;
 static uint8_t s_ucPulseArraySize;
 static uint8_t s_ucPulseArrayPos;
 

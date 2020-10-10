@@ -12,10 +12,7 @@
 
 /**
  * @class _PIF_stRingBuffer
- * @author wonjh
- * @date 26/04/20
- * @file pifRingBuffer.h
- * @brief 
+ * @brief 환형 버퍼용 구조체
  */
 typedef struct _PIF_stRingBuffer
 {
@@ -42,6 +39,7 @@ typedef struct _PIF_stRingBuffer
 extern "C" {
 #endif
 
+void pifRingBuffer_Init(PIF_stRingBuffer *pstOwner);
 BOOL pifRingBuffer_InitAlloc(PIF_stRingBuffer *pstOwner, uint16_t usSize);
 void pifRingBuffer_InitShare(PIF_stRingBuffer *pstOwner, uint16_t usSize, char *pcBuffer);
 void pifRingBuffer_Exit(PIF_stRingBuffer *pstOwner);
@@ -50,6 +48,7 @@ void pifRingBuffer_ChopOffNone(PIF_stRingBuffer *pstOwner);
 void pifRingBuffer_ChopOffChar(PIF_stRingBuffer *pstOwner, char cChar);
 void pifRingBuffer_ChopOffLength(PIF_stRingBuffer *pstOwner, uint16_t usLength);
 
+BOOL pifRingBuffer_IsAlloc(PIF_stRingBuffer *pstOwner);
 BOOL pifRingBuffer_IsEmpty(PIF_stRingBuffer *pstOwner);
 
 uint16_t pifRingBuffer_GetFillSize(PIF_stRingBuffer *pstOwner);

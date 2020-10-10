@@ -9,7 +9,7 @@
 #define TASK_TABLE_MASK		(TASK_TABLE_SIZE - 1)
 
 
-static PIF_stTask *s_pstTaskArray;
+static PIF_stTask *s_pstTaskArray = NULL;
 static uint8_t s_ucTaskArraySize;
 static uint8_t s_ucTaskArrayPos;
 

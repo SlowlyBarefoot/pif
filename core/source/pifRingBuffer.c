@@ -4,13 +4,6 @@
 #include "pifRingBuffer.h"
 
 
-/**
- * @fn _ChopOff
- * @brief
- * @param pstOwner
- * @param usAlloc
- * @return
- */
 static BOOL _ChopOff(PIF_stRingBuffer *pstOwner, uint16_t usAlloc)
 {
 	uint16_t usLength = pifRingBuffer_GetFillSize(pstOwner);
@@ -55,6 +48,18 @@ static BOOL _ChopOff(PIF_stRingBuffer *pstOwner, uint16_t usAlloc)
 /**
  * @fn pifRingBuffer_InitAlloc
  * @brief 
+ * @param pstOwner
+ */
+void pifRingBuffer_Init(PIF_stRingBuffer *pstOwner)
+{
+	pstOwner->__pcBuffer = NULL;
+	pstOwner->__usHead = 0;
+	pstOwner->__usTail = 0;
+}
+
+/**
+ * @fn pifRingBuffer_InitAlloc
+ * @brief
  * @param pstOwner
  * @param usSize
  * @return 
@@ -145,6 +150,17 @@ void pifRingBuffer_ChopsOffLength(PIF_stRingBuffer *pstOwner, uint16_t usLength)
 {
 	pstOwner->btChopOff = RB_CHOP_OFF_LENGTH;
 	pstOwner->__usChopOffLength = usLength;
+}
+
+/**
+ * @fn pifRingBuffer_IsAlloc
+ * @brief
+ * @param pstOwner
+ * @return
+ */
+BOOL pifRingBuffer_IsAlloc(PIF_stRingBuffer *pstOwner)
+{
+	return pstOwner->__pcBuffer != NULL;
 }
 
 /**
