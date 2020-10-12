@@ -44,6 +44,9 @@ typedef struct _PIF_stLog
 extern "C" {
 #endif
 
+void pifLog_Init();
+void pifLog_Exit();
+
 BOOL pifLog_InitBufferAlloc(uint16_t usSize);
 void pifLog_InitBufferShare(uint16_t usSize, char *pcBuffer);
 
