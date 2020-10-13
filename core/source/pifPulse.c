@@ -124,7 +124,7 @@ PIF_stPulse *pifPulse_Add(uint8_t ucSize)
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Pulse:Add(SZ:%u SC:%u) EC:%d", ucSize, unScale, pif_enError);
+	pifLog_Printf(LT_enError, "Pulse:Add(SZ:%u) EC:%d", ucSize, pif_enError);
 #endif
     return NULL;
 }
