@@ -53,7 +53,6 @@ typedef struct _PIF_stPulseItem
 typedef struct _PIF_stPulse
 {
 	// Public Member Variable
-    uint32_t unScale;
 
 	// Private Member Variable
 	uint8_t __ucArrayIndex;
@@ -73,7 +72,7 @@ extern "C" {
 BOOL pifPulse_Init(uint8_t ucSize);
 void pifPulse_Exit();
 
-PIF_stPulse *pifPulse_Add(uint8_t ucSize, uint32_t unScale);
+PIF_stPulse *pifPulse_Add(uint8_t ucSize);
 
 PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType);
 void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstPulseItem);

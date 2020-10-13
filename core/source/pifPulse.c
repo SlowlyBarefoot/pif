@@ -86,12 +86,11 @@ void pifPulse_Exit()
  * @fn pifPulse_Add
  * @brief Pulse를 추가한다.
  * @param ucSize Pulse 항목 크기
- * @param unScale 측정되는 Pulse 단위와 함수에 전달되는 파라메터의 단위가 다를 경우에 사용한다. 보통은 1을 사용한다.
  * @return Pulse 구조체 포인터를 반환한다.
  */
-PIF_stPulse *pifPulse_Add(uint8_t ucSize, uint32_t unScale)
+PIF_stPulse *pifPulse_Add(uint8_t ucSize)
 {
-    if (ucSize >= PIF_PULSE_INDEX_NULL || !unScale) {
+    if (ucSize >= PIF_PULSE_INDEX_NULL) {
 		pif_enError = E_enInvalidParam;
 		goto fail;
 	}
@@ -108,7 +107,6 @@ PIF_stPulse *pifPulse_Add(uint8_t ucSize, uint32_t unScale)
         goto fail;
     }
 
-    pstOwner->unScale = unScale;
     pstOwner->__ucArrayIndex = s_ucPulseArrayPos;
     pstOwner->__ucItemSize = ucSize;
 
@@ -225,7 +223,7 @@ BOOL pifPulse_StartItem(PIF_stPulseItem *pstPulseItem, uint32_t unPulse)
     	pstPulseItem->__enStep = PS_enRunning;
     	pstPulseItem->__bEvent = FALSE;
     }
-    pstPulseItem->__unValue = unPulse / s_pstPulseArray[pstPulseItem->__ucArrayIndex].unScale;
+    pstPulseItem->__unValue = unPulse;
     pstPulseItem->__unPulse = pstPulseItem->__unValue;
     return TRUE;
 
@@ -280,7 +278,7 @@ void pifPulse_RestartItem(PIF_stPulseItem *pstPulseItem)
  */
 void pifPulse_ResetItem(PIF_stPulseItem *pstPulseItem, uint32_t unPulse)
 {
-	pstPulseItem->__unValue = unPulse / s_pstPulseArray[pstPulseItem->__ucArrayIndex].unScale;
+	pstPulseItem->__unValue = unPulse;
 }
 
 /**
