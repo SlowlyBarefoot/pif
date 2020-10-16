@@ -246,31 +246,6 @@ void pifPulse_StopItem(PIF_stPulseItem *pstPulseItem)
 }
 
 /**
- * @fn pifPulse_PauseItem
- * @brief Pulse 항목을 일시정지한다.
- * @param pstPulseItem Pulse 항목 포인터
- * @return 성공 여부
- */
-BOOL pifPulse_PauseItem(PIF_stPulseItem *pstPulseItem)
-{
-    if (pstPulseItem->__enStep == PS_enRunning) {
-    	pstPulseItem->__enStep = PS_enPause;
-    	return TRUE;
-    }
-    return FALSE;
-}
-
-/**
- * @fn pifPulse_RestartItem
- * @brief Pulse 항목을 재개한다.
- * @param pstPulseItem Pulse 항목 포인터
- */
-void pifPulse_RestartItem(PIF_stPulseItem *pstPulseItem)
-{
-	pstPulseItem->__enStep = PS_enRunning;
-}
-
-/**
  * @fn pifPulse_ResetItem
  * @brief Pulse 항목의 이동 pulse를 재설정한다.
  * @param pstPulseItem Pulse 항목 포인터
@@ -332,20 +307,18 @@ void pifPulse_sigTick(PIF_stPulse *pstOwner)
     while (index != PIF_PULSE_INDEX_NULL) {
         pstPulseItem = &pstOwner->__pstItems[index];
 
-        if (pstPulseItem->__enStep != PS_enPause) {
-			if (pstPulseItem->__unPulse) {
-				pstPulseItem->__unPulse--;
-				if (!pstPulseItem->__unPulse) {
-					if (pstPulseItem->enType == PT_enRepeat) {
-						pstPulseItem->__unPulse = pstPulseItem->__unValue;
-					}
-					else {
-						pstPulseItem->__enStep = PS_enStop;
-					}
-					pstPulseItem->__bEvent = TRUE;
+		if (pstPulseItem->__unPulse) {
+			pstPulseItem->__unPulse--;
+			if (!pstPulseItem->__unPulse) {
+				if (pstPulseItem->enType == PT_enRepeat) {
+					pstPulseItem->__unPulse = pstPulseItem->__unValue;
 				}
+				else {
+					pstPulseItem->__enStep = PS_enStop;
+				}
+				pstPulseItem->__bEvent = TRUE;
 			}
-        }
+		}
 
         index = pstPulseItem->__unNext;
     }

@@ -17,8 +17,7 @@ typedef enum _PIF_enPulseStep
 {
     PS_enStop		= 0,
     PS_enRunning	= 1,
-	PS_enPause		= 2,
-    PS_enRemove		= 3
+    PS_enRemove		= 2
 } PIF_enPulseStep;
 
 /**
@@ -79,8 +78,6 @@ void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstPulseItem);
 
 BOOL pifPulse_StartItem(PIF_stPulseItem *pstPulseItem, uint32_t unPulse);
 void pifPulse_StopItem(PIF_stPulseItem *pstPulseItem);
-BOOL pifPulse_PauseItem(PIF_stPulseItem *pstPulseItem);
-void pifPulse_RestartItem(PIF_stPulseItem *pstPulseItem);
 void pifPulse_ResetItem(PIF_stPulseItem *pstPulseItem, uint32_t unPulse);
 
 PIF_enPulseStep pifPulse_GetStep(PIF_stPulseItem *pstPulseItem);
