@@ -2,7 +2,7 @@
 #include "pifSolenoid.h"
 
 
-static PIF_stSolenoid *s_pstSolenoidArray;
+static PIF_stSolenoid *s_pstSolenoidArray = NULL;
 static uint8_t s_ucSolenoidArraySize;
 static uint8_t s_ucSolenoidArrayPos;
 
