@@ -280,7 +280,7 @@ BOOL pifRingBuffer_PushData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16
     	}
     }
 
-    for (int i = 0; i < usLength; i++) {
+    for (uint16_t i = 0; i < usLength; i++) {
     	pstOwner->__pcBuffer[pstOwner->__usHead] = pucData[i];
     	pstOwner->__usHead++;
     	if (pstOwner->__usHead >= pstOwner->usSize) pstOwner->__usHead = 0;
@@ -311,7 +311,7 @@ BOOL pifRingBuffer_PushString(PIF_stRingBuffer *pstOwner, char *pcString)
     	}
     }
 
-    for (int i = 0; i < usLength; i++) {
+    for (uint16_t i = 0; i < usLength; i++) {
     	pstOwner->__pcBuffer[pstOwner->__usHead] = pcString[i];
     	pstOwner->__usHead++;
     	if (pstOwner->__usHead >= pstOwner->usSize) pstOwner->__usHead = 0;
@@ -352,7 +352,7 @@ uint16_t pifRingBuffer_CopyToArray(uint8_t *pucDst, PIF_stRingBuffer *pstSrc, ui
 {
 	uint16_t usTail = pstSrc->__usTail;
 
-	for (int i = 0; i < usCount; i++) {
+	for (uint16_t i = 0; i < usCount; i++) {
 		pucDst[i] = pstSrc->__pcBuffer[usTail];
 		usTail++;
 		if (usTail >= pstSrc->usSize) usTail = 0;
@@ -375,7 +375,7 @@ uint16_t pifRingBuffer_CopyAll(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSr
 	uint16_t usLength = usRemain < usFill ? usRemain : usFill;
 
 	uint16_t usTail = pstSrc->__usTail;
-	for (int i = 0; i < usLength; i++) {
+	for (uint16_t i = 0; i < usLength; i++) {
 		pifRingBuffer_PushByte(pstDst, pstSrc->__pcBuffer[usTail]);
 		usTail++;
 		if (usTail >= pstSrc->usSize) usTail = 0;

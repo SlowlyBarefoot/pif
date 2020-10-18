@@ -11,14 +11,7 @@
 #include "pifLog.h"
 
 
-static PIF_stLog s_stLog = {
-		TRUE,
-		NULL,
-#ifndef __PIF_NO_TERMINAL__
-		NULL,
-#endif
-		NULL
-};
+static PIF_stLog s_stLog;
 
 const char *c_apcHexChar[2] = {
 		"0123456789abcdef",
@@ -28,7 +21,7 @@ const char *c_apcHexChar[2] = {
 
 static int _DecToAscii(char *pcBuf, uint32_t unVal, uint16_t usStrCnt)
 {
-    int16_t sExpCnt = 0;
+    uint16_t usExpCnt = 0;
     uint16_t usZeroStrCnt = 0;
     int nIdx = 0;
     uint32_t unIdxInv = 0;
@@ -38,7 +31,7 @@ static int _DecToAscii(char *pcBuf, uint32_t unVal, uint16_t usStrCnt)
     unTmpVal = unVal;
     if (unTmpVal != 0) {
         while (unTmpVal) {
-            sExpCnt++;
+        	usExpCnt++;
             if (unTmpVal >= 10) {
                 acInvBuf[unIdxInv++] = (unTmpVal % 10) + '0';
             }
@@ -49,8 +42,8 @@ static int _DecToAscii(char *pcBuf, uint32_t unVal, uint16_t usStrCnt)
             unTmpVal = unTmpVal / 10;
         }
 
-        if ((usStrCnt != 0) && (sExpCnt < usStrCnt)) {
-            usZeroStrCnt = usStrCnt - sExpCnt;
+        if ((usStrCnt != 0) && (usExpCnt < usStrCnt)) {
+            usZeroStrCnt = usStrCnt - usExpCnt;
             while (usZeroStrCnt) {
             	pcBuf[nIdx++] = '0';
                 usZeroStrCnt--;
@@ -102,7 +95,7 @@ static int _HexToAscii(char *pcBuf, uint32_t unVal, uint16_t usStrCnt, BOOL bUpp
 
 static int _FloatToAscii(char *pcBuf, double dNum, uint16_t usPoint)
 {
-	int i, nIdx = 0;
+	uint16_t i, nIdx = 0;
 	uint32_t unNum;
 
 	if (dNum < 0.0) {
@@ -147,7 +140,12 @@ static void _PrintTime()
  */
 void pifLog_Init()
 {
+	s_stLog.__bEnable = TRUE;
 	pifRingBuffer_Init(&s_stLog.__stBuffer);
+#ifndef __PIF_NO_TERMINAL__
+	s_stLog.__pstTerminal = NULL;
+#endif
+	s_stLog.__actPrint = NULL;
 }
 
 /**
@@ -254,12 +252,16 @@ void pifLog_Print(char *pcString)
 void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
 {
 	va_list data;
-	uint32_t unVal;
-	int32_t nSignVal;
-	uint16_t usNumStrCnt = 0;
+	unsigned int unVal;
+	int nSignVal;
+	unsigned long unLongVal;
+	long nSignLongVal;
+	uint16_t usNumStrCnt;
+	BOOL bLong;
 	char *pcVarStr;
     const char *pcStr;
 	int nOffset = 0;
+	float fVal;
 	double dVal;
     static char acTmpBuf[128];
     static int nMinute = -1;
@@ -286,6 +288,7 @@ void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
 	while (*pcStr) {
         if (*pcStr == '%') {
             usNumStrCnt = 0;
+        	bLong = FALSE;
 NEXT_STR:
             pcStr = pcStr + 1;
             switch(*pcStr) {
@@ -305,34 +308,72 @@ NEXT_STR:
                     usNumStrCnt += *pcStr - '0';
                     goto NEXT_STR;
 
+                case 'l':
+					bLong = TRUE;
+					goto NEXT_STR;
+
                 case 'd':
                 case 'i':
-        			nSignVal = va_arg(data, int32_t);
-        			if (nSignVal < 0) {
-        			    acTmpBuf[nOffset++] = '-';
-            			nSignVal *= -1;
-        			}
-        			nOffset += _DecToAscii(acTmpBuf + nOffset, (uint32_t)nSignVal, usNumStrCnt);
+                	if (bLong) {
+            			nSignLongVal = va_arg(data, long);
+            			if (nSignLongVal < 0) {
+            			    acTmpBuf[nOffset++] = '-';
+            			    nSignLongVal *= -1;
+            			}
+            			nOffset += _DecToAscii(acTmpBuf + nOffset, nSignLongVal, usNumStrCnt);
+                	}
+                	else {
+            			nSignVal = va_arg(data, int);
+            			if (nSignVal < 0) {
+            			    acTmpBuf[nOffset++] = '-';
+                			nSignVal *= -1;
+            			}
+            			nOffset += _DecToAscii(acTmpBuf + nOffset, nSignVal, usNumStrCnt);
+                	}
                     break;
 
                 case 'u':
-        			unVal = va_arg(data, uint32_t);
-        			nOffset += _DecToAscii(acTmpBuf + nOffset, unVal, usNumStrCnt);
+                	if (bLong) {
+						unLongVal = va_arg(data, unsigned long);
+						nOffset += _DecToAscii(acTmpBuf + nOffset, unLongVal, usNumStrCnt);
+                	}
+                	else {
+						unVal = va_arg(data, unsigned int);
+						nOffset += _DecToAscii(acTmpBuf + nOffset, unVal, usNumStrCnt);
+                	}
                     break;
 
                 case 'x':
-        			unVal = va_arg(data, uint32_t);
-        			nOffset += _HexToAscii(acTmpBuf + nOffset, unVal, usNumStrCnt, FALSE);
+                	if (bLong) {
+                		unLongVal = va_arg(data, unsigned long);
+						nOffset += _HexToAscii(acTmpBuf + nOffset, unLongVal, usNumStrCnt, FALSE);
+                	}
+                	else {
+						unVal = va_arg(data, unsigned int);
+						nOffset += _HexToAscii(acTmpBuf + nOffset, unVal, usNumStrCnt, FALSE);
+                	}
                     break;
 
                 case 'X':
-        			unVal = va_arg(data, uint32_t);
-        			nOffset += _HexToAscii(acTmpBuf + nOffset, unVal, usNumStrCnt, TRUE);
+                	if (bLong) {
+                		unLongVal = va_arg(data, unsigned long);
+                		nOffset += _HexToAscii(acTmpBuf + nOffset, unLongVal, usNumStrCnt, TRUE);
+                	}
+                	else {
+                		unVal = va_arg(data, unsigned int);
+                		nOffset += _HexToAscii(acTmpBuf + nOffset, unVal, usNumStrCnt, TRUE);
+                	}
                     break;
 
                 case 'f':
-        			dVal = va_arg(data, double);
-        			nOffset += _FloatToAscii(acTmpBuf + nOffset, dVal, usNumStrCnt);
+                	if (bLong) {
+						dVal = va_arg(data, double);
+						nOffset += _FloatToAscii(acTmpBuf + nOffset, dVal, usNumStrCnt);
+                	}
+                	else {
+						fVal = va_arg(data, double);
+						nOffset += _FloatToAscii(acTmpBuf + nOffset, fVal, usNumStrCnt);
+                	}
                     break;
 
                 case 's':
