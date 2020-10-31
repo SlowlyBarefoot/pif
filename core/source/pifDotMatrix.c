@@ -2,7 +2,7 @@
 #include "pifLog.h"
 
 
-static PIF_stDotMatrix *s_pstDotMatrixArray;
+static PIF_stDotMatrix *s_pstDotMatrixArray = NULL;
 static uint8_t s_ucDotMatrixArraySize;
 static uint8_t s_ucDotMatrixArrayPos;
 

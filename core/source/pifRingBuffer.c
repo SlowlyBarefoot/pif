@@ -429,7 +429,7 @@ void pifRingBuffer_Remove(PIF_stRingBuffer *pstOwner, uint16_t usSize)
 {
 	uint16_t usFill = pifRingBuffer_GetFillSize(pstOwner);
 
-	if (usSize > usFill) {
+	if (usSize >= usFill) {
 		pstOwner->__usTail = pstOwner->__usHead;
 	}
 	else {

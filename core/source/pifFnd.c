@@ -2,7 +2,7 @@
 #include "pifLog.h"
 
 
-static PIF_stFnd *s_pstFndArray;
+static PIF_stFnd *s_pstFndArray = NULL;
 static uint8_t s_ucFndArraySize;
 static uint8_t s_ucFndArrayPos;
 
