@@ -736,7 +736,7 @@ void pifDotMatrix_LoopAll(PIF_stTask *pstTask)
  */
 void pifDotMatrix_LoopEach(PIF_stTask *pstTask)
 {
-	PIF_stDotMatrix *pstOwner = pstTask->pvOwner;
+	PIF_stDotMatrix *pstOwner = pstTask->__pvOwner;
 
 	if (pstTask->__bTaskLoop) {
 		pstOwner->__enTaskLoop = TL_enEach;

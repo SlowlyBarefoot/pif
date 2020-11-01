@@ -259,7 +259,7 @@ void pifSwitch_LoopAll(PIF_stTask *pstTask)
  */
 void pifSwitch_LoopEach(PIF_stTask *pstTask)
 {
-	PIF_stSwitch *pstOwner = pstTask->pvOwner;
+	PIF_stSwitch *pstOwner = pstTask->__pvOwner;
 
 	if (pstTask->__bTaskLoop) {
 		pstOwner->__enTaskLoop = TL_enEach;

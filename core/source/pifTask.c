@@ -61,14 +61,14 @@ void pifTask_Exit()
 }
 
 /**
- * @fn pifTask_Add
+ * @fn pifTask_AddRatio
  * @brief Task를 추가한다.
  * @param ucRatio Task 동작 속도(1% ~ 100%) 높을수록 빠르다.
  * @param evtLoop Task 함수
  * @param pvOwner 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvOwner)
+PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvOwner)
 {
 	static int base = 0;
 	
@@ -84,12 +84,13 @@ PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvOwner)
 
     PIF_stTask *pstOwner = &s_pstTaskArray[s_ucTaskArrayPos];
 
+    pstOwner->enMode = TM_enRatio;
     pstOwner->ucId = s_ucId++;
     pstOwner->ucRatio = ucRatio;
     pstOwner->__ucArrayIndex = s_ucTaskArrayPos;
     pstOwner->__unCount = 0;
     pstOwner->__evtLoop = evtLoop;
-    pstOwner->pvOwner = pvOwner;
+    pstOwner->__pvOwner = pvOwner;
 
 	int count = TASK_TABLE_SIZE * ucRatio / 101;
 	int gap = TASK_TABLE_SIZE - count;
@@ -111,7 +112,53 @@ PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvOwner)
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Task:Add(R:%u) EC:%d", ucRatio, pif_enError);
+	pifLog_Printf(LT_enError, "Task:AddRatio(R:%u) EC:%d", ucRatio, pif_enError);
+#endif
+    return NULL;
+}
+
+/**
+ * @fn pifTask_AddPeriod
+ * @brief Task를 추가한다.
+ * @param usPeriodMs Task 주기를 설정한다. 단위는 1ms.
+ * @param evtLoop Task 함수
+ * @param pvOwner 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @return Task 구조체 포인터를 반환한다.
+ */
+PIF_stTask *pifTask_AddPeriod(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvOwner)
+{
+	if (!usPeriodMs || !evtLoop) {
+        pif_enError = E_enInvalidParam;
+        goto fail;
+	}
+
+    if (s_ucTaskArrayPos >= s_ucTaskArraySize) {
+        pif_enError = E_enOverflowBuffer;
+        goto fail;
+    }
+
+    PIF_stTask *pstOwner = &s_pstTaskArray[s_ucTaskArrayPos];
+
+    pstOwner->enMode = TM_enPeriod;
+    pstOwner->ucId = s_ucId++;
+    pstOwner->usPeriodMs = usPeriodMs;
+    pstOwner->__ucArrayIndex = s_ucTaskArrayPos;
+    pstOwner->__unCount = 0;
+    pstOwner->__evtLoop = evtLoop;
+    pstOwner->__pvOwner = pvOwner;
+
+	if (pvOwner) {
+		pstOwner->__bTaskLoop = TRUE;
+		(*evtLoop)(pstOwner);
+		pstOwner->__bTaskLoop = FALSE;
+	}
+
+    s_ucTaskArrayPos = s_ucTaskArrayPos + 1;
+    return pstOwner;
+
+fail:
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_enError, "Task:AddPeriod(P:%u) EC:%d", usPeriodMs, pif_enError);
 #endif
     return NULL;
 }
@@ -154,20 +201,31 @@ void pifTask_Restart(PIF_stTask *pstOwner)
 void pifTask_Loop()
 {
 	PIF_stTask *pstOwner;
-	uint32_t unTime = pif_unTimer1sec;
+	uint32_t unTime;
 	static uint8_t ucNumber = 0;
 
 	for (int i = 0; i < s_ucTaskArrayPos; i++) {
 		pstOwner = &s_pstTaskArray[i];
-		if (!pstOwner->__bPause && (s_aunTable[ucNumber] & (1 << i))) {
-			if (unTime != pstOwner->__unPretime) {
-				pstOwner->__fPeriod = 1000000.0 / pstOwner->__unCount;
-				pstOwner->usPeriodUs = pstOwner->__fPeriod + 0.5;
-				pstOwner->__unCount = 0;
+		if (pstOwner->__bPause) continue;
+
+		if (!pstOwner->enMode) {
+			if (s_aunTable[ucNumber] & (1 << i)) {
+				unTime = pif_unTimer1sec;
+				if (unTime != pstOwner->__unPretime) {
+					pstOwner->__fPeriod = 1000000.0 / pstOwner->__unCount;
+					pstOwner->__unCount = 0;
+					pstOwner->__unPretime = unTime;
+				}
+				(*pstOwner->__evtLoop)(pstOwner);
+				pstOwner->__unCount++;
+			}
+		}
+		else {
+			unTime = pif_unTimer1sec * 1000 + pif_usTimer1ms;
+			if (unTime - pstOwner->__unPretime > pstOwner->usPeriodMs) {
+				(*pstOwner->__evtLoop)(pstOwner);
 				pstOwner->__unPretime = unTime;
 			}
-			(*pstOwner->__evtLoop)(pstOwner);
-			pstOwner->__unCount++;
 		}
 	}
 

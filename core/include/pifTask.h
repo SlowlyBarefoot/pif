@@ -5,6 +5,12 @@
 #include "pif.h"
 
 
+typedef enum _PIF_enTaskMode
+{
+	TM_enRatio	= 0,
+	TM_enPeriod	= 1
+} PIF_enTaskMode;
+
 typedef enum _PIF_enTaskLoop
 {
 	TL_enAll	= 0,
@@ -25,11 +31,11 @@ typedef void (*PIF_evtTaskLoop)(PIF_stTask *pstTask);
 struct _PIF_stTask
 {
 	// Public Member Variable
+	PIF_enTaskMode enMode;
 	const char *pcName;
 	uint8_t ucId;
 	uint8_t ucRatio;
-	uint16_t usPeriodUs;
-	void *pvOwner;
+	uint16_t usPeriodMs;
 
 	// Private Member Variable
 	uint8_t __ucArrayIndex;
@@ -38,6 +44,7 @@ struct _PIF_stTask
 	uint32_t __unPretime;
 	uint32_t __unCount;
 	float __fPeriod;
+	void *__pvOwner;
 
 	// Private Member Function
 	PIF_evtTaskLoop __evtLoop;
@@ -51,7 +58,8 @@ extern "C" {
 BOOL pifTask_Init(uint8_t ucSize);
 void pifTask_Exit();
 
-PIF_stTask *pifTask_Add(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvOwner);
+PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvOwner);
+PIF_stTask *pifTask_AddPeriod(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvOwner);
 
 void pifTask_SetName(PIF_stTask *pstOwner, const char *pcName);
 

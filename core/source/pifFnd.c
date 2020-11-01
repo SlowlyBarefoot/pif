@@ -588,7 +588,7 @@ void pifFnd_LoopAll(PIF_stTask *pstTask)
  */
 void pifFnd_LoopEach(PIF_stTask *pstTask)
 {
-	PIF_stFnd *pstOwner = pstTask->pvOwner;
+	PIF_stFnd *pstOwner = pstTask->__pvOwner;
 
 	if (pstTask->__bTaskLoop) {
 		pstOwner->__enTaskLoop = TL_enEach;

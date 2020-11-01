@@ -359,7 +359,7 @@ void pifPulse_LoopAll(PIF_stTask *pstTask)
  */
 void pifPulse_LoopEach(PIF_stTask *pstTask)
 {
-	PIF_stPulse *pstOwner = pstTask->pvOwner;
+	PIF_stPulse *pstOwner = pstTask->__pvOwner;
 
 	if (pstTask->__bTaskLoop) {
 		pstOwner->__enTaskLoop = TL_enEach;
