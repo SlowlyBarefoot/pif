@@ -16,7 +16,7 @@ typedef struct _PIF_stSwitch PIF_stSwitch;
 struct _PIF_stSwitchFilter;
 typedef struct _PIF_stSwitchFilter PIF_stSwitchFilter;
 
-typedef SWITCH (*PIF_actSwitchReceive)(PIF_stSwitch *pstOwner);
+typedef SWITCH (*PIF_actSwitchAcquire)(PIF_stSwitch *pstOwner);
 typedef void (*PIF_evtSwitchChange)(PIF_stSwitch *pstOwner);
 typedef SWITCH (*PIF_evtSwitchFilter)(SWITCH swState, PIF_stSwitchFilter *pstOwner);
 
@@ -50,7 +50,7 @@ typedef struct _PIF_stSwitch
     SWITCH swCurrState;							// Default: enInitState
 
 	// Public Action Function
-	PIF_actSwitchReceive actReceive;			// Default: NULL
+	PIF_actSwitchAcquire actAcquire;			// Default: NULL
 
 	// Public Event Function
     PIF_evtSwitchChange evtChange;				// Default: NULL

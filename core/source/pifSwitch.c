@@ -61,8 +61,8 @@ static SWITCH _FilterContinue(SWITCH swState, PIF_stSwitchFilter *pstOwner)
 
 static void _LoopCommon(PIF_stSwitch *pstOwner)
 {
-	if (pstOwner->actReceive) {
-		pifSwitch_sigData(pstOwner, (*pstOwner->actReceive)(pstOwner));
+	if (pstOwner->actAcquire) {
+		pifSwitch_sigData(pstOwner, (*pstOwner->actAcquire)(pstOwner));
 	}
 
 	if (pstOwner->swCurrState != pstOwner->__swPrevState) {
