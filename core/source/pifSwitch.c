@@ -67,7 +67,7 @@ static void _LoopCommon(PIF_stSwitch *pstOwner)
 
 	if (pstOwner->swCurrState != pstOwner->__swPrevState) {
 		if (pstOwner->evtChange) {
-			(*pstOwner->evtChange)(pstOwner);
+			(*pstOwner->evtChange)(pstOwner->unDeviceCode, pstOwner->swCurrState);
 		}
 		pstOwner->__swPrevState = pstOwner->swCurrState;
 	}

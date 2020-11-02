@@ -10,14 +10,11 @@
 #define PIF_SWITCH_FILTER_CONTINUE	2
 
 
-struct _PIF_stSwitch;
-typedef struct _PIF_stSwitch PIF_stSwitch;
-
 struct _PIF_stSwitchFilter;
 typedef struct _PIF_stSwitchFilter PIF_stSwitchFilter;
 
-typedef SWITCH (*PIF_actSwitchAcquire)(PIF_stSwitch *pstOwner);
-typedef void (*PIF_evtSwitchChange)(PIF_stSwitch *pstOwner);
+typedef SWITCH (*PIF_actSwitchAcquire)(PIF_unDeviceCode unDeviceCode);
+typedef void (*PIF_evtSwitchChange)(PIF_unDeviceCode unDeviceCode, SWITCH swState);
 typedef SWITCH (*PIF_evtSwitchFilter)(SWITCH swState, PIF_stSwitchFilter *pstOwner);
 
 
@@ -25,7 +22,7 @@ typedef SWITCH (*PIF_evtSwitchFilter)(SWITCH swState, PIF_stSwitchFilter *pstOwn
  * @class _PIF_stSwitchFilter
  * @brief 
  */
-typedef struct _PIF_stSwitchFilter
+struct _PIF_stSwitchFilter
 {
     uint8_t ucSize;
     uint8_t ucHalf;
@@ -35,7 +32,7 @@ typedef struct _PIF_stSwitchFilter
     void *pvParam;
 
 	PIF_evtSwitchFilter evtFilter;
-} PIF_stSwitchFilter;
+};
 
 /**
  * @class _PIF_stSwitch
