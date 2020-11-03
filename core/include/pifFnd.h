@@ -8,19 +8,7 @@
 #define IDPF_FND_CONTROL_PERIOD_DEFAULT		25
 
 
-typedef void (*PIF_actFndDisplaySingle)(uint8_t ucSegment, uint8_t ucDigit, uint8_t ucColor);
-typedef void (*PIF_actFndDisplayMulti)(uint8_t ucPosition, uint8_t ucSegment, uint8_t ucDigit, uint8_t ucColor);
-
-/**
- * @class _PIF_stFndMulti
- * @brief
- */
-typedef struct _PIF_stFndMulti
-{
-	uint8_t ucDigitSize;
-	uint8_t ucDigitPosition;
-	uint8_t ucDigitIndex;
-} PIF_stFndMulti;
+typedef void (*PIF_actFndDisplay)(uint8_t ucSegment, uint8_t ucDigit, uint8_t ucColor);
 
 /**
  * @class _PIF_stFnd
@@ -43,7 +31,6 @@ typedef struct _PIF_stFnd
 	// Private Member Variable
     uint16_t __usControlPeriodMs;
 	uint16_t __usPretimeMs;
-    PIF_stFndMulti *__pstMulti;
 	uint8_t __ucDigitIndex;
 	uint8_t __ucStringSize;
     char *__pcString;
@@ -52,10 +39,7 @@ typedef struct _PIF_stFnd
 	PIF_enTaskLoop __enTaskLoop;
 
 	// Private Member Function
-    union {
-    	PIF_actFndDisplaySingle __actDisplaySingle;
-    	PIF_actFndDisplayMulti __actDisplayMulti;
-    };
+   	PIF_actFndDisplay __actDisplay;
 } PIF_stFnd;
 
 
@@ -66,10 +50,7 @@ extern "C" {
 BOOL pifFnd_Init(PIF_stPulse *pstTimer1ms, uint8_t ucSize);
 void pifFnd_Exit();
 
-PIF_stFnd *pifFnd_AddSingle(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, uint8_t ucStringSize,
-		PIF_actFndDisplaySingle actDisplay);
-PIF_stFnd *pifFnd_AddMulti(PIF_unDeviceCode unDeviceCode, uint8_t ucFndCount, uint8_t *pucDigitSize,
-		uint8_t ucStringSize, PIF_actFndDisplayMulti actDisplay);
+PIF_stFnd *pifFnd_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, uint8_t ucStringSize,	PIF_actFndDisplay actDisplay);
 
 BOOL pifFnd_SetControlPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs);
 

@@ -28,7 +28,7 @@ const uint8_t c_aucFndAscii[] = {
 };
 
 
-static void _TimerDisplaySingleFinish(PIF_stFnd *pstOwner)
+static void _TimerDisplayFinish(PIF_stFnd *pstOwner)
 {
 	uint8_t ch, seg;
 
@@ -40,38 +40,13 @@ static void _TimerDisplaySingleFinish(PIF_stFnd *pstOwner)
 		else {
 			seg = c_aucFndAscii[ch - 0x20];
 		}
-		(*pstOwner->__actDisplaySingle)(seg, 1 << pstOwner->__ucDigitIndex, pstOwner->btColor);
+		(*pstOwner->__actDisplay)(seg, 1 << pstOwner->__ucDigitIndex, pstOwner->btColor);
 	}
 	else {
-		(*pstOwner->__actDisplaySingle)(0, 1 << pstOwner->__ucDigitIndex, 0);
+		(*pstOwner->__actDisplay)(0, 1 << pstOwner->__ucDigitIndex, 0);
 	}
 	pstOwner->__ucDigitIndex++;
 	if (pstOwner->__ucDigitIndex >= pstOwner->ucDigitSize) pstOwner->__ucDigitIndex = 0;
-}
-
-static void _TimerDisplayMultiFinish(PIF_stFnd *pstOwner)
-{
-	uint8_t ch, seg;
-
-    for (int i = 0; i < pstOwner->ucFndCount; i++) {
-    	uint8_t *pucIndex = &pstOwner->__pstMulti[i].ucDigitIndex;
-    	uint8_t index = pstOwner->__pstMulti[i].ucDigitPosition + *pucIndex;
-		if (!pstOwner->btBlink) {
-			ch = pstOwner->__pcString[index];
-			if (ch & 0x80) {
-				seg = c_aucFndAscii[ch - 0xA0] | 0x80;
-			}
-			else {
-				seg = c_aucFndAscii[ch - 0x20];
-			}
-			(*pstOwner->__actDisplayMulti)(i, seg, 1 << *pucIndex, pstOwner->btColor);
-		}
-		else {
-			(*pstOwner->__actDisplayMulti)(i, 0, 1 << *pucIndex, 0);
-		}
-		(*pucIndex)++;
-		if (*pucIndex >= pstOwner->__pstMulti[i].ucDigitSize) *pucIndex = 0;
-    }
 }
 
 static void _TimerBlinkFinish(void *pvIssuer)
@@ -97,12 +72,7 @@ static void _LoopCommon(PIF_stFnd *pstOwner)
 	}
 	else return;
 
-	if (pstOwner->__pstMulti) {
-		_TimerDisplayMultiFinish(pstOwner);
-	}
-	else {
-		_TimerDisplaySingleFinish(pstOwner);
-	}
+	_TimerDisplayFinish(pstOwner);
 
 	pstOwner->__usPretimeMs = pif_usTimer1ms;
 }
@@ -153,10 +123,6 @@ void pifFnd_Exit()
     			free(pstOwner->__pcString);
     			pstOwner->__pcString = NULL;
     		}
-    		if (pstOwner->__pstMulti) {
-    			free(pstOwner->__pstMulti);
-    			pstOwner->__pstMulti = NULL;
-    		}
     	}
     	free(s_pstFndArray);
         s_pstFndArray = NULL;
@@ -164,7 +130,7 @@ void pifFnd_Exit()
 }
 
 /**
- * @fn pifFnd_AddSingle
+ * @fn pifFnd_Add
  * @brief
  * @param unDeviceCode
  * @param ucDigitSize
@@ -172,8 +138,7 @@ void pifFnd_Exit()
  * @param actDisplay
  * @return
  */
-PIF_stFnd *pifFnd_AddSingle(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, uint8_t ucStringSize,
-		PIF_actFndDisplaySingle actDisplay)
+PIF_stFnd *pifFnd_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, uint8_t ucStringSize,	PIF_actFndDisplay actDisplay)
 {
     if (s_ucFndArrayPos >= s_ucFndArraySize) {
         pif_enError = E_enOverflowBuffer;
@@ -198,7 +163,7 @@ PIF_stFnd *pifFnd_AddSingle(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, 
     pstOwner->unDeviceCode = unDeviceCode;
     pstOwner->__usControlPeriodMs = IDPF_FND_CONTROL_PERIOD_DEFAULT / ucDigitSize;
 	pstOwner->ucDigitSize = ucDigitSize;
-	pstOwner->__actDisplaySingle = actDisplay;
+	pstOwner->__actDisplay = actDisplay;
     pstOwner->btColor = 1;
     pstOwner->__pstTimerBlink = NULL;
 
@@ -207,73 +172,6 @@ PIF_stFnd *pifFnd_AddSingle(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, 
 
 fail:
 	pifLog_Printf(LT_enError, "Fnd:AddSingle(D:%u DS:%u S:%u) EC:%d", unDeviceCode, ucDigitSize, ucStringSize, pif_enError);
-    return NULL;
-}
-
-/**
- * @fn pifFnd_AddMulti
- * @brief
- * @param unDeviceCode
- * @param ucFndCount
- * @param pucDigitSize
- * @param ucStringSize
- * @param actDisplay
- * @return
- */
-PIF_stFnd *pifFnd_AddMulti(PIF_unDeviceCode unDeviceCode, uint8_t ucFndCount, uint8_t *pucDigitSize,
-		uint8_t ucStringSize, PIF_actFndDisplayMulti actDisplay)
-{
-    if (s_ucFndArrayPos >= s_ucFndArraySize) {
-        pif_enError = E_enOverflowBuffer;
-        goto fail;
-    }
-
-    if (!ucFndCount || !actDisplay) {
-        pif_enError = E_enInvalidParam;
-        goto fail;
-    }
-
-    PIF_stFnd *pstOwner = &s_pstFndArray[s_ucFndArrayPos];
-
-	pstOwner->__pstMulti = calloc(sizeof(PIF_stFndMulti), ucFndCount);
-    if (!pstOwner->__pstMulti) {
-		pif_enError = E_enOutOfHeap;
-		goto fail;
-	}
-    int max = 0;
-    pstOwner->ucDigitSize = 0;
-    for (int i = 0; i < ucFndCount; i++) {
-    	pstOwner->__pstMulti[i].ucDigitSize = pucDigitSize[i];
-    	if (i > 0) {
-    		pstOwner->__pstMulti[i].ucDigitPosition += pucDigitSize[i - 1];
-    	}
-    	else {
-    		pstOwner->__pstMulti[i].ucDigitPosition = 0;
-    	}
-        pstOwner->ucDigitSize += pucDigitSize[i];
-        if (pucDigitSize[i] > max) max = pucDigitSize[i];
-    }
-
-    pstOwner->__pcString = calloc(sizeof(uint8_t), ucStringSize + pstOwner->ucDigitSize);
-    if (!pstOwner->__pcString) {
-		pif_enError = E_enOutOfHeap;
-		goto fail;
-	}
-    for (int i = 0; i < ucStringSize; i++) pstOwner->__pcString[i] = 0x20;
-    pstOwner->__ucStringSize = ucStringSize;
-
-    pstOwner->unDeviceCode = unDeviceCode;
-    pstOwner->__usControlPeriodMs = IDPF_FND_CONTROL_PERIOD_DEFAULT / max;
-	pstOwner->ucFndCount = ucFndCount;
-	pstOwner->__actDisplayMulti = actDisplay;
-    pstOwner->btColor = 1;
-    pstOwner->__pstTimerBlink = NULL;
-
-    s_ucFndArrayPos = s_ucFndArrayPos + 1;
-    return pstOwner;
-
-fail:
-	pifLog_Printf(LT_enError, "Fnd:AddMulti(D:%u F:%u S:%u) EC:%d", unDeviceCode, ucFndCount, ucStringSize, pif_enError);
     return NULL;
 }
 
@@ -291,16 +189,7 @@ BOOL pifFnd_SetControlPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
         goto fail;
     }
 
-	if (pstOwner->__pstMulti) {
-        int max = 0;
-        for (int i = 0; i < pstOwner->ucFndCount; i++) {
-            if (pstOwner->__pstMulti[i].ucDigitSize > max) max = pstOwner->__pstMulti[i].ucDigitSize;
-        }
-        pstOwner->__usControlPeriodMs = usPeriodMs / max;
-    }
-    else {
-    	pstOwner->__usControlPeriodMs = usPeriodMs;
-    }
+   	pstOwner->__usControlPeriodMs = usPeriodMs;
     return TRUE;
 
 fail:
@@ -325,19 +214,10 @@ void pifFnd_Start(PIF_stFnd *pstOwner)
  */
 void pifFnd_Stop(PIF_stFnd *pstOwner)
 {
-	int i, n;
+	int i;
 
-	if (pstOwner->__pstMulti) {
-		for (n = 0; n < pstOwner->ucFndCount; n++) {
-			for (i = 0; i < pstOwner->__pstMulti[n].ucDigitSize; i++) {
-				(*pstOwner->__actDisplayMulti)(n, 0, 1 << i, 0);
-			}
-		}
-	}
-	else {
-		for (i = 0; i < pstOwner->ucDigitSize; i++) {
-			(*pstOwner->__actDisplaySingle)(0, 1 << i, 0);
-		}
+	for (i = 0; i < pstOwner->ucDigitSize; i++) {
+		(*pstOwner->__actDisplay)(0, 1 << i, 0);
 	}
 	pstOwner->btRun = FALSE;
     if (pstOwner->btBlink) {
