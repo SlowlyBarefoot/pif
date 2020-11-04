@@ -9,7 +9,7 @@ static uint8_t s_ucDotMatrixArrayPos;
 static PIF_stPulse *s_pstDotMatrixTimer;
 
 
-static void _SetPatternSingle(PIF_stDotMatrix *pstOwner, uint16_t usPositionX, uint16_t usPositionY, uint16_t usPosition)
+static void _SetPattern(PIF_stDotMatrix *pstOwner, uint16_t usPositionX, uint16_t usPositionY, uint16_t usPosition)
 {
     PIF_stDotMatrixPattern *pstPattern = &pstOwner->__pstPattern[pstOwner->ucPatternIndex];
     uint8_t *pucSrc, *pucDst, shift, col, row;
@@ -20,94 +20,46 @@ static void _SetPatternSingle(PIF_stDotMatrix *pstOwner, uint16_t usPositionX, u
     if (shift) {
     	uint8_t rest = 8 - shift;
     	uint8_t mask = ~((1 << rest) - 1);
-    	for (row = 0; row < pstOwner->ucUnitRowSize; row++) {
-    		for (col = 0; col < pstOwner->__ucUnitColBytes; col++) {
+    	for (row = 0; row < pstOwner->usRowSize; row++) {
+    		for (col = 0; col < pstOwner->__usColBytes; col++) {
     			pucDst[col] = (pucSrc[col] >> shift) + ((pucSrc[col + 1] << rest) & mask);
     		}
         	pucSrc += pstPattern->ucColBytes;
-        	pucDst += pstOwner->__ucUnitColBytes;
+        	pucDst += pstOwner->__usColBytes;
     	}
     }
     else {
-    	for (row = 0; row < pstOwner->ucUnitRowSize; row++) {
-    		for (col = 0; col < pstOwner->__ucUnitColBytes; col++) {
+    	for (row = 0; row < pstOwner->usRowSize; row++) {
+    		for (col = 0; col < pstOwner->__usColBytes; col++) {
     			pucDst[col] = pucSrc[col];
     		}
         	pucSrc += pstPattern->ucColBytes;
-        	pucDst += pstOwner->__ucUnitColBytes;
+        	pucDst += pstOwner->__usColBytes;
     	}
     }
 }
 
-static void _SetPatternMulti(PIF_stDotMatrix *pstOwner)
-{
-	uint16_t pos = 0;
-	uint16_t rowIndex = 0;
-
-	for (int row = 0; row < pstOwner->ucBlockRowSize; row++) {
-		uint16_t colIndex = 0;
-		for (int col = 0; col < pstOwner->ucBlockColSize; col++) {
-			_SetPatternSingle(pstOwner, pstOwner->__usPositionX + colIndex, pstOwner->__usPositionY + rowIndex, pos);
-			pos += pstOwner->__ucUnitBytes;
-			colIndex += pstOwner->ucUnitColSize;
-		}
-		rowIndex += pstOwner->ucUnitRowSize;
-	}
-}
-
-static void _TimerDisplaySingleFinish(PIF_stDotMatrix *pstOwner)
+static void _TimerDisplayFinish(PIF_stDotMatrix *pstOwner)
 {
 	uint8_t *pucPattern;
 
 	if (!pstOwner->btBlink) {
 		pucPattern = pstOwner->__pucPattern;
 		for (int color = 1; color <= pstOwner->btColorCount; color++) {
-			int index = pstOwner->__ucRowIndex * pstOwner->__ucUnitColBytes;
+			int index = pstOwner->__ucRowIndex * pstOwner->__usColBytes;
 			for (int col = 0; col < pstOwner->usColSize; col += 8) {
-				(*pstOwner->__actDisplaySingle)(col, pstOwner->__ucRowIndex, pucPattern[index + col], color);
+				(*pstOwner->__actDisplay)(col, pstOwner->__ucRowIndex, pucPattern[index + col], color);
 			}
 			pucPattern += pstOwner->__usTotalBytes;
 		}
 	}
 	else {
 		for (int col = 0; col < pstOwner->usColSize; col += 8) {
-			(*pstOwner->__actDisplaySingle)(col, pstOwner->__ucRowIndex, 0, 0);
+			(*pstOwner->__actDisplay)(col, pstOwner->__ucRowIndex, 0, 0);
 		}
 	}
 	pstOwner->__ucRowIndex++;
-	if (pstOwner->__ucRowIndex >= pstOwner->ucUnitRowSize) pstOwner->__ucRowIndex = 0;
-}
-
-static void _TimerDisplayMultiFinish(PIF_stDotMatrix *pstOwner)
-{
-	uint8_t *pucPattern;
-
-	if (!pstOwner->btBlink) {
-		pucPattern = pstOwner->__pucPattern;
-		for (int color = 1; color <= pstOwner->btColorCount; color++) {
-			int index = pstOwner->__ucRowIndex * pstOwner->__ucUnitColBytes;
-			for (int rowBlock = 0; rowBlock < pstOwner->ucBlockRowSize; rowBlock++) {
-				for (int colBlock = 0; colBlock < pstOwner->ucBlockColSize; colBlock++) {
-					for (int col = 0; col < pstOwner->ucUnitColSize; col += 8) {
-						(*pstOwner->__actDisplayMulti)(colBlock, rowBlock, col, pstOwner->__ucRowIndex, pucPattern[index + col], color);
-					}
-					index += pstOwner->__ucUnitBytes;
-				}
-			}
-			pucPattern += pstOwner->__usTotalBytes;
-		}
-	}
-	else {
-		for (int rowBlock = 0; rowBlock < pstOwner->ucBlockRowSize; rowBlock++) {
-			for (int colBlock = 0; colBlock < pstOwner->ucBlockColSize; colBlock++) {
-				for (int col = 0; col < pstOwner->ucUnitColSize; col += 8) {
-					(*pstOwner->__actDisplayMulti)(colBlock, rowBlock, col, pstOwner->__ucRowIndex, 0, 0);
-				}
-			}
-		}
-	}
-	pstOwner->__ucRowIndex++;
-	if (pstOwner->__ucRowIndex >= pstOwner->ucUnitRowSize) pstOwner->__ucRowIndex = 0;
+	if (pstOwner->__ucRowIndex >= pstOwner->usRowSize) pstOwner->__ucRowIndex = 0;
 }
 
 static void _TimerBlinkFinish(void *pvIssuer)
@@ -203,8 +155,7 @@ static void _TimerShiftFinish(void *pvIssuer)
 		}
     	break;
     }
-    if (pstOwner->btMulti) _SetPatternMulti(pstOwner);
-    else _SetPatternSingle(pstOwner, pstOwner->__usPositionX, pstOwner->__usPositionY, 0);
+    _SetPattern(pstOwner, pstOwner->__usPositionX, pstOwner->__usPositionY, 0);
 
     if (pstOwner->__usShiftCount) {
 		pstOwner->__usShiftCount--;
@@ -226,12 +177,7 @@ static void _LoopCommon(PIF_stDotMatrix *pstOwner)
 	}
 	else return;
 
-	if (pstOwner->btMulti) {
-		_TimerDisplayMultiFinish(pstOwner);
-	}
-	else {
-		_TimerDisplaySingleFinish(pstOwner);
-	}
+	_TimerDisplayFinish(pstOwner);
 
 	pstOwner->__usPretimeMs = pif_usTimer1ms;
 }
@@ -293,39 +239,33 @@ void pifDotMatrix_Exit()
 }
 
 /**
- * @fn pifDotMatrix_AddSingle
+ * @fn pifDotMatrix_Add
  * @brief
  * @param unDeviceCode
- * @param ucUnitColSize
- * @param ucUnitRowSize
+ * @param ucColSize
+ * @param ucRowSize
  * @param ucColorCount
  * @param actDisplay
  * @return
  */
-PIF_stDotMatrix *pifDotMatrix_AddSingle(PIF_unDeviceCode unDeviceCode, uint8_t ucUnitColSize, uint8_t ucUnitRowSize,
-		uint8_t ucColorCount, PIF_actDotMatrixDisplaySingle actDisplay)
+PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColSize, uint16_t usRowSize,
+		uint8_t ucColorCount, PIF_actDotMatrixDisplay actDisplay)
 {
     if (s_ucDotMatrixArrayPos >= s_ucDotMatrixArraySize) {
         pif_enError = E_enOverflowBuffer;
         goto fail;
     }
 
-    if (!ucUnitColSize || !ucUnitRowSize || !ucColorCount || !actDisplay) {
+    if (!usColSize || !usRowSize || !ucColorCount || !actDisplay) {
         pif_enError = E_enInvalidParam;
         goto fail;
     }
 
     PIF_stDotMatrix *pstOwner = &s_pstDotMatrixArray[s_ucDotMatrixArrayPos];
 
-	pstOwner->ucUnitColSize = ucUnitColSize;
-	pstOwner->__ucUnitColBytes = (ucUnitColSize - 1) / 8 + 1;
-	pstOwner->ucUnitRowSize = ucUnitRowSize;
-	pstOwner->__ucUnitBytes = pstOwner->__ucUnitColBytes * pstOwner->ucUnitRowSize;
-	pstOwner->ucBlockColSize = 1;
-	pstOwner->ucBlockRowSize = 1;
-	pstOwner->usColSize = pstOwner->ucUnitColSize * pstOwner->ucBlockColSize;
+	pstOwner->usColSize = usColSize;
+	pstOwner->usRowSize = usRowSize;
 	pstOwner->__usColBytes = (pstOwner->usColSize - 1) / 8 + 1;
-	pstOwner->usRowSize = pstOwner->ucUnitRowSize * pstOwner->ucBlockRowSize;
 	pstOwner->__usTotalBytes = pstOwner->__usColBytes * pstOwner->usRowSize;
 
 	pstOwner->__pucPattern = calloc(sizeof(uint8_t), pstOwner->__usTotalBytes * ucColorCount);
@@ -337,8 +277,7 @@ PIF_stDotMatrix *pifDotMatrix_AddSingle(PIF_unDeviceCode unDeviceCode, uint8_t u
     pstOwner->unDeviceCode = unDeviceCode;
     pstOwner->__usControlPeriodMs = PIF_DM_CONTROL_PERIOD_DEFAULT;
 	pstOwner->btColorCount = ucColorCount;
-	pstOwner->btMulti = FALSE;
-	pstOwner->__actDisplaySingle = actDisplay;
+	pstOwner->__actDisplay = actDisplay;
 	pstOwner->__pstTimerBlink = NULL;
 	pstOwner->__pstTimerShift = NULL;
 
@@ -347,68 +286,7 @@ PIF_stDotMatrix *pifDotMatrix_AddSingle(PIF_unDeviceCode unDeviceCode, uint8_t u
 
 fail:
 	pifLog_Printf(LT_enError, "DotMatrix:AddSingle(D:%u UC:%u UR:%u C:%u) EC:%d", unDeviceCode,
-			ucUnitColSize, ucUnitRowSize, ucColorCount, pif_enError);
-    return NULL;
-}
-
-/**
- * @fn pifDotMatrix_AddMulti
- * @brief
- * @param unDeviceCode
- * @param ucUnitColSize
- * @param ucUnitRowSize
- * @param ucBlockColSize
- * @param ucBlockRowSize
- * @param ucColorCount
- * @param actDisplay
- * @return
- */
-PIF_stDotMatrix *pifDotMatrix_AddMulti(PIF_unDeviceCode unDeviceCode, uint8_t ucUnitColSize, uint8_t ucUnitRowSize,
-		uint8_t ucBlockColSize, uint8_t ucBlockRowSize, uint8_t ucColorCount, PIF_actDotMatrixDisplayMulti actDisplay)
-{
-    if (s_ucDotMatrixArrayPos >= s_ucDotMatrixArraySize) {
-        pif_enError = E_enOverflowBuffer;
-        goto fail;
-    }
-
-    if (!ucUnitColSize || !ucUnitRowSize || !ucBlockColSize || !ucBlockRowSize || !ucColorCount || !actDisplay) {
-        pif_enError = E_enInvalidParam;
-        goto fail;
-    }
-
-    PIF_stDotMatrix *pstOwner = &s_pstDotMatrixArray[s_ucDotMatrixArrayPos];
-
-	pstOwner->ucUnitColSize = ucUnitColSize;
-	pstOwner->__ucUnitColBytes = (ucUnitColSize - 1) / 8 + 1;
-	pstOwner->ucUnitRowSize = ucUnitRowSize;
-	pstOwner->__ucUnitBytes = pstOwner->__ucUnitColBytes * pstOwner->ucUnitRowSize;
-	pstOwner->ucBlockColSize = ucBlockColSize;
-	pstOwner->ucBlockRowSize = ucBlockRowSize;
-	pstOwner->usColSize = pstOwner->ucUnitColSize * pstOwner->ucBlockColSize;
-	pstOwner->__usColBytes = (pstOwner->usColSize - 1) / 8 + 1;
-	pstOwner->usRowSize = pstOwner->ucUnitRowSize * pstOwner->ucBlockRowSize;
-	pstOwner->__usTotalBytes = pstOwner->__usColBytes * pstOwner->usRowSize;
-
-	pstOwner->__pucPattern = calloc(sizeof(uint8_t), pstOwner->__usTotalBytes * ucColorCount);
-    if (!pstOwner->__pucPattern) {
-		pif_enError = E_enOutOfHeap;
-		goto fail;
-	}
-
-    pstOwner->unDeviceCode = unDeviceCode;
-    pstOwner->__usControlPeriodMs = PIF_DM_CONTROL_PERIOD_DEFAULT;
-	pstOwner->btColorCount = ucColorCount;
-	pstOwner->btMulti = TRUE;
-	pstOwner->__actDisplayMulti = actDisplay;
-	pstOwner->__pstTimerBlink = NULL;
-	pstOwner->__pstTimerShift = NULL;
-
-    s_ucDotMatrixArrayPos = s_ucDotMatrixArrayPos + 1;
-    return pstOwner;
-
-fail:
-	pifLog_Printf(LT_enError, "DotMatrix:AddMulti(D:%u UC:%u UR:%u BC:%u BR:%u C:%u) EC:%d", unDeviceCode,
-			ucUnitColSize, ucUnitRowSize, ucBlockColSize, ucBlockRowSize, ucColorCount, pif_enError);
+			usColSize, usRowSize, ucColorCount, pif_enError);
     return NULL;
 }
 
@@ -502,8 +380,7 @@ fail:
  */
 void pifDotMatrix_Start(PIF_stDotMatrix *pstOwner)
 {
-    if (pstOwner->btMulti) _SetPatternMulti(pstOwner);
-    else _SetPatternSingle(pstOwner, pstOwner->__usPositionX, pstOwner->__usPositionY, 0);
+    _SetPattern(pstOwner, pstOwner->__usPositionX, pstOwner->__usPositionY, 0);
 	pstOwner->btRun = TRUE;
 }
 
@@ -516,22 +393,9 @@ void pifDotMatrix_Stop(PIF_stDotMatrix *pstOwner)
 {
 	int col, row;
 
-	if (pstOwner->btMulti) {
-		for (int rowBlock = 0; rowBlock < pstOwner->ucBlockRowSize; rowBlock++) {
-			for (int colBlock = 0; colBlock < pstOwner->ucBlockColSize; colBlock++) {
-				for (row = 0; row < pstOwner->ucUnitRowSize; row++) {
-					for (col = 0; col < pstOwner->ucUnitColSize; col += 8) {
-						(*pstOwner->__actDisplayMulti)(colBlock, rowBlock, col, row, 0, 0);
-					}
-				}
-			}
-		}
-	}
-	else {
-		for (row = 0; row < pstOwner->ucUnitRowSize; row++) {
-			for (col = 0; col < pstOwner->ucUnitColSize; col += 8) {
-				(*pstOwner->__actDisplaySingle)(col, row, 0, 0);
-			}
+	for (row = 0; row < pstOwner->usRowSize; row++) {
+		for (col = 0; col < pstOwner->usColSize; col += 8) {
+			(*pstOwner->__actDisplay)(col, row, 0, 0);
 		}
 	}
 	pstOwner->btRun = FALSE;
@@ -556,8 +420,7 @@ BOOL pifDotMatrix_SelectPattern(PIF_stDotMatrix *pstOwner, uint8_t ucPatternInde
     }
 
     pstOwner->ucPatternIndex = ucPatternIndex;
-    if (pstOwner->btMulti) _SetPatternMulti(pstOwner);
-    else _SetPatternSingle(pstOwner, pstOwner->__usPositionX, pstOwner->__usPositionY, 0);
+    _SetPattern(pstOwner, pstOwner->__usPositionX, pstOwner->__usPositionY, 0);
     return TRUE;
 
 fail:

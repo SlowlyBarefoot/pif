@@ -32,8 +32,7 @@ typedef enum _PIF_enDotMatrixShift
 struct _PIF_stDotMatrix;
 typedef struct _PIF_stDotMatrix PIF_stDotMatrix;
 
-typedef void (*PIF_actDotMatrixDisplaySingle)(uint8_t ucCol, uint8_t ucRow, uint8_t ucData, uint8_t ucColor);
-typedef void (*PIF_actDotMatrixDisplayMulti)(uint8_t ucColBlock, uint8_t ucRowBlock, uint8_t ucCol, uint8_t ucRow, uint8_t ucData, uint8_t ucColor);
+typedef void (*PIF_actDotMatrixDisplay)(uint8_t ucCol, uint8_t ucRow, uint8_t ucData, uint8_t ucColor);
 
 typedef void (*PIF_evtDotMatrixShiftFinish)(PIF_stDotMatrix *pstOwner);
 
@@ -59,10 +58,6 @@ struct _PIF_stDotMatrix
 	// Public Member Variable
 	PIF_unDeviceCode unDeviceCode;
 
-    uint8_t ucUnitColSize;
-    uint8_t ucUnitRowSize;
-    uint8_t ucBlockColSize;
-    uint8_t ucBlockRowSize;
     uint16_t usColSize;
     uint16_t usRowSize;
 
@@ -70,9 +65,8 @@ struct _PIF_stDotMatrix
 
 	struct {
 		uint8_t btRun			: 1;
-		uint8_t btMulti			: 1;
 		uint8_t btBlink			: 1;
-	    uint8_t btColorCount	: 5;
+	    uint8_t btColorCount	: 6;
 	};
 
 	union {
@@ -84,8 +78,6 @@ struct _PIF_stDotMatrix
 	};
 
 	// Private Member Variable
-    uint8_t __ucUnitColBytes;
-    uint8_t __ucUnitBytes;
     uint16_t __usColBytes;
     uint16_t __usTotalBytes;
 
@@ -108,10 +100,7 @@ struct _PIF_stDotMatrix
 	PIF_enTaskLoop __enTaskLoop;
 
 	// Private Member Function
-    union {
-    	PIF_actDotMatrixDisplaySingle __actDisplaySingle;
-    	PIF_actDotMatrixDisplayMulti __actDisplayMulti;
-    };
+   	PIF_actDotMatrixDisplay __actDisplay;
     PIF_evtDotMatrixShiftFinish __evtShiftFinish;
 };
 
@@ -123,10 +112,8 @@ extern "C" {
 BOOL pifDotMatrix_Init(PIF_stPulse *pstTimer1ms, uint8_t ucSize);
 void pifDotMatrix_Exit();
 
-PIF_stDotMatrix *pifDotMatrix_AddSingle(PIF_unDeviceCode unDeviceCode, uint8_t ucUnitColSize, uint8_t ucUnitRowSize,
-		uint8_t ucColorCount, PIF_actDotMatrixDisplaySingle actDisplay);
-PIF_stDotMatrix *pifDotMatrix_AddMulti(PIF_unDeviceCode unDeviceCode, uint8_t ucUnitColSize, uint8_t ucUnitRowSize,
-		uint8_t ucBlockColSize, uint8_t ucBlockRowSize, uint8_t ucColorCount, PIF_actDotMatrixDisplayMulti actDisplay);
+PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColSize, uint16_t usRowSize,
+		uint8_t ucColorCount, PIF_actDotMatrixDisplay actDisplay);
 
 BOOL pifDotMatrix_SetControlPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
 
