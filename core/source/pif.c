@@ -22,6 +22,8 @@ static volatile uint32_t s_unPerformanceMeasure = 0;
 
 static uint8_t ucCrc7;
 
+const uint8_t c_ucDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+
 
 /**
  * @fn pif_Init
@@ -62,7 +64,6 @@ void pif_Loop()
 void pif_sigTimer1ms()
 {
 	uint8_t days;
-	const uint8_t ucDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
     pif_usTimer1ms++;
     if (pif_usTimer1ms >= 1000) {
@@ -79,7 +80,7 @@ void pif_sigTimer1ms()
     			if (pif_stDateTime.ucHour >= 24) {
     				pif_stDateTime.ucHour = 0;
     				pif_stDateTime.ucDay++;
-    				days = ucDaysInMonth[pif_stDateTime.ucMonth - 1];
+    				days = c_ucDaysInMonth[pif_stDateTime.ucMonth - 1];
     				if (pif_stDateTime.ucMonth == 2) {
     					if (pif_stDateTime.usYear / 4 == 0) {
     						if (pif_stDateTime.usYear / 100 == 0) {
