@@ -104,13 +104,14 @@ static int _FloatToAscii(char *pcBuf, double dNum, uint16_t usPoint)
 	}
 
 	unNum = (uint32_t)dNum;
-	nIdx += _DecToAscii(pcBuf, unNum, 0);
+	nIdx += _DecToAscii(pcBuf + nIdx, unNum, 0);
 	pcBuf[nIdx++] = '.';
 
+	if (usPoint == 0) usPoint = 6;
 	dNum -= unNum;
-	for (i = 0; i < (usPoint == 0 ? 6 : usPoint); i++) dNum *= 10;
+	for (i = 0; i < usPoint; i++) dNum *= 10;
 
-	nIdx += _DecToAscii(pcBuf + nIdx, (uint32_t)dNum, 0);
+	nIdx += _DecToAscii(pcBuf + nIdx, (uint32_t)dNum, usPoint);
     return nIdx;
 }
 

@@ -40,10 +40,10 @@ static void _TimerDisplayFinish(PIF_stFnd *pstOwner)
 		else {
 			seg = c_aucFndAscii[ch - 0x20];
 		}
-		(*pstOwner->__actDisplay)(seg, 1 << pstOwner->__ucDigitIndex, pstOwner->btColor);
+		(*pstOwner->__actDisplay)(seg, pstOwner->__ucDigitIndex, pstOwner->btColor);
 	}
 	else {
-		(*pstOwner->__actDisplay)(0, 1 << pstOwner->__ucDigitIndex, 0);
+		(*pstOwner->__actDisplay)(0, pstOwner->__ucDigitIndex, 0);
 	}
 	pstOwner->__ucDigitIndex++;
 	if (pstOwner->__ucDigitIndex >= pstOwner->ucDigitSize) pstOwner->__ucDigitIndex = 0;
@@ -316,13 +316,13 @@ void pifFnd_SetFloat(PIF_stFnd *pstOwner, double dValue)
     	minus = TRUE;
     	dValue *= -1.0;
     }
-    int32_t nValue = (int32_t)dValue;
+    uint32_t nValue = (uint32_t)dValue;
     int sp = pstOwner->ucDigitSize;
     if (pstOwner->btSubNumericDigits) {
     	dValue -= nValue;
     	for (int p = sp - pstOwner->btSubNumericDigits; p < sp; p++) {
     		dValue *= 10;
-    		int32_t sd = (int32_t)dValue;
+    		uint32_t sd = (uint32_t)dValue;
     		pstOwner->__pcString[p] = '0' + sd;
     		dValue -= sd;
     	}
