@@ -69,8 +69,8 @@ void pifFnd_SetString(PIF_stFnd *pstOwner, char *pcString);
 void pifFnd_SetSubNumericDigits(PIF_stFnd *pstOwner, uint8_t ucSubNumericDigits);
 
 // Task Function
-void pifFnd_LoopAll(PIF_stTask *pstTask);
-void pifFnd_LoopEach(PIF_stTask *pstTask);
+void pifFnd_taskAll(PIF_stTask *pstTask);
+void pifFnd_taskEach(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

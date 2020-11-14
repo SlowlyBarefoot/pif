@@ -92,8 +92,8 @@ void pifPulse_sigTick(PIF_stPulse *pstOwner);
 void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstPulseItem, PIF_evtPulseFinish evtFinish, void *pvIssuer);
 
 // Task Function
-void pifPulse_LoopAll(PIF_stTask *pstTask);
-void pifPulse_LoopEach(PIF_stTask *pstTask);
+void pifPulse_taskAll(PIF_stTask *pstTask);
+void pifPulse_taskEach(PIF_stTask *pstTask);
 
 #ifdef __PIF_DEBUG__
 

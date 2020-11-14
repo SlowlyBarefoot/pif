@@ -80,8 +80,8 @@ void pifSwitch_InitialState(PIF_stSwitch *pstOwner);
 void pifSwitch_sigData(PIF_stSwitch *pstOwner, SWITCH swState);
 
 // Task Function
-void pifSwitch_LoopAll(PIF_stTask *pstTask);
-void pifSwitch_LoopEach(PIF_stTask *pstTask);
+void pifSwitch_taskAll(PIF_stTask *pstTask);
+void pifSwitch_taskEach(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

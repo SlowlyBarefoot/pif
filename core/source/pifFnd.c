@@ -60,7 +60,7 @@ static void _TimerBlinkFinish(void *pvIssuer)
     pstOwner->btBlink ^= 1;
 }
 
-static void _LoopCommon(PIF_stFnd *pstOwner)
+static void _TaskCommon(PIF_stFnd *pstOwner)
 {
 	if (!pstOwner->btRun) return;
 
@@ -447,26 +447,26 @@ void pifFnd_SetSubNumericDigits(PIF_stFnd *pstOwner, uint8_t ucSubNumericDigits)
 }
 
 /**
- * @fn pifFnd_LoopAll
+ * @fn pifFnd_taskAll
  * @brief
  * @param pstTask
  */
-void pifFnd_LoopAll(PIF_stTask *pstTask)
+void pifFnd_taskAll(PIF_stTask *pstTask)
 {
 	(void)pstTask;
 
 	for (int i = 0; i < s_ucFndArrayPos; i++) {
 		PIF_stFnd *pstOwner = &s_pstFndArray[i];
-		if (!pstOwner->__enTaskLoop) _LoopCommon(pstOwner);
+		if (!pstOwner->__enTaskLoop) _TaskCommon(pstOwner);
 	}
 }
 
 /**
- * @fn pifFnd_LoopEach
+ * @fn pifFnd_taskEach
  * @brief
  * @param pstTask
  */
-void pifFnd_LoopEach(PIF_stTask *pstTask)
+void pifFnd_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stFnd *pstOwner = pstTask->__pvOwner;
 
@@ -474,6 +474,6 @@ void pifFnd_LoopEach(PIF_stTask *pstTask)
 		pstOwner->__enTaskLoop = TL_enEach;
 	}
 	else {
-		_LoopCommon(pstOwner);
+		_TaskCommon(pstOwner);
 	}
 }

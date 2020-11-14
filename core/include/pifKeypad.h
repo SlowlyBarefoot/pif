@@ -86,7 +86,7 @@ uint16_t pifKeypad_GetDoubleTime();
 BOOL pifKeypad_SetDoubleTime(uint16_t usDoubleTimeMs);
 
 // Task Function
-void pifKeypad_LoopAll(PIF_stTask *pstTask);
+void pifKeypad_taskAll(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

@@ -12,7 +12,7 @@ static uint8_t s_ucPulseArraySize;
 static uint8_t s_ucPulseArrayPos;
 
 
-static void _LoopCommon(PIF_stPulse *pstOwner)
+static void _TaskCommon(PIF_stPulse *pstOwner)
 {
 	uint8_t index;
 	PIF_stPulseItem *pstPulseItem;
@@ -338,26 +338,26 @@ void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstPulseItem, PIF_evtPulseFinish 
 }
 
 /**
- * @fn pifPulse_LoopAll
+ * @fn pifPulse_taskAll
  * @brief Task에 연결하는 함수이다.
  * @param pstTask Task에서 결정한다.
  */
-void pifPulse_LoopAll(PIF_stTask *pstTask)
+void pifPulse_taskAll(PIF_stTask *pstTask)
 {
 	(void) pstTask;
 
     for (int i = 0; i < s_ucPulseArrayPos; i++) {
         PIF_stPulse *pstOwner = &s_pstPulseArray[i];
-    	if (!pstOwner->__enTaskLoop) _LoopCommon(pstOwner);
+    	if (!pstOwner->__enTaskLoop) _TaskCommon(pstOwner);
     }
 }
 
 /**
- * @fn pifPulse_LoopEach
+ * @fn pifPulse_taskEach
  * @brief Task에 연결하는 함수이다.
  * @param pstTask Task에서 결정한다.
  */
-void pifPulse_LoopEach(PIF_stTask *pstTask)
+void pifPulse_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stPulse *pstOwner = pstTask->__pvOwner;
 
@@ -365,7 +365,7 @@ void pifPulse_LoopEach(PIF_stTask *pstTask)
 		pstOwner->__enTaskLoop = TL_enEach;
 	}
 	else {
-		_LoopCommon(pstOwner);
+		_TaskCommon(pstOwner);
 	}
 }
 

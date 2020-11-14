@@ -43,7 +43,7 @@ static uint16_t _FilterAverage(uint16_t usLevel, PIF_stSensorFilter *pstOwner)
     return pstOwner->unSum / pstOwner->ucSize;
 }
 
-static void _LoopCommon(PIF_stSensor *pstOwner)
+static void _TaskCommon(PIF_stSensor *pstOwner)
 {
 	SWITCH swState;
 
@@ -319,26 +319,26 @@ void pifSensor_sigData(PIF_stSensor *pstOwner, uint16_t usLevel)
 }
 
 /**
- * @fn pifSensor_LoopAll
+ * @fn pifSensor_taskAll
  * @brief
  * @param pstTask
  */
-void pifSensor_LoopAll(PIF_stTask *pstTask)
+void pifSensor_taskAll(PIF_stTask *pstTask)
 {
 	(void)pstTask;
 
     for (int i = 0; i < s_ucSensorArrayPos; i++) {
     	PIF_stSensor *pstOwner = &s_pstSensorArray[i];
-        if (!pstOwner->__enTaskLoop) _LoopCommon(pstOwner);
+        if (!pstOwner->__enTaskLoop) _TaskCommon(pstOwner);
     }
 }
 
 /**
- * @fn pifSensor_LoopEach
+ * @fn pifSensor_taskEach
  * @brief
  * @param pstTask
  */
-void pifSensor_LoopEach(PIF_stTask *pstTask)
+void pifSensor_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stSensor *pstOwner = pstTask->__pvOwner;
 
@@ -346,6 +346,6 @@ void pifSensor_LoopEach(PIF_stTask *pstTask)
 		pstOwner->__enTaskLoop = TL_enEach;
 	}
 	else {
-		_LoopCommon(pstOwner);
+		_TaskCommon(pstOwner);
 	}
 }

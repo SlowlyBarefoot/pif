@@ -104,8 +104,8 @@ void pifSensor_DetachFilter(PIF_stSensor *pstOwner);
 void pifSensor_sigData(PIF_stSensor *pstOwner, uint16_t usLevel);
 
 // Task Function
-void pifSensor_LoopAll(PIF_stTask *pstTask);
-void pifSensor_LoopEach(PIF_stTask *pstTask);
+void pifSensor_taskAll(PIF_stTask *pstTask);
+void pifSensor_taskEach(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

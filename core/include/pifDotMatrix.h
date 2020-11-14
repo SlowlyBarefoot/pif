@@ -136,8 +136,8 @@ void pifDotMatrix_ShiftOff(PIF_stDotMatrix *pstOwner);
 void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
 
 // Task Function
-void pifDotMatrix_LoopAll(PIF_stTask *pstTask);
-void pifDotMatrix_LoopEach(PIF_stTask *pstTask);
+void pifDotMatrix_taskAll(PIF_stTask *pstTask);
+void pifDotMatrix_taskEach(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

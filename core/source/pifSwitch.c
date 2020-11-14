@@ -59,10 +59,10 @@ static SWITCH _FilterContinue(SWITCH swState, PIF_stSwitchFilter *pstOwner)
     return (pstOwner->unList >> pstOwner->ucHalf) & 1;
 }
 
-static void _LoopCommon(PIF_stSwitch *pstOwner)
+static void _TaskCommon(PIF_stSwitch *pstOwner)
 {
 	if (pstOwner->actAcquire) {
-		pifSwitch_sigData(pstOwner, (*pstOwner->actAcquire)(pstOwner));
+		pifSwitch_sigData(pstOwner, (*pstOwner->actAcquire)(pstOwner->unDeviceCode));
 	}
 
 	if (pstOwner->swCurrState != pstOwner->__swPrevState) {
@@ -238,26 +238,26 @@ void pifSwitch_sigData(PIF_stSwitch *pstOwner, SWITCH swState)
 }
 
 /**
- * @fn pifSwitch_LoopAll
+ * @fn pifSwitch_taskAll
  * @brief
  * @param pstTask
  */
-void pifSwitch_LoopAll(PIF_stTask *pstTask)
+void pifSwitch_taskAll(PIF_stTask *pstTask)
 {
 	(void)pstTask;
 
     for (int i = 0; i < s_ucSwitchArrayPos; i++) {
     	PIF_stSwitch *pstOwner = &s_pstSwitchArray[i];
-        if (!pstOwner->__enTaskLoop) _LoopCommon(pstOwner);
+        if (!pstOwner->__enTaskLoop) _TaskCommon(pstOwner);
     }
 }
 
 /**
- * @fn pifSwitch_LoopEach
+ * @fn pifSwitch_taskEach
  * @brief
  * @param pstTask
  */
-void pifSwitch_LoopEach(PIF_stTask *pstTask)
+void pifSwitch_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stSwitch *pstOwner = pstTask->__pvOwner;
 
@@ -265,6 +265,6 @@ void pifSwitch_LoopEach(PIF_stTask *pstTask)
 		pstOwner->__enTaskLoop = TL_enEach;
 	}
 	else {
-		_LoopCommon(pstOwner);
+		_TaskCommon(pstOwner);
 	}
 }

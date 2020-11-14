@@ -266,11 +266,11 @@ BOOL pifKeypad_SetDoubleTime(uint16_t usDoubleTimeMs)
 }
 
 /**
- * @fn pifKeypad_LoopAll
+ * @fn pifKeypad_taskAll
  * @brief
  * @param pstTask
  */
-void pifKeypad_LoopAll(PIF_stTask *pstTask)
+void pifKeypad_taskAll(PIF_stTask *pstTask)
 {
 	int idx, r, c;
 
