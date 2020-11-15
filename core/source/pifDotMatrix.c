@@ -42,21 +42,16 @@ static void _SetPattern(PIF_stDotMatrix *pstOwner, uint16_t usPositionX, uint16_
 static void _TimerDisplayFinish(PIF_stDotMatrix *pstOwner)
 {
 	uint8_t *pucPattern;
+	uint8_t ucOff = 0;
 
 	if (!pstOwner->btBlink) {
 		pucPattern = pstOwner->__pucPattern;
-		for (int color = 1; color <= pstOwner->btColorCount; color++) {
-			int index = pstOwner->__ucRowIndex * pstOwner->__usColBytes;
-			for (int col = 0; col < pstOwner->usColSize; col += 8) {
-				(*pstOwner->__actDisplay)(col, pstOwner->__ucRowIndex, pucPattern[index + col], color);
-			}
-			pucPattern += pstOwner->__usTotalBytes;
-		}
+		int index = pstOwner->__ucRowIndex * pstOwner->__usColBytes;
+		(*pstOwner->__actDisplay)(pstOwner->__ucRowIndex, pucPattern + index);
+		pucPattern += pstOwner->__usTotalBytes;
 	}
 	else {
-		for (int col = 0; col < pstOwner->usColSize; col += 8) {
-			(*pstOwner->__actDisplay)(col, pstOwner->__ucRowIndex, 0, 0);
-		}
+		(*pstOwner->__actDisplay)(pstOwner->__ucRowIndex, &ucOff);
 	}
 	pstOwner->__ucRowIndex++;
 	if (pstOwner->__ucRowIndex >= pstOwner->usRowSize) pstOwner->__ucRowIndex = 0;
@@ -244,19 +239,18 @@ void pifDotMatrix_Exit()
  * @param unDeviceCode
  * @param ucColSize
  * @param ucRowSize
- * @param ucColorCount
  * @param actDisplay
  * @return
  */
 PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColSize, uint16_t usRowSize,
-		uint8_t ucColorCount, PIF_actDotMatrixDisplay actDisplay)
+		PIF_actDotMatrixDisplay actDisplay)
 {
     if (s_ucDotMatrixArrayPos >= s_ucDotMatrixArraySize) {
         pif_enError = E_enOverflowBuffer;
         goto fail;
     }
 
-    if (!usColSize || !usRowSize || !ucColorCount || !actDisplay) {
+    if (!usColSize || !usRowSize || !actDisplay) {
         pif_enError = E_enInvalidParam;
         goto fail;
     }
@@ -268,7 +262,7 @@ PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColS
 	pstOwner->__usColBytes = (pstOwner->usColSize - 1) / 8 + 1;
 	pstOwner->__usTotalBytes = pstOwner->__usColBytes * pstOwner->usRowSize;
 
-	pstOwner->__pucPattern = calloc(sizeof(uint8_t), pstOwner->__usTotalBytes * ucColorCount);
+	pstOwner->__pucPattern = calloc(sizeof(uint8_t), pstOwner->__usTotalBytes);
     if (!pstOwner->__pucPattern) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
@@ -276,7 +270,6 @@ PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColS
 
     pstOwner->unDeviceCode = unDeviceCode;
     pstOwner->__usControlPeriodMs = PIF_DM_CONTROL_PERIOD_DEFAULT;
-	pstOwner->btColorCount = ucColorCount;
 	pstOwner->__actDisplay = actDisplay;
 	pstOwner->__pstTimerBlink = NULL;
 	pstOwner->__pstTimerShift = NULL;
@@ -285,8 +278,8 @@ PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColS
     return pstOwner;
 
 fail:
-	pifLog_Printf(LT_enError, "DotMatrix:AddSingle(D:%u UC:%u UR:%u C:%u) EC:%d", unDeviceCode,
-			usColSize, usRowSize, ucColorCount, pif_enError);
+	pifLog_Printf(LT_enError, "DotMatrix:AddSingle(D:%u UC:%u UR:%u) EC:%d", unDeviceCode,
+			usColSize, usRowSize, pif_enError);
     return NULL;
 }
 
@@ -392,10 +385,11 @@ void pifDotMatrix_Start(PIF_stDotMatrix *pstOwner)
 void pifDotMatrix_Stop(PIF_stDotMatrix *pstOwner)
 {
 	int col, row;
+	uint8_t ucOff = 0;
 
 	for (row = 0; row < pstOwner->usRowSize; row++) {
 		for (col = 0; col < pstOwner->usColSize; col += 8) {
-			(*pstOwner->__actDisplay)(col, row, 0, 0);
+			(*pstOwner->__actDisplay)(row, &ucOff);
 		}
 	}
 	pstOwner->btRun = FALSE;

@@ -32,7 +32,7 @@ typedef enum _PIF_enDotMatrixShift
 struct _PIF_stDotMatrix;
 typedef struct _PIF_stDotMatrix PIF_stDotMatrix;
 
-typedef void (*PIF_actDotMatrixDisplay)(uint8_t ucCol, uint8_t ucRow, uint8_t ucData, uint8_t ucColor);
+typedef void (*PIF_actDotMatrixDisplay)(uint8_t ucRow, uint8_t *pucData);
 
 typedef void (*PIF_evtDotMatrixShiftFinish)(PIF_stDotMatrix *pstOwner);
 
@@ -66,7 +66,6 @@ struct _PIF_stDotMatrix
 	struct {
 		uint8_t btRun			: 1;
 		uint8_t btBlink			: 1;
-	    uint8_t btColorCount	: 6;
 	};
 
 	union {
@@ -113,7 +112,7 @@ BOOL pifDotMatrix_Init(PIF_stPulse *pstTimer1ms, uint8_t ucSize);
 void pifDotMatrix_Exit();
 
 PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColSize, uint16_t usRowSize,
-		uint8_t ucColorCount, PIF_actDotMatrixDisplay actDisplay);
+		PIF_actDotMatrixDisplay actDisplay);
 
 BOOL pifDotMatrix_SetControlPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
 
