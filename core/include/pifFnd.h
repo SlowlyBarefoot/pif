@@ -8,7 +8,7 @@
 #define IDPF_FND_CONTROL_PERIOD_DEFAULT		25
 
 
-typedef void (*PIF_actFndDisplay)(uint8_t ucSegment, uint8_t ucDigit, uint8_t ucColor);
+typedef void (*PIF_actFndDisplay)(uint8_t ucSegment, uint8_t ucDigit);
 
 /**
  * @class _PIF_stFnd
@@ -24,7 +24,6 @@ typedef struct _PIF_stFnd
 		uint16_t btRun				: 1;
 		uint16_t btBlink			: 1;
 		uint16_t btFillZero			: 1;
-		uint16_t btColor			: 5;
 		uint16_t btSubNumericDigits	: 8;
 	};
 
@@ -50,7 +49,7 @@ extern "C" {
 BOOL pifFnd_Init(PIF_stPulse *pstTimer1ms, uint8_t ucSize);
 void pifFnd_Exit();
 
-PIF_stFnd *pifFnd_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, uint8_t ucStringSize,	PIF_actFndDisplay actDisplay);
+PIF_stFnd *pifFnd_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
 
 BOOL pifFnd_SetControlPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs);
 
@@ -61,7 +60,6 @@ BOOL pifFnd_BlinkOn(PIF_stFnd *pstOwner, uint16_t usPeriodMs);
 void pifFnd_BlinkOff(PIF_stFnd *pstOwner);
 void pifFnd_ChangeBlinkPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs);
 
-void pifFnd_SetColor(PIF_stFnd *pstOwner, uint8_t ucColor);
 void pifFnd_SetFillZero(PIF_stFnd *pstOwner, BOOL bFillZero);
 void pifFnd_SetFloat(PIF_stFnd *pstOwner, double dValue);
 void pifFnd_SetInterger(PIF_stFnd *pstOwner, int32_t nValue);

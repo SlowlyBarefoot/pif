@@ -40,10 +40,10 @@ static void _TimerDisplayFinish(PIF_stFnd *pstOwner)
 		else {
 			seg = c_aucFndAscii[ch - 0x20];
 		}
-		(*pstOwner->__actDisplay)(seg, pstOwner->__ucDigitIndex, pstOwner->btColor);
+		(*pstOwner->__actDisplay)(seg, pstOwner->__ucDigitIndex);
 	}
 	else {
-		(*pstOwner->__actDisplay)(0, pstOwner->__ucDigitIndex, 0);
+		(*pstOwner->__actDisplay)(0, pstOwner->__ucDigitIndex);
 	}
 	pstOwner->__ucDigitIndex++;
 	if (pstOwner->__ucDigitIndex >= pstOwner->ucDigitSize) pstOwner->__ucDigitIndex = 0;
@@ -134,11 +134,10 @@ void pifFnd_Exit()
  * @brief
  * @param unDeviceCode
  * @param ucDigitSize
- * @param ucStringSize
  * @param actDisplay
  * @return
  */
-PIF_stFnd *pifFnd_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, uint8_t ucStringSize,	PIF_actFndDisplay actDisplay)
+PIF_stFnd *pifFnd_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay)
 {
     if (s_ucFndArrayPos >= s_ucFndArraySize) {
         pif_enError = E_enOverflowBuffer;
@@ -152,26 +151,24 @@ PIF_stFnd *pifFnd_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, uint8_
 
     PIF_stFnd *pstOwner = &s_pstFndArray[s_ucFndArrayPos];
 
-	pstOwner->__pcString = calloc(sizeof(uint8_t), ucStringSize + ucDigitSize);
+	pstOwner->__pcString = calloc(sizeof(uint8_t), ucDigitSize);
     if (!pstOwner->__pcString) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
-    for (int i = 0; i < ucStringSize; i++) pstOwner->__pcString[i] = 0x20;
-    pstOwner->__ucStringSize = ucStringSize;
+    for (int i = 0; i < ucDigitSize; i++) pstOwner->__pcString[i] = 0x20;
 
     pstOwner->unDeviceCode = unDeviceCode;
     pstOwner->__usControlPeriodMs = IDPF_FND_CONTROL_PERIOD_DEFAULT / ucDigitSize;
 	pstOwner->ucDigitSize = ucDigitSize;
 	pstOwner->__actDisplay = actDisplay;
-    pstOwner->btColor = 1;
     pstOwner->__pstTimerBlink = NULL;
 
     s_ucFndArrayPos = s_ucFndArrayPos + 1;
     return pstOwner;
 
 fail:
-	pifLog_Printf(LT_enError, "Fnd:AddSingle(D:%u DS:%u S:%u) EC:%d", unDeviceCode, ucDigitSize, ucStringSize, pif_enError);
+	pifLog_Printf(LT_enError, "Fnd:Add(D:%u DS:%u) EC:%d", unDeviceCode, ucDigitSize, pif_enError);
     return NULL;
 }
 
@@ -184,12 +181,12 @@ fail:
  */
 BOOL pifFnd_SetControlPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
 {
-    if (!usPeriodMs) {
+    if (!usPeriodMs || usPeriodMs < pstOwner->ucDigitSize) {
         pif_enError = E_enInvalidParam;
         goto fail;
     }
 
-   	pstOwner->__usControlPeriodMs = usPeriodMs;
+   	pstOwner->__usControlPeriodMs = usPeriodMs / pstOwner->ucDigitSize;
     return TRUE;
 
 fail:
@@ -217,7 +214,7 @@ void pifFnd_Stop(PIF_stFnd *pstOwner)
 	int i;
 
 	for (i = 0; i < pstOwner->ucDigitSize; i++) {
-		(*pstOwner->__actDisplay)(0, 1 << i, 0);
+		(*pstOwner->__actDisplay)(0, 1 << i);
 	}
 	pstOwner->btRun = FALSE;
     if (pstOwner->btBlink) {
@@ -278,17 +275,6 @@ void pifFnd_ChangeBlinkPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
 	if (pstOwner->__pstTimerBlink) {
 		pifPulse_ResetItem(pstOwner->__pstTimerBlink, usPeriodMs * 1000);
 	}
-}
-
-/**
- * @fn pifFnd_SetColor
- * @brief
- * @param pstOwner
- * @param ucColor
- */
-void pifFnd_SetColor(PIF_stFnd *pstOwner, uint8_t ucColor)
-{
-    pstOwner->btColor = ucColor;
 }
 
 /**
