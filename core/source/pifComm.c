@@ -163,7 +163,7 @@ fail:
  * @fn pifComm_ReceiveData
  * @brief
  * @param pstOwner
- * @param unData
+ * @param ucData
  * @return 
  */
 BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData)
@@ -172,15 +172,28 @@ BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData)
 }
 
 /**
+ * @fn pifComm_ReceiveDatas
+ * @brief
+ * @param pstOwner
+ * @param pucData
+ * @param usLength
+ * @return
+ */
+BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength)
+{
+	return pifRingBuffer_PushData(&pstOwner->__stRxBuffer, pucData, usLength);
+}
+
+/**
  * @fn pifComm_SendData
  * @brief
  * @param pstOwner
- * @param unData
- * @return 
+ * @param pucData
+ * @return
  */
-BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *unData)
+BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
 {
-    return pifRingBuffer_Pop(&pstOwner->__stTxBuffer, unData);
+    return pifRingBuffer_Pop(&pstOwner->__stTxBuffer, pucData);
 }
 
 /**

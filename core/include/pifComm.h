@@ -71,6 +71,7 @@ BOOL pifComm_ResizeRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize);
 BOOL pifComm_ResizeTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize);
 
 BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData);
+BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength);
 BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData);
 
 // Task Function
