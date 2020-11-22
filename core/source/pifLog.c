@@ -248,6 +248,7 @@ void pifLog_Print(char *pcString)
 /**
  * @fn pifLog_Printf
  * @brief
+ * @param enType
  * @param pcFormat
  */
 void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
@@ -262,11 +263,10 @@ void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
 	char *pcVarStr;
     const char *pcStr;
 	int nOffset = 0;
-	float fVal;
-	double dVal;
-    static char acTmpBuf[128];
+	size_t nSize;
+    static char acTmpBuf[PIF_LOG_LINE_SIZE];
     static int nMinute = -1;
-    const char cType[4] = { 'I', 'W', 'E' };
+    const char cType[] = { 'I', 'W', 'E' };
 
     if (enType) {
         if (nMinute != pif_stDateTime.ucMinute) {
@@ -367,20 +367,20 @@ NEXT_STR:
                     break;
 
                 case 'f':
-                	if (bLong) {
-						dVal = va_arg(data, double);
-						nOffset += _FloatToAscii(acTmpBuf + nOffset, dVal, usNumStrCnt);
-                	}
-                	else {
-						fVal = va_arg(data, double);
-						nOffset += _FloatToAscii(acTmpBuf + nOffset, fVal, usNumStrCnt);
-                	}
+					nOffset += _FloatToAscii(acTmpBuf + nOffset, va_arg(data, double), usNumStrCnt);
                     break;
 
                 case 's':
                     pcVarStr = va_arg(data, char *);
-        			strcpy(acTmpBuf + nOffset, pcVarStr);
-        			nOffset += strlen(pcVarStr);
+                    nSize = strlen(pcVarStr);
+                    if (nOffset + nSize < PIF_LOG_LINE_SIZE - 1) {
+						strcpy(acTmpBuf + nOffset, pcVarStr);
+                    }
+                    else {
+                    	nSize = PIF_LOG_LINE_SIZE - 1 - nOffset;
+						strncpy(acTmpBuf + nOffset, pcVarStr, nSize);
+                    }
+					nOffset += nSize;
                     break;
 
                 case 'c':
@@ -431,4 +431,13 @@ void pifLog_PrintInBuffer()
 void pifLog_AttachActPrint(PIF_actLogPrint actPrint)
 {
 	s_stLog.__actPrint = actPrint;
+}
+
+/**
+ * @fn pifLog_DetachActPrint
+ * @brief
+ */
+void pifLog_DetachActPrint()
+{
+	s_stLog.__actPrint = NULL;
 }

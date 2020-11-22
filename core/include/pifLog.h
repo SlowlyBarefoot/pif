@@ -8,6 +8,11 @@
 #endif
 
 
+#ifndef PIF_LOG_LINE_SIZE
+#define PIF_LOG_LINE_SIZE	128
+#endif
+
+
 typedef enum _PIF_enLogType
 {
 	LT_enNone	= 0,
@@ -65,6 +70,7 @@ void pifLog_PrintInBuffer();
 
 // Attach Action Function
 void pifLog_AttachActPrint(PIF_actLogPrint actPrint);
+void pifLog_DetachActPrint();
 
 #ifdef __cplusplus
 }

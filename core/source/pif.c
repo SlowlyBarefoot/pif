@@ -5,6 +5,7 @@
 #ifndef __PIF_NO_LOG__
 #include "pifLog.h"
 #endif
+#include "pifTask.h"
 
 
 PIF_enError pif_enError = E_enSuccess;
@@ -41,12 +42,16 @@ void pif_Init()
  */
 void pif_Loop()
 {
+#ifdef __PIF_DEBUG__
+	static uint8_t ucSec = 0;
+#endif
+
     if (s_ucPerformaceStep == 2) {
         s_ucPerformaceStep = 1;
 #ifndef __PIF_NO_LOG__
         if (pif_stLogFlag.btPerformance) {
         	double fValue = 1000000.0 / s_unPerformanceMeasure;
-        	pifLog_Printf(LT_enInfo, "Performance: %u, %2fus", s_unPerformanceMeasure, fValue);
+        	pifLog_Printf(LT_enInfo, "Performance: %lur/s, %2fus", s_unPerformanceMeasure, fValue);
         }
 #endif
     }
@@ -55,6 +60,13 @@ void pif_Loop()
         s_unPerformanceCount++;
         s_bPerformaceLock = FALSE;
     }
+
+#ifdef __PIF_DEBUG__
+    if (ucSec != pif_stDateTime.ucSec) {
+    	pifTask_Print();
+    	ucSec = pif_stDateTime.ucSec;
+    }
+#endif
 }
 
 /**

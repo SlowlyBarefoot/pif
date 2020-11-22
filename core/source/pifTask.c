@@ -244,8 +244,10 @@ void pifTask_Print()
 
 	for (int i = 0; i < s_ucTaskArrayPos; i++) {
 		PIF_stTask *pstOwner = &s_pstTaskArray[i];
-		pifLog_Printf(LT_enInfo, "Task:%s Id=%d Ratio=%d%% Period=%2fus", pstOwner->pcName ? pstOwner->pcName : "Null",
-				pstOwner->ucId, pstOwner->ucRatio, pstOwner->__fPeriod);
+		if (pstOwner->enMode == TM_enRatio) {
+			pifLog_Printf(LT_enInfo, "Task:%s Id=%d Ratio=%d%% Period=%2fus", pstOwner->pcName ? pstOwner->pcName : "Null",
+					pstOwner->ucId, pstOwner->ucRatio, pstOwner->__fPeriod);
+		}
 	}
 }
 

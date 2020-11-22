@@ -408,10 +408,10 @@ BOOL pifPulse_CheckItem(PIF_stPulse *pstOwner)
 void pifPulse_PrintItemList(PIF_stPulse *pstOwner)
 {
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enNone, "\nScale=%u: Free = %d, Alloc = %d\n",
-			pstOwner->unScale, pstOwner->__unFreeNext, pstOwner->__unAllocNext);
+	pifLog_Printf(LT_enNone, "\nFree = %d, Alloc = %d\n",
+			pstOwner->__unFreeNext, pstOwner->__unAllocNext);
 
-    for (PIF_unPulseIndex index = 0; index < pstOwner->__ucItemSize; index++) {
+    for (int index = 0; index < pstOwner->__ucItemSize; index++) {
     	pifLog_Printf(LT_enNone, "\n  %d, Next = %d, Prev = %d",
     			index, pstOwner->__pstItems[index].__unNext, pstOwner->__pstItems[index].__unPrev);
     }
@@ -428,7 +428,7 @@ void pifPulse_PrintItemFree(PIF_stPulse *pstOwner)
 	uint8_t index;
 
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enNone, "\nScale=%u: Free = %d\n", pstOwner->unScale, pstOwner->__unFreeNext);
+	pifLog_Printf(LT_enNone, "\nFree = %d\n", pstOwner->__unFreeNext);
 
     if (pstOwner->__unFreeNext == PIF_PULSE_INDEX_NULL) return;
 
@@ -452,7 +452,7 @@ void pifPulse_PrintItemAlloc(PIF_stPulse *pstOwner)
 	uint8_t index;
 
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enNone, "\nScale=%u: Alloc = %d\n", pstOwner->unScale, pstOwner->__unAllocNext);
+	pifLog_Printf(LT_enNone, "\nAlloc = %d\n", pstOwner->__unAllocNext);
 
     if (pstOwner->__unAllocNext == PIF_PULSE_INDEX_NULL) return;
 
