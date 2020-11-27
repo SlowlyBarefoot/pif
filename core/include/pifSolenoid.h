@@ -53,17 +53,6 @@ struct _PIF_stSolenoid
 	// Public Event Function
     PIF_evtSolenoid evtOff;
     PIF_evtSolenoid evtError;
-
-	// Private Member Variable
-    BOOL __bState;
-    PIF_enSolenoidDir __enCurrentDir;
-    PIF_stPulseItem *__pstTimerOn;
-	PIF_stPulseItem *__pstTimerDelay;
-    PIF_enSolenoidDir __enDir;
-	PIF_stRingData *__pstBuffer;
-
-    // Private Action Function
-    PIF_actSolenoidControl __actControl;
 };
 
 

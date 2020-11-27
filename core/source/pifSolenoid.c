@@ -2,34 +2,52 @@
 #include "pifSolenoid.h"
 
 
-static PIF_stSolenoid *s_pstSolenoidArray = NULL;
-static uint8_t s_ucSolenoidArraySize;
-static uint8_t s_ucSolenoidArrayPos;
+typedef struct _PIF_stSolenoidBase
+{
+	// Public Member Variable
+	PIF_stSolenoid stOwner;
+
+	// Private Member Variable
+    BOOL bState;
+    PIF_enSolenoidDir enCurrentDir;
+    PIF_stPulseItem *pstTimerOn;
+	PIF_stPulseItem *pstTimerDelay;
+    PIF_enSolenoidDir enDir;
+	PIF_stRingData *pstBuffer;
+
+    // Private Action Function
+    PIF_actSolenoidControl actControl;
+} PIF_stSolenoidBase;
+
+
+static PIF_stSolenoidBase *s_pstSolenoidBase = NULL;
+static uint8_t s_ucSolenoidBaseSize;
+static uint8_t s_ucSolenoidBasePos;
 
 static PIF_stPulse *s_pstSolenoidTimer;
 
 
-static void _ActionOn(PIF_stSolenoid *pstOwner, uint16_t usDelay, PIF_enSolenoidDir enDir)
+static void _ActionOn(PIF_stSolenoidBase *pstBase, uint16_t usDelay, PIF_enSolenoidDir enDir)
 {
 	if (!usDelay) {
-		if (pstOwner->enType != ST_en2Point || enDir != pstOwner->__enCurrentDir) {
-			pstOwner->__enCurrentDir = enDir;
-			(*pstOwner->__actControl)(ON, enDir);
-			pstOwner->__bState = TRUE;
-			if (pstOwner->usOnTime) {
-				if (!pifPulse_StartItem(pstOwner->__pstTimerOn, pstOwner->usOnTime)) {
-					pstOwner->__enCurrentDir = SD_enInvalid;
-					(*pstOwner->__actControl)(OFF, SD_enInvalid);
-					pstOwner->__bState = FALSE;
-					if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
+		if (pstBase->stOwner.enType != ST_en2Point || enDir != pstBase->enCurrentDir) {
+			pstBase->enCurrentDir = enDir;
+			(*pstBase->actControl)(ON, enDir);
+			pstBase->bState = TRUE;
+			if (pstBase->stOwner.usOnTime) {
+				if (!pifPulse_StartItem(pstBase->pstTimerOn, pstBase->stOwner.usOnTime)) {
+					pstBase->enCurrentDir = SD_enInvalid;
+					(*pstBase->actControl)(OFF, SD_enInvalid);
+					pstBase->bState = FALSE;
+					if (pstBase->stOwner.evtError) (*pstBase->stOwner.evtError)(&pstBase->stOwner);
 				}
 			}
 		}
 	}
 	else {
-		pstOwner->__enDir = enDir;
-		if (!pifPulse_StartItem(pstOwner->__pstTimerDelay, usDelay)) {
-			if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
+		pstBase->enDir = enDir;
+		if (!pifPulse_StartItem(pstBase->pstTimerDelay, usDelay)) {
+			if (pstBase->stOwner.evtError) (*pstBase->stOwner.evtError)(&pstBase->stOwner);
 		}
 	}
 }
@@ -41,26 +59,26 @@ static void _TimerDelayFinish(void *pvIssuer)
         return;
     }
 
-    PIF_stSolenoid *pstOwner = (PIF_stSolenoid *)pvIssuer;
+    PIF_stSolenoidBase *pstBase = (PIF_stSolenoidBase *)pvIssuer;
 
-	if (pstOwner->enType != ST_en2Point || pstOwner->__enDir != pstOwner->__enCurrentDir) {
-		pstOwner->__enCurrentDir = pstOwner->__enDir;
-		(*pstOwner->__actControl)(ON, pstOwner->__enDir);
-		pstOwner->__bState = TRUE;
-		if (pstOwner->usOnTime) {
-			if (!pifPulse_StartItem(pstOwner->__pstTimerOn, pstOwner->usOnTime)) {
-				pstOwner->__enCurrentDir = SD_enInvalid;
-				(*pstOwner->__actControl)(OFF, SD_enInvalid);
-				pstOwner->__bState = FALSE;
-				if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
+	if (pstBase->stOwner.enType != ST_en2Point || pstBase->enDir != pstBase->enCurrentDir) {
+		pstBase->enCurrentDir = pstBase->enDir;
+		(*pstBase->actControl)(ON, pstBase->enDir);
+		pstBase->bState = TRUE;
+		if (pstBase->stOwner.usOnTime) {
+			if (!pifPulse_StartItem(pstBase->pstTimerOn, pstBase->stOwner.usOnTime)) {
+				pstBase->enCurrentDir = SD_enInvalid;
+				(*pstBase->actControl)(OFF, SD_enInvalid);
+				pstBase->bState = FALSE;
+				if (pstBase->stOwner.evtError) (*pstBase->stOwner.evtError)(&pstBase->stOwner);
 			}
 		}
 	}
 
-	if (pstOwner->__pstBuffer) {
-		PIF_stSolenoidContent *pstContent = pifRingData_Remove(pstOwner->__pstBuffer);
+	if (pstBase->pstBuffer) {
+		PIF_stSolenoidContent *pstContent = pifRingData_Remove(pstBase->pstBuffer);
 		if (pstContent) {
-			_ActionOn(pstOwner, pstContent->usDelay, pstContent->enDir);
+			_ActionOn(pstBase, pstContent->usDelay, pstContent->enDir);
 		}
 	}
 }
@@ -72,25 +90,25 @@ static void _TimerOnFinish(void *pvIssuer)
         return;
     }
 
-    PIF_stSolenoid *pstOwner = (PIF_stSolenoid *)pvIssuer;
+    PIF_stSolenoidBase *pstBase = (PIF_stSolenoidBase *)pvIssuer;
 
-    if (pstOwner->__bState) {
-        (*pstOwner->__actControl)(OFF, SD_enInvalid);
-        if (pstOwner->evtOff) (*pstOwner->evtOff)(pstOwner);
-        pstOwner->__bState = FALSE;
+    if (pstBase->bState) {
+        (*pstBase->actControl)(OFF, SD_enInvalid);
+        if (pstBase->stOwner.evtOff) (*pstBase->stOwner.evtOff)(&pstBase->stOwner);
+        pstBase->bState = FALSE;
     }
 }
 
-static int32_t _CalcurateTime(PIF_stSolenoid *pstOwner)
+static int32_t _CalcurateTime(PIF_stSolenoidBase *pstBase)
 {
 	PIF_stSolenoidContent *pstContent;
 	int32_t time;
 
-	time = pifPulse_RemainItem(pstOwner->__pstTimerDelay);
-	pstContent = pifRingData_GetFirstData(pstOwner->__pstBuffer);
+	time = pifPulse_RemainItem(pstBase->pstTimerDelay);
+	pstContent = pifRingData_GetFirstData(pstBase->pstBuffer);
 	while (pstContent) {
 		time += pstContent->usDelay;
-		pstContent = pifRingData_GetNextData(pstOwner->__pstBuffer);
+		pstContent = pifRingData_GetNextData(pstBase->pstBuffer);
 	}
 	return time;
 }
@@ -109,14 +127,14 @@ BOOL pifSolenoid_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
 		goto fail;
 	}
 
-    s_pstSolenoidArray = calloc(sizeof(PIF_stSolenoid), ucSize);
-    if (!s_pstSolenoidArray) {
+    s_pstSolenoidBase = calloc(sizeof(PIF_stSolenoid), ucSize);
+    if (!s_pstSolenoidBase) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
 
-    s_ucSolenoidArraySize = ucSize;
-    s_ucSolenoidArrayPos = 0;
+    s_ucSolenoidBaseSize = ucSize;
+    s_ucSolenoidBasePos = 0;
 
     s_pstSolenoidTimer = pstTimer;
     return TRUE;
@@ -132,9 +150,9 @@ fail:
  */
 void pifSolenoid_Exit()
 {
-    if (s_pstSolenoidArray) {
-    	free(s_pstSolenoidArray);
-        s_pstSolenoidArray = NULL;
+    if (s_pstSolenoidBase) {
+    	free(s_pstSolenoidBase);
+        s_pstSolenoidBase = NULL;
     }
 }
 
@@ -150,7 +168,7 @@ void pifSolenoid_Exit()
 PIF_stSolenoid *pifSolenoid_Add(PIF_unDeviceCode unDeviceCode, PIF_enSolenoidType enType, uint16_t usOnTime,
 		PIF_actSolenoidControl actControl)
 {
-    if (s_ucSolenoidArrayPos >= s_ucSolenoidArraySize) {
+    if (s_ucSolenoidBasePos >= s_ucSolenoidBaseSize) {
         pif_enError = E_enOverflowBuffer;
         goto fail;
     }
@@ -160,23 +178,26 @@ PIF_stSolenoid *pifSolenoid_Add(PIF_unDeviceCode unDeviceCode, PIF_enSolenoidTyp
         goto fail;
     }
 
-    PIF_stSolenoid *pstOwner = &s_pstSolenoidArray[s_ucSolenoidArrayPos];
+    PIF_stSolenoidBase *pstBase = &s_pstSolenoidBase[s_ucSolenoidBasePos];
 
-    pstOwner->__pstTimerOn = pifPulse_AddItem(s_pstSolenoidTimer, PT_enOnce);
-    if (!pstOwner->__pstTimerOn) return FALSE;
-    pifPulse_AttachEvtFinish(pstOwner->__pstTimerOn, _TimerOnFinish, pstOwner);
+    pstBase->pstTimerOn = pifPulse_AddItem(s_pstSolenoidTimer, PT_enOnce);
+    if (!pstBase->pstTimerOn) return FALSE;
+    pifPulse_AttachEvtFinish(pstBase->pstTimerOn, _TimerOnFinish, pstBase);
 
-    pstOwner->__pstTimerDelay = pifPulse_AddItem(s_pstSolenoidTimer, PT_enOnce);
-    if (!pstOwner->__pstTimerDelay) return FALSE;
-    pifPulse_AttachEvtFinish(pstOwner->__pstTimerDelay, _TimerDelayFinish, pstOwner);
+    pstBase->pstTimerDelay = pifPulse_AddItem(s_pstSolenoidTimer, PT_enOnce);
+    if (!pstBase->pstTimerDelay) return FALSE;
+    pifPulse_AttachEvtFinish(pstBase->pstTimerDelay, _TimerDelayFinish, pstBase);
+
+    pstBase->actControl = actControl;
+    pstBase->bState = FALSE;
+
+    PIF_stSolenoid *pstOwner = &pstBase->stOwner;
 
     pstOwner->unDeviceCode = unDeviceCode;
     pstOwner->enType = enType;
     pstOwner->usOnTime = usOnTime;
-    pstOwner->__actControl = actControl;
-    pstOwner->__bState = FALSE;
 
-    s_ucSolenoidArrayPos = s_ucSolenoidArrayPos + 1;
+    s_ucSolenoidBasePos = s_ucSolenoidBasePos + 1;
     return pstOwner;
 
 fail:
@@ -193,8 +214,10 @@ fail:
  */
 BOOL pifSolenoid_SetBuffer(PIF_stSolenoid *pstOwner, uint16_t usSize)
 {
-	pstOwner->__pstBuffer = pifRingData_Init(sizeof(PIF_stSolenoidContent), usSize);
-	if (!pstOwner->__pstBuffer) return FALSE;
+	PIF_stSolenoidBase *pstBase = (PIF_stSolenoidBase *)pstOwner;
+
+	pstBase->pstBuffer = pifRingData_Init(sizeof(PIF_stSolenoidContent), usSize);
+	if (!pstBase->pstBuffer) return FALSE;
 	return TRUE;
 }
 
@@ -205,7 +228,7 @@ BOOL pifSolenoid_SetBuffer(PIF_stSolenoid *pstOwner, uint16_t usSize)
  */
 void pifSolenoid_SetInvalidDirection(PIF_stSolenoid *pstOwner)
 {
-	pstOwner->__enCurrentDir = SD_enInvalid;
+	((PIF_stSolenoidBase *)pstOwner)->enCurrentDir = SD_enInvalid;
 }
 
 /**
@@ -238,19 +261,20 @@ fail:
  */
 void pifSolenoid_ActionOn(PIF_stSolenoid *pstOwner, uint16_t usDelay)
 {
+	PIF_stSolenoidBase *pstBase = (PIF_stSolenoidBase *)pstOwner;
 	PIF_stSolenoidContent *pstContent;
 	int32_t time;
 
-	if (pstOwner->__pstBuffer) {
-		if (pifPulse_GetStep(pstOwner->__pstTimerDelay) == PS_enRunning) {
-			time = _CalcurateTime(pstOwner);
-			pstContent = pifRingData_Add(pstOwner->__pstBuffer);
+	if (pstBase->pstBuffer) {
+		if (pifPulse_GetStep(pstBase->pstTimerDelay) == PS_enRunning) {
+			time = _CalcurateTime(pstBase);
+			pstContent = pifRingData_Add(pstBase->pstBuffer);
 			pstContent->usDelay = usDelay > time ? usDelay - time : 0;
 			return;
 		}
 	}
 
-	_ActionOn(pstOwner, usDelay, SD_enInvalid);
+	_ActionOn(pstBase, usDelay, SD_enInvalid);
 }
 
 /**
@@ -262,20 +286,21 @@ void pifSolenoid_ActionOn(PIF_stSolenoid *pstOwner, uint16_t usDelay)
  */
 void pifSolenoid_ActionOnDir(PIF_stSolenoid *pstOwner, uint16_t usDelay, PIF_enSolenoidDir enDir)
 {
+	PIF_stSolenoidBase *pstBase = (PIF_stSolenoidBase *)pstOwner;
 	PIF_stSolenoidContent *pstContent;
 	int32_t time;
 
-	if (pstOwner->__pstBuffer) {
-		if (pifPulse_GetStep(pstOwner->__pstTimerDelay) == PS_enRunning) {
-			time = _CalcurateTime(pstOwner);
-			pstContent = pifRingData_Add(pstOwner->__pstBuffer);
+	if (pstBase->pstBuffer) {
+		if (pifPulse_GetStep(pstBase->pstTimerDelay) == PS_enRunning) {
+			time = _CalcurateTime(pstBase);
+			pstContent = pifRingData_Add(pstBase->pstBuffer);
 			pstContent->usDelay = usDelay >= time ? usDelay - time : 0;
 			pstContent->enDir = enDir;
 			return;
 		}
 	}
 
-    _ActionOn(pstOwner, usDelay, enDir);
+    _ActionOn(pstBase, usDelay, enDir);
 }
 
 /**
@@ -285,9 +310,11 @@ void pifSolenoid_ActionOnDir(PIF_stSolenoid *pstOwner, uint16_t usDelay, PIF_enS
  */
 void pifSolenoid_ActionOff(PIF_stSolenoid *pstOwner)
 {
-    if (pstOwner->__bState) {
-		pifPulse_StopItem(pstOwner->__pstTimerOn);
-		(*pstOwner->__actControl)(OFF, SD_enInvalid);
-		pstOwner->__bState = FALSE;
+	PIF_stSolenoidBase *pstBase = (PIF_stSolenoidBase *)pstOwner;
+
+	if (pstBase->bState) {
+		pifPulse_StopItem(pstBase->pstTimerOn);
+		(*pstBase->actControl)(OFF, SD_enInvalid);
+		pstBase->bState = FALSE;
     }
 }
