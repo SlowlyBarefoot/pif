@@ -51,14 +51,6 @@ typedef struct _PIF_stSwitch
 
 	// Public Event Function
     PIF_evtSwitchChange evtChange;				// Default: NULL
-
-	// Private Member Variable
-    SWITCH __swPrevState;						// Default: enInitState
-
-    uint8_t __ucFilterMethod;					// Default: PIF_SWITCH_FILTER_NONE
-    PIF_stSwitchFilter *__pstFilter;			// Default: NULL
-
-	PIF_enTaskLoop __enTaskLoop;				// Default: TL_enAll
 } PIF_stSwitch;
 
 

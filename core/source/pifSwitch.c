@@ -2,9 +2,24 @@
 #include "pifSwitch.h"
 
 
-static PIF_stSwitch *s_pstSwitchArray;
-static uint8_t s_ucSwitchArraySize;
-static uint8_t s_ucSwitchArrayPos;
+typedef struct _PIF_stSwitchBase
+{
+	// Public Member Variable
+	PIF_stSwitch stOwner;
+
+	// Private Member Variable
+    SWITCH swPrevState;						// Default: enInitState
+
+    uint8_t ucFilterMethod;					// Default: PIF_SWITCH_FILTER_NONE
+    PIF_stSwitchFilter *pstFilter;			// Default: NULL
+
+	PIF_enTaskLoop enTaskLoop;				// Default: TL_enAll
+} PIF_stSwitchBase;
+
+
+static PIF_stSwitchBase *s_pstSwitchBase;
+static uint8_t s_ucSwitchBaseSize;
+static uint8_t s_ucSwitchBasePos;
 
 
 static SWITCH _FilterCount(SWITCH swState, PIF_stSwitchFilter *pstOwner)
@@ -59,17 +74,19 @@ static SWITCH _FilterContinue(SWITCH swState, PIF_stSwitchFilter *pstOwner)
     return (pstOwner->unList >> pstOwner->ucHalf) & 1;
 }
 
-static void _TaskCommon(PIF_stSwitch *pstOwner)
+static void _TaskCommon(PIF_stSwitchBase *pstBase)
 {
+	PIF_stSwitch *pstOwner = &pstBase->stOwner;
+
 	if (pstOwner->actAcquire) {
 		pifSwitch_sigData(pstOwner, (*pstOwner->actAcquire)(pstOwner->unDeviceCode));
 	}
 
-	if (pstOwner->swCurrState != pstOwner->__swPrevState) {
+	if (pstOwner->swCurrState != pstBase->swPrevState) {
 		if (pstOwner->evtChange) {
 			(*pstOwner->evtChange)(pstOwner->unDeviceCode, pstOwner->swCurrState);
 		}
-		pstOwner->__swPrevState = pstOwner->swCurrState;
+		pstBase->swPrevState = pstOwner->swCurrState;
 	}
 }
 
@@ -86,14 +103,14 @@ BOOL pifSwitch_Init(uint8_t ucSize)
 		goto fail;
 	}
 
-    s_pstSwitchArray = calloc(sizeof(PIF_stSwitch), ucSize);
-    if (!s_pstSwitchArray) {
+    s_pstSwitchBase = calloc(sizeof(PIF_stSwitch), ucSize);
+    if (!s_pstSwitchBase) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
 
-    s_ucSwitchArraySize = ucSize;
-    s_ucSwitchArrayPos = 0;
+    s_ucSwitchBaseSize = ucSize;
+    s_ucSwitchBasePos = 0;
     return TRUE;
 
 fail:
@@ -107,9 +124,9 @@ fail:
  */
 void pifSwitch_Exit()
 {
-    if (s_pstSwitchArray) {
-        free(s_pstSwitchArray);
-        s_pstSwitchArray = NULL;
+    if (s_pstSwitchBase) {
+        free(s_pstSwitchBase);
+        s_pstSwitchBase = NULL;
     }
 }
 
@@ -122,20 +139,22 @@ void pifSwitch_Exit()
  */
 PIF_stSwitch *pifSwitch_Add(PIF_unDeviceCode unDeviceCode, SWITCH swInitState)
 {
-    if (s_ucSwitchArrayPos >= s_ucSwitchArraySize) {
+    if (s_ucSwitchBasePos >= s_ucSwitchBaseSize) {
         pif_enError = E_enOverflowBuffer;
         goto fail;
     }
 
-    PIF_stSwitch *pstOwner = &s_pstSwitchArray[s_ucSwitchArrayPos];
+    PIF_stSwitchBase *pstBase = &s_pstSwitchBase[s_ucSwitchBasePos];
+
+	pstBase->swPrevState = swInitState;
+
+    PIF_stSwitch *pstOwner = &pstBase->stOwner;
 
 	pstOwner->unDeviceCode = unDeviceCode;
 	pstOwner->swInitState = swInitState;
 	pstOwner->swCurrState = swInitState;
 
-	pstOwner->__swPrevState = swInitState;
-
-    s_ucSwitchArrayPos = s_ucSwitchArrayPos + 1;
+    s_ucSwitchBasePos = s_ucSwitchBasePos + 1;
     return pstOwner;
 
 fail:
@@ -179,8 +198,10 @@ BOOL pifSwitch_AttachFilter(PIF_stSwitch *pstOwner, uint8_t ucFilterMethod, uint
         break;
     }
 
-	pstOwner->__ucFilterMethod = ucFilterMethod;
-	pstOwner->__pstFilter = pstFilter;
+	PIF_stSwitchBase *pstBase = (PIF_stSwitchBase *)pstOwner;
+
+	pstBase->ucFilterMethod = ucFilterMethod;
+	pstBase->pstFilter = pstFilter;
     return TRUE;
 
 fail:
@@ -195,16 +216,17 @@ fail:
  */
 void pifSwitch_DetachFilter(PIF_stSwitch *pstOwner)
 {
+	PIF_stSwitchBase *pstBase = (PIF_stSwitchBase *)pstOwner;
 	PIF_stSwitchFilter *pstState;
 
-	if (pstOwner->__ucFilterMethod) {
-    	pstState = pstOwner->__pstFilter;
+	if (pstBase->ucFilterMethod) {
+    	pstState = pstBase->pstFilter;
     	pstState->ucSize = 0;
     	pstState->evtFilter = NULL;
 	}
 
-	pstOwner->__ucFilterMethod = PIF_SWITCH_FILTER_NONE;
-	pstOwner->__pstFilter = NULL;
+	pstBase->ucFilterMethod = PIF_SWITCH_FILTER_NONE;
+	pstBase->pstFilter = NULL;
 }
 
 /**
@@ -215,7 +237,7 @@ void pifSwitch_DetachFilter(PIF_stSwitch *pstOwner)
 void pifSwitch_InitialState(PIF_stSwitch *pstOwner)
 {
 	pstOwner->swCurrState = pstOwner->swInitState;
-	pstOwner->__swPrevState = pstOwner->swInitState;
+	((PIF_stSwitchBase *)pstOwner)->swPrevState = pstOwner->swInitState;
 }
 
 /**
@@ -226,10 +248,12 @@ void pifSwitch_InitialState(PIF_stSwitch *pstOwner)
  */
 void pifSwitch_sigData(PIF_stSwitch *pstOwner, SWITCH swState)
 {
+	PIF_stSwitchBase *pstBase = (PIF_stSwitchBase *)pstOwner;
+
 	if (pstOwner->bStateReverse) swState ^= 1;
 
-	if (pstOwner->__ucFilterMethod) {
-    	PIF_stSwitchFilter *pstState = pstOwner->__pstFilter;
+	if (pstBase->ucFilterMethod) {
+    	PIF_stSwitchFilter *pstState = pstBase->pstFilter;
     	pstOwner->swCurrState = (*pstState->evtFilter)(swState, pstState);
     }
 	else {
@@ -246,9 +270,9 @@ void pifSwitch_taskAll(PIF_stTask *pstTask)
 {
 	(void)pstTask;
 
-    for (int i = 0; i < s_ucSwitchArrayPos; i++) {
-    	PIF_stSwitch *pstOwner = &s_pstSwitchArray[i];
-        if (!pstOwner->__enTaskLoop) _TaskCommon(pstOwner);
+    for (int i = 0; i < s_ucSwitchBasePos; i++) {
+    	PIF_stSwitchBase *pstBase = &s_pstSwitchBase[i];
+        if (!pstBase->enTaskLoop) _TaskCommon(pstBase);
     }
 }
 
@@ -259,12 +283,12 @@ void pifSwitch_taskAll(PIF_stTask *pstTask)
  */
 void pifSwitch_taskEach(PIF_stTask *pstTask)
 {
-	PIF_stSwitch *pstOwner = pstTask->__pvOwner;
+	PIF_stSwitchBase *pstBase = pstTask->__pvOwner;
 
 	if (pstTask->__bTaskLoop) {
-		pstOwner->__enTaskLoop = TL_enEach;
+		pstBase->enTaskLoop = TL_enEach;
 	}
 	else {
-		_TaskCommon(pstOwner);
+		_TaskCommon(pstBase);
 	}
 }
