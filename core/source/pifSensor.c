@@ -2,9 +2,44 @@
 #include "pifSensor.h"
 
 
-static PIF_stSensor *s_pstSensorArray;
-static uint8_t s_ucSensorArraySize;
-static uint8_t s_ucSensorArrayPos;
+typedef struct _PIF_stSensorBase
+{
+	// Public Member Variable
+	PIF_stSensor stOwner;
+
+	// Private Member Variable
+    PIF_enSensorEventType enEventType;
+    union {
+    	uint16_t usPeriod;
+		uint16_t usThreshold;
+    	struct {
+			uint16_t usThresholdLow;
+			uint16_t usThresholdHigh;
+    	};
+    };
+    union {
+        PIF_stPulseItem *pstTimerPeriod;
+	    SWITCH swState;						// Default: OFF
+    };
+    uint16_t usCurrLevel;
+    uint16_t usPrevLevel;
+
+    uint8_t ucFilterMethod;					// Default: PIF_SENSOR_FILTER_NONE
+    PIF_stSensorFilter *pstFilter;			// Default: NULL
+
+	// Private Event Function
+    union {
+    	PIF_evtSensorPeriod evtPeriod;		// Default: NULL
+    	PIF_evtSensorChange evtChange;		// Default: NULL
+    };
+
+	PIF_enTaskLoop enTaskLoop;				// Default: TL_enAll
+} PIF_stSensorBase;
+
+
+static PIF_stSensorBase *s_pstSensorBase;
+static uint8_t s_ucSensorBaseSize;
+static uint8_t s_ucSensorBasePos;
 
 static PIF_stPulse *s_pstSensorTimer;
 
@@ -16,53 +51,53 @@ static void _TimerPeriodFinish(void *pvIssuer)
         return;
     }
 
-    PIF_stSensor *pstOwner = (PIF_stSensor *)pvIssuer;
+    PIF_stSensorBase *pstBase = (PIF_stSensorBase *)pvIssuer;
 
-    if (pstOwner->__evtPeriod) {
-        (*pstOwner->__evtPeriod)(pstOwner->unDeviceCode, pstOwner->__usCurrLevel);
+    if (pstBase->evtPeriod) {
+        (*pstBase->evtPeriod)(pstBase->stOwner.unDeviceCode, pstBase->usCurrLevel);
     }
 }
 
-static uint16_t _FilterAverage(uint16_t usLevel, PIF_stSensorFilter *pstOwner)
+static uint16_t _FilterAverage(uint16_t usLevel, PIF_stSensorFilter *pstFilter)
 {
     uint8_t pos;
 
-    pos = pstOwner->ucPos + 1;
-    if (pos >= pstOwner->ucSize) pos = 0;
+    pos = pstFilter->ucPos + 1;
+    if (pos >= pstFilter->ucSize) pos = 0;
 
-    if (pstOwner->unSum < pstOwner->apusBuffer[pos]) {
-    	pstOwner->unSum = 0L;
+    if (pstFilter->unSum < pstFilter->apusBuffer[pos]) {
+    	pstFilter->unSum = 0L;
     }
     else {
-    	pstOwner->unSum -= pstOwner->apusBuffer[pos];
+    	pstFilter->unSum -= pstFilter->apusBuffer[pos];
     }
-    pstOwner->unSum += usLevel;
-    pstOwner->apusBuffer[pos] = usLevel;
-    pstOwner->ucPos = pos;
+    pstFilter->unSum += usLevel;
+    pstFilter->apusBuffer[pos] = usLevel;
+    pstFilter->ucPos = pos;
 
-    return pstOwner->unSum / pstOwner->ucSize;
+    return pstFilter->unSum / pstFilter->ucSize;
 }
 
-static void _TaskCommon(PIF_stSensor *pstOwner)
+static void _TaskCommon(PIF_stSensorBase *pstBase)
 {
 	SWITCH swState;
 
-	if (!pstOwner->__evtChange) return;
+	if (!pstBase->evtChange) return;
 
-   	switch (pstOwner->__enEventType) {
+   	switch (pstBase->enEventType) {
    	case SET_enThreshold1P:
-   		swState = pstOwner->__usCurrLevel >= pstOwner->__usThreshold;
+   		swState = pstBase->usCurrLevel >= pstBase->usThreshold;
    		break;
 
    	case SET_enThreshold2P:
-   		if (pstOwner->__usCurrLevel <= pstOwner->__usThresholdLow) {
+   		if (pstBase->usCurrLevel <= pstBase->usThresholdLow) {
    			swState = OFF;
    		}
-   		else if (pstOwner->__usCurrLevel >= pstOwner->__usThresholdHigh) {
+   		else if (pstBase->usCurrLevel >= pstBase->usThresholdHigh) {
    			swState = ON;
    		}
    		else {
-   			swState = pstOwner->__swState;
+   			swState = pstBase->swState;
    		}
    		break;
 
@@ -70,11 +105,11 @@ static void _TaskCommon(PIF_stSensor *pstOwner)
    		return;
    	}
 
-	if (swState != pstOwner->__swState) {
-		if (pstOwner->__evtChange) {
-			(*pstOwner->__evtChange)(pstOwner->unDeviceCode, swState);
+	if (swState != pstBase->swState) {
+		if (pstBase->evtChange) {
+			(*pstBase->evtChange)(pstBase->stOwner.unDeviceCode, swState);
 		}
-		pstOwner->__swState = swState;
+		pstBase->swState = swState;
 	}
 }
 
@@ -92,14 +127,14 @@ BOOL pifSensor_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
 		goto fail;
 	}
 
-    s_pstSensorArray = calloc(sizeof(PIF_stSensor), ucSize);
-    if (!s_pstSensorArray) {
+    s_pstSensorBase = calloc(sizeof(PIF_stSensorBase), ucSize);
+    if (!s_pstSensorBase) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
 
-    s_ucSensorArraySize = ucSize;
-    s_ucSensorArrayPos = 0;
+    s_ucSensorBaseSize = ucSize;
+    s_ucSensorBasePos = 0;
 
     s_pstSensorTimer = pstTimer;
     return TRUE;
@@ -115,21 +150,21 @@ fail:
  */
 void pifSensor_Exit()
 {
-	PIF_stSensor *pstOwner;
+	PIF_stSensorBase *pstBase;
 
-    if (s_pstSensorArray) {
-        for (int i = 0; i < s_ucSensorArrayPos; i++) {
-        	pstOwner = &s_pstSensorArray[i];
-        	if (pstOwner->__ucFilterMethod) {
-            	PIF_stSensorFilter *pstFilter = pstOwner->__pstFilter;
+    if (s_pstSensorBase) {
+        for (int i = 0; i < s_ucSensorBasePos; i++) {
+        	pstBase = &s_pstSensorBase[i];
+        	if (pstBase->ucFilterMethod) {
+            	PIF_stSensorFilter *pstFilter = pstBase->pstFilter;
 				if (pstFilter->apusBuffer) {
 					free(pstFilter->apusBuffer);
 					pstFilter->apusBuffer = NULL;
 				}
         	}
         }
-        free(s_pstSensorArray);
-        s_pstSensorArray = NULL;
+        free(s_pstSensorBase);
+        s_pstSensorBase = NULL;
     }
 }
 
@@ -141,18 +176,20 @@ void pifSensor_Exit()
  */
 PIF_stSensor *pifSensor_Add(PIF_unDeviceCode unDeviceCode)
 {
-    if (s_ucSensorArrayPos >= s_ucSensorArraySize) {
+    if (s_ucSensorBasePos >= s_ucSensorBaseSize) {
         pif_enError = E_enOverflowBuffer;
         goto fail;
     }
 
-    PIF_stSensor *pstOwner = &s_pstSensorArray[s_ucSensorArrayPos];
+    PIF_stSensorBase *pstBase = &s_pstSensorBase[s_ucSensorBasePos];
 
-	pstOwner->unDeviceCode = unDeviceCode;
+	pstBase->swState = OFF;
 
-	pstOwner->__swState = OFF;
+    PIF_stSensor *pstOwner = &pstBase->stOwner;
 
-    s_ucSensorArrayPos = s_ucSensorArrayPos + 1;
+    pstOwner->unDeviceCode = unDeviceCode;
+
+    s_ucSensorBasePos = s_ucSensorBasePos + 1;
     return pstOwner;
 
 fail:
@@ -169,11 +206,13 @@ fail:
  */
 BOOL pifSensor_SetEventPeriod(PIF_stSensor *pstOwner, PIF_evtSensorPeriod evtPeriod)
 {
-    pstOwner->__pstTimerPeriod = pifPulse_AddItem(s_pstSensorTimer, PT_enRepeat);
-    if (!pstOwner->__pstTimerPeriod) return FALSE;
-    pifPulse_AttachEvtFinish(pstOwner->__pstTimerPeriod, _TimerPeriodFinish, pstOwner);
-	pstOwner->__enEventType = SET_enPeriod;
-	pstOwner->__evtPeriod = evtPeriod;
+    PIF_stSensorBase *pstBase = (PIF_stSensorBase *)pstOwner;
+
+    pstBase->pstTimerPeriod = pifPulse_AddItem(s_pstSensorTimer, PT_enRepeat);
+    if (!pstBase->pstTimerPeriod) return FALSE;
+    pifPulse_AttachEvtFinish(pstBase->pstTimerPeriod, _TimerPeriodFinish, pstBase);
+    pstBase->enEventType = SET_enPeriod;
+    pstBase->evtPeriod = evtPeriod;
 	return TRUE;
 }
 
@@ -186,7 +225,7 @@ BOOL pifSensor_SetEventPeriod(PIF_stSensor *pstOwner, PIF_evtSensorPeriod evtPer
  */
 BOOL pifSensor_StartPeriod(PIF_stSensor *pstOwner, uint16_t usPeriod)
 {
-	return pifPulse_StartItem(pstOwner->__pstTimerPeriod, usPeriod);
+	return pifPulse_StartItem(((PIF_stSensorBase *)pstOwner)->pstTimerPeriod, usPeriod);
 }
 
 /**
@@ -196,7 +235,7 @@ BOOL pifSensor_StartPeriod(PIF_stSensor *pstOwner, uint16_t usPeriod)
  */
 void pifSensor_StopPeriod(PIF_stSensor *pstOwner)
 {
-	pifPulse_StopItem(pstOwner->__pstTimerPeriod);
+	pifPulse_StopItem(((PIF_stSensorBase *)pstOwner)->pstTimerPeriod);
 }
 
 /**
@@ -208,9 +247,11 @@ void pifSensor_StopPeriod(PIF_stSensor *pstOwner)
  */
 void pifSensor_SetEventThreshold1P(PIF_stSensor *pstOwner, uint16_t usThreshold, PIF_evtSensorChange evtChange)
 {
-	pstOwner->__enEventType = SET_enThreshold1P;
-	pstOwner->__usThreshold = usThreshold;
-	pstOwner->__evtChange = evtChange;
+    PIF_stSensorBase *pstBase = (PIF_stSensorBase *)pstOwner;
+
+    pstBase->enEventType = SET_enThreshold1P;
+    pstBase->usThreshold = usThreshold;
+    pstBase->evtChange = evtChange;
 }
 
 /**
@@ -223,10 +264,12 @@ void pifSensor_SetEventThreshold1P(PIF_stSensor *pstOwner, uint16_t usThreshold,
  */
 void pifSensor_SetEventThreshold2P(PIF_stSensor *pstOwner, uint16_t usThresholdLow, uint16_t usThresholdHigh, PIF_evtSensorChange evtChange)
 {
-	pstOwner->__enEventType = SET_enThreshold2P;
-	pstOwner->__usThresholdLow = usThresholdLow;
-	pstOwner->__usThresholdHigh = usThresholdHigh;
-	pstOwner->__evtChange = evtChange;
+    PIF_stSensorBase *pstBase = (PIF_stSensorBase *)pstOwner;
+
+    pstBase->enEventType = SET_enThreshold2P;
+    pstBase->usThresholdLow = usThresholdLow;
+    pstBase->usThresholdHigh = usThresholdHigh;
+    pstBase->evtChange = evtChange;
 }
 
 /**
@@ -269,8 +312,10 @@ BOOL pifSensor_AttachFilter(PIF_stSensor *pstOwner, uint8_t ucFilterMethod, uint
         break;
     }
 
-	pstOwner->__ucFilterMethod = ucFilterMethod;
-	pstOwner->__pstFilter = pstFilter;
+	PIF_stSensorBase *pstBase = (PIF_stSensorBase *)pstOwner;
+
+	pstBase->ucFilterMethod = ucFilterMethod;
+	pstBase->pstFilter = pstFilter;
     return TRUE;
 
 fail:
@@ -285,9 +330,10 @@ fail:
  */
 void pifSensor_DetachFilter(PIF_stSensor *pstOwner)
 {
+	PIF_stSensorBase *pstBase = (PIF_stSensorBase *)pstOwner;
 	PIF_stSensorFilter *pstFilter;
 
-	pstFilter = pstOwner->__pstFilter;
+	pstFilter = pstBase->pstFilter;
 	if (pstFilter->apusBuffer) {
 		free(pstFilter->apusBuffer);
 		pstFilter->apusBuffer = NULL;
@@ -295,8 +341,8 @@ void pifSensor_DetachFilter(PIF_stSensor *pstOwner)
 	pstFilter->ucSize = 0;
 	pstFilter->evtFilter = NULL;
 
-	pstOwner->__ucFilterMethod = PIF_SENSOR_FILTER_NONE;
-	pstOwner->__pstFilter = NULL;
+	pstBase->ucFilterMethod = PIF_SENSOR_FILTER_NONE;
+	pstBase->pstFilter = NULL;
 }
 
 /**
@@ -307,14 +353,16 @@ void pifSensor_DetachFilter(PIF_stSensor *pstOwner)
  */
 void pifSensor_sigData(PIF_stSensor *pstOwner, uint16_t usLevel)
 {
-	pstOwner->__usPrevLevel = pstOwner->__usCurrLevel;
+	PIF_stSensorBase *pstBase = (PIF_stSensorBase *)pstOwner;
 
-	if (pstOwner->__ucFilterMethod) {
-    	PIF_stSensorFilter *pstFilter = pstOwner->__pstFilter;
-    	pstOwner->__usCurrLevel = (*pstFilter->evtFilter)(usLevel, pstFilter);
+	pstBase->usPrevLevel = pstBase->usCurrLevel;
+
+	if (pstBase->ucFilterMethod) {
+    	PIF_stSensorFilter *pstFilter = pstBase->pstFilter;
+    	pstBase->usCurrLevel = (*pstFilter->evtFilter)(usLevel, pstFilter);
     }
     else {
-    	pstOwner->__usCurrLevel = usLevel;
+    	pstBase->usCurrLevel = usLevel;
     }
 }
 
@@ -327,9 +375,9 @@ void pifSensor_taskAll(PIF_stTask *pstTask)
 {
 	(void)pstTask;
 
-    for (int i = 0; i < s_ucSensorArrayPos; i++) {
-    	PIF_stSensor *pstOwner = &s_pstSensorArray[i];
-        if (!pstOwner->__enTaskLoop) _TaskCommon(pstOwner);
+    for (int i = 0; i < s_ucSensorBasePos; i++) {
+    	PIF_stSensorBase *pstBase = &s_pstSensorBase[i];
+        if (!pstBase->enTaskLoop) _TaskCommon(pstBase);
     }
 }
 
@@ -340,12 +388,12 @@ void pifSensor_taskAll(PIF_stTask *pstTask)
  */
 void pifSensor_taskEach(PIF_stTask *pstTask)
 {
-	PIF_stSensor *pstOwner = pstTask->__pvOwner;
+	PIF_stSensorBase *pstBase = pstTask->__pvOwner;
 
 	if (pstTask->__bTaskLoop) {
-		pstOwner->__enTaskLoop = TL_enEach;
+		pstBase->enTaskLoop = TL_enEach;
 	}
 	else {
-		_TaskCommon(pstOwner);
+		_TaskCommon(pstBase);
 	}
 }

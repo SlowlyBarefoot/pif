@@ -127,7 +127,7 @@ BOOL pifSolenoid_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
 		goto fail;
 	}
 
-    s_pstSolenoidBase = calloc(sizeof(PIF_stSolenoid), ucSize);
+    s_pstSolenoidBase = calloc(sizeof(PIF_stSolenoidBase), ucSize);
     if (!s_pstSolenoidBase) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;

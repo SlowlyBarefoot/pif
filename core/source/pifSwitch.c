@@ -103,7 +103,7 @@ BOOL pifSwitch_Init(uint8_t ucSize)
 		goto fail;
 	}
 
-    s_pstSwitchBase = calloc(sizeof(PIF_stSwitch), ucSize);
+    s_pstSwitchBase = calloc(sizeof(PIF_stSwitchBase), ucSize);
     if (!s_pstSwitchBase) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
