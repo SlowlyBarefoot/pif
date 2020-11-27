@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include "pifComm.h"
 #include "pifLog.h"
 
 
