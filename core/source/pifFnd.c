@@ -492,9 +492,9 @@ void pifFnd_taskAll(PIF_stTask *pstTask)
  */
 void pifFnd_taskEach(PIF_stTask *pstTask)
 {
-	PIF_stFndBase *pstBase = pstTask->__pvOwner;
+	PIF_stFndBase *pstBase = pstTask->pvLoopEach;
 
-	if (pstTask->__bTaskLoop) {
+	if (pstBase->enTaskLoop != TL_enEach) {
 		pstBase->enTaskLoop = TL_enEach;
 	}
 	else {

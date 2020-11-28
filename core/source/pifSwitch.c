@@ -283,9 +283,9 @@ void pifSwitch_taskAll(PIF_stTask *pstTask)
  */
 void pifSwitch_taskEach(PIF_stTask *pstTask)
 {
-	PIF_stSwitchBase *pstBase = pstTask->__pvOwner;
+	PIF_stSwitchBase *pstBase = pstTask->pvLoopEach;
 
-	if (pstTask->__bTaskLoop) {
+	if (pstBase->enTaskLoop != TL_enEach) {
 		pstBase->enTaskLoop = TL_enEach;
 	}
 	else {

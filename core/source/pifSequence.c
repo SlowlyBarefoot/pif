@@ -252,9 +252,9 @@ void pifSequence_taskAll(PIF_stTask *pstTask)
  */
 void pifSequence_taskEach(PIF_stTask *pstTask)
 {
-	PIF_stSequenceBase *pstBase = pstTask->__pvOwner;
+	PIF_stSequenceBase *pstBase = pstTask->pvLoopEach;
 
-	if (pstTask->__bTaskLoop) {
+	if (pstBase->enTaskLoop != TL_enEach) {
 		pstBase->enTaskLoop = TL_enEach;
 	}
 	else {

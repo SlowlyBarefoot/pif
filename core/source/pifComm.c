@@ -219,9 +219,9 @@ void pifComm_taskAll(PIF_stTask *pstTask)
  */
 void pifComm_taskEach(PIF_stTask *pstTask)
 {
-	PIF_stComm *pstOwner = pstTask->__pvOwner;
+	PIF_stComm *pstOwner = pstTask->pvLoopEach;
 
-	if (pstTask->__bTaskLoop) {
+	if (pstOwner->__enTaskLoop != TL_enEach) {
 		pstOwner->__enTaskLoop = TL_enEach;
 	}
 	else {
