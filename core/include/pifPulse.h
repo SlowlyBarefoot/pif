@@ -36,7 +36,6 @@ typedef struct _PIF_stPulseItem
     uint32_t __unPulse;
     void *__pvFinishIssuer;
 
-	uint8_t __ucArrayIndex;
     uint8_t __unIndex;
     uint8_t __unNext;
     uint8_t __unPrev;
@@ -52,15 +51,7 @@ typedef struct _PIF_stPulseItem
 typedef struct _PIF_stPulse
 {
 	// Public Member Variable
-
-	// Private Member Variable
-	uint8_t __ucArrayIndex;
-    uint8_t __unFreeNext;
-    uint8_t __unAllocNext;
-    uint8_t __ucItemSize;
-    PIF_stPulseItem *__pstItems;
-
-	PIF_enTaskLoop __enTaskLoop;
+	PIF_unDeviceCode unDeviceCode;
 } PIF_stPulse;
 
 
@@ -71,7 +62,7 @@ extern "C" {
 BOOL pifPulse_Init(uint8_t ucSize);
 void pifPulse_Exit();
 
-PIF_stPulse *pifPulse_Add(uint8_t ucSize);
+PIF_stPulse *pifPulse_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucSize);
 
 PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType);
 void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstPulseItem);
