@@ -5,9 +5,6 @@
 #include "pifPulse.h"
 
 
-#define PIF_DM_CONTROL_PERIOD_DEFAULT		2
-
-
 typedef enum _PIF_enDotMatrixShift
 {
 	DMS_enNone			= 0x00,
@@ -29,12 +26,9 @@ typedef enum _PIF_enDotMatrixShift
 } PIF_enDotMatrixShift;
 
 
-struct _PIF_stDotMatrix;
-typedef struct _PIF_stDotMatrix PIF_stDotMatrix;
-
 typedef void (*PIF_actDotMatrixDisplay)(uint8_t ucRow, uint8_t *pucData);
 
-typedef void (*PIF_evtDotMatrixShiftFinish)(PIF_stDotMatrix *pstOwner);
+typedef void (*PIF_evtDotMatrixShiftFinish)(PIF_unDeviceCode unDeviceCode);
 
 
 /**
@@ -53,55 +47,14 @@ typedef struct _PIF_stDotMatrixPattern
  * @class _PIF_stDotMatrix
  * @brief
  */
-struct _PIF_stDotMatrix
+typedef struct _PIF_stDotMatrix
 {
-	// Public Member Variable
+	// Variable
 	PIF_unDeviceCode unDeviceCode;
 
-    uint16_t usColSize;
-    uint16_t usRowSize;
-
-	uint8_t ucPatternIndex;
-
-	struct {
-		uint8_t btRun			: 1;
-		uint8_t btBlink			: 1;
-	};
-
-	union {
-		PIF_enDotMatrixShift enShift;
-		struct {
-			uint8_t btDirection	: 4;	// 2 : Left, 3 : Right, 4 : Up, 5 : Down
-			uint8_t btMethod	: 4;	// 0 : Off, 2 : Repeat Hor, 3 : Repeat Ver, 4 : PingPong Hor, 5 : PingPong Ver
-		} btShift;
-	};
-
-	// Private Member Variable
-    uint16_t __usColBytes;
-    uint16_t __usTotalBytes;
-
-    uint8_t __ucPatternSize;
-    uint8_t __ucPatternCount;
-    PIF_stDotMatrixPattern *__pstPattern;
-    uint8_t *__pucPattern;
-
-	uint8_t __ucRowIndex;
-	uint16_t __usPositionX;
-	uint16_t __usPositionY;
-	uint16_t __usShiftCount;
-
-    uint16_t __usControlPeriodMs;
-	uint16_t __usPretimeMs;
-
-	PIF_stPulseItem *__pstTimerBlink;
-	PIF_stPulseItem *__pstTimerShift;
-
-	PIF_enTaskLoop __enTaskLoop;
-
-	// Private Member Function
-   	PIF_actDotMatrixDisplay __actDisplay;
-    PIF_evtDotMatrixShiftFinish __evtShiftFinish;
-};
+	// Event Function
+    PIF_evtDotMatrixShiftFinish evtShiftFinish;
+} PIF_stDotMatrix;
 
 
 #ifdef __cplusplus
@@ -114,6 +67,7 @@ void pifDotMatrix_Exit();
 PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColSize, uint16_t usRowSize,
 		PIF_actDotMatrixDisplay actDisplay);
 
+uint16_t pifDotMatrix_GetControlPeriod(PIF_stDotMatrix *pstOwner);
 BOOL pifDotMatrix_SetControlPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
 
 BOOL pifDotMatrix_SetPatternSize(PIF_stDotMatrix *pstOwner, uint8_t ucSize);
@@ -129,7 +83,6 @@ void pifDotMatrix_BlinkOff(PIF_stDotMatrix *pstOwner);
 void pifDotMatrix_ChangeBlinkPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
 
 BOOL pifDotMatrix_SetPosition(PIF_stDotMatrix *pstOwner, uint16_t usX, uint16_t usY);
-void pifDotMatrix_AttachEvtShiftFinish(PIF_stDotMatrix *pstOwner, PIF_evtDotMatrixShiftFinish evtShiftFinish);
 BOOL pifDotMatrix_ShiftOn(PIF_stDotMatrix *pstOwner, PIF_enDotMatrixShift enShift, uint16_t usPeriodMs, uint16_t usCount);
 void pifDotMatrix_ShiftOff(PIF_stDotMatrix *pstOwner);
 void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
