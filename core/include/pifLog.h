@@ -25,26 +25,6 @@ typedef enum _PIF_enLogType
 typedef void (*PIF_actLogPrint)(char *pcString);
 
 
-/**
- * @class _PIF_stLog
- * @brief Log 관리용 구조체
- */
-typedef struct _PIF_stLog
-{
-	// Public Member Variable
-
-	// Private Member Variable
-	BOOL __bEnable;
-	PIF_stRingBuffer __stBuffer;
-#ifndef __PIF_NO_TERMINAL__
-	PIF_stTerminal *__pstTerminal;
-#endif
-
-	// Private Member Function
-	PIF_actLogPrint __actPrint;
-} PIF_stLog;
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif

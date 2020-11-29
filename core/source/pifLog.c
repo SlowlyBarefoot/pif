@@ -1,17 +1,26 @@
-/*
- * pifLog.c
- *
- *  Created on: 2020. 7. 19.
- *      Author: wonjh
- */
-
 #include <stdarg.h>
 #include <string.h>
 
 #include "pifLog.h"
 
 
-static PIF_stLog s_stLog;
+typedef struct _PIF_stLogBase
+{
+	// Public Member Variable
+
+	// Private Member Variable
+	BOOL bEnable;
+	PIF_stRingBuffer stBuffer;
+#ifndef __PIF_NO_TERMINAL__
+	PIF_stTerminal *pstTerminal;
+#endif
+
+	// Private Member Function
+	PIF_actLogPrint actPrint;
+} PIF_stLogBase;
+
+
+static PIF_stLogBase s_stLogBase;
 
 const char *c_apcHexChar[2] = {
 		"0123456789abcdef",
@@ -141,12 +150,12 @@ static void _PrintTime()
  */
 void pifLog_Init()
 {
-	s_stLog.__bEnable = TRUE;
-	pifRingBuffer_Init(&s_stLog.__stBuffer);
+	s_stLogBase.bEnable = TRUE;
+	pifRingBuffer_Init(&s_stLogBase.stBuffer);
 #ifndef __PIF_NO_TERMINAL__
-	s_stLog.__pstTerminal = NULL;
+	s_stLogBase.pstTerminal = NULL;
 #endif
-	s_stLog.__actPrint = NULL;
+	s_stLogBase.actPrint = NULL;
 }
 
 /**
@@ -155,7 +164,7 @@ void pifLog_Init()
  */
 void pifLog_Exit()
 {
-	pifRingBuffer_Exit(&s_stLog.__stBuffer);
+	pifRingBuffer_Exit(&s_stLogBase.stBuffer);
 }
 
 /**
@@ -166,7 +175,7 @@ void pifLog_Exit()
  */
 BOOL pifLog_InitBufferAlloc(uint16_t usSize)
 {
-	return pifRingBuffer_InitAlloc(&s_stLog.__stBuffer, usSize);
+	return pifRingBuffer_InitAlloc(&s_stLogBase.stBuffer, usSize);
 }
 
 /**
@@ -177,7 +186,7 @@ BOOL pifLog_InitBufferAlloc(uint16_t usSize)
  */
 void pifLog_InitBufferShare(uint16_t usSize, char *pcBuffer)
 {
-	pifRingBuffer_InitShare(&s_stLog.__stBuffer, usSize, pcBuffer);
+	pifRingBuffer_InitShare(&s_stLogBase.stBuffer, usSize, pcBuffer);
 }
 
 #ifndef __PIF_NO_TERMINAL__
@@ -189,7 +198,7 @@ void pifLog_InitBufferShare(uint16_t usSize, char *pcBuffer)
  */
 void pifLog_AttachTerminal(PIF_stTerminal *pstTerminal)
 {
-	s_stLog.__pstTerminal = pstTerminal;
+	s_stLogBase.pstTerminal = pstTerminal;
 }
 
 /**
@@ -198,7 +207,7 @@ void pifLog_AttachTerminal(PIF_stTerminal *pstTerminal)
  */
 void pifLog_DetachTerminal()
 {
-	s_stLog.__pstTerminal = NULL;
+	s_stLogBase.pstTerminal = NULL;
 }
 
 #endif
@@ -209,7 +218,7 @@ void pifLog_DetachTerminal()
  */
 void pifLog_Enable()
 {
-	s_stLog.__bEnable = TRUE;
+	s_stLogBase.bEnable = TRUE;
 }
 
 /**
@@ -218,7 +227,7 @@ void pifLog_Enable()
  */
 void pifLog_Disable()
 {
-	s_stLog.__bEnable = FALSE;
+	s_stLogBase.bEnable = FALSE;
 }
 
 /**
@@ -228,19 +237,19 @@ void pifLog_Disable()
  */
 void pifLog_Print(char *pcString)
 {
-	if (pifRingBuffer_IsAlloc(&s_stLog.__stBuffer)) {
-		pifRingBuffer_PushString(&s_stLog.__stBuffer, pcString);
+	if (pifRingBuffer_IsAlloc(&s_stLogBase.stBuffer)) {
+		pifRingBuffer_PushString(&s_stLogBase.stBuffer, pcString);
 	}
 
-	if (s_stLog.__bEnable) {
+	if (s_stLogBase.bEnable) {
 #ifndef __PIF_NO_TERMINAL__
-		if (s_stLog.__pstTerminal) {
-			pifRingBuffer_PushString(&s_stLog.__pstTerminal->stTxBuffer, pcString);
+		if (s_stLogBase.pstTerminal) {
+			pifRingBuffer_PushString(&s_stLogBase.pstTerminal->stTxBuffer, pcString);
 		}
 #endif
 
-		if (s_stLog.__actPrint) {
-			(*s_stLog.__actPrint)(pcString);
+		if (s_stLogBase.actPrint) {
+			(*s_stLogBase.actPrint)(pcString);
 		}
 	}
 }
@@ -413,13 +422,13 @@ void pifLog_PrintInBuffer()
 	uint8_t pBuffer[128];
 	uint16_t usLength;
 
-	if (!s_stLog.__actPrint || !pifRingBuffer_IsAlloc(&s_stLog.__stBuffer)) return;
+	if (!s_stLogBase.actPrint || !pifRingBuffer_IsAlloc(&s_stLogBase.stBuffer)) return;
 
-	while (!pifRingBuffer_IsEmpty(&s_stLog.__stBuffer)) {
-		usLength = pifRingBuffer_CopyToArray(pBuffer, &s_stLog.__stBuffer, 127);
+	while (!pifRingBuffer_IsEmpty(&s_stLogBase.stBuffer)) {
+		usLength = pifRingBuffer_CopyToArray(pBuffer, &s_stLogBase.stBuffer, 127);
 		pBuffer[usLength] = 0;
-		(*s_stLog.__actPrint)((char *)pBuffer);
-		pifRingBuffer_Remove(&s_stLog.__stBuffer, usLength);
+		(*s_stLogBase.actPrint)((char *)pBuffer);
+		pifRingBuffer_Remove(&s_stLogBase.stBuffer, usLength);
 	}
 }
 
@@ -430,7 +439,7 @@ void pifLog_PrintInBuffer()
  */
 void pifLog_AttachActPrint(PIF_actLogPrint actPrint)
 {
-	s_stLog.__actPrint = actPrint;
+	s_stLogBase.actPrint = actPrint;
 }
 
 /**
@@ -439,5 +448,5 @@ void pifLog_AttachActPrint(PIF_actLogPrint actPrint)
  */
 void pifLog_DetachActPrint()
 {
-	s_stLog.__actPrint = NULL;
+	s_stLogBase.actPrint = NULL;
 }
