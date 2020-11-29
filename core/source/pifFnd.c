@@ -77,7 +77,7 @@ static void _TimerDisplayFinish(PIF_stFndBase *pstBase)
 	if (pstBase->ucDigitIndex >= pstBase->stOwner.ucDigitSize) pstBase->ucDigitIndex = 0;
 }
 
-static void _TimerBlinkFinish(void *pvIssuer)
+static void _evtTimerBlinkFinish(void *pvIssuer)
 {
     if (!pvIssuer) {
         pif_enError = E_enInvalidParam;
@@ -282,7 +282,7 @@ BOOL pifFnd_BlinkOn(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
 	if (!pstBase->pstTimerBlink) {
 		pstBase->pstTimerBlink = pifPulse_AddItem(s_pstFndTimer, PT_enRepeat);
         if (!pstBase->pstTimerBlink) return FALSE;
-        pifPulse_AttachEvtFinish(pstBase->pstTimerBlink, _TimerBlinkFinish, pstBase);
+        pifPulse_AttachEvtFinish(pstBase->pstTimerBlink, _evtTimerBlinkFinish, pstBase);
     }
     if (!pifPulse_StartItem(pstBase->pstTimerBlink, usPeriodMs)) return FALSE;
     return TRUE;

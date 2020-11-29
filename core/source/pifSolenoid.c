@@ -52,7 +52,7 @@ static void _ActionOn(PIF_stSolenoidBase *pstBase, uint16_t usDelay, PIF_enSolen
 	}
 }
 
-static void _TimerDelayFinish(void *pvIssuer)
+static void _evtTimerDelayFinish(void *pvIssuer)
 {
     if (!pvIssuer) {
         pif_enError = E_enInvalidParam;
@@ -83,7 +83,7 @@ static void _TimerDelayFinish(void *pvIssuer)
 	}
 }
 
-static void _TimerOnFinish(void *pvIssuer)
+static void _evtTimerOnFinish(void *pvIssuer)
 {
     if (!pvIssuer) {
         pif_enError = E_enInvalidParam;
@@ -182,11 +182,11 @@ PIF_stSolenoid *pifSolenoid_Add(PIF_unDeviceCode unDeviceCode, PIF_enSolenoidTyp
 
     pstBase->pstTimerOn = pifPulse_AddItem(s_pstSolenoidTimer, PT_enOnce);
     if (!pstBase->pstTimerOn) return FALSE;
-    pifPulse_AttachEvtFinish(pstBase->pstTimerOn, _TimerOnFinish, pstBase);
+    pifPulse_AttachEvtFinish(pstBase->pstTimerOn, _evtTimerOnFinish, pstBase);
 
     pstBase->pstTimerDelay = pifPulse_AddItem(s_pstSolenoidTimer, PT_enOnce);
     if (!pstBase->pstTimerDelay) return FALSE;
-    pifPulse_AttachEvtFinish(pstBase->pstTimerDelay, _TimerDelayFinish, pstBase);
+    pifPulse_AttachEvtFinish(pstBase->pstTimerDelay, _evtTimerDelayFinish, pstBase);
 
     pstBase->actControl = actControl;
     pstBase->bState = FALSE;

@@ -27,7 +27,7 @@ static uint8_t s_ucSequenceBasePos;
 static PIF_stPulse *s_pstSequenceTimer;
 
 
-static void _TimerDelayFinish(void *pvIssuer)
+static void _evtTimerDelayFinish(void *pvIssuer)
 {
     if (!pvIssuer) {
         pif_enError = E_enInvalidParam;
@@ -80,7 +80,7 @@ static void _LoopCommon(PIF_stSequenceBase *pstBase)
 						goto fail;
 					}
 					else {
-						pifPulse_AttachEvtFinish(pstBase->pstTimerDelay, _TimerDelayFinish, pstOwner);
+						pifPulse_AttachEvtFinish(pstBase->pstTimerDelay, _evtTimerDelayFinish, pstOwner);
 					}
 				}
 				pifPulse_StartItem(pstBase->pstTimerDelay, pstOwner->usDelay);

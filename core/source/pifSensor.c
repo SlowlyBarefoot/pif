@@ -44,7 +44,7 @@ static uint8_t s_ucSensorBasePos;
 static PIF_stPulse *s_pstSensorTimer;
 
 
-static void _TimerPeriodFinish(void *pvIssuer)
+static void _evtTimerPeriodFinish(void *pvIssuer)
 {
     if (!pvIssuer) {
         pif_enError = E_enInvalidParam;
@@ -210,7 +210,7 @@ BOOL pifSensor_SetEventPeriod(PIF_stSensor *pstOwner, PIF_evtSensorPeriod evtPer
 
     pstBase->pstTimerPeriod = pifPulse_AddItem(s_pstSensorTimer, PT_enRepeat);
     if (!pstBase->pstTimerPeriod) return FALSE;
-    pifPulse_AttachEvtFinish(pstBase->pstTimerPeriod, _TimerPeriodFinish, pstBase);
+    pifPulse_AttachEvtFinish(pstBase->pstTimerPeriod, _evtTimerPeriodFinish, pstBase);
     pstBase->enEventType = SET_enPeriod;
     pstBase->evtPeriod = evtPeriod;
 	return TRUE;
