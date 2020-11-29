@@ -6,7 +6,7 @@
 #include "pifTask.h"
 
 
-#define PIF_SEQUENCE_ITEM_NO_IDLE	0xFF
+#define PIF_SEQUENCE_PHASE_NO_IDLE	0xFF
 
 #define PIF_SEQUENCE_STEP_INIT		0
 #define PIF_SEQUENCE_STEP_DELAY		0xFF
@@ -16,29 +16,35 @@ typedef enum _PIF_enSequenceResult
 {
     SR_enContinue	= 1,
     SR_enNext		= 2,
-    SR_enError		= 3
+    SR_enFinish		= 3
 } PIF_enSequenceResult;
 
-typedef struct _PIF_stSequence
-{
-	uint8_t ucId;
-	uint8_t ucItemNo;
-	uint8_t ucStep;
-	uint8_t ucNextItemNo;
-	uint16_t usDelay;
-	void *pvParam;
-} PIF_stSequence;
 
-typedef PIF_enSequenceResult (*PIF_fnSequence)(PIF_stSequence *pstCommon);
-typedef void (*PIF_evtSequenceFinish)(uint8_t ucId);
+struct _PIF_stSequence;
+typedef struct _PIF_stSequence PIF_stSequence;
 
-typedef struct _PIF_stSequenceItem 
+typedef PIF_enSequenceResult (*PIF_fnSequence)(PIF_stSequence *pstOwner);
+typedef void (*PIF_evtSequenceError)(PIF_stSequence *pstOwner);
+
+
+typedef struct _PIF_stSequencePhase
 {
 	PIF_fnSequence fnProcess;
+	uint8_t ucPhaseNoNext;
+} PIF_stSequencePhase;
+
+struct _PIF_stSequence
+{
+	uint8_t ucId;
+	uint8_t ucPhaseNo;
+	uint8_t ucStep;
+	uint8_t ucPhaseNoNext;
 	uint16_t usDelay;
-	uint8_t ucItemNoNext;
-	uint8_t ucItemNoError;
-} PIF_stSequenceItem;
+	void *pvParam;
+
+    // Private Member Function
+	PIF_evtSequenceError evtError;
+};
 
 
 #ifdef __cplusplus
@@ -48,12 +54,11 @@ extern "C" {
 BOOL pifSequence_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifSequence_Exit();
 
-PIF_stSequence *pifSequence_Add(uint8_t ucId, const PIF_stSequenceItem *pstItemList, void *pvParam);
+PIF_stSequence *pifSequence_Add(uint8_t ucId, const PIF_stSequencePhase *pstPhaseList, void *pvParam);
 
 void pifSequence_Start(PIF_stSequence *pstOwner);
 
-// Attach Event Function
-void pifSequence_AttachEvtFinish(PIF_stSequence *pstOwner, PIF_evtSequenceFinish evtFinish);
+BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout);
 
 // Task Function
 void pifSequence_taskAll(PIF_stTask *pstTask);

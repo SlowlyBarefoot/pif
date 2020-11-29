@@ -55,6 +55,7 @@ typedef enum _PIF_enError
     E_enOverflowBuffer			= 0x04,
 	E_enEmptyInBuffer			= 0x05,
 	E_enWrongData				= 0x06,
+	E_enTimeout					= 0x07,
 } PIF_enError;
 
 

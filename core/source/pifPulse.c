@@ -138,7 +138,7 @@ PIF_stPulse *pifPulse_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucSize)
     PIF_stPulseBase *pstBase = &s_pstPulseBase[s_ucPulseBasePos];
 
     pstBase->stOwner.unDeviceCode = unDeviceCode;
-    pstBase->pstItems = calloc(sizeof(PIF_stPulseItem), ucSize);
+    pstBase->pstItems = calloc(sizeof(PIF_stPulseItemBase), ucSize);
     if (!pstBase->pstItems) {
         pif_enError = E_enOutOfHeap;
         goto fail;
