@@ -48,15 +48,6 @@ typedef struct _PIF_stTerminal
 {
 	// Public Member Variable
     PIF_stRingBuffer stTxBuffer;
-
-    // Private Member Variable
-    uint8_t __ucCharIdx;
-    uint8_t __ucRxBufferSize;
-    char *__pcRxBuffer;
-    char __cLastChar;
-	char *__apcArgv[PIF_TERM_CMD_MAX_ARGS + 1];
-	const PIF_stTermCmdEntry *__pstCmdTable;
-	const char *__pcPrompt;
 } PIF_stTerminal;
 
 
