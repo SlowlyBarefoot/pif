@@ -14,10 +14,9 @@
 #endif
 
 
-typedef void (*PIF_fnCommParsing)(void *pvProcessor, PIF_stRingBuffer *pstBuffer);
-typedef BOOL (*PIF_fnCommSending)(void *pvProcessor, PIF_stRingBuffer *pstBuffer);
-typedef void (*PIF_fnCommSended)(void *pvProcessor);
-
+typedef void (*PIF_evtCommParsing)(void *pvClient, PIF_stRingBuffer *pstBuffer);
+typedef BOOL (*PIF_evtCommSending)(void *pvClient, PIF_stRingBuffer *pstBuffer);
+typedef void (*PIF_evtCommSended)(void *pvClient);
 
 typedef BOOL (*PIF_actCommSendData)(uint8_t ucData);
 
@@ -39,22 +38,6 @@ typedef struct _PIF_stComm
 
 	// Public Action Function
     PIF_actCommSendData actSendData;
-
-	// Private Member Variable
-    void *__pvProcessor;
-
-    PIF_stRingBuffer __stTxBuffer;
-    PIF_enCommTxState __enState;
-
-    PIF_stRingBuffer __stRxBuffer;
-
-	PIF_enTaskLoop __enTaskLoop;
-
-    // Private Member Function
-    PIF_fnCommSending __fnSending;
-    PIF_fnCommSended __fnSended;
-
-    PIF_fnCommParsing __fnParing;
 } PIF_stComm;
 
 
@@ -69,6 +52,11 @@ PIF_stComm *pifComm_Add(PIF_unDeviceCode unDeviceCode);
 
 BOOL pifComm_ResizeRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize);
 BOOL pifComm_ResizeTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize);
+
+void pifComm_AttachClient(PIF_stComm *pstOwner, void *pvClient);
+void pifComm_AttachEvtParsing(PIF_stComm *pstOwner, PIF_evtCommParsing evtParsing);
+void pifComm_AttachEvtSending(PIF_stComm *pstOwner, PIF_evtCommSending evtSending);
+void pifComm_AttachEvtSended(PIF_stComm *pstOwner, PIF_evtCommSended evtSended);
 
 BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData);
 BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength);

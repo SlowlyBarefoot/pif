@@ -4,42 +4,64 @@
 #include "pifLog.h"
 
 
-static PIF_stComm *s_pstCommArray;
-static uint8_t s_ucCommArraySize;
-static uint8_t s_ucCommArrayPos;
+typedef struct _PIF_stCommBase
+{
+	// Public Member Variable
+	PIF_stComm stOwner;
+
+	// Private Member Variable
+    void *pvClient;
+
+    PIF_stRingBuffer stTxBuffer;
+    PIF_enCommTxState enState;
+
+    PIF_stRingBuffer stRxBuffer;
+
+	PIF_enTaskLoop enTaskLoop;
+
+    // Private Member Function
+    PIF_evtCommParsing evtParsing;
+    PIF_evtCommSending evtSending;
+    PIF_evtCommSended evtSended;
+} PIF_stCommBase;
 
 
-static void _LoopCommon(PIF_stComm *pstOwner)
+static PIF_stCommBase *s_pstCommBase = NULL;
+static uint8_t s_ucCommBaseSize;
+static uint8_t s_ucCommBasePos;
+
+
+static void _LoopCommon(PIF_stCommBase *pstBase)
 {
 	uint8_t ucData;
 
-	if (!pifRingBuffer_IsEmpty(&pstOwner->__stRxBuffer)) {
-		if (pstOwner->__fnParing) {
-			(*pstOwner->__fnParing)(pstOwner->__pvProcessor, &pstOwner->__stRxBuffer);
+	if (!pifRingBuffer_IsEmpty(&pstBase->stRxBuffer)) {
+		if (pstBase->evtParsing) {
+			(*pstBase->evtParsing)(pstBase->pvClient, &pstBase->stRxBuffer);
 		}
 	}
 
-	if (pifRingBuffer_IsEmpty(&pstOwner->__stTxBuffer)) {
-		switch (pstOwner->__enState) {
+	if (pifRingBuffer_IsEmpty(&pstBase->stTxBuffer)) {
+		switch (pstBase->enState) {
 		case STS_enIdle:
-			if (pstOwner->__fnSending) {
-				if ((*pstOwner->__fnSending)(pstOwner->__pvProcessor, &pstOwner->__stTxBuffer)) {
-					if (pstOwner->actSendData) {
-						pifRingBuffer_Pop(&pstOwner->__stTxBuffer, &ucData);
-						(*pstOwner->actSendData)(ucData);
+			if (pstBase->evtSending) {
+				if ((*pstBase->evtSending)(pstBase->pvClient, &pstBase->stTxBuffer)) {
+					if (pstBase->stOwner.actSendData) {
+						pifRingBuffer_Pop(&pstBase->stTxBuffer, &ucData);
+						(*pstBase->stOwner.actSendData)(ucData);
 					}
-					pstOwner->__enState = STS_enSending;
+					pstBase->enState = STS_enSending;
 				}
 			}
 			break;
 
 		case STS_enSending:
-			if (pstOwner->__fnSended) {
-				if (pifRingBuffer_IsEmpty(&pstOwner->__stTxBuffer)) {
-					(*pstOwner->__fnSended)(pstOwner->__pvProcessor);
+			if (pstBase->evtSended) {
+				if (pifRingBuffer_IsEmpty(&pstBase->stTxBuffer)) {
+					(*pstBase->evtSended)(pstBase->pvClient);
 				}
 			}
-			pstOwner->__enState = STS_enIdle;
+			pstBase->enState = STS_enIdle;
 	    	break;
 		}
     }
@@ -58,14 +80,14 @@ BOOL pifComm_Init(uint8_t ucSize)
 		goto fail;
 	}
 
-    s_pstCommArray = calloc(sizeof(PIF_stComm), ucSize);
-    if (!s_pstCommArray) {
+    s_pstCommBase = calloc(sizeof(PIF_stCommBase), ucSize);
+    if (!s_pstCommBase) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
 
-    s_ucCommArraySize = ucSize;
-    s_ucCommArrayPos = 0;
+    s_ucCommBaseSize = ucSize;
+    s_ucCommBasePos = 0;
     return TRUE;
 
 fail:
@@ -79,9 +101,14 @@ fail:
  */
 void pifComm_Exit()
 {
-    if (s_pstCommArray) {
-        free(s_pstCommArray);
-        s_pstCommArray = NULL;
+    if (s_pstCommBase) {
+    	for (int i = 0; i < s_ucCommBasePos; i++) {
+    		PIF_stCommBase *pstBase = &s_pstCommBase[i];
+        	pifRingBuffer_Exit(&pstBase->stRxBuffer);
+        	pifRingBuffer_Exit(&pstBase->stTxBuffer);
+    	}
+        free(s_pstCommBase);
+        s_pstCommBase = NULL;
     }
 }
 
@@ -93,21 +120,21 @@ void pifComm_Exit()
  */
 PIF_stComm *pifComm_Add(PIF_unDeviceCode unDeviceCode)
 {
-    if (s_ucCommArrayPos >= s_ucCommArraySize) {
+    if (s_ucCommBasePos >= s_ucCommBaseSize) {
         pif_enError = E_enOverflowBuffer;
         goto fail;
     }
 
-    PIF_stComm *pstOwner = &s_pstCommArray[s_ucCommArrayPos];
+    PIF_stCommBase *pstBase = &s_pstCommBase[s_ucCommBasePos];
 
-    if (!pifRingBuffer_InitAlloc(&pstOwner->__stRxBuffer, PIF_COMM_RX_BUFFER_SIZE)) goto fail;
-    if (!pifRingBuffer_InitAlloc(&pstOwner->__stTxBuffer, PIF_COMM_TX_BUFFER_SIZE)) goto fail;
+    if (!pifRingBuffer_InitAlloc(&pstBase->stRxBuffer, PIF_COMM_RX_BUFFER_SIZE)) goto fail;
+    if (!pifRingBuffer_InitAlloc(&pstBase->stTxBuffer, PIF_COMM_TX_BUFFER_SIZE)) goto fail;
 
-    pstOwner->unDeviceCode = unDeviceCode;
-	pstOwner->__enState = STS_enIdle;
+    pstBase->stOwner.unDeviceCode = unDeviceCode;
+    pstBase->enState = STS_enIdle;
 
-    s_ucCommArrayPos = s_ucCommArrayPos + 1;
-    return pstOwner;
+    s_ucCommBasePos = s_ucCommBasePos + 1;
+    return &pstBase->stOwner;
 
 fail:
 	pifLog_Printf(LT_enError, "Comm:Add(D:%u) EC:%d", unDeviceCode, pif_enError);
@@ -123,13 +150,15 @@ fail:
  */
 BOOL pifComm_ResizeRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize)
 {
+	PIF_stCommBase *pstBase = (PIF_stCommBase *)pstOwner;
+
     if (!usRxSize) {
     	pif_enError = E_enInvalidParam;
     	goto fail;
     }
 
-	pifRingBuffer_Exit(&pstOwner->__stRxBuffer);
-    if (!pifRingBuffer_InitAlloc(&pstOwner->__stRxBuffer, usRxSize)) goto fail;
+	pifRingBuffer_Exit(&pstBase->stRxBuffer);
+    if (!pifRingBuffer_InitAlloc(&pstBase->stRxBuffer, usRxSize)) goto fail;
     return TRUE;
 
 fail:
@@ -146,18 +175,64 @@ fail:
  */
 BOOL pifComm_ResizeTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize)
 {
-    if (!usTxSize) {
+	PIF_stCommBase *pstBase = (PIF_stCommBase *)pstOwner;
+
+	if (!usTxSize) {
     	pif_enError = E_enInvalidParam;
     	goto fail;
     }
 
-	pifRingBuffer_Exit(&pstOwner->__stTxBuffer);
-    if (!pifRingBuffer_InitAlloc(&pstOwner->__stTxBuffer, usTxSize)) goto fail;
+	pifRingBuffer_Exit(&pstBase->stTxBuffer);
+    if (!pifRingBuffer_InitAlloc(&pstBase->stTxBuffer, usTxSize)) goto fail;
 	return TRUE;
 
 fail:
 	pifLog_Printf(LT_enError, "Comm:ResizeTxBuffer(S:%u) EC:%d", usTxSize, pif_enError);
 	return FALSE;
+}
+
+/**
+ * @fn pifComm_AttachClient
+ * @brief
+ * @param pstOwner
+ * @param pvClient
+ */
+void pifComm_AttachClient(PIF_stComm *pstOwner, void *pvClient)
+{
+	((PIF_stCommBase *)pstOwner)->pvClient = pvClient;
+}
+
+/**
+ * @fn pifComm_AttachEvtParsing
+ * @brief
+ * @param pstOwner
+ * @param evtParsing
+ */
+void pifComm_AttachEvtParsing(PIF_stComm *pstOwner, PIF_evtCommParsing evtParsing)
+{
+	((PIF_stCommBase *)pstOwner)->evtParsing = evtParsing;
+}
+
+/**
+ * @fn pifComm_AttachEvtSending
+ * @brief
+ * @param pstOwner
+ * @param evtSending
+ */
+void pifComm_AttachEvtSending(PIF_stComm *pstOwner, PIF_evtCommSending evtSending)
+{
+	((PIF_stCommBase *)pstOwner)->evtSending = evtSending;
+}
+
+/**
+ * @fn pifComm_AttachEvtSended
+ * @brief
+ * @param pstOwner
+ * @param fnSended
+ */
+void pifComm_AttachEvtSended(PIF_stComm *pstOwner, PIF_evtCommSended evtSended)
+{
+	((PIF_stCommBase *)pstOwner)->evtSended = evtSended;
 }
 
 /**
@@ -169,7 +244,7 @@ fail:
  */
 BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData)
 {
-	return pifRingBuffer_PushByte(&pstOwner->__stRxBuffer, ucData);
+	return pifRingBuffer_PushByte(&((PIF_stCommBase *)pstOwner)->stRxBuffer, ucData);
 }
 
 /**
@@ -182,7 +257,7 @@ BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData)
  */
 BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength)
 {
-	return pifRingBuffer_PushData(&pstOwner->__stRxBuffer, pucData, usLength);
+	return pifRingBuffer_PushData(&((PIF_stCommBase *)pstOwner)->stRxBuffer, pucData, usLength);
 }
 
 /**
@@ -194,7 +269,7 @@ BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLen
  */
 BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
 {
-    return pifRingBuffer_Pop(&pstOwner->__stTxBuffer, pucData);
+    return pifRingBuffer_Pop(&((PIF_stCommBase *)pstOwner)->stTxBuffer, pucData);
 }
 
 /**
@@ -206,9 +281,9 @@ void pifComm_taskAll(PIF_stTask *pstTask)
 {
 	(void)pstTask;
 
-	for (int i = 0; i < s_ucCommArrayPos; i++) {
-		PIF_stComm *pstOwner = &s_pstCommArray[i];
-		if (!pstOwner->__enTaskLoop) _LoopCommon(pstOwner);
+	for (int i = 0; i < s_ucCommBasePos; i++) {
+		PIF_stCommBase *pstBase = &s_pstCommBase[i];
+		if (!pstBase->enTaskLoop) _LoopCommon(pstBase);
 	}
 }
 
@@ -219,12 +294,12 @@ void pifComm_taskAll(PIF_stTask *pstTask)
  */
 void pifComm_taskEach(PIF_stTask *pstTask)
 {
-	PIF_stComm *pstOwner = pstTask->pvLoopEach;
+	PIF_stCommBase *pstBase = pstTask->pvLoopEach;
 
-	if (pstOwner->__enTaskLoop != TL_enEach) {
-		pstOwner->__enTaskLoop = TL_enEach;
+	if (pstBase->enTaskLoop != TL_enEach) {
+		pstBase->enTaskLoop = TL_enEach;
 	}
 	else {
-		_LoopCommon(pstOwner);
+		_LoopCommon(pstBase);
 	}
 }

@@ -126,9 +126,9 @@ static void _ClearDebugStr()
     }
 }
 
-static void _Parsing(void *pvOwner, PIF_stRingBuffer *pstBuffer)
+static void _evtParsing(void *pvClient, PIF_stRingBuffer *pstBuffer)
 {
-	PIF_stTerminal *pstOwner = (PIF_stTerminal *)pvOwner;
+	PIF_stTerminal *pstOwner = (PIF_stTerminal *)pvClient;
     int nStatus = PIF_TERM_CMD_NO_ERROR;
 
     if (_GetDebugString(pstBuffer)) {
@@ -162,9 +162,9 @@ static void _Parsing(void *pvOwner, PIF_stRingBuffer *pstBuffer)
     }
 }
 
-static BOOL _Sending(void *pvOwner, PIF_stRingBuffer *pstBuffer)
+static BOOL _evtSending(void *pvClient, PIF_stRingBuffer *pstBuffer)
 {
-	PIF_stTerminal *pstOwner = (PIF_stTerminal *)pvOwner;
+	PIF_stTerminal *pstOwner = (PIF_stTerminal *)pvClient;
 	uint16_t usLength;
 
 	if (!pifRingBuffer_IsEmpty(&pstOwner->stTxBuffer)) {
@@ -261,15 +261,15 @@ fail:
 }
 
 /**
- * @fn pifTerminal_AttachFunction
+ * @fn pifTerminal_AttachComm
  * @brief
  * @param pstComm
  */
 void pifTerminal_AttachComm(PIF_stComm *pstComm)
 {
-	pstComm->__pvProcessor = &s_stTerminal;
-	pstComm->__fnParing = _Parsing;
-	pstComm->__fnSending = _Sending;
+	pifComm_AttachClient(pstComm, &s_stTerminal);
+	pifComm_AttachEvtParsing(pstComm, _evtParsing);
+	pifComm_AttachEvtSending(pstComm, _evtSending);
 }
 
 /**
