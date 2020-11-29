@@ -158,12 +158,13 @@ static void _CheckKeyState(int idx, BOOL button)
 /**
  * @fn pifKeypad_Init
  * @brief
- * @param pcUserKeymap
+ * @param unDeviceCode
  * @param ucNumRows
  * @param ucNumCols
+ * @param pcUserKeymap
  * @return
  */
-PIF_stKeypad *pifKeypad_Init(const char *pcUserKeymap, uint8_t ucNumRows, uint8_t ucNumCols)
+PIF_stKeypad *pifKeypad_Init(PIF_unDeviceCode unDeviceCode, uint8_t ucNumRows, uint8_t ucNumCols, const char *pcUserKeymap)
 {
 	int i;
 
@@ -179,6 +180,7 @@ PIF_stKeypad *pifKeypad_Init(const char *pcUserKeymap, uint8_t ucNumRows, uint8_
 		goto fail;
 	}
 
+	s_stKeyPadBase.stOwner.unDeviceCode = unDeviceCode;
 	s_stKeyPadBase.pcUserKeymap = pcUserKeymap;
 	s_stKeyPadBase.ucNumRows = ucNumRows;
 	s_stKeyPadBase.ucNumCols = ucNumCols;
