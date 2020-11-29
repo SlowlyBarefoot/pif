@@ -7,10 +7,7 @@
 
 typedef struct _PIF_stTerminalBase
 {
-	// Public Member Variable
-	PIF_stTerminal stOwner;
-
-    // Private Member Variable
+    PIF_stRingBuffer stTxBuffer;
     uint8_t ucCharIdx;
     uint8_t ucRxBufferSize;
     char *pcRxBuffer;
@@ -38,7 +35,7 @@ static BOOL _GetDebugString(PIF_stRingBuffer *pstBuffer)
         switch (cTmpChar) {
         case '\b':
             if (s_stTerminalBase.ucCharIdx > 0) {
-                bRes = pifRingBuffer_PushString(&s_stTerminalBase.stOwner.stTxBuffer, "\b \b");
+                bRes = pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, "\b \b");
                 if (!bRes) return FALSE;
                 s_stTerminalBase.ucCharIdx--;
                 s_stTerminalBase.pcRxBuffer[s_stTerminalBase.ucCharIdx] = 0;
@@ -60,14 +57,14 @@ static BOOL _GetDebugString(PIF_stRingBuffer *pstBuffer)
             break;
 
         case 0x1b:  // ESC-Key pressed
-            bRes = pifRingBuffer_PushByte(&s_stTerminalBase.stOwner.stTxBuffer, '\n');
+            bRes = pifRingBuffer_PushByte(&s_stTerminalBase.stTxBuffer, '\n');
             if (!bRes) return FALSE;
             bStrGetDoneFlag = TRUE;
             break;
 
         default:
             if (s_stTerminalBase.ucCharIdx < s_stTerminalBase.ucRxBufferSize - 1) {
-                bRes = pifRingBuffer_PushByte(&s_stTerminalBase.stOwner.stTxBuffer, cTmpChar);
+                bRes = pifRingBuffer_PushByte(&s_stTerminalBase.stTxBuffer, cTmpChar);
                 if (!bRes) return FALSE;
                 s_stTerminalBase.pcRxBuffer[s_stTerminalBase.ucCharIdx] = cTmpChar;
                 s_stTerminalBase.ucCharIdx++;
@@ -118,7 +115,7 @@ static int _ProcessDebugCmd(char *pcCmdStr)
         pstCmdEntry = &s_stTerminalBase.pstCmdTable[0];
         while (pstCmdEntry->pcName) {
             if (!strcmp(s_stTerminalBase.apcArgv[0], pstCmdEntry->pcName)) {
-            	pifRingBuffer_PushString(&s_stTerminalBase.stOwner.stTxBuffer, (char *)pstCmdEntry->pcHelp);
+            	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, (char *)pstCmdEntry->pcHelp);
                 return pstCmdEntry->fnProcessor(unArgc, s_stTerminalBase.apcArgv);
             }
 
@@ -154,38 +151,38 @@ static void _evtParsing(void *pvClient, PIF_stRingBuffer *pstBuffer)
 
         // Handle the case of bad command.
         if (nStatus == PIF_TERM_CMD_BAD_CMD) {
-        	pifRingBuffer_PushString(&s_stTerminalBase.stOwner.stTxBuffer, "Not defined command!\n");
+        	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, "Not defined command!\n");
         }
 
         // Handle the case of too many arguments.
         else if (nStatus == PIF_TERM_CMD_TOO_MANY_ARGS) {
-        	pifRingBuffer_PushString(&s_stTerminalBase.stOwner.stTxBuffer, "Too many arguments for command processor!\n");
+        	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, "Too many arguments for command processor!\n");
         }
 
         // Handle the case of too few arguments.
         else if (nStatus == PIF_TERM_CMD_TOO_FEW_ARGS) {
-        	pifRingBuffer_PushString(&s_stTerminalBase.stOwner.stTxBuffer, "Too few arguments for command processor!\n");
+        	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, "Too few arguments for command processor!\n");
         }
 
         // Otherwise the command was executed.  Print the error
         // code if one was returned.
         else if (nStatus != PIF_TERM_CMD_NO_ERROR) {
-        	pifRingBuffer_PushString(&s_stTerminalBase.stOwner.stTxBuffer, "Command returned error code\n");
+        	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, "Command returned error code\n");
         }
 
-    	pifRingBuffer_PushString(&s_stTerminalBase.stOwner.stTxBuffer, (char *)pstBase->pcPrompt);
-    	pifRingBuffer_PushString(&s_stTerminalBase.stOwner.stTxBuffer, "> ");
+    	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, (char *)pstBase->pcPrompt);
+    	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, "> ");
     }
 }
 
 static BOOL _evtSending(void *pvClient, PIF_stRingBuffer *pstBuffer)
 {
-	PIF_stTerminal *pstOwner = (PIF_stTerminal *)pvClient;
+	PIF_stTerminalBase *pstBase = (PIF_stTerminalBase *)pvClient;
 	uint16_t usLength;
 
-	if (!pifRingBuffer_IsEmpty(&pstOwner->stTxBuffer)) {
-		usLength = pifRingBuffer_CopyAll(pstBuffer, &pstOwner->stTxBuffer);
-		pifRingBuffer_Remove(&pstOwner->stTxBuffer, usLength);
+	if (!pifRingBuffer_IsEmpty(&pstBase->stTxBuffer)) {
+		usLength = pifRingBuffer_CopyAll(pstBuffer, &pstBase->stTxBuffer);
+		pifRingBuffer_Remove(&pstBase->stTxBuffer, usLength);
 		return TRUE;
 	}
 	return FALSE;
@@ -198,7 +195,7 @@ static BOOL _evtSending(void *pvClient, PIF_stRingBuffer *pstBuffer)
  * @param pcPrompt
  * @return
  */
-PIF_stTerminal *pifTerminal_Init(const PIF_stTermCmdEntry *pstCmdTable, const char *pcPrompt)
+BOOL pifTerminal_Init(const PIF_stTermCmdEntry *pstCmdTable, const char *pcPrompt)
 {
     if (!pstCmdTable || !pcPrompt) {
     	pif_enError = E_enInvalidParam;
@@ -212,15 +209,15 @@ PIF_stTerminal *pifTerminal_Init(const PIF_stTermCmdEntry *pstCmdTable, const ch
     }
     s_stTerminalBase.ucRxBufferSize = PIF_TERMINAL_RX_BUFFER_SIZE;
 
-    if (!pifRingBuffer_InitAlloc(&s_stTerminalBase.stOwner.stTxBuffer, PIF_TERMINAL_TX_BUFFER_SIZE)) goto fail;
+    if (!pifRingBuffer_InitAlloc(&s_stTerminalBase.stTxBuffer, PIF_TERMINAL_TX_BUFFER_SIZE)) goto fail;
 
     s_stTerminalBase.pstCmdTable = pstCmdTable;
     s_stTerminalBase.pcPrompt = pcPrompt;
-    return &s_stTerminalBase.stOwner;
+    return TRUE;
 
 fail:
 	pifLog_Printf(LT_enError, "%u Terminal:Init(R:%u T:%u) EC:%d", PIF_TERMINAL_RX_BUFFER_SIZE, PIF_TERMINAL_TX_BUFFER_SIZE, pif_enError);
-	return NULL;
+	return FALSE;
 }
 
 /**
@@ -267,13 +264,23 @@ BOOL pifTerminal_ResizeTxBuffer(uint16_t usTxSize)
     	goto fail;
     }
 
-	pifRingBuffer_Exit(&s_stTerminalBase.stOwner.stTxBuffer);
-    if (!pifRingBuffer_InitAlloc(&s_stTerminalBase.stOwner.stTxBuffer, usTxSize)) goto fail;
+	pifRingBuffer_Exit(&s_stTerminalBase.stTxBuffer);
+    if (!pifRingBuffer_InitAlloc(&s_stTerminalBase.stTxBuffer, usTxSize)) goto fail;
     return TRUE;
 
 fail:
 	pifLog_Printf(LT_enError, "Terminal:ResizeTxBuffer(S:%u) EC:%d", usTxSize, pif_enError);
     return FALSE;
+}
+
+/**
+ * @fn pifTerminal_GetTxBuffer
+ * @brief
+ * @return
+ */
+PIF_stRingBuffer *pifTerminal_GetTxBuffer()
+{
+	 return &s_stTerminalBase.stTxBuffer;
 }
 
 /**

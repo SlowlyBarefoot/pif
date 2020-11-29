@@ -12,7 +12,7 @@ typedef struct _PIF_stLogBase
 	BOOL bEnable;
 	PIF_stRingBuffer stBuffer;
 #ifndef __PIF_NO_TERMINAL__
-	PIF_stTerminal *pstTerminal;
+	BOOL bUseTerminal;
 #endif
 
 	// Private Member Function
@@ -153,7 +153,7 @@ void pifLog_Init()
 	s_stLogBase.bEnable = TRUE;
 	pifRingBuffer_Init(&s_stLogBase.stBuffer);
 #ifndef __PIF_NO_TERMINAL__
-	s_stLogBase.pstTerminal = NULL;
+	s_stLogBase.bUseTerminal = FALSE;
 #endif
 	s_stLogBase.actPrint = NULL;
 }
@@ -192,22 +192,13 @@ void pifLog_InitBufferShare(uint16_t usSize, char *pcBuffer)
 #ifndef __PIF_NO_TERMINAL__
 
 /**
- * @fn pifLog_AttachTerminal
+ * @fn pifLog_UseTerminal
  * @brief
- * @param pstTerminal
+ * @param bUse
  */
-void pifLog_AttachTerminal(PIF_stTerminal *pstTerminal)
+void pifLog_UseTerminal(BOOL bUse)
 {
-	s_stLogBase.pstTerminal = pstTerminal;
-}
-
-/**
- * @fn pifLog_DetachTerminal
- * @brief
- */
-void pifLog_DetachTerminal()
-{
-	s_stLogBase.pstTerminal = NULL;
+	s_stLogBase.bUseTerminal = bUse;
 }
 
 #endif
@@ -243,8 +234,8 @@ void pifLog_Print(char *pcString)
 
 	if (s_stLogBase.bEnable) {
 #ifndef __PIF_NO_TERMINAL__
-		if (s_stLogBase.pstTerminal) {
-			pifRingBuffer_PushString(&s_stLogBase.pstTerminal->stTxBuffer, pcString);
+		if (s_stLogBase.bUseTerminal) {
+			pifRingBuffer_PushString(pifTerminal_GetTxBuffer(), pcString);
 		}
 #endif
 

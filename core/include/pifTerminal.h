@@ -40,25 +40,17 @@ typedef struct _PIF_stTermCmdEntry
     const char *pcHelp;
 } PIF_stTermCmdEntry;
 
-/**
- * @class _PIF_stTerminal
- * @brief
- */
-typedef struct _PIF_stTerminal
-{
-	// Public Member Variable
-    PIF_stRingBuffer stTxBuffer;
-} PIF_stTerminal;
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PIF_stTerminal *pifTerminal_Init(const PIF_stTermCmdEntry *pstCmdTable, const char *pcPrompt);
+BOOL pifTerminal_Init(const PIF_stTermCmdEntry *pstCmdTable, const char *pcPrompt);
 
 BOOL pifTerminal_ResizeRxBuffer(uint16_t usRxSize);
 BOOL pifTerminal_ResizeTxBuffer(uint16_t usTxSize);
+
+PIF_stRingBuffer *pifTerminal_GetTxBuffer();
 
 void pifTerminal_AttachComm(PIF_stComm *pstComm);
 

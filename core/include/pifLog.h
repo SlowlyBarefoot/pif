@@ -36,8 +36,7 @@ BOOL pifLog_InitBufferAlloc(uint16_t usSize);
 void pifLog_InitBufferShare(uint16_t usSize, char *pcBuffer);
 
 #ifndef __PIF_NO_TERMINAL__
-void pifLog_AttachTerminal(PIF_stTerminal *pstTerminal);
-void pifLog_DetachTerminal();
+void pifLog_UseTerminal(BOOL bUse);
 #endif
 
 void pifLog_Enable();
