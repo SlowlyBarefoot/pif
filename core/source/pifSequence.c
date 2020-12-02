@@ -223,7 +223,7 @@ void pifSequence_Start(PIF_stSequence *pstOwner)
 
 BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout)
 {
-	PIF_stSequenceBase *pstBase = (PIF_stSequence *)pstOwner;
+	PIF_stSequenceBase *pstBase = (PIF_stSequenceBase *)pstOwner;
 
 	if (!pstBase->pstTimerTimeout) {
 		pstBase->pstTimerTimeout = pifPulse_AddItem(s_pstSequenceTimer, PT_enOnce);
