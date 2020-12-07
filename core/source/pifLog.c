@@ -229,13 +229,13 @@ void pifLog_Disable()
 void pifLog_Print(char *pcString)
 {
 	if (pifRingBuffer_IsAlloc(&s_stLogBase.stBuffer)) {
-		pifRingBuffer_PushString(&s_stLogBase.stBuffer, pcString);
+		pifRingBuffer_PutString(&s_stLogBase.stBuffer, pcString);
 	}
 
 	if (s_stLogBase.bEnable) {
 #ifndef __PIF_NO_TERMINAL__
 		if (s_stLogBase.bUseTerminal) {
-			pifRingBuffer_PushString(pifTerminal_GetTxBuffer(), pcString);
+			pifRingBuffer_PutString(pifTerminal_GetTxBuffer(), pcString);
 		}
 #endif
 

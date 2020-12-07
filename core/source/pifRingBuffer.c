@@ -233,13 +233,13 @@ void pifRingBuffer_RestoreHead(PIF_stRingBuffer *pstOwner)
 }
 
 /**
- * @fn pifRingBuffer_PushByte
+ * @fn pifRingBuffer_PutByte
  * @brief
  * @param pstOwner
  * @param ucData
  * @return
  */
-BOOL pifRingBuffer_PushByte(PIF_stRingBuffer *pstOwner, uint8_t ucData)
+BOOL pifRingBuffer_PutByte(PIF_stRingBuffer *pstOwner, uint8_t ucData)
 {
     uint16_t usNext;
 
@@ -262,14 +262,14 @@ fail:
 }
 
 /**
- * @fn pifRingBuffer_PushData
+ * @fn pifRingBuffer_PutData
  * @brief
  * @param pstOwner
  * @param pucData
  * @param usLength
  * @return
  */
-BOOL pifRingBuffer_PushData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16_t usLength)
+BOOL pifRingBuffer_PutData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16_t usLength)
 {
 	uint16_t usRemain = pifRingBuffer_GetRemainSize(pstOwner);
 
@@ -293,13 +293,13 @@ fail:
 }
 
 /**
- * @fn pifRingBuffer_PushString
+ * @fn pifRingBuffer_PutString
  * @brief
  * @param pstOwner
  * @param pcString
  * @return
  */
-BOOL pifRingBuffer_PushString(PIF_stRingBuffer *pstOwner, char *pcString)
+BOOL pifRingBuffer_PutString(PIF_stRingBuffer *pstOwner, char *pcString)
 {
 	uint16_t usRemain = pifRingBuffer_GetRemainSize(pstOwner);
 	uint16_t usLength = strlen(pcString);
@@ -324,13 +324,13 @@ fail:
 }
 
 /**
- * @fn pifRingBuffer_Pop
+ * @fn pifRingBuffer_GetByte
  * @brief
  * @param pstOwner
  * @param pucData
  * @return
  */
-BOOL pifRingBuffer_Pop(PIF_stRingBuffer *pstOwner, uint8_t *pucData)
+BOOL pifRingBuffer_GetByte(PIF_stRingBuffer *pstOwner, uint8_t *pucData)
 {
 	if (pstOwner->__usTail == pstOwner->__usHead) return FALSE;
 
@@ -376,7 +376,7 @@ uint16_t pifRingBuffer_CopyAll(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSr
 
 	uint16_t usTail = pstSrc->__usTail;
 	for (uint16_t i = 0; i < usLength; i++) {
-		pifRingBuffer_PushByte(pstDst, pstSrc->__pcBuffer[usTail]);
+		pifRingBuffer_PutByte(pstDst, pstSrc->__pcBuffer[usTail]);
 		usTail++;
 		if (usTail >= pstSrc->usSize) usTail = 0;
 	}
@@ -407,7 +407,7 @@ BOOL pifRingBuffer_CopyLength(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc
 
 	uint16_t usTail = (pstSrc->__usTail + usPos) % pstSrc->usSize;
 	while (usTail != pstSrc->__usHead) {
-		pifRingBuffer_PushByte(pstDst, pstSrc->__pcBuffer[usTail]);
+		pifRingBuffer_PutByte(pstDst, pstSrc->__pcBuffer[usTail]);
 		usTail++;
 		if (usTail >= pstSrc->usSize) usTail = 0;
 	}

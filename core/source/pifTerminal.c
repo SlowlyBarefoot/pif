@@ -30,12 +30,12 @@ static BOOL _GetDebugString(PIF_stRingBuffer *pstBuffer)
 
     if (s_stTerminalBase.pcRxBuffer == NULL) return FALSE;
 
-    if (pifRingBuffer_Pop(pstBuffer, (uint8_t *)&cTmpChar)) {
+    if (pifRingBuffer_GetByte(pstBuffer, (uint8_t *)&cTmpChar)) {
         bRes = 0;
         switch (cTmpChar) {
         case '\b':
             if (s_stTerminalBase.ucCharIdx > 0) {
-                bRes = pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, "\b \b");
+                bRes = pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "\b \b");
                 if (!bRes) return FALSE;
                 s_stTerminalBase.ucCharIdx--;
                 s_stTerminalBase.pcRxBuffer[s_stTerminalBase.ucCharIdx] = 0;
@@ -57,14 +57,14 @@ static BOOL _GetDebugString(PIF_stRingBuffer *pstBuffer)
             break;
 
         case 0x1b:  // ESC-Key pressed
-            bRes = pifRingBuffer_PushByte(&s_stTerminalBase.stTxBuffer, '\n');
+            bRes = pifRingBuffer_PutByte(&s_stTerminalBase.stTxBuffer, '\n');
             if (!bRes) return FALSE;
             bStrGetDoneFlag = TRUE;
             break;
 
         default:
             if (s_stTerminalBase.ucCharIdx < s_stTerminalBase.ucRxBufferSize - 1) {
-                bRes = pifRingBuffer_PushByte(&s_stTerminalBase.stTxBuffer, cTmpChar);
+                bRes = pifRingBuffer_PutByte(&s_stTerminalBase.stTxBuffer, cTmpChar);
                 if (!bRes) return FALSE;
                 s_stTerminalBase.pcRxBuffer[s_stTerminalBase.ucCharIdx] = cTmpChar;
                 s_stTerminalBase.ucCharIdx++;
@@ -115,7 +115,7 @@ static int _ProcessDebugCmd(char *pcCmdStr)
         pstCmdEntry = &s_stTerminalBase.pstCmdTable[0];
         while (pstCmdEntry->pcName) {
             if (!strcmp(s_stTerminalBase.apcArgv[0], pstCmdEntry->pcName)) {
-            	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, (char *)pstCmdEntry->pcHelp);
+            	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, (char *)pstCmdEntry->pcHelp);
                 return pstCmdEntry->fnProcessor(unArgc, s_stTerminalBase.apcArgv);
             }
 
@@ -151,27 +151,27 @@ static void _evtParsing(void *pvClient, PIF_stRingBuffer *pstBuffer)
 
         // Handle the case of bad command.
         if (nStatus == PIF_TERM_CMD_BAD_CMD) {
-        	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, "Not defined command!\n");
+        	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "Not defined command!\n");
         }
 
         // Handle the case of too many arguments.
         else if (nStatus == PIF_TERM_CMD_TOO_MANY_ARGS) {
-        	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, "Too many arguments for command processor!\n");
+        	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "Too many arguments for command processor!\n");
         }
 
         // Handle the case of too few arguments.
         else if (nStatus == PIF_TERM_CMD_TOO_FEW_ARGS) {
-        	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, "Too few arguments for command processor!\n");
+        	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "Too few arguments for command processor!\n");
         }
 
         // Otherwise the command was executed.  Print the error
         // code if one was returned.
         else if (nStatus != PIF_TERM_CMD_NO_ERROR) {
-        	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, "Command returned error code\n");
+        	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "Command returned error code\n");
         }
 
-    	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, (char *)pstBase->pcPrompt);
-    	pifRingBuffer_PushString(&s_stTerminalBase.stTxBuffer, "> ");
+    	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, (char *)pstBase->pcPrompt);
+    	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "> ");
     }
 }
 

@@ -47,7 +47,7 @@ static void _LoopCommon(PIF_stCommBase *pstBase)
 			if (pstBase->evtSending) {
 				if ((*pstBase->evtSending)(pstBase->pvClient, &pstBase->stTxBuffer)) {
 					if (pstBase->stOwner.actSendData) {
-						pifRingBuffer_Pop(&pstBase->stTxBuffer, &ucData);
+						pifRingBuffer_GetByte(&pstBase->stTxBuffer, &ucData);
 						(*pstBase->stOwner.actSendData)(ucData);
 					}
 					pstBase->enState = STS_enSending;
@@ -244,7 +244,7 @@ void pifComm_AttachEvtSended(PIF_stComm *pstOwner, PIF_evtCommSended evtSended)
  */
 BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData)
 {
-	return pifRingBuffer_PushByte(&((PIF_stCommBase *)pstOwner)->stRxBuffer, ucData);
+	return pifRingBuffer_PutByte(&((PIF_stCommBase *)pstOwner)->stRxBuffer, ucData);
 }
 
 /**
@@ -257,7 +257,7 @@ BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData)
  */
 BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength)
 {
-	return pifRingBuffer_PushData(&((PIF_stCommBase *)pstOwner)->stRxBuffer, pucData, usLength);
+	return pifRingBuffer_PutData(&((PIF_stCommBase *)pstOwner)->stRxBuffer, pucData, usLength);
 }
 
 /**
@@ -269,7 +269,7 @@ BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLen
  */
 BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
 {
-    return pifRingBuffer_Pop(&((PIF_stCommBase *)pstOwner)->stTxBuffer, pucData);
+    return pifRingBuffer_GetByte(&((PIF_stCommBase *)pstOwner)->stTxBuffer, pucData);
 }
 
 /**

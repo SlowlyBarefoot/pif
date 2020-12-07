@@ -57,10 +57,10 @@ uint16_t pifRingBuffer_GetRemainSize(PIF_stRingBuffer *pstOwner);
 void pifRingBuffer_BackupHead(PIF_stRingBuffer *pstOwner);
 void pifRingBuffer_RestoreHead(PIF_stRingBuffer *pstOwner);
 
-BOOL pifRingBuffer_PushByte(PIF_stRingBuffer *pstOwner, uint8_t ucData);
-BOOL pifRingBuffer_PushData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16_t usLength);
-BOOL pifRingBuffer_PushString(PIF_stRingBuffer *pstOwner, char *pcString);
-BOOL pifRingBuffer_Pop(PIF_stRingBuffer *pstOwner, uint8_t *pucData);
+BOOL pifRingBuffer_PutByte(PIF_stRingBuffer *pstOwner, uint8_t ucData);
+BOOL pifRingBuffer_PutData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16_t usLength);
+BOOL pifRingBuffer_PutString(PIF_stRingBuffer *pstOwner, char *pcString);
+BOOL pifRingBuffer_GetByte(PIF_stRingBuffer *pstOwner, uint8_t *pucData);
 
 uint16_t pifRingBuffer_CopyToArray(uint8_t *punDst, PIF_stRingBuffer *pstSrc, uint16_t usCount);
 uint16_t pifRingBuffer_CopyAll(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc);

@@ -6,7 +6,7 @@
 #include "pifTask.h"
 
 
-#define TASK_TABLE_MASK		(TASK_TABLE_SIZE - 1)
+#define PIF_TASK_TABLE_MASK		(PIF_TASK_TABLE_SIZE - 1)
 
 
 typedef struct _PIF_stTaskBase
@@ -33,7 +33,7 @@ static uint8_t s_ucTaskBaseSize;
 static uint8_t s_ucTaskBasePos;
 
 static uint8_t s_ucId = 1;
-static uint32_t s_aunTable[TASK_TABLE_SIZE];
+static uint32_t s_aunTable[PIF_TASK_TABLE_SIZE];
 
 
 /**
@@ -111,11 +111,11 @@ PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvL
     pstBase->__evtLoop = evtLoop;
     pstBase->stOwner.pvLoopEach = pvLoopEach;
 
-	int count = TASK_TABLE_SIZE * ucRatio / 101;
-	int gap = TASK_TABLE_SIZE - count;
+	int count = PIF_TASK_TABLE_SIZE * ucRatio / 101;
+	int gap = PIF_TASK_TABLE_SIZE - count;
 	int index = base;
 	for (int i = 0; i <= count; i++) {
-		s_aunTable[index & TASK_TABLE_MASK] |= 1 << s_ucTaskBasePos;
+		s_aunTable[index & PIF_TASK_TABLE_MASK] |= 1 << s_ucTaskBasePos;
 		index += gap;
 	}
 	base++;
@@ -243,7 +243,7 @@ void pifTask_Loop()
 		}
 	}
 
-	ucNumber = (ucNumber + 1) & TASK_TABLE_MASK;
+	ucNumber = (ucNumber + 1) & PIF_TASK_TABLE_MASK;
 }
 
 #ifdef __PIF_DEBUG__
