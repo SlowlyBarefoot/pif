@@ -181,7 +181,7 @@ static BOOL _evtSending(void *pvClient, PIF_stRingBuffer *pstBuffer)
 	uint16_t usLength;
 
 	if (!pifRingBuffer_IsEmpty(&pstBase->stTxBuffer)) {
-		usLength = pifRingBuffer_CopyAll(pstBuffer, &pstBase->stTxBuffer);
+		usLength = pifRingBuffer_CopyAll(pstBuffer, &pstBase->stTxBuffer, 0);
 		pifRingBuffer_Remove(&pstBase->stTxBuffer, usLength);
 		return TRUE;
 	}

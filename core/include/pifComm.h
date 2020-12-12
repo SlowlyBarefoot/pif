@@ -7,10 +7,10 @@
 
 
 #ifndef PIF_COMM_RX_BUFFER_SIZE
-#define PIF_COMM_RX_BUFFER_SIZE		32
+#define PIF_COMM_RX_BUFFER_SIZE		8
 #endif
 #ifndef PIF_COMM_TX_BUFFER_SIZE
-#define PIF_COMM_TX_BUFFER_SIZE		32
+#define PIF_COMM_TX_BUFFER_SIZE		8
 #endif
 
 

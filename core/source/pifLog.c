@@ -266,7 +266,7 @@ void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
 	size_t nSize;
     static char acTmpBuf[PIF_LOG_LINE_SIZE];
     static int nMinute = -1;
-    const char cType[] = { 'I', 'W', 'E' };
+    const char cType[] = { 'I', 'W', 'E', 'C' };
 
     if (enType) {
         if (nMinute != pif_stDateTime.ucMinute) {
@@ -372,15 +372,17 @@ NEXT_STR:
 
                 case 's':
                     pcVarStr = va_arg(data, char *);
-                    nSize = strlen(pcVarStr);
-                    if (nOffset + nSize < PIF_LOG_LINE_SIZE - 1) {
-						strcpy(acTmpBuf + nOffset, pcVarStr);
+                    if (pcVarStr) {
+						nSize = strlen(pcVarStr);
+						if (nOffset + nSize < PIF_LOG_LINE_SIZE - 1) {
+							strcpy(acTmpBuf + nOffset, pcVarStr);
+						}
+						else {
+							nSize = PIF_LOG_LINE_SIZE - 1 - nOffset;
+							strncpy(acTmpBuf + nOffset, pcVarStr, nSize);
+						}
+						nOffset += nSize;
                     }
-                    else {
-                    	nSize = PIF_LOG_LINE_SIZE - 1 - nOffset;
-						strncpy(acTmpBuf + nOffset, pcVarStr, nSize);
-                    }
-					nOffset += nSize;
                     break;
 
                 case 'c':

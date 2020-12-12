@@ -18,7 +18,8 @@ typedef enum _PIF_enLogType
 	LT_enNone	= 0,
 	LT_enInfo	= 1,
 	LT_enWarn	= 2,
-	LT_enError	= 3
+	LT_enError	= 3,
+	LT_enComm	= 4
 } PIF_enLogType;
 
 

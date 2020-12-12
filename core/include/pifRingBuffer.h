@@ -17,6 +17,8 @@
 typedef struct _PIF_stRingBuffer
 {
 	// Public Member Variable
+	PIF_unDeviceCode unDeviceCode;
+	const char *psName;
 	struct {
 		uint8_t btShare		: 1;
 		uint8_t btChopOff	: 2;	// RB_CHOP_OFF_
@@ -44,6 +46,9 @@ BOOL pifRingBuffer_InitAlloc(PIF_stRingBuffer *pstOwner, uint16_t usSize);
 void pifRingBuffer_InitShare(PIF_stRingBuffer *pstOwner, uint16_t usSize, char *pcBuffer);
 void pifRingBuffer_Exit(PIF_stRingBuffer *pstOwner);
 
+void pifRingBuffer_SetDeviceCode(PIF_stRingBuffer *pstOwner, PIF_unDeviceCode unDeviceCode);
+void pifRingBuffer_SetName(PIF_stRingBuffer *pstOwner, const char *psName);
+
 void pifRingBuffer_ChopOffNone(PIF_stRingBuffer *pstOwner);
 void pifRingBuffer_ChopOffChar(PIF_stRingBuffer *pstOwner, char cChar);
 void pifRingBuffer_ChopOffLength(PIF_stRingBuffer *pstOwner, uint16_t usLength);
@@ -63,7 +68,7 @@ BOOL pifRingBuffer_PutString(PIF_stRingBuffer *pstOwner, char *pcString);
 BOOL pifRingBuffer_GetByte(PIF_stRingBuffer *pstOwner, uint8_t *pucData);
 
 uint16_t pifRingBuffer_CopyToArray(uint8_t *punDst, PIF_stRingBuffer *pstSrc, uint16_t usCount);
-uint16_t pifRingBuffer_CopyAll(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc);
+uint16_t pifRingBuffer_CopyAll(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc, uint16_t usPos);
 BOOL pifRingBuffer_CopyLength(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc, uint16_t usPos, uint16_t usLength);
 
 void pifRingBuffer_Remove(PIF_stRingBuffer *pstOwner, uint16_t usSize);

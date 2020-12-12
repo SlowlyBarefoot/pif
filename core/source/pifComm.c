@@ -128,7 +128,12 @@ PIF_stComm *pifComm_Add(PIF_unDeviceCode unDeviceCode)
     PIF_stCommBase *pstBase = &s_pstCommBase[s_ucCommBasePos];
 
     if (!pifRingBuffer_InitAlloc(&pstBase->stRxBuffer, PIF_COMM_RX_BUFFER_SIZE)) goto fail;
+    pifRingBuffer_SetDeviceCode(&pstBase->stRxBuffer, unDeviceCode);
+    pifRingBuffer_SetName(&pstBase->stRxBuffer, "RB");
+
     if (!pifRingBuffer_InitAlloc(&pstBase->stTxBuffer, PIF_COMM_TX_BUFFER_SIZE)) goto fail;
+    pifRingBuffer_SetDeviceCode(&pstBase->stTxBuffer, unDeviceCode);
+    pifRingBuffer_SetName(&pstBase->stTxBuffer, "TB");
 
     pstBase->stOwner.unDeviceCode = unDeviceCode;
     pstBase->enState = STS_enIdle;

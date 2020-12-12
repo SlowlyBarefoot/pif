@@ -52,6 +52,8 @@ static BOOL _ChopOff(PIF_stRingBuffer *pstOwner, uint16_t usAlloc)
  */
 void pifRingBuffer_Init(PIF_stRingBuffer *pstOwner)
 {
+	pstOwner->unDeviceCode = 0;
+	pstOwner->psName = NULL;
 	pstOwner->__pcBuffer = NULL;
 	pstOwner->__usHead = 0;
 	pstOwner->__usTail = 0;
@@ -77,6 +79,8 @@ BOOL pifRingBuffer_InitAlloc(PIF_stRingBuffer *pstOwner, uint16_t usSize)
 		pstOwner->__pcBuffer = NULL;
 	}
 
+	pstOwner->unDeviceCode = 0;
+	pstOwner->psName = NULL;
     pstOwner->btShare = FALSE;
     pstOwner->usSize = usSize;
     pstOwner->__usHead = 0;
@@ -99,6 +103,8 @@ void pifRingBuffer_InitShare(PIF_stRingBuffer *pstOwner, uint16_t usSize, char *
 {
 	pstOwner->__pcBuffer = pcBuffer;
 
+	pstOwner->unDeviceCode = 0;
+	pstOwner->psName = NULL;
     pstOwner->btShare = TRUE;
     pstOwner->usSize = usSize;
     pstOwner->__usHead = 0;
@@ -116,6 +122,28 @@ void pifRingBuffer_Exit(PIF_stRingBuffer *pstOwner)
         free(pstOwner->__pcBuffer);
         pstOwner->__pcBuffer = NULL;
     }
+}
+
+/**
+ * @fn pifRingBuffer_SetDeviceCode
+ * @brief
+ * @param pstOwner
+ * @param unDeviceCode
+ */
+void pifRingBuffer_SetDeviceCode(PIF_stRingBuffer *pstOwner, PIF_unDeviceCode unDeviceCode)
+{
+	pstOwner->unDeviceCode = unDeviceCode;
+}
+
+/**
+ * @fn pifRingBuffer_SetName
+ * @brief
+ * @param pstOwner
+ * @param psName
+ */
+void pifRingBuffer_SetName(PIF_stRingBuffer *pstOwner, const char *psName)
+{
+	pstOwner->psName = psName;
 }
 
 /**
@@ -257,7 +285,7 @@ BOOL pifRingBuffer_PutByte(PIF_stRingBuffer *pstOwner, uint8_t ucData)
     return TRUE;
 
 fail:
-	pifLog_Printf(LT_enError, "RingBuffer:PushByte(D:%u) EC:%d", ucData, pif_enError);
+	pifLog_Printf(LT_enError, "RingBuffer(%d/%s):PutByte(D:%u) EC:%d", pstOwner->unDeviceCode, pstOwner->psName, ucData, pif_enError);
 	return FALSE;
 }
 
@@ -288,7 +316,7 @@ BOOL pifRingBuffer_PutData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16_
     return TRUE;
 
 fail:
-	pifLog_Printf(LT_enError, "RingBuffer:PushData(L:%u) EC:%d", usLength, pif_enError);
+	pifLog_Printf(LT_enError, "RingBuffer(%d/%s):PutData(L:%u) EC:%d", pstOwner->unDeviceCode, pstOwner->psName, usLength, pif_enError);
 	return FALSE;
 }
 
@@ -319,7 +347,7 @@ BOOL pifRingBuffer_PutString(PIF_stRingBuffer *pstOwner, char *pcString)
     return TRUE;
 
 fail:
-	pifLog_Printf(LT_enError, "RingBuffer:PushString() EC:%d Len:%u Rem:%u", pif_enError, usLength, usRemain);
+	pifLog_Printf(LT_enError, "RingBuffer(%d/%s):PutString() EC:%d Len:%u Rem:%u", pstOwner->unDeviceCode, pstOwner->psName, pif_enError, usLength, usRemain);
 	return FALSE;
 }
 
@@ -366,15 +394,17 @@ uint16_t pifRingBuffer_CopyToArray(uint8_t *pucDst, PIF_stRingBuffer *pstSrc, ui
  * @brief
  * @param pstDst
  * @param pstSrc
+ * @param usPos
  * @return
  */
-uint16_t pifRingBuffer_CopyAll(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc)
+uint16_t pifRingBuffer_CopyAll(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc, uint16_t usPos)
 {
-	uint16_t usFill = pifRingBuffer_GetFillSize(pstSrc);
+	uint16_t usFill = pifRingBuffer_GetFillSize(pstSrc) - usPos;
 	uint16_t usRemain = pifRingBuffer_GetRemainSize(pstDst);
 	uint16_t usLength = usRemain < usFill ? usRemain : usFill;
 
-	uint16_t usTail = pstSrc->__usTail;
+	uint16_t usTail = pstSrc->__usTail + usPos;
+	if (usTail >= pstSrc->usSize) usTail -= pstSrc->usSize;
 	for (uint16_t i = 0; i < usLength; i++) {
 		pifRingBuffer_PutByte(pstDst, pstSrc->__pcBuffer[usTail]);
 		usTail++;
@@ -414,7 +444,7 @@ BOOL pifRingBuffer_CopyLength(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc
 	return TRUE;
 
 fail:
-	pifLog_Printf(LT_enError, "RingBuffer:CopyLength(P:%u L:%u) EC:%d Fill:%u", usPos, usLength, pif_enError, usFill);
+	pifLog_Printf(LT_enError, "RingBuffer(%d/%s):CopyLength(P:%u L:%u) EC:%d Fill:%u", pstSrc->unDeviceCode, pstSrc->psName, usPos, usLength, pif_enError, usFill);
 	return FALSE;
 }
 
