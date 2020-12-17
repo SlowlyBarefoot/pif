@@ -29,44 +29,11 @@
 #define PIF_PROTOCOL_RECEIVE_TIMEOUT	200
 #endif
 
-#define ASCII_NUL	0	// Null Character
-#define ASCII_SOH	1	// Start of Header
-#define ASCII_STX	2	// Start of Text
-#define ASCII_ETX	3	// End of Text
-#define ASCII_EOT	4	// End of Transmission
-#define ASCII_ENQ	5	// Enquiry
-#define ASCII_ACK	6	// Acknowledgment
-#define ASCII_BEL	7	// Bell
-#define ASCII_BS	8	// Backspace
-#define ASCII_HT	9	// Horizontal Tab
-#define ASCII_LF	10	// Line feed
-#define ASCII_VT	11	// Vertical Tab
-#define ASCII_FF	12	// Form feed
-#define ASCII_CR	13	// Carriage return
-#define ASCII_SO	14	// Shift Out
-#define ASCII_SI	15	// Shift In
-#define ASCII_DLE	16	// Data Link Escape
-#define ASCII_DC1	17	// Device Control 1
-#define ASCII_DC2	18	// Device Control 2
-#define ASCII_DC3	19	// Device Control 3
-#define ASCII_DC4	20	// Device Control 4
-#define ASCII_NAK	21	// Negative Acknowledgment
-#define ASCII_SYN	22	// Synchronous idle
-#define ASCII_ETB	23	// End of Transmission Block
-#define ASCII_CAN	24	// Cancel
-#define ASCII_EM	25	// End of Medium
-#define ASCII_SUB	26	// Substitute
-#define ASCII_ESC	27	// Escape
-#define ASCII_FS	28	// File Separator
-#define ASCII_GS	29	// Group Separator
-#define ASCII_RS	30	// Record Separator
-#define ASCII_US	31	// Unit Separator
-
 
 typedef enum _PIF_enProtocolType
 {
-    PT_enSimple		= 1,
-    PT_enMedium		= 2
+    PT_enSmall			= 1,
+    PT_enMedium			= 2,
 } PIF_enProtocolType;
 
 typedef enum _PIF_enProtocolFlags
@@ -77,23 +44,19 @@ typedef enum _PIF_enProtocolFlags
 	PF_enType_Mask			= 0x01,
 	PF_enType_Request		= 0x00,	// Default
 	PF_enType_Response		= 0x01,
+	PF_enType_Question		= 0x00,	// Default
+	PF_enType_Answer		= 0x01,
 
 	// 요청 명령의 응답 요구 선택 여부
-	PF_enResponse_Mask		= 0x02,
+	PF_enResponse_Mask		= 0x06,
 	PF_enResponse_Yes		= 0x00,	// Default
-	PF_enResponse_No		= 0x02,
+	PF_enResponse_Ack		= 0x02,
+	PF_enResponse_No		= 0x04,
 
 	// 명령 송수신시 로그 출력 사용 여부
-	PF_enLogPrint_Mask		= 0x04,
+	PF_enLogPrint_Mask		= 0x08,
 	PF_enLogPrint_No		= 0x00,	// Default
-	PF_enLogPrint_Yes		= 0x04,
-
-	// 대용량 데이타 전송시 사용
-	PF_enMulti_Mask			= 0x30,
-	PF_enMulti_No			= 0x00,	// Default
-	PF_enMulti_First		= 0x10,
-	PF_enMulti_Middle		= 0x20,
-	PF_enMulti_End			= 0x30,
+	PF_enLogPrint_Yes		= 0x08,
 
 	PF_enAlways				= 0x80
 } PIF_enProtocolFlags;
@@ -124,21 +87,21 @@ typedef struct _PIF_stProtocolRequest
 {
     uint8_t ucCommand;
     uint8_t enFlags;					// PIF_enProtocolFlags
-    PIF_evtProtocolFinish evtFinish;
+    PIF_evtProtocolFinish evtResponse;
     uint8_t ucRetry;
     uint16_t usTimeout;
 } PIF_stProtocolRequest;
 
 /**
- * @class _PIF_stProtocolResponse
+ * @class _PIF_stProtocolQuestion
  * @brief
  */
-typedef struct _PIF_stProtocolResponse
+typedef struct _PIF_stProtocolQuestion
 {
     uint8_t ucCommand;
     uint8_t enFlags;					// PIF_enProtocolFlags
-    PIF_evtProtocolFinish evtFinish;
-} PIF_stProtocolResponse;
+    PIF_evtProtocolFinish evtQuestion;
+} PIF_stProtocolQuestion;
 
 /**
  * @class _PIF_stProtocol
@@ -164,7 +127,7 @@ BOOL pifProtocol_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifProtocol_Exit();
 
 PIF_stProtocol *pifProtocol_Add(PIF_unDeviceCode unDeviceCode, PIF_enProtocolType enType,
-		const PIF_stProtocolRequest *pstRequest, const PIF_stProtocolResponse *pstResponse);
+		const PIF_stProtocolQuestion *pstQuestions);
 
 BOOL pifProtocol_ResizeRxPacket(PIF_stProtocol *pstOwner, uint16_t usRxPacketSize);
 BOOL pifProtocol_ResizeTxRequest(PIF_stProtocol *pstOwner, uint16_t usTxRequestSize);
@@ -174,10 +137,9 @@ void pifProtocol_AttachComm(PIF_stProtocol *pstOwner, PIF_stComm *pstComm);
 
 BOOL pifProtocol_SetOwnerId(PIF_stProtocol *pstOwner, uint8_t ucOwnerId);
 
-void pifProtocol_Sended(void *pvOwner);
-
-BOOL pifProtocol_MakeRequest(PIF_stProtocol *pstOwner, uint8_t ucCommand, uint8_t *pucData, uint16_t usDataSize);
-BOOL pifProtocol_MakeResponse(PIF_stProtocol *pstOwner, uint8_t ucCommand, uint8_t *pucData, uint16_t usDataSize);
+BOOL pifProtocol_MakeRequest(PIF_stProtocol *pstOwner, const PIF_stProtocolRequest *pstRequest, uint8_t *pucData, uint16_t usDataSize);
+BOOL pifProtocol_MakeAnswer(PIF_stProtocol *pstOwner, PIF_stProtocolPacket *pstQuestion, uint8_t enFlags,
+		uint8_t *pucData, uint16_t usDataSize);
 
 #ifdef __cplusplus
 }

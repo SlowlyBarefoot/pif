@@ -241,6 +241,16 @@ void pifComm_AttachEvtSended(PIF_stComm *pstOwner, PIF_evtCommSended evtSended)
 }
 
 /**
+ * @fn pifComm_GetRemainSizeOfRxBuffer
+ * @brief
+ * @param pstOwner
+ */
+uint16_t pifComm_GetRemainSizeOfRxBuffer(PIF_stComm *pstOwner)
+{
+	return pifRingBuffer_GetRemainSize(&((PIF_stCommBase *)pstOwner)->stRxBuffer);
+}
+
+/**
  * @fn pifComm_ReceiveData
  * @brief
  * @param pstOwner
