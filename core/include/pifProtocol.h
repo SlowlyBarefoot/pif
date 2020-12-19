@@ -29,6 +29,11 @@
 #define PIF_PROTOCOL_RECEIVE_TIMEOUT	200
 #endif
 
+// Retry하기 전 delay 시간
+#ifndef PIF_PROTOCOL_RETRY_DELAY
+#define PIF_PROTOCOL_RETRY_DELAY		100
+#endif
+
 
 typedef enum _PIF_enProtocolType
 {
