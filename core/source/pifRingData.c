@@ -1,11 +1,6 @@
-/*
- * pifRingData.c
- *
- *  Created on: 2020. 8. 16.
- *      Author: wonjh
- */
-
+#ifndef __PIF_NO_LOG__
 #include "pifLog.h"
+#endif
 #include "pifRingData.h"
 
 
@@ -34,7 +29,9 @@ PIF_stRingData *pifRingData_Init(uint16_t usDataSize, uint16_t usDataCount)
     return pstOwner;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "RingData:Init(S:%u C:%u) EC:%d", usDataSize, usDataCount, pif_enError);
+#endif
     return NULL;
 }
 
@@ -157,7 +154,9 @@ void *pifRingData_Add(PIF_stRingData *pstOwner)
 	return pvData;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "RingData:Add() EC:%d", pif_enError);
+#endif
 	return NULL;
 }
 
@@ -180,6 +179,8 @@ void *pifRingData_Remove(PIF_stRingData *pstOwner)
 	return pvData;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "RingData:Remove() EC:%d", pif_enError);
+#endif
 	return NULL;
 }

@@ -1,5 +1,7 @@
 #include "pifFnd.h"
+#ifndef __PIF_NO_LOG__
 #include "pifLog.h"
+#endif
 
 
 #define PIF_FND_CONTROL_PERIOD_DEFAULT		25
@@ -132,7 +134,9 @@ BOOL pifFnd_Init(PIF_stPulse *pstTimer1ms, uint8_t ucSize)
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Fnd:Init(S:%u) EC:%d", ucSize, pif_enError);
+#endif
     return FALSE;
 }
 
@@ -196,7 +200,9 @@ PIF_stFnd *pifFnd_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, PIF_ac
     return &pstBase->stOwner;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Fnd:Add(D:%u DS:%u) EC:%d", unDeviceCode, ucDigitSize, pif_enError);
+#endif
     return NULL;
 }
 
@@ -229,7 +235,9 @@ BOOL pifFnd_SetControlPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Fnd:SetControlPeriod(P:%u) EC:%d", usPeriodMs, pif_enError);
+#endif
     return FALSE;
 }
 
@@ -288,7 +296,9 @@ BOOL pifFnd_BlinkOn(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Fnd:BlinkOn(P:%u) EC:%d", usPeriodMs, pif_enError);
+#endif
     return FALSE;
 }
 

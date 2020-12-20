@@ -1,4 +1,6 @@
+#ifndef __PIF_NO_LOG__
 #include "pifLog.h"
+#endif
 #include "pifSwitch.h"
 
 
@@ -114,7 +116,9 @@ BOOL pifSwitch_Init(uint8_t ucSize)
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Switch:Init(S:%u) EC:%d", ucSize, pif_enError);
+#endif
     return FALSE;
 }
 
@@ -158,7 +162,9 @@ PIF_stSwitch *pifSwitch_Add(PIF_unDeviceCode unDeviceCode, SWITCH swInitState)
     return pstOwner;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Switch:Add(DC:%u IS:%u) EC:%d", unDeviceCode, swInitState, pif_enError);
+#endif
     return NULL;
 }
 
@@ -205,7 +211,9 @@ BOOL pifSwitch_AttachFilter(PIF_stSwitch *pstOwner, uint8_t ucFilterMethod, uint
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Switch:AttachFilterState(M:%d S:%u) EC:%d", ucFilterMethod, ucFilterSize, pif_enError);
+#endif
     return FALSE;
 }
 

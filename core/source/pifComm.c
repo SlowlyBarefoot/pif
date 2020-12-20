@@ -1,7 +1,9 @@
 #include <string.h>
 
 #include "pifComm.h"
+#ifndef __PIF_NO_LOG__
 #include "pifLog.h"
+#endif
 
 
 typedef struct _PIF_stCommBase
@@ -91,7 +93,9 @@ BOOL pifComm_Init(uint8_t ucSize)
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Comm:Init(S:%u) EC:%d", ucSize, pif_enError);
+#endif
     return FALSE;
 }
 
@@ -142,7 +146,9 @@ PIF_stComm *pifComm_Add(PIF_unDeviceCode unDeviceCode)
     return &pstBase->stOwner;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Comm:Add(D:%u) EC:%d", unDeviceCode, pif_enError);
+#endif
     return NULL;
 }
 
@@ -167,7 +173,9 @@ BOOL pifComm_ResizeRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize)
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Comm:ResizeRxBuffer(S:%u) EC:%d", usRxSize, pif_enError);
+#endif
     return FALSE;
 }
 
@@ -192,7 +200,9 @@ BOOL pifComm_ResizeTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize)
 	return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Comm:ResizeTxBuffer(S:%u) EC:%d", usTxSize, pif_enError);
+#endif
 	return FALSE;
 }
 

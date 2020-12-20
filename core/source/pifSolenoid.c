@@ -1,4 +1,6 @@
+#ifndef __PIF_NO_LOG__
 #include "pifLog.h"
+#endif
 #include "pifSolenoid.h"
 
 
@@ -140,7 +142,9 @@ BOOL pifSolenoid_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Solenoid:Init(S:%u) EC:%d", ucSize, pif_enError);
+#endif
     return FALSE;
 }
 
@@ -201,7 +205,9 @@ PIF_stSolenoid *pifSolenoid_Add(PIF_unDeviceCode unDeviceCode, PIF_enSolenoidTyp
     return pstOwner;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Solenoid:Add(D:%u O:%u) EC:%d", unDeviceCode, usOnTime, pif_enError);
+#endif
     return NULL;
 }
 
@@ -249,7 +255,9 @@ BOOL pifSolenoid_SetOnTime(PIF_stSolenoid *pstOwner, uint16_t usOnTime)
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Solenoid:SetOnTime(O:%u) EC:%d", usOnTime, pif_enError);
+#endif
     return FALSE;
 }
 

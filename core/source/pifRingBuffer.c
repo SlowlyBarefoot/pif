@@ -1,6 +1,8 @@
 #include <string.h>
 
+#ifndef __PIF_NO_LOG__
 #include "pifLog.h"
+#endif
 #include "pifRingBuffer.h"
 
 
@@ -88,7 +90,9 @@ BOOL pifRingBuffer_InitAlloc(PIF_stRingBuffer *pstOwner, uint16_t usSize)
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "RingBuffer:Init(S:%u) EC:%d", usSize, pif_enError);
+#endif
     return FALSE;
 }
 
@@ -285,7 +289,9 @@ BOOL pifRingBuffer_PutByte(PIF_stRingBuffer *pstOwner, uint8_t ucData)
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "RingBuffer(%d/%s):PutByte(D:%u) EC:%d", pstOwner->unDeviceCode, pstOwner->psName, ucData, pif_enError);
+#endif
 	return FALSE;
 }
 
@@ -316,7 +322,9 @@ BOOL pifRingBuffer_PutData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16_
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "RingBuffer(%d/%s):PutData(L:%u) EC:%d", pstOwner->unDeviceCode, pstOwner->psName, usLength, pif_enError);
+#endif
 	return FALSE;
 }
 
@@ -347,7 +355,9 @@ BOOL pifRingBuffer_PutString(PIF_stRingBuffer *pstOwner, char *pcString)
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "RingBuffer(%d/%s):PutString() EC:%d Len:%u Rem:%u", pstOwner->unDeviceCode, pstOwner->psName, pif_enError, usLength, usRemain);
+#endif
 	return FALSE;
 }
 
@@ -444,7 +454,9 @@ BOOL pifRingBuffer_CopyLength(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc
 	return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "RingBuffer(%d/%s):CopyLength(P:%u L:%u) EC:%d Fill:%u", pstSrc->unDeviceCode, pstSrc->psName, usPos, usLength, pif_enError, usFill);
+#endif
 	return FALSE;
 }
 

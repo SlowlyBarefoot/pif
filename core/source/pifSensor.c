@@ -1,4 +1,6 @@
+#ifndef __PIF_NO_LOG__
 #include "pifLog.h"
+#endif
 #include "pifSensor.h"
 
 
@@ -140,7 +142,9 @@ BOOL pifSensor_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Sensor:Init(S:%u) EC:%d", ucSize, pif_enError);
+#endif
     return FALSE;
 }
 
@@ -193,7 +197,9 @@ PIF_stSensor *pifSensor_Add(PIF_unDeviceCode unDeviceCode)
     return pstOwner;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Sensor:Add(DC:%u) EC:%d", unDeviceCode, pif_enError);
+#endif
     return NULL;
 }
 
@@ -319,7 +325,9 @@ BOOL pifSensor_AttachFilter(PIF_stSensor *pstOwner, uint8_t ucFilterMethod, uint
     return TRUE;
 
 fail:
+#ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Sensor:AttachFilter(M:%d S:%u) EC:%d", ucFilterMethod, ucFilterSize, pif_enError);
+#endif
     return FALSE;
 }
 
