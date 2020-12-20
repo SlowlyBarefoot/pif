@@ -7,8 +7,6 @@
 #include "pifRingBuffer.h"
 
 
-//#define __DEBUG_PACKET__
-
 #ifndef PIF_PROTOCOL_RX_PACKET_SIZE
 #define PIF_PROTOCOL_RX_PACKET_SIZE		32
 #endif
@@ -24,15 +22,20 @@
 // 한 packet을 전부 받는 시간 제한
 // 0 : 제한없음
 // 1이상 : pifProtocol_Init에서 받은 타이머의 단위를 곱한 시간
-//         기본값은 200이고 타이머 단위가 1ms이면 200 * 1ms = 200ms이다.
+//         기본값은 50이고 타이머 단위가 1ms이면 50 * 1ms = 50ms이다.
 #ifndef PIF_PROTOCOL_RECEIVE_TIMEOUT
-#define PIF_PROTOCOL_RECEIVE_TIMEOUT	200
+#define PIF_PROTOCOL_RECEIVE_TIMEOUT	50
 #endif
 
 // Retry하기 전 delay 시간
+// 0 : 제한없음
+// 1이상 : pifProtocol_Init에서 받은 타이머의 단위를 곱한 시간
+//         기본값은 10이고 타이머 단위가 1ms이면 10 * 1ms = 10ms이다.
 #ifndef PIF_PROTOCOL_RETRY_DELAY
-#define PIF_PROTOCOL_RETRY_DELAY		100
+#define PIF_PROTOCOL_RETRY_DELAY		10
 #endif
+
+//#define __DEBUG_PACKET__
 
 
 typedef enum _PIF_enProtocolType
