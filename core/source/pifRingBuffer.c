@@ -216,7 +216,7 @@ uint16_t pifRingBuffer_GetFillSize(PIF_stRingBuffer *pstOwner)
 {
 	uint16_t usFill;
 
-    if (pstOwner->__usHead > pstOwner->__usTail) {
+    if (pstOwner->__usHead >= pstOwner->__usTail) {
     	usFill = pstOwner->__usHead - pstOwner->__usTail;
     }
     else {

@@ -94,6 +94,7 @@ void pifComm_AttachEvtSending(PIF_stComm *pstOwner, PIF_evtCommSending evtSendin
 void pifComm_AttachEvtSended(PIF_stComm *pstOwner, PIF_evtCommSended evtSended);
 
 uint16_t pifComm_GetRemainSizeOfRxBuffer(PIF_stComm *pstOwner);
+uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner);
 
 BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData);
 BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength);

@@ -599,7 +599,7 @@ PIF_stProtocol *pifProtocol_Add(PIF_unDeviceCode unDeviceCode, PIF_enProtocolTyp
     pifRingBuffer_SetDeviceCode(&pstBase->stTx.stRequestBuffer, unDeviceCode);
     pifRingBuffer_SetName(&pstBase->stTx.stRequestBuffer, "RQB");
 
-    if (!pifRingBuffer_InitAlloc(&pstBase->stTx.stAnswerBuffer, PIF_PROTOCOL_TX_RESPONSE_SIZE)) goto fail;
+    if (!pifRingBuffer_InitAlloc(&pstBase->stTx.stAnswerBuffer, PIF_PROTOCOL_TX_ANSWER_SIZE)) goto fail;
     pifRingBuffer_SetDeviceCode(&pstBase->stTx.stAnswerBuffer, unDeviceCode);
     pifRingBuffer_SetName(&pstBase->stTx.stAnswerBuffer, "RSB");
 
@@ -834,6 +834,11 @@ fail:
 BOOL pifProtocol_MakeRequest(PIF_stProtocol *pstOwner, const PIF_stProtocolRequest *pstRequest, uint8_t *pucData, uint16_t usDataSize)
 {
 	PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)pstOwner;
+
+	if (pstBase->stTx.enState != PTS_enIdle) {
+		pif_enError = E_enInvalidState;
+		return FALSE;
+	}
 
 	pstBase->stTx.pstRequest = pstRequest;
 	pstBase->stTx.pucData = pucData;
