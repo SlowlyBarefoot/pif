@@ -17,8 +17,8 @@ typedef struct _PIF_stTaskBase
 	// Private Member Variable
 	const char *pcName;
 	uint8_t ucRatio;
-	uint16_t usPeriodMs;
 	BOOL bPause;
+	uint16_t usPeriod;
 	uint32_t unPretime;
 	uint32_t unCount;
 	float fPeriod;
@@ -135,14 +135,14 @@ fail:
 }
 
 /**
- * @fn pifTask_AddPeriod
+ * @fn pifTask_AddPeriodMs
  * @brief Task를 추가한다.
  * @param usPeriodMs Task 주기를 설정한다. 단위는 1ms.
  * @param evtLoop Task 함수
  * @param pvLoopEach 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifTask_AddPeriod(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopEach)
+PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopEach)
 {
 	if (!usPeriodMs || !evtLoop) {
         pif_enError = E_enInvalidParam;
@@ -156,9 +156,9 @@ PIF_stTask *pifTask_AddPeriod(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void
 
     PIF_stTaskBase *pstBase = &s_pstTaskBase[s_ucTaskBasePos];
 
-    pstBase->stOwner.enMode = TM_enPeriod;
+    pstBase->stOwner.enMode = TM_enPeriodMs;
     pstBase->stOwner.ucId = s_ucId++;
-    pstBase->usPeriodMs = usPeriodMs;
+    pstBase->usPeriod = usPeriodMs;
     pstBase->unCount = 0;
     pstBase->__evtLoop = evtLoop;
     pstBase->stOwner.pvLoopEach = pvLoopEach;
@@ -172,7 +172,50 @@ PIF_stTask *pifTask_AddPeriod(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Task:AddPeriod(P:%u) EC:%d", usPeriodMs, pif_enError);
+	pifLog_Printf(LT_enError, "Task:AddPeriod(P:%ums) EC:%d", usPeriodMs, pif_enError);
+#endif
+    return NULL;
+}
+
+/**
+ * @fn pifTask_AddPeriodUs
+ * @brief Task를 추가한다.
+ * @param usPeriodUs Task 주기를 설정한다. 단위는 1us.
+ * @param evtLoop Task 함수
+ * @param pvLoopEach 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @return Task 구조체 포인터를 반환한다.
+ */
+PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, void *pvLoopEach)
+{
+	if (!usPeriodUs || !evtLoop) {
+        pif_enError = E_enInvalidParam;
+        goto fail;
+	}
+
+    if (s_ucTaskBasePos >= s_ucTaskBaseSize) {
+        pif_enError = E_enOverflowBuffer;
+        goto fail;
+    }
+
+    PIF_stTaskBase *pstBase = &s_pstTaskBase[s_ucTaskBasePos];
+
+    pstBase->stOwner.enMode = TM_enPeriodUs;
+    pstBase->stOwner.ucId = s_ucId++;
+    pstBase->usPeriod = usPeriodUs;
+    pstBase->unCount = 0;
+    pstBase->__evtLoop = evtLoop;
+    pstBase->stOwner.pvLoopEach = pvLoopEach;
+
+	if (pvLoopEach) {
+		(*evtLoop)(&pstBase->stOwner);
+	}
+
+    s_ucTaskBasePos = s_ucTaskBasePos + 1;
+    return &pstBase->stOwner;
+
+fail:
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_enError, "Task:AddPeriod(P:%uus) EC:%d", usPeriodUs, pif_enError);
 #endif
     return NULL;
 }
@@ -215,14 +258,43 @@ void pifTask_Restart(PIF_stTask *pstOwner)
 void pifTask_Loop()
 {
 	PIF_stTaskBase *pstBase;
-	uint32_t unTime;
+	uint32_t unTime, unGap;
 	static uint8_t ucNumber = 0;
 
 	for (int i = 0; i < s_ucTaskBasePos; i++) {
 		pstBase = &s_pstTaskBase[i];
 		if (pstBase->bPause) continue;
 
-		if (!pstBase->stOwner.enMode) {
+		switch (pstBase->stOwner.enMode) {
+		case TM_enPeriodUs:
+			unTime = 1000L * pif_usTimer1ms + 1000L * g_usPerformanceCount / g_usPerformanceMeasure;
+			if (unTime < pstBase->unPretime) {
+				unGap = 1000000L - pstBase->unPretime + unTime;
+			}
+			else {
+				unGap = unTime - pstBase->unPretime;
+			}
+			if (unGap >= pstBase->usPeriod) {
+				(*pstBase->__evtLoop)(&pstBase->stOwner);
+				pstBase->unPretime = unTime;
+			}
+			break;
+
+		case TM_enPeriodMs:
+			unTime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+			if (unTime < pstBase->unPretime) {
+				unGap = 60000L - pstBase->unPretime + unTime;
+			}
+			else {
+				unGap = unTime - pstBase->unPretime;
+			}
+			if (unGap >= pstBase->usPeriod) {
+				(*pstBase->__evtLoop)(&pstBase->stOwner);
+				pstBase->unPretime = unTime;
+			}
+			break;
+
+		default:
 			if (s_aunTable[ucNumber] & (1 << i)) {
 				unTime = pif_unTimer1sec;
 				if (unTime != pstBase->unPretime) {
@@ -233,13 +305,7 @@ void pifTask_Loop()
 				(*pstBase->__evtLoop)(&pstBase->stOwner);
 				pstBase->unCount++;
 			}
-		}
-		else {
-			unTime = pif_unTimer1sec * 1000 + pif_usTimer1ms;
-			if (unTime - pstBase->unPretime > pstBase->usPeriodMs) {
-				(*pstBase->__evtLoop)(&pstBase->stOwner);
-				pstBase->unPretime = unTime;
-			}
+			break;
 		}
 	}
 

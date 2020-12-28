@@ -12,8 +12,9 @@
 
 typedef enum _PIF_enTaskMode
 {
-	TM_enRatio	= 0,
-	TM_enPeriod	= 1
+	TM_enRatio		= 0,
+	TM_enPeriodMs	= 1,
+	TM_enPeriodUs	= 2
 } PIF_enTaskMode;
 
 typedef enum _PIF_enTaskLoop
@@ -50,7 +51,8 @@ BOOL pifTask_Init(uint8_t ucSize);
 void pifTask_Exit();
 
 PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvLoopEach);
-PIF_stTask *pifTask_AddPeriod(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopEach);
+PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopEach);
+PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, void *pvLoopEach);
 
 void pifTask_SetName(PIF_stTask *pstOwner, const char *pcName);
 

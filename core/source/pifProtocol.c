@@ -149,7 +149,7 @@ static void _evtTimerTxTimeout(void *pvIssuer)
 #define PKT_ERR_WRONG_CRC    	3
 #define PKT_ERR_WRONG_ETX    	4
 
-const char *c_cPktErr[5] = {
+static const char *c_cPktErr[5] = {
 		"Big Length",
 		"Invalid Data",
 		"Wrong Command",
@@ -160,13 +160,11 @@ const char *c_cPktErr[5] = {
 static void _ParsingPacket(PIF_stProtocolBase *pstBase, PIF_stRingBuffer *pstBuffer)
 {
 	PIF_stProtocol *pstOwner = (PIF_stProtocol *)pstBase;
-	PIF_stProtocolPacket *pstPacket;
+	PIF_stProtocolPacket *pstPacket = &pstBase->stRx.stPacket;
 	uint8_t data;
 	uint8_t ucPktErr;
 
 	while (pifRingBuffer_GetByte(pstBuffer, &data)) {
-		pstPacket = &pstBase->stRx.stPacket;
-
 		switch (pstBase->stRx.enState)	{
 		case PRS_enIdle:
 			if (data == ASCII_STX) {
@@ -448,11 +446,11 @@ static BOOL _evtSending(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 	    			pstBase->stTx.enState = PTS_enIdle;
 	    		}
 	    		else {
-#ifndef __PIF_NO_LOG__
 	    			if (!pifPulse_StartItem(pstBase->stTx.pstTimer, pstBase->stTx.usTimeout)) {
+#ifndef __PIF_NO_LOG__
 						pifLog_Printf(LT_enWarn, "PTC(%u) Not start timer", pstBase->stOwner.unDeviceCode);
-					}
 #endif
+					}
 	    			pstBase->stTx.enState = PTS_enWaitResponse;
 	    		}
 				return TRUE;

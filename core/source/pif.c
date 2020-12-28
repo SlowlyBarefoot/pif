@@ -18,8 +18,9 @@ PIF_stLogFlag pif_stLogFlag;
 
 static volatile uint8_t s_ucPerformaceStep = 0;
 static volatile BOOL s_bPerformaceLock = FALSE;
-static volatile uint32_t s_unPerformanceCount = 0;
-static volatile uint32_t s_unPerformanceMeasure = 0;
+
+volatile uint16_t g_usPerformanceCount = 0;
+volatile uint16_t g_usPerformanceMeasure = 1000;
 
 static uint8_t ucCrc7;
 
@@ -50,14 +51,14 @@ void pif_Loop()
         s_ucPerformaceStep = 1;
 #ifndef __PIF_NO_LOG__
         if (pif_stLogFlag.btPerformance) {
-        	double fValue = 1000000.0 / s_unPerformanceMeasure;
-        	pifLog_Printf(LT_enInfo, "Performance: %lur/s, %2fus", s_unPerformanceMeasure, fValue);
+        	double fValue = 1000000.0 / g_usPerformanceMeasure;
+        	pifLog_Printf(LT_enInfo, "Performance: %lur/s, %2fus", g_usPerformanceMeasure, fValue);
         }
 #endif
     }
     else {
         s_bPerformaceLock = TRUE;
-        s_unPerformanceCount++;
+        g_usPerformanceCount++;
         s_bPerformaceLock = FALSE;
     }
 
@@ -114,9 +115,11 @@ void pif_sigTimer1ms()
     	}
 
     	if (s_ucPerformaceStep == 1 && !s_bPerformaceLock) {
-            s_unPerformanceMeasure = s_unPerformanceCount;
+    		if (g_usPerformanceCount) {
+    			g_usPerformanceMeasure = g_usPerformanceCount;
+    		}
             s_ucPerformaceStep = 2;
-            s_unPerformanceCount = 0;
+            g_usPerformanceCount = 0;
         }
     }
 }
@@ -162,6 +165,46 @@ uint8_t pifCrc7_Result()
 {
 	ucCrc7 = (ucCrc7 << 1) | 1;
 	return ucCrc7;
+}
+
+/**
+ * @fn pifCrc16
+ * @brief 16비트 CRC를 계산한 결과를 반환한다.
+ * @param pucData 16비트 CRC 계산할 데이터.
+ * @param usLength 16비트 CRC 계산할 데이터의 크기.
+ */
+uint16_t pifCrc16(uint8_t *pucData, uint16_t usLength)
+{
+	uint16_t i;
+	uint32_t unCrc16 = 0;
+	uint32_t temp;
+
+	for (i = 0; i < usLength; i++) {
+		unCrc16 ^= (uint16_t)pucData[i] << 8;
+		for (int i = 0; i < 8; i++) {
+			temp = unCrc16 << 1;
+			if (unCrc16 & 0x8000) temp ^= 0x1021;
+			unCrc16 = temp;
+		}
+	}
+	return unCrc16 & 0xFFFF;
+}
+
+/**
+ * @fn pifCheckSum
+ * @brief Byte 단위로 합산한 결과를 반환한다.
+ * @param pucData Checksum할 데이터.
+ * @param usLength Checksum할 데이터의 크기.
+ */
+uint8_t pifCheckSum(uint8_t *pucData, uint16_t usLength)
+{
+	uint16_t i;
+	uint8_t ucChecksum = 0;
+
+	for (i = 0; i < usLength; i++) {
+		ucChecksum += pucData[i];
+	}
+	return ucChecksum & 0xFF;
 }
 
 /**

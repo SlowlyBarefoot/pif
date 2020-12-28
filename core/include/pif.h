@@ -52,6 +52,7 @@ typedef enum _PIF_enError
 	E_enEmptyInBuffer			= 0x05,
 	E_enWrongData				= 0x06,
 	E_enTimeout					= 0x07,
+	E_enNotSetEvent				= 0x08,
 } PIF_enError;
 
 
@@ -105,6 +106,9 @@ extern volatile PIF_stDateTime pif_stDateTime;
 
 extern PIF_stLogFlag pif_stLogFlag;
 
+extern volatile uint16_t g_usPerformanceCount;
+extern volatile uint16_t g_usPerformanceMeasure;
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -119,6 +123,10 @@ void pif_ClearError();
 void pifCrc7_Init();
 void pifCrc7_Calcurate(uint8_t ucData);
 uint8_t pifCrc7_Result();
+
+uint16_t pifCrc16(uint8_t *pucData, uint16_t usLength);
+
+uint8_t pifCheckSum(uint8_t *pucData, uint16_t usLength);
 
 void pifPidControl_Init(PIF_stPidControl *pstOwner, float fFsKp, float fFsKi, float fFsKd, float fMaxIntegration);
 float pifPidControl_Calcurate(PIF_stPidControl *pstOwner, float fErr);
