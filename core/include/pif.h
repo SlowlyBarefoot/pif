@@ -106,8 +106,8 @@ extern volatile PIF_stDateTime pif_stDateTime;
 
 extern PIF_stLogFlag pif_stLogFlag;
 
-extern volatile uint16_t g_usPerformanceCount;
-extern volatile uint16_t g_usPerformanceMeasure;
+extern volatile uint32_t g_unPerformanceCount;
+extern volatile uint32_t g_unPerformanceMeasure;
 
 
 #ifdef __cplusplus

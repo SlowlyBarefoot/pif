@@ -267,7 +267,7 @@ void pifTask_Loop()
 
 		switch (pstBase->stOwner.enMode) {
 		case TM_enPeriodUs:
-			unTime = 1000L * pif_usTimer1ms + 1000L * g_usPerformanceCount / g_usPerformanceMeasure;
+			unTime = 1000000L * g_unPerformanceCount / g_unPerformanceMeasure;
 			if (unTime < pstBase->unPretime) {
 				unGap = 1000000L - pstBase->unPretime + unTime;
 			}

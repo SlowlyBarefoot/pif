@@ -17,10 +17,9 @@ volatile PIF_stDateTime pif_stDateTime;
 PIF_stLogFlag pif_stLogFlag;
 
 static volatile uint8_t s_ucPerformaceStep = 0;
-static volatile BOOL s_bPerformaceLock = FALSE;
 
-volatile uint16_t g_usPerformanceCount = 0;
-volatile uint16_t g_usPerformanceMeasure = 1000;
+volatile uint32_t g_unPerformanceCount = 0;
+volatile uint32_t g_unPerformanceMeasure = 100000L;
 
 static uint8_t ucCrc7;
 
@@ -47,20 +46,25 @@ void pif_Loop()
 	static uint8_t ucSec = 0;
 #endif
 
-    if (s_ucPerformaceStep == 2) {
-        s_ucPerformaceStep = 1;
+    switch (s_ucPerformaceStep) {
+    case 2:
+		g_unPerformanceMeasure = g_unPerformanceCount * 50;
+        s_ucPerformaceStep = 3;
+    	break;
+
+    case 4:
+		g_unPerformanceMeasure = g_unPerformanceCount;
+        g_unPerformanceCount = 0;
+        s_ucPerformaceStep = 3;
 #ifndef __PIF_NO_LOG__
         if (pif_stLogFlag.btPerformance) {
-        	double fValue = 1000000.0 / g_usPerformanceMeasure;
-        	pifLog_Printf(LT_enInfo, "Performance: %lur/s, %2fus", g_usPerformanceMeasure, fValue);
+        	double fValue = 1000000.0 / g_unPerformanceMeasure;
+        	pifLog_Printf(LT_enInfo, "Performance: %lur/s, %2fus", g_unPerformanceMeasure, fValue);
         }
 #endif
+        break;
     }
-    else {
-        s_bPerformaceLock = TRUE;
-        g_usPerformanceCount++;
-        s_bPerformaceLock = FALSE;
-    }
+    g_unPerformanceCount++;
 
 #ifdef __PIF_DEBUG__
     if (ucSec != pif_stDateTime.ucSec) {
@@ -113,14 +117,10 @@ void pif_sigTimer1ms()
     			}
     		}
     	}
-
-    	if (s_ucPerformaceStep == 1 && !s_bPerformaceLock) {
-    		if (g_usPerformanceCount) {
-    			g_usPerformanceMeasure = g_usPerformanceCount;
-    		}
-            s_ucPerformaceStep = 2;
-            g_usPerformanceCount = 0;
-        }
+    	s_ucPerformaceStep = 4;
+    }
+    else if (pif_usTimer1ms == 20) {
+    	if (s_ucPerformaceStep == 1) s_ucPerformaceStep = 2;
     }
 }
 
