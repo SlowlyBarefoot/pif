@@ -20,15 +20,6 @@ typedef struct _PIF_stKeypad
 {
 	// Public Member Variable
 	PIF_unDeviceCode unDeviceCode;
-
-	// Public Action Function
-	PIF_actKeypadAcquire actAcquire;				// Default: NULL
-
-	// Public Event Function
-	PIF_evtKeypadPressed evtPressed;				// Default: NULL
-	PIF_evtKeypadReleased evtReleased;				// Default: NULL
-	PIF_evtKeypadLongReleased evtLongReleased;		// Default: NULL
-	PIF_evtKeypadDoublePressed evtDoublePressed;	// Default: NULL
 } PIF_stKeypad;
 
 
@@ -38,6 +29,10 @@ extern "C" {
 
 PIF_stKeypad *pifKeypad_Init(PIF_unDeviceCode unDeviceCode, uint8_t ucNumRows, uint8_t ucNumCols, const char *pcUserKeymap);
 void pifKeypad_Exit();
+
+void pifKeypad_AttachAction(PIF_actKeypadAcquire actAcquire);
+void pifKeypad_AttachEvent(PIF_evtKeypadPressed evtPressed, PIF_evtKeypadReleased evtReleased,
+		PIF_evtKeypadLongReleased evtLongReleased, PIF_evtKeypadDoublePressed evtDoublePressed);
 
 uint16_t pifKeypad_GetHoldTime();
 BOOL pifKeypad_SetHoldTime(uint16_t usHoldTimeMs);

@@ -49,10 +49,6 @@ struct _PIF_stSolenoid
     PIF_unDeviceCode unDeviceCode;
     PIF_enSolenoidType enType;
     uint16_t usOnTime;
-
-	// Public Event Function
-    PIF_evtSolenoid evtOff;
-    PIF_evtSolenoid evtError;
 };
 
 
@@ -65,6 +61,8 @@ void pifSolenoid_Exit();
 
 PIF_stSolenoid *pifSolenoid_Add(PIF_unDeviceCode unDeviceCode, PIF_enSolenoidType enType, uint16_t usOnTime,
 		PIF_actSolenoidControl actControl);
+
+void pifSolenoid_AttachEvent(PIF_stSolenoid *pstOwner, PIF_evtSolenoid evtOff, PIF_evtSolenoid evtError);
 
 BOOL pifSolenoid_SetBuffer(PIF_stSolenoid *pstOwner, uint16_t usSize);
 void pifSolenoid_SetInvalidDirection(PIF_stSolenoid *pstOwner);

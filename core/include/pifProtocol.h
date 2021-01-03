@@ -121,9 +121,6 @@ typedef struct _PIF_stProtocol
     PIF_unDeviceCode unDeviceCode;
     PIF_enProtocolType enType;
 	uint8_t ucOwnerId;				// Default : 0xFF
-
-	// Public Event Function
-    PIF_evtProtocolError evtError;
 } PIF_stProtocol;
 
 
@@ -136,6 +133,8 @@ void pifProtocol_Exit();
 
 PIF_stProtocol *pifProtocol_Add(PIF_unDeviceCode unDeviceCode, PIF_enProtocolType enType,
 		const PIF_stProtocolQuestion *pstQuestions);
+
+void pifProtocol_AttachEvent(PIF_stProtocol *pstOwner, PIF_evtProtocolError evtError);
 
 BOOL pifProtocol_ResizeRxPacket(PIF_stProtocol *pstOwner, uint16_t usRxPacketSize);
 BOOL pifProtocol_ResizeTxRequest(PIF_stProtocol *pstOwner, uint16_t usTxRequestSize);

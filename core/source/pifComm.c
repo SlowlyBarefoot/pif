@@ -21,6 +21,9 @@ typedef struct _PIF_stCommBase
 
 	PIF_enTaskLoop enTaskLoop;
 
+	// Public Action Function
+    PIF_actCommSendData actSendData;
+
     // Private Member Function
     PIF_evtCommParsing evtParsing;
     PIF_evtCommSending evtSending;
@@ -48,9 +51,9 @@ static void _LoopCommon(PIF_stCommBase *pstBase)
 		case STS_enIdle:
 			if (pstBase->evtSending) {
 				if ((*pstBase->evtSending)(pstBase->pvClient, &pstBase->stTxBuffer)) {
-					if (pstBase->stOwner.actSendData) {
+					if (pstBase->actSendData) {
 						pifRingBuffer_GetByte(&pstBase->stTxBuffer, &ucData);
-						(*pstBase->stOwner.actSendData)(ucData);
+						(*pstBase->actSendData)(ucData);
 					}
 					pstBase->enState = STS_enSending;
 				}
@@ -218,36 +221,31 @@ void pifComm_AttachClient(PIF_stComm *pstOwner, void *pvClient)
 }
 
 /**
- * @fn pifComm_AttachEvtParsing
+ * @fn pifComm_AttachAction
+ * @brief
+ * @param pstOwner
+ * @param actSendData
+ */
+void pifComm_AttachAction(PIF_stComm *pstOwner, PIF_actCommSendData actSendData)
+{
+	((PIF_stCommBase *)pstOwner)->actSendData = actSendData;
+}
+
+/**
+ * @fn pifComm_AttachEvent
  * @brief
  * @param pstOwner
  * @param evtParsing
- */
-void pifComm_AttachEvtParsing(PIF_stComm *pstOwner, PIF_evtCommParsing evtParsing)
-{
-	((PIF_stCommBase *)pstOwner)->evtParsing = evtParsing;
-}
-
-/**
- * @fn pifComm_AttachEvtSending
- * @brief
- * @param pstOwner
  * @param evtSending
- */
-void pifComm_AttachEvtSending(PIF_stComm *pstOwner, PIF_evtCommSending evtSending)
-{
-	((PIF_stCommBase *)pstOwner)->evtSending = evtSending;
-}
-
-/**
- * @fn pifComm_AttachEvtSended
- * @brief
- * @param pstOwner
  * @param fnSended
  */
-void pifComm_AttachEvtSended(PIF_stComm *pstOwner, PIF_evtCommSended evtSended)
+void pifComm_AttachEvent(PIF_stComm *pstOwner, PIF_evtCommParsing evtParsing, PIF_evtCommSending evtSending, PIF_evtCommSended evtSended)
 {
-	((PIF_stCommBase *)pstOwner)->evtSended = evtSended;
+	PIF_stCommBase *pstBase = (PIF_stCommBase *)pstOwner;
+
+	pstBase->evtParsing = evtParsing;
+	pstBase->evtSending = evtSending;
+	pstBase->evtSended = evtSended;
 }
 
 /**

@@ -51,9 +51,6 @@ typedef struct _PIF_stDotMatrix
 {
 	// Variable
 	PIF_unDeviceCode unDeviceCode;
-
-	// Event Function
-    PIF_evtDotMatrixShiftFinish evtShiftFinish;
 } PIF_stDotMatrix;
 
 
@@ -66,6 +63,8 @@ void pifDotMatrix_Exit();
 
 PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColSize, uint16_t usRowSize,
 		PIF_actDotMatrixDisplay actDisplay);
+
+void pifDotMatrix_AttachEvent(PIF_stDotMatrix *pstOwner, PIF_evtDotMatrixShiftFinish evtShiftFinish);
 
 uint16_t pifDotMatrix_GetControlPeriod(PIF_stDotMatrix *pstOwner);
 BOOL pifDotMatrix_SetControlPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);

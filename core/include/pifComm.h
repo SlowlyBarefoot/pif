@@ -70,9 +70,6 @@ typedef struct _PIF_stComm
 {
 	// Public Member Variable
     PIF_unDeviceCode unDeviceCode;
-
-	// Public Action Function
-    PIF_actCommSendData actSendData;
 } PIF_stComm;
 
 
@@ -89,9 +86,8 @@ BOOL pifComm_ResizeRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize);
 BOOL pifComm_ResizeTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize);
 
 void pifComm_AttachClient(PIF_stComm *pstOwner, void *pvClient);
-void pifComm_AttachEvtParsing(PIF_stComm *pstOwner, PIF_evtCommParsing evtParsing);
-void pifComm_AttachEvtSending(PIF_stComm *pstOwner, PIF_evtCommSending evtSending);
-void pifComm_AttachEvtSended(PIF_stComm *pstOwner, PIF_evtCommSended evtSended);
+void pifComm_AttachAction(PIF_stComm *pstOwner, PIF_actCommSendData actSendData);
+void pifComm_AttachEvent(PIF_stComm *pstOwner, PIF_evtCommParsing evtParsing, PIF_evtCommSending evtSending, PIF_evtCommSended evtSended);
 
 uint16_t pifComm_GetRemainSizeOfRxBuffer(PIF_stComm *pstOwner);
 uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner);

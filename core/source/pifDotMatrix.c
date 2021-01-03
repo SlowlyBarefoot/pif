@@ -54,6 +54,9 @@ typedef struct _PIF_stDotMatrixBase
 
 	// Private Member Function
    	PIF_actDotMatrixDisplay actDisplay;
+
+	// Event Function
+    PIF_evtDotMatrixShiftFinish evtShiftFinish;
 } PIF_stDotMatrixBase;
 
 
@@ -127,8 +130,8 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 		}
 		else {
 			pifPulse_StopItem(pstBase->pstTimerShift);
-			if (pstBase->stOwner.evtShiftFinish) {
-				(*pstBase->stOwner.evtShiftFinish)(pstBase->stOwner.unDeviceCode);
+			if (pstBase->evtShiftFinish) {
+				(*pstBase->evtShiftFinish)(pstBase->stOwner.unDeviceCode);
 			}
         }
     	break;
@@ -145,8 +148,8 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 		}
 		else {
 			pifPulse_StopItem(pstBase->pstTimerShift);
-			if (pstBase->stOwner.evtShiftFinish) {
-				(*pstBase->stOwner.evtShiftFinish)(pstBase->stOwner.unDeviceCode);
+			if (pstBase->evtShiftFinish) {
+				(*pstBase->evtShiftFinish)(pstBase->stOwner.unDeviceCode);
 			}
 		}
     	break;
@@ -163,8 +166,8 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 		}
 		else {
 			pifPulse_StopItem(pstBase->pstTimerShift);
-			if (pstBase->stOwner.evtShiftFinish) {
-				(*pstBase->stOwner.evtShiftFinish)(pstBase->stOwner.unDeviceCode);
+			if (pstBase->evtShiftFinish) {
+				(*pstBase->evtShiftFinish)(pstBase->stOwner.unDeviceCode);
 			}
         }
     	break;
@@ -181,8 +184,8 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 		}
 		else {
 			pifPulse_StopItem(pstBase->pstTimerShift);
-			if (pstBase->stOwner.evtShiftFinish) {
-				(*pstBase->stOwner.evtShiftFinish)(pstBase->stOwner.unDeviceCode);
+			if (pstBase->evtShiftFinish) {
+				(*pstBase->evtShiftFinish)(pstBase->stOwner.unDeviceCode);
 			}
 		}
     	break;
@@ -335,6 +338,17 @@ fail:
 			usColSize, usRowSize, pif_enError);
 #endif
     return NULL;
+}
+
+/**
+ * @fn pifDotMatrix_AttachEvent
+ * @brief
+ * @param pstOwner
+ * @param evtShiftFinish
+ */
+void pifDotMatrix_AttachEvent(PIF_stDotMatrix *pstOwner, PIF_evtDotMatrixShiftFinish evtShiftFinish)
+{
+    ((PIF_stDotMatrixBase *)pstOwner)->evtShiftFinish = evtShiftFinish;
 }
 
 /**

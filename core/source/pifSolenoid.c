@@ -19,6 +19,10 @@ typedef struct _PIF_stSolenoidBase
 
     // Private Action Function
     PIF_actSolenoidControl actControl;
+
+	// Public Event Function
+    PIF_evtSolenoid evtOff;
+    PIF_evtSolenoid evtError;
 } PIF_stSolenoidBase;
 
 
@@ -41,7 +45,7 @@ static void _ActionOn(PIF_stSolenoidBase *pstBase, uint16_t usDelay, PIF_enSolen
 					pstBase->enCurrentDir = SD_enInvalid;
 					(*pstBase->actControl)(OFF, SD_enInvalid);
 					pstBase->bState = FALSE;
-					if (pstBase->stOwner.evtError) (*pstBase->stOwner.evtError)(&pstBase->stOwner);
+					if (pstBase->evtError) (*pstBase->evtError)(&pstBase->stOwner);
 				}
 			}
 		}
@@ -49,7 +53,7 @@ static void _ActionOn(PIF_stSolenoidBase *pstBase, uint16_t usDelay, PIF_enSolen
 	else {
 		pstBase->enDir = enDir;
 		if (!pifPulse_StartItem(pstBase->pstTimerDelay, usDelay)) {
-			if (pstBase->stOwner.evtError) (*pstBase->stOwner.evtError)(&pstBase->stOwner);
+			if (pstBase->evtError) (*pstBase->evtError)(&pstBase->stOwner);
 		}
 	}
 }
@@ -72,7 +76,7 @@ static void _evtTimerDelayFinish(void *pvIssuer)
 				pstBase->enCurrentDir = SD_enInvalid;
 				(*pstBase->actControl)(OFF, SD_enInvalid);
 				pstBase->bState = FALSE;
-				if (pstBase->stOwner.evtError) (*pstBase->stOwner.evtError)(&pstBase->stOwner);
+				if (pstBase->evtError) (*pstBase->evtError)(&pstBase->stOwner);
 			}
 		}
 	}
@@ -96,7 +100,7 @@ static void _evtTimerOnFinish(void *pvIssuer)
 
     if (pstBase->bState) {
         (*pstBase->actControl)(OFF, SD_enInvalid);
-        if (pstBase->stOwner.evtOff) (*pstBase->stOwner.evtOff)(&pstBase->stOwner);
+        if (pstBase->evtOff) (*pstBase->evtOff)(&pstBase->stOwner);
         pstBase->bState = FALSE;
     }
 }
@@ -209,6 +213,21 @@ fail:
 	pifLog_Printf(LT_enError, "Solenoid:Add(D:%u O:%u) EC:%d", unDeviceCode, usOnTime, pif_enError);
 #endif
     return NULL;
+}
+
+/**
+ * @fn pifSolenoid_AttachEvent
+ * @brief
+ * @param pstOwner
+ * @param evtOff
+ * @param evtError
+ */
+void pifSolenoid_AttachEvent(PIF_stSolenoid *pstOwner, PIF_evtSolenoid evtOff, PIF_evtSolenoid evtError)
+{
+	PIF_stSolenoidBase *pstBase = (PIF_stSolenoidBase *)pstOwner;
+
+	pstBase->evtOff = evtOff;
+	pstBase->evtError = evtError;
 }
 
 /**

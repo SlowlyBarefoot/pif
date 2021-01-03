@@ -37,8 +37,7 @@ void pifXmodem_SetResponseTimeout(uint16_t usResponseTimeout);
 void pifXmodem_SetReceiveTimeout(uint16_t usReceiveTimeout);
 
 void pifXmodem_AttachComm(PIF_stComm *pstComm);
-void pifXmodem_AttachEvtTxReceive(PIF_evtXmodemTxReceive evtReceive);
-void pifXmodem_AttachEvtRxReceive(PIF_evtXmodemRxReceive evtReceive);
+void pifXmodem_AttachEvent(PIF_evtXmodemTxReceive evtTxReceive, PIF_evtXmodemRxReceive evtRxReceive);
 
 BOOL pifXmodem_SendData(uint8_t ucPacketNo, uint8_t *pucData, uint16_t usDataSize);
 void pifXmodem_SendEot();

@@ -15,6 +15,9 @@ typedef struct _PIF_stSequenceBase
 	PIF_stPulseItem *pstTimerDelay;
 
 	PIF_enTaskLoop enTaskLoop;
+
+    // Private Member Function
+	PIF_evtSequenceError evtError;
 } PIF_stSequenceBase;
 
 
@@ -32,10 +35,11 @@ static void _evtTimerTimeoutFinish(void *pvIssuer)
         return;
     }
 
-    PIF_stSequence *pstOwner = (PIF_stSequence *)pvIssuer;
+    PIF_stSequenceBase *pstBase = (PIF_stSequence *)pvIssuer;
+    PIF_stSequence *pstOwner = &pstBase->stOwner;
 
 	pif_enError = E_enTimeout;
-	if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
+	if (pstBase->evtError) (*pstBase->evtError)(pstOwner);
 	pstOwner->ucPhaseNo = PIF_SEQUENCE_PHASE_NO_IDLE;
 }
 
@@ -117,7 +121,7 @@ fail:
 #ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Sequence:Error(%d) EC:%d", pstOwner->ucPhaseNo, pif_enError);
 #endif
-	if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
+	if (pstBase->evtError) (*pstBase->evtError)(pstOwner);
 	pstOwner->ucPhaseNo = PIF_SEQUENCE_PHASE_NO_IDLE;
 }
 
@@ -206,6 +210,17 @@ fail:
 	pifLog_Printf(LT_enError, "Sequence:Add() EC:%d", pif_enError);
 #endif
     return NULL;
+}
+
+/**
+ * @fn pifSequence_AttachEvent
+ * @brief
+ * @param pstOwner
+ * @param evtError
+ */
+void pifSequence_AttachEvent(PIF_stSequence *pstOwner, PIF_evtSequenceError evtError)
+{
+	((PIF_stSequenceBase *)pstOwner)->evtError = evtError;
 }
 
 /**

@@ -463,28 +463,19 @@ void pifXmodem_SetReceiveTimeout(uint16_t usReceiveTimeout)
 void pifXmodem_AttachComm(PIF_stComm *pstComm)
 {
 	pifComm_AttachClient(pstComm, &s_stXmodemBase);
-	pifComm_AttachEvtParsing(pstComm, _evtParsing);
-	pifComm_AttachEvtSending(pstComm, _evtSending);
+	pifComm_AttachEvent(pstComm, _evtParsing, _evtSending, NULL);
 }
 
 /**
- * @fn pifXmodem_AttachEvtTxReceive
+ * @fn pifXmodem_AttachEvent
  * @brief
- * @param evtReceive
+ * @param evtTxReceive
+ * @param evtRxReceive
  */
-void pifXmodem_AttachEvtTxReceive(PIF_evtXmodemTxReceive evtReceive)
+void pifXmodem_AttachEvent(PIF_evtXmodemTxReceive evtTxReceive, PIF_evtXmodemRxReceive evtRxReceive)
 {
-	s_stXmodemBase.stTx.evtReceive = evtReceive;
-}
-
-/**
- * @fn pifXmodem_AttachEvtRxReceive
- * @brief
- * @param evtReceive
-*/
-void pifXmodem_AttachEvtRxReceive(PIF_evtXmodemRxReceive evtReceive)
-{
-	s_stXmodemBase.stRx.evtReceive = evtReceive;
+	s_stXmodemBase.stTx.evtReceive = evtTxReceive;
+	s_stXmodemBase.stRx.evtReceive = evtRxReceive;
 }
 
 /**

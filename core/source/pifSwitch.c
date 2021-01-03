@@ -16,6 +16,12 @@ typedef struct _PIF_stSwitchBase
     PIF_stSwitchFilter *pstFilter;			// Default: NULL
 
 	PIF_enTaskLoop enTaskLoop;				// Default: TL_enAll
+
+	// Public Action Function
+	PIF_actSwitchAcquire actAcquire;			// Default: NULL
+
+	// Public Event Function
+    PIF_evtSwitchChange evtChange;				// Default: NULL
 } PIF_stSwitchBase;
 
 
@@ -80,13 +86,13 @@ static void _TaskCommon(PIF_stSwitchBase *pstBase)
 {
 	PIF_stSwitch *pstOwner = &pstBase->stOwner;
 
-	if (pstOwner->actAcquire) {
-		pifSwitch_sigData(pstOwner, (*pstOwner->actAcquire)(pstOwner->unDeviceCode));
+	if (pstBase->actAcquire) {
+		pifSwitch_sigData(pstOwner, (*pstBase->actAcquire)(pstOwner->unDeviceCode));
 	}
 
 	if (pstOwner->swCurrState != pstBase->swPrevState) {
-		if (pstOwner->evtChange) {
-			(*pstOwner->evtChange)(pstOwner->unDeviceCode, pstOwner->swCurrState);
+		if (pstBase->evtChange) {
+			(*pstBase->evtChange)(pstOwner->unDeviceCode, pstOwner->swCurrState);
 		}
 		pstBase->swPrevState = pstOwner->swCurrState;
 	}
@@ -166,6 +172,28 @@ fail:
 	pifLog_Printf(LT_enError, "Switch:Add(DC:%u IS:%u) EC:%d", unDeviceCode, swInitState, pif_enError);
 #endif
     return NULL;
+}
+
+/**
+ * @fn pifSwitch_AttachAction
+ * @brief
+ * @param pstOwner
+ * @param actAcquire
+ */
+void pifSwitch_AttachAction(PIF_stSwitch *pstOwner, PIF_actSwitchAcquire actAcquire)
+{
+	((PIF_stSwitchBase *)pstOwner)->actAcquire = actAcquire;
+}
+
+/**
+ * @fn pifSwitch_AttachEvent
+ * @brief
+ * @param pstOwner
+ * @param evtChange
+ */
+void pifSwitch_AttachEvent(PIF_stSwitch *pstOwner, PIF_evtSwitchChange evtChange)
+{
+	((PIF_stSwitchBase *)pstOwner)->evtChange = evtChange;
 }
 
 /**

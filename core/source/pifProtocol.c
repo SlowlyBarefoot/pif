@@ -75,6 +75,9 @@ typedef struct _PIF_stProtocolBase
     PIF_stProtocolTx stTx;
 	uint8_t ucHeaderSize;
 	uint8_t ucPacketId;
+
+	// Public Event Function
+    PIF_evtProtocolError evtError;
 } PIF_stProtocolBase;
 
 
@@ -467,7 +470,7 @@ static BOOL _evtSending(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 				pstBase->stTx.enState = PTS_enSending;
 			}
 			else {
-				if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner->unDeviceCode);
+				if (pstBase->evtError) (*pstBase->evtError)(pstOwner->unDeviceCode);
 				pifRingBuffer_Remove(&pstBase->stTx.stRequestBuffer, 5 + pstBase->stTx.usLength);
 #ifndef __PIF_NO_LOG__
 				pifLog_Printf(LT_enError, "PTC(%u) EventSending EC:%d", pstOwner->unDeviceCode, pif_enError);
@@ -623,6 +626,18 @@ fail:
 }
 
 /**
+ * @fn pifProtocol_AttachEvent
+ * @brief
+ * @param pvOwner
+ * @param evtError
+ * @return
+ */
+void pifProtocol_AttachEvent(PIF_stProtocol *pstOwner, PIF_evtProtocolError evtError)
+{
+	((PIF_stProtocolBase *)pstOwner)->evtError = evtError;
+}
+
+/**
  * @fn pifProtocol_ResizeRxPacket
  * @brief
  * @param pvOwner
@@ -715,8 +730,7 @@ fail:
 void pifProtocol_AttachComm(PIF_stProtocol *pstOwner, PIF_stComm *pstComm)
 {
 	pifComm_AttachClient(pstComm, pstOwner);
-	pifComm_AttachEvtParsing(pstComm, _evtParsing);
-	pifComm_AttachEvtSending(pstComm, _evtSending);
+	pifComm_AttachEvent(pstComm, _evtParsing, _evtSending, NULL);
 }
 
 /**

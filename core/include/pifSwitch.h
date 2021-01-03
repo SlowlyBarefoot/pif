@@ -45,12 +45,6 @@ typedef struct _PIF_stSwitch
     SWITCH swInitState;
     BOOL bStateReverse;							// Default: FALSE
     SWITCH swCurrState;							// Default: enInitState
-
-	// Public Action Function
-	PIF_actSwitchAcquire actAcquire;			// Default: NULL
-
-	// Public Event Function
-    PIF_evtSwitchChange evtChange;				// Default: NULL
 } PIF_stSwitch;
 
 
@@ -62,6 +56,9 @@ BOOL pifSwitch_Init(uint8_t ucSize);
 void pifSwitch_Exit();
 
 PIF_stSwitch *pifSwitch_Add(PIF_unDeviceCode unDeviceCode, SWITCH swInitState);
+
+void pifSwitch_AttachAction(PIF_stSwitch *pstOwner, PIF_actSwitchAcquire actAcquire);
+void pifSwitch_AttachEvent(PIF_stSwitch *pstOwner, PIF_evtSwitchChange evtChange);
 
 BOOL pifSwitch_AttachFilter(PIF_stSwitch *pstOwner, uint8_t ucFilterMethod, uint8_t ucFilterSize, PIF_stSwitchFilter *pstFilter);
 void pifSwitch_DetachFilter(PIF_stSwitch *pstOwner);
