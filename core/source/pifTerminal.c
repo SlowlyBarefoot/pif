@@ -21,6 +21,18 @@ typedef struct _PIF_stTerminalBase
 static PIF_stTerminalBase s_stTerminalBase;
 
 
+#define LOG_FLAG_COUNT	4
+
+const struct {
+	char *acName;
+	char *acCommand;
+} c_stLogFlags[LOG_FLAG_COUNT] = {
+		{ "Performance", "perf" },
+		{ "Task", "task" },
+		{ "Duty Motor", "dmt" },
+		{ "Step Motor", "smt" }
+};
+
 static BOOL _GetDebugString(PIF_stRingBuffer *pstBuffer)
 {
     BOOL bRes;
@@ -151,23 +163,23 @@ static void _evtParsing(void *pvClient, PIF_stRingBuffer *pstBuffer)
 
         // Handle the case of bad command.
         if (nStatus == PIF_TERM_CMD_BAD_CMD) {
-        	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "Not defined command!\n");
+        	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "\nNot defined command!");
         }
 
         // Handle the case of too many arguments.
         else if (nStatus == PIF_TERM_CMD_TOO_MANY_ARGS) {
-        	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "Too many arguments for command processor!\n");
+        	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "\nToo many arguments for command!");
         }
 
         // Handle the case of too few arguments.
         else if (nStatus == PIF_TERM_CMD_TOO_FEW_ARGS) {
-        	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "Too few arguments for command processor!\n");
+        	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "\nToo few arguments for command!");
         }
 
         // Otherwise the command was executed.  Print the error
         // code if one was returned.
         else if (nStatus != PIF_TERM_CMD_NO_ERROR) {
-        	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "Command returned error code\n");
+        	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, "\nCommand returned error code");
         }
 
     	pifRingBuffer_PutString(&s_stTerminalBase.stTxBuffer, (char *)pstBase->pcPrompt);
@@ -321,10 +333,12 @@ int pifTerminal_PrintVersion(int argc, char *argv[])
 int pifTerminal_SetStatus(int argc, char *argv[])
 {
 	BOOL value;
+	int i;
 
 	if (argc == 1) {
-		pifLog_Printf(LT_enNone, "\n  Performance: %d", pif_stLogFlag.btPerformance);
-		pifLog_Printf(LT_enNone, "\n  Task: %d", pif_stLogFlag.btTask);
+		for (i = 0; i < LOG_FLAG_COUNT; i++) {
+			pifLog_Printf(LT_enNone, "\n  %s(%s): %d", c_stLogFlags[i].acName, c_stLogFlags[i].acCommand, (pif_stLogFlag.unFlags >> i) & 1);
+		}
 		return PIF_TERM_CMD_NO_ERROR;
 	}
 	else if (argc > 2) {
@@ -344,13 +358,16 @@ int pifTerminal_SetStatus(int argc, char *argv[])
 		default:
 			return PIF_TERM_CMD_INVALID_ARG;
 		}
-		if (!strcmp(argv[1], "perform")) {
-			pif_stLogFlag.btPerformance = value;
-			return PIF_TERM_CMD_NO_ERROR;
-		}
-		else if (!strcmp(argv[1], "task")) {
-			pif_stLogFlag.btTask = value;
-			return PIF_TERM_CMD_NO_ERROR;
+		for (i = 0; i < LOG_FLAG_COUNT; i++) {
+			if (!strcmp(argv[1], c_stLogFlags[i].acCommand)) {
+				if (value) {
+					pif_stLogFlag.unFlags |= 1L << i;
+				}
+				else {
+					pif_stLogFlag.unFlags &= ~(1L << i);
+				}
+				return PIF_TERM_CMD_NO_ERROR;
+			}
 		}
 		return PIF_TERM_CMD_INVALID_ARG;
 	}

@@ -55,6 +55,7 @@ PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, vo
 PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, void *pvLoopEach);
 
 void pifTask_SetName(PIF_stTask *pstOwner, const char *pcName);
+void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod);
 
 void pifTask_Pause(PIF_stTask *pstTask);
 void pifTask_Restart(PIF_stTask *pstTask);

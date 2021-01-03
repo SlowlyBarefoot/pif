@@ -280,19 +280,13 @@ BOOL pifRingBuffer_PutByte(PIF_stRingBuffer *pstOwner, uint8_t ucData)
     if (usNext == pstOwner->__usTail) {
     	if (!_ChopOff(pstOwner, 1)) {
     		pif_enError = E_enOverflowBuffer;
-    		goto fail;
+    		return FALSE;
     	}
     }
 
     pstOwner->__pcBuffer[pstOwner->__usHead] = ucData;
     pstOwner->__usHead = usNext;
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "RingBuffer(%d/%s):PutByte(D:%u) EC:%d", pstOwner->unDeviceCode, pstOwner->psName, ucData, pif_enError);
-#endif
-	return FALSE;
 }
 
 /**
@@ -310,7 +304,7 @@ BOOL pifRingBuffer_PutData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16_
     if (usLength > usRemain) {
     	if (!_ChopOff(pstOwner, usLength - usRemain)) {
     		pif_enError = E_enOverflowBuffer;
-    		goto fail;
+    		return FALSE;
     	}
     }
 
@@ -320,12 +314,6 @@ BOOL pifRingBuffer_PutData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16_
     	if (pstOwner->__usHead >= pstOwner->usSize) pstOwner->__usHead = 0;
     }
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "RingBuffer(%d/%s):PutData(L:%u) EC:%d", pstOwner->unDeviceCode, pstOwner->psName, usLength, pif_enError);
-#endif
-	return FALSE;
 }
 
 /**
@@ -343,7 +331,7 @@ BOOL pifRingBuffer_PutString(PIF_stRingBuffer *pstOwner, char *pcString)
     if (usLength > usRemain) {
     	if (!_ChopOff(pstOwner, usLength - usRemain)) {
     		pif_enError = E_enOverflowBuffer;
-    		goto fail;
+    		return FALSE;
     	}
     }
 
@@ -353,12 +341,6 @@ BOOL pifRingBuffer_PutString(PIF_stRingBuffer *pstOwner, char *pcString)
     	if (pstOwner->__usHead >= pstOwner->usSize) pstOwner->__usHead = 0;
     }
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "RingBuffer(%d/%s):PutString() EC:%d Len:%u Rem:%u", pstOwner->unDeviceCode, pstOwner->psName, pif_enError, usLength, usRemain);
-#endif
-	return FALSE;
 }
 
 /**
@@ -438,11 +420,11 @@ BOOL pifRingBuffer_CopyLength(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc
 
 	if (usPos + usLength > usFill) {
 		pif_enError = E_enInvalidParam;
-		goto fail;
+		return FALSE;
 	}
 	if (pifRingBuffer_GetRemainSize(pstDst) < usLength) {
 		pif_enError = E_enOverflowBuffer;
-		goto fail;
+		return FALSE;
 	}
 
 	uint16_t usTail = (pstSrc->__usTail + usPos) % pstSrc->usSize;
@@ -452,12 +434,6 @@ BOOL pifRingBuffer_CopyLength(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc
 		if (usTail >= pstSrc->usSize) usTail = 0;
 	}
 	return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "RingBuffer(%d/%s):CopyLength(P:%u L:%u) EC:%d Fill:%u", pstSrc->unDeviceCode, pstSrc->psName, usPos, usLength, pif_enError, usFill);
-#endif
-	return FALSE;
 }
 
 /**

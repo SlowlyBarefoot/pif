@@ -159,7 +159,7 @@ static const char *c_cPktErr[5] = {
 
 static void _ParsingPacket(PIF_stProtocolBase *pstBase, PIF_stRingBuffer *pstBuffer)
 {
-	PIF_stProtocol *pstOwner = (PIF_stProtocol *)pstBase;
+	PIF_stProtocol *pstOwner = &pstBase->stOwner;
 	PIF_stProtocolPacket *pstPacket = &pstBase->stRx.stPacket;
 	uint8_t data;
 	uint8_t ucPktErr;
@@ -328,7 +328,7 @@ fail:
 static void _evtParsing(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 {
 	PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)pvOwner;
-	PIF_stProtocol *pstOwner = (PIF_stProtocol *)pstBase;
+	PIF_stProtocol *pstOwner = &pstBase->stOwner;
 	PIF_stProtocolPacket *pstPacket;
 
 	_ParsingPacket(pstBase, pstBuffer);
@@ -410,7 +410,7 @@ static void _evtParsing(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 static BOOL _evtSending(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 {
 	PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)pvOwner;
-	PIF_stProtocol *pstOwner = (PIF_stProtocol *)pstBase;
+	PIF_stProtocol *pstOwner = &pstBase->stOwner;
 	uint16_t usLength;
 
 	if (pstBase->stRx.enState != PRS_enIdle) return FALSE;
@@ -579,7 +579,7 @@ PIF_stProtocol *pifProtocol_Add(PIF_unDeviceCode unDeviceCode, PIF_enProtocolTyp
         goto fail;
 	}
 
-    PIF_stProtocol *pstOwner = (PIF_stProtocol *)pstBase;
+    PIF_stProtocol *pstOwner = &pstBase->stOwner;
 
     pstBase->stRx.pucPacket = calloc(sizeof(uint8_t), 10 + PIF_PROTOCOL_RX_PACKET_SIZE);
     if (!pstBase->stRx.pucPacket) {

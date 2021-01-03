@@ -232,6 +232,28 @@ void pifTask_SetName(PIF_stTask *pstOwner, const char *pcName)
 }
 
 /**
+ * @fn pifTask_SetPeriod
+ * @brief Task의 주기를 설정한다.
+ * @param pstOwner Task 자신
+ * @param usPeriod Task 주기 (ms, us)
+ */
+void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod)
+{
+	switch (pstOwner->enMode) {
+	case TM_enPeriodMs:
+	case TM_enPeriodUs:
+		((PIF_stTaskBase *)pstOwner)->usPeriod = usPeriod;
+		break;
+
+	default:
+#ifndef __PIF_NO_LOG__
+		pifLog_Printf(LT_enWarn, "Task:ChangePeriod(P:%u)", usPeriod);
+#endif
+		break;
+	}
+}
+
+/**
  * @fn pifTask_Pause
  * @brief Task를 일시중지한다.
  * @param pstOwner Task 자신

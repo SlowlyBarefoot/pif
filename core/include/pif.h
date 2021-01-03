@@ -74,10 +74,15 @@ typedef struct _PIF_stDateTime
  * @struct _PIF_stLogFlag
  * @brief 항목별 Log 출력 여부
  */
-typedef struct _PIF_stLogFlag
+typedef union _PIF_stLogFlag
 {
-	uint32_t btPerformance			: 1;
-	uint32_t btTask					: 1;
+	uint32_t unFlags;
+	struct {
+		uint32_t btPerformance			: 1;
+		uint32_t btTask					: 1;
+		uint32_t btDutyMotor			: 1;
+		uint32_t btStepMotor			: 1;
+	};
 } PIF_stLogFlag;
 
 /**
