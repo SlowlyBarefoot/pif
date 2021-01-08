@@ -14,7 +14,7 @@ struct _PIF_stSwitchFilter;
 typedef struct _PIF_stSwitchFilter PIF_stSwitchFilter;
 
 typedef SWITCH (*PIF_actSwitchAcquire)(PIF_unDeviceCode unDeviceCode);
-typedef void (*PIF_evtSwitchChange)(PIF_unDeviceCode unDeviceCode, SWITCH swState);
+typedef void (*PIF_evtSwitchChange)(PIF_unDeviceCode unDeviceCode, SWITCH swState, void *pvIssuer);
 typedef SWITCH (*PIF_evtSwitchFilter)(SWITCH swState, PIF_stSwitchFilter *pstOwner);
 
 
@@ -58,7 +58,9 @@ void pifSwitch_Exit();
 PIF_stSwitch *pifSwitch_Add(PIF_unDeviceCode unDeviceCode, SWITCH swInitState);
 
 void pifSwitch_AttachAction(PIF_stSwitch *pstOwner, PIF_actSwitchAcquire actAcquire);
-void pifSwitch_AttachEvent(PIF_stSwitch *pstOwner, PIF_evtSwitchChange evtChange);
+
+void pifSwitch_AttachEvtChange(PIF_stSwitch *pstOwner, PIF_evtSwitchChange evtChange, void *pvIssuer);
+void pifSwitch_DetachEvtChange(PIF_stSwitch *pstOwner);
 
 BOOL pifSwitch_AttachFilter(PIF_stSwitch *pstOwner, uint8_t ucFilterMethod, uint8_t ucFilterSize, PIF_stSwitchFilter *pstFilter);
 void pifSwitch_DetachFilter(PIF_stSwitch *pstOwner);

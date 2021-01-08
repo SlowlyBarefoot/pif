@@ -11,6 +11,7 @@ typedef struct _PIF_stSwitchBase
 
 	// Private Member Variable
     SWITCH swPrevState;						// Default: enInitState
+    void *pvChangeIssuer;
 
     uint8_t ucFilterMethod;					// Default: PIF_SWITCH_FILTER_NONE
     PIF_stSwitchFilter *pstFilter;			// Default: NULL
@@ -18,10 +19,10 @@ typedef struct _PIF_stSwitchBase
 	PIF_enTaskLoop enTaskLoop;				// Default: TL_enAll
 
 	// Public Action Function
-	PIF_actSwitchAcquire actAcquire;			// Default: NULL
+	PIF_actSwitchAcquire actAcquire;		// Default: NULL
 
 	// Public Event Function
-    PIF_evtSwitchChange evtChange;				// Default: NULL
+    PIF_evtSwitchChange evtChange;			// Default: NULL
 } PIF_stSwitchBase;
 
 
@@ -92,7 +93,7 @@ static void _TaskCommon(PIF_stSwitchBase *pstBase)
 
 	if (pstOwner->swCurrState != pstBase->swPrevState) {
 		if (pstBase->evtChange) {
-			(*pstBase->evtChange)(pstOwner->unDeviceCode, pstOwner->swCurrState);
+			(*pstBase->evtChange)(pstOwner->unDeviceCode, pstOwner->swCurrState, pstBase->pvChangeIssuer);
 		}
 		pstBase->swPrevState = pstOwner->swCurrState;
 	}
@@ -186,14 +187,31 @@ void pifSwitch_AttachAction(PIF_stSwitch *pstOwner, PIF_actSwitchAcquire actAcqu
 }
 
 /**
- * @fn pifSwitch_AttachEvent
+ * @fn pifSwitch_AttachEvtChange
  * @brief
  * @param pstOwner
  * @param evtChange
+ * @param pvIssuer
  */
-void pifSwitch_AttachEvent(PIF_stSwitch *pstOwner, PIF_evtSwitchChange evtChange)
+void pifSwitch_AttachEvtChange(PIF_stSwitch *pstOwner, PIF_evtSwitchChange evtChange, void *pvIssuer)
 {
-	((PIF_stSwitchBase *)pstOwner)->evtChange = evtChange;
+	PIF_stSwitchBase *pstBase = (PIF_stSwitchBase *)pstOwner;
+
+	pstBase->evtChange = evtChange;
+	pstBase->pvChangeIssuer = pvIssuer;
+}
+
+/**
+ * @fn pifSwitch_DetachEvtChange
+ * @brief
+ * @param pstOwner
+ */
+void pifSwitch_DetachEvtChange(PIF_stSwitch *pstOwner)
+{
+	PIF_stSwitchBase *pstBase = (PIF_stSwitchBase *)pstOwner;
+
+	pstBase->evtChange = NULL;
+	pstBase->pvChangeIssuer = NULL;
 }
 
 /**

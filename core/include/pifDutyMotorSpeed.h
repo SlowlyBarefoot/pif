@@ -3,6 +3,7 @@
 
 
 #include "pifDutyMotorBase.h"
+#include "pifSwitch.h"
 
 
 /**
@@ -12,6 +13,11 @@
 typedef struct _PIF_stDutyMotorSpeedStage
 {
 	uint8_t enMode;				// PIF_enMotorMode
+
+    // Switch
+    PIF_stSwitch **ppstStartSwitch;
+    PIF_stSwitch **ppstReduceSwitch;
+    PIF_stSwitch **ppstStopSwitch;
 
 	// 가속 구간 (Gained speed range)
 	uint16_t usGsStartDuty;		// 초기 기동 duty 설정

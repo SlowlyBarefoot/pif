@@ -22,9 +22,7 @@ struct _PIF_stDutyMotorBase
 
 	// Private Member Variable
     void *pvInfo;
-	struct {
-        uint8_t btError	: 1;
-	};
+    uint8_t ucError;
 	uint16_t usControlPeriod;
 
 	PIF_stPulseItem *pstTimerControl;

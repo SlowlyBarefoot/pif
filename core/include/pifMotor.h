@@ -30,12 +30,13 @@ typedef enum _PIF_enMotorMode
 	MM_D_enCW			= 0x00,
 	MM_D_enCCW			= 0x01,
 
-	// Stop Method : 정지 방법 지정
-	MM_SM_enMask		= 0x06,
-	MM_SM_enShift		= 1,
-	MM_SM_enNone		= 0x00,
-	MM_SM_enPulse		= 0x02,		// 펄스 이송
-	MM_SM_enSensor		= 0x04,		// 센서 중지
+	// Reduce Method : 감속 방법 지정
+	MM_RM_enMask		= 0x06,
+	MM_RM_enShift		= 1,
+	MM_RM_enNone		= 0x00,
+	MM_RM_enTime		= 0x02,		// 일정 시간후 중지
+	MM_RM_enSensor		= 0x04,		// 센서 중지
+	MM_RM_enPulse		= 0x06,		// 펄스 이동
 
 	// Not Release : 정지시 잡고 있을지
 	MM_NR_enMask		= 0x08,
@@ -43,29 +44,18 @@ typedef enum _PIF_enMotorMode
 	MM_NR_enNo			= 0x00,
 	MM_NR_enYes			= 0x08,
 
-	// Check Initial Position : 초기 위치 체크
-	MM_CIP_enMask		= 0x10,
-	MM_CIP_enShift		= 4,
-	MM_CIP_enNo			= 0x00,
-	MM_CIP_enYes		= 0x10,
+	// Check Initial All Sensor : 초기 모든 센서 체크
+	// Start 센서만 Dark이고 Reduce와 Stop 센서는 Light이어야 함
+	MM_CIAS_enMask		= 0x10,
+	MM_CIAS_enShift		= 4,
+	MM_CIAS_enNo		= 0x00,
+	MM_CIAS_enYes		= 0x10,
 
-	// Check Both Dark : 모든 센서 암체크 유무
-	MM_CBD_enMask		= 0x20,
-	MM_CBD_enShift		= 5,
-	MM_CBD_enNo			= 0x00,
-	MM_CBD_enYes		= 0x20,
-
-	// Stop Sensor State : 모터 정지시 도달 위치 센서 상태
-	MM_SSS_enMask		= 0x40,
-	MM_SSS_enShift		= 6,
-	MM_SSS_enDark		= 0x00,
-	MM_SSS_enLight		= 0x40,
-
-	// Check Stop Position : 기동시 도달 위치 체크
-	MM_CSP_enMask		= 0x80,
-	MM_CSP_enShift		= 7,
-	MM_CSP_enNo			= 0x00,
-	MM_CSP_enYes		= 0x80
+	// Check Finish Stop Sensor : 도달시 Stop 센서 체크
+	MM_CFPS_enMask		= 0x20,
+	MM_CFPS_enShift		= 5,
+	MM_CFPS_enNo		= 0x00,
+	MM_CFPS_enYes		= 0x20,
 } PIF_enMotorMode;
 
 

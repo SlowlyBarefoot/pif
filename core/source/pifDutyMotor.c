@@ -16,6 +16,17 @@ static void _TimerControlFinish(void *pvIssuer)
 
     if (pstBase->fnControl) (*pstBase->fnControl)(pstBase);
 
+    if (pstBase->ucError) {
+        if (pstOwner->enState < MS_enBreak) {
+			(*pstBase->actSetDuty)(0);
+			pstOwner->usCurrentDuty = 0;
+
+			pstOwner->enState = MS_enBreak;
+        }
+
+        if (pstBase->evtError) (*pstBase->evtError)(pstOwner, pstBase->pvInfo);
+    }
+
 	if (pstOwner->enState == MS_enStop) {
 		pifPulse_StopItem(pstBase->pstTimerControl);
 		pstOwner->enState = MS_enIdle;
