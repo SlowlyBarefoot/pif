@@ -10,7 +10,7 @@ typedef struct _PIF_stLogBase
 
 	// Private Member Variable
 	BOOL bEnable;
-	PIF_stRingBuffer stBuffer;
+	PIF_stRingBuffer *pstBuffer;
 #ifndef __PIF_NO_TERMINAL__
 	BOOL bUseTerminal;
 #endif
@@ -151,11 +151,48 @@ static void _PrintTime()
 void pifLog_Init()
 {
 	s_stLogBase.bEnable = TRUE;
-	pifRingBuffer_Init(&s_stLogBase.stBuffer);
+	s_stLogBase.pstBuffer = NULL;
 #ifndef __PIF_NO_TERMINAL__
 	s_stLogBase.bUseTerminal = FALSE;
 #endif
 	s_stLogBase.actPrint = NULL;
+}
+
+/**
+ * @fn pifLog_InitHeap
+ * @brief Log 구조체 초기화한다.
+ * @param usSize
+ * @return
+ */
+BOOL pifLog_InitHeap(uint16_t usSize)
+{
+	s_stLogBase.bEnable = TRUE;
+	s_stLogBase.pstBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, usSize);
+	if (!s_stLogBase.pstBuffer) return FALSE;
+#ifndef __PIF_NO_TERMINAL__
+	s_stLogBase.bUseTerminal = FALSE;
+#endif
+	s_stLogBase.actPrint = NULL;
+	return TRUE;
+}
+
+/**
+ * @fn pifLog_InitStatic
+ * @brief Log 구조체 초기화한다.
+ * @param usSize
+ * @param pcBuffer
+ * @return
+ */
+BOOL pifLog_InitStatic(uint16_t usSize, char *pcBuffer)
+{
+	s_stLogBase.bEnable = TRUE;
+	s_stLogBase.pstBuffer = pifRingBuffer_InitStatic(PIF_ID_AUTO, usSize, pcBuffer);
+	if (!s_stLogBase.pstBuffer) return FALSE;
+#ifndef __PIF_NO_TERMINAL__
+	s_stLogBase.bUseTerminal = FALSE;
+#endif
+	s_stLogBase.actPrint = NULL;
+	return TRUE;
 }
 
 /**
@@ -164,29 +201,9 @@ void pifLog_Init()
  */
 void pifLog_Exit()
 {
-	pifRingBuffer_Exit(&s_stLogBase.stBuffer);
-}
-
-/**
- * @fn pifLog_InitBufferAlloc
- * @brief
- * @param usSize
- * @return
- */
-BOOL pifLog_InitBufferAlloc(uint16_t usSize)
-{
-	return pifRingBuffer_InitAlloc(&s_stLogBase.stBuffer, usSize);
-}
-
-/**
- * @fn pifLog_InitBufferShare
- * @brief
- * @param usSize
- * @param pcBuffer
- */
-void pifLog_InitBufferShare(uint16_t usSize, char *pcBuffer)
-{
-	pifRingBuffer_InitShare(&s_stLogBase.stBuffer, usSize, pcBuffer);
+	if (s_stLogBase.pstBuffer) {
+		pifRingBuffer_Exit(s_stLogBase.pstBuffer);
+	}
 }
 
 #ifndef __PIF_NO_TERMINAL__
@@ -228,8 +245,8 @@ void pifLog_Disable()
  */
 void pifLog_Print(char *pcString)
 {
-	if (pifRingBuffer_IsAlloc(&s_stLogBase.stBuffer)) {
-		pifRingBuffer_PutString(&s_stLogBase.stBuffer, pcString);
+	if (pifRingBuffer_IsBuffer(s_stLogBase.pstBuffer)) {
+		pifRingBuffer_PutString(s_stLogBase.pstBuffer, pcString);
 	}
 
 	if (s_stLogBase.bEnable) {
@@ -415,13 +432,13 @@ void pifLog_PrintInBuffer()
 	uint8_t pBuffer[128];
 	uint16_t usLength;
 
-	if (!s_stLogBase.actPrint || !pifRingBuffer_IsAlloc(&s_stLogBase.stBuffer)) return;
+	if (!s_stLogBase.actPrint || !pifRingBuffer_IsBuffer(s_stLogBase.pstBuffer)) return;
 
-	while (!pifRingBuffer_IsEmpty(&s_stLogBase.stBuffer)) {
-		usLength = pifRingBuffer_CopyToArray(pBuffer, &s_stLogBase.stBuffer, 127);
+	while (!pifRingBuffer_IsEmpty(s_stLogBase.pstBuffer)) {
+		usLength = pifRingBuffer_CopyToArray(pBuffer, s_stLogBase.pstBuffer, 127);
 		pBuffer[usLength] = 0;
 		(*s_stLogBase.actPrint)((char *)pBuffer);
-		pifRingBuffer_Remove(&s_stLogBase.stBuffer, usLength);
+		pifRingBuffer_Remove(s_stLogBase.pstBuffer, usLength);
 	}
 }
 

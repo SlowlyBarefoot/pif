@@ -31,10 +31,9 @@ extern "C" {
 #endif
 
 void pifLog_Init();
+BOOL pifLog_InitHeap(uint16_t usSize);
+BOOL pifLog_InitStatic(uint16_t usSize, char *pcBuffer);
 void pifLog_Exit();
-
-BOOL pifLog_InitBufferAlloc(uint16_t usSize);
-void pifLog_InitBufferShare(uint16_t usSize, char *pcBuffer);
 
 #ifndef __PIF_NO_TERMINAL__
 void pifLog_UseTerminal(BOOL bUse);

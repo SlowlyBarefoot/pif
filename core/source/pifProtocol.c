@@ -42,8 +42,8 @@ typedef struct _PIF_stProtocolRx
 
 typedef struct _PIF_stProtocolTx
 {
-    PIF_stRingBuffer stRequestBuffer;
-    PIF_stRingBuffer stAnswerBuffer;
+    PIF_stRingBuffer *pstRequestBuffer;
+    PIF_stRingBuffer *pstAnswerBuffer;
 	const PIF_stProtocolRequest *pstRequest;
 	uint8_t *pucData;
 	uint16_t usDataSize;
@@ -109,7 +109,7 @@ static void _evtTimerRxTimeout(void *pvIssuer)
 			pstBase->stRx.ucHeaderCount);
 #endif
 #endif
-	pifRingBuffer_PutByte(&pstBase->stTx.stAnswerBuffer, ASCII_NAK);
+	pifRingBuffer_PutByte(pstBase->stTx.pstAnswerBuffer, ASCII_NAK);
 	pstBase->stRx.enState = PRS_enIdle;
 }
 
@@ -314,7 +314,7 @@ fail:
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
     	pifPulse_StopItem(pstBase->stRx.pstTimer);
 #endif
-    	pifRingBuffer_PutByte(&pstBase->stTx.stAnswerBuffer, ASCII_NAK);
+    	pifRingBuffer_PutByte(pstBase->stTx.pstAnswerBuffer, ASCII_NAK);
     }
     else if (pstBase->stTx.enState == PTS_enWaitResponse) {
 #if PIF_PROTOCOL_RETRY_DELAY
@@ -359,7 +359,7 @@ static void _evtParsing(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 #endif
 
         	    	if ((pstPacket->enFlags & PF_enResponse_Mask) == PF_enResponse_Ack) {
-        	    		pifRingBuffer_PutByte(&pstBase->stTx.stAnswerBuffer, ASCII_ACK);
+        	    		pifRingBuffer_PutByte(pstBase->stTx.pstAnswerBuffer, ASCII_ACK);
         	    	}
        	    		(*pstQuestion->evtQuestion)(pstPacket);
         			break;
@@ -378,7 +378,7 @@ static void _evtParsing(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 
     	    	if (pstBase->stTx.ucCommand == pstPacket->ucCommand && (pstOwner->enType == PT_enSmall ||
     	    			pstBase->stTx.ucPacketId == pstPacket->ucPacketId)) {
-    				pifRingBuffer_Remove(&pstBase->stTx.stRequestBuffer, 5 + pstBase->stTx.usLength);
+    				pifRingBuffer_Remove(pstBase->stTx.pstRequestBuffer, 5 + pstBase->stTx.usLength);
 		            pifPulse_StopItem(pstBase->stTx.pstTimer);
 					(*pstBase->stTx.pstRequest->evtResponse)(pstPacket);
 					pstBase->stTx.enState = PTS_enIdle;
@@ -402,7 +402,7 @@ static void _evtParsing(void *pvOwner, PIF_stRingBuffer *pstBuffer)
     	pstBase->stRx.enState = PRS_enIdle;
     }
     else if (pstBase->stRx.enState == PRS_enAck) {
-		pifRingBuffer_Remove(&pstBase->stTx.stRequestBuffer, 5 + pstBase->stTx.usLength);
+		pifRingBuffer_Remove(pstBase->stTx.pstRequestBuffer, 5 + pstBase->stTx.usLength);
         pifPulse_StopItem(pstBase->stTx.pstTimer);
 		(*pstBase->stTx.pstRequest->evtResponse)(NULL);
 		pstBase->stTx.enState = PTS_enIdle;
@@ -418,16 +418,16 @@ static BOOL _evtSending(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 
 	if (pstBase->stRx.enState != PRS_enIdle) return FALSE;
 
-	if (!pifRingBuffer_IsEmpty(&pstBase->stTx.stAnswerBuffer)) {
-		usLength = pifRingBuffer_CopyAll(pstBuffer, &pstBase->stTx.stAnswerBuffer, 0);
-		pifRingBuffer_Remove(&pstBase->stTx.stAnswerBuffer, usLength);
+	if (!pifRingBuffer_IsEmpty(pstBase->stTx.pstAnswerBuffer)) {
+		usLength = pifRingBuffer_CopyAll(pstBuffer, pstBase->stTx.pstAnswerBuffer, 0);
+		pifRingBuffer_Remove(pstBase->stTx.pstAnswerBuffer, usLength);
 		return TRUE;
 	}
 	else {
 	    switch (pstBase->stTx.enState) {
 	    case PTS_enIdle:
-	    	if (!pifRingBuffer_IsEmpty(&pstBase->stTx.stRequestBuffer)) {
-				pifRingBuffer_CopyToArray(pstBase->stTx.ucInfo, &pstBase->stTx.stRequestBuffer, 9);
+	    	if (!pifRingBuffer_IsEmpty(pstBase->stTx.pstRequestBuffer)) {
+				pifRingBuffer_CopyToArray(pstBase->stTx.ucInfo, pstBase->stTx.pstRequestBuffer, 9);
 				pstBase->stTx.usPos = 0;
 				pstBase->stTx.enState = PTS_enSending;
 	    	}
@@ -435,7 +435,7 @@ static BOOL _evtSending(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 
 	    case PTS_enSending:
 	    	if (pifRingBuffer_IsEmpty(pstBuffer)) {
-				pstBase->stTx.usPos += pifRingBuffer_CopyAll(pstBuffer, &pstBase->stTx.stRequestBuffer, 5 + pstBase->stTx.usPos);
+				pstBase->stTx.usPos += pifRingBuffer_CopyAll(pstBuffer, pstBase->stTx.pstRequestBuffer, 5 + pstBase->stTx.usPos);
 				if (pstBase->stTx.usPos >= pstBase->stTx.usLength) {
 					pstBase->stTx.enState = PTS_enWaitSended;
 				}
@@ -445,7 +445,7 @@ static BOOL _evtSending(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 	    case PTS_enWaitSended:
 	    	if (pifRingBuffer_IsEmpty(pstBuffer)) {
 	    		if ((pstBase->stTx.ucFlags & PF_enResponse_Mask) == PF_enResponse_No) {
-    				pifRingBuffer_Remove(&pstBase->stTx.stRequestBuffer, 5 + pstBase->stTx.usLength);
+    				pifRingBuffer_Remove(pstBase->stTx.pstRequestBuffer, 5 + pstBase->stTx.usLength);
 	    			pstBase->stTx.enState = PTS_enIdle;
 	    		}
 	    		else {
@@ -471,7 +471,7 @@ static BOOL _evtSending(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 			}
 			else {
 				if (pstBase->evtError) (*pstBase->evtError)(pstOwner->usPifId);
-				pifRingBuffer_Remove(&pstBase->stTx.stRequestBuffer, 5 + pstBase->stTx.usLength);
+				pifRingBuffer_Remove(pstBase->stTx.pstRequestBuffer, 5 + pstBase->stTx.usLength);
 #ifndef __PIF_NO_LOG__
 				pifLog_Printf(LT_enError, "PTC(%u) EventSending EC:%d", pstOwner->usPifId, pif_enError);
 #endif
@@ -532,8 +532,8 @@ void pifProtocol_Exit()
         		free(pstBase->stRx.pucPacket);
         		pstBase->stRx.pucPacket = NULL;
         	}
-        	pifRingBuffer_Exit(&pstBase->stTx.stRequestBuffer);
-        	pifRingBuffer_Exit(&pstBase->stTx.stAnswerBuffer);
+        	pifRingBuffer_Exit(pstBase->stTx.pstRequestBuffer);
+        	pifRingBuffer_Exit(pstBase->stTx.pstAnswerBuffer);
         	pifPulse_RemoveItem(s_pstProtocolTimer, pstBase->stTx.pstTimer);
         }
     	free(s_pstProtocolBase);
@@ -598,13 +598,13 @@ PIF_stProtocol *pifProtocol_Add(PIF_usId usPifId, PIF_enProtocolType enType,
 
     if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
 
-    if (!pifRingBuffer_InitAlloc(&pstBase->stTx.stRequestBuffer, PIF_PROTOCOL_TX_REQUEST_SIZE)) goto fail;
-    pifRingBuffer_SetPifId(&pstBase->stTx.stRequestBuffer, usPifId);
-    pifRingBuffer_SetName(&pstBase->stTx.stRequestBuffer, "RQB");
+    pstBase->stTx.pstRequestBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_PROTOCOL_TX_REQUEST_SIZE);
+    if (!pstBase->stTx.pstRequestBuffer) goto fail;
+    pifRingBuffer_SetName(pstBase->stTx.pstRequestBuffer, "RQB");
 
-    if (!pifRingBuffer_InitAlloc(&pstBase->stTx.stAnswerBuffer, PIF_PROTOCOL_TX_ANSWER_SIZE)) goto fail;
-    pifRingBuffer_SetPifId(&pstBase->stTx.stAnswerBuffer, usPifId);
-    pifRingBuffer_SetName(&pstBase->stTx.stAnswerBuffer, "RSB");
+    pstBase->stTx.pstAnswerBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_PROTOCOL_TX_ANSWER_SIZE);
+    if (!pstBase->stTx.pstAnswerBuffer) goto fail;
+    pifRingBuffer_SetName(pstBase->stTx.pstAnswerBuffer, "RSB");
 
     pstBase->stTx.pstTimer = pifPulse_AddItem(s_pstProtocolTimer, PT_enOnce);
     if (!pstBase->stTx.pstTimer) goto fail;
@@ -687,8 +687,7 @@ BOOL pifProtocol_ResizeTxRequest(PIF_stProtocol *pstOwner, uint16_t usTxRequestS
     	goto fail;
     }
 
-	pifRingBuffer_Exit(&pstBase->stTx.stRequestBuffer);
-    return pifRingBuffer_InitAlloc(&pstBase->stTx.stRequestBuffer, usTxRequestSize);
+    return pifRingBuffer_ResizeHeap(pstBase->stTx.pstRequestBuffer, usTxRequestSize);
 
 fail:
 #ifndef __PIF_NO_LOG__
@@ -713,8 +712,7 @@ BOOL pifProtocol_ResizeTxResponse(PIF_stProtocol *pstOwner, uint16_t usTxRespons
     	goto fail;
     }
 
-	pifRingBuffer_Exit(&pstBase->stTx.stAnswerBuffer);
-    return pifRingBuffer_InitAlloc(&pstBase->stTx.stAnswerBuffer, usTxResponseSize);
+    return pifRingBuffer_ResizeHeap(pstBase->stTx.pstAnswerBuffer, usTxResponseSize);
 
 fail:
 #ifndef __PIF_NO_LOG__
@@ -766,7 +764,7 @@ static BOOL _MakeRequest(PIF_stProtocolBase *pstBase, uint16_t usDataSize)
 	uint8_t ucPacketId = 0, ucData;
 	const PIF_stProtocolRequest *pstTable = pstBase->stTx.pstRequest;
 
-	pifRingBuffer_BackupHead(&pstBase->stTx.stAnswerBuffer);
+	pifRingBuffer_BackupHead(pstBase->stTx.pstAnswerBuffer);
 
 	uint16_t usCount = 0;
 	for (uint16_t i = 0; i < usDataSize; i++) {
@@ -798,7 +796,7 @@ static BOOL _MakeRequest(PIF_stProtocolBase *pstBase, uint16_t usDataSize)
 	aucHeader[2] = pstTable->usTimeout & 0xFF;
 	aucHeader[3] = (pstTable->usTimeout >> 8) & 0xFF;
 	aucHeader[4] = pstTable->ucRetry;
-	if (!pifRingBuffer_PutData(&pstBase->stTx.stRequestBuffer, aucHeader, 5 + pstBase->ucHeaderSize)) goto fail;
+	if (!pifRingBuffer_PutData(pstBase->stTx.pstRequestBuffer, aucHeader, 5 + pstBase->ucHeaderSize)) goto fail;
 	for (int i = 1; i < pstBase->ucHeaderSize; i++) {
 		pifCrc7_Calcurate(aucHeader[5 + i]);
 	}
@@ -807,16 +805,16 @@ static BOOL _MakeRequest(PIF_stProtocolBase *pstBase, uint16_t usDataSize)
 		ucData = pstBase->stTx.pucData[i];
 		if (ucData < 0x20) {
 			pifCrc7_Calcurate(ASCII_DLE);
-			if (!pifRingBuffer_PutByte(&pstBase->stTx.stRequestBuffer, ASCII_DLE)) goto fail;
+			if (!pifRingBuffer_PutByte(pstBase->stTx.pstRequestBuffer, ASCII_DLE)) goto fail;
 			ucData |= 0x80;
 		}
 		pifCrc7_Calcurate(ucData);
-		if (!pifRingBuffer_PutByte(&pstBase->stTx.stRequestBuffer, ucData)) goto fail;
+		if (!pifRingBuffer_PutByte(pstBase->stTx.pstRequestBuffer, ucData)) goto fail;
 	}
 
 	aucTailer[0] = 0x80 | pifCrc7_Result();
 	aucTailer[1] = ASCII_ETX;
-	if (!pifRingBuffer_PutData(&pstBase->stTx.stRequestBuffer, aucTailer, 2)) goto fail;
+	if (!pifRingBuffer_PutData(pstBase->stTx.pstRequestBuffer, aucTailer, 2)) goto fail;
 
 #ifndef __PIF_NO_LOG__
 	if (pstTable->enFlags & PF_enLogPrint_Mask) {
@@ -831,7 +829,7 @@ static BOOL _MakeRequest(PIF_stProtocolBase *pstBase, uint16_t usDataSize)
 	return TRUE;
 
 fail:
-	pifRingBuffer_RestoreHead(&pstBase->stTx.stAnswerBuffer);
+	pifRingBuffer_RestoreHead(pstBase->stTx.pstAnswerBuffer);
 	if (!pif_enError) pif_enError = E_enOverflowBuffer;
 	return FALSE;
 }
@@ -878,7 +876,7 @@ BOOL pifProtocol_MakeAnswer(PIF_stProtocol *pstOwner, PIF_stProtocolPacket *pstQ
 	uint8_t aucTailer[2];
 	uint8_t ucPacketId = 0, ucData;
 
-	pifRingBuffer_BackupHead(&pstBase->stTx.stAnswerBuffer);
+	pifRingBuffer_BackupHead(pstBase->stTx.pstAnswerBuffer);
 
 	pifCrc7_Init();
 
@@ -897,7 +895,7 @@ BOOL pifProtocol_MakeAnswer(PIF_stProtocol *pstOwner, PIF_stProtocolPacket *pstQ
 		aucHeader[5] = 0x80 | ((usDataSize >> 7) & 0x7F);
 		break;
 	}
-	if (!pifRingBuffer_PutData(&pstBase->stTx.stAnswerBuffer, aucHeader, pstBase->ucHeaderSize)) goto fail;
+	if (!pifRingBuffer_PutData(pstBase->stTx.pstAnswerBuffer, aucHeader, pstBase->ucHeaderSize)) goto fail;
 	for (int i = 1; i < pstBase->ucHeaderSize; i++) {
 		pifCrc7_Calcurate(aucHeader[i]);
 	}
@@ -906,16 +904,16 @@ BOOL pifProtocol_MakeAnswer(PIF_stProtocol *pstOwner, PIF_stProtocolPacket *pstQ
 		ucData = pucData[i];
 		if (ucData < 0x20) {
 			pifCrc7_Calcurate(ASCII_DLE);
-			if (!pifRingBuffer_PutByte(&pstBase->stTx.stAnswerBuffer, ASCII_DLE)) goto fail;
+			if (!pifRingBuffer_PutByte(pstBase->stTx.pstAnswerBuffer, ASCII_DLE)) goto fail;
 			ucData |= 0x80;
 		}
 		pifCrc7_Calcurate(ucData);
-		if (!pifRingBuffer_PutByte(&pstBase->stTx.stAnswerBuffer, ucData)) goto fail;
+		if (!pifRingBuffer_PutByte(pstBase->stTx.pstAnswerBuffer, ucData)) goto fail;
 	}
 
 	aucTailer[0] = 0x80 | pifCrc7_Result();
 	aucTailer[1] = ASCII_ETX;
-	if (!pifRingBuffer_PutData(&pstBase->stTx.stAnswerBuffer, aucTailer, 2)) goto fail;
+	if (!pifRingBuffer_PutData(pstBase->stTx.pstAnswerBuffer, aucTailer, 2)) goto fail;
 
 #ifndef __PIF_NO_LOG__
 	if (enFlags & PF_enLogPrint_Mask) {
@@ -930,7 +928,7 @@ BOOL pifProtocol_MakeAnswer(PIF_stProtocol *pstOwner, PIF_stProtocolPacket *pstQ
 	return TRUE;
 
 fail:
-	pifRingBuffer_RestoreHead(&pstBase->stTx.stAnswerBuffer);
+	pifRingBuffer_RestoreHead(pstBase->stTx.pstAnswerBuffer);
 	if (!pif_enError) pif_enError = E_enOverflowBuffer;
 	return FALSE;
 }

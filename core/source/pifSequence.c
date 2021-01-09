@@ -35,7 +35,7 @@ static void _evtTimerTimeoutFinish(void *pvIssuer)
         return;
     }
 
-    PIF_stSequenceBase *pstBase = (PIF_stSequence *)pvIssuer;
+    PIF_stSequenceBase *pstBase = (PIF_stSequenceBase *)pvIssuer;
     PIF_stSequence *pstOwner = &pstBase->stOwner;
 
 	pif_enError = E_enTimeout;

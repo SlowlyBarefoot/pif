@@ -4,28 +4,46 @@
 #include "pifRingData.h"
 
 
+typedef struct _PIF_stRingDataBase
+{
+	// Public Member Variable
+	PIF_stRingData stOwner;
+
+	// Private Member Variable
+    uint16_t usHead;
+    uint16_t usTail;
+    uint16_t usIndex;
+    void *pvData;
+} PIF_stRingDataBase;
+
+
 /**
  * @fn pifRingData_Init
  * @brief
+ * @param usPifId
  * @param usDataSize
  * @param usDataCount
  * @return
  */
-PIF_stRingData *pifRingData_Init(uint16_t usDataSize, uint16_t usDataCount)
+PIF_stRingData *pifRingData_Init(PIF_usId usPifId, uint16_t usDataSize, uint16_t usDataCount)
 {
+	PIF_stRingDataBase *pstBase;
 	PIF_stRingData *pstOwner;
 
-	pstOwner = calloc(sizeof(PIF_stRingData) + usDataSize * usDataCount, 1);
-	if (!pstOwner) {
+	pstBase = calloc(sizeof(PIF_stRingDataBase) + usDataSize * usDataCount, 1);
+	if (!pstBase) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
 
+	pstOwner = &pstBase->stOwner;
+	if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    pstOwner->usPifId = usPifId;
     pstOwner->usDataSize = usDataSize;
     pstOwner->usDataCount = usDataCount;
-    pstOwner->__usHead = 0;
-    pstOwner->__usTail = 0;
-    pstOwner->__pvData = (void *)pstOwner + sizeof(PIF_stRingData);
+    pstBase->usHead = 0;
+    pstBase->usTail = 0;
+    pstBase->pvData = (void *)pstOwner + sizeof(PIF_stRingData);
     return pstOwner;
 
 fail:
@@ -56,7 +74,9 @@ void pifRingData_Exit(PIF_stRingData *pstOwner)
  */
 BOOL pifRingData_IsEmpty(PIF_stRingData *pstOwner)
 {
-	return pstOwner->__usHead == pstOwner->__usTail;
+	PIF_stRingDataBase *pstBase = (PIF_stRingDataBase *)pstOwner;
+
+	return pstBase->usHead == pstBase->usTail;
 }
 
 /**
@@ -68,7 +88,7 @@ BOOL pifRingData_IsEmpty(PIF_stRingData *pstOwner)
  */
 void *pifRingData_GetData(PIF_stRingData *pstOwner, uint16_t usIndex)
 {
-	return pstOwner->__pvData + (usIndex * pstOwner->usDataSize);
+	return ((PIF_stRingDataBase *)pstOwner)->pvData + (usIndex * pstOwner->usDataSize);
 }
 
 /**
@@ -79,9 +99,11 @@ void *pifRingData_GetData(PIF_stRingData *pstOwner, uint16_t usIndex)
  */
 void *pifRingData_GetFirstData(PIF_stRingData *pstOwner)
 {
-	if (pstOwner->__usHead == pstOwner->__usTail) return NULL;
-	pstOwner->__usIndex = pstOwner->__usTail;
-	return pstOwner->__pvData + (pstOwner->__usIndex * pstOwner->usDataSize);
+	PIF_stRingDataBase *pstBase = (PIF_stRingDataBase *)pstOwner;
+
+	if (pstBase->usHead == pstBase->usTail) return NULL;
+	pstBase->usIndex = pstBase->usTail;
+	return pstBase->pvData + (pstBase->usIndex * pstOwner->usDataSize);
 }
 
 /**
@@ -92,10 +114,12 @@ void *pifRingData_GetFirstData(PIF_stRingData *pstOwner)
  */
 void *pifRingData_GetNextData(PIF_stRingData *pstOwner)
 {
-	pstOwner->__usIndex++;
-	if (pstOwner->__usIndex >= pstOwner->usDataCount) pstOwner->__usIndex = 0;
-	if (pstOwner->__usIndex == pstOwner->__usHead) return NULL;
-	return pstOwner->__pvData + (pstOwner->__usIndex * pstOwner->usDataSize);
+	PIF_stRingDataBase *pstBase = (PIF_stRingDataBase *)pstOwner;
+
+	pstBase->usIndex++;
+	if (pstBase->usIndex >= pstOwner->usDataCount) pstBase->usIndex = 0;
+	if (pstBase->usIndex == pstBase->usHead) return NULL;
+	return pstBase->pvData + (pstBase->usIndex * pstOwner->usDataSize);
 }
 
 /**
@@ -106,11 +130,13 @@ void *pifRingData_GetNextData(PIF_stRingData *pstOwner)
  */
 uint16_t pifRingData_GetFillSize(PIF_stRingData *pstOwner)
 {
-    if (pstOwner->__usHead > pstOwner->__usTail) {
-    	return pstOwner->__usHead - pstOwner->__usTail;
+	PIF_stRingDataBase *pstBase = (PIF_stRingDataBase *)pstOwner;
+
+	if (pstBase->usHead > pstBase->usTail) {
+    	return pstBase->usHead - pstBase->usTail;
     }
     else {
-    	return pstOwner->usDataCount - pstOwner->__usTail + pstOwner->__usHead;
+    	return pstOwner->usDataCount - pstBase->usTail + pstBase->usHead;
     }
 }
 
@@ -122,13 +148,14 @@ uint16_t pifRingData_GetFillSize(PIF_stRingData *pstOwner)
  */
 uint16_t pifRingData_GetRemainSize(PIF_stRingData *pstOwner)
 {
+	PIF_stRingDataBase *pstBase = (PIF_stRingDataBase *)pstOwner;
 	uint16_t usRemain;
 
-    if (pstOwner->__usHead < pstOwner->__usTail) {
-    	usRemain = pstOwner->__usTail - pstOwner->__usHead;
+    if (pstBase->usHead < pstBase->usTail) {
+    	usRemain = pstBase->usTail - pstBase->usHead;
     }
     else {
-    	usRemain = pstOwner->usDataCount - pstOwner->__usHead + pstOwner->__usTail;
+    	usRemain = pstOwner->usDataCount - pstBase->usHead + pstBase->usTail;
     }
     return usRemain - 1;
 }
@@ -141,16 +168,17 @@ uint16_t pifRingData_GetRemainSize(PIF_stRingData *pstOwner)
  */
 void *pifRingData_Add(PIF_stRingData *pstOwner)
 {
-	uint16_t next =	pstOwner->__usHead + 1;
+	PIF_stRingDataBase *pstBase = (PIF_stRingDataBase *)pstOwner;
+	uint16_t next =	pstBase->usHead + 1;
 
 	if (next >= pstOwner->usDataCount) next = 0;
-	if (next == pstOwner->__usTail) {
+	if (next == pstBase->usTail) {
 		pif_enError = E_enOverflowBuffer;
 		goto fail;
 	}
 
-	void *pvData = pstOwner->__pvData + (pstOwner->__usHead * pstOwner->usDataSize);
-	pstOwner->__usHead = next;
+	void *pvData = pstBase->pvData + (pstBase->usHead * pstOwner->usDataSize);
+	pstBase->usHead = next;
 	return pvData;
 
 fail:
@@ -168,14 +196,16 @@ fail:
  */
 void *pifRingData_Remove(PIF_stRingData *pstOwner)
 {
-	if (pstOwner->__usHead == pstOwner->__usTail) {
+	PIF_stRingDataBase *pstBase = (PIF_stRingDataBase *)pstOwner;
+
+	if (pstBase->usHead == pstBase->usTail) {
 		pif_enError = E_enEmptyInBuffer;
 		goto fail;
 	}
 
-	void *pvData = pstOwner->__pvData + (pstOwner->__usTail * pstOwner->usDataSize);
-	pstOwner->__usTail++;
-	if (pstOwner->__usTail >= pstOwner->usDataCount) pstOwner->__usTail = 0;
+	void *pvData = pstBase->pvData + (pstBase->usTail * pstOwner->usDataSize);
+	pstBase->usTail++;
+	if (pstBase->usTail >= pstOwner->usDataCount) pstBase->usTail = 0;
 	return pvData;
 
 fail:

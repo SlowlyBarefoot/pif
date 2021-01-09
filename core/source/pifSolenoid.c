@@ -242,7 +242,7 @@ BOOL pifSolenoid_SetBuffer(PIF_stSolenoid *pstOwner, uint16_t usSize)
 {
 	PIF_stSolenoidBase *pstBase = (PIF_stSolenoidBase *)pstOwner;
 
-	pstBase->pstBuffer = pifRingData_Init(sizeof(PIF_stSolenoidContent), usSize);
+	pstBase->pstBuffer = pifRingData_Init(PIF_ID_AUTO, sizeof(PIF_stSolenoidContent), usSize);
 	if (!pstBase->pstBuffer) return FALSE;
 	return TRUE;
 }

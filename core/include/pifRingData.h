@@ -1,10 +1,3 @@
-/*
- * pifRingData.h
- *
- *  Created on: 2020. 8. 16.
- *      Author: wonjh
- */
-
 #ifndef PIF_RING_DATA_H
 #define PIF_RING_DATA_H
 
@@ -14,22 +7,14 @@
 
 /**
  * @class _PIF_stRingData
- * @author wonjh
- * @date 16/08/20
- * @file pifRingData.h
  * @brief
  */
 typedef struct _PIF_stRingData
 {
 	// Public Member Variable
+	PIF_usId usPifId;
     uint16_t usDataSize;
     uint16_t usDataCount;
-
-	// Private Member Variable
-    uint16_t __usHead;
-    uint16_t __usTail;
-    uint16_t __usIndex;
-    void *__pvData;
 } PIF_stRingData;
 
 
@@ -37,7 +22,7 @@ typedef struct _PIF_stRingData
 extern "C" {
 #endif
 
-PIF_stRingData *pifRingData_Init(uint16_t usDataSize, uint16_t usDataCount);
+PIF_stRingData *pifRingData_Init(PIF_usId usPifId, uint16_t usDataSize, uint16_t usDataCount);
 void pifRingData_Exit(PIF_stRingData *pstOwner);
 
 BOOL pifRingData_IsEmpty(PIF_stRingData *pstOwner);

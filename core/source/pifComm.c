@@ -14,10 +14,10 @@ typedef struct _PIF_stCommBase
 	// Private Member Variable
     void *pvClient;
 
-    PIF_stRingBuffer stTxBuffer;
+    PIF_stRingBuffer *pstTxBuffer;
     PIF_enCommTxState enState;
 
-    PIF_stRingBuffer stRxBuffer;
+    PIF_stRingBuffer *pstRxBuffer;
 
 	PIF_enTaskLoop enTaskLoop;
 
@@ -40,19 +40,19 @@ static void _LoopCommon(PIF_stCommBase *pstBase)
 {
 	uint8_t ucData;
 
-	if (!pifRingBuffer_IsEmpty(&pstBase->stRxBuffer)) {
+	if (!pifRingBuffer_IsEmpty(pstBase->pstRxBuffer)) {
 		if (pstBase->evtParsing) {
-			(*pstBase->evtParsing)(pstBase->pvClient, &pstBase->stRxBuffer);
+			(*pstBase->evtParsing)(pstBase->pvClient, pstBase->pstRxBuffer);
 		}
 	}
 
-	if (pifRingBuffer_IsEmpty(&pstBase->stTxBuffer)) {
+	if (pifRingBuffer_IsEmpty(pstBase->pstTxBuffer)) {
 		switch (pstBase->enState) {
 		case STS_enIdle:
 			if (pstBase->evtSending) {
-				if ((*pstBase->evtSending)(pstBase->pvClient, &pstBase->stTxBuffer)) {
+				if ((*pstBase->evtSending)(pstBase->pvClient, pstBase->pstTxBuffer)) {
 					if (pstBase->actSendData) {
-						pifRingBuffer_GetByte(&pstBase->stTxBuffer, &ucData);
+						pifRingBuffer_GetByte(pstBase->pstTxBuffer, &ucData);
 						(*pstBase->actSendData)(ucData);
 					}
 					pstBase->enState = STS_enSending;
@@ -62,7 +62,7 @@ static void _LoopCommon(PIF_stCommBase *pstBase)
 
 		case STS_enSending:
 			if (pstBase->evtSended) {
-				if (pifRingBuffer_IsEmpty(&pstBase->stTxBuffer)) {
+				if (pifRingBuffer_IsEmpty(pstBase->pstTxBuffer)) {
 					(*pstBase->evtSended)(pstBase->pvClient);
 				}
 			}
@@ -111,8 +111,8 @@ void pifComm_Exit()
     if (s_pstCommBase) {
     	for (int i = 0; i < s_ucCommBasePos; i++) {
     		PIF_stCommBase *pstBase = &s_pstCommBase[i];
-        	pifRingBuffer_Exit(&pstBase->stRxBuffer);
-        	pifRingBuffer_Exit(&pstBase->stTxBuffer);
+        	pifRingBuffer_Exit(pstBase->pstRxBuffer);
+        	pifRingBuffer_Exit(pstBase->pstTxBuffer);
     	}
         free(s_pstCommBase);
         s_pstCommBase = NULL;
@@ -136,13 +136,13 @@ PIF_stComm *pifComm_Add(PIF_usId usPifId)
 
     if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
 
-    if (!pifRingBuffer_InitAlloc(&pstBase->stRxBuffer, PIF_COMM_RX_BUFFER_SIZE)) goto fail;
-    pifRingBuffer_SetPifId(&pstBase->stRxBuffer, usPifId);
-    pifRingBuffer_SetName(&pstBase->stRxBuffer, "RB");
+    pstBase->pstRxBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_COMM_RX_BUFFER_SIZE);
+    if (!pstBase->pstRxBuffer) goto fail;
+    pifRingBuffer_SetName(pstBase->pstRxBuffer, "RB");
 
-    if (!pifRingBuffer_InitAlloc(&pstBase->stTxBuffer, PIF_COMM_TX_BUFFER_SIZE)) goto fail;
-    pifRingBuffer_SetPifId(&pstBase->stTxBuffer, usPifId);
-    pifRingBuffer_SetName(&pstBase->stTxBuffer, "TB");
+    pstBase->pstTxBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_COMM_TX_BUFFER_SIZE);
+    if (!pstBase->pstTxBuffer) goto fail;
+    pifRingBuffer_SetName(pstBase->pstTxBuffer, "TB");
 
     pstBase->stOwner.usPifId = usPifId;
     pstBase->enState = STS_enIdle;
@@ -173,8 +173,7 @@ BOOL pifComm_ResizeRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize)
     	goto fail;
     }
 
-	pifRingBuffer_Exit(&pstBase->stRxBuffer);
-    if (!pifRingBuffer_InitAlloc(&pstBase->stRxBuffer, usRxSize)) goto fail;
+    if (!pifRingBuffer_ResizeHeap(pstBase->pstRxBuffer, usRxSize)) goto fail;
     return TRUE;
 
 fail:
@@ -200,8 +199,7 @@ BOOL pifComm_ResizeTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize)
     	goto fail;
     }
 
-	pifRingBuffer_Exit(&pstBase->stTxBuffer);
-    if (!pifRingBuffer_InitAlloc(&pstBase->stTxBuffer, usTxSize)) goto fail;
+    if (!pifRingBuffer_ResizeHeap(pstBase->pstTxBuffer, usTxSize)) goto fail;
 	return TRUE;
 
 fail:
@@ -258,7 +256,7 @@ void pifComm_AttachEvent(PIF_stComm *pstOwner, PIF_evtCommParsing evtParsing, PI
  */
 uint16_t pifComm_GetRemainSizeOfRxBuffer(PIF_stComm *pstOwner)
 {
-	return pifRingBuffer_GetRemainSize(&((PIF_stCommBase *)pstOwner)->stRxBuffer);
+	return pifRingBuffer_GetRemainSize(((PIF_stCommBase *)pstOwner)->pstRxBuffer);
 }
 
 /**
@@ -269,7 +267,7 @@ uint16_t pifComm_GetRemainSizeOfRxBuffer(PIF_stComm *pstOwner)
  */
 uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner)
 {
-	return pifRingBuffer_GetFillSize(&((PIF_stCommBase *)pstOwner)->stTxBuffer);
+	return pifRingBuffer_GetFillSize(((PIF_stCommBase *)pstOwner)->pstTxBuffer);
 }
 
 /**
@@ -281,7 +279,7 @@ uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner)
  */
 BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData)
 {
-	return pifRingBuffer_PutByte(&((PIF_stCommBase *)pstOwner)->stRxBuffer, ucData);
+	return pifRingBuffer_PutByte(((PIF_stCommBase *)pstOwner)->pstRxBuffer, ucData);
 }
 
 /**
@@ -294,7 +292,7 @@ BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData)
  */
 BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength)
 {
-	return pifRingBuffer_PutData(&((PIF_stCommBase *)pstOwner)->stRxBuffer, pucData, usLength);
+	return pifRingBuffer_PutData(((PIF_stCommBase *)pstOwner)->pstRxBuffer, pucData, usLength);
 }
 
 /**
@@ -306,7 +304,7 @@ BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLen
  */
 BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
 {
-    return pifRingBuffer_GetByte(&((PIF_stCommBase *)pstOwner)->stTxBuffer, pucData);
+    return pifRingBuffer_GetByte(((PIF_stCommBase *)pstOwner)->pstTxBuffer, pucData);
 }
 
 /**
