@@ -17,7 +17,7 @@
 typedef struct _PIF_stRingBuffer
 {
 	// Public Member Variable
-	PIF_unDeviceCode unDeviceCode;
+	PIF_usId usPifId;
 	const char *psName;
 	struct {
 		uint8_t btShare		: 1;
@@ -46,7 +46,7 @@ BOOL pifRingBuffer_InitAlloc(PIF_stRingBuffer *pstOwner, uint16_t usSize);
 void pifRingBuffer_InitShare(PIF_stRingBuffer *pstOwner, uint16_t usSize, char *pcBuffer);
 void pifRingBuffer_Exit(PIF_stRingBuffer *pstOwner);
 
-void pifRingBuffer_SetDeviceCode(PIF_stRingBuffer *pstOwner, PIF_unDeviceCode unDeviceCode);
+void pifRingBuffer_SetPifId(PIF_stRingBuffer *pstOwner, PIF_usId usPifId);
 void pifRingBuffer_SetName(PIF_stRingBuffer *pstOwner, const char *psName);
 
 void pifRingBuffer_ChopOffNone(PIF_stRingBuffer *pstOwner);

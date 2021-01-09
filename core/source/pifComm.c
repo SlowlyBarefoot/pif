@@ -122,10 +122,10 @@ void pifComm_Exit()
 /**
  * @fn pifComm_Add
  * @brief 
- * @param unDeviceCode
+ * @param usPifId
  * @return 
  */
-PIF_stComm *pifComm_Add(PIF_unDeviceCode unDeviceCode)
+PIF_stComm *pifComm_Add(PIF_usId usPifId)
 {
     if (s_ucCommBasePos >= s_ucCommBaseSize) {
         pif_enError = E_enOverflowBuffer;
@@ -134,15 +134,17 @@ PIF_stComm *pifComm_Add(PIF_unDeviceCode unDeviceCode)
 
     PIF_stCommBase *pstBase = &s_pstCommBase[s_ucCommBasePos];
 
+    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+
     if (!pifRingBuffer_InitAlloc(&pstBase->stRxBuffer, PIF_COMM_RX_BUFFER_SIZE)) goto fail;
-    pifRingBuffer_SetDeviceCode(&pstBase->stRxBuffer, unDeviceCode);
+    pifRingBuffer_SetPifId(&pstBase->stRxBuffer, usPifId);
     pifRingBuffer_SetName(&pstBase->stRxBuffer, "RB");
 
     if (!pifRingBuffer_InitAlloc(&pstBase->stTxBuffer, PIF_COMM_TX_BUFFER_SIZE)) goto fail;
-    pifRingBuffer_SetDeviceCode(&pstBase->stTxBuffer, unDeviceCode);
+    pifRingBuffer_SetPifId(&pstBase->stTxBuffer, usPifId);
     pifRingBuffer_SetName(&pstBase->stTxBuffer, "TB");
 
-    pstBase->stOwner.unDeviceCode = unDeviceCode;
+    pstBase->stOwner.usPifId = usPifId;
     pstBase->enState = STS_enIdle;
 
     s_ucCommBasePos = s_ucCommBasePos + 1;
@@ -150,7 +152,7 @@ PIF_stComm *pifComm_Add(PIF_unDeviceCode unDeviceCode)
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Comm:Add(D:%u) EC:%d", unDeviceCode, pif_enError);
+	pifLog_Printf(LT_enError, "Comm:Add(D:%u) EC:%d", usPifId, pif_enError);
 #endif
     return NULL;
 }

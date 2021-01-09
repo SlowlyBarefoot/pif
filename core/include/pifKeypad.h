@@ -19,7 +19,7 @@ typedef void (*PIF_evtKeypadLongReleased)(char cChar, uint32_t unOnTime);
 typedef struct _PIF_stKeypad
 {
 	// Public Member Variable
-	PIF_unDeviceCode unDeviceCode;
+	PIF_usId usPifId;
 } PIF_stKeypad;
 
 
@@ -27,7 +27,7 @@ typedef struct _PIF_stKeypad
 extern "C" {
 #endif
 
-PIF_stKeypad *pifKeypad_Init(PIF_unDeviceCode unDeviceCode, uint8_t ucNumRows, uint8_t ucNumCols, const char *pcUserKeymap);
+PIF_stKeypad *pifKeypad_Init(PIF_usId usPifId, uint8_t ucNumRows, uint8_t ucNumCols, const char *pcUserKeymap);
 void pifKeypad_Exit();
 
 void pifKeypad_AttachAction(PIF_actKeypadAcquire actAcquire);

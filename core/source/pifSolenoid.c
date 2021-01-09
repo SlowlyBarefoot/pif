@@ -167,13 +167,13 @@ void pifSolenoid_Exit()
 /**
  * @fn pifSolenoid_Add
  * @brief 
- * @param unDeviceCode
+ * @param usPifId
  * @param enType
  * @param usOnTime
  * @param actControl
  * @return 
  */
-PIF_stSolenoid *pifSolenoid_Add(PIF_unDeviceCode unDeviceCode, PIF_enSolenoidType enType, uint16_t usOnTime,
+PIF_stSolenoid *pifSolenoid_Add(PIF_usId usPifId, PIF_enSolenoidType enType, uint16_t usOnTime,
 		PIF_actSolenoidControl actControl)
 {
     if (s_ucSolenoidBasePos >= s_ucSolenoidBaseSize) {
@@ -201,7 +201,8 @@ PIF_stSolenoid *pifSolenoid_Add(PIF_unDeviceCode unDeviceCode, PIF_enSolenoidTyp
 
     PIF_stSolenoid *pstOwner = &pstBase->stOwner;
 
-    pstOwner->unDeviceCode = unDeviceCode;
+    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    pstOwner->usPifId = usPifId;
     pstOwner->enType = enType;
     pstOwner->usOnTime = usOnTime;
 
@@ -210,7 +211,7 @@ PIF_stSolenoid *pifSolenoid_Add(PIF_unDeviceCode unDeviceCode, PIF_enSolenoidTyp
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Solenoid:Add(D:%u O:%u) EC:%d", unDeviceCode, usOnTime, pif_enError);
+	pifLog_Printf(LT_enError, "Solenoid:Add(D:%u O:%u) EC:%d", usPifId, usOnTime, pif_enError);
 #endif
     return NULL;
 }

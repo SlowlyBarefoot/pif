@@ -18,6 +18,8 @@ PIF_stLogFlag pif_stLogFlag;
 
 static volatile uint8_t s_ucPerformaceStep = 0;
 
+PIF_usId g_usPifId = 1;
+
 volatile uint32_t g_unPerformanceCount = 0;
 volatile uint32_t g_unPerformanceMeasure = 100000L;
 

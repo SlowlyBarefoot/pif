@@ -38,8 +38,9 @@
 #define ON      1
 #endif
 
+#define PIF_ID_AUTO		0
 
-typedef uint16_t PIF_unDeviceCode;
+typedef uint16_t PIF_usId;
 
 typedef enum _PIF_enError
 {
@@ -110,6 +111,8 @@ extern volatile uint32_t pif_unTimer1sec;
 extern volatile PIF_stDateTime pif_stDateTime;
 
 extern PIF_stLogFlag pif_stLogFlag;
+
+extern PIF_usId g_usPifId;
 
 extern volatile uint32_t g_unPerformanceCount;
 extern volatile uint32_t g_unPerformanceMeasure;

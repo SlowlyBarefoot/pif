@@ -56,7 +56,7 @@ static void _evtTimerPeriodFinish(void *pvIssuer)
     PIF_stSensorBase *pstBase = (PIF_stSensorBase *)pvIssuer;
 
     if (pstBase->evtPeriod) {
-        (*pstBase->evtPeriod)(pstBase->stOwner.unDeviceCode, pstBase->usCurrLevel);
+        (*pstBase->evtPeriod)(pstBase->stOwner.usPifId, pstBase->usCurrLevel);
     }
 }
 
@@ -109,7 +109,7 @@ static void _TaskCommon(PIF_stSensorBase *pstBase)
 
 	if (swState != pstBase->swState) {
 		if (pstBase->evtChange) {
-			(*pstBase->evtChange)(pstBase->stOwner.unDeviceCode, swState);
+			(*pstBase->evtChange)(pstBase->stOwner.usPifId, swState);
 		}
 		pstBase->swState = swState;
 	}
@@ -175,10 +175,10 @@ void pifSensor_Exit()
 /**
  * @fn pifSensor_Add
  * @brief 
- * @param unDeviceCode
+ * @param usPifId
  * @return 
  */
-PIF_stSensor *pifSensor_Add(PIF_unDeviceCode unDeviceCode)
+PIF_stSensor *pifSensor_Add(PIF_usId usPifId)
 {
     if (s_ucSensorBasePos >= s_ucSensorBaseSize) {
         pif_enError = E_enOverflowBuffer;
@@ -191,14 +191,15 @@ PIF_stSensor *pifSensor_Add(PIF_unDeviceCode unDeviceCode)
 
     PIF_stSensor *pstOwner = &pstBase->stOwner;
 
-    pstOwner->unDeviceCode = unDeviceCode;
+    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    pstOwner->usPifId = usPifId;
 
     s_ucSensorBasePos = s_ucSensorBasePos + 1;
     return pstOwner;
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Sensor:Add(DC:%u) EC:%d", unDeviceCode, pif_enError);
+	pifLog_Printf(LT_enError, "Sensor:Add(DC:%u) EC:%d", usPifId, pif_enError);
 #endif
     return NULL;
 }

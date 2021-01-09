@@ -35,7 +35,7 @@ typedef struct _PIF_stSequencePhase
 
 struct _PIF_stSequence
 {
-	uint8_t ucId;
+	PIF_usId usPifId;
 	uint8_t ucPhaseNo;
 	uint8_t ucStep;
 	uint8_t ucPhaseNoNext;
@@ -51,7 +51,7 @@ extern "C" {
 BOOL pifSequence_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifSequence_Exit();
 
-PIF_stSequence *pifSequence_Add(uint8_t ucId, const PIF_stSequencePhase *pstPhaseList, void *pvParam);
+PIF_stSequence *pifSequence_Add(PIF_usId usPifId, const PIF_stSequencePhase *pstPhaseList, void *pvParam);
 
 void pifSequence_AttachEvent(PIF_stSequence *pstOwner, PIF_evtSequenceError evtError);
 

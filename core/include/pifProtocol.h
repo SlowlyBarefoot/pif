@@ -85,7 +85,7 @@ typedef struct _PIF_stProtocolPacket
 } PIF_stProtocolPacket;
 
 typedef void (*PIF_evtProtocolFinish)(PIF_stProtocolPacket *pstPacket);
-typedef void (*PIF_evtProtocolError)(PIF_unDeviceCode unDeviceCode);
+typedef void (*PIF_evtProtocolError)(PIF_usId usPifId);
 
 /**
  * @class _PIF_stProtocolRequest
@@ -118,7 +118,7 @@ typedef struct _PIF_stProtocolQuestion
 typedef struct _PIF_stProtocol
 {
 	// Public Member Variable
-    PIF_unDeviceCode unDeviceCode;
+    PIF_usId usPifId;
     PIF_enProtocolType enType;
 	uint8_t ucOwnerId;				// Default : 0xFF
 } PIF_stProtocol;
@@ -131,7 +131,7 @@ extern "C" {
 BOOL pifProtocol_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifProtocol_Exit();
 
-PIF_stProtocol *pifProtocol_Add(PIF_unDeviceCode unDeviceCode, PIF_enProtocolType enType,
+PIF_stProtocol *pifProtocol_Add(PIF_usId usPifId, PIF_enProtocolType enType,
 		const PIF_stProtocolQuestion *pstQuestions);
 
 void pifProtocol_AttachEvent(PIF_stProtocol *pstOwner, PIF_evtProtocolError evtError);

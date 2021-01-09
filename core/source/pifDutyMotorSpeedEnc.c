@@ -25,7 +25,7 @@ static void _TimerDelayFinish(void *pvIssuer)
 
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "DMSE:%u(%u) S:%u", __LINE__, pstOwner->unDeviceCode, pstOwner->enState);
+		pifLog_Printf(LT_enWarn, "DMSE:%u(%u) S:%u", __LINE__, pstOwner->usPifId, pstOwner->enState);
 #endif
 		break;
 	}
@@ -59,7 +59,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 
 #ifndef __PIF_NO_LOG__
 			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Stable E:%u D:%u", __LINE__, pstOwner->unDeviceCode, usTmpEnc, usTmpDuty);
+				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Stable E:%u D:%u", __LINE__, pstOwner->usPifId, usTmpEnc, usTmpDuty);
 			}
 #endif
 		}
@@ -77,7 +77,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 
 #ifndef __PIF_NO_LOG__
 			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Const E:%u D:%u", __LINE__, pstOwner->unDeviceCode, usTmpEnc, usTmpDuty);
+				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Const E:%u D:%u", __LINE__, pstOwner->usPifId, usTmpEnc, usTmpDuty);
 			}
 #endif
         }
@@ -89,7 +89,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 
 #ifndef __PIF_NO_LOG__
 			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Break E:%u D:%u", __LINE__, pstOwner->unDeviceCode, usTmpEnc, usTmpDuty);
+				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Break E:%u D:%u", __LINE__, pstOwner->usPifId, usTmpEnc, usTmpDuty);
 			}
 #endif
 		}
@@ -102,7 +102,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 
 #ifndef __PIF_NO_LOG__
 			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Break E:%u D:%u", __LINE__, pstOwner->unDeviceCode, usTmpEnc, usTmpDuty);
+				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Break E:%u D:%u", __LINE__, pstOwner->usPifId, usTmpEnc, usTmpDuty);
 			}
 #endif
 		}
@@ -145,7 +145,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 
 #ifndef __PIF_NO_LOG__
 			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Breaking D:%u", __LINE__, pstOwner->unDeviceCode, usTmpDuty);
+				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Breaking D:%u", __LINE__, pstOwner->usPifId, usTmpDuty);
 			}
 #endif
     	}
@@ -155,7 +155,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 
 #ifndef __PIF_NO_LOG__
 			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Stopping D:%u", __LINE__, pstOwner->unDeviceCode, usTmpDuty);
+				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Stopping D:%u", __LINE__, pstOwner->usPifId, usTmpDuty);
 			}
 #endif
     	}
@@ -184,17 +184,17 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 
 #ifndef __PIF_NO_LOG__
 		if (pif_stLogFlag.btDutyMotor) {
-			pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Stop D:%u", __LINE__, pstOwner->unDeviceCode, usTmpDuty);
+			pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Stop D:%u", __LINE__, pstOwner->usPifId, usTmpDuty);
 		}
 #endif
     }
 }
 
-static void _SwitchReduceChange(PIF_unDeviceCode unDeviceCode, SWITCH swState, void *pvIssuer)
+static void _SwitchReduceChange(PIF_usId usPifId, SWITCH swState, void *pvIssuer)
 {
 	PIF_stDutyMotorBase *pstBase = (PIF_stDutyMotorBase *)pvIssuer;
 
-	(void)unDeviceCode;
+	(void)usPifId;
 
 	if (pstBase->stOwner.enState >= MS_enReduce) return;
 
@@ -203,11 +203,11 @@ static void _SwitchReduceChange(PIF_unDeviceCode unDeviceCode, SWITCH swState, v
 	}
 }
 
-static void _SwitchStopChange(PIF_unDeviceCode unDeviceCode, SWITCH swState, void *pvIssuer)
+static void _SwitchStopChange(PIF_usId usPifId, SWITCH swState, void *pvIssuer)
 {
 	PIF_stDutyMotorBase *pstBase = (PIF_stDutyMotorBase *)pvIssuer;
 
-	(void)unDeviceCode;
+	(void)usPifId;
 
 	if (pstBase->stOwner.enState >= MS_enBreak) return;
 
@@ -220,14 +220,14 @@ static void _SwitchStopChange(PIF_unDeviceCode unDeviceCode, SWITCH swState, voi
 /**
  * @fn pifDutyMotorSpeedEnc_Add
  * @brief 
- * @param unDeviceCode
+ * @param usPifId
  * @param usMaxDuty
  * @param usControlPeriod
  * @return 
  */
-PIF_stDutyMotor *pifDutyMotorSpeedEnc_Add(PIF_unDeviceCode unDeviceCode, uint16_t usMaxDuty, uint16_t usControlPeriod)
+PIF_stDutyMotor *pifDutyMotorSpeedEnc_Add(PIF_usId usPifId, uint16_t usMaxDuty, uint16_t usControlPeriod)
 {
-    PIF_stDutyMotor *pstOwner = pifDutyMotor_Add(unDeviceCode, usMaxDuty);
+    PIF_stDutyMotor *pstOwner = pifDutyMotor_Add(usPifId, usMaxDuty);
 	PIF_stDutyMotorBase *pstBase = (PIF_stDutyMotorBase *)pstOwner;
     if (!pstOwner) goto fail_clear;
 
@@ -248,7 +248,7 @@ PIF_stDutyMotor *pifDutyMotorSpeedEnc_Add(PIF_unDeviceCode unDeviceCode, uint16_
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DMSE:%u(%u) M:%u P:%u EC:%u", __LINE__, unDeviceCode, usMaxDuty, usControlPeriod, pif_enError);
+	pifLog_Printf(LT_enError, "DMSE:%u(%u) M:%u P:%u EC:%u", __LINE__, usPifId, usMaxDuty, usControlPeriod, pif_enError);
 #endif
 fail_clear:
     if (pstOwner) {
@@ -284,7 +284,7 @@ BOOL pifDutyMotorSpeedEnc_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSi
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DMSE:%u(%u) SS:%u EC:%u", __LINE__, pstOwner->unDeviceCode, ucStageSize, pif_enError);
+	pifLog_Printf(LT_enError, "DMSE:%u(%u) SS:%u EC:%u", __LINE__, pstOwner->usPifId, ucStageSize, pif_enError);
 #endif
     return FALSE;
 }
@@ -374,14 +374,14 @@ BOOL pifDutyMotorSpeedEnc_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex)
 
 #ifndef __PIF_NO_LOG__
     if (pif_stLogFlag.btDutyMotor) {
-    	pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Start P/R:%d", __LINE__, pstOwner->unDeviceCode, (int)pstStage->fFsPulsesPerRange);
+    	pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Start P/R:%d", __LINE__, pstOwner->usPifId, (int)pstStage->fFsPulsesPerRange);
     }
 #endif
     return TRUE;
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DMSE:%u(%u) S:%u EC:%u", __LINE__, pstOwner->unDeviceCode, ucStageIndex, pif_enError);
+	pifLog_Printf(LT_enError, "DMSE:%u(%u) S:%u EC:%u", __LINE__, pstOwner->usPifId, ucStageIndex, pif_enError);
 #endif
     return FALSE;
 }
@@ -407,7 +407,7 @@ void pifDutyMotorSpeedEnc_Stop(PIF_stDutyMotor *pstOwner)
 
 #ifndef __PIF_NO_LOG__
     if (pif_stLogFlag.btDutyMotor) {
-    	pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Stop OT=%u", __LINE__, pstOwner->unDeviceCode, pstStage->usFsOverTime);
+    	pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Stop OT=%u", __LINE__, pstOwner->usPifId, pstStage->usFsOverTime);
     }
 #endif
 }

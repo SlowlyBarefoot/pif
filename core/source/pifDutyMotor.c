@@ -96,11 +96,11 @@ void pifDutyMotor_Exit()
 /**
  * @fn pifDutyMotor_Add
  * @brief 
- * @param unDeviceCode
+ * @param usPifId
  * @param usMaxDuty
  * @return 
  */
-PIF_stDutyMotor *pifDutyMotor_Add(PIF_unDeviceCode unDeviceCode, uint16_t usMaxDuty)
+PIF_stDutyMotor *pifDutyMotor_Add(PIF_usId usPifId, uint16_t usMaxDuty)
 {
     PIF_stDutyMotorBase *pstBase = NULL;
 
@@ -112,7 +112,8 @@ PIF_stDutyMotor *pifDutyMotor_Add(PIF_unDeviceCode unDeviceCode, uint16_t usMaxD
     pstBase = &s_pstDutyMotorBase[s_ucDutyMotorBasePos];
     PIF_stDutyMotor *pstOwner = &pstBase->stOwner;
 
-    pstOwner->unDeviceCode = unDeviceCode;
+    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    pstOwner->usPifId = usPifId;
     pstOwner->enState = MS_enIdle;
     pstOwner->usMaxDuty = usMaxDuty;
 
@@ -121,7 +122,7 @@ PIF_stDutyMotor *pifDutyMotor_Add(PIF_unDeviceCode unDeviceCode, uint16_t usMaxD
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DM:%u(%u) MD:%u EC:%d", __LINE__, unDeviceCode, usMaxDuty, pif_enError);
+	pifLog_Printf(LT_enError, "DM:%u(%u) MD:%u EC:%d", __LINE__, usPifId, usMaxDuty, pif_enError);
 #endif
     return NULL;
 }
@@ -216,7 +217,7 @@ BOOL pifDutyMotor_Start(PIF_stDutyMotor *pstOwner, uint16_t usDuty)
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DM:%u(%u) EC:%d", __LINE__, pstOwner->unDeviceCode, usDuty, pif_enError);
+	pifLog_Printf(LT_enError, "DM:%u(%u) EC:%d", __LINE__, pstOwner->usPifId, usDuty, pif_enError);
 #endif
 	return FALSE;
 }
@@ -287,7 +288,7 @@ BOOL pifDutyMotor_StartControl(PIF_stDutyMotor *pstOwner)
 
 fail:
 #ifndef __PIF_NO_LOG__
-    pifLog_Printf(LT_enError, "DM:%u(%u) S:%u EC:%u", __LINE__, pstOwner->unDeviceCode, pstOwner->enState, pif_enError);
+    pifLog_Printf(LT_enError, "DM:%u(%u) S:%u EC:%u", __LINE__, pstOwner->usPifId, pstOwner->enState, pif_enError);
 #endif
     return FALSE;
 }

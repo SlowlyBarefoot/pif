@@ -32,7 +32,6 @@ static PIF_stTaskBase *s_pstTaskBase = NULL;
 static uint8_t s_ucTaskBaseSize;
 static uint8_t s_ucTaskBasePos;
 
-static uint8_t s_ucId = 1;
 static uint32_t s_aunTable[PIF_TASK_TABLE_SIZE];
 
 
@@ -105,7 +104,7 @@ PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvL
     PIF_stTaskBase *pstBase = &s_pstTaskBase[s_ucTaskBasePos];
 
     pstBase->stOwner.enMode = TM_enRatio;
-    pstBase->stOwner.ucId = s_ucId++;
+    pstBase->stOwner.usPifId = g_usPifId++;
     pstBase->ucRatio = ucRatio;
     pstBase->unCount = 0;
     pstBase->__evtLoop = evtLoop;
@@ -157,7 +156,7 @@ PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, vo
     PIF_stTaskBase *pstBase = &s_pstTaskBase[s_ucTaskBasePos];
 
     pstBase->stOwner.enMode = TM_enPeriodMs;
-    pstBase->stOwner.ucId = s_ucId++;
+    pstBase->stOwner.usPifId = g_usPifId++;
     pstBase->usPeriod = usPeriodMs;
     pstBase->unCount = 0;
     pstBase->__evtLoop = evtLoop;
@@ -200,7 +199,7 @@ PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, vo
     PIF_stTaskBase *pstBase = &s_pstTaskBase[s_ucTaskBasePos];
 
     pstBase->stOwner.enMode = TM_enPeriodUs;
-    pstBase->stOwner.ucId = s_ucId++;
+    pstBase->stOwner.usPifId = g_usPifId++;
     pstBase->usPeriod = usPeriodUs;
     pstBase->unCount = 0;
     pstBase->__evtLoop = evtLoop;
@@ -349,7 +348,7 @@ void pifTask_Print()
 		if (pstBase->stOwner.enMode == TM_enRatio) {
 			pifLog_Printf(LT_enInfo, "Task:%s Id=%d Ratio=%d%% Period=%2fus",
 					pstBase->pcName ? pstBase->pcName : "Null",
-					pstBase->stOwner.ucId, pstBase->ucRatio, pstBase->fPeriod);
+					pstBase->stOwner.usPifId, pstBase->ucRatio, pstBase->fPeriod);
 		}
 	}
 }

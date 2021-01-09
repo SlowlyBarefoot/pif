@@ -68,7 +68,7 @@ typedef struct _PIF_stDutyMotorSpeedEncInfo
 extern "C" {
 #endif
 
-PIF_stDutyMotor *pifDutyMotorSpeedEnc_Add(PIF_unDeviceCode unDeviceCode, uint16_t usMaxDuty, uint16_t usControlPeriod);
+PIF_stDutyMotor *pifDutyMotorSpeedEnc_Add(PIF_usId usPifId, uint16_t usMaxDuty, uint16_t usControlPeriod);
 BOOL pifDutyMotorSpeedEnc_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorSpeedEncStage *pstStages);
 
 PIF_stPidControl *pifDutyMotorSpeedEnc_GetPidControl(PIF_stDutyMotor *pstOwner);

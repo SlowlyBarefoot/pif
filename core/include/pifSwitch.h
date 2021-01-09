@@ -13,8 +13,8 @@
 struct _PIF_stSwitchFilter;
 typedef struct _PIF_stSwitchFilter PIF_stSwitchFilter;
 
-typedef SWITCH (*PIF_actSwitchAcquire)(PIF_unDeviceCode unDeviceCode);
-typedef void (*PIF_evtSwitchChange)(PIF_unDeviceCode unDeviceCode, SWITCH swState, void *pvIssuer);
+typedef SWITCH (*PIF_actSwitchAcquire)(PIF_usId usPifId);
+typedef void (*PIF_evtSwitchChange)(PIF_usId usPifId, SWITCH swState, void *pvIssuer);
 typedef SWITCH (*PIF_evtSwitchFilter)(SWITCH swState, PIF_stSwitchFilter *pstOwner);
 
 
@@ -41,7 +41,7 @@ struct _PIF_stSwitchFilter
 typedef struct _PIF_stSwitch
 {
 	// Public Member Variable
-    PIF_unDeviceCode unDeviceCode;
+    PIF_usId usPifId;
     SWITCH swInitState;
     BOOL bStateReverse;							// Default: FALSE
     SWITCH swCurrState;							// Default: enInitState
@@ -55,7 +55,7 @@ extern "C" {
 BOOL pifSwitch_Init(uint8_t ucSize);
 void pifSwitch_Exit();
 
-PIF_stSwitch *pifSwitch_Add(PIF_unDeviceCode unDeviceCode, SWITCH swInitState);
+PIF_stSwitch *pifSwitch_Add(PIF_usId usPifId, SWITCH swInitState);
 
 void pifSwitch_AttachAction(PIF_stSwitch *pstOwner, PIF_actSwitchAcquire actAcquire);
 

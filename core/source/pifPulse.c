@@ -120,11 +120,11 @@ void pifPulse_Exit()
 /**
  * @fn pifPulse_Add
  * @brief Pulse를 추가한다.
- * @param unDeviceCode
+ * @param usPifId
  * @param ucSize Pulse 항목 크기
  * @return Pulse 구조체 포인터를 반환한다.
  */
-PIF_stPulse *pifPulse_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucSize)
+PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize)
 {
     if (ucSize >= PIF_PULSE_INDEX_NULL) {
 		pif_enError = E_enInvalidParam;
@@ -137,7 +137,8 @@ PIF_stPulse *pifPulse_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucSize)
 
     PIF_stPulseBase *pstBase = &s_pstPulseBase[s_ucPulseBasePos];
 
-    pstBase->stOwner.unDeviceCode = unDeviceCode;
+    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    pstBase->stOwner.usPifId = usPifId;
     pstBase->pstItems = calloc(sizeof(PIF_stPulseItemBase), ucSize);
     if (!pstBase->pstItems) {
         pif_enError = E_enOutOfHeap;

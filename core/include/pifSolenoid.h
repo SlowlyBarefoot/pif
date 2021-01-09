@@ -46,7 +46,7 @@ typedef struct _PIF_stSolenoidContent
 struct _PIF_stSolenoid
 {
 	// Public Member Variable
-    PIF_unDeviceCode unDeviceCode;
+    PIF_usId usPifId;
     PIF_enSolenoidType enType;
     uint16_t usOnTime;
 };
@@ -59,7 +59,7 @@ extern "C" {
 BOOL pifSolenoid_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifSolenoid_Exit();
 
-PIF_stSolenoid *pifSolenoid_Add(PIF_unDeviceCode unDeviceCode, PIF_enSolenoidType enType, uint16_t usOnTime,
+PIF_stSolenoid *pifSolenoid_Add(PIF_usId usPifId, PIF_enSolenoidType enType, uint16_t usOnTime,
 		PIF_actSolenoidControl actControl);
 
 void pifSolenoid_AttachEvent(PIF_stSolenoid *pstOwner, PIF_evtSolenoid evtOff, PIF_evtSolenoid evtError);

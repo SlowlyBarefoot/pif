@@ -88,12 +88,12 @@ static void _TaskCommon(PIF_stSwitchBase *pstBase)
 	PIF_stSwitch *pstOwner = &pstBase->stOwner;
 
 	if (pstBase->actAcquire) {
-		pifSwitch_sigData(pstOwner, (*pstBase->actAcquire)(pstOwner->unDeviceCode));
+		pifSwitch_sigData(pstOwner, (*pstBase->actAcquire)(pstOwner->usPifId));
 	}
 
 	if (pstOwner->swCurrState != pstBase->swPrevState) {
 		if (pstBase->evtChange) {
-			(*pstBase->evtChange)(pstOwner->unDeviceCode, pstOwner->swCurrState, pstBase->pvChangeIssuer);
+			(*pstBase->evtChange)(pstOwner->usPifId, pstOwner->swCurrState, pstBase->pvChangeIssuer);
 		}
 		pstBase->swPrevState = pstOwner->swCurrState;
 	}
@@ -144,11 +144,11 @@ void pifSwitch_Exit()
 /**
  * @fn pifSwitch_Add
  * @brief 
- * @param unDeviceCode
+ * @param usPifId
  * @param swInitState
  * @return 
  */
-PIF_stSwitch *pifSwitch_Add(PIF_unDeviceCode unDeviceCode, SWITCH swInitState)
+PIF_stSwitch *pifSwitch_Add(PIF_usId usPifId, SWITCH swInitState)
 {
     if (s_ucSwitchBasePos >= s_ucSwitchBaseSize) {
         pif_enError = E_enOverflowBuffer;
@@ -161,7 +161,8 @@ PIF_stSwitch *pifSwitch_Add(PIF_unDeviceCode unDeviceCode, SWITCH swInitState)
 
     PIF_stSwitch *pstOwner = &pstBase->stOwner;
 
-	pstOwner->unDeviceCode = unDeviceCode;
+    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+	pstOwner->usPifId = usPifId;
 	pstOwner->swInitState = swInitState;
 	pstOwner->swCurrState = swInitState;
 
@@ -170,7 +171,7 @@ PIF_stSwitch *pifSwitch_Add(PIF_unDeviceCode unDeviceCode, SWITCH swInitState)
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Switch:Add(DC:%u IS:%u) EC:%d", unDeviceCode, swInitState, pif_enError);
+	pifLog_Printf(LT_enError, "Switch:Add(DC:%u IS:%u) EC:%d", usPifId, swInitState, pif_enError);
 #endif
     return NULL;
 }

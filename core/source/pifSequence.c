@@ -182,12 +182,12 @@ void pifSequence_Exit()
 /**
  * @fn pifSequence_Add
  * @brief Sequence를 추가한다.
- * @param ucId
+ * @param usPifId
  * @param pstPhaseList
  * @param pvParam
  * @return Sequence 구조체 포인터를 반환한다.
  */
-PIF_stSequence *pifSequence_Add(uint8_t ucId, const PIF_stSequencePhase *pstPhaseList, void *pvParam)
+PIF_stSequence *pifSequence_Add(PIF_usId usPifId, const PIF_stSequencePhase *pstPhaseList, void *pvParam)
 {
     if (s_ucSequenceBasePos >= s_ucSequenceBaseSize) {
 		pif_enError = E_enOverflowBuffer;
@@ -198,7 +198,8 @@ PIF_stSequence *pifSequence_Add(uint8_t ucId, const PIF_stSequencePhase *pstPhas
     pstBase->pstPhaseList = pstPhaseList;
 
     PIF_stSequence *pstOwner = &pstBase->stOwner;
-    pstOwner->ucId = ucId;
+    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    pstOwner->usPifId = usPifId;
     pstOwner->ucPhaseNo = PIF_SEQUENCE_PHASE_NO_IDLE;
     pstOwner->pvParam = pvParam;
 

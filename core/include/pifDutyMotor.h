@@ -24,7 +24,7 @@ typedef void (*PIF_evtDutyMotorError)(PIF_stDutyMotor *pstOwner, void *pvInfo);
  */
 struct _PIF_stDutyMotor
 {
-    PIF_unDeviceCode unDeviceCode;
+    PIF_usId usPifId;
 	uint16_t usMaxDuty;
 	uint16_t usCurrentDuty;
 	uint8_t ucDirection;
@@ -39,7 +39,7 @@ extern "C" {
 BOOL pifDutyMotor_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifDutyMotor_Exit();
 
-PIF_stDutyMotor *pifDutyMotor_Add(PIF_unDeviceCode unDeviceCode, uint16_t usMaxDuty);
+PIF_stDutyMotor *pifDutyMotor_Add(PIF_usId usPifId, uint16_t usMaxDuty);
 
 void pifDutyMotor_AttachAction(PIF_stDutyMotor *pstOwner, PIF_actDutyMotorSetDuty actSetDuty, PIF_actDutyMotorSetDirection actSetDirection,
 		PIF_actDutyMotorOperateBreak actOperateBreak);

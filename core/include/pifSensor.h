@@ -22,8 +22,8 @@ typedef enum _PIF_enSensorEventType
 struct _PIF_stSensorFilter;
 typedef struct _PIF_stSensorFilter PIF_stSensorFilter;
 
-typedef void (*PIF_evtSensorPeriod)(PIF_unDeviceCode unDeviceCode, uint16_t usLevel);
-typedef void (*PIF_evtSensorChange)(PIF_unDeviceCode unDeviceCode, SWITCH swState);
+typedef void (*PIF_evtSensorPeriod)(PIF_usId usPifId, uint16_t usLevel);
+typedef void (*PIF_evtSensorChange)(PIF_usId usPifId, SWITCH swState);
 typedef uint16_t (*PIF_evtSensorFilter)(uint16_t usLevel, PIF_stSensorFilter *pstOwner);
 
 /**
@@ -48,7 +48,7 @@ struct _PIF_stSensorFilter
 typedef struct _PIF_stSensor
 {
 	// Public Member Variable
-    PIF_unDeviceCode unDeviceCode;
+    PIF_usId usPifId;
 } PIF_stSensor;
 
 
@@ -59,7 +59,7 @@ extern "C" {
 BOOL pifSensor_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifSensor_Exit();
 
-PIF_stSensor *pifSensor_Add(PIF_unDeviceCode unDeviceCode);
+PIF_stSensor *pifSensor_Add(PIF_usId usPifId);
 
 BOOL pifSensor_SetEventPeriod(PIF_stSensor *pstOwner, PIF_evtSensorPeriod evtPeriod);
 BOOL pifSensor_StartPeriod(PIF_stSensor *pstOwner, uint16_t usPeriod);

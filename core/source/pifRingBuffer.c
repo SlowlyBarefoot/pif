@@ -54,7 +54,7 @@ static BOOL _ChopOff(PIF_stRingBuffer *pstOwner, uint16_t usAlloc)
  */
 void pifRingBuffer_Init(PIF_stRingBuffer *pstOwner)
 {
-	pstOwner->unDeviceCode = 0;
+	pstOwner->usPifId = 0;
 	pstOwner->psName = NULL;
 	pstOwner->__pcBuffer = NULL;
 	pstOwner->__usHead = 0;
@@ -81,7 +81,7 @@ BOOL pifRingBuffer_InitAlloc(PIF_stRingBuffer *pstOwner, uint16_t usSize)
 		pstOwner->__pcBuffer = NULL;
 	}
 
-	pstOwner->unDeviceCode = 0;
+	pstOwner->usPifId = 0;
 	pstOwner->psName = NULL;
     pstOwner->btShare = FALSE;
     pstOwner->usSize = usSize;
@@ -107,7 +107,7 @@ void pifRingBuffer_InitShare(PIF_stRingBuffer *pstOwner, uint16_t usSize, char *
 {
 	pstOwner->__pcBuffer = pcBuffer;
 
-	pstOwner->unDeviceCode = 0;
+	pstOwner->usPifId = 0;
 	pstOwner->psName = NULL;
     pstOwner->btShare = TRUE;
     pstOwner->usSize = usSize;
@@ -129,14 +129,14 @@ void pifRingBuffer_Exit(PIF_stRingBuffer *pstOwner)
 }
 
 /**
- * @fn pifRingBuffer_SetDeviceCode
+ * @fn pifRingBuffer_SetPifId
  * @brief
  * @param pstOwner
- * @param unDeviceCode
+ * @param usPifId
  */
-void pifRingBuffer_SetDeviceCode(PIF_stRingBuffer *pstOwner, PIF_unDeviceCode unDeviceCode)
+void pifRingBuffer_SetPifId(PIF_stRingBuffer *pstOwner, PIF_usId usPifId)
 {
-	pstOwner->unDeviceCode = unDeviceCode;
+	pstOwner->usPifId = usPifId;
 }
 
 /**

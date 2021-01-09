@@ -131,7 +131,7 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 		else {
 			pifPulse_StopItem(pstBase->pstTimerShift);
 			if (pstBase->evtShiftFinish) {
-				(*pstBase->evtShiftFinish)(pstBase->stOwner.unDeviceCode);
+				(*pstBase->evtShiftFinish)(pstBase->stOwner.usPifId);
 			}
         }
     	break;
@@ -149,7 +149,7 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 		else {
 			pifPulse_StopItem(pstBase->pstTimerShift);
 			if (pstBase->evtShiftFinish) {
-				(*pstBase->evtShiftFinish)(pstBase->stOwner.unDeviceCode);
+				(*pstBase->evtShiftFinish)(pstBase->stOwner.usPifId);
 			}
 		}
     	break;
@@ -167,7 +167,7 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 		else {
 			pifPulse_StopItem(pstBase->pstTimerShift);
 			if (pstBase->evtShiftFinish) {
-				(*pstBase->evtShiftFinish)(pstBase->stOwner.unDeviceCode);
+				(*pstBase->evtShiftFinish)(pstBase->stOwner.usPifId);
 			}
         }
     	break;
@@ -185,7 +185,7 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 		else {
 			pifPulse_StopItem(pstBase->pstTimerShift);
 			if (pstBase->evtShiftFinish) {
-				(*pstBase->evtShiftFinish)(pstBase->stOwner.unDeviceCode);
+				(*pstBase->evtShiftFinish)(pstBase->stOwner.usPifId);
 			}
 		}
     	break;
@@ -291,13 +291,13 @@ void pifDotMatrix_Exit()
 /**
  * @fn pifDotMatrix_Add
  * @brief
- * @param unDeviceCode
+ * @param usPifId
  * @param ucColSize
  * @param ucRowSize
  * @param actDisplay
  * @return
  */
-PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColSize, uint16_t usRowSize,
+PIF_stDotMatrix *pifDotMatrix_Add(PIF_usId usPifId, uint16_t usColSize, uint16_t usRowSize,
 		PIF_actDotMatrixDisplay actDisplay)
 {
     if (s_ucDotMatrixBasePos >= s_ucDotMatrixBaseSize) {
@@ -323,7 +323,8 @@ PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColS
 		goto fail;
 	}
 
-    pstBase->stOwner.unDeviceCode = unDeviceCode;
+    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    pstBase->stOwner.usPifId = usPifId;
     pstBase->usControlPeriodMs = PIF_DM_CONTROL_PERIOD_DEFAULT;
     pstBase->actDisplay = actDisplay;
     pstBase->pstTimerBlink = NULL;
@@ -334,7 +335,7 @@ PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColS
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DotMatrix:AddSingle(D:%u UC:%u UR:%u) EC:%d", unDeviceCode,
+	pifLog_Printf(LT_enError, "DotMatrix:AddSingle(D:%u UC:%u UR:%u) EC:%d", usPifId,
 			usColSize, usRowSize, pif_enError);
 #endif
     return NULL;

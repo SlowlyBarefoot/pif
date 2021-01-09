@@ -38,7 +38,7 @@ struct _PIF_stTask
 {
 	// Public Member Variable
 	PIF_enTaskMode enMode;
-	uint8_t ucId;
+	PIF_usId usPifId;
 	void *pvLoopEach;
 };
 

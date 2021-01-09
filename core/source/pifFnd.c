@@ -164,12 +164,12 @@ void pifFnd_Exit()
 /**
  * @fn pifFnd_Add
  * @brief
- * @param unDeviceCode
+ * @param usPifId
  * @param ucDigitSize
  * @param actDisplay
  * @return
  */
-PIF_stFnd *pifFnd_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay)
+PIF_stFnd *pifFnd_Add(PIF_usId usPifId, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay)
 {
     if (s_ucFndBasePos >= s_ucFndBaseSize) {
         pif_enError = E_enOverflowBuffer;
@@ -190,7 +190,8 @@ PIF_stFnd *pifFnd_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, PIF_ac
 	}
     for (int i = 0; i < ucDigitSize; i++) pstBase->pcString[i] = 0x20;
 
-    pstBase->stOwner.unDeviceCode = unDeviceCode;
+    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    pstBase->stOwner.usPifId = usPifId;
     pstBase->usControlPeriodMs = PIF_FND_CONTROL_PERIOD_DEFAULT / ucDigitSize;
     pstBase->stOwner.ucDigitSize = ucDigitSize;
     pstBase->actDisplay = actDisplay;
@@ -201,7 +202,7 @@ PIF_stFnd *pifFnd_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, PIF_ac
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Fnd:Add(D:%u DS:%u) EC:%d", unDeviceCode, ucDigitSize, pif_enError);
+	pifLog_Printf(LT_enError, "Fnd:Add(D:%u DS:%u) EC:%d", usPifId, ucDigitSize, pif_enError);
 #endif
     return NULL;
 }

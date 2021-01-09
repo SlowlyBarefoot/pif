@@ -69,7 +69,7 @@ typedef enum _PIF_enCommTxState
 typedef struct _PIF_stComm
 {
 	// Public Member Variable
-    PIF_unDeviceCode unDeviceCode;
+    PIF_usId usPifId;
 } PIF_stComm;
 
 
@@ -80,7 +80,7 @@ extern "C" {
 BOOL pifComm_Init(uint8_t ucSize);
 void pifComm_Exit();
 
-PIF_stComm *pifComm_Add(PIF_unDeviceCode unDeviceCode);
+PIF_stComm *pifComm_Add(PIF_usId usPifId);
 
 BOOL pifComm_ResizeRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize);
 BOOL pifComm_ResizeTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize);

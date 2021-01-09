@@ -39,7 +39,7 @@ typedef struct _PIF_stPulseItem
 typedef struct _PIF_stPulse
 {
 	// Public Member Variable
-	PIF_unDeviceCode unDeviceCode;
+	PIF_usId usPifId;
 } PIF_stPulse;
 
 
@@ -50,7 +50,7 @@ extern "C" {
 BOOL pifPulse_Init(uint8_t ucSize);
 void pifPulse_Exit();
 
-PIF_stPulse *pifPulse_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucSize);
+PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize);
 
 PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType);
 void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstItem);

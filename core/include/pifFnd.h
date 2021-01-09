@@ -14,7 +14,7 @@ typedef void (*PIF_actFndDisplay)(uint8_t ucSegment, uint8_t ucDigit);
 typedef struct _PIF_stFnd
 {
 	// Public Member Variable
-	PIF_unDeviceCode unDeviceCode;
+	PIF_usId usPifId;
     uint8_t ucFndCount;
     uint8_t ucDigitSize;
 	uint8_t ucSubNumericDigits;
@@ -28,7 +28,7 @@ extern "C" {
 BOOL pifFnd_Init(PIF_stPulse *pstTimer1ms, uint8_t ucSize);
 void pifFnd_Exit();
 
-PIF_stFnd *pifFnd_Add(PIF_unDeviceCode unDeviceCode, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
+PIF_stFnd *pifFnd_Add(PIF_usId usPifId, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
 
 uint16_t pifFnd_GetControlPeriod(PIF_stFnd *pstOwner);
 BOOL pifFnd_SetControlPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs);

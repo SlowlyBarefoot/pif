@@ -28,7 +28,7 @@ typedef enum _PIF_enDotMatrixShift
 
 typedef void (*PIF_actDotMatrixDisplay)(uint8_t ucRow, uint8_t *pucData);
 
-typedef void (*PIF_evtDotMatrixShiftFinish)(PIF_unDeviceCode unDeviceCode);
+typedef void (*PIF_evtDotMatrixShiftFinish)(PIF_usId usPifId);
 
 
 /**
@@ -50,7 +50,7 @@ typedef struct _PIF_stDotMatrixPattern
 typedef struct _PIF_stDotMatrix
 {
 	// Variable
-	PIF_unDeviceCode unDeviceCode;
+	PIF_usId usPifId;
 } PIF_stDotMatrix;
 
 
@@ -61,7 +61,7 @@ extern "C" {
 BOOL pifDotMatrix_Init(PIF_stPulse *pstTimer1ms, uint8_t ucSize);
 void pifDotMatrix_Exit();
 
-PIF_stDotMatrix *pifDotMatrix_Add(PIF_unDeviceCode unDeviceCode, uint16_t usColSize, uint16_t usRowSize,
+PIF_stDotMatrix *pifDotMatrix_Add(PIF_usId usPifId, uint16_t usColSize, uint16_t usRowSize,
 		PIF_actDotMatrixDisplay actDisplay);
 
 void pifDotMatrix_AttachEvent(PIF_stDotMatrix *pstOwner, PIF_evtDotMatrixShiftFinish evtShiftFinish);
