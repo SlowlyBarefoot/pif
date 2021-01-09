@@ -25,25 +25,36 @@ typedef struct _PIF_stXmodemPacket
 typedef void (*PIF_evtXmodemTxReceive)(uint8_t ucCode, uint8_t ucPacketNo);
 typedef void (*PIF_evtXmodemRxReceive)(uint8_t ucCode, PIF_stXmodemPacket *pstPacket);
 
+/**
+ * @class _PIF_stXmodem
+ * @brief
+ */
+typedef struct _PIF_stXmodem
+{
+	PIF_usId usPifId;
+} PIF_stXmodem;
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-BOOL pifXmodem_Init(PIF_stPulse *pstTimer1ms, PIF_XmodemType enType);
+BOOL pifXmodem_Init(PIF_stPulse *pstTimer1ms, uint8_t ucSize);
 void pifXmodem_Exit();
 
-void pifXmodem_SetResponseTimeout(uint16_t usResponseTimeout);
-void pifXmodem_SetReceiveTimeout(uint16_t usReceiveTimeout);
+PIF_stXmodem *pifXmodem_Add(PIF_usId usPifId, PIF_XmodemType enType);
 
-void pifXmodem_AttachComm(PIF_stComm *pstComm);
-void pifXmodem_AttachEvent(PIF_evtXmodemTxReceive evtTxReceive, PIF_evtXmodemRxReceive evtRxReceive);
+void pifXmodem_SetResponseTimeout(PIF_stXmodem *pstOwner, uint16_t usResponseTimeout);
+void pifXmodem_SetReceiveTimeout(PIF_stXmodem *pstOwner, uint16_t usReceiveTimeout);
 
-BOOL pifXmodem_SendData(uint8_t ucPacketNo, uint8_t *pucData, uint16_t usDataSize);
-void pifXmodem_SendEot();
-void pifXmodem_SendCancel();
+void pifXmodem_AttachComm(PIF_stXmodem *pstOwner, PIF_stComm *pstComm);
+void pifXmodem_AttachEvent(PIF_stXmodem *pstOwner, PIF_evtXmodemTxReceive evtTxReceive, PIF_evtXmodemRxReceive evtRxReceive);
 
-BOOL pifXmodem_ReadyReceive();
+BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *pucData, uint16_t usDataSize);
+void pifXmodem_SendEot(PIF_stXmodem *pstOwner);
+void pifXmodem_SendCancel(PIF_stXmodem *pstOwner);
+
+BOOL pifXmodem_ReadyReceive(PIF_stXmodem *pstOwner);
 
 #ifdef __cplusplus
 }

@@ -62,6 +62,10 @@ typedef struct _PIF_stXmodemRx
 
 typedef struct _PIF_stXmodemBase
 {
+	// Public Member Variable
+	PIF_stXmodem stOwner;
+
+	// Private Member Variable
 	PIF_XmodemType enType;
 	uint16_t usPacketSize;
 	PIF_stXmodemTx stTx;
@@ -70,7 +74,9 @@ typedef struct _PIF_stXmodemBase
 } PIF_stXmodemBase;
 
 
-static PIF_stXmodemBase s_stXmodemBase;
+static PIF_stXmodemBase *s_pstXmodemBase;
+static uint8_t s_ucXmodemBaseSize;
+static uint8_t s_ucXmodemBasePos;
 
 static PIF_stPulse *s_pstXmodemTimer;
 
@@ -331,10 +337,10 @@ static BOOL _evtSending(void *pvClient, PIF_stRingBuffer *pstBuffer)
 	case XTS_enSending:
 		if (pifRingBuffer_IsEmpty(pstBuffer)) {
 			usLength = pifRingBuffer_GetRemainSize(pstBuffer);
-			if (pstBase->stTx.usDataPos + usLength > s_stXmodemBase.usPacketSize) usLength = s_stXmodemBase.usPacketSize - pstBase->stTx.usDataPos;
+			if (pstBase->stTx.usDataPos + usLength > pstBase->usPacketSize) usLength = pstBase->usPacketSize - pstBase->stTx.usDataPos;
 			if (pifRingBuffer_PutData(pstBuffer, pstBase->pucData + pstBase->stTx.usDataPos, usLength)) {
 				pstBase->stTx.usDataPos += usLength;
-				if (pstBase->stTx.usDataPos >= s_stXmodemBase.usPacketSize) {
+				if (pstBase->stTx.usDataPos >= pstBase->usPacketSize) {
 					pstBase->stTx.enState = XTS_enWaitResponse;
 				}
 				return TRUE;
@@ -372,55 +378,34 @@ static BOOL _evtSending(void *pvClient, PIF_stRingBuffer *pstBuffer)
 /**
  * @fn pifXmodem_Init
  * @brief
- * @param pstTimer1ms
+ * @param pstTimer
+ * @param ucSize
  * @return
  */
-BOOL pifXmodem_Init(PIF_stPulse *pstTimer1ms, PIF_XmodemType enType)
+BOOL pifXmodem_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
 {
-    switch (enType) {
-    case XT_Original:
-    	s_stXmodemBase.usPacketSize = 3 + 128 + 1;
-    	break;
+    if (!pstTimer || ucSize == 0) {
+		pif_enError = E_enInvalidParam;
+		goto fail;
+	}
 
-    case XT_CRC:
-    	s_stXmodemBase.usPacketSize = 3 + 128 + 2;
-    	break;
+    s_pstXmodemBase = calloc(sizeof(PIF_stXmodemBase), ucSize);
+    if (!s_pstXmodemBase) {
+		pif_enError = E_enOutOfHeap;
+		goto fail;
+	}
 
-    default:
-        pif_enError = E_enInvalidParam;
-        goto fail;
-    }
+    s_ucXmodemBaseSize = ucSize;
+    s_ucXmodemBasePos = 0;
 
-    s_stXmodemBase.pucData = calloc(sizeof(uint8_t), s_stXmodemBase.usPacketSize);
-    if (!s_stXmodemBase.pucData) {
-        pif_enError = E_enOutOfHeap;
-        goto fail;
-    }
-
-    s_stXmodemBase.stTx.pstTimer = pifPulse_AddItem(pstTimer1ms, PT_enOnce);
-    if (!s_stXmodemBase.stTx.pstTimer) goto fail;
-
-    s_stXmodemBase.stRx.pstTimer = pifPulse_AddItem(pstTimer1ms, PT_enOnce);
-    if (!s_stXmodemBase.stRx.pstTimer) goto fail;
-
-    s_stXmodemBase.enType = enType;
-
-    s_stXmodemBase.stTx.enState = XTS_enIdle;
-    pifPulse_AttachEvtFinish(s_stXmodemBase.stTx.pstTimer, _evtTimerTxTimeout, &s_stXmodemBase);
-    s_stXmodemBase.stTx.usTimeout = PIF_XMODEM_RESPONSE_TIMEOUT;
-
-    s_stXmodemBase.stRx.enState = XRS_enIdle;
-    pifPulse_AttachEvtFinish(s_stXmodemBase.stRx.pstTimer, _evtTimerRxTimeout, &s_stXmodemBase);
-    s_stXmodemBase.stRx.usTimeout = PIF_XMODEM_RECEIVE_TIMEOUT;
-
-    s_pstXmodemTimer = pstTimer1ms;
+    s_pstXmodemTimer = pstTimer;
     return TRUE;
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "%u Xmodem:Init(T:%u) EC:%d", enType, pif_enError);
+	pifLog_Printf(LT_enError, "Xmodem:Init(S:%u) EC:%d", ucSize, pif_enError);
 #endif
-	return FALSE;
+    return FALSE;
 }
 
 /**
@@ -429,68 +414,148 @@ fail:
  */
 void pifXmodem_Exit()
 {
-    if (s_stXmodemBase.pucData) {
-    	free(s_stXmodemBase.pucData);
-    	s_stXmodemBase.pucData = NULL;
+    if (s_pstXmodemBase) {
+        for (int i = 0; i < s_ucXmodemBasePos; i++) {
+        	PIF_stXmodemBase *pstBase = &s_pstXmodemBase[i];
+			if (pstBase->pucData) {
+				free(pstBase->pucData);
+				pstBase->pucData = NULL;
+			}
+        }
+    	free(s_pstXmodemBase);
+        s_pstXmodemBase = NULL;
     }
+}
+
+/**
+ * @fn pifXmodem_Add
+ * @brief
+ * @param usPifId
+ * @param enType
+ * @return
+ */
+PIF_stXmodem *pifXmodem_Add(PIF_usId usPifId, PIF_XmodemType enType)
+{
+    if (s_ucXmodemBasePos >= s_ucXmodemBaseSize) {
+        pif_enError = E_enOverflowBuffer;
+        goto fail;
+    }
+
+    PIF_stXmodemBase *pstBase = &s_pstXmodemBase[s_ucXmodemBasePos];
+
+    switch (enType) {
+    case XT_Original:
+    	pstBase->usPacketSize = 3 + 128 + 1;
+    	break;
+
+    case XT_CRC:
+    	pstBase->usPacketSize = 3 + 128 + 2;
+    	break;
+
+    default:
+        pif_enError = E_enInvalidParam;
+        goto fail;
+    }
+
+    pstBase->pucData = calloc(sizeof(uint8_t), pstBase->usPacketSize);
+    if (!pstBase->pucData) {
+        pif_enError = E_enOutOfHeap;
+        goto fail;
+    }
+
+    pstBase->stTx.pstTimer = pifPulse_AddItem(s_pstXmodemTimer, PT_enOnce);
+    if (!pstBase->stTx.pstTimer) goto fail;
+
+    pstBase->stRx.pstTimer = pifPulse_AddItem(s_pstXmodemTimer, PT_enOnce);
+    if (!pstBase->stRx.pstTimer) goto fail;
+
+    pstBase->enType = enType;
+
+    pstBase->stTx.enState = XTS_enIdle;
+    pifPulse_AttachEvtFinish(pstBase->stTx.pstTimer, _evtTimerTxTimeout, pstBase);
+    pstBase->stTx.usTimeout = PIF_XMODEM_RESPONSE_TIMEOUT;
+
+    pstBase->stRx.enState = XRS_enIdle;
+    pifPulse_AttachEvtFinish(pstBase->stRx.pstTimer, _evtTimerRxTimeout, pstBase);
+    pstBase->stRx.usTimeout = PIF_XMODEM_RECEIVE_TIMEOUT;
+
+    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    ((PIF_stXmodem *)pstBase)->usPifId = usPifId;
+
+    s_ucXmodemBasePos = s_ucXmodemBasePos + 1;
+    return (PIF_stXmodem *)pstBase;
+
+fail:
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_enError, "%u Xmodem:Init(T:%u) EC:%d", enType, pif_enError);
+#endif
+	return NULL;
 }
 
 /**
  * @fn pifXmodem_SetResponseTimeout
  * @brief
+ * @param pstOwner
  * @param usResponseTimeout
  */
-void pifXmodem_SetResponseTimeout(uint16_t usResponseTimeout)
+void pifXmodem_SetResponseTimeout(PIF_stXmodem *pstOwner, uint16_t usResponseTimeout)
 {
-	s_stXmodemBase.stTx.usTimeout = usResponseTimeout;
+	((PIF_stXmodemBase *)pstOwner)->stTx.usTimeout = usResponseTimeout;
 }
 
 /**
  * @fn pifXmodem_SetReceiveTimeout
  * @brief
+ * @param pstOwner
  * @param usReceiveTimeout
  */
-void pifXmodem_SetReceiveTimeout(uint16_t usReceiveTimeout)
+void pifXmodem_SetReceiveTimeout(PIF_stXmodem *pstOwner, uint16_t usReceiveTimeout)
 {
-	s_stXmodemBase.stRx.usTimeout = usReceiveTimeout;
+	((PIF_stXmodemBase *)pstOwner)->stRx.usTimeout = usReceiveTimeout;
 }
 
 /**
  * @fn pifXmodem_AttachComm
  * @brief
+ * @param pstOwner
  * @param pstComm
  */
-void pifXmodem_AttachComm(PIF_stComm *pstComm)
+void pifXmodem_AttachComm(PIF_stXmodem *pstOwner, PIF_stComm *pstComm)
 {
-	pifComm_AttachClient(pstComm, &s_stXmodemBase);
+	pifComm_AttachClient(pstComm, pstOwner);
 	pifComm_AttachEvent(pstComm, _evtParsing, _evtSending, NULL);
 }
 
 /**
  * @fn pifXmodem_AttachEvent
  * @brief
+ * @param pstOwner
  * @param evtTxReceive
  * @param evtRxReceive
  */
-void pifXmodem_AttachEvent(PIF_evtXmodemTxReceive evtTxReceive, PIF_evtXmodemRxReceive evtRxReceive)
+void pifXmodem_AttachEvent(PIF_stXmodem *pstOwner, PIF_evtXmodemTxReceive evtTxReceive, PIF_evtXmodemRxReceive evtRxReceive)
 {
-	s_stXmodemBase.stTx.evtReceive = evtTxReceive;
-	s_stXmodemBase.stRx.evtReceive = evtRxReceive;
+	PIF_stXmodemBase *pstBase = (PIF_stXmodemBase *)pstOwner;
+
+	pstBase->stTx.evtReceive = evtTxReceive;
+	pstBase->stRx.evtReceive = evtRxReceive;
 }
 
 /**
  * @fn pifXmodem_SendData
  * @brief
+ * @param pstOwner
  * @param ucPacketNo
  * @param pucData
  * @param usDataSize
  * @return
  */
-BOOL pifXmodem_SendData(uint8_t ucPacketNo, uint8_t *pucData, uint16_t usDataSize)
+BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *pucData, uint16_t usDataSize)
 {
+	PIF_stXmodemBase *pstBase = (PIF_stXmodemBase *)pstOwner;
 	uint16_t i, p, crc;
 
-	if (!s_stXmodemBase.stTx.evtReceive) {
+	if (!pstBase->stTx.evtReceive) {
 		pif_enError = E_enNotSetEvent;
 		goto fail;
 	}
@@ -500,39 +565,39 @@ BOOL pifXmodem_SendData(uint8_t ucPacketNo, uint8_t *pucData, uint16_t usDataSiz
 		goto fail;
 	}
 
-	if (s_stXmodemBase.stTx.enState != XTS_enIdle) {
+	if (pstBase->stTx.enState != XTS_enIdle) {
 		pif_enError = E_enInvalidState;
 		goto fail;
 	}
 
-	s_stXmodemBase.pucData[0] = ASCII_SOH;
-	s_stXmodemBase.pucData[1] = ucPacketNo;
-	s_stXmodemBase.pucData[2] = 0xFF - ucPacketNo;
+	pstBase->pucData[0] = ASCII_SOH;
+	pstBase->pucData[1] = ucPacketNo;
+	pstBase->pucData[2] = 0xFF - ucPacketNo;
 	p = 3;
 	for (i = 0; i < usDataSize; i++) {
-		s_stXmodemBase.pucData[p++] = pucData[i];
+		pstBase->pucData[p++] = pucData[i];
 	}
 	if (usDataSize < 128) {
 		for (i = 0; i < 128 - usDataSize; i++) {
-			s_stXmodemBase.pucData[p++] = ASCII_SUB;
+			pstBase->pucData[p++] = ASCII_SUB;
 		}
 	}
-	switch (s_stXmodemBase.enType) {
+	switch (pstBase->enType) {
 	case XT_Original:
-		crc = pifCheckSum(&s_stXmodemBase.pucData[3], 128);
-		s_stXmodemBase.pucData[p++] = crc;
+		crc = pifCheckSum(&pstBase->pucData[3], 128);
+		pstBase->pucData[p++] = crc;
 		break;
 
 	case XT_CRC:
-		crc = pifCrc16(&s_stXmodemBase.pucData[3], 128);
-		s_stXmodemBase.pucData[p++] = crc >> 8;
-		s_stXmodemBase.pucData[p++] = crc & 0xFF;
+		crc = pifCrc16(&pstBase->pucData[3], 128);
+		pstBase->pucData[p++] = crc >> 8;
+		pstBase->pucData[p++] = crc & 0xFF;
 		break;
 	}
 
-	s_stXmodemBase.stTx.usDataPos = 0;
-	s_stXmodemBase.stTx.enState = XTS_enSending;
-	if (!pifPulse_StartItem(s_stXmodemBase.stTx.pstTimer, s_stXmodemBase.stTx.usTimeout)) {
+	pstBase->stTx.usDataPos = 0;
+	pstBase->stTx.enState = XTS_enSending;
+	if (!pifPulse_StartItem(pstBase->stTx.pstTimer, pstBase->stTx.usTimeout)) {
 #ifndef __PIF_NO_LOG__
 		pifLog_Printf(LT_enWarn, "XM Not start timer");
 #endif
@@ -541,7 +606,7 @@ BOOL pifXmodem_SendData(uint8_t ucPacketNo, uint8_t *pucData, uint16_t usDataSiz
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Xmodem:SendData(PN:%u DS:%u S:%u) EC:%d", ucPacketNo, usDataSize, s_stXmodemBase.stTx.enState, pif_enError);
+	pifLog_Printf(LT_enError, "Xmodem:SendData(PN:%u DS:%u S:%u) EC:%d", ucPacketNo, usDataSize, pstBase->stTx.enState, pif_enError);
 #endif
 	return FALSE;
 }
@@ -549,33 +614,38 @@ fail:
 /**
  * @fn pifXmodem_SendEot
  * @brief
+ * @param pstOwner
  */
-void pifXmodem_SendEot()
+void pifXmodem_SendEot(PIF_stXmodem *pstOwner)
 {
-	s_stXmodemBase.stTx.enState = XTS_enEOT;
+	((PIF_stXmodemBase *)pstOwner)->stTx.enState = XTS_enEOT;
 }
 
 /**
  * @fn pifXmodem_SendCancel
  * @brief
+ * @param pstOwner
  */
-void pifXmodem_SendCancel()
+void pifXmodem_SendCancel(PIF_stXmodem *pstOwner)
 {
-	s_stXmodemBase.stTx.enState = XTS_enCAN;
+	((PIF_stXmodemBase *)pstOwner)->stTx.enState = XTS_enCAN;
 }
 
 /**
  * @fn pifXmodem_ReadyReceive
  * @brief
+ * @param pstOwner
  * @return
  */
-BOOL pifXmodem_ReadyReceive()
+BOOL pifXmodem_ReadyReceive(PIF_stXmodem *pstOwner)
 {
-	if (!s_stXmodemBase.stRx.evtReceive) {
+	PIF_stXmodemBase *pstBase = (PIF_stXmodemBase *)pstOwner;
+
+	if (!pstBase->stRx.evtReceive) {
 		pif_enError = E_enNotSetEvent;
 		return FALSE;
 	}
 
-	s_stXmodemBase.stTx.enState = XTS_enSendC;
+	pstBase->stTx.enState = XTS_enSendC;
 	return TRUE;
 }
