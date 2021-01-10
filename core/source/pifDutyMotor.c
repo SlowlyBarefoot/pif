@@ -38,7 +38,12 @@ static void _TimerBreakFinish(void *pvIssuer)
 {
     PIF_stDutyMotorBase *pstBase = (PIF_stDutyMotorBase *)pvIssuer;
 
-	(*pstBase->actOperateBreak)(0);
+    if (pstBase->stOwner.enState > MS_enIdle && pstBase->stOwner.enState < MS_enReduce) {
+    	pstBase->stOwner.enState = MS_enReduce;
+    }
+    else {
+    	(*pstBase->actOperateBreak)(0);
+    }
 }
 
 /**
@@ -219,6 +224,28 @@ fail:
 #ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "DM:%u(%u) EC:%d", __LINE__, pstOwner->usPifId, usDuty, pif_enError);
 #endif
+	return FALSE;
+}
+
+/**
+ * @fn pifDutyMotor_SetOperatingTime
+ * @brief
+ * @param pstOwner
+ * @param unOperatingTime
+ */
+BOOL pifDutyMotor_SetOperatingTime(PIF_stDutyMotor *pstOwner, uint32_t unOperatingTime)
+{
+    PIF_stDutyMotorBase *pstBase = (PIF_stDutyMotorBase *)pstOwner;
+
+	if (!pstBase->pstTimerBreak) {
+		pstBase->pstTimerBreak = pifPulse_AddItem(g_pstDutyMotorTimer, PT_enOnce);
+	}
+	if (pstBase->pstTimerBreak) {
+		pifPulse_AttachEvtFinish(pstBase->pstTimerBreak, _TimerBreakFinish, pstBase);
+		if (pifPulse_StartItem(pstBase->pstTimerBreak, unOperatingTime)) {
+			return TRUE;
+		}
+	}
 	return FALSE;
 }
 

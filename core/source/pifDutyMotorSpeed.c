@@ -33,8 +33,8 @@ static void _ControlSpeed(PIF_stDutyMotorBase *pstBase)
 	usTmpDuty = pstOwner->usCurrentDuty;
 
 	if (pstOwner->enState == MS_enGained) {
-		if (usTmpDuty >= pstStage->usFsFixedDuty) {
-			usTmpDuty = pstStage->usFsFixedDuty;
+		if (usTmpDuty >= pstStage->usFsHighDuty) {
+			usTmpDuty = pstStage->usFsHighDuty;
 			pstOwner->enState = MS_enConst;
 			if (pstBase->evtStable) (*pstBase->evtStable)(pstOwner, pstBase->pvInfo);
 
@@ -59,7 +59,7 @@ static void _ControlSpeed(PIF_stDutyMotorBase *pstBase)
 			}
 #endif
 		}
-		else if (usTmpDuty > pstStage->usRsCtrlDuty && usTmpDuty > pstStage->usRsStopDuty) {
+		else if (usTmpDuty > pstStage->usRsCtrlDuty && usTmpDuty > pstStage->usRsLowDuty) {
 			usTmpDuty -= pstStage->usRsCtrlDuty;
 		}
 		else if (usTmpDuty) {
@@ -143,7 +143,6 @@ static void _SwitchReduceChange(PIF_usId usPifId, SWITCH swState, void *pvIssuer
 	if (swState) {
 		pifDutyMotorSpeed_Stop((PIF_stDutyMotor *)pstBase);
 	}
-	pifLog_Printf(LT_enInfo, "DMS:%u(%u) S:%u", __LINE__, usPifId, swState);
 }
 
 static void _SwitchStopChange(PIF_usId usPifId, SWITCH swState, void *pvIssuer)
@@ -158,7 +157,6 @@ static void _SwitchStopChange(PIF_usId usPifId, SWITCH swState, void *pvIssuer)
 		((PIF_stDutyMotor *)pstBase)->usCurrentDuty = 0;
 		pstBase->stOwner.enState = MS_enBreak;
 	}
-	pifLog_Printf(LT_enInfo, "DMS:%u(%u) S:%u", __LINE__, usPifId, swState);
 }
 
 /**
@@ -221,6 +219,13 @@ BOOL pifDutyMotorSpeed_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize,
         goto fail;
     }
 
+    for (int i = 0; i < ucStageSize; i++) {
+    	if ((pstStages[i].enMode & MM_RT_enMask) == MM_RT_enPulse) {
+            pif_enError = E_enInvalidParam;
+            goto fail;
+    	}
+    }
+
     PIF_stDutyMotorSpeedInfo *pstInfo = pstBase->pvInfo;
     pstInfo->ucStageSize = ucStageSize;
     pstInfo->pstStages = pstStages;
@@ -238,16 +243,17 @@ fail:
  * @brief 
  * @param pstOwner
  * @param ucStageIndex
+ * @param unOperatingTime
  * @return 
  */
-BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex)
+BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime)
 {
 	PIF_stDutyMotorBase *pstBase = (PIF_stDutyMotorBase *)pstOwner;
     PIF_stDutyMotorSpeedInfo *pstInfo = pstBase->pvInfo;
     const PIF_stDutyMotorSpeedStage *pstStage;
-    BOOL bState;
+    uint8_t ucState;
 
-    if (!pstBase->actSetDuty) {
+    if (!pstBase->actSetDuty || !pstBase->actSetDirection) {
     	pif_enError = E_enInvalidParam;
     	goto fail;
     }
@@ -256,25 +262,38 @@ BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex)
     pstStage = pstInfo->pstCurrentStage;
 
     if (pstStage->enMode & MM_CIAS_enMask) {
-    	bState = ON;
+    	ucState = 0;
     	if (*pstStage->ppstStartSwitch) {
     		if ((*pstStage->ppstStartSwitch)->swCurrState != ON) {
-    	    	bState = OFF;
+    			ucState |= 1;
     		}
     	}
     	if (*pstStage->ppstReduceSwitch) {
     		if ((*pstStage->ppstReduceSwitch)->swCurrState != OFF) {
-    	    	bState = OFF;
+    			ucState |= 2;
     		}
     	}
     	if (*pstStage->ppstStopSwitch) {
     		if ((*pstStage->ppstStopSwitch)->swCurrState != OFF) {
-    	    	bState = OFF;
+    			ucState |= 4;
     		}
     	}
-    	if (!bState) {
+    	if (ucState) {
+#ifndef __PIF_NO_LOG__
+    		pifLog_Printf(LT_enError, "DMS:%u(%u) S:%u", __LINE__, pstOwner->usPifId, ucState);
+#endif
         	pif_enError = E_enInvalidState;
     		goto fail;
+    	}
+    }
+
+    if ((pstStage->enMode & MM_RT_enMask) == MM_RT_enTime) {
+    	if (!unOperatingTime) {
+        	pif_enError = E_enInvalidParam;
+    		goto fail;
+    	}
+    	else {
+    		if (!pifDutyMotor_SetOperatingTime(pstOwner, unOperatingTime)) goto fail;
     	}
     }
 
@@ -295,7 +314,7 @@ BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex)
         pstOwner->enState = MS_enGained;
     }
     else {
-    	pstOwner->usCurrentDuty = pstStage->usFsFixedDuty;
+    	pstOwner->usCurrentDuty = pstStage->usFsHighDuty;
         pstOwner->enState = MS_enConst;
     }
     pstBase->ucError = 0;

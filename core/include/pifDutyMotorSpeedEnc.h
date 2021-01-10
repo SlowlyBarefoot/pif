@@ -73,7 +73,7 @@ BOOL pifDutyMotorSpeedEnc_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSi
 
 PIF_stPidControl *pifDutyMotorSpeedEnc_GetPidControl(PIF_stDutyMotor *pstOwner);
 
-BOOL pifDutyMotorSpeedEnc_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex);
+BOOL pifDutyMotorSpeedEnc_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime);
 void pifDutyMotorSpeedEnc_Stop(PIF_stDutyMotor *pstOwner);
 void pifDutyMotorSpeedEnc_Emergency(PIF_stDutyMotor *pstOwner);
 

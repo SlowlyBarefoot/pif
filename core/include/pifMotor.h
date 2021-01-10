@@ -30,13 +30,12 @@ typedef enum _PIF_enMotorMode
 	MM_D_enCW			= 0x00,
 	MM_D_enCCW			= 0x01,
 
-	// Reduce Method : 감속 방법 지정
-	MM_RM_enMask		= 0x06,
-	MM_RM_enShift		= 1,
-	MM_RM_enNone		= 0x00,
-	MM_RM_enTime		= 0x02,		// 일정 시간후 중지
-	MM_RM_enSensor		= 0x04,		// 센서 중지
-	MM_RM_enPulse		= 0x06,		// 펄스 이동
+	// Reduce Time : 감속 시점 지정
+	MM_RT_enMask		= 0x06,
+	MM_RT_enShift		= 1,
+	MM_RT_enNone		= 0x00,
+	MM_RT_enTime		= 0x02,		// 일정 시간후 중지
+	MM_RT_enPulse		= 0x04,		// 펄스 이동
 
 	// Not Release : 정지시 잡고 있을지
 	MM_NR_enMask		= 0x08,
