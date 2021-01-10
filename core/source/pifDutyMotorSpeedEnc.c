@@ -108,27 +108,29 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 		}
 	}
 
-	if ((pstOwner->enState == MS_enStable) || (pstOwner->enState == MS_enConst)) {
-		fCtrlDuty = pifPidControl_Calcurate(&pstInfo->stPidControl, pstStage->fFsPulsesPerRange - usTmpEnc);
+	if (pstStage->enMode & MM_SC_enMask) {
+		if ((pstOwner->enState == MS_enStable) || (pstOwner->enState == MS_enConst)) {
+			fCtrlDuty = pifPidControl_Calcurate(&pstInfo->stPidControl, pstStage->fFsPulsesPerRange - usTmpEnc);
 
-        if (fCtrlDuty > 0) {
-            if (usTmpDuty + fCtrlDuty < pstStage->usFsHighDuty) {
-                usTmpDuty += fCtrlDuty;
-            }
-            else {
-                usTmpDuty += (pstStage->usFsHighDuty - usTmpDuty) / 2;
-                if (usTmpDuty > pstStage->usFsHighDuty) {
-                    usTmpDuty = pstStage->usFsHighDuty;
-                }
-            }
-        }
-        else if (fCtrlDuty < 0) {
-        	if (usTmpDuty + fCtrlDuty >= 0) {
-        		usTmpDuty += fCtrlDuty;
-        	}
-        	else {
-                usTmpDuty /= 2;
-        	}
+			if (fCtrlDuty > 0) {
+				if (usTmpDuty + fCtrlDuty < pstStage->usFsHighDuty) {
+					usTmpDuty += fCtrlDuty;
+				}
+				else {
+					usTmpDuty += (pstStage->usFsHighDuty - usTmpDuty) / 2;
+					if (usTmpDuty > pstStage->usFsHighDuty) {
+						usTmpDuty = pstStage->usFsHighDuty;
+					}
+				}
+			}
+			else if (fCtrlDuty < 0) {
+				if (usTmpDuty + fCtrlDuty >= 0) {
+					usTmpDuty += fCtrlDuty;
+				}
+				else {
+					usTmpDuty /= 2;
+				}
+			}
 		}
 	}
 
@@ -282,6 +284,10 @@ BOOL pifDutyMotorSpeedEnc_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSi
             pif_enError = E_enInvalidParam;
             goto fail;
     	}
+    	if (pstStages[i].enMode & MM_PC_enMask) {
+            pif_enError = E_enInvalidParam;
+            goto fail;
+    	}
     }
 
     PIF_stDutyMotorSpeedEncInfo *pstInfo = pstBase->pvInfo;
@@ -349,7 +355,7 @@ BOOL pifDutyMotorSpeedEnc_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex,
     	}
     	if (ucState) {
 #ifndef __PIF_NO_LOG__
-    		pifLog_Printf(LT_enError, "DMS:%u(%u) S:%u", __LINE__, pstOwner->usPifId, ucState);
+    		pifLog_Printf(LT_enError, "DMSE:%u(%u) S:%u", __LINE__, pstOwner->usPifId, ucState);
 #endif
         	pif_enError = E_enInvalidState;
     		goto fail;

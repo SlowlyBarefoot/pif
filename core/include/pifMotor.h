@@ -22,39 +22,49 @@ typedef enum _PIF_enMotorState
 
 typedef enum _PIF_enMotorMode
 {
-	MM_enDefault		= 0x00,
-
 	// Direction : 방향
 	MM_D_enMask			= 0x01,
 	MM_D_enShift		= 0,
 	MM_D_enCW			= 0x00,
 	MM_D_enCCW			= 0x01,
 
+	// Speed Control : 속도 제어 여부
+	MM_SC_enMask		= 0x02,
+	MM_SC_enShift		= 1,
+	MM_SC_enNO			= 0x00,
+	MM_SC_enYES			= 0x02,
+
+	// Position Control : 위치 제어 여부
+	MM_PC_enMask		= 0x04,
+	MM_PC_enShift		= 2,
+	MM_PC_enNO			= 0x00,
+	MM_PC_enYES			= 0x04,
+
 	// Reduce Time : 감속 시점 지정
-	MM_RT_enMask		= 0x06,
-	MM_RT_enShift		= 1,
+	MM_RT_enMask		= 0x18,
+	MM_RT_enShift		= 3,
 	MM_RT_enNone		= 0x00,
-	MM_RT_enTime		= 0x02,		// 일정 시간후 중지
-	MM_RT_enPulse		= 0x04,		// 펄스 이동
+	MM_RT_enTime		= 0x08,		// 일정 시간후 중지
+	MM_RT_enPulse		= 0x10,		// 펄스 이동
 
 	// Not Release : 정지시 잡고 있을지
-	MM_NR_enMask		= 0x08,
-	MM_NR_enShift		= 3,
+	MM_NR_enMask		= 0x20,
+	MM_NR_enShift		= 5,
 	MM_NR_enNo			= 0x00,
-	MM_NR_enYes			= 0x08,
+	MM_NR_enYes			= 0x20,
 
 	// Check Initial All Sensor : 초기 모든 센서 체크
 	// Start 센서만 Dark이고 Reduce와 Stop 센서는 Light이어야 함
-	MM_CIAS_enMask		= 0x10,
-	MM_CIAS_enShift		= 4,
+	MM_CIAS_enMask		= 0x40,
+	MM_CIAS_enShift		= 6,
 	MM_CIAS_enNo		= 0x00,
-	MM_CIAS_enYes		= 0x10,
+	MM_CIAS_enYes		= 0x40,
 
 	// Check Finish Stop Sensor : 도달시 Stop 센서 체크
-	MM_CFPS_enMask		= 0x20,
-	MM_CFPS_enShift		= 5,
+	MM_CFPS_enMask		= 0x80,
+	MM_CFPS_enShift		= 7,
 	MM_CFPS_enNo		= 0x00,
-	MM_CFPS_enYes		= 0x20,
+	MM_CFPS_enYes		= 0x80,
 } PIF_enMotorMode;
 
 

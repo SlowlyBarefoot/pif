@@ -224,6 +224,14 @@ BOOL pifDutyMotorSpeed_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize,
             pif_enError = E_enInvalidParam;
             goto fail;
     	}
+    	if (pstStages[i].enMode & MM_SC_enMask) {
+            pif_enError = E_enInvalidParam;
+            goto fail;
+    	}
+    	if (pstStages[i].enMode & MM_PC_enMask) {
+            pif_enError = E_enInvalidParam;
+            goto fail;
+    	}
     }
 
     PIF_stDutyMotorSpeedInfo *pstInfo = pstBase->pvInfo;
