@@ -25,9 +25,9 @@ struct _PIF_stStepMotorBase
 	// Private Member Variable
     void *pvInfo;
     uint8_t ucError;
+	uint8_t ucStepSize;
 	uint16_t usStepPeriodUs;
 	uint16_t usControlPeriodMs;
-	uint8_t ucStepSize;
 
 	PIF_stTask *pstTask;
 
@@ -58,7 +58,7 @@ struct _PIF_stStepMotorBase
 
 
 extern PIF_stPulse *g_pstStepMotorTimer;
-extern uint32_t g_unStepMotorTimerUnit;
+extern uint32_t g_unStepMotorTimerUs;
 
 
 #endif  // PIF_STEP_MOTOR_BASE_H

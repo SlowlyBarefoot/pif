@@ -44,7 +44,7 @@ struct _PIF_stStepMotor
     uint16_t usResolution;
     uint8_t ucReductionGearRatio;
     uint8_t ucDirection;
-	float fCurrentRpm;
+	uint16_t usCurrentPps;
     PIF_enMotorState enState;
 };
 
@@ -53,7 +53,7 @@ struct _PIF_stStepMotor
 extern "C" {
 #endif
 
-BOOL pifStepMotor_Init(PIF_stPulse *pstTimer, uint32_t unTimerUnit, uint8_t ucSize);
+BOOL pifStepMotor_Init(PIF_stPulse *pstTimer, uint32_t unTimerUs, uint8_t ucSize);
 void pifStepMotor_Exit();
 
 PIF_stStepMotor *pifStepMotor_Add(PIF_usId usPifId, uint16_t usResolution, PIF_enStepMotorOperation enOperation);
@@ -68,6 +68,7 @@ BOOL pifStepMotor_SetMethod(PIF_stStepMotor *pstOwner, PIF_enStepMotorMethod enM
 BOOL pifStepMotor_SetOperation(PIF_stStepMotor *pstOwner, PIF_enStepMotorOperation enOperation);
 BOOL pifStepMotor_SetPps(PIF_stStepMotor *pstOwner, uint16_t usPps);
 BOOL pifStepMotor_SetRpm(PIF_stStepMotor *pstOwner, float fRpm);
+float pifStepMotor_GetRpm(PIF_stStepMotor *pstOwner);
 void pifStepMotor_SetTargetStep(PIF_stStepMotor *pstOwner, uint32_t unTargetStep);
 
 BOOL pifStepMotor_Start(PIF_stStepMotor *pstOwner, uint32_t unTargetStep);
