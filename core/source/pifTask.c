@@ -20,8 +20,10 @@ typedef struct _PIF_stTaskBase
 	BOOL bPause;
 	uint16_t usPeriod;
 	uint32_t unPretime;
+#ifdef __PIF_DEBUG__
 	uint32_t unCount;
 	float fPeriod;
+#endif
 
 	// Private Member Function
 	PIF_evtTaskLoop __evtLoop;
@@ -103,21 +105,29 @@ PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvL
 
     PIF_stTaskBase *pstBase = &s_pstTaskBase[s_ucTaskBasePos];
 
-    pstBase->stOwner.enMode = TM_enRatio;
-    pstBase->stOwner.usPifId = g_usPifId++;
-    pstBase->ucRatio = ucRatio;
-    pstBase->unCount = 0;
-    pstBase->__evtLoop = evtLoop;
-    pstBase->stOwner.pvLoopEach = pvLoopEach;
+    if (ucRatio < 100) {
+		pstBase->stOwner.enMode = TM_enRatio;
+		pstBase->ucRatio = ucRatio;
+#ifdef __PIF_DEBUG__
+		pstBase->unCount = 0;
+#endif
 
-	int count = PIF_TASK_TABLE_SIZE * ucRatio / 101;
-	int gap = PIF_TASK_TABLE_SIZE - count;
-	int index = base;
-	for (int i = 0; i <= count; i++) {
-		s_aunTable[index & PIF_TASK_TABLE_MASK] |= 1 << s_ucTaskBasePos;
-		index += gap;
-	}
-	base++;
+		int count = PIF_TASK_TABLE_SIZE * ucRatio / 101;
+		int gap = PIF_TASK_TABLE_SIZE - count;
+		int index = base;
+		for (int i = 0; i <= count; i++) {
+			s_aunTable[index & PIF_TASK_TABLE_MASK] |= 1 << s_ucTaskBasePos;
+			index += gap;
+		}
+		base++;
+    }
+    else {
+		pstBase->stOwner.enMode = TM_enAlways;
+		pstBase->ucRatio = 100;
+    }
+	pstBase->stOwner.usPifId = g_usPifId++;
+	pstBase->__evtLoop = evtLoop;
+	pstBase->stOwner.pvLoopEach = pvLoopEach;
 
 	if (pvLoopEach) {
 		(*evtLoop)(&pstBase->stOwner);
@@ -158,7 +168,6 @@ PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, vo
     pstBase->stOwner.enMode = TM_enPeriodMs;
     pstBase->stOwner.usPifId = g_usPifId++;
     pstBase->usPeriod = usPeriodMs;
-    pstBase->unCount = 0;
     pstBase->__evtLoop = evtLoop;
     pstBase->stOwner.pvLoopEach = pvLoopEach;
 
@@ -201,7 +210,6 @@ PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, vo
     pstBase->stOwner.enMode = TM_enPeriodUs;
     pstBase->stOwner.usPifId = g_usPifId++;
     pstBase->usPeriod = usPeriodUs;
-    pstBase->unCount = 0;
     pstBase->__evtLoop = evtLoop;
     pstBase->stOwner.pvLoopEach = pvLoopEach;
 
@@ -287,10 +295,14 @@ void pifTask_Loop()
 		if (pstBase->bPause) continue;
 
 		switch (pstBase->stOwner.enMode) {
+		case TM_enAlways:
+			(*pstBase->__evtLoop)(&pstBase->stOwner);
+			break;
+
 		case TM_enPeriodUs:
-			unTime = 1000000L * g_unPerformanceCount / g_unPerformanceMeasure;
+			unTime = 1000 * g_unPerformanceCount / g_unPerformanceMeasure * 100;
 			if (unTime < pstBase->unPretime) {
-				unGap = 1000000L - pstBase->unPretime + unTime;
+				unGap = 100000L - pstBase->unPretime + unTime;
 			}
 			else {
 				unGap = unTime - pstBase->unPretime;
@@ -317,14 +329,18 @@ void pifTask_Loop()
 
 		default:
 			if (s_aunTable[ucNumber] & (1 << i)) {
+#ifdef __PIF_DEBUG__
 				unTime = pif_unTimer1sec;
 				if (unTime != pstBase->unPretime) {
 					pstBase->fPeriod = 1000000.0 / pstBase->unCount;
 					pstBase->unCount = 0;
 					pstBase->unPretime = unTime;
 				}
+#endif
 				(*pstBase->__evtLoop)(&pstBase->stOwner);
+#ifdef __PIF_DEBUG__
 				pstBase->unCount++;
+#endif
 			}
 			break;
 		}

@@ -83,6 +83,16 @@ void pif_Loop()
 void pif_sigTimer1ms()
 {
 	uint8_t days;
+	static uint8_t ucTimer100ms = 0;
+
+	ucTimer100ms++;
+	if (ucTimer100ms >= 100) {
+		ucTimer100ms = 0;
+    	s_ucPerformaceStep = 4;
+	}
+    else if (ucTimer100ms == 2) {
+    	if (s_ucPerformaceStep == 1) s_ucPerformaceStep = 2;
+    }
 
     pif_usTimer1ms++;
     if (pif_usTimer1ms >= 1000) {
@@ -119,10 +129,6 @@ void pif_sigTimer1ms()
     			}
     		}
     	}
-    	s_ucPerformaceStep = 4;
-    }
-    else if (pif_usTimer1ms == 20) {
-    	if (s_ucPerformaceStep == 1) s_ucPerformaceStep = 2;
     }
 }
 

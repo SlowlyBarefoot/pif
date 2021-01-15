@@ -14,7 +14,8 @@ typedef enum _PIF_enTaskMode
 {
 	TM_enRatio		= 0,
 	TM_enPeriodMs	= 1,
-	TM_enPeriodUs	= 2
+	TM_enPeriodUs	= 2,
+	TM_enAlways		= 3
 } PIF_enTaskMode;
 
 typedef enum _PIF_enTaskLoop
