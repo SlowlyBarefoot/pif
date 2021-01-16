@@ -198,6 +198,28 @@ void pifDutyMotor_SetDuty(PIF_stDutyMotor *pstOwner, uint16_t usDuty)
 }
 
 /**
+ * @fn pifDutyMotor_SetOperatingTime
+ * @brief
+ * @param pstOwner
+ * @param unOperatingTime
+ */
+BOOL pifDutyMotor_SetOperatingTime(PIF_stDutyMotor *pstOwner, uint32_t unOperatingTime)
+{
+    PIF_stDutyMotorBase *pstBase = (PIF_stDutyMotorBase *)pstOwner;
+
+	if (!pstBase->pstTimerBreak) {
+		pstBase->pstTimerBreak = pifPulse_AddItem(g_pstDutyMotorTimer, PT_enOnce);
+	}
+	if (pstBase->pstTimerBreak) {
+		pifPulse_AttachEvtFinish(pstBase->pstTimerBreak, _TimerBreakFinish, pstBase);
+		if (pifPulse_StartItem(pstBase->pstTimerBreak, unOperatingTime)) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+/**
  * @fn pifDutyMotor_Start
  * @brief
  * @param pstOwner
@@ -224,28 +246,6 @@ fail:
 #ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "DM:%u(%u) EC:%d", __LINE__, pstOwner->usPifId, usDuty, pif_enError);
 #endif
-	return FALSE;
-}
-
-/**
- * @fn pifDutyMotor_SetOperatingTime
- * @brief
- * @param pstOwner
- * @param unOperatingTime
- */
-BOOL pifDutyMotor_SetOperatingTime(PIF_stDutyMotor *pstOwner, uint32_t unOperatingTime)
-{
-    PIF_stDutyMotorBase *pstBase = (PIF_stDutyMotorBase *)pstOwner;
-
-	if (!pstBase->pstTimerBreak) {
-		pstBase->pstTimerBreak = pifPulse_AddItem(g_pstDutyMotorTimer, PT_enOnce);
-	}
-	if (pstBase->pstTimerBreak) {
-		pifPulse_AttachEvtFinish(pstBase->pstTimerBreak, _TimerBreakFinish, pstBase);
-		if (pifPulse_StartItem(pstBase->pstTimerBreak, unOperatingTime)) {
-			return TRUE;
-		}
-	}
 	return FALSE;
 }
 

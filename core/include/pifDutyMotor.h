@@ -48,9 +48,9 @@ void pifDutyMotor_AttachEvent(PIF_stDutyMotor *pstOwner, PIF_evtDutyMotorStable 
 
 void pifDutyMotor_SetDirection(PIF_stDutyMotor *pstOwner, uint8_t ucDirection);
 void pifDutyMotor_SetDuty(PIF_stDutyMotor *pstOwner, uint16_t usDuty);
+BOOL pifDutyMotor_SetOperatingTime(PIF_stDutyMotor *pstOwner, uint32_t unOperatingTime);
 
 BOOL pifDutyMotor_Start(PIF_stDutyMotor *pstOwner, uint16_t usDuty);
-BOOL pifDutyMotor_SetOperatingTime(PIF_stDutyMotor *pstOwner, uint32_t unOperatingTime);
 void pifDutyMotor_BreakRelease(PIF_stDutyMotor *pstOwner, uint16_t usBreakTime);
 
 BOOL pifDutyMotor_InitControl(PIF_stDutyMotor *pstOwner, uint16_t usControlPeriod);

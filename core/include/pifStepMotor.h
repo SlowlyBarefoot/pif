@@ -14,11 +14,13 @@ typedef enum _PIF_enStepMotorMethod
 
 typedef enum _PIF_enStepMotorOperation
 {
-	SMO_en2P_BP			= 1,	// 2-Phase Bipolar
-	SMO_en4P_UP_1Phase	= 2,	// 4-Phase Unipolar : 1 Phase
-	SMO_en4P_UP_2Phase	= 3,	// 4-Phase Unipolar : 2 Phase
-	SMO_en4P_UP_12Phase	= 4,	// 4-Phase Unipolar : 1-2 Phase
+	SMO_en2P_2W			= 1,	// 2-Phase 2-Wire
+	SMO_en2P_4W_1S		= 2,	// 2-Phase 4-Wire : 1 Step
+	SMO_en2P_4W_2S		= 3,	// 2-Phase 4-Wire : 2 Step
+	SMO_en2P_4W_1_2S	= 4,	// 2-Phase 4-Wire : 1-2 Step
+#if 0
 	SMO_en5P_PG			= 5		// 5-Phase Pantagon
+#endif
 } PIF_enStepMotorOperation;
 
 
@@ -65,6 +67,7 @@ void pifStepMotor_AttachTask(PIF_stStepMotor *pstOwner, PIF_stTask *pstTask);
 
 void pifStepMotor_SetDirection(PIF_stStepMotor *pstOwner, uint8_t ucDirection);
 BOOL pifStepMotor_SetMethod(PIF_stStepMotor *pstOwner, PIF_enStepMotorMethod enMethod);
+BOOL piStepMotor_SetOperatingTime(PIF_stStepMotor *pstOwner, uint32_t unOperatingTime);
 BOOL pifStepMotor_SetOperation(PIF_stStepMotor *pstOwner, PIF_enStepMotorOperation enOperation);
 BOOL pifStepMotor_SetPps(PIF_stStepMotor *pstOwner, uint16_t usPps);
 BOOL pifStepMotor_SetRpm(PIF_stStepMotor *pstOwner, float fRpm);

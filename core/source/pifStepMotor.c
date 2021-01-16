@@ -9,28 +9,28 @@ static uint8_t s_ucStepMotorBasePos;
 PIF_stPulse *g_pstStepMotorTimer;
 uint32_t g_unStepMotorTimerUs;
 
-const uint16_t c_ausOperation_2P_BP[] = {
+const uint16_t c_ausOperation_2P_2W[] = {
 		0x02,		// 10 : B
 		0x03,		// 11 : B A
 		0x01,		// 01 :   A
 		0x00		// 00 :
 };
 
-const uint16_t c_ausOperation_4P_UP_1Phase[] = {
+const uint16_t c_ausOperation_2P_4W_1S[] = {
 		0x01,		// 00 01 :     A
 		0x04,		// 01 00 :  B
 		0x02,		// 00 10 :    ~A
 		0x08		// 10 00 : ~B
 };
 
-const uint16_t c_ausOperation_4P_UP_2Phase[] = {
+const uint16_t c_ausOperation_2P_4W_2S[] = {
 		0x05,		// 01 01 :  B  A
 		0x06,		// 01 10 :  B ~A
 		0x0A,		// 10 10 : ~B ~A
 		0x09		// 10 01 : ~B  A
 };
 
-const uint16_t c_ausOperation_4P_UP_12Phase[] = {
+const uint16_t c_ausOperation_2P_4W_1_2S[] = {
 		0x01,		// 00 01 :     A
 		0x05,		// 01 01 :  B  A
 		0x04,		// 01 00 :  B
@@ -41,6 +41,7 @@ const uint16_t c_ausOperation_4P_UP_12Phase[] = {
 		0x09		// 10 01 : ~B  A
 };
 
+#if 0
 const uint16_t c_ausOperation_5P_PG[] = {
 		0x16,		// 1 0 1 1 0 : E   C B
 		0x12,		// 1 0 0 1 0 : E     B
@@ -53,6 +54,7 @@ const uint16_t c_ausOperation_5P_PG[] = {
 		0x15,		// 1 0 1 0 1 : E   C   A
 		0x14		// 1 0 1 0 0 : E   C
 };
+#endif
 
 
 static void _SetStep(PIF_stStepMotorBase *pstBase)
@@ -105,7 +107,14 @@ static void _TimerControlFinish(void *pvIssuer)
 
 static void _TimerBreakFinish(void *pvIssuer)
 {
-	pifStepMotor_Release(&((PIF_stStepMotorBase *)pvIssuer)->stOwner);
+    PIF_stStepMotorBase *pstBase = (PIF_stStepMotorBase *)pvIssuer;
+
+    if (pstBase->stOwner.enState > MS_enIdle && pstBase->stOwner.enState < MS_enReduce) {
+    	pstBase->stOwner.enState = MS_enReduce;
+    }
+    else {
+    	pifStepMotor_Release(&pstBase->stOwner);
+    }
 }
 
 static void _TaskCommon(PIF_stTask *pstTask, PIF_stStepMotorBase *pstBase)
@@ -310,6 +319,28 @@ BOOL pifStepMotor_SetMethod(PIF_stStepMotor *pstOwner, PIF_enStepMotorMethod enM
 }
 
 /**
+ * @fn pifStepMotor_SetOperatingTime
+ * @brief
+ * @param pstOwner
+ * @param unOperatingTime
+ */
+BOOL pifStepMotor_SetOperatingTime(PIF_stStepMotor *pstOwner, uint32_t unOperatingTime)
+{
+    PIF_stStepMotorBase *pstBase = (PIF_stStepMotorBase *)pstOwner;
+
+	if (!pstBase->pstTimerBreak) {
+		pstBase->pstTimerBreak = pifPulse_AddItem(g_pstStepMotorTimer, PT_enOnce);
+	}
+	if (pstBase->pstTimerBreak) {
+		pifPulse_AttachEvtFinish(pstBase->pstTimerBreak, _TimerBreakFinish, pstBase);
+		if (pifPulse_StartItem(pstBase->pstTimerBreak, unOperatingTime)) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+/**
  * @fn pifStepMotor_SetOperation
  * @brief
  * @param pstOwner
@@ -326,30 +357,32 @@ BOOL pifStepMotor_SetOperation(PIF_stStepMotor *pstOwner, PIF_enStepMotorOperati
 	}
 
 	switch (enOperation) {
-	case SMO_en2P_BP:
-		pstBase->ucStepSize = 2;
-		pstBase->pusPhaseOperation = c_ausOperation_2P_BP;
-		break;
-
-	case SMO_en4P_UP_1Phase:
+	case SMO_en2P_2W:
 		pstBase->ucStepSize = 4;
-		pstBase->pusPhaseOperation = c_ausOperation_4P_UP_1Phase;
+		pstBase->pusPhaseOperation = c_ausOperation_2P_2W;
 		break;
 
-	case SMO_en4P_UP_2Phase:
+	case SMO_en2P_4W_1S:
 		pstBase->ucStepSize = 4;
-		pstBase->pusPhaseOperation = c_ausOperation_4P_UP_2Phase;
+		pstBase->pusPhaseOperation = c_ausOperation_2P_4W_1S;
 		break;
 
-	case SMO_en4P_UP_12Phase:
+	case SMO_en2P_4W_2S:
+		pstBase->ucStepSize = 4;
+		pstBase->pusPhaseOperation = c_ausOperation_2P_4W_2S;
+		break;
+
+	case SMO_en2P_4W_1_2S:
 		pstBase->ucStepSize = 8;
-		pstBase->pusPhaseOperation = c_ausOperation_4P_UP_12Phase;
+		pstBase->pusPhaseOperation = c_ausOperation_2P_4W_1_2S;
 		break;
 
+#if 0
 	case SMO_en5P_PG:
 		pstBase->ucStepSize = 10;
 		pstBase->pusPhaseOperation = c_ausOperation_5P_PG;
 		break;
+#endif
 
 	default:
         pif_enError = E_enInvalidParam;
@@ -360,7 +393,7 @@ BOOL pifStepMotor_SetOperation(PIF_stStepMotor *pstOwner, PIF_enStepMotorOperati
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "StepMotor:SetOperation(O:%d) EC:%d", enOperation, pif_enError);
+	pifLog_Printf(LT_enError, "SM:%u(%u) O:%u EC:%d", __LINE__, pstOwner->usPifId, enOperation, pif_enError);
 #endif
 	return FALSE;
 }
@@ -382,7 +415,7 @@ BOOL pifStepMotor_SetPps(PIF_stStepMotor *pstOwner, uint16_t usPps)
     }
 
 	uint16_t period = 1000000.0 / (usPps * pstOwner->ucReductionGearRatio) + 0.5;
-	if (pstOwner->enOperation == SMO_en4P_UP_12Phase) {
+	if (pstOwner->enOperation == SMO_en2P_4W_1_2S) {
 		period /= 2;
 	}
 
@@ -407,15 +440,17 @@ BOOL pifStepMotor_SetPps(PIF_stStepMotor *pstOwner, uint16_t usPps)
 	pstOwner->usCurrentPps = usPps;
 	pstBase->usStepPeriodUs = period;
 
+#ifndef __PIF_NO_LOG__
 	if (pif_stLogFlag.btStepMotor) {
-		pifLog_Printf(LT_enInfo, "StepMotor:SetPps DC:%u P/S:%d Period:%uus", pstOwner->usPifId,
+		pifLog_Printf(LT_enInfo, "SM:%u(%u) P/S:%d SP:%uus", __LINE__, pstOwner->usPifId,
 				pstOwner->usCurrentPps, pstBase->usStepPeriodUs);
 	}
+#endif
 	return TRUE;
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "StepMotor:SetRps(P/S:%d) EC:%d", usPps, pif_enError);
+	pifLog_Printf(LT_enError, "SM:%u(%u) P/S:%d EC:%d", __LINE__, pstOwner->usPifId, usPps, pif_enError);
 #endif
 	return FALSE;
 }
@@ -491,7 +526,9 @@ BOOL pifStepMotor_Start(PIF_stStepMotor *pstOwner, uint32_t unTargetStep)
 	return TRUE;
 
 fail:
-	pifLog_Printf(LT_enError, "StepMotor:Start(T:%u) EC:%d", unTargetStep, pif_enError);
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_enError, "SM:%u(%u) TS:%u EC:%d", __LINE__, pstOwner->usPifId, unTargetStep, pif_enError);
+#endif
 	return FALSE;
 }
 
