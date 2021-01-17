@@ -43,25 +43,13 @@ typedef struct _PIF_stDutyMotorSpeedEncStage
 } PIF_stDutyMotorSpeedEncStage;
 
 /**
- * @class _PIF_stDutyMotorSpeedEncInfo
+ * @class _PIF_stDutyMotorSpeedEnc
  * @brief 
  */
-typedef struct _PIF_stDutyMotorSpeedEncInfo
+typedef struct _PIF_stDutyMotorSpeedEnc
 {
-    uint8_t ucStageSize;
-    const PIF_stDutyMotorSpeedEncStage *pstStages;
-    const PIF_stDutyMotorSpeedEncStage *pstCurrentStage;
-
-    PIF_stPidControl stPidControl;
-
-	uint16_t usArrivePPR;
-	uint16_t usErrLowPPR;
-	uint16_t usErrHighPPR;
-	volatile uint16_t usMeasureEnc;	// pulse
-	uint8_t ucEncSampleIdx;
-	uint16_t ausEncSample[MAX_STABLE_CNT];
-	uint32_t unEncSampleSum;
-} PIF_stDutyMotorSpeedEncInfo;
+    uint8_t ucStageIndex;
+} PIF_stDutyMotorSpeedEnc;
 
 
 #ifdef __cplusplus

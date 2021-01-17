@@ -21,7 +21,7 @@ struct _PIF_stDutyMotorBase
 	PIF_stDutyMotor stOwner;
 
 	// Private Member Variable
-    void *pvInfo;
+    void *pvChild;
     uint8_t ucError;
 	uint16_t usControlPeriod;
 

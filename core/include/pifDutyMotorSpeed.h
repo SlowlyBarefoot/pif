@@ -34,15 +34,13 @@ typedef struct _PIF_stDutyMotorSpeedStage
 } PIF_stDutyMotorSpeedStage;
 
 /**
- * @class _PIF_stDutyMotorSpeedInfo
+ * @class _PIF_stDutyMotorSpeed
  * @brief 
  */
-typedef struct _PIF_stDutyMotorSpeedInfo
+typedef struct _PIF_stDutyMotorSpeed
 {
-    uint8_t ucStageSize;
-    const PIF_stDutyMotorSpeedStage *pstStages;
-    const PIF_stDutyMotorSpeedStage *pstCurrentStage;
-} PIF_stDutyMotorSpeedInfo;
+    uint8_t ucStageIndex;
+} PIF_stDutyMotorSpeed;
 
 
 #ifdef __cplusplus

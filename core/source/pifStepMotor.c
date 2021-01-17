@@ -104,7 +104,7 @@ static void _TimerControlFinish(void *pvIssuer)
 	if (pstOwner->enState == MS_enStop) {
 		pifPulse_StopItem(pstBase->pstTimerControl);
 		pstOwner->enState = MS_enIdle;
-		if (pstBase->evtStop) (*pstBase->evtStop)(pstOwner, pstBase->pvInfo);
+		if (pstBase->evtStop) (*pstBase->evtStop)(pstOwner, pstBase->pvChild);
 	}
 }
 
@@ -184,9 +184,9 @@ void pifStepMotor_Exit()
     if (s_pstStepMotorBase) {
 		for (int i = 0; i < s_ucStepMotorBaseSize; i++) {
 			PIF_stStepMotorBase *pstBase = &s_pstStepMotorBase[i];
-			if (pstBase->pvInfo) {
-				free(pstBase->pvInfo);
-				pstBase->pvInfo = NULL;
+			if (pstBase->pvChild) {
+				free(pstBase->pvChild);
+				pstBase->pvChild = NULL;
 			}
 		}
         free(s_pstStepMotorBase);

@@ -36,15 +36,13 @@ typedef struct _PIF_stStepMotorPosStage
 } PIF_stStepMotorPosStage;
 
 /**
- * @class _PIF_stStepMotorPosInfo
+ * @class _PIF_stStepMotorPos
  * @brief
  */
-typedef struct _PIF_stStepMotorPosInfo
+typedef struct _PIF_stStepMotorPos
 {
-    uint8_t ucStageSize;
-    const PIF_stStepMotorPosStage *pstStages;
-    const PIF_stStepMotorPosStage *pstCurrentStage;
-} PIF_stStepMotorPosInfo;
+    uint8_t ucStageIndex;
+} PIF_stStepMotorPos;
 
 
 #ifdef __cplusplus

@@ -36,17 +36,14 @@ typedef struct _PIF_stDutyMotorPosStage
 } PIF_stDutyMotorPosStage;
 
 /**
- * @class _PIF_stDutyMotorPosInfo
+ * @class _PIF_stDutyMotorPos
  * @brief
  */
-typedef struct _PIF_stDutyMotorPosInfo
+typedef struct _PIF_stDutyMotorPos
 {
-    uint8_t ucStageSize;
-    const PIF_stDutyMotorPosStage *pstStages;
-    const PIF_stDutyMotorPosStage *pstCurrentStage;
-
+	uint8_t ucStageIndex;
 	volatile uint32_t unCurrentPulse;		// 현재까지 이동 pulse
-} PIF_stDutyMotorPosInfo;
+} PIF_stDutyMotorPos;
 
 
 #ifdef __cplusplus
