@@ -36,9 +36,8 @@ struct _PIF_stStepMotorBase
 	PIF_stPulseItem *pstTimerDelay;
 	PIF_stPulseItem *pstTimerBreak;
 
-	uint16_t usCurrentStep;
-	uint32_t unStepTarget;
-	uint32_t unStepCount;
+	uint8_t ucCurrentStep;
+	uint32_t unTargetPulse;
 	const uint16_t *pusPhaseOperation;
 
 	PIF_enTaskLoop enTaskLoop;

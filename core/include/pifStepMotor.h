@@ -48,6 +48,7 @@ struct _PIF_stStepMotor
     uint8_t ucDirection;
 	uint16_t usCurrentPps;
     PIF_enMotorState enState;
+    uint32_t unCurrentPulse;
 };
 
 
@@ -67,14 +68,14 @@ void pifStepMotor_AttachTask(PIF_stStepMotor *pstOwner, PIF_stTask *pstTask);
 
 void pifStepMotor_SetDirection(PIF_stStepMotor *pstOwner, uint8_t ucDirection);
 BOOL pifStepMotor_SetMethod(PIF_stStepMotor *pstOwner, PIF_enStepMotorMethod enMethod);
-BOOL piStepMotor_SetOperatingTime(PIF_stStepMotor *pstOwner, uint32_t unOperatingTime);
+BOOL pifStepMotor_SetOperatingTime(PIF_stStepMotor *pstOwner, uint32_t unOperatingTime);
 BOOL pifStepMotor_SetOperation(PIF_stStepMotor *pstOwner, PIF_enStepMotorOperation enOperation);
 BOOL pifStepMotor_SetPps(PIF_stStepMotor *pstOwner, uint16_t usPps);
 BOOL pifStepMotor_SetRpm(PIF_stStepMotor *pstOwner, float fRpm);
 float pifStepMotor_GetRpm(PIF_stStepMotor *pstOwner);
-void pifStepMotor_SetTargetStep(PIF_stStepMotor *pstOwner, uint32_t unTargetStep);
+void pifStepMotor_SetTargetPulse(PIF_stStepMotor *pstOwner, uint32_t unTargetPulse);
 
-BOOL pifStepMotor_Start(PIF_stStepMotor *pstOwner, uint32_t unTargetStep);
+BOOL pifStepMotor_Start(PIF_stStepMotor *pstOwner, uint32_t unTargetPulse);
 void pifStepMotor_Break(PIF_stStepMotor *pstOwner);
 void pifStepMotor_Release(PIF_stStepMotor *pstOwner);
 void pifStepMotor_BreakRelease(PIF_stStepMotor *pstOwner, uint16_t usBreakTime);

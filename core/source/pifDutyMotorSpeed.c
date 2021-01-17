@@ -220,10 +220,6 @@ BOOL pifDutyMotorSpeed_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize,
     }
 
     for (int i = 0; i < ucStageSize; i++) {
-    	if ((pstStages[i].enMode & MM_RT_enMask) == MM_RT_enPulse) {
-            pif_enError = E_enInvalidParam;
-            goto fail;
-    	}
     	if (pstStages[i].enMode & MM_SC_enMask) {
             pif_enError = E_enInvalidParam;
             goto fail;

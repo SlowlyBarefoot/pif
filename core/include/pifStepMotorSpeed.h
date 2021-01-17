@@ -62,4 +62,4 @@ void pifStepMotorSpeed_Emergency(PIF_stStepMotor *pstOwner);
 #endif
 
 
-#endif  // PIF_MOTOR_ENCODER_H
+#endif  // PIF_STEP_MOTOR_SPEED_H

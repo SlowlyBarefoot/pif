@@ -31,21 +31,20 @@ typedef enum _PIF_enMotorMode
 	// Speed Control : 속도 제어 여부
 	MM_SC_enMask		= 0x02,
 	MM_SC_enShift		= 1,
-	MM_SC_enNO			= 0x00,
-	MM_SC_enYES			= 0x02,
+	MM_SC_enNo			= 0x00,
+	MM_SC_enYes			= 0x02,
 
 	// Position Control : 위치 제어 여부
 	MM_PC_enMask		= 0x04,
 	MM_PC_enShift		= 2,
-	MM_PC_enNO			= 0x00,
-	MM_PC_enYES			= 0x04,
+	MM_PC_enNo			= 0x00,
+	MM_PC_enYes			= 0x04,
 
 	// Reduce Time : 감속 시점 지정
 	MM_RT_enMask		= 0x18,
 	MM_RT_enShift		= 3,
 	MM_RT_enNone		= 0x00,
 	MM_RT_enTime		= 0x08,		// 일정 시간후 중지
-	MM_RT_enPulse		= 0x10,		// 펄스 이동
 
 	// Not Release : 정지시 잡고 있을지
 	MM_NR_enMask		= 0x20,

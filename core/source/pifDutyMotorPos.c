@@ -46,8 +46,14 @@ static void _ControlPos(PIF_stDutyMotorBase *pstBase)
 	}
 	else if (pstOwner->enState == MS_enReduce) {
 		if (!pstStage->usRsCtrlDuty) {
-			usTmpDuty = pstStage->usRsLowDuty;
-			pstOwner->enState = usTmpDuty ? MS_enLowConst : MS_enBreak;
+			if (pstStage->enMode & MM_PC_enMask) {
+				usTmpDuty = pstStage->usRsLowDuty;
+				pstOwner->enState = MS_enLowConst;
+			}
+			else {
+				usTmpDuty = 0;
+				pstOwner->enState = MS_enBreak;
+			}
 
 #ifndef __PIF_NO_LOG__
 			if (pif_stLogFlag.btDutyMotor) {

@@ -59,20 +59,24 @@ const uint16_t c_ausOperation_5P_PG[] = {
 
 static void _SetStep(PIF_stStepMotorBase *pstBase)
 {
-	if (((PIF_stStepMotor *)pstBase)->ucDirection == 0) {
-		pstBase->usCurrentStep++;
-		if (pstBase->usCurrentStep == pstBase->ucStepSize) {
-			pstBase->usCurrentStep = 0;
+    PIF_stStepMotor *pstOwner = &pstBase->stOwner;
+
+    if (pstOwner->ucDirection == 0) {
+		pstBase->ucCurrentStep++;
+		if (pstBase->ucCurrentStep == pstBase->ucStepSize) {
+			pstBase->ucCurrentStep = 0;
 		}
 	}
 	else{
-		if (pstBase->usCurrentStep == 0) {
-			pstBase->usCurrentStep = pstBase->ucStepSize;
+		if (pstBase->ucCurrentStep == 0) {
+			pstBase->ucCurrentStep = pstBase->ucStepSize;
 		}
-		pstBase->usCurrentStep--;
+		pstBase->ucCurrentStep--;
 	}
 
-	(*pstBase->actSetStep)(pstBase->pusPhaseOperation[pstBase->usCurrentStep]);
+	pstOwner->unCurrentPulse++;
+
+	(*pstBase->actSetStep)(pstBase->pusPhaseOperation[pstBase->ucCurrentStep]);
 }
 
 static void _TimerStepFinish(void *pvIssuer)
@@ -81,12 +85,11 @@ static void _TimerStepFinish(void *pvIssuer)
 
     _SetStep(pstBase);
 
-	if (pstBase->unStepTarget) {
-		pstBase->unStepCount++;
-		if (pstBase->unStepCount >= pstBase->unStepTarget) {
+	if (pstBase->unTargetPulse) {
+		if (pstBase->stOwner.unCurrentPulse >= pstBase->unTargetPulse) {
 			pifPulse_StopItem(pstBase->pstTimerStep);
 			if (pstBase->fnStopStep) (*pstBase->fnStopStep)(pstBase);
-			if (pstBase->evtStop) (*pstBase->evtStop)((PIF_stStepMotor *)pstBase, NULL);
+			else if (pstBase->evtStop) (*pstBase->evtStop)((PIF_stStepMotor *)pstBase, NULL);
 		}
 	}
 }
@@ -123,12 +126,11 @@ static void _TaskCommon(PIF_stTask *pstTask, PIF_stStepMotorBase *pstBase)
 
 	_SetStep(pstBase);
 
-	if (pstBase->unStepTarget) {
-		pstBase->unStepCount++;
-		if (pstBase->unStepCount >= pstBase->unStepTarget) {
+	if (pstBase->unTargetPulse) {
+		if (pstBase->stOwner.unCurrentPulse >= pstBase->unTargetPulse) {
 			pifTask_Pause(pstBase->pstTask);
 			if (pstBase->fnStopStep) (*pstBase->fnStopStep)(pstBase);
-			if (pstBase->evtStop) (*pstBase->evtStop)((PIF_stStepMotor *)pstBase, NULL);
+			else if (pstBase->evtStop) (*pstBase->evtStop)((PIF_stStepMotor *)pstBase, NULL);
 		}
 	}
 
@@ -479,27 +481,27 @@ float pifStepMotor_GetRpm(PIF_stStepMotor *pstOwner)
 }
 
 /**
- * @fn pifStepMotor_SetTargetStep
+ * @fn pifStepMotor_SetTargetPulse
  * @brief
  * @param pstOwner
- * @param unTargetStep
+ * @param unTargetPulse
  */
-void pifStepMotor_SetTargetStep(PIF_stStepMotor *pstOwner, uint32_t unTargetStep)
+void pifStepMotor_SetTargetPulse(PIF_stStepMotor *pstOwner, uint32_t unTargetPulse)
 {
     PIF_stStepMotorBase *pstBase = (PIF_stStepMotorBase *)pstOwner;
 
-    pstBase->unStepTarget = unTargetStep;
-    pstBase->unStepCount = 0;
+    pstBase->unTargetPulse = unTargetPulse;
+    pstBase->stOwner.unCurrentPulse = 0;
 }
 
 /**
  * @fn pifStepMotor_Start
  * @brief
  * @param pstOwner
- * @param unTargetStep
+ * @param unTargetPulse
  * @return
  */
-BOOL pifStepMotor_Start(PIF_stStepMotor *pstOwner, uint32_t unTargetStep)
+BOOL pifStepMotor_Start(PIF_stStepMotor *pstOwner, uint32_t unTargetPulse)
 {
     PIF_stStepMotorBase *pstBase = (PIF_stStepMotorBase *)pstOwner;
 
@@ -521,13 +523,13 @@ BOOL pifStepMotor_Start(PIF_stStepMotor *pstOwner, uint32_t unTargetStep)
 		pifTask_Restart(pstBase->pstTask);
     	break;
 	}
-    pstBase->unStepTarget = unTargetStep;
-    pstBase->unStepCount = 0;
+    pstBase->unTargetPulse = unTargetPulse;
+    pstBase->stOwner.unCurrentPulse = 0;
 	return TRUE;
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "SM:%u(%u) TS:%u EC:%d", __LINE__, pstOwner->usPifId, unTargetStep, pif_enError);
+	pifLog_Printf(LT_enError, "SM:%u(%u) TS:%u EC:%d", __LINE__, pstOwner->usPifId, unTargetPulse, pif_enError);
 #endif
 	return FALSE;
 }
