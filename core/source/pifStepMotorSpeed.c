@@ -39,6 +39,9 @@ static void _ControlSpeed(PIF_stStepMotorBase *pstBase)
 	uint16_t usTmpPps = 0;
     PIF_stStepMotorChild *pstChild = pstBase->pvChild;
     const PIF_stStepMotorSpeedStage *pstStage = pstChild->pstCurrentStage;
+#ifndef __PIF_NO_LOG__
+    int nLine = 0;
+#endif
 
 	usTmpPps = pstOwner->usCurrentPps;
 
@@ -49,9 +52,7 @@ static void _ControlSpeed(PIF_stStepMotorBase *pstBase)
 			if (pstBase->evtStable) (*pstBase->evtStable)(pstOwner, pstBase->pvChild);
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btStepMotor) {
-				pifLog_Printf(LT_enInfo, "SMS:%u(%u) Const P/S:%u", __LINE__, pstOwner->usPifId, usTmpPps);
-			}
+			nLine = __LINE__;
 #endif
 		}
 		else {
@@ -64,9 +65,7 @@ static void _ControlSpeed(PIF_stStepMotorBase *pstBase)
 			pstOwner->enState = MS_enBreak;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btStepMotor) {
-				pifLog_Printf(LT_enInfo, "SMS:%u(%u) Break", __LINE__, pstOwner->usPifId);
-			}
+			nLine = __LINE__;
 #endif
 		}
 		else if (usTmpPps > pstStage->usRsCtrlPps && usTmpPps > pstStage->usRsStopPps) {
@@ -77,9 +76,7 @@ static void _ControlSpeed(PIF_stStepMotorBase *pstBase)
 			pstOwner->enState = MS_enBreak;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btStepMotor) {
-				pifLog_Printf(LT_enInfo, "SMS:%u(%u) Break", __LINE__, pstOwner->usPifId);
-			}
+			nLine = __LINE__;
 #endif
 		}
 	}
@@ -96,18 +93,14 @@ static void _ControlSpeed(PIF_stStepMotorBase *pstBase)
 			pstOwner->enState = MS_enBreaking;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btStepMotor) {
-				pifLog_Printf(LT_enInfo, "SMS:%u(%u) Breaking P/S:%u", __LINE__, pstOwner->usPifId, usTmpPps);
-			}
+			nLine = __LINE__;
 #endif
     	}
     	else {
     		pstOwner->enState = MS_enStopping;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btStepMotor) {
-				pifLog_Printf(LT_enInfo, "SMS:%u(%u) Stopping P/S:%u", __LINE__, pstOwner->usPifId, usTmpPps);
-			}
+			nLine = __LINE__;
 #endif
     	}
 	}
@@ -134,11 +127,15 @@ static void _ControlSpeed(PIF_stStepMotorBase *pstBase)
 		}
 
 #ifndef __PIF_NO_LOG__
-		if (pif_stLogFlag.btStepMotor) {
-			pifLog_Printf(LT_enInfo, "SMS:%u(%u) Stop P/S:%u", __LINE__, pstOwner->usPifId, usTmpPps);
-		}
+		nLine = __LINE__;
 #endif
     }
+
+#ifndef __PIF_NO_LOG__
+	if (nLine && pif_stLogFlag.btStepMotor) {
+		pifLog_Printf(LT_enInfo, "SMS:%u(%u) %s P/S:%u", nLine, pstOwner->usPifId, c_cMotorState[pstOwner->enState], usTmpPps);
+	}
+#endif
 }
 
 static void _SwitchReduceChange(PIF_usId usPifId, SWITCH swState, void *pvIssuer)

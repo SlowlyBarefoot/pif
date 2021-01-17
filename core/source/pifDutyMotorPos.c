@@ -35,6 +35,9 @@ static void _ControlPos(PIF_stDutyMotorBase *pstBase)
 	uint16_t usTmpDuty = 0;
     PIF_stDutyMotorChild *pstChild = pstBase->pvChild;
     const PIF_stDutyMotorPosStage *pstStage = pstChild->pstCurrentStage;
+#ifndef __PIF_NO_LOG__
+    int nLine = 0;
+#endif
 
 	usTmpDuty = pstOwner->usCurrentDuty;
 
@@ -45,9 +48,7 @@ static void _ControlPos(PIF_stDutyMotorBase *pstBase)
 			if (pstBase->evtStable) (*pstBase->evtStable)(pstOwner, pstBase->pvChild);
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMP:%u(%u) Const D:%u P:%u", __LINE__, pstOwner->usPifId, usTmpDuty, pstChild->stPos.unCurrentPulse);
-			}
+			nLine = __LINE__;
 #endif
 		}
 		else {
@@ -66,9 +67,7 @@ static void _ControlPos(PIF_stDutyMotorBase *pstBase)
 			}
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMP:%u(%u) LowConst/Break D:%u P:%u", __LINE__, pstOwner->usPifId, usTmpDuty, pstChild->stPos.unCurrentPulse);
-			}
+			nLine = __LINE__;
 #endif
 		}
 		else if (usTmpDuty > pstStage->usRsLowDuty + pstStage->usRsCtrlDuty) {
@@ -79,9 +78,7 @@ static void _ControlPos(PIF_stDutyMotorBase *pstBase)
 			pstOwner->enState = MS_enLowConst;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMP:%u(%u) LowConst D:%u P:%u", __LINE__, pstOwner->usPifId, usTmpDuty, pstChild->stPos.unCurrentPulse);
-			}
+			nLine = __LINE__;
 #endif
 		}
 	}
@@ -93,9 +90,7 @@ static void _ControlPos(PIF_stDutyMotorBase *pstBase)
 				pstOwner->enState = MS_enBreak;
 
 #ifndef __PIF_NO_LOG__
-				if (pif_stLogFlag.btDutyMotor) {
-					pifLog_Printf(LT_enInfo, "DMP:%u(%u) Break D:%u P:%u", __LINE__, pstOwner->usPifId, usTmpDuty, pstChild->stPos.unCurrentPulse);
-				}
+				nLine = __LINE__;
 #endif
 			}
 		}
@@ -104,9 +99,7 @@ static void _ControlPos(PIF_stDutyMotorBase *pstBase)
 				pstOwner->enState = MS_enReduce;
 
 #ifndef __PIF_NO_LOG__
-				if (pif_stLogFlag.btDutyMotor) {
-					pifLog_Printf(LT_enInfo, "DMP:%u(%u) Reduce D:%u P:%u", __LINE__, pstOwner->usPifId, usTmpDuty, pstChild->stPos.unCurrentPulse);
-				}
+				nLine = __LINE__;
 #endif
 			}
 		}
@@ -124,9 +117,7 @@ static void _ControlPos(PIF_stDutyMotorBase *pstBase)
 			pstOwner->enState = MS_enBreaking;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMP:%u(%u) Breaking D:%u P:%u", __LINE__, pstOwner->usPifId, usTmpDuty, pstChild->stPos.unCurrentPulse);
-			}
+			nLine = __LINE__;
 #endif
     	}
     	else {
@@ -134,9 +125,7 @@ static void _ControlPos(PIF_stDutyMotorBase *pstBase)
     		pstOwner->enState = MS_enStopping;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMP:%u(%u) Stopping D:%u P:%u", __LINE__, pstOwner->usPifId, usTmpDuty, pstChild->stPos.unCurrentPulse);
-			}
+			nLine = __LINE__;
 #endif
     	}
 	}
@@ -163,11 +152,15 @@ static void _ControlPos(PIF_stDutyMotorBase *pstBase)
 		}
 
 #ifndef __PIF_NO_LOG__
-		if (pif_stLogFlag.btDutyMotor) {
-			pifLog_Printf(LT_enInfo, "DMP:%u(%u) Stop D:%u P:%u", __LINE__, pstOwner->usPifId, usTmpDuty, pstChild->stPos.unCurrentPulse);
-		}
+		nLine = __LINE__;
 #endif
     }
+
+#ifndef __PIF_NO_LOG__
+	if (nLine && pif_stLogFlag.btDutyMotor) {
+		pifLog_Printf(LT_enInfo, "DMP:%u(%u) %s D:%u P:%u", nLine, pstOwner->usPifId, c_cMotorState[pstOwner->enState], usTmpDuty, pstChild->stPos.unCurrentPulse);
+	}
+#endif
 }
 
 static void _SwitchReduceChange(PIF_usId usPifId, SWITCH swState, void *pvIssuer)

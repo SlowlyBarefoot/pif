@@ -60,6 +60,9 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 	uint16_t usEncAverage = 0;
     PIF_stDutyMotorChild *pstChild = pstBase->pvChild;
 	const PIF_stDutyMotorSpeedEncStage *pstStage = pstChild->pstCurrentStage;
+#ifndef __PIF_NO_LOG__
+    int nLine = 0;
+#endif
 
 	usTmpEnc = pstChild->usMeasureEnc;
 	pstChild->usMeasureEnc = 0;
@@ -78,9 +81,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
             }
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Stable E:%u D:%u", __LINE__, pstOwner->usPifId, usTmpEnc, usTmpDuty);
-			}
+            nLine = __LINE__;
 #endif
 		}
 		else {
@@ -96,9 +97,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
             pstOwner->enState = MS_enConst;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Const E:%u D:%u", __LINE__, pstOwner->usPifId, usTmpEnc, usTmpDuty);
-			}
+            nLine = __LINE__;
 #endif
         }
     }
@@ -108,9 +107,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 			pstOwner->enState = MS_enBreak;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Break E:%u D:%u", __LINE__, pstOwner->usPifId, usTmpEnc, usTmpDuty);
-			}
+            nLine = __LINE__;
 #endif
 		}
 		else if (usTmpDuty > pstStage->usRsCtrlDuty && usTmpDuty > pstStage->usRsLowDuty) {
@@ -121,9 +118,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 			pstOwner->enState = MS_enBreak;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Break E:%u D:%u", __LINE__, pstOwner->usPifId, usTmpEnc, usTmpDuty);
-			}
+            nLine = __LINE__;
 #endif
 		}
 	}
@@ -166,9 +161,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 			pstOwner->enState = MS_enBreaking;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Breaking D:%u", __LINE__, pstOwner->usPifId, usTmpDuty);
-			}
+            nLine = __LINE__;
 #endif
     	}
     	else {
@@ -176,9 +169,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
     		pstOwner->enState = MS_enStopping;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Stopping D:%u", __LINE__, pstOwner->usPifId, usTmpDuty);
-			}
+            nLine = __LINE__;
 #endif
     	}
 	}
@@ -205,11 +196,15 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 		}
 
 #ifndef __PIF_NO_LOG__
-		if (pif_stLogFlag.btDutyMotor) {
-			pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Stop D:%u", __LINE__, pstOwner->usPifId, usTmpDuty);
-		}
+        nLine = __LINE__;
 #endif
     }
+
+#ifndef __PIF_NO_LOG__
+	if (nLine && pif_stLogFlag.btDutyMotor) {
+		pifLog_Printf(LT_enInfo, "DMSE:%u(%u) %s E:%u D:%u", nLine, pstOwner->usPifId, c_cMotorState[pstOwner->enState], usTmpEnc, usTmpDuty);
+	}
+#endif
 }
 
 static void _SwitchReduceChange(PIF_usId usPifId, SWITCH swState, void *pvIssuer)

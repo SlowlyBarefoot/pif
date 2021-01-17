@@ -39,6 +39,9 @@ static void _ControlSpeed(PIF_stDutyMotorBase *pstBase)
 	uint16_t usTmpDuty = 0;
     PIF_stDutyMotorChild *pstChild = pstBase->pvChild;
     const PIF_stDutyMotorSpeedStage *pstStage = pstChild->pstCurrentStage;
+#ifndef __PIF_NO_LOG__
+    int nLine = 0;
+#endif
 
 	usTmpDuty = pstOwner->usCurrentDuty;
 
@@ -49,9 +52,7 @@ static void _ControlSpeed(PIF_stDutyMotorBase *pstBase)
 			if (pstBase->evtStable) (*pstBase->evtStable)(pstOwner, &pstChild->stSpeed);
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMS:%u(%u) Const D:%u", __LINE__, pstOwner->usPifId, usTmpDuty);
-			}
+			nLine = __LINE__;
 #endif
 		}
 		else {
@@ -64,9 +65,7 @@ static void _ControlSpeed(PIF_stDutyMotorBase *pstBase)
 			pstOwner->enState = MS_enBreak;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMS:%u(%u) Break", __LINE__, pstOwner->usPifId);
-			}
+			nLine = __LINE__;
 #endif
 		}
 		else if (usTmpDuty > pstStage->usRsCtrlDuty && usTmpDuty > pstStage->usRsLowDuty) {
@@ -77,9 +76,7 @@ static void _ControlSpeed(PIF_stDutyMotorBase *pstBase)
 			pstOwner->enState = MS_enBreak;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMS:%u(%u) Break", __LINE__, pstOwner->usPifId);
-			}
+			nLine = __LINE__;
 #endif
 		}
 	}
@@ -96,9 +93,7 @@ static void _ControlSpeed(PIF_stDutyMotorBase *pstBase)
 			pstOwner->enState = MS_enBreaking;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMS:%u(%u) Breaking D:%u", __LINE__, pstOwner->usPifId, usTmpDuty);
-			}
+			nLine = __LINE__;
 #endif
     	}
     	else {
@@ -106,9 +101,7 @@ static void _ControlSpeed(PIF_stDutyMotorBase *pstBase)
     		pstOwner->enState = MS_enStopping;
 
 #ifndef __PIF_NO_LOG__
-			if (pif_stLogFlag.btDutyMotor) {
-				pifLog_Printf(LT_enInfo, "DMS:%u(%u) Stopping D:%u", __LINE__, pstOwner->usPifId, usTmpDuty);
-			}
+			nLine = __LINE__;
 #endif
     	}
 	}
@@ -135,11 +128,15 @@ static void _ControlSpeed(PIF_stDutyMotorBase *pstBase)
 		}
 
 #ifndef __PIF_NO_LOG__
-		if (pif_stLogFlag.btDutyMotor) {
-			pifLog_Printf(LT_enInfo, "DMS:%u(%u) Stop D:%u", __LINE__, pstOwner->usPifId, usTmpDuty);
-		}
+		nLine = __LINE__;
 #endif
     }
+
+#ifndef __PIF_NO_LOG__
+	if (nLine && pif_stLogFlag.btDutyMotor) {
+		pifLog_Printf(LT_enInfo, "DMS:%u(%u) %s D:%u", nLine, pstOwner->usPifId, c_cMotorState[pstOwner->enState], usTmpDuty);
+	}
+#endif
 }
 
 static void _SwitchReduceChange(PIF_usId usPifId, SWITCH swState, void *pvIssuer)

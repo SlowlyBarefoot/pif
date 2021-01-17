@@ -17,7 +17,8 @@ typedef enum _PIF_enMotorState
     MS_enBreak		= 7,    // 브레이크 잡을 준비하다.
     MS_enBreaking	= 8,    // 브레이크를 잡다
     MS_enStopping	= 9,    // 정지중
-    MS_enStop		= 10    // 정지
+    MS_enStop		= 10,   // 정지
+    MS_enCount		= 11
 } PIF_enMotorState;
 
 typedef enum _PIF_enMotorMode
@@ -65,6 +66,9 @@ typedef enum _PIF_enMotorMode
 	MM_CFPS_enNo		= 0x00,
 	MM_CFPS_enYes		= 0x80,
 } PIF_enMotorMode;
+
+
+extern const char *c_cMotorState[MS_enCount];
 
 
 #endif  // PIF_MOTOR_H
