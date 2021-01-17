@@ -353,10 +353,12 @@ BOOL pifStepMotor_SetOperation(PIF_stStepMotor *pstOwner, PIF_enStepMotorOperati
 {
     PIF_stStepMotorBase *pstBase = (PIF_stStepMotorBase *)pstOwner;
 
-	if (pifPulse_GetStep(pstBase->pstTimerStep) != PS_enStop) {
-        pif_enError = E_enInvalidState;
-        goto fail;
-	}
+    if (pstOwner->enMethod == SMM_enTimer) {
+		if (pifPulse_GetStep(pstBase->pstTimerStep) != PS_enStop) {
+			pif_enError = E_enInvalidState;
+			goto fail;
+		}
+    }
 
 	switch (enOperation) {
 	case SMO_en2P_2W:
