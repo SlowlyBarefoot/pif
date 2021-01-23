@@ -49,8 +49,56 @@ typedef struct _PIF_stDotMatrixPattern
  */
 typedef struct _PIF_stDotMatrix
 {
-	// Variable
-	PIF_usId usPifId;
+	// Public Member Variable
+
+	// Read-only Member Variable
+	PIF_usId _usPifId;
+
+	// Private Member Variable
+    uint16_t __usColSize;
+    uint16_t __usRowSize;
+
+	uint8_t __ucPatternIndex;
+
+	struct {
+		uint8_t __btRun			: 1;
+		uint8_t __btBlink		: 1;
+	};
+
+	union {
+		PIF_enDotMatrixShift __enShift;
+		struct {
+			uint8_t btDirection	: 4;	// 2 : Left, 3 : Right, 4 : Up, 5 : Down
+			uint8_t btMethod	: 4;	// 0 : Off, 2 : Repeat Hor, 3 : Repeat Ver, 4 : PingPong Hor, 5 : PingPong Ver
+		} __btShift;
+	};
+
+    uint16_t __usColBytes;
+    uint16_t __usTotalBytes;
+
+    uint8_t __ucPatternSize;
+    uint8_t __ucPatternCount;
+    PIF_stDotMatrixPattern *__pstPattern;
+    uint8_t *__pucPattern;
+
+	uint8_t __ucRowIndex;
+	uint16_t __usPositionX;
+	uint16_t __usPositionY;
+	uint16_t __usShiftCount;
+
+    uint16_t __usControlPeriodMs;
+	uint16_t __usPretimeMs;
+
+	PIF_stPulseItem *__pstTimerBlink;
+	PIF_stPulseItem *__pstTimerShift;
+
+	PIF_enTaskLoop __enTaskLoop;
+
+	// Private Action Function
+   	PIF_actDotMatrixDisplay __actDisplay;
+
+	// Private Event Function
+    PIF_evtDotMatrixShiftFinish __evtShiftFinish;
 } PIF_stDotMatrix;
 
 
@@ -58,7 +106,7 @@ typedef struct _PIF_stDotMatrix
 extern "C" {
 #endif
 
-BOOL pifDotMatrix_Init(PIF_stPulse *pstTimer1ms, uint8_t ucSize);
+BOOL pifDotMatrix_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifDotMatrix_Exit();
 
 PIF_stDotMatrix *pifDotMatrix_Add(PIF_usId usPifId, uint16_t usColSize, uint16_t usRowSize,
