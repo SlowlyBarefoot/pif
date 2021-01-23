@@ -6,11 +6,37 @@
 #include "pifPulse.h"
 
 
-typedef enum _PIF_XmodemType
+typedef enum _PIF_enXmodemType
 {
-	XT_Original	= 1,
-	XT_CRC		= 2
-} PIF_XmodemType;
+	XT_enOriginal	= 1,
+	XT_enCRC		= 2
+} PIF_enXmodemType;
+
+typedef enum _PIF_enXmodemRxState
+{
+	XRS_enIdle			= 0,
+	XRS_enC				= 'C',
+	XRS_enGetHeader		= 10,
+	XRS_enGetData		= 11,
+	XRS_enGetCrc		= 12,
+	XRS_enSOH			= ASCII_SOH,	// 1
+	XRS_enEOT			= ASCII_EOT,	// 4
+	XRS_enCAN			= ASCII_CAN		// 24
+} PIF_enXmodemRxState;
+
+typedef enum _PIF_enXmodemTxState
+{
+	XTS_enIdle			= 0,
+	XTS_enSendC			= 10,
+	XTS_enDelayC		= 11,
+	XTS_enSending		= 12,
+	XTS_enWaitResponse	= 13,
+	XTS_enEOT			= ASCII_EOT,	// 4
+	XTS_enACK			= ASCII_ACK,	// 6
+	XTS_enNAK			= ASCII_NAK,	// 21
+	XTS_enCAN			= ASCII_CAN		// 24
+} PIF_enXmodemTxState;
+
 
 /**
  * @class _PIF_stXmodemPacket
@@ -22,8 +48,38 @@ typedef struct _PIF_stXmodemPacket
 	uint8_t *pucData;
 } PIF_stXmodemPacket;
 
+
 typedef void (*PIF_evtXmodemTxReceive)(uint8_t ucCode, uint8_t ucPacketNo);
 typedef void (*PIF_evtXmodemRxReceive)(uint8_t ucCode, PIF_stXmodemPacket *pstPacket);
+
+
+/**
+ * @class _PIF_stXmodemTx
+ * @brief
+ */
+typedef struct _PIF_stXmodemTx
+{
+	PIF_enXmodemTxState enState;
+	uint16_t usDataPos;
+	uint16_t usTimeout;
+	PIF_stPulseItem *pstTimer;
+	PIF_evtXmodemTxReceive evtReceive;
+} PIF_stXmodemTx;
+
+/**
+ * @class _PIF_stXmodemRx
+ * @brief
+ */
+typedef struct _PIF_stXmodemRx
+{
+	PIF_enXmodemRxState enState;
+	PIF_stXmodemPacket stPacket;
+	uint16_t usCount;
+	uint16_t usCrc;
+	uint16_t usTimeout;
+	PIF_stPulseItem *pstTimer;
+	PIF_evtXmodemRxReceive evtReceive;
+} PIF_stXmodemRx;
 
 /**
  * @class _PIF_stXmodem
@@ -31,7 +87,17 @@ typedef void (*PIF_evtXmodemRxReceive)(uint8_t ucCode, PIF_stXmodemPacket *pstPa
  */
 typedef struct _PIF_stXmodem
 {
-	PIF_usId usPifId;
+	// Public Member Variable
+
+	// Read-only Member Variable
+	PIF_usId _usPifId;
+
+	// Private Member Variable
+	PIF_enXmodemType __enType;
+	uint16_t __usPacketSize;
+	PIF_stXmodemTx __stTx;
+	PIF_stXmodemRx __stRx;
+    uint8_t *__pucData;
 } PIF_stXmodem;
 
 
@@ -39,10 +105,10 @@ typedef struct _PIF_stXmodem
 extern "C" {
 #endif
 
-BOOL pifXmodem_Init(PIF_stPulse *pstTimer1ms, uint8_t ucSize);
+BOOL pifXmodem_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifXmodem_Exit();
 
-PIF_stXmodem *pifXmodem_Add(PIF_usId usPifId, PIF_XmodemType enType);
+PIF_stXmodem *pifXmodem_Add(PIF_usId usPifId, PIF_enXmodemType enType);
 
 void pifXmodem_SetResponseTimeout(PIF_stXmodem *pstOwner, uint16_t usResponseTimeout);
 void pifXmodem_SetReceiveTimeout(PIF_stXmodem *pstOwner, uint16_t usReceiveTimeout);
