@@ -41,10 +41,27 @@ struct _PIF_stSwitchFilter
 typedef struct _PIF_stSwitch
 {
 	// Public Member Variable
-    PIF_usId usPifId;
-    SWITCH swInitState;
-    BOOL bStateReverse;							// Default: FALSE
-    SWITCH swCurrState;							// Default: enInitState
+    BOOL bStateReverse;						// Default: FALSE
+
+    // Read-only Member Variable
+    PIF_usId _usPifId;
+    SWITCH _swInitState;
+    SWITCH _swCurrState;					// Default: enInitState
+
+	// Private Member Variable
+    SWITCH __swPrevState;					// Default: enInitState
+    void *__pvChangeIssuer;
+
+    uint8_t __ucFilterMethod;				// Default: PIF_SWITCH_FILTER_NONE
+    PIF_stSwitchFilter *__pstFilter;		// Default: NULL
+
+	PIF_enTaskLoop __enTaskLoop;			// Default: TL_enAll
+
+	// Public Action Function
+	PIF_actSwitchAcquire __actAcquire;		// Default: NULL
+
+	// Public Event Function
+    PIF_evtSwitchChange __evtChange;		// Default: NULL
 } PIF_stSwitch;
 
 
