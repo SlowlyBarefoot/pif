@@ -46,9 +46,26 @@ typedef struct _PIF_stSolenoidContent
 struct _PIF_stSolenoid
 {
 	// Public Member Variable
-    PIF_usId usPifId;
-    PIF_enSolenoidType enType;
     uint16_t usOnTime;
+
+    // Read-only Member Variable
+    PIF_usId _usPifId;
+    PIF_enSolenoidType _enType;
+
+	// Private Member Variable
+    BOOL __bState;
+    PIF_enSolenoidDir __enCurrentDir;
+    PIF_stPulseItem *__pstTimerOn;
+	PIF_stPulseItem *__pstTimerDelay;
+    PIF_enSolenoidDir __enDir;
+	PIF_stRingData *__pstBuffer;
+
+    // Private Action Function
+    PIF_actSolenoidControl __actControl;
+
+	// Public Event Function
+    PIF_evtSolenoid __evtOff;
+    PIF_evtSolenoid __evtError;
 };
 
 
