@@ -2,7 +2,7 @@
 #define PIF_DUTY_MOTOR_POS_H
 
 
-#include "pifDutyMotorBase.h"
+#include "pifDutyMotor.h"
 #include "pifSwitch.h"
 
 
@@ -41,8 +41,16 @@ typedef struct _PIF_stDutyMotorPosStage
  */
 typedef struct _PIF_stDutyMotorPos
 {
-	uint8_t ucStageIndex;
-	volatile uint32_t unCurrentPulse;		// 현재까지 이동 pulse
+	// Public Member Variable
+
+	// Read-only Member Variable
+	uint8_t _ucStageIndex;
+	volatile uint32_t _unCurrentPulse;		// 현재까지 이동 pulse
+
+	// Private Member Variable
+    uint8_t __ucStageSize;
+    const PIF_stDutyMotorPosStage *__pstStages;
+    const PIF_stDutyMotorPosStage *__pstCurrentStage;
 } PIF_stDutyMotorPos;
 
 

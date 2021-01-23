@@ -2,7 +2,7 @@
 #define PIF_MOTOR_ENCODER_H
 
 
-#include "pifDutyMotorBase.h"
+#include "pifDutyMotor.h"
 #include "pifSwitch.h"
 
 
@@ -48,7 +48,25 @@ typedef struct _PIF_stDutyMotorSpeedEncStage
  */
 typedef struct _PIF_stDutyMotorSpeedEnc
 {
-    uint8_t ucStageIndex;
+	// Public Member Variable
+
+	// Read-only Member Variable
+    uint8_t _ucStageIndex;
+
+	// Private Member Variable
+    uint8_t __ucStageSize;
+    const PIF_stDutyMotorSpeedEncStage *__pstStages;
+    const PIF_stDutyMotorSpeedEncStage *__pstCurrentStage;
+
+    PIF_stPidControl __stPidControl;
+
+	uint16_t __usArrivePPR;
+	uint16_t __usErrLowPPR;
+	uint16_t __usErrHighPPR;
+	volatile uint16_t __usMeasureEnc;	// pulse
+	uint8_t __ucEncSampleIdx;
+	uint16_t __ausEncSample[MAX_STABLE_CNT];
+	uint32_t __unEncSampleSum;
 } PIF_stDutyMotorSpeedEnc;
 
 

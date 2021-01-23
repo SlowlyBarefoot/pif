@@ -17,6 +17,8 @@ typedef void (*PIF_evtDutyMotorStable)(PIF_stDutyMotor *pstOwner, void *pvInfo);
 typedef void (*PIF_evtDutyMotorStop)(PIF_stDutyMotor *pstOwner, void *pvInfo);
 typedef void (*PIF_evtDutyMotorError)(PIF_stDutyMotor *pstOwner, void *pvInfo);
 
+typedef void (*PIF_fnDutyMotorControl)(PIF_stDutyMotor *pstOwner);
+
 
 /**
  * @class _PIF_stDutyMotor
@@ -24,12 +26,40 @@ typedef void (*PIF_evtDutyMotorError)(PIF_stDutyMotor *pstOwner, void *pvInfo);
  */
 struct _PIF_stDutyMotor
 {
-    PIF_usId usPifId;
-	uint16_t usMaxDuty;
-	uint16_t usCurrentDuty;
-	uint8_t ucDirection;
-    PIF_enMotorState enState;
+	// Public Member Variable
+
+    // Read-only Member Variable
+    PIF_usId _usPifId;
+	uint16_t _usMaxDuty;
+	uint16_t _usCurrentDuty;
+	uint8_t _ucDirection;
+    PIF_enMotorState _enState;
+
+	// Private Member Variable
+    void *__pvChild;
+    uint8_t __ucError;
+	uint16_t __usControlPeriod;
+
+	PIF_stPulseItem *__pstTimerControl;
+	PIF_stPulseItem *__pstTimerDelay;
+	PIF_stPulseItem *__pstTimerBreak;
+
+    // Private Action Function
+    PIF_actDutyMotorSetDuty __actSetDuty;
+    PIF_actDutyMotorSetDirection __actSetDirection;
+    PIF_actDutyMotorOperateBreak __actOperateBreak;
+
+    // Private Event Function
+    PIF_evtDutyMotorStable __evtStable;
+    PIF_evtDutyMotorStop __evtStop;
+    PIF_evtDutyMotorError __evtError;
+
+	// Private Member Function
+    PIF_fnDutyMotorControl __fnControl;
 };
+
+
+extern PIF_stPulse *g_pstDutyMotorTimer;
 
 
 #ifdef __cplusplus

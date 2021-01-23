@@ -2,7 +2,7 @@
 #define PIF_DUTY_MOTOR_SPEED_H
 
 
-#include "pifDutyMotorBase.h"
+#include "pifDutyMotor.h"
 #include "pifSwitch.h"
 
 
@@ -39,7 +39,15 @@ typedef struct _PIF_stDutyMotorSpeedStage
  */
 typedef struct _PIF_stDutyMotorSpeed
 {
-    uint8_t ucStageIndex;
+	// Public Member Variable
+
+	// Read-only Member Variable
+    uint8_t _ucStageIndex;
+
+	// Private Member Variable
+    uint8_t __ucStageSize;
+    const PIF_stDutyMotorSpeedStage *__pstStages;
+    const PIF_stDutyMotorSpeedStage *__pstCurrentStage;
 } PIF_stDutyMotorSpeed;
 
 
