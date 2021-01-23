@@ -12,9 +12,17 @@
 typedef struct _PIF_stRingData
 {
 	// Public Member Variable
-	PIF_usId usPifId;
-    uint16_t usDataSize;
-    uint16_t usDataCount;
+
+    // Read-only Member Variable
+	PIF_usId _usPifId;
+    uint16_t _usDataSize;
+    uint16_t _usDataCount;
+
+	// Private Member Variable
+    uint16_t __usHead;
+    uint16_t __usTail;
+    uint16_t __usIndex;
+    void *__pvData;
 } PIF_stRingData;
 
 

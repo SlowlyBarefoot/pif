@@ -16,12 +16,26 @@
  */
 typedef struct _PIF_stRingBuffer
 {
-	PIF_usId usPifId;
+	// Public Member Variable
+
+	// Read-only Member Variable
+	PIF_usId _usPifId;
 	struct {
-		uint8_t btStatic	: 1;
-		uint8_t btChopOff	: 2;	// RB_CHOP_OFF_
+		uint8_t _btStatic	: 1;
+		uint8_t _btChopOff	: 2;	// RB_CHOP_OFF_
 	};
-    uint16_t usSize;
+    uint16_t _usSize;
+
+	// Private Member Variable
+	const char *__psName;
+    char *__pcBuffer;
+    uint16_t __usHead;
+    uint16_t __usTail;
+    uint16_t __usBackupHead;
+    union {
+		char __cChopOffChar;
+		uint16_t __usChopOffLength;
+    };
 } PIF_stRingBuffer;
 
 
