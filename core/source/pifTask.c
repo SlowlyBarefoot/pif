@@ -300,9 +300,14 @@ void pifTask_Loop()
 			break;
 
 		case TM_enPeriodUs:
-			unTime = 1000 * g_unPerformanceCount / g_unPerformanceMeasure * 100;
+			if (pif_stPerformance._unCount > pif_stPerformance._unCurrent) {
+				unTime = PIF_PERFORMANCE_PERIOD_US;
+			}
+			else {
+				unTime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
+			}
 			if (unTime < pstBase->unPretime) {
-				unGap = 100000L - pstBase->unPretime + unTime;
+				unGap = PIF_PERFORMANCE_PERIOD_US - pstBase->unPretime + unTime;
 			}
 			else {
 				unGap = unTime - pstBase->unPretime;

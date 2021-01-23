@@ -577,7 +577,7 @@ void pifDotMatrix_ChangeBlinkPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriod
 	PIF_stDotMatrixBase *pstBase = (PIF_stDotMatrixBase *)pstOwner;
 
 	if (pstBase->pstTimerBlink) {
-		pifPulse_ResetItem(pstBase->pstTimerBlink, usPeriodMs);
+		pifPulse_SetPulse(pstBase->pstTimerBlink, usPeriodMs);
 	}
 }
 
@@ -673,7 +673,7 @@ void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriod
 	PIF_stDotMatrixBase *pstBase = (PIF_stDotMatrixBase *)pstOwner;
 
 	if (pstBase->pstTimerShift) {
-		pifPulse_ResetItem(pstBase->pstTimerShift, usPeriodMs);
+		pifPulse_SetPulse(pstBase->pstTimerShift, usPeriodMs);
 	}
 }
 

@@ -330,7 +330,7 @@ void pifFnd_ChangeBlinkPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
 	PIF_stFndBase *pstBase = (PIF_stFndBase *)pstOwner;
 
 	if (pstBase->pstTimerBlink) {
-		pifPulse_ResetItem(pstBase->pstTimerBlink, usPeriodMs * 1000);
+		pifPulse_SetPulse(pstBase->pstTimerBlink, usPeriodMs * 1000);
 	}
 }
 

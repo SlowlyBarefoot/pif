@@ -13,17 +13,24 @@ typedef struct _PIF_stPulseItemBase
 	PIF_stPulseItem stItem;
 
 	// Private Member Variable
-    PIF_enPulseStep enStep;
-	BOOL bEvent;
+	PIF_stPulse *pstOwner;
     uint32_t unValue;
     uint32_t unPulse;
     void *pvFinishIssuer;
+    uint32_t unPretime;
+    uint32_t unPwmGap;
+	BOOL bEvent;
+    BOOL bPwmState;
+    PIF_enPulseStep enStep;
 
     uint8_t unIndex;
     uint8_t unNext;
     uint8_t unPrev;
 
-    // Private Member Function
+    // Private Action Function
+    PIF_actPulsePwm actPwm;
+
+    // Private Event Function
     PIF_evtPulseFinish evtFinish;
 } PIF_stPulseItemBase;
 
@@ -50,16 +57,39 @@ static uint8_t s_ucPulseBasePos;
 static void _TaskCommon(PIF_stPulseBase *pstBase)
 {
 	uint8_t index;
+	uint32_t unTime, unGap;
 	PIF_stPulseItemBase *pstItemBase;
 
 	index = pstBase->unAllocNext;
 	while (index != PIF_PULSE_INDEX_NULL) {
 		pstItemBase = &pstBase->pstItems[index];
 
-		if (pstItemBase->bEvent) {
-			pstItemBase->bEvent = FALSE;
+		if (pstItemBase->stItem._enType == PT_enPwm) {
+			if (pstItemBase->bPwmState == ON) {
+				if (pif_stPerformance._unCount > pif_stPerformance._unCurrent) {
+					unTime = PIF_PERFORMANCE_PERIOD_US;
+				}
+				else {
+					unTime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
+				}
+				if (unTime < pstItemBase->unPretime) {
+					unGap = PIF_PERFORMANCE_PERIOD_US - pstItemBase->unPretime + unTime;
+				}
+				else {
+					unGap = unTime - pstItemBase->unPretime;
+				}
+				if (unGap >= pstItemBase->unPwmGap) {
+					(*pstItemBase->actPwm)(OFF);
+					pstItemBase->bPwmState = OFF;
+				}
+			}
+		}
+		else {
+			if (pstItemBase->bEvent) {
+				pstItemBase->bEvent = FALSE;
 
-			if (pstItemBase->evtFinish) (*pstItemBase->evtFinish)(pstItemBase->pvFinishIssuer);
+				if (pstItemBase->evtFinish) (*pstItemBase->evtFinish)(pstItemBase->pvFinishIssuer);
+			}
 		}
 
 		index = pstItemBase->unNext;
@@ -122,9 +152,10 @@ void pifPulse_Exit()
  * @brief Pulse를 추가한다.
  * @param usPifId
  * @param ucSize Pulse 항목 크기
+ * @param unPeriodUs
  * @return Pulse 구조체 포인터를 반환한다.
  */
-PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize)
+PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize, uint32_t unPeriodUs)
 {
     if (ucSize >= PIF_PULSE_INDEX_NULL) {
 		pif_enError = E_enInvalidParam;
@@ -138,13 +169,14 @@ PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize)
     PIF_stPulseBase *pstBase = &s_pstPulseBase[s_ucPulseBasePos];
 
     if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
-    pstBase->stOwner.usPifId = usPifId;
+    pstBase->stOwner._usPifId = usPifId;
     pstBase->pstItems = calloc(sizeof(PIF_stPulseItemBase), ucSize);
     if (!pstBase->pstItems) {
         pif_enError = E_enOutOfHeap;
         goto fail;
     }
 
+    pstBase->stOwner._unPeriodUs = unPeriodUs;
     pstBase->ucItemSize = ucSize;
 
     pstBase->unFreeNext = 0;
@@ -184,7 +216,8 @@ PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType)
 
 	uint8_t index = pstBase->unFreeNext;
     PIF_stPulseItemBase *pstItemBase = &pstBase->pstItems[index];
-    pstItemBase->stItem.enType = enType;
+    pstItemBase->pstOwner = pstOwner;
+    pstItemBase->stItem._enType = enType;
     pstItemBase->evtFinish = NULL;
     pstItemBase->pvFinishIssuer = NULL;
     pstItemBase->unIndex = index;
@@ -251,6 +284,7 @@ void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstItem)
  * @brief Pulse 항목을 시작한다.
  * @param pstItem Pulse 항목 포인터
  * @param unPulse 이동 pulse 수
+ * @return
  */
 BOOL pifPulse_StartItem(PIF_stPulseItem *pstItem, uint32_t unPulse)
 {
@@ -264,6 +298,17 @@ BOOL pifPulse_StartItem(PIF_stPulseItem *pstItem, uint32_t unPulse)
     if (pstItemBase->enStep == PS_enStop) {
     	pstItemBase->enStep = PS_enRunning;
     	pstItemBase->bEvent = FALSE;
+
+        if (pstItemBase->stItem._enType == PT_enPwm) {
+    		(*pstItemBase->actPwm)(ON);
+    		pstItemBase->bPwmState = ON;
+			if (pif_stPerformance._unCount > pif_stPerformance._unCurrent) {
+				pstItemBase->unPretime = PIF_PERFORMANCE_PERIOD_US;
+			}
+			else {
+				pstItemBase->unPretime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
+			}
+        }
     }
     pstItemBase->unValue = unPulse;
     pstItemBase->unPulse = pstItemBase->unValue;
@@ -290,14 +335,27 @@ void pifPulse_StopItem(PIF_stPulseItem *pstItem)
 }
 
 /**
- * @fn pifPulse_ResetItem
+ * @fn pifPulse_SetPulse
  * @brief Pulse 항목의 이동 pulse를 재설정한다.
  * @param pstItem Pulse 항목 포인터
  * @param unPulse 이동 pulse수. 단, 현재 동작에는 영향이 없고 다음 동작부터 변경된다.
  */
-void pifPulse_ResetItem(PIF_stPulseItem *pstItem, uint32_t unPulse)
+void pifPulse_SetPulse(PIF_stPulseItem *pstItem, uint32_t unPulse)
 {
 	((PIF_stPulseItemBase *)pstItem)->unValue = unPulse;
+}
+
+/**
+ * @fn pifPulse_SetPwmDuty
+ * @brief Pulse 항목의 이동 pulse를 재설정한다.
+ * @param pstItem Pulse 항목 포인터
+ * @param usDuty 이동 pulse수. 단, 현재 동작에는 영향이 없고 다음 동작부터 변경된다.
+ */
+void pifPulse_SetPwmDuty(PIF_stPulseItem *pstItem, uint16_t usDuty)
+{
+	PIF_stPulseItemBase *pstItemBase = (PIF_stPulseItemBase *)pstItem;
+
+	pstItemBase->unPwmGap = pstItemBase->pstOwner->_unPeriodUs * pstItemBase->unValue * usDuty / PIF_PWM_MAX_DUTY;
 }
 
 /**
@@ -360,18 +418,45 @@ void pifPulse_sigTick(PIF_stPulse *pstOwner)
 		if (pstItemBase->unPulse) {
 			pstItemBase->unPulse--;
 			if (!pstItemBase->unPulse) {
-				if (pstItemBase->stItem.enType == PT_enRepeat) {
-					pstItemBase->unPulse = pstItemBase->unValue;
-				}
-				else {
+				switch (pstItemBase->stItem._enType) {
+				case PT_enOnce:
 					pstItemBase->enStep = PS_enStop;
+					pstItemBase->bEvent = TRUE;
+					break;
+
+				case PT_enRepeat:
+					pstItemBase->unPulse = pstItemBase->unValue;
+					pstItemBase->bEvent = TRUE;
+					break;
+
+				case PT_enPwm:
+					pstItemBase->unPulse = pstItemBase->unValue;
+					(*pstItemBase->actPwm)(ON);
+					pstItemBase->bPwmState = ON;
+					if (pif_stPerformance._unCount > pif_stPerformance._unCurrent) {
+						pstItemBase->unPretime = PIF_PERFORMANCE_PERIOD_US;
+					}
+					else {
+						pstItemBase->unPretime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
+					}
+					break;
 				}
-				pstItemBase->bEvent = TRUE;
 			}
 		}
 
         index = pstItemBase->unNext;
     }
+}
+
+/**
+ * @fn pifPulse_AttachAction
+ * @brief
+ * @param pstItem Pulse 항목 포인터
+ * @param actPwm 연결시킬 Action
+ */
+void pifPulse_AttachAction(PIF_stPulseItem *pstItem, PIF_actPulsePwm actPwm)
+{
+	((PIF_stPulseItemBase *)pstItem)->actPwm = actPwm;
 }
 
 /**

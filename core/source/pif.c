@@ -16,12 +16,9 @@ volatile PIF_stDateTime pif_stDateTime;
 
 PIF_stLogFlag pif_stLogFlag;
 
-static volatile uint8_t s_ucPerformaceStep = 0;
+PIF_stPerformance pif_stPerformance = { FALSE, 0, 0, 0, 0, 0 };
 
 PIF_usId g_usPifId = 1;
-
-volatile uint32_t g_unPerformanceCount = 0;
-volatile uint32_t g_unPerformanceMeasure = 100000L;
 
 static uint8_t ucCrc7;
 
@@ -35,7 +32,6 @@ const uint8_t c_ucDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 
 void pif_Init()
 {
     memset(&pif_stLogFlag, 0, sizeof(pif_stLogFlag));
-    s_ucPerformaceStep = 1;
 }
 
 /**
@@ -48,25 +44,38 @@ void pif_Loop()
 	static uint8_t ucSec = 0;
 #endif
 
-    switch (s_ucPerformaceStep) {
-    case 2:
-		g_unPerformanceMeasure = g_unPerformanceCount * 50;
-        s_ucPerformaceStep = 3;
+	pif_stPerformance._unCount++;
+    switch (pif_stPerformance.__ucState) {
+    case 1:
+    	pif_stPerformance._unCurrent = pif_stPerformance._unCount;
+    	pif_stPerformance.__nStep = 0;
+    	pif_stPerformance._unCount = 0;
+		pif_stPerformance.__ucState = 2;
+		pif_stPerformance._bReady = TRUE;
     	break;
 
-    case 4:
-		g_unPerformanceMeasure = g_unPerformanceCount;
-        g_unPerformanceCount = 0;
-        s_ucPerformaceStep = 3;
+    case 3:
+    	pif_stPerformance.__unTarget = pif_stPerformance._unCount;
+    	if (pif_stPerformance.__unTarget > pif_stPerformance._unCurrent) {
+    		pif_stPerformance.__nStep = 2 * (pif_stPerformance.__unTarget - pif_stPerformance._unCurrent) / PIF_PERFORMANCE_PERIOD_MS;
+			if (!pif_stPerformance.__nStep) pif_stPerformance.__nStep = 1;
+    	}
+    	else if (pif_stPerformance.__unTarget < pif_stPerformance._unCurrent) {
+    		pif_stPerformance.__nStep = -2 * (pif_stPerformance._unCurrent - pif_stPerformance.__unTarget) / PIF_PERFORMANCE_PERIOD_MS;
+			if (!pif_stPerformance.__nStep) pif_stPerformance.__nStep = -1;
+    	}
+    	else {
+    		pif_stPerformance.__nStep = 0;
+    	}
+    	pif_stPerformance._unCount = 0;
+		pif_stPerformance.__ucState = 2;
 #ifndef __PIF_NO_LOG__
         if (pif_stLogFlag.btPerformance) {
-        	double fValue = 1000000.0 / g_unPerformanceMeasure;
-        	pifLog_Printf(LT_enInfo, "Performance: %lur/s, %2fus", g_unPerformanceMeasure, fValue);
+        	double fValue = (double)PIF_PERFORMANCE_PERIOD_US / pif_stPerformance._unCurrent;
+        	pifLog_Printf(LT_enInfo, "Performance: %lur/s, %2fus", pif_stPerformance._unCurrent, fValue);
         }
 #endif
-        break;
     }
-    g_unPerformanceCount++;
 
 #ifdef __PIF_DEBUG__
     if (ucSec != pif_stDateTime.ucSec) {
@@ -83,15 +92,28 @@ void pif_Loop()
 void pif_sigTimer1ms()
 {
 	uint8_t days;
-	static uint8_t ucTimer100ms = 0;
+	static uint8_t ucTimerPerform = 0;
 
-	ucTimer100ms++;
-	if (ucTimer100ms >= 100) {
-		ucTimer100ms = 0;
-    	s_ucPerformaceStep = 4;
+	ucTimerPerform++;
+	if (ucTimerPerform >= PIF_PERFORMANCE_PERIOD_MS) {
+		ucTimerPerform = 0;
+		pif_stPerformance.__ucState++;
 	}
-    else if (ucTimer100ms == 2) {
-    	if (s_ucPerformaceStep == 1) s_ucPerformaceStep = 2;
+    else {
+		if (pif_stPerformance.__nStep > 0) {
+			pif_stPerformance._unCurrent += pif_stPerformance.__nStep;
+			if (pif_stPerformance._unCurrent >= pif_stPerformance.__unTarget) {
+				pif_stPerformance._unCurrent = pif_stPerformance.__unTarget;
+				pif_stPerformance.__nStep = 0;
+			}
+		}
+		else if (pif_stPerformance.__nStep < 0) {
+			pif_stPerformance._unCurrent += pif_stPerformance.__nStep;
+			if (pif_stPerformance._unCurrent <= pif_stPerformance.__unTarget) {
+				pif_stPerformance._unCurrent = pif_stPerformance.__unTarget;
+				pif_stPerformance.__nStep = 0;
+			}
+		}
     }
 
     pif_usTimer1ms++;

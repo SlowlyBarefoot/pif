@@ -5,13 +5,21 @@
 #include "pifTask.h"
 
 
+#ifndef PIF_PWM_MAX_DUTY
+#define PIF_PWM_MAX_DUTY		1000
+#endif
+
+
+typedef void (*PIF_actPulsePwm)(SWITCH swValue);
+
 typedef void (*PIF_evtPulseFinish)(void *pvIssuer);
 
 
 typedef enum _PIF_enPulseType
 {
     PT_enOnce       = 0,
-    PT_enRepeat		= 1
+    PT_enRepeat		= 1,
+	PT_enPwm		= 2
 } PIF_enPulseType;
 
 typedef enum _PIF_enPulseStep
@@ -29,7 +37,9 @@ typedef enum _PIF_enPulseStep
 typedef struct _PIF_stPulseItem
 {
 	// Public Member Variable
-    PIF_enPulseType enType;
+
+	// Read-onlyPublic Member Variable
+    PIF_enPulseType _enType;
 } PIF_stPulseItem;
 
 /**
@@ -39,7 +49,10 @@ typedef struct _PIF_stPulseItem
 typedef struct _PIF_stPulse
 {
 	// Public Member Variable
-	PIF_usId usPifId;
+
+	// Read-onlyPublic Member Variable
+	PIF_usId _usPifId;
+	uint32_t _unPeriodUs;
 } PIF_stPulse;
 
 
@@ -50,14 +63,16 @@ extern "C" {
 BOOL pifPulse_Init(uint8_t ucSize);
 void pifPulse_Exit();
 
-PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize);
+PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize, uint32_t unPeriodUs);
 
 PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType);
 void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstItem);
 
 BOOL pifPulse_StartItem(PIF_stPulseItem *pstItem, uint32_t unPulse);
 void pifPulse_StopItem(PIF_stPulseItem *pstItem);
-void pifPulse_ResetItem(PIF_stPulseItem *pstItem, uint32_t unPulse);
+
+void pifPulse_SetPulse(PIF_stPulseItem *pstItem, uint32_t unPulse);
+void pifPulse_SetPwmDuty(PIF_stPulseItem *pstItem, uint16_t usDuty);
 
 PIF_enPulseStep pifPulse_GetStep(PIF_stPulseItem *pstItem);
 
@@ -66,6 +81,9 @@ uint32_t pifPulse_ElapsedItem(PIF_stPulseItem *pstItem);
 
 // Signal Function
 void pifPulse_sigTick(PIF_stPulse *pstOwner);
+
+// Attach Action Function
+void pifPulse_AttachAction(PIF_stPulseItem *pstItem, PIF_actPulsePwm actPwm);
 
 // Attach Event Function
 void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstItem, PIF_evtPulseFinish evtFinish, void *pvIssuer);

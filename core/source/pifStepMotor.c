@@ -429,7 +429,7 @@ BOOL pifStepMotor_SetPps(PIF_stStepMotor *pstOwner, uint16_t usPps)
 	        pif_enError = E_enWrongData;
 	        goto fail;
 	    }
-		pifPulse_ResetItem(pstBase->pstTimerStep, period / g_unStepMotorTimerUs);
+		pifPulse_SetPulse(pstBase->pstTimerStep, period / g_unStepMotorTimerUs);
 		break;
 
 	case SMM_enTask:
