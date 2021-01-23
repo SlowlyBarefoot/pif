@@ -9,30 +9,9 @@
 #define PIF_TASK_TABLE_MASK		(PIF_TASK_TABLE_SIZE - 1)
 
 
-typedef struct _PIF_stTaskBase
-{
-	// Public Member Variable
-	PIF_stTask stOwner;
-
-	// Private Member Variable
-	const char *pcName;
-	uint8_t ucRatio;
-	BOOL bPause;
-	uint16_t usPeriod;
-	uint32_t unPretime;
-#ifdef __PIF_DEBUG__
-	uint32_t unCount;
-	float fPeriod;
-#endif
-
-	// Private Member Function
-	PIF_evtTaskLoop __evtLoop;
-} PIF_stTaskBase;
-
-
-static PIF_stTaskBase *s_pstTaskBase = NULL;
-static uint8_t s_ucTaskBaseSize;
-static uint8_t s_ucTaskBasePos;
+static PIF_stTask *s_pstTask = NULL;
+static uint8_t s_ucTaskSize;
+static uint8_t s_ucTaskPos;
 
 static uint32_t s_aunTable[PIF_TASK_TABLE_SIZE];
 
@@ -50,14 +29,14 @@ BOOL pifTask_Init(uint8_t ucSize)
 		goto fail;
 	}
 
-    s_pstTaskBase = calloc(sizeof(PIF_stTaskBase), ucSize);
-    if (!s_pstTaskBase) {
+    s_pstTask = calloc(sizeof(PIF_stTask), ucSize);
+    if (!s_pstTask) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
 
-    s_ucTaskBaseSize = ucSize;
-    s_ucTaskBasePos = 0;
+    s_ucTaskSize = ucSize;
+    s_ucTaskPos = 0;
 
     memset(s_aunTable, 0, sizeof(s_aunTable));
     return TRUE;
@@ -75,9 +54,9 @@ fail:
  */
 void pifTask_Exit()
 {
-    if (s_pstTaskBase) {
-        free(s_pstTaskBase);
-        s_pstTaskBase = NULL;
+    if (s_pstTask) {
+        free(s_pstTask);
+        s_pstTask = NULL;
     }
 }
 
@@ -98,43 +77,41 @@ PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvL
         goto fail;
 	}
 	
-    if (s_ucTaskBasePos >= s_ucTaskBaseSize) {
+    if (s_ucTaskPos >= s_ucTaskSize) {
         pif_enError = E_enOverflowBuffer;
         goto fail;
     }
 
-    PIF_stTaskBase *pstBase = &s_pstTaskBase[s_ucTaskBasePos];
+    PIF_stTask *pstOwner = &s_pstTask[s_ucTaskPos];
 
     if (ucRatio < 100) {
-		pstBase->stOwner.enMode = TM_enRatio;
-		pstBase->ucRatio = ucRatio;
+		pstOwner->_enMode = TM_enRatio;
+		pstOwner->__ucRatio = ucRatio;
 #ifdef __PIF_DEBUG__
-		pstBase->unCount = 0;
+		pstOwner->__unCount = 0;
 #endif
 
 		int count = PIF_TASK_TABLE_SIZE * ucRatio / 101;
 		int gap = PIF_TASK_TABLE_SIZE - count;
 		int index = base;
 		for (int i = 0; i <= count; i++) {
-			s_aunTable[index & PIF_TASK_TABLE_MASK] |= 1 << s_ucTaskBasePos;
+			s_aunTable[index & PIF_TASK_TABLE_MASK] |= 1 << s_ucTaskPos;
 			index += gap;
 		}
 		base++;
     }
     else {
-		pstBase->stOwner.enMode = TM_enAlways;
-		pstBase->ucRatio = 100;
+		pstOwner->_enMode = TM_enAlways;
+		pstOwner->__ucRatio = 100;
     }
-	pstBase->stOwner.usPifId = g_usPifId++;
-	pstBase->__evtLoop = evtLoop;
-	pstBase->stOwner.pvLoopEach = pvLoopEach;
+	pstOwner->_usPifId = g_usPifId++;
+	pstOwner->__evtLoop = evtLoop;
+	pstOwner->pvLoopEach = pvLoopEach;
 
-	if (pvLoopEach) {
-		(*evtLoop)(&pstBase->stOwner);
-	}
+	if (pvLoopEach) (*evtLoop)(pstOwner);
 
-    s_ucTaskBasePos = s_ucTaskBasePos + 1;
-    return &pstBase->stOwner;
+    s_ucTaskPos = s_ucTaskPos + 1;
+    return pstOwner;
 
 fail:
 #ifndef __PIF_NO_LOG__
@@ -158,25 +135,23 @@ PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, vo
         goto fail;
 	}
 
-    if (s_ucTaskBasePos >= s_ucTaskBaseSize) {
+    if (s_ucTaskPos >= s_ucTaskSize) {
         pif_enError = E_enOverflowBuffer;
         goto fail;
     }
 
-    PIF_stTaskBase *pstBase = &s_pstTaskBase[s_ucTaskBasePos];
+    PIF_stTask *pstOwner = &s_pstTask[s_ucTaskPos];
 
-    pstBase->stOwner.enMode = TM_enPeriodMs;
-    pstBase->stOwner.usPifId = g_usPifId++;
-    pstBase->usPeriod = usPeriodMs;
-    pstBase->__evtLoop = evtLoop;
-    pstBase->stOwner.pvLoopEach = pvLoopEach;
+    pstOwner->_enMode = TM_enPeriodMs;
+    pstOwner->_usPifId = g_usPifId++;
+    pstOwner->__usPeriod = usPeriodMs;
+    pstOwner->__evtLoop = evtLoop;
+    pstOwner->pvLoopEach = pvLoopEach;
 
-	if (pvLoopEach) {
-		(*evtLoop)(&pstBase->stOwner);
-	}
+	if (pvLoopEach) (*evtLoop)(pstOwner);
 
-    s_ucTaskBasePos = s_ucTaskBasePos + 1;
-    return &pstBase->stOwner;
+    s_ucTaskPos = s_ucTaskPos + 1;
+    return pstOwner;
 
 fail:
 #ifndef __PIF_NO_LOG__
@@ -200,25 +175,23 @@ PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, vo
         goto fail;
 	}
 
-    if (s_ucTaskBasePos >= s_ucTaskBaseSize) {
+    if (s_ucTaskPos >= s_ucTaskSize) {
         pif_enError = E_enOverflowBuffer;
         goto fail;
     }
 
-    PIF_stTaskBase *pstBase = &s_pstTaskBase[s_ucTaskBasePos];
+    PIF_stTask *pstOwner = &s_pstTask[s_ucTaskPos];
 
-    pstBase->stOwner.enMode = TM_enPeriodUs;
-    pstBase->stOwner.usPifId = g_usPifId++;
-    pstBase->usPeriod = usPeriodUs;
-    pstBase->__evtLoop = evtLoop;
-    pstBase->stOwner.pvLoopEach = pvLoopEach;
+    pstOwner->_enMode = TM_enPeriodUs;
+    pstOwner->_usPifId = g_usPifId++;
+    pstOwner->__usPeriod = usPeriodUs;
+    pstOwner->__evtLoop = evtLoop;
+    pstOwner->pvLoopEach = pvLoopEach;
 
-	if (pvLoopEach) {
-		(*evtLoop)(&pstBase->stOwner);
-	}
+	if (pvLoopEach) (*evtLoop)(pstOwner);
 
-    s_ucTaskBasePos = s_ucTaskBasePos + 1;
-    return &pstBase->stOwner;
+    s_ucTaskPos = s_ucTaskPos + 1;
+    return pstOwner;
 
 fail:
 #ifndef __PIF_NO_LOG__
@@ -235,7 +208,7 @@ fail:
  */
 void pifTask_SetName(PIF_stTask *pstOwner, const char *pcName)
 {
-	((PIF_stTaskBase *)pstOwner)->pcName = pcName;
+	pstOwner->__pcName = pcName;
 }
 
 /**
@@ -246,10 +219,10 @@ void pifTask_SetName(PIF_stTask *pstOwner, const char *pcName)
  */
 void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod)
 {
-	switch (pstOwner->enMode) {
+	switch (pstOwner->_enMode) {
 	case TM_enPeriodMs:
 	case TM_enPeriodUs:
-		((PIF_stTaskBase *)pstOwner)->usPeriod = usPeriod;
+		pstOwner->__usPeriod = usPeriod;
 		break;
 
 	default:
@@ -267,7 +240,7 @@ void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod)
  */
 void pifTask_Pause(PIF_stTask *pstOwner)
 {
-	((PIF_stTaskBase *)pstOwner)->bPause = TRUE;
+	pstOwner->__bPause = TRUE;
 }
 
 /**
@@ -277,7 +250,7 @@ void pifTask_Pause(PIF_stTask *pstOwner)
  */
 void pifTask_Restart(PIF_stTask *pstOwner)
 {
-	((PIF_stTaskBase *)pstOwner)->bPause = FALSE;
+	pstOwner->__bPause = FALSE;
 }
 
 /**
@@ -286,17 +259,17 @@ void pifTask_Restart(PIF_stTask *pstOwner)
  */
 void pifTask_Loop()
 {
-	PIF_stTaskBase *pstBase;
+	PIF_stTask *pstOwner;
 	uint32_t unTime, unGap;
 	static uint8_t ucNumber = 0;
 
-	for (int i = 0; i < s_ucTaskBasePos; i++) {
-		pstBase = &s_pstTaskBase[i];
-		if (pstBase->bPause) continue;
+	for (int i = 0; i < s_ucTaskPos; i++) {
+		pstOwner = &s_pstTask[i];
+		if (pstOwner->__bPause) continue;
 
-		switch (pstBase->stOwner.enMode) {
+		switch (pstOwner->_enMode) {
 		case TM_enAlways:
-			(*pstBase->__evtLoop)(&pstBase->stOwner);
+			(*pstOwner->__evtLoop)(pstOwner);
 			break;
 
 		case TM_enPeriodUs:
@@ -306,29 +279,29 @@ void pifTask_Loop()
 			else {
 				unTime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
 			}
-			if (unTime < pstBase->unPretime) {
-				unGap = PIF_PERFORMANCE_PERIOD_US - pstBase->unPretime + unTime;
+			if (unTime < pstOwner->__unPretime) {
+				unGap = PIF_PERFORMANCE_PERIOD_US - pstOwner->__unPretime + unTime;
 			}
 			else {
-				unGap = unTime - pstBase->unPretime;
+				unGap = unTime - pstOwner->__unPretime;
 			}
-			if (unGap >= pstBase->usPeriod) {
-				(*pstBase->__evtLoop)(&pstBase->stOwner);
-				pstBase->unPretime = unTime;
+			if (unGap >= pstOwner->__usPeriod) {
+				(*pstOwner->__evtLoop)(pstOwner);
+				pstOwner->__unPretime = unTime;
 			}
 			break;
 
 		case TM_enPeriodMs:
 			unTime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
-			if (unTime < pstBase->unPretime) {
-				unGap = 60000L - pstBase->unPretime + unTime;
+			if (unTime < pstOwner->__unPretime) {
+				unGap = 60000L - pstOwner->__unPretime + unTime;
 			}
 			else {
-				unGap = unTime - pstBase->unPretime;
+				unGap = unTime - pstOwner->__unPretime;
 			}
-			if (unGap >= pstBase->usPeriod) {
-				(*pstBase->__evtLoop)(&pstBase->stOwner);
-				pstBase->unPretime = unTime;
+			if (unGap >= pstOwner->__usPeriod) {
+				(*pstOwner->__evtLoop)(pstOwner);
+				pstOwner->__unPretime = unTime;
 			}
 			break;
 
@@ -336,15 +309,15 @@ void pifTask_Loop()
 			if (s_aunTable[ucNumber] & (1 << i)) {
 #ifdef __PIF_DEBUG__
 				unTime = pif_unTimer1sec;
-				if (unTime != pstBase->unPretime) {
-					pstBase->fPeriod = 1000000.0 / pstBase->unCount;
-					pstBase->unCount = 0;
-					pstBase->unPretime = unTime;
+				if (unTime != pstOwner->__unPretime) {
+					pstOwner->__fPeriod = 1000000.0 / pstOwner->__unCount;
+					pstOwner->__unCount = 0;
+					pstOwner->__unPretime = unTime;
 				}
 #endif
-				(*pstBase->__evtLoop)(&pstBase->stOwner);
+				(*pstOwner->__evtLoop)(pstOwner);
 #ifdef __PIF_DEBUG__
-				pstBase->unCount++;
+				pstOwner->__unCount++;
 #endif
 			}
 			break;
@@ -364,12 +337,14 @@ void pifTask_Print()
 {
 	if (!pif_stLogFlag.btTask) return;
 
-	for (int i = 0; i < s_ucTaskBasePos; i++) {
-		PIF_stTaskBase *pstBase = &s_pstTaskBase[i];
-		if (pstBase->stOwner.enMode == TM_enRatio) {
+	for (int i = 0; i < s_ucTaskPos; i++) {
+		PIF_stTask *pstOwner = &s_pstTask[i];
+		if (pstOwner->_enMode == TM_enRatio) {
+#ifndef __PIF_NO_LOG__
 			pifLog_Printf(LT_enInfo, "Task:%s Id=%d Ratio=%d%% Period=%2fus",
-					pstBase->pcName ? pstBase->pcName : "Null",
-					pstBase->stOwner.usPifId, pstBase->ucRatio, pstBase->fPeriod);
+					pstOwner->__pcName ? pstOwner->__pcName : "Null",
+					pstOwner->_usPifId, pstOwner->__ucRatio, pstOwner->__fPeriod);
+#endif
 		}
 	}
 }

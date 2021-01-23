@@ -182,7 +182,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotorBase *pstBase)
 
 		if (pstStage->enMode & MM_CFPS_enMask) {
 	    	if (*pstStage->ppstStopSwitch) {
-	    		if ((*pstStage->ppstStopSwitch)->swCurrState == OFF) {
+	    		if ((*pstStage->ppstStopSwitch)->_swCurrState == OFF) {
 	    			pstBase->ucError = 1;
 	    		}
 	    	}
@@ -350,17 +350,17 @@ BOOL pifDutyMotorSpeedEnc_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex,
     if (pstStage->enMode & MM_CIAS_enMask) {
     	ucState = 0;
     	if (*pstStage->ppstStartSwitch) {
-    		if ((*pstStage->ppstStartSwitch)->swCurrState != ON) {
+    		if ((*pstStage->ppstStartSwitch)->_swCurrState != ON) {
     			ucState |= 1;
     		}
     	}
     	if (*pstStage->ppstReduceSwitch) {
-    		if ((*pstStage->ppstReduceSwitch)->swCurrState != OFF) {
+    		if ((*pstStage->ppstReduceSwitch)->_swCurrState != OFF) {
     			ucState |= 2;
     		}
     	}
     	if (*pstStage->ppstStopSwitch) {
-    		if ((*pstStage->ppstStopSwitch)->swCurrState != OFF) {
+    		if ((*pstStage->ppstStopSwitch)->_swCurrState != OFF) {
     			ucState |= 4;
     		}
     	}

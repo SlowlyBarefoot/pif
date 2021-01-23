@@ -126,7 +126,7 @@ static void _ControlPos(PIF_stStepMotor *pstOwner)
 
 		if (pstStage->enMode & MM_CFPS_enMask) {
 	    	if (*pstStage->ppstStopSwitch) {
-	    		if ((*pstStage->ppstStopSwitch)->swCurrState == OFF) {
+	    		if ((*pstStage->ppstStopSwitch)->_swCurrState == OFF) {
 	    			pstOwner->__ucError = 1;
 	    		}
 	    	}
@@ -294,17 +294,17 @@ BOOL pifStepMotorPos_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, uint
     if (pstStage->enMode & MM_CIAS_enMask) {
     	ucState = 0;
     	if (*pstStage->ppstStartSwitch) {
-    		if ((*pstStage->ppstStartSwitch)->swCurrState != ON) {
+    		if ((*pstStage->ppstStartSwitch)->_swCurrState != ON) {
     			ucState |= 1;
     		}
     	}
     	if (*pstStage->ppstReduceSwitch) {
-    		if ((*pstStage->ppstReduceSwitch)->swCurrState != OFF) {
+    		if ((*pstStage->ppstReduceSwitch)->_swCurrState != OFF) {
     			ucState |= 2;
     		}
     	}
     	if (*pstStage->ppstStopSwitch) {
-    		if ((*pstStage->ppstStopSwitch)->swCurrState != OFF) {
+    		if ((*pstStage->ppstStopSwitch)->_swCurrState != OFF) {
     			ucState |= 4;
     		}
     	}

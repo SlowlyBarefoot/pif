@@ -38,9 +38,25 @@ typedef void (*PIF_evtTaskLoop)(PIF_stTask *pstTask);
 struct _PIF_stTask
 {
 	// Public Member Variable
-	PIF_enTaskMode enMode;
-	PIF_usId usPifId;
 	void *pvLoopEach;
+
+	// Read-only Member Variable
+	PIF_usId _usPifId;
+	PIF_enTaskMode _enMode;
+
+	// Private Member Variable
+	const char *__pcName;
+	uint8_t __ucRatio;
+	BOOL __bPause;
+	uint16_t __usPeriod;
+	uint32_t __unPretime;
+#ifdef __PIF_DEBUG__
+	uint32_t __unCount;
+	float __fPeriod;
+#endif
+
+	// Private Event Function
+	PIF_evtTaskLoop __evtLoop;
 };
 
 

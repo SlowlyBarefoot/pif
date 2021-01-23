@@ -555,6 +555,8 @@ void pifPulse_PrintItemList(PIF_stPulse *pstOwner)
     	pifLog_Printf(LT_enNone, "\n  %d, Next = %d, Prev = %d",
     			index, pstBase->pstItems[index].unNext, pstBase->pstItems[index].unPrev);
     }
+#else
+    (void)pstOwner;
 #endif
 }
 
@@ -580,6 +582,8 @@ void pifPulse_PrintItemFree(PIF_stPulse *pstOwner)
 
         index = pstBase->pstItems[index].unNext;
     } while (index != PIF_PULSE_INDEX_NULL);
+#else
+    (void)pstOwner;
 #endif
 }
 
@@ -605,6 +609,8 @@ void pifPulse_PrintItemAlloc(PIF_stPulse *pstOwner)
 
         index = pstBase->pstItems[index].unNext;
     } while (index != PIF_PULSE_INDEX_NULL);
+#else
+    (void)pstOwner;
 #endif
 }
 
