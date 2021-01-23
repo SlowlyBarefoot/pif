@@ -5,7 +5,7 @@
 #include "pifTerminal.h"
 
 
-typedef struct _PIF_stTerminalBase
+typedef struct _PIF_stTerminal
 {
     PIF_stRingBuffer *pstTxBuffer;
     uint8_t ucCharIdx;
@@ -15,10 +15,10 @@ typedef struct _PIF_stTerminalBase
 	char *apcArgv[PIF_TERM_CMD_MAX_ARGS + 1];
 	const PIF_stTermCmdEntry *pstCmdTable;
 	const char *pcPrompt;
-} PIF_stTerminalBase;
+} PIF_stTerminal;
 
 
-static PIF_stTerminalBase s_stTerminalBase;
+static PIF_stTerminal s_stTerminal;
 
 
 #define LOG_FLAG_COUNT	4
@@ -40,17 +40,17 @@ static BOOL _GetDebugString(PIF_stRingBuffer *pstBuffer)
     BOOL bStrGetDoneFlag = FALSE;
     static BOOL bLastCr = FALSE;
 
-    if (s_stTerminalBase.pcRxBuffer == NULL) return FALSE;
+    if (s_stTerminal.pcRxBuffer == NULL) return FALSE;
 
     if (pifRingBuffer_GetByte(pstBuffer, (uint8_t *)&cTmpChar)) {
         bRes = 0;
         switch (cTmpChar) {
         case '\b':
-            if (s_stTerminalBase.ucCharIdx > 0) {
-                bRes = pifRingBuffer_PutString(s_stTerminalBase.pstTxBuffer, "\b \b");
+            if (s_stTerminal.ucCharIdx > 0) {
+                bRes = pifRingBuffer_PutString(s_stTerminal.pstTxBuffer, "\b \b");
                 if (!bRes) return FALSE;
-                s_stTerminalBase.ucCharIdx--;
-                s_stTerminalBase.pcRxBuffer[s_stTerminalBase.ucCharIdx] = 0;
+                s_stTerminal.ucCharIdx--;
+                s_stTerminal.pcRxBuffer[s_stTerminal.ucCharIdx] = 0;
             }
             break;
 
@@ -69,23 +69,23 @@ static BOOL _GetDebugString(PIF_stRingBuffer *pstBuffer)
             break;
 
         case 0x1b:  // ESC-Key pressed
-            bRes = pifRingBuffer_PutByte(s_stTerminalBase.pstTxBuffer, '\n');
+            bRes = pifRingBuffer_PutByte(s_stTerminal.pstTxBuffer, '\n');
             if (!bRes) return FALSE;
             bStrGetDoneFlag = TRUE;
             break;
 
         default:
-            if (s_stTerminalBase.ucCharIdx < s_stTerminalBase.ucRxBufferSize - 1) {
-                bRes = pifRingBuffer_PutByte(s_stTerminalBase.pstTxBuffer, cTmpChar);
+            if (s_stTerminal.ucCharIdx < s_stTerminal.ucRxBufferSize - 1) {
+                bRes = pifRingBuffer_PutByte(s_stTerminal.pstTxBuffer, cTmpChar);
                 if (!bRes) return FALSE;
-                s_stTerminalBase.pcRxBuffer[s_stTerminalBase.ucCharIdx] = cTmpChar;
-                s_stTerminalBase.ucCharIdx++;
+                s_stTerminal.pcRxBuffer[s_stTerminal.ucCharIdx] = cTmpChar;
+                s_stTerminal.ucCharIdx++;
             }
             break;
         }
 
         if (bStrGetDoneFlag == TRUE) {
-        	s_stTerminalBase.pcRxBuffer[s_stTerminalBase.ucCharIdx] = 0;
+        	s_stTerminal.pcRxBuffer[s_stTerminal.ucCharIdx] = 0;
         }
     }
     return bStrGetDoneFlag;
@@ -110,7 +110,7 @@ static int _ProcessDebugCmd(char *pcCmdStr)
         else {
             if (bFindArg) {
                 if (unArgc < PIF_TERM_CMD_MAX_ARGS) {
-                	s_stTerminalBase.apcArgv[unArgc] = pcTmpCmd;
+                	s_stTerminal.apcArgv[unArgc] = pcTmpCmd;
                     unArgc++;
                     bFindArg = FALSE;
                 }
@@ -124,11 +124,11 @@ static int _ProcessDebugCmd(char *pcCmdStr)
     }
 
     if (unArgc) {
-        pstCmdEntry = &s_stTerminalBase.pstCmdTable[0];
+        pstCmdEntry = &s_stTerminal.pstCmdTable[0];
         while (pstCmdEntry->pcName) {
-            if (!strcmp(s_stTerminalBase.apcArgv[0], pstCmdEntry->pcName)) {
-            	pifRingBuffer_PutString(s_stTerminalBase.pstTxBuffer, (char *)pstCmdEntry->pcHelp);
-                return pstCmdEntry->fnProcessor(unArgc, s_stTerminalBase.apcArgv);
+            if (!strcmp(s_stTerminal.apcArgv[0], pstCmdEntry->pcName)) {
+            	pifRingBuffer_PutString(s_stTerminal.pstTxBuffer, (char *)pstCmdEntry->pcHelp);
+                return pstCmdEntry->fnProcessor(unArgc, s_stTerminal.apcArgv);
             }
 
             pstCmdEntry++;
@@ -141,60 +141,60 @@ static int _ProcessDebugCmd(char *pcCmdStr)
 
 static void _ClearDebugStr()
 {
-    while (s_stTerminalBase.ucCharIdx) {
-    	s_stTerminalBase.pcRxBuffer[s_stTerminalBase.ucCharIdx] = 0;
-    	s_stTerminalBase.ucCharIdx--;
+    while (s_stTerminal.ucCharIdx) {
+    	s_stTerminal.pcRxBuffer[s_stTerminal.ucCharIdx] = 0;
+    	s_stTerminal.ucCharIdx--;
     }
 
     for (int i = 0; i < PIF_TERM_CMD_MAX_ARGS; i++) {
-    	s_stTerminalBase.apcArgv[i] = 0;
+    	s_stTerminal.apcArgv[i] = 0;
     }
 }
 
 static void _evtParsing(void *pvClient, PIF_stRingBuffer *pstBuffer)
 {
-	PIF_stTerminalBase *pstBase = (PIF_stTerminalBase *)pvClient;
+	PIF_stTerminal *pstOwner = (PIF_stTerminal *)pvClient;
     int nStatus = PIF_TERM_CMD_NO_ERROR;
 
     if (_GetDebugString(pstBuffer)) {
-        nStatus = _ProcessDebugCmd(pstBase->pcRxBuffer);
+        nStatus = _ProcessDebugCmd(pstOwner->pcRxBuffer);
 
         _ClearDebugStr();
 
         // Handle the case of bad command.
         if (nStatus == PIF_TERM_CMD_BAD_CMD) {
-        	pifRingBuffer_PutString(s_stTerminalBase.pstTxBuffer, "\nNot defined command!");
+        	pifRingBuffer_PutString(s_stTerminal.pstTxBuffer, "\nNot defined command!");
         }
 
         // Handle the case of too many arguments.
         else if (nStatus == PIF_TERM_CMD_TOO_MANY_ARGS) {
-        	pifRingBuffer_PutString(s_stTerminalBase.pstTxBuffer, "\nToo many arguments for command!");
+        	pifRingBuffer_PutString(s_stTerminal.pstTxBuffer, "\nToo many arguments for command!");
         }
 
         // Handle the case of too few arguments.
         else if (nStatus == PIF_TERM_CMD_TOO_FEW_ARGS) {
-        	pifRingBuffer_PutString(s_stTerminalBase.pstTxBuffer, "\nToo few arguments for command!");
+        	pifRingBuffer_PutString(s_stTerminal.pstTxBuffer, "\nToo few arguments for command!");
         }
 
         // Otherwise the command was executed.  Print the error
         // code if one was returned.
         else if (nStatus != PIF_TERM_CMD_NO_ERROR) {
-        	pifRingBuffer_PutString(s_stTerminalBase.pstTxBuffer, "\nCommand returned error code");
+        	pifRingBuffer_PutString(s_stTerminal.pstTxBuffer, "\nCommand returned error code");
         }
 
-    	pifRingBuffer_PutString(s_stTerminalBase.pstTxBuffer, (char *)pstBase->pcPrompt);
-    	pifRingBuffer_PutString(s_stTerminalBase.pstTxBuffer, "> ");
+    	pifRingBuffer_PutString(s_stTerminal.pstTxBuffer, (char *)pstOwner->pcPrompt);
+    	pifRingBuffer_PutString(s_stTerminal.pstTxBuffer, "> ");
     }
 }
 
 static BOOL _evtSending(void *pvClient, PIF_stRingBuffer *pstBuffer)
 {
-	PIF_stTerminalBase *pstBase = (PIF_stTerminalBase *)pvClient;
+	PIF_stTerminal *pstOwner = (PIF_stTerminal *)pvClient;
 	uint16_t usLength;
 
-	if (!pifRingBuffer_IsEmpty(pstBase->pstTxBuffer)) {
-		usLength = pifRingBuffer_CopyAll(pstBuffer, pstBase->pstTxBuffer, 0);
-		pifRingBuffer_Remove(pstBase->pstTxBuffer, usLength);
+	if (!pifRingBuffer_IsEmpty(pstOwner->pstTxBuffer)) {
+		usLength = pifRingBuffer_CopyAll(pstBuffer, pstOwner->pstTxBuffer, 0);
+		pifRingBuffer_Remove(pstOwner->pstTxBuffer, usLength);
 		return TRUE;
 	}
 	return FALSE;
@@ -214,18 +214,18 @@ BOOL pifTerminal_Init(const PIF_stTermCmdEntry *pstCmdTable, const char *pcPromp
     	goto fail;
     }
 
-    s_stTerminalBase.pcRxBuffer = calloc(sizeof(char), PIF_TERMINAL_RX_BUFFER_SIZE);
-    if (!s_stTerminalBase.pcRxBuffer) {
+    s_stTerminal.pcRxBuffer = calloc(sizeof(char), PIF_TERMINAL_RX_BUFFER_SIZE);
+    if (!s_stTerminal.pcRxBuffer) {
         pif_enError = E_enOutOfHeap;
         goto fail;
     }
-    s_stTerminalBase.ucRxBufferSize = PIF_TERMINAL_RX_BUFFER_SIZE;
+    s_stTerminal.ucRxBufferSize = PIF_TERMINAL_RX_BUFFER_SIZE;
 
-    s_stTerminalBase.pstTxBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_TERMINAL_TX_BUFFER_SIZE);
-    if (!s_stTerminalBase.pstTxBuffer) goto fail;
+    s_stTerminal.pstTxBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_TERMINAL_TX_BUFFER_SIZE);
+    if (!s_stTerminal.pstTxBuffer) goto fail;
 
-    s_stTerminalBase.pstCmdTable = pstCmdTable;
-    s_stTerminalBase.pcPrompt = pcPrompt;
+    s_stTerminal.pstCmdTable = pstCmdTable;
+    s_stTerminal.pcPrompt = pcPrompt;
     return TRUE;
 
 fail:
@@ -246,17 +246,17 @@ BOOL pifTerminal_ResizeRxBuffer(uint16_t usRxSize)
     	goto fail;
     }
 
-	if (s_stTerminalBase.pcRxBuffer) {
-		free(s_stTerminalBase.pcRxBuffer);
-		s_stTerminalBase.ucRxBufferSize = 0;
+	if (s_stTerminal.pcRxBuffer) {
+		free(s_stTerminal.pcRxBuffer);
+		s_stTerminal.ucRxBufferSize = 0;
 	}
 
-	s_stTerminalBase.pcRxBuffer = calloc(sizeof(char), usRxSize);
-    if (!s_stTerminalBase.pcRxBuffer) {
+	s_stTerminal.pcRxBuffer = calloc(sizeof(char), usRxSize);
+    if (!s_stTerminal.pcRxBuffer) {
         pif_enError = E_enOutOfHeap;
         goto fail;
     }
-    s_stTerminalBase.ucRxBufferSize = usRxSize;
+    s_stTerminal.ucRxBufferSize = usRxSize;
     return TRUE;
 
 fail:
@@ -277,7 +277,7 @@ BOOL pifTerminal_ResizeTxBuffer(uint16_t usTxSize)
     	goto fail;
     }
 
-    if (!pifRingBuffer_ResizeHeap(s_stTerminalBase.pstTxBuffer, usTxSize)) goto fail;
+    if (!pifRingBuffer_ResizeHeap(s_stTerminal.pstTxBuffer, usTxSize)) goto fail;
     return TRUE;
 
 fail:
@@ -292,7 +292,7 @@ fail:
  */
 PIF_stRingBuffer *pifTerminal_GetTxBuffer()
 {
-	 return s_stTerminalBase.pstTxBuffer;
+	 return s_stTerminal.pstTxBuffer;
 }
 
 /**
@@ -302,7 +302,7 @@ PIF_stRingBuffer *pifTerminal_GetTxBuffer()
  */
 void pifTerminal_AttachComm(PIF_stComm *pstComm)
 {
-	pifComm_AttachClient(pstComm, &s_stTerminalBase);
+	pifComm_AttachClient(pstComm, &s_stTerminal);
 	pifComm_AttachEvent(pstComm, _evtParsing, _evtSending, NULL);
 }
 
