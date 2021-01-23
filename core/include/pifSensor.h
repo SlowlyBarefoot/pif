@@ -48,7 +48,37 @@ struct _PIF_stSensorFilter
 typedef struct _PIF_stSensor
 {
 	// Public Member Variable
-    PIF_usId usPifId;
+
+	// Read-only Member Variable
+    PIF_usId _usPifId;
+
+	// Private Member Variable
+    PIF_enSensorEventType __enEventType;
+    union {
+    	uint16_t __usPeriod;
+		uint16_t __usThreshold;
+    	struct {
+			uint16_t __usThresholdLow;
+			uint16_t __usThresholdHigh;
+    	};
+    };
+    union {
+        PIF_stPulseItem *__pstTimerPeriod;
+	    SWITCH __swState;						// Default: OFF
+    };
+    uint16_t __usCurrLevel;
+    uint16_t __usPrevLevel;
+
+    uint8_t __ucFilterMethod;					// Default: PIF_SENSOR_FILTER_NONE
+    PIF_stSensorFilter *__pstFilter;			// Default: NULL
+
+	PIF_enTaskLoop __enTaskLoop;				// Default: TL_enAll
+
+	// Private Event Function
+    union {
+    	PIF_evtSensorPeriod __evtPeriod;		// Default: NULL
+    	PIF_evtSensorChange __evtChange;		// Default: NULL
+    };
 } PIF_stSensor;
 
 
