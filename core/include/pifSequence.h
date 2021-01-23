@@ -35,12 +35,25 @@ typedef struct _PIF_stSequencePhase
 
 struct _PIF_stSequence
 {
-	PIF_usId usPifId;
-	uint8_t ucPhaseNo;
+	// Public Member Variable
 	uint8_t ucStep;
 	uint8_t ucPhaseNoNext;
 	uint16_t usDelay;
 	void *pvParam;
+
+	// Read-only Member Variable
+	PIF_usId _usPifId;
+	uint8_t _ucPhaseNo;
+
+	// Private Member Variable
+	const PIF_stSequencePhase *__pstPhaseList;
+	PIF_stPulseItem *__pstTimerTimeout;
+	PIF_stPulseItem *__pstTimerDelay;
+
+	PIF_enTaskLoop __enTaskLoop;
+
+    // Private Event Function
+	PIF_evtSequenceError __evtError;
 };
 
 
