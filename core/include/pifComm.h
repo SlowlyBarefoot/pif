@@ -69,7 +69,27 @@ typedef enum _PIF_enCommTxState
 typedef struct _PIF_stComm
 {
 	// Public Member Variable
-    PIF_usId usPifId;
+
+	// Read-only Member Variable
+    PIF_usId _usPifId;
+
+	// Private Member Variable
+    void *__pvClient;
+
+    PIF_stRingBuffer *__pstTxBuffer;
+    PIF_enCommTxState __enState;
+
+    PIF_stRingBuffer *__pstRxBuffer;
+
+	PIF_enTaskLoop __enTaskLoop;
+
+	// Private Action Function
+    PIF_actCommSendData __actSendData;
+
+    // Private Event Function
+    PIF_evtCommParsing __evtParsing;
+    PIF_evtCommSending __evtSending;
+    PIF_evtCommSended __evtSended;
 } PIF_stComm;
 
 

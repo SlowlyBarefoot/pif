@@ -4,86 +4,9 @@
 #include "pifProtocol.h"
 
 
-typedef enum _PIF_enProtocolRxState
-{
-	PRS_enIdle			= 0,
-	PRS_enGetHeader		= 1,
-	PRS_enGetData		= 2,
-	PRS_enGetCrc		= 3,
-	PRS_enGetTailer		= 4,
-	PRS_enDone			= 5,
-	PRS_enAck			= 6,
-	PRS_enError			= 7
-} PIF_enProtocolRxState;
-
-typedef enum _PIF_enProtocolTxState
-{
-	PTS_enIdle			= 0,
-	PTS_enSending		= 1,
-	PTS_enWaitSended	= 2,
-	PTS_enWaitResponse	= 3,
-	PTS_enRetryDelay	= 4,
-	PTS_enRetry			= 5
-} PIF_enProtocolTxState;
-
-
-typedef struct _PIF_stProtocolRx
-{
-	PIF_enProtocolRxState enState;
-	uint8_t *pucPacket;
-	uint16_t usPacketSize;
-	uint8_t ucHeaderCount;
-	BOOL bDataLinkEscape;
-	PIF_stProtocolPacket stPacket;
-#if PIF_PROTOCOL_RECEIVE_TIMEOUT
-	PIF_stPulseItem *pstTimer;
-#endif
-} PIF_stProtocolRx;
-
-typedef struct _PIF_stProtocolTx
-{
-    PIF_stRingBuffer *pstRequestBuffer;
-    PIF_stRingBuffer *pstAnswerBuffer;
-	const PIF_stProtocolRequest *pstRequest;
-	uint8_t *pucData;
-	uint16_t usDataSize;
-	PIF_enProtocolTxState enState;
-	union {
-		uint8_t ucInfo[9];
-		struct {
-			uint16_t usLength;
-			uint16_t usTimeout;
-			uint8_t ucRetry;
-			uint8_t ucStx;
-			uint8_t ucFlags;
-			uint8_t ucCommand;
-			uint8_t ucPacketId;
-		};
-	};
-	uint16_t usPos;
-	PIF_stPulseItem *pstTimer;
-} PIF_stProtocolTx;
-
-typedef struct _PIF_stProtocolBase
-{
-	// Public Member Variable
-	PIF_stProtocol stOwner;
-
-	// Private Member Variable
-    const PIF_stProtocolQuestion *pstQuestions;
-    PIF_stProtocolRx stRx;
-    PIF_stProtocolTx stTx;
-	uint8_t ucHeaderSize;
-	uint8_t ucPacketId;
-
-	// Public Event Function
-    PIF_evtProtocolError evtError;
-} PIF_stProtocolBase;
-
-
-static PIF_stProtocolBase *s_pstProtocolBase = NULL;
-static uint8_t s_ucProtocolBaseSize;
-static uint8_t s_ucProtocolBasePos;
+static PIF_stProtocol *s_pstProtocol = NULL;
+static uint8_t s_ucProtocolSize;
+static uint8_t s_ucProtocolPos;
 
 static PIF_stPulse *s_pstProtocolTimer;
 
@@ -97,20 +20,20 @@ static void _evtTimerRxTimeout(void *pvIssuer)
 		return;
 	}
 
-	PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)pvIssuer;
+	PIF_stProtocol *pstOwner = (PIF_stProtocol *)pvIssuer;
 
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PTC(%u) ParsingPacket(Timeout) State:%u Len:%u Cnt:%u", pstBase->stOwner.usPifId,
-			pstBase->stRx.enState, pstBase->stRx.stPacket.usLength, pstBase->stRx.stPacket.usDataCount);
+	pifLog_Printf(LT_enError, "PTC(%u) ParsingPacket(Timeout) State:%u Len:%u Cnt:%u", pstOwner->_usPifId,
+			pstOwner->__stRx.enState, pstOwner->__stRx.stPacket.usLength, pstOwner->__stRx.stPacket.usDataCount);
 #ifdef __DEBUG_PACKET__
-	pifLog_Printf(LT_enNone, "\n%x %x %x %x %x %x %x %x : %x : %x", pstBase->stRx.pucPacket[0], pstBase->stRx.pucPacket[1],
-			pstBase->stRx.pucPacket[2], pstBase->stRx.pucPacket[3], pstBase->stRx.pucPacket[4], pstBase->stRx.pucPacket[5],
-			pstBase->stRx.pucPacket[6], pstBase->stRx.pucPacket[7], pstBase->stRx.stPacket.ucCrc,
-			pstBase->stRx.ucHeaderCount);
+	pifLog_Printf(LT_enNone, "\n%x %x %x %x %x %x %x %x : %x : %x", pstOwner->__stRx.pucPacket[0], pstOwner->__stRx.pucPacket[1],
+			pstOwner->__stRx.pucPacket[2], pstOwner->__stRx.pucPacket[3], pstOwner->__stRx.pucPacket[4], pstOwner->__stRx.pucPacket[5],
+			pstOwner->__stRx.pucPacket[6], pstOwner->__stRx.pucPacket[7], pstOwner->__stRx.stPacket.ucCrc,
+			pstOwner->__stRx.ucHeaderCount);
 #endif
 #endif
-	pifRingBuffer_PutByte(pstBase->stTx.pstAnswerBuffer, ASCII_NAK);
-	pstBase->stRx.enState = PRS_enIdle;
+	pifRingBuffer_PutByte(pstOwner->__stTx.pstAnswerBuffer, ASCII_NAK);
+	pstOwner->__stRx.enState = PRS_enIdle;
 }
 
 #endif
@@ -122,25 +45,25 @@ static void _evtTimerTxTimeout(void *pvIssuer)
 		return;
 	}
 
-	PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)pvIssuer;
+	PIF_stProtocol *pstOwner = (PIF_stProtocol *)pvIssuer;
 
-	switch (pstBase->stTx.enState) {
+	switch (pstOwner->__stTx.enState) {
 	case PTS_enWaitResponse:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "PTC(%u) TxTimeout State:%u Len:%u Cnt:%u", pstBase->stOwner.usPifId, pstBase->stTx.enState,
-				pstBase->stRx.stPacket.usLength, pstBase->stRx.stPacket.usDataCount);
+		pifLog_Printf(LT_enWarn, "PTC(%u) TxTimeout State:%u Len:%u Cnt:%u", pstOwner->_usPifId, pstOwner->__stTx.enState,
+				pstOwner->__stRx.stPacket.usLength, pstOwner->__stRx.stPacket.usDataCount);
 #endif
-		pstBase->stTx.enState = PTS_enRetry;
-		pstBase->stRx.enState = PRS_enIdle;
+		pstOwner->__stTx.enState = PTS_enRetry;
+		pstOwner->__stRx.enState = PRS_enIdle;
 		break;
 
 	case PTS_enRetryDelay:
-		pstBase->stTx.enState = PTS_enRetry;
+		pstOwner->__stTx.enState = PTS_enRetry;
 		break;
 
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "PTC(%u) TxTimeout State:%u", pstBase->stOwner.usPifId, pstBase->stTx.enState);
+		pifLog_Printf(LT_enWarn, "PTC(%u) TxTimeout State:%u", pstOwner->_usPifId, pstOwner->__stTx.enState);
 #endif
 		break;
 	}
@@ -160,43 +83,42 @@ static const char *c_cPktErr[5] = {
 		"Wrong ETX"
 };
 
-static void _ParsingPacket(PIF_stProtocolBase *pstBase, PIF_stRingBuffer *pstBuffer)
+static void _ParsingPacket(PIF_stProtocol *pstOwner, PIF_stRingBuffer *pstBuffer)
 {
-	PIF_stProtocol *pstOwner = &pstBase->stOwner;
-	PIF_stProtocolPacket *pstPacket = &pstBase->stRx.stPacket;
+	PIF_stProtocolPacket *pstPacket = &pstOwner->__stRx.stPacket;
 	uint8_t data;
 	uint8_t ucPktErr;
 
 	while (pifRingBuffer_GetByte(pstBuffer, &data)) {
-		switch (pstBase->stRx.enState)	{
+		switch (pstOwner->__stRx.enState)	{
 		case PRS_enIdle:
 			if (data == ASCII_STX) {
-				pstBase->stRx.pucPacket[0] = data;
-				pstBase->stRx.ucHeaderCount = 1;
-				pstBase->stRx.enState = PRS_enGetHeader;
+				pstOwner->__stRx.pucPacket[0] = data;
+				pstOwner->__stRx.ucHeaderCount = 1;
+				pstOwner->__stRx.enState = PRS_enGetHeader;
 				pifCrc7_Init();
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
-				if (pstBase->stTx.enState == PTS_enIdle) {
-					pifPulse_StartItem(pstBase->stRx.pstTimer, PIF_PROTOCOL_RECEIVE_TIMEOUT);
+				if (pstOwner->__stTx.enState == PTS_enIdle) {
+					pifPulse_StartItem(pstOwner->__stRx.pstTimer, PIF_PROTOCOL_RECEIVE_TIMEOUT);
 				}
 #endif
 			}
-			else if (pstBase->stTx.enState == PTS_enWaitResponse) {
+			else if (pstOwner->__stTx.enState == PTS_enWaitResponse) {
 				if (data == ASCII_ACK) {
-					pstBase->stRx.enState = PRS_enAck;
+					pstOwner->__stRx.enState = PRS_enAck;
 				}
 				else {
 #ifndef __PIF_NO_LOG__
-					pifLog_Printf(LT_enWarn, "PTC(%u):Receive NAK(%xh)", pstBase->stOwner.usPifId, data);
+					pifLog_Printf(LT_enWarn, "PTC(%u):Receive NAK(%xh)", pstOwner->_usPifId, data);
 #endif
 #if PIF_PROTOCOL_RETRY_DELAY
-					pifPulse_StartItem(pstBase->stTx.pstTimer, PIF_PROTOCOL_RETRY_DELAY);
-					pstBase->stTx.enState = PTS_enRetryDelay;
+					pifPulse_StartItem(pstOwner->__stTx.pstTimer, PIF_PROTOCOL_RETRY_DELAY);
+					pstOwner->__stTx.enState = PTS_enRetryDelay;
 #else
-					pifPulse_StopItem(pstBase->stTx.pstTimer);
-					pstBase->stTx.enState = PTS_enRetry;
+					pifPulse_StopItem(pstOwner->__stTx.pstTimer);
+					pstOwner->__stTx.enState = PTS_enRetry;
 #endif
-					pstBase->stRx.enState = PRS_enIdle;
+					pstOwner->__stRx.enState = PRS_enIdle;
 				}
 			}
 			break;
@@ -204,34 +126,34 @@ static void _ParsingPacket(PIF_stProtocolBase *pstBase, PIF_stRingBuffer *pstBuf
 		case PRS_enGetHeader:
 			if (data >= 0x20) {
 				pifCrc7_Calcurate(data);
-				pstBase->stRx.pucPacket[pstBase->stRx.ucHeaderCount] = data;
-				pstBase->stRx.ucHeaderCount++;
-				if (pstBase->stRx.ucHeaderCount >= pstBase->ucHeaderSize) {
-					pstPacket->enFlags = pstBase->stRx.pucPacket[1];
-					pstPacket->ucCommand = pstBase->stRx.pucPacket[2];
-					switch (pstOwner->enType) {
+				pstOwner->__stRx.pucPacket[pstOwner->__stRx.ucHeaderCount] = data;
+				pstOwner->__stRx.ucHeaderCount++;
+				if (pstOwner->__stRx.ucHeaderCount >= pstOwner->__ucHeaderSize) {
+					pstPacket->enFlags = pstOwner->__stRx.pucPacket[1];
+					pstPacket->ucCommand = pstOwner->__stRx.pucPacket[2];
+					switch (pstOwner->_enType) {
 					case PT_enSmall:
-						pstPacket->usLength = pstBase->stRx.pucPacket[3] - 0x20;
+						pstPacket->usLength = pstOwner->__stRx.pucPacket[3] - 0x20;
 						break;
 
 					case PT_enMedium:
-						pstPacket->ucPacketId = pstBase->stRx.pucPacket[3];
-						pstPacket->usLength = (pstBase->stRx.pucPacket[4] & 0x7F) + ((pstBase->stRx.pucPacket[5] & 0x7F) << 7);
+						pstPacket->ucPacketId = pstOwner->__stRx.pucPacket[3];
+						pstPacket->usLength = (pstOwner->__stRx.pucPacket[4] & 0x7F) + ((pstOwner->__stRx.pucPacket[5] & 0x7F) << 7);
 						break;
 					}
 					if (!pstPacket->usLength) {
-						pstBase->stRx.enState = PRS_enGetCrc;
+						pstOwner->__stRx.enState = PRS_enGetCrc;
 						pstPacket->pucData = NULL;
 						pstPacket->usDataCount = 0;
 					}
-					else if (pstPacket->usLength > pstBase->stRx.usPacketSize - 10) {
+					else if (pstPacket->usLength > pstOwner->__stRx.usPacketSize - 10) {
 						ucPktErr = PKT_ERR_BIG_LENGHT;
 						goto fail;
 					}
 					else {
-						pstBase->stRx.enState = PRS_enGetData;
-						pstBase->stRx.bDataLinkEscape = FALSE;
-						pstPacket->pucData = pstBase->stRx.pucPacket + pstBase->ucHeaderSize;
+						pstOwner->__stRx.enState = PRS_enGetData;
+						pstOwner->__stRx.bDataLinkEscape = FALSE;
+						pstPacket->pucData = pstOwner->__stRx.pucPacket + pstOwner->__ucHeaderSize;
 						pstPacket->usDataCount = 0;
 					}
 				}
@@ -245,18 +167,18 @@ static void _ParsingPacket(PIF_stProtocolBase *pstBase, PIF_stRingBuffer *pstBuf
 		case PRS_enGetData:
 			pifCrc7_Calcurate(data);
 			if (data >= 0x20) {
-				if (pstBase->stRx.bDataLinkEscape) {
-					pstBase->stRx.bDataLinkEscape = FALSE;
+				if (pstOwner->__stRx.bDataLinkEscape) {
+					pstOwner->__stRx.bDataLinkEscape = FALSE;
 					data &= 0x7F;
 				}
 				pstPacket->pucData[pstPacket->usDataCount] = data;
 				pstPacket->usDataCount++;
 				if (pstPacket->usDataCount >= pstPacket->usLength) {
-					pstBase->stRx.enState = PRS_enGetCrc;
+					pstOwner->__stRx.enState = PRS_enGetCrc;
 				}
 			}
 			else if (data == ASCII_DLE) {
-				pstBase->stRx.bDataLinkEscape = TRUE;
+				pstOwner->__stRx.bDataLinkEscape = TRUE;
 			}
 			else {
 				ucPktErr = PKT_ERR_INVALID_DATA;
@@ -268,7 +190,7 @@ static void _ParsingPacket(PIF_stProtocolBase *pstBase, PIF_stRingBuffer *pstBuf
 			if (data >= 0x20) {
 				pstPacket->ucCrc = data;
 				if (pstPacket->ucCrc == (0x80 | pifCrc7_Result())) {
-					pstBase->stRx.enState = PRS_enGetTailer;
+					pstOwner->__stRx.enState = PRS_enGetTailer;
 				}
 				else {
 					ucPktErr = PKT_ERR_WRONG_CRC;
@@ -284,9 +206,9 @@ static void _ParsingPacket(PIF_stProtocolBase *pstBase, PIF_stRingBuffer *pstBuf
 		case PRS_enGetTailer:
 			if (data == ASCII_ETX) {
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
-	            pifPulse_StopItem(pstBase->stRx.pstTimer);
+	            pifPulse_StopItem(pstOwner->__stRx.pstTimer);
 #endif
-	            pstBase->stRx.enState = PRS_enDone;
+	            pstOwner->__stRx.enState = PRS_enDone;
 			}
 			else {
 				ucPktErr = PKT_ERR_WRONG_ETX;
@@ -302,64 +224,63 @@ static void _ParsingPacket(PIF_stProtocolBase *pstBase, PIF_stRingBuffer *pstBuf
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PTC(%u) ParsingPacket(%s) TS:%u RS:%u Len:%u Cnt:%u", pstOwner->usPifId, c_cPktErr[ucPktErr],
-			pstBase->stTx.enState, pstBase->stRx.enState, pstPacket->usLength, pstPacket->usDataCount);
+	pifLog_Printf(LT_enError, "PTC(%u) ParsingPacket(%s) TS:%u RS:%u Len:%u Cnt:%u", pstOwner->_usPifId, c_cPktErr[ucPktErr],
+			pstOwner->__stTx.enState, pstOwner->__stRx.enState, pstPacket->usLength, pstPacket->usDataCount);
 #ifdef __DEBUG_PACKET__
-	pifLog_Printf(LT_enNone, "\n%x %x %x %x %x %x %x %x : %x %x : %x", pstBase->stRx.pucPacket[0], pstBase->stRx.pucPacket[1],
-			pstBase->stRx.pucPacket[2], pstBase->stRx.pucPacket[3], pstBase->stRx.pucPacket[4], pstBase->stRx.pucPacket[5],
-			pstBase->stRx.pucPacket[6], pstBase->stRx.pucPacket[7], pstBase->stRx.stPacket.ucCrc, data,	pstBase->stRx.ucHeaderCount);
+	pifLog_Printf(LT_enNone, "\n%x %x %x %x %x %x %x %x : %x %x : %x", pstOwner->__stRx.pucPacket[0], pstOwner->__stRx.pucPacket[1],
+			pstOwner->__stRx.pucPacket[2], pstOwner->__stRx.pucPacket[3], pstOwner->__stRx.pucPacket[4], pstOwner->__stRx.pucPacket[5],
+			pstOwner->__stRx.pucPacket[6], pstOwner->__stRx.pucPacket[7], pstOwner->__stRx.stPacket.ucCrc, data,	pstOwner->__stRx.ucHeaderCount);
 #endif
 #endif
-    if (pstBase->stTx.enState == PTS_enIdle) {
+    if (pstOwner->__stTx.enState == PTS_enIdle) {
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
-    	pifPulse_StopItem(pstBase->stRx.pstTimer);
+    	pifPulse_StopItem(pstOwner->__stRx.pstTimer);
 #endif
-    	pifRingBuffer_PutByte(pstBase->stTx.pstAnswerBuffer, ASCII_NAK);
+    	pifRingBuffer_PutByte(pstOwner->__stTx.pstAnswerBuffer, ASCII_NAK);
     }
-    else if (pstBase->stTx.enState == PTS_enWaitResponse) {
+    else if (pstOwner->__stTx.enState == PTS_enWaitResponse) {
 #if PIF_PROTOCOL_RETRY_DELAY
-    	pifPulse_StartItem(pstBase->stTx.pstTimer, PIF_PROTOCOL_RETRY_DELAY);
-		pstBase->stTx.enState = PTS_enRetryDelay;
+    	pifPulse_StartItem(pstOwner->__stTx.pstTimer, PIF_PROTOCOL_RETRY_DELAY);
+		pstOwner->__stTx.enState = PTS_enRetryDelay;
 #else
-		pifPulse_StopItem(pstBase->stTx.pstTimer);
-		pstBase->stTx.enState = PTS_enRetry;
+		pifPulse_StopItem(pstOwner->__stTx.pstTimer);
+		pstOwner->__stTx.enState = PTS_enRetry;
 #endif
     }
-	pstBase->stRx.enState = PRS_enIdle;
+	pstOwner->__stRx.enState = PRS_enIdle;
 }
 
 static void _evtParsing(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 {
-	PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)pvOwner;
-	PIF_stProtocol *pstOwner = &pstBase->stOwner;
+	PIF_stProtocol *pstOwner = (PIF_stProtocol *)pvOwner;
 	PIF_stProtocolPacket *pstPacket;
 
-	_ParsingPacket(pstBase, pstBuffer);
+	_ParsingPacket(pstOwner, pstBuffer);
 
-    if (pstBase->stRx.enState == PRS_enDone) {
+    if (pstOwner->__stRx.enState == PRS_enDone) {
 #ifndef __PIF_NO_LOG__
 #ifdef __DEBUG_PACKET__
-    	pifLog_Printf(LT_enNone, "\n%u> %x %x %x %x %x %x : %x", pstOwner->usPifId,
-    			pstBase->stRx.pucPacket[0],	pstBase->stRx.pucPacket[1], pstBase->stRx.pucPacket[2], pstBase->stRx.pucPacket[3],
-				pstBase->stRx.pucPacket[4],	pstBase->stRx.pucPacket[5],	pstBase->stRx.stPacket.ucCrc);
+    	pifLog_Printf(LT_enNone, "\n%u> %x %x %x %x %x %x : %x", pstOwner->_usPifId,
+    			pstOwner->__stRx.pucPacket[0],	pstOwner->__stRx.pucPacket[1], pstOwner->__stRx.pucPacket[2], pstOwner->__stRx.pucPacket[3],
+				pstOwner->__stRx.pucPacket[4],	pstOwner->__stRx.pucPacket[5],	pstOwner->__stRx.stPacket.ucCrc);
 #endif
 #endif
 
-    	pstPacket = &pstBase->stRx.stPacket;
+    	pstPacket = &pstOwner->__stRx.stPacket;
 
     	if ((pstPacket->enFlags & PF_enType_Mask) == PF_enType_Question) {
-        	const PIF_stProtocolQuestion *pstQuestion = pstBase->pstQuestions;
+        	const PIF_stProtocolQuestion *pstQuestion = pstOwner->__pstQuestions;
         	while (pstQuestion->ucCommand) {
         		if (pstPacket->ucCommand == pstQuestion->ucCommand) {
 #ifndef __PIF_NO_LOG__
         	    	if (pstPacket->enFlags & PF_enLogPrint_Mask) {
-        	    		pifLog_Printf(LT_enComm, "PTC(%u) Qt:%xh F:%xh P:%d L:%d CRC:%xh", pstOwner->usPifId, pstPacket->ucCommand,
+        	    		pifLog_Printf(LT_enComm, "PTC(%u) Qt:%xh F:%xh P:%d L:%d CRC:%xh", pstOwner->_usPifId, pstPacket->ucCommand,
         	    				pstPacket->enFlags, pstPacket->ucPacketId, pstPacket->usLength, pstPacket->ucCrc);
         	    	}
 #endif
 
         	    	if ((pstPacket->enFlags & PF_enResponse_Mask) == PF_enResponse_Ack) {
-        	    		pifRingBuffer_PutByte(pstBase->stTx.pstAnswerBuffer, ASCII_ACK);
+        	    		pifRingBuffer_PutByte(pstOwner->__stTx.pstAnswerBuffer, ASCII_ACK);
         	    	}
        	    		(*pstQuestion->evtQuestion)(pstPacket);
         			break;
@@ -368,114 +289,113 @@ static void _evtParsing(void *pvOwner, PIF_stRingBuffer *pstBuffer)
         	}
     	}
     	else {
-    	    if (pstBase->stTx.enState == PTS_enWaitResponse) {
+    	    if (pstOwner->__stTx.enState == PTS_enWaitResponse) {
 #ifndef __PIF_NO_LOG__
     	    	if (pstPacket->enFlags & PF_enLogPrint_Mask) {
-    	    		pifLog_Printf(LT_enComm, "PTC(%u) Rs:%xh F:%xh P:%d L:%d CRC:%xh", pstOwner->usPifId, pstPacket->ucCommand,
+    	    		pifLog_Printf(LT_enComm, "PTC(%u) Rs:%xh F:%xh P:%d L:%d CRC:%xh", pstOwner->_usPifId, pstPacket->ucCommand,
     	    				pstPacket->enFlags, pstPacket->ucPacketId, pstPacket->usLength, pstPacket->ucCrc);
     	    	}
 #endif
 
-    	    	if (pstBase->stTx.ucCommand == pstPacket->ucCommand && (pstOwner->enType == PT_enSmall ||
-    	    			pstBase->stTx.ucPacketId == pstPacket->ucPacketId)) {
-    				pifRingBuffer_Remove(pstBase->stTx.pstRequestBuffer, 5 + pstBase->stTx.usLength);
-		            pifPulse_StopItem(pstBase->stTx.pstTimer);
-					(*pstBase->stTx.pstRequest->evtResponse)(pstPacket);
-					pstBase->stTx.enState = PTS_enIdle;
+    	    	if (pstOwner->__stTx.ucCommand == pstPacket->ucCommand && (pstOwner->_enType == PT_enSmall ||
+    	    			pstOwner->__stTx.ucPacketId == pstPacket->ucPacketId)) {
+    				pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.usLength);
+		            pifPulse_StopItem(pstOwner->__stTx.pstTimer);
+					(*pstOwner->__stTx.pstRequest->evtResponse)(pstPacket);
+					pstOwner->__stTx.enState = PTS_enIdle;
     	    	}
     	    	else {
 #if PIF_PROTOCOL_RETRY_DELAY
-    	    		pifPulse_StartItem(pstBase->stTx.pstTimer, PIF_PROTOCOL_RETRY_DELAY);
-					pstBase->stTx.enState = PTS_enRetryDelay;
+    	    		pifPulse_StartItem(pstOwner->__stTx.pstTimer, PIF_PROTOCOL_RETRY_DELAY);
+					pstOwner->__stTx.enState = PTS_enRetryDelay;
 #else
-					pifPulse_StopItem(pstBase->stTx.pstTimer);
-					pstBase->stTx.enState = PTS_enRetry;
+					pifPulse_StopItem(pstOwner->__stTx.pstTimer);
+					pstOwner->__stTx.enState = PTS_enRetry;
 #endif
     	    	}
     	    }
 #ifndef __PIF_NO_LOG__
     	    else {
-    	    	pifLog_Printf(LT_enWarn, "PTC(%u) Invalid State %d", pstBase->stOwner.usPifId, pstBase->stTx.enState);
+    	    	pifLog_Printf(LT_enWarn, "PTC(%u) Invalid State %d", pstOwner->_usPifId, pstOwner->__stTx.enState);
     	    }
 #endif
     	}
-    	pstBase->stRx.enState = PRS_enIdle;
+    	pstOwner->__stRx.enState = PRS_enIdle;
     }
-    else if (pstBase->stRx.enState == PRS_enAck) {
-		pifRingBuffer_Remove(pstBase->stTx.pstRequestBuffer, 5 + pstBase->stTx.usLength);
-        pifPulse_StopItem(pstBase->stTx.pstTimer);
-		(*pstBase->stTx.pstRequest->evtResponse)(NULL);
-		pstBase->stTx.enState = PTS_enIdle;
-    	pstBase->stRx.enState = PRS_enIdle;
+    else if (pstOwner->__stRx.enState == PRS_enAck) {
+		pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.usLength);
+        pifPulse_StopItem(pstOwner->__stTx.pstTimer);
+		(*pstOwner->__stTx.pstRequest->evtResponse)(NULL);
+		pstOwner->__stTx.enState = PTS_enIdle;
+    	pstOwner->__stRx.enState = PRS_enIdle;
     }
 }
 
 static BOOL _evtSending(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 {
-	PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)pvOwner;
-	PIF_stProtocol *pstOwner = &pstBase->stOwner;
+	PIF_stProtocol *pstOwner = (PIF_stProtocol *)pvOwner;
 	uint16_t usLength;
 
-	if (pstBase->stRx.enState != PRS_enIdle) return FALSE;
+	if (pstOwner->__stRx.enState != PRS_enIdle) return FALSE;
 
-	if (!pifRingBuffer_IsEmpty(pstBase->stTx.pstAnswerBuffer)) {
-		usLength = pifRingBuffer_CopyAll(pstBuffer, pstBase->stTx.pstAnswerBuffer, 0);
-		pifRingBuffer_Remove(pstBase->stTx.pstAnswerBuffer, usLength);
+	if (!pifRingBuffer_IsEmpty(pstOwner->__stTx.pstAnswerBuffer)) {
+		usLength = pifRingBuffer_CopyAll(pstBuffer, pstOwner->__stTx.pstAnswerBuffer, 0);
+		pifRingBuffer_Remove(pstOwner->__stTx.pstAnswerBuffer, usLength);
 		return TRUE;
 	}
 	else {
-	    switch (pstBase->stTx.enState) {
+	    switch (pstOwner->__stTx.enState) {
 	    case PTS_enIdle:
-	    	if (!pifRingBuffer_IsEmpty(pstBase->stTx.pstRequestBuffer)) {
-				pifRingBuffer_CopyToArray(pstBase->stTx.ucInfo, pstBase->stTx.pstRequestBuffer, 9);
-				pstBase->stTx.usPos = 0;
-				pstBase->stTx.enState = PTS_enSending;
+	    	if (!pifRingBuffer_IsEmpty(pstOwner->__stTx.pstRequestBuffer)) {
+				pifRingBuffer_CopyToArray(pstOwner->__stTx.ucInfo, pstOwner->__stTx.pstRequestBuffer, 9);
+				pstOwner->__stTx.usPos = 0;
+				pstOwner->__stTx.enState = PTS_enSending;
 	    	}
 	    	break;
 
 	    case PTS_enSending:
 	    	if (pifRingBuffer_IsEmpty(pstBuffer)) {
-				pstBase->stTx.usPos += pifRingBuffer_CopyAll(pstBuffer, pstBase->stTx.pstRequestBuffer, 5 + pstBase->stTx.usPos);
-				if (pstBase->stTx.usPos >= pstBase->stTx.usLength) {
-					pstBase->stTx.enState = PTS_enWaitSended;
+				pstOwner->__stTx.usPos += pifRingBuffer_CopyAll(pstBuffer, pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.usPos);
+				if (pstOwner->__stTx.usPos >= pstOwner->__stTx.usLength) {
+					pstOwner->__stTx.enState = PTS_enWaitSended;
 				}
 	    	}
 	    	break;
 
 	    case PTS_enWaitSended:
 	    	if (pifRingBuffer_IsEmpty(pstBuffer)) {
-	    		if ((pstBase->stTx.ucFlags & PF_enResponse_Mask) == PF_enResponse_No) {
-    				pifRingBuffer_Remove(pstBase->stTx.pstRequestBuffer, 5 + pstBase->stTx.usLength);
-	    			pstBase->stTx.enState = PTS_enIdle;
+	    		if ((pstOwner->__stTx.ucFlags & PF_enResponse_Mask) == PF_enResponse_No) {
+    				pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.usLength);
+	    			pstOwner->__stTx.enState = PTS_enIdle;
 	    		}
 	    		else {
-	    			if (!pifPulse_StartItem(pstBase->stTx.pstTimer, pstBase->stTx.usTimeout)) {
+	    			if (!pifPulse_StartItem(pstOwner->__stTx.pstTimer, pstOwner->__stTx.usTimeout)) {
 #ifndef __PIF_NO_LOG__
-						pifLog_Printf(LT_enWarn, "PTC(%u) Not start timer", pstBase->stOwner.usPifId);
+						pifLog_Printf(LT_enWarn, "PTC(%u) Not start timer", pstOwner->_usPifId);
 #endif
 					}
-	    			pstBase->stTx.enState = PTS_enWaitResponse;
+	    			pstOwner->__stTx.enState = PTS_enWaitResponse;
 	    		}
 				return TRUE;
 	    	}
 	    	break;
 
 	    case PTS_enRetry:
-	    	pstBase->stTx.ucRetry--;
-			if (pstBase->stTx.ucRetry) {
+	    	pstOwner->__stTx.ucRetry--;
+			if (pstOwner->__stTx.ucRetry) {
 #ifndef __PIF_NO_LOG__
-				pifLog_Printf(LT_enWarn, "PTC(%u) Retry: %d", pstOwner->usPifId, pstBase->stTx.ucRetry);
+				pifLog_Printf(LT_enWarn, "PTC(%u) Retry: %d", pstOwner->_usPifId, pstOwner->__stTx.ucRetry);
 #endif
-				pstBase->stTx.usPos = 0;
-				pstBase->stTx.enState = PTS_enSending;
+				pstOwner->__stTx.usPos = 0;
+				pstOwner->__stTx.enState = PTS_enSending;
 			}
 			else {
-				if (pstBase->evtError) (*pstBase->evtError)(pstOwner->usPifId);
-				pifRingBuffer_Remove(pstBase->stTx.pstRequestBuffer, 5 + pstBase->stTx.usLength);
+				if (pstOwner->__evtError) (*pstOwner->__evtError)(pstOwner->_usPifId);
+				pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.usLength);
 #ifndef __PIF_NO_LOG__
-				pifLog_Printf(LT_enError, "PTC(%u) EventSending EC:%d", pstOwner->usPifId, pif_enError);
+				pifLog_Printf(LT_enError, "PTC(%u) EventSending EC:%d", pstOwner->_usPifId, pif_enError);
 #endif
-				pstBase->stTx.enState = PTS_enIdle;
+				pstOwner->__stTx.enState = PTS_enIdle;
 			}
 	    	break;
 
@@ -500,14 +420,14 @@ BOOL pifProtocol_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
 		goto fail;
 	}
 
-    s_pstProtocolBase = calloc(sizeof(PIF_stProtocolBase), ucSize);
-    if (!s_pstProtocolBase) {
+    s_pstProtocol = calloc(sizeof(PIF_stProtocol), ucSize);
+    if (!s_pstProtocol) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
 
-    s_ucProtocolBaseSize = ucSize;
-    s_ucProtocolBasePos = 0;
+    s_ucProtocolSize = ucSize;
+    s_ucProtocolPos = 0;
 
     s_pstProtocolTimer = pstTimer;
     return TRUE;
@@ -525,19 +445,19 @@ fail:
  */
 void pifProtocol_Exit()
 {
-    if (s_pstProtocolBase) {
-        for (int i = 0; i < s_ucProtocolBasePos; i++) {
-        	PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)&s_pstProtocolBase[i];
-        	if (pstBase->stRx.pucPacket) {
-        		free(pstBase->stRx.pucPacket);
-        		pstBase->stRx.pucPacket = NULL;
+    if (s_pstProtocol) {
+        for (int i = 0; i < s_ucProtocolPos; i++) {
+        	PIF_stProtocol *pstOwner = (PIF_stProtocol *)&s_pstProtocol[i];
+        	if (pstOwner->__stRx.pucPacket) {
+        		free(pstOwner->__stRx.pucPacket);
+        		pstOwner->__stRx.pucPacket = NULL;
         	}
-        	pifRingBuffer_Exit(pstBase->stTx.pstRequestBuffer);
-        	pifRingBuffer_Exit(pstBase->stTx.pstAnswerBuffer);
-        	pifPulse_RemoveItem(s_pstProtocolTimer, pstBase->stTx.pstTimer);
+        	pifRingBuffer_Exit(pstOwner->__stTx.pstRequestBuffer);
+        	pifRingBuffer_Exit(pstOwner->__stTx.pstAnswerBuffer);
+        	pifPulse_RemoveItem(s_pstProtocolTimer, pstOwner->__stTx.pstTimer);
         }
-    	free(s_pstProtocolBase);
-        s_pstProtocolBase = NULL;
+    	free(s_pstProtocol);
+        s_pstProtocol = NULL;
     }
 }
 
@@ -552,7 +472,7 @@ void pifProtocol_Exit()
 PIF_stProtocol *pifProtocol_Add(PIF_usId usPifId, PIF_enProtocolType enType,
 		const PIF_stProtocolQuestion *pstQuestions)
 {
-    if (s_ucProtocolBasePos >= s_ucProtocolBaseSize) {
+    if (s_ucProtocolPos >= s_ucProtocolSize) {
         pif_enError = E_enOverflowBuffer;
         goto fail;
     }
@@ -566,15 +486,15 @@ PIF_stProtocol *pifProtocol_Add(PIF_usId usPifId, PIF_enProtocolType enType,
 		pstQuestion++;
 	}
 
-    PIF_stProtocolBase *pstBase = &s_pstProtocolBase[s_ucProtocolBasePos];
+    PIF_stProtocol *pstOwner = &s_pstProtocol[s_ucProtocolPos];
 
     switch (enType) {
 	case PT_enSmall:
-		pstBase->ucHeaderSize = 4;
+		pstOwner->__ucHeaderSize = 4;
 		break;
 
 	case PT_enMedium:
-		pstBase->ucHeaderSize = 6;
+		pstOwner->__ucHeaderSize = 6;
 		break;
 
 	default:
@@ -582,42 +502,40 @@ PIF_stProtocol *pifProtocol_Add(PIF_usId usPifId, PIF_enProtocolType enType,
         goto fail;
 	}
 
-    PIF_stProtocol *pstOwner = &pstBase->stOwner;
-
-    pstBase->stRx.pucPacket = calloc(sizeof(uint8_t), 10 + PIF_PROTOCOL_RX_PACKET_SIZE);
-    if (!pstBase->stRx.pucPacket) {
+    pstOwner->__stRx.pucPacket = calloc(sizeof(uint8_t), 10 + PIF_PROTOCOL_RX_PACKET_SIZE);
+    if (!pstOwner->__stRx.pucPacket) {
         pif_enError = E_enOutOfHeap;
         goto fail;
     }
 
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
-    pstBase->stRx.pstTimer = pifPulse_AddItem(s_pstProtocolTimer, PT_enOnce);
-    if (!pstBase->stRx.pstTimer) goto fail;
-    pifPulse_AttachEvtFinish(pstBase->stRx.pstTimer, _evtTimerRxTimeout, pstOwner);
+    pstOwner->__stRx.pstTimer = pifPulse_AddItem(s_pstProtocolTimer, PT_enOnce);
+    if (!pstOwner->__stRx.pstTimer) goto fail;
+    pifPulse_AttachEvtFinish(pstOwner->__stRx.pstTimer, _evtTimerRxTimeout, pstOwner);
 #endif
 
     if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
 
-    pstBase->stTx.pstRequestBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_PROTOCOL_TX_REQUEST_SIZE);
-    if (!pstBase->stTx.pstRequestBuffer) goto fail;
-    pifRingBuffer_SetName(pstBase->stTx.pstRequestBuffer, "RQB");
+    pstOwner->__stTx.pstRequestBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_PROTOCOL_TX_REQUEST_SIZE);
+    if (!pstOwner->__stTx.pstRequestBuffer) goto fail;
+    pifRingBuffer_SetName(pstOwner->__stTx.pstRequestBuffer, "RQB");
 
-    pstBase->stTx.pstAnswerBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_PROTOCOL_TX_ANSWER_SIZE);
-    if (!pstBase->stTx.pstAnswerBuffer) goto fail;
-    pifRingBuffer_SetName(pstBase->stTx.pstAnswerBuffer, "RSB");
+    pstOwner->__stTx.pstAnswerBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_PROTOCOL_TX_ANSWER_SIZE);
+    if (!pstOwner->__stTx.pstAnswerBuffer) goto fail;
+    pifRingBuffer_SetName(pstOwner->__stTx.pstAnswerBuffer, "RSB");
 
-    pstBase->stTx.pstTimer = pifPulse_AddItem(s_pstProtocolTimer, PT_enOnce);
-    if (!pstBase->stTx.pstTimer) goto fail;
-    pifPulse_AttachEvtFinish(pstBase->stTx.pstTimer, _evtTimerTxTimeout, pstOwner);
+    pstOwner->__stTx.pstTimer = pifPulse_AddItem(s_pstProtocolTimer, PT_enOnce);
+    if (!pstOwner->__stTx.pstTimer) goto fail;
+    pifPulse_AttachEvtFinish(pstOwner->__stTx.pstTimer, _evtTimerTxTimeout, pstOwner);
 
-    pstOwner->enType = enType;
-    pstBase->pstQuestions = pstQuestions;
-    pstOwner->usPifId = usPifId;
-    pstBase->ucPacketId = 0x20;
-    pstOwner->ucOwnerId = 0xFF;
-    pstBase->stRx.usPacketSize = 10 + PIF_PROTOCOL_RX_PACKET_SIZE;
+    pstOwner->_enType = enType;
+    pstOwner->__pstQuestions = pstQuestions;
+    pstOwner->_usPifId = usPifId;
+    pstOwner->__ucPacketId = 0x20;
+    pstOwner->_ucOwnerId = 0xFF;
+    pstOwner->__stRx.usPacketSize = 10 + PIF_PROTOCOL_RX_PACKET_SIZE;
 
-    s_ucProtocolBasePos = s_ucProtocolBasePos + 1;
+    s_ucProtocolPos = s_ucProtocolPos + 1;
     return pstOwner;
 
 fail:
@@ -636,7 +554,7 @@ fail:
  */
 void pifProtocol_AttachEvent(PIF_stProtocol *pstOwner, PIF_evtProtocolError evtError)
 {
-	((PIF_stProtocolBase *)pstOwner)->evtError = evtError;
+	pstOwner->__evtError = evtError;
 }
 
 /**
@@ -648,25 +566,23 @@ void pifProtocol_AttachEvent(PIF_stProtocol *pstOwner, PIF_evtProtocolError evtE
  */
 BOOL pifProtocol_ResizeRxPacket(PIF_stProtocol *pstOwner, uint16_t usRxPacketSize)
 {
-    PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)pstOwner;
-
     if (!usRxPacketSize) {
     	pif_enError = E_enInvalidParam;
     	goto fail;
     }
 
-    pstBase->stRx.pucPacket = realloc(pstBase->stRx.pucPacket, sizeof(uint8_t) * (10 + usRxPacketSize));
-    if (!pstBase->stRx.pucPacket) {
+    pstOwner->__stRx.pucPacket = realloc(pstOwner->__stRx.pucPacket, sizeof(uint8_t) * (10 + usRxPacketSize));
+    if (!pstOwner->__stRx.pucPacket) {
         pif_enError = E_enOutOfHeap;
     	goto fail;
     }
 
-    pstBase->stRx.usPacketSize = 10 + usRxPacketSize;
+    pstOwner->__stRx.usPacketSize = 10 + usRxPacketSize;
     return TRUE;
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PTC(%u) ResizeRxPacket(S:%u) EC:%d", pstOwner->usPifId, usRxPacketSize, pif_enError);
+	pifLog_Printf(LT_enError, "PTC(%u) ResizeRxPacket(S:%u) EC:%d", pstOwner->_usPifId, usRxPacketSize, pif_enError);
 #endif
     return FALSE;
 }
@@ -680,18 +596,16 @@ fail:
  */
 BOOL pifProtocol_ResizeTxRequest(PIF_stProtocol *pstOwner, uint16_t usTxRequestSize)
 {
-    PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)pstOwner;
-
     if (!usTxRequestSize) {
     	pif_enError = E_enInvalidParam;
     	goto fail;
     }
 
-    return pifRingBuffer_ResizeHeap(pstBase->stTx.pstRequestBuffer, usTxRequestSize);
+    return pifRingBuffer_ResizeHeap(pstOwner->__stTx.pstRequestBuffer, usTxRequestSize);
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PTC(%u) ResizeTxRequest(S:%u) EC:%d", pstOwner->usPifId, usTxRequestSize, pif_enError);
+	pifLog_Printf(LT_enError, "PTC(%u) ResizeTxRequest(S:%u) EC:%d", pstOwner->_usPifId, usTxRequestSize, pif_enError);
 #endif
     return FALSE;
 }
@@ -705,18 +619,16 @@ fail:
  */
 BOOL pifProtocol_ResizeTxResponse(PIF_stProtocol *pstOwner, uint16_t usTxResponseSize)
 {
-    PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)pstOwner;
-
     if (usTxResponseSize) {
     	pif_enError = E_enInvalidParam;
     	goto fail;
     }
 
-    return pifRingBuffer_ResizeHeap(pstBase->stTx.pstAnswerBuffer, usTxResponseSize);
+    return pifRingBuffer_ResizeHeap(pstOwner->__stTx.pstAnswerBuffer, usTxResponseSize);
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PTC(%u) ResizeTxResponset(S:%u) EC:%d", pstOwner->usPifId, usTxResponseSize, pif_enError);
+	pifLog_Printf(LT_enError, "PTC(%u) ResizeTxResponset(S:%u) EC:%d", pstOwner->_usPifId, usTxResponseSize, pif_enError);
 #endif
     return FALSE;
 }
@@ -746,29 +658,29 @@ BOOL pifProtocol_SetOwnerId(PIF_stProtocol *pstOwner, uint8_t ucOwnerId)
 		pif_enError = E_enInvalidParam;
 		goto fail;
 	}
-	pstOwner->ucOwnerId = ucOwnerId;
+	pstOwner->_ucOwnerId = ucOwnerId;
 	return TRUE;
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PTC(%u) SetOwnerId(I:%u) EC:%d", pstOwner->usPifId, ucOwnerId, pif_enError);
+	pifLog_Printf(LT_enError, "PTC(%u) SetOwnerId(I:%u) EC:%d", pstOwner->_usPifId, ucOwnerId, pif_enError);
 #endif
 	return FALSE;
 }
 
-static BOOL _MakeRequest(PIF_stProtocolBase *pstBase, uint16_t usDataSize)
+static BOOL _MakeRequest(PIF_stProtocol *pstOwner, uint16_t usDataSize)
 {
 	uint16_t usLength;
 	uint8_t aucHeader[13];
 	uint8_t aucTailer[2];
 	uint8_t ucPacketId = 0, ucData;
-	const PIF_stProtocolRequest *pstTable = pstBase->stTx.pstRequest;
+	const PIF_stProtocolRequest *pstTable = pstOwner->__stTx.pstRequest;
 
-	pifRingBuffer_BackupHead(pstBase->stTx.pstAnswerBuffer);
+	pifRingBuffer_BackupHead(pstOwner->__stTx.pstAnswerBuffer);
 
 	uint16_t usCount = 0;
 	for (uint16_t i = 0; i < usDataSize; i++) {
-		if (pstBase->stTx.pucData[i] < 0x20) usCount++;
+		if (pstOwner->__stTx.pucData[i] < 0x20) usCount++;
 	}
 
 	pifCrc7_Init();
@@ -776,60 +688,60 @@ static BOOL _MakeRequest(PIF_stProtocolBase *pstBase, uint16_t usDataSize)
 	aucHeader[5] = ASCII_STX;
 	aucHeader[6] = PF_enAlways | pstTable->enFlags;
 	aucHeader[7] = pstTable->ucCommand;
-	switch (pstBase->stOwner.enType) {
+	switch (pstOwner->_enType) {
 	case PT_enSmall:
 		aucHeader[8] = 0x20 + usDataSize;
 		break;
 
 	case PT_enMedium:
-		ucPacketId = pstBase->ucPacketId;
+		ucPacketId = pstOwner->__ucPacketId;
 		aucHeader[8] = ucPacketId;
-		pstBase->ucPacketId++;
-		if (!pstBase->ucPacketId) pstBase->ucPacketId = 0x20;
+		pstOwner->__ucPacketId++;
+		if (!pstOwner->__ucPacketId) pstOwner->__ucPacketId = 0x20;
 		aucHeader[9] = 0x80 | (usDataSize & 0x7F);
 		aucHeader[10] = 0x80 | ((usDataSize >> 7) & 0x7F);
 		break;
 	}
-	usLength = pstBase->ucHeaderSize + usDataSize + usCount + 2;
+	usLength = pstOwner->__ucHeaderSize + usDataSize + usCount + 2;
 	aucHeader[0] = usLength & 0xFF;
 	aucHeader[1] = (usLength >> 8) & 0xFF;
 	aucHeader[2] = pstTable->usTimeout & 0xFF;
 	aucHeader[3] = (pstTable->usTimeout >> 8) & 0xFF;
 	aucHeader[4] = pstTable->ucRetry;
-	if (!pifRingBuffer_PutData(pstBase->stTx.pstRequestBuffer, aucHeader, 5 + pstBase->ucHeaderSize)) goto fail;
-	for (int i = 1; i < pstBase->ucHeaderSize; i++) {
+	if (!pifRingBuffer_PutData(pstOwner->__stTx.pstRequestBuffer, aucHeader, 5 + pstOwner->__ucHeaderSize)) goto fail;
+	for (int i = 1; i < pstOwner->__ucHeaderSize; i++) {
 		pifCrc7_Calcurate(aucHeader[5 + i]);
 	}
 
 	for (uint16_t i = 0; i < usDataSize; i++) {
-		ucData = pstBase->stTx.pucData[i];
+		ucData = pstOwner->__stTx.pucData[i];
 		if (ucData < 0x20) {
 			pifCrc7_Calcurate(ASCII_DLE);
-			if (!pifRingBuffer_PutByte(pstBase->stTx.pstRequestBuffer, ASCII_DLE)) goto fail;
+			if (!pifRingBuffer_PutByte(pstOwner->__stTx.pstRequestBuffer, ASCII_DLE)) goto fail;
 			ucData |= 0x80;
 		}
 		pifCrc7_Calcurate(ucData);
-		if (!pifRingBuffer_PutByte(pstBase->stTx.pstRequestBuffer, ucData)) goto fail;
+		if (!pifRingBuffer_PutByte(pstOwner->__stTx.pstRequestBuffer, ucData)) goto fail;
 	}
 
 	aucTailer[0] = 0x80 | pifCrc7_Result();
 	aucTailer[1] = ASCII_ETX;
-	if (!pifRingBuffer_PutData(pstBase->stTx.pstRequestBuffer, aucTailer, 2)) goto fail;
+	if (!pifRingBuffer_PutData(pstOwner->__stTx.pstRequestBuffer, aucTailer, 2)) goto fail;
 
 #ifndef __PIF_NO_LOG__
 	if (pstTable->enFlags & PF_enLogPrint_Mask) {
-		pifLog_Printf(LT_enComm, "PTC(%u) Rq:%xh F:%xh P:%d L:%d CRC:%xh", pstBase->stOwner.usPifId, pstTable->ucCommand,
+		pifLog_Printf(LT_enComm, "PTC(%u) Rq:%xh F:%xh P:%d L:%d CRC:%xh", pstOwner->_usPifId, pstTable->ucCommand,
 				pstTable->enFlags, ucPacketId, usDataSize, aucTailer[0]);
 	}
 #ifdef __DEBUG_PACKET__
-	pifLog_Printf(LT_enNone, "\n%u< %x %x %x %x %x %x %x %x", pstBase->stOwner.usPifId,
+	pifLog_Printf(LT_enNone, "\n%u< %x %x %x %x %x %x %x %x", pstOwner->_usPifId,
 			aucHeader[5], aucHeader[6], aucHeader[7], aucHeader[8], aucHeader[9], aucHeader[10], aucTailer[0], aucTailer[1]);
 #endif
 #endif
 	return TRUE;
 
 fail:
-	pifRingBuffer_RestoreHead(pstBase->stTx.pstAnswerBuffer);
+	pifRingBuffer_RestoreHead(pstOwner->__stTx.pstAnswerBuffer);
 	if (!pif_enError) pif_enError = E_enOverflowBuffer;
 	return FALSE;
 }
@@ -845,17 +757,15 @@ fail:
  */
 BOOL pifProtocol_MakeRequest(PIF_stProtocol *pstOwner, const PIF_stProtocolRequest *pstRequest, uint8_t *pucData, uint16_t usDataSize)
 {
-	PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)pstOwner;
-
-	if (pstBase->stTx.enState != PTS_enIdle) {
+	if (pstOwner->__stTx.enState != PTS_enIdle) {
 		pif_enError = E_enInvalidState;
 		return FALSE;
 	}
 
-	pstBase->stTx.pstRequest = pstRequest;
-	pstBase->stTx.pucData = pucData;
-	pstBase->stTx.usDataSize = usDataSize;
-	return _MakeRequest(pstBase, usDataSize);
+	pstOwner->__stTx.pstRequest = pstRequest;
+	pstOwner->__stTx.pucData = pucData;
+	pstOwner->__stTx.usDataSize = usDataSize;
+	return _MakeRequest(pstOwner, usDataSize);
 }
 
 /**
@@ -871,19 +781,18 @@ BOOL pifProtocol_MakeRequest(PIF_stProtocol *pstOwner, const PIF_stProtocolReque
 BOOL pifProtocol_MakeAnswer(PIF_stProtocol *pstOwner, PIF_stProtocolPacket *pstQuestion, uint8_t enFlags,
 		uint8_t *pucData, uint16_t usDataSize)
 {
-	PIF_stProtocolBase *pstBase = (PIF_stProtocolBase *)pstOwner;
 	uint8_t aucHeader[8];
 	uint8_t aucTailer[2];
 	uint8_t ucPacketId = 0, ucData;
 
-	pifRingBuffer_BackupHead(pstBase->stTx.pstAnswerBuffer);
+	pifRingBuffer_BackupHead(pstOwner->__stTx.pstAnswerBuffer);
 
 	pifCrc7_Init();
 
 	aucHeader[0] = ASCII_STX;
 	aucHeader[1] = PF_enAlways | PF_enType_Answer | enFlags;
 	aucHeader[2] = pstQuestion->ucCommand;
-	switch (pstOwner->enType) {
+	switch (pstOwner->_enType) {
 	case PT_enSmall:
 		aucHeader[3] = 0x20 + usDataSize;
 		break;
@@ -895,8 +804,8 @@ BOOL pifProtocol_MakeAnswer(PIF_stProtocol *pstOwner, PIF_stProtocolPacket *pstQ
 		aucHeader[5] = 0x80 | ((usDataSize >> 7) & 0x7F);
 		break;
 	}
-	if (!pifRingBuffer_PutData(pstBase->stTx.pstAnswerBuffer, aucHeader, pstBase->ucHeaderSize)) goto fail;
-	for (int i = 1; i < pstBase->ucHeaderSize; i++) {
+	if (!pifRingBuffer_PutData(pstOwner->__stTx.pstAnswerBuffer, aucHeader, pstOwner->__ucHeaderSize)) goto fail;
+	for (int i = 1; i < pstOwner->__ucHeaderSize; i++) {
 		pifCrc7_Calcurate(aucHeader[i]);
 	}
 
@@ -904,31 +813,31 @@ BOOL pifProtocol_MakeAnswer(PIF_stProtocol *pstOwner, PIF_stProtocolPacket *pstQ
 		ucData = pucData[i];
 		if (ucData < 0x20) {
 			pifCrc7_Calcurate(ASCII_DLE);
-			if (!pifRingBuffer_PutByte(pstBase->stTx.pstAnswerBuffer, ASCII_DLE)) goto fail;
+			if (!pifRingBuffer_PutByte(pstOwner->__stTx.pstAnswerBuffer, ASCII_DLE)) goto fail;
 			ucData |= 0x80;
 		}
 		pifCrc7_Calcurate(ucData);
-		if (!pifRingBuffer_PutByte(pstBase->stTx.pstAnswerBuffer, ucData)) goto fail;
+		if (!pifRingBuffer_PutByte(pstOwner->__stTx.pstAnswerBuffer, ucData)) goto fail;
 	}
 
 	aucTailer[0] = 0x80 | pifCrc7_Result();
 	aucTailer[1] = ASCII_ETX;
-	if (!pifRingBuffer_PutData(pstBase->stTx.pstAnswerBuffer, aucTailer, 2)) goto fail;
+	if (!pifRingBuffer_PutData(pstOwner->__stTx.pstAnswerBuffer, aucTailer, 2)) goto fail;
 
 #ifndef __PIF_NO_LOG__
 	if (enFlags & PF_enLogPrint_Mask) {
-		pifLog_Printf(LT_enComm, "PTC(%u) As:%xh F:%xh P:%d L:%d CRC:%xh", pstOwner->usPifId, pstQuestion->ucCommand,
+		pifLog_Printf(LT_enComm, "PTC(%u) As:%xh F:%xh P:%d L:%d CRC:%xh", pstOwner->_usPifId, pstQuestion->ucCommand,
 				enFlags, ucPacketId, usDataSize, aucTailer[0]);
 	}
 #ifdef __DEBUG_PACKET__
-	pifLog_Printf(LT_enNone, "\n%u< %x %x %x %x %x %x %x %x", pstOwner->usPifId,
+	pifLog_Printf(LT_enNone, "\n%u< %x %x %x %x %x %x %x %x", pstOwner->_usPifId,
 			aucHeader[0], aucHeader[1], aucHeader[2], aucHeader[3], aucHeader[4], aucHeader[5],	aucTailer[0], aucTailer[1]);
 #endif
 #endif
 	return TRUE;
 
 fail:
-	pifRingBuffer_RestoreHead(pstBase->stTx.pstAnswerBuffer);
+	pifRingBuffer_RestoreHead(pstOwner->__stTx.pstAnswerBuffer);
 	if (!pif_enError) pif_enError = E_enOverflowBuffer;
 	return FALSE;
 }

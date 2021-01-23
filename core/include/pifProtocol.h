@@ -69,6 +69,29 @@ typedef enum _PIF_enProtocolFlags
 	PF_enAlways				= 0x80
 } PIF_enProtocolFlags;
 
+typedef enum _PIF_enProtocolRxState
+{
+	PRS_enIdle			= 0,
+	PRS_enGetHeader		= 1,
+	PRS_enGetData		= 2,
+	PRS_enGetCrc		= 3,
+	PRS_enGetTailer		= 4,
+	PRS_enDone			= 5,
+	PRS_enAck			= 6,
+	PRS_enError			= 7
+} PIF_enProtocolRxState;
+
+typedef enum _PIF_enProtocolTxState
+{
+	PTS_enIdle			= 0,
+	PTS_enSending		= 1,
+	PTS_enWaitSended	= 2,
+	PTS_enWaitResponse	= 3,
+	PTS_enRetryDelay	= 4,
+	PTS_enRetry			= 5
+} PIF_enProtocolTxState;
+
+
 /**
  * @class _PIF_stProtocolPacket
  * @brief
@@ -111,6 +134,43 @@ typedef struct _PIF_stProtocolQuestion
     PIF_evtProtocolFinish evtQuestion;
 } PIF_stProtocolQuestion;
 
+typedef struct _PIF_stProtocolRx
+{
+	PIF_enProtocolRxState enState;
+	uint8_t *pucPacket;
+	uint16_t usPacketSize;
+	uint8_t ucHeaderCount;
+	BOOL bDataLinkEscape;
+	PIF_stProtocolPacket stPacket;
+#if PIF_PROTOCOL_RECEIVE_TIMEOUT
+	PIF_stPulseItem *pstTimer;
+#endif
+} PIF_stProtocolRx;
+
+typedef struct _PIF_stProtocolTx
+{
+    PIF_stRingBuffer *pstRequestBuffer;
+    PIF_stRingBuffer *pstAnswerBuffer;
+	const PIF_stProtocolRequest *pstRequest;
+	uint8_t *pucData;
+	uint16_t usDataSize;
+	PIF_enProtocolTxState enState;
+	union {
+		uint8_t ucInfo[9];
+		struct {
+			uint16_t usLength;
+			uint16_t usTimeout;
+			uint8_t ucRetry;
+			uint8_t ucStx;
+			uint8_t ucFlags;
+			uint8_t ucCommand;
+			uint8_t ucPacketId;
+		};
+	};
+	uint16_t usPos;
+	PIF_stPulseItem *pstTimer;
+} PIF_stProtocolTx;
+
 /**
  * @class _PIF_stProtocol
  * @brief
@@ -118,9 +178,21 @@ typedef struct _PIF_stProtocolQuestion
 typedef struct _PIF_stProtocol
 {
 	// Public Member Variable
-    PIF_usId usPifId;
-    PIF_enProtocolType enType;
-	uint8_t ucOwnerId;				// Default : 0xFF
+
+	// Read-only Member Variable
+    PIF_usId _usPifId;
+    PIF_enProtocolType _enType;
+	uint8_t _ucOwnerId;				// Default : 0xFF
+
+	// Private Member Variable
+    const PIF_stProtocolQuestion *__pstQuestions;
+    PIF_stProtocolRx __stRx;
+    PIF_stProtocolTx __stTx;
+	uint8_t __ucHeaderSize;
+	uint8_t __ucPacketId;
+
+	// Public Event Function
+    PIF_evtProtocolError __evtError;
 } PIF_stProtocol;
 
 
