@@ -2,7 +2,7 @@
 #define PIF_STEP_MOTOR_POS_H
 
 
-#include "pifStepMotorBase.h"
+#include "pifStepMotor.h"
 #include "pifSwitch.h"
 
 
@@ -41,7 +41,15 @@ typedef struct _PIF_stStepMotorPosStage
  */
 typedef struct _PIF_stStepMotorPos
 {
-    uint8_t ucStageIndex;
+	// Public Member Variable
+
+	// Read-only Member Variable
+    uint8_t _ucStageIndex;
+
+	// Private Member Variable
+    uint8_t __ucStageSize;
+    const PIF_stStepMotorPosStage *__pstStages;
+    const PIF_stStepMotorPosStage *__pstCurrentStage;
 } PIF_stStepMotorPos;
 
 

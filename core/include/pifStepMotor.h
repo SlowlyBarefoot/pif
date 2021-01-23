@@ -33,6 +33,9 @@ typedef void (*PIF_evtStepMotorStable)(PIF_stStepMotor *pstOwner, void *pvInfo);
 typedef void (*PIF_evtStepMotorStop)(PIF_stStepMotor *pstOwner, void *pvInfo);
 typedef void (*PIF_evtStepMotorError)(PIF_stStepMotor *pstOwner, void *pvInfo);
 
+typedef void (*PIF_fnStepMotorControl)(PIF_stStepMotor *pstOwner);
+typedef void (*PIF_fnStepMotorStopStep)(PIF_stStepMotor *pstOwner);
+
 
 /**
  * @class _PIF_stStepMotor
@@ -40,23 +43,61 @@ typedef void (*PIF_evtStepMotorError)(PIF_stStepMotor *pstOwner, void *pvInfo);
  */
 struct _PIF_stStepMotor
 {
-    PIF_usId usPifId;
-    PIF_enStepMotorMethod enMethod;
-    PIF_enStepMotorOperation enOperation;
-    uint16_t usResolution;
-    uint8_t ucReductionGearRatio;
+	// Public Member Variable
     uint8_t ucDirection;
-	uint16_t usCurrentPps;
-    PIF_enMotorState enState;
-    uint32_t unCurrentPulse;
+    uint8_t ucReductionGearRatio;
+
+	// Read-only Member Variable
+    PIF_usId _usPifId;
+    PIF_enStepMotorMethod _enMethod;
+    PIF_enStepMotorOperation _enOperation;
+    uint16_t _usResolution;
+	uint16_t _usCurrentPps;
+    PIF_enMotorState _enState;
+    uint32_t _unCurrentPulse;
+
+	// Private Member Variable
+    void *__pvChild;
+    uint8_t __ucError;
+	uint8_t __ucStepSize;
+	uint16_t __usStepPeriodUs;
+	uint16_t __usControlPeriodMs;
+
+	PIF_stTask *__pstTask;
+
+	PIF_stPulseItem *__pstTimerStep;
+	PIF_stPulseItem *__pstTimerControl;
+	PIF_stPulseItem *__pstTimerDelay;
+	PIF_stPulseItem *__pstTimerBreak;
+
+	uint8_t __ucCurrentStep;
+	uint32_t __unTargetPulse;
+	const uint16_t *__pusPhaseOperation;
+
+	PIF_enTaskLoop __enTaskLoop;
+
+    // Private Action Function
+    PIF_actStepMotorSetStep __actSetStep;
+
+    // Private Event Function
+    PIF_evtStepMotorStable __evtStable;
+    PIF_evtStepMotorStop __evtStop;
+    PIF_evtStepMotorError __evtError;
+
+	// Private Member Function
+    PIF_fnStepMotorControl __fnControl;
+    PIF_fnStepMotorStopStep __fnStopStep;
 };
+
+
+extern PIF_stPulse *g_pstStepMotorTimer;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-BOOL pifStepMotor_Init(PIF_stPulse *pstTimer, uint32_t unTimerUs, uint8_t ucSize);
+BOOL pifStepMotor_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifStepMotor_Exit();
 
 PIF_stStepMotor *pifStepMotor_Add(PIF_usId usPifId, uint16_t usResolution, PIF_enStepMotorOperation enOperation);
