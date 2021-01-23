@@ -7,92 +7,50 @@
 #define PIF_PULSE_INDEX_NULL   0xFF
 
 
-typedef struct _PIF_stPulseItemBase
-{
-	// Public Member Variable
-	PIF_stPulseItem stItem;
-
-	// Private Member Variable
-	PIF_stPulse *pstOwner;
-    uint32_t unValue;
-    uint32_t unPulse;
-    void *pvFinishIssuer;
-    uint32_t unPretime;
-    uint32_t unPwmGap;
-	BOOL bEvent;
-    BOOL bPwmState;
-    PIF_enPulseStep enStep;
-
-    uint8_t unIndex;
-    uint8_t unNext;
-    uint8_t unPrev;
-
-    // Private Action Function
-    PIF_actPulsePwm actPwm;
-
-    // Private Event Function
-    PIF_evtPulseFinish evtFinish;
-} PIF_stPulseItemBase;
-
-typedef struct _PIF_stPulseBase
-{
-	// Public Member Variable
-	PIF_stPulse stOwner;
-
-	// Private Member Variable
-    uint8_t unFreeNext;
-    uint8_t unAllocNext;
-    uint8_t ucItemSize;
-    PIF_stPulseItemBase *pstItems;
-
-	PIF_enTaskLoop enTaskLoop;
-} PIF_stPulseBase;
+static PIF_stPulse *s_pstPulse = NULL;
+static uint8_t s_ucPulseSize;
+static uint8_t s_ucPulsePos;
 
 
-static PIF_stPulseBase *s_pstPulseBase = NULL;
-static uint8_t s_ucPulseBaseSize;
-static uint8_t s_ucPulseBasePos;
-
-
-static void _TaskCommon(PIF_stPulseBase *pstBase)
+static void _TaskCommon(PIF_stPulse *pstOwner)
 {
 	uint8_t index;
 	uint32_t unTime, unGap;
-	PIF_stPulseItemBase *pstItemBase;
+	PIF_stPulseItem *pstItem;
 
-	index = pstBase->unAllocNext;
+	index = pstOwner->__unAllocNext;
 	while (index != PIF_PULSE_INDEX_NULL) {
-		pstItemBase = &pstBase->pstItems[index];
+		pstItem = &pstOwner->__pstItems[index];
 
-		if (pstItemBase->stItem._enType == PT_enPwm) {
-			if (pstItemBase->bPwmState == ON) {
+		if (pstItem->_enType == PT_enPwm) {
+			if (pstItem->__bPwmState == ON) {
 				if (pif_stPerformance._unCount > pif_stPerformance._unCurrent) {
 					unTime = PIF_PERFORMANCE_PERIOD_US;
 				}
 				else {
 					unTime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
 				}
-				if (unTime < pstItemBase->unPretime) {
-					unGap = PIF_PERFORMANCE_PERIOD_US - pstItemBase->unPretime + unTime;
+				if (unTime < pstItem->__unPretime) {
+					unGap = PIF_PERFORMANCE_PERIOD_US - pstItem->__unPretime + unTime;
 				}
 				else {
-					unGap = unTime - pstItemBase->unPretime;
+					unGap = unTime - pstItem->__unPretime;
 				}
-				if (unGap >= pstItemBase->unPwmGap) {
-					(*pstItemBase->actPwm)(OFF);
-					pstItemBase->bPwmState = OFF;
+				if (unGap >= pstItem->__unPwmGap) {
+					(*pstItem->__actPwm)(OFF);
+					pstItem->__bPwmState = OFF;
 				}
 			}
 		}
 		else {
-			if (pstItemBase->bEvent) {
-				pstItemBase->bEvent = FALSE;
+			if (pstItem->__bEvent) {
+				pstItem->__bEvent = FALSE;
 
-				if (pstItemBase->evtFinish) (*pstItemBase->evtFinish)(pstItemBase->pvFinishIssuer);
+				if (pstItem->__evtFinish) (*pstItem->__evtFinish)(pstItem->__pvFinishIssuer);
 			}
 		}
 
-		index = pstItemBase->unNext;
+		index = pstItem->__unNext;
 	}
 }
 
@@ -109,14 +67,14 @@ BOOL pifPulse_Init(uint8_t ucSize)
 		goto fail;
 	}
 
-    s_pstPulseBase = calloc(sizeof(PIF_stPulseBase), ucSize);
-    if (!s_pstPulseBase) {
+    s_pstPulse = calloc(sizeof(PIF_stPulse), ucSize);
+    if (!s_pstPulse) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
 
-    s_ucPulseBaseSize = ucSize;
-    s_ucPulseBasePos = 0;
+    s_ucPulseSize = ucSize;
+    s_ucPulsePos = 0;
     return TRUE;
 
 fail:
@@ -132,18 +90,18 @@ fail:
  */
 void pifPulse_Exit()
 {
-	PIF_stPulseBase *pstBase;
+	PIF_stPulse *pstOwner;
 
-    if (s_pstPulseBase) {
-		for (int i = 0; i < s_ucPulseBasePos; i++) {
-			pstBase = &s_pstPulseBase[i];
-			if (pstBase->pstItems) {
-				free(pstBase->pstItems);
-				pstBase->pstItems = NULL;
+    if (s_pstPulse) {
+		for (int i = 0; i < s_ucPulsePos; i++) {
+			pstOwner = &s_pstPulse[i];
+			if (pstOwner->__pstItems) {
+				free(pstOwner->__pstItems);
+				pstOwner->__pstItems = NULL;
 			}
 		}
-        free(s_pstPulseBase);
-        s_pstPulseBase = NULL;
+        free(s_pstPulse);
+        s_pstPulse = NULL;
     }
 }
 
@@ -161,35 +119,35 @@ PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize, uint32_t unPeriodUs)
 		pif_enError = E_enInvalidParam;
 		goto fail;
 	}
-    if (s_ucPulseBasePos >= s_ucPulseBaseSize) {
+    if (s_ucPulsePos >= s_ucPulseSize) {
 		pif_enError = E_enOverflowBuffer;
 		goto fail;
 	}
 
-    PIF_stPulseBase *pstBase = &s_pstPulseBase[s_ucPulseBasePos];
+    PIF_stPulse *pstOwner = &s_pstPulse[s_ucPulsePos];
 
     if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
-    pstBase->stOwner._usPifId = usPifId;
-    pstBase->pstItems = calloc(sizeof(PIF_stPulseItemBase), ucSize);
-    if (!pstBase->pstItems) {
+    pstOwner->_usPifId = usPifId;
+    pstOwner->__pstItems = calloc(sizeof(PIF_stPulseItem), ucSize);
+    if (!pstOwner->__pstItems) {
         pif_enError = E_enOutOfHeap;
         goto fail;
     }
 
-    pstBase->stOwner._unPeriodUs = unPeriodUs;
-    pstBase->ucItemSize = ucSize;
+    pstOwner->_unPeriodUs = unPeriodUs;
+    pstOwner->__ucItemSize = ucSize;
 
-    pstBase->unFreeNext = 0;
-    pstBase->unAllocNext = PIF_PULSE_INDEX_NULL;
+    pstOwner->__unFreeNext = 0;
+    pstOwner->__unAllocNext = PIF_PULSE_INDEX_NULL;
     for (int i = 0; i < ucSize - 1; i++) {
-    	pstBase->pstItems[i].unPrev = PIF_PULSE_INDEX_NULL;
-    	pstBase->pstItems[i].unNext = i + 1;
+    	pstOwner->__pstItems[i].__unPrev = PIF_PULSE_INDEX_NULL;
+    	pstOwner->__pstItems[i].__unNext = i + 1;
     }
-    pstBase->pstItems[ucSize - 1].unPrev = PIF_PULSE_INDEX_NULL;
-    pstBase->pstItems[ucSize - 1].unNext = PIF_PULSE_INDEX_NULL;
+    pstOwner->__pstItems[ucSize - 1].__unPrev = PIF_PULSE_INDEX_NULL;
+    pstOwner->__pstItems[ucSize - 1].__unNext = PIF_PULSE_INDEX_NULL;
 
-    s_ucPulseBasePos = s_ucPulseBasePos + 1;
-    return &pstBase->stOwner;
+    s_ucPulsePos = s_ucPulsePos + 1;
+    return pstOwner;
 
 fail:
 #ifndef __PIF_NO_LOG__
@@ -207,38 +165,36 @@ fail:
  */
 PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType)
 {
-	PIF_stPulseBase *pstBase = (PIF_stPulseBase *)pstOwner;
-
-	if (pstBase->unFreeNext == PIF_PULSE_INDEX_NULL) {
+	if (pstOwner->__unFreeNext == PIF_PULSE_INDEX_NULL) {
         pif_enError = E_enOverflowBuffer;
         goto fail;
     }
 
-	uint8_t index = pstBase->unFreeNext;
-    PIF_stPulseItemBase *pstItemBase = &pstBase->pstItems[index];
-    pstItemBase->pstOwner = pstOwner;
-    pstItemBase->stItem._enType = enType;
-    pstItemBase->evtFinish = NULL;
-    pstItemBase->pvFinishIssuer = NULL;
-    pstItemBase->unIndex = index;
+	uint8_t index = pstOwner->__unFreeNext;
+    PIF_stPulseItem *pstItem = &pstOwner->__pstItems[index];
+    pstItem->__pstOwner = pstOwner;
+    pstItem->_enType = enType;
+    pstItem->__evtFinish = NULL;
+    pstItem->__pvFinishIssuer = NULL;
+    pstItem->__unIndex = index;
 
-    pstItemBase->enStep = PS_enStop;
+    pstItem->__enStep = PS_enStop;
 
-    pstBase->unFreeNext = pstItemBase->unNext;
+    pstOwner->__unFreeNext = pstItem->__unNext;
 
-    if (pstBase->unAllocNext == PIF_PULSE_INDEX_NULL) {
-    	pstBase->unAllocNext = index;
-    	pstItemBase->unNext = PIF_PULSE_INDEX_NULL;
-    	pstItemBase->unPrev = PIF_PULSE_INDEX_NULL;
+    if (pstOwner->__unAllocNext == PIF_PULSE_INDEX_NULL) {
+    	pstOwner->__unAllocNext = index;
+    	pstItem->__unNext = PIF_PULSE_INDEX_NULL;
+    	pstItem->__unPrev = PIF_PULSE_INDEX_NULL;
     }
     else {
-    	pstItemBase->unNext = pstBase->unAllocNext;
-    	pstItemBase->unPrev = PIF_PULSE_INDEX_NULL;
-        pstBase->unAllocNext = index;
-        pstBase->pstItems[pstItemBase->unNext].unPrev = index;
+    	pstItem->__unNext = pstOwner->__unAllocNext;
+    	pstItem->__unPrev = PIF_PULSE_INDEX_NULL;
+        pstOwner->__unAllocNext = index;
+        pstOwner->__pstItems[pstItem->__unNext].__unPrev = index;
     }
 
-    return &pstItemBase->stItem;
+    return pstItem;
 
 fail:
 #ifndef __PIF_NO_LOG__
@@ -255,28 +211,26 @@ fail:
  */
 void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstItem)
 {
-	PIF_stPulseBase *pstBase = (PIF_stPulseBase *)pstOwner;
-	PIF_stPulseItemBase *pstItemBase = (PIF_stPulseItemBase *)pstItem;
 	uint8_t index;
 
-    if (pstItemBase->enStep == PS_enRemove) return;
+    if (pstItem->__enStep == PS_enRemove) return;
 
-    index = pstItemBase->unNext;
+    index = pstItem->__unNext;
     if (index != PIF_PULSE_INDEX_NULL) {
-    	pstBase->pstItems[index].unPrev = pstItemBase->unPrev;
+    	pstOwner->__pstItems[index].__unPrev = pstItem->__unPrev;
     }
-    index = pstItemBase->unPrev;
+    index = pstItem->__unPrev;
     if (index != PIF_PULSE_INDEX_NULL) {
-    	pstBase->pstItems[index].unNext = pstItemBase->unNext;
+    	pstOwner->__pstItems[index].__unNext = pstItem->__unNext;
     }
     else {
-    	pstBase->unAllocNext = pstItemBase->unNext;
+    	pstOwner->__unAllocNext = pstItem->__unNext;
     }
 
-    pstItemBase->unNext = pstBase->unFreeNext;
-    pstItemBase->unPrev = PIF_PULSE_INDEX_NULL;
-    pstItemBase->enStep = PS_enRemove;
-    pstBase->unFreeNext = pstItemBase->unIndex;
+    pstItem->__unNext = pstOwner->__unFreeNext;
+    pstItem->__unPrev = PIF_PULSE_INDEX_NULL;
+    pstItem->__enStep = PS_enRemove;
+    pstOwner->__unFreeNext = pstItem->__unIndex;
 }
 
 /**
@@ -288,30 +242,28 @@ void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstItem)
  */
 BOOL pifPulse_StartItem(PIF_stPulseItem *pstItem, uint32_t unPulse)
 {
-	PIF_stPulseItemBase *pstItemBase = (PIF_stPulseItemBase *)pstItem;
-
 	if (!unPulse) {
     	pif_enError = E_enInvalidParam;
     	goto fail;
     }
 
-    if (pstItemBase->enStep == PS_enStop) {
-    	pstItemBase->enStep = PS_enRunning;
-    	pstItemBase->bEvent = FALSE;
+    if (pstItem->__enStep == PS_enStop) {
+    	pstItem->__enStep = PS_enRunning;
+    	pstItem->__bEvent = FALSE;
 
-        if (pstItemBase->stItem._enType == PT_enPwm) {
-    		(*pstItemBase->actPwm)(ON);
-    		pstItemBase->bPwmState = ON;
+        if (pstItem->_enType == PT_enPwm) {
+    		(*pstItem->__actPwm)(ON);
+    		pstItem->__bPwmState = ON;
 			if (pif_stPerformance._unCount > pif_stPerformance._unCurrent) {
-				pstItemBase->unPretime = PIF_PERFORMANCE_PERIOD_US;
+				pstItem->__unPretime = PIF_PERFORMANCE_PERIOD_US;
 			}
 			else {
-				pstItemBase->unPretime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
+				pstItem->__unPretime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
 			}
         }
     }
-    pstItemBase->unValue = unPulse;
-    pstItemBase->unPulse = pstItemBase->unValue;
+    pstItem->__unValue = unPulse;
+    pstItem->__unPulse = pstItem->__unValue;
     return TRUE;
 
 fail:
@@ -328,10 +280,8 @@ fail:
  */
 void pifPulse_StopItem(PIF_stPulseItem *pstItem)
 {
-	PIF_stPulseItemBase *pstItemBase = (PIF_stPulseItemBase *)pstItem;
-
-	pstItemBase->unPulse = 0;
-	pstItemBase->enStep = PS_enStop;
+	pstItem->__unPulse = 0;
+	pstItem->__enStep = PS_enStop;
 }
 
 /**
@@ -342,7 +292,7 @@ void pifPulse_StopItem(PIF_stPulseItem *pstItem)
  */
 void pifPulse_SetPulse(PIF_stPulseItem *pstItem, uint32_t unPulse)
 {
-	((PIF_stPulseItemBase *)pstItem)->unValue = unPulse;
+	pstItem->__unValue = unPulse;
 }
 
 /**
@@ -353,9 +303,7 @@ void pifPulse_SetPulse(PIF_stPulseItem *pstItem, uint32_t unPulse)
  */
 void pifPulse_SetPwmDuty(PIF_stPulseItem *pstItem, uint16_t usDuty)
 {
-	PIF_stPulseItemBase *pstItemBase = (PIF_stPulseItemBase *)pstItem;
-
-	pstItemBase->unPwmGap = pstItemBase->pstOwner->_unPeriodUs * pstItemBase->unValue * usDuty / PIF_PWM_MAX_DUTY;
+	pstItem->__unPwmGap = pstItem->__pstOwner->_unPeriodUs * pstItem->__unValue * usDuty / PIF_PWM_MAX_DUTY;
 }
 
 /**
@@ -366,7 +314,7 @@ void pifPulse_SetPwmDuty(PIF_stPulseItem *pstItem, uint16_t usDuty)
  */
 PIF_enPulseStep pifPulse_GetStep(PIF_stPulseItem *pstItem)
 {
-	return ((PIF_stPulseItemBase *)pstItem)->enStep;
+	return pstItem->__enStep;
 }
 
 /**
@@ -377,11 +325,8 @@ PIF_enPulseStep pifPulse_GetStep(PIF_stPulseItem *pstItem)
  */
 uint32_t pifPulse_RemainItem(PIF_stPulseItem *pstItem)
 {
-	PIF_stPulseItemBase *pstItemBase = (PIF_stPulseItemBase *)pstItem;
-
-	if (pstItemBase->enStep != PS_enRunning) return 0;
-	else return pstItemBase->unPulse;
-
+	if (pstItem->__enStep != PS_enRunning) return 0;
+	else return pstItem->__unPulse;
 }
 
 /**
@@ -392,10 +337,8 @@ uint32_t pifPulse_RemainItem(PIF_stPulseItem *pstItem)
  */
 uint32_t pifPulse_ElapsedItem(PIF_stPulseItem *pstItem)
 {
-	PIF_stPulseItemBase *pstItemBase = (PIF_stPulseItemBase *)pstItem;
-
-	if (pstItemBase->enStep != PS_enRunning) return 0;
-	else return pstItemBase->unValue - pstItemBase->unPulse;
+	if (pstItem->__enStep != PS_enRunning) return 0;
+	else return pstItem->__unValue - pstItem->__unPulse;
 }
 
 /**
@@ -405,46 +348,44 @@ uint32_t pifPulse_ElapsedItem(PIF_stPulseItem *pstItem)
  */
 void pifPulse_sigTick(PIF_stPulse *pstOwner)
 {
-	PIF_stPulseItemBase *pstItemBase;
+	PIF_stPulseItem *pstItem;
 
     if (!pstOwner) return;
 
-	PIF_stPulseBase *pstBase = (PIF_stPulseBase *)pstOwner;
-
-	uint8_t index = pstBase->unAllocNext;
+	uint8_t index = pstOwner->__unAllocNext;
     while (index != PIF_PULSE_INDEX_NULL) {
-        pstItemBase = &pstBase->pstItems[index];
+        pstItem = &pstOwner->__pstItems[index];
 
-		if (pstItemBase->unPulse) {
-			pstItemBase->unPulse--;
-			if (!pstItemBase->unPulse) {
-				switch (pstItemBase->stItem._enType) {
+		if (pstItem->__unPulse) {
+			pstItem->__unPulse--;
+			if (!pstItem->__unPulse) {
+				switch (pstItem->_enType) {
 				case PT_enOnce:
-					pstItemBase->enStep = PS_enStop;
-					pstItemBase->bEvent = TRUE;
+					pstItem->__enStep = PS_enStop;
+					pstItem->__bEvent = TRUE;
 					break;
 
 				case PT_enRepeat:
-					pstItemBase->unPulse = pstItemBase->unValue;
-					pstItemBase->bEvent = TRUE;
+					pstItem->__unPulse = pstItem->__unValue;
+					pstItem->__bEvent = TRUE;
 					break;
 
 				case PT_enPwm:
-					pstItemBase->unPulse = pstItemBase->unValue;
-					(*pstItemBase->actPwm)(ON);
-					pstItemBase->bPwmState = ON;
+					pstItem->__unPulse = pstItem->__unValue;
+					(*pstItem->__actPwm)(ON);
+					pstItem->__bPwmState = ON;
 					if (pif_stPerformance._unCount > pif_stPerformance._unCurrent) {
-						pstItemBase->unPretime = PIF_PERFORMANCE_PERIOD_US;
+						pstItem->__unPretime = PIF_PERFORMANCE_PERIOD_US;
 					}
 					else {
-						pstItemBase->unPretime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
+						pstItem->__unPretime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
 					}
 					break;
 				}
 			}
 		}
 
-        index = pstItemBase->unNext;
+        index = pstItem->__unNext;
     }
 }
 
@@ -456,7 +397,7 @@ void pifPulse_sigTick(PIF_stPulse *pstOwner)
  */
 void pifPulse_AttachAction(PIF_stPulseItem *pstItem, PIF_actPulsePwm actPwm)
 {
-	((PIF_stPulseItemBase *)pstItem)->actPwm = actPwm;
+	pstItem->__actPwm = actPwm;
 }
 
 /**
@@ -468,10 +409,8 @@ void pifPulse_AttachAction(PIF_stPulseItem *pstItem, PIF_actPulsePwm actPwm)
  */
 void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstItem, PIF_evtPulseFinish evtFinish, void *pvIssuer)
 {
-	PIF_stPulseItemBase *pstItemBase = (PIF_stPulseItemBase *)pstItem;
-
-	pstItemBase->evtFinish = evtFinish;
-	pstItemBase->pvFinishIssuer = pvIssuer;
+	pstItem->__evtFinish = evtFinish;
+	pstItem->__pvFinishIssuer = pvIssuer;
 }
 
 /**
@@ -483,9 +422,9 @@ void pifPulse_taskAll(PIF_stTask *pstTask)
 {
 	(void) pstTask;
 
-    for (int i = 0; i < s_ucPulseBasePos; i++) {
-        PIF_stPulseBase *pstBase = &s_pstPulseBase[i];
-    	if (!pstBase->enTaskLoop) _TaskCommon(pstBase);
+    for (int i = 0; i < s_ucPulsePos; i++) {
+        PIF_stPulse *pstOwner = &s_pstPulse[i];
+    	if (!pstOwner->__enTaskLoop) _TaskCommon(pstOwner);
     }
 }
 
@@ -496,13 +435,13 @@ void pifPulse_taskAll(PIF_stTask *pstTask)
  */
 void pifPulse_taskEach(PIF_stTask *pstTask)
 {
-	PIF_stPulseBase *pstBase = pstTask->pvLoopEach;
+	PIF_stPulse *pstOwner = pstTask->pvLoopEach;
 
-	if (pstBase->enTaskLoop != TL_enEach) {
-		pstBase->enTaskLoop = TL_enEach;
+	if (pstOwner->__enTaskLoop != TL_enEach) {
+		pstOwner->__enTaskLoop = TL_enEach;
 	}
 	else {
-		_TaskCommon(pstBase);
+		_TaskCommon(pstOwner);
 	}
 }
 
@@ -516,26 +455,25 @@ void pifPulse_taskEach(PIF_stTask *pstTask)
  */
 BOOL pifPulse_CheckItem(PIF_stPulse *pstOwner)
 {
-	PIF_stPulseBase *pstBase = (PIF_stPulseBase *)pstOwner;
 	uint8_t index;
     int count = 0;
 
-    if (pstBase->unFreeNext != PIF_PULSE_INDEX_NULL) {
-        index = pstBase->unFreeNext;
+    if (pstOwner->__unFreeNext != PIF_PULSE_INDEX_NULL) {
+        index = pstOwner->__unFreeNext;
         do {
             count++;
-            index = pstBase->pstItems[index].unNext;
+            index = pstOwner->__pstItems[index].__unNext;
         } while (index != PIF_PULSE_INDEX_NULL);
     }
 
-    if (pstBase->unAllocNext != PIF_PULSE_INDEX_NULL) {
-        index = pstBase->unAllocNext;
+    if (pstOwner->__unAllocNext != PIF_PULSE_INDEX_NULL) {
+        index = pstOwner->__unAllocNext;
         do {
             count++;
-            index = pstBase->pstItems[index].unNext;
+            index = pstOwner->__pstItems[index].__unNext;
         } while (index != PIF_PULSE_INDEX_NULL);
     }
-    return count == pstBase->ucItemSize;
+    return count == pstOwner->__ucItemSize;
 }
 
 /**
@@ -546,14 +484,12 @@ BOOL pifPulse_CheckItem(PIF_stPulse *pstOwner)
 void pifPulse_PrintItemList(PIF_stPulse *pstOwner)
 {
 #ifndef __PIF_NO_LOG__
-	PIF_stPulseBase *pstBase = (PIF_stPulseBase *)pstOwner;
-
 	pifLog_Printf(LT_enNone, "\nFree = %d, Alloc = %d\n",
-			pstBase->unFreeNext, pstBase->unAllocNext);
+			pstOwner->__unFreeNext, pstOwner->__unAllocNext);
 
-    for (int index = 0; index < pstBase->ucItemSize; index++) {
+    for (int index = 0; index < pstOwner->__ucItemSize; index++) {
     	pifLog_Printf(LT_enNone, "\n  %d, Next = %d, Prev = %d",
-    			index, pstBase->pstItems[index].unNext, pstBase->pstItems[index].unPrev);
+    			index, pstOwner->__pstItems[index].__unNext, pstOwner->__pstItems[index].__unPrev);
     }
 #else
     (void)pstOwner;
@@ -568,19 +504,18 @@ void pifPulse_PrintItemList(PIF_stPulse *pstOwner)
 void pifPulse_PrintItemFree(PIF_stPulse *pstOwner)
 {
 #ifndef __PIF_NO_LOG__
-	PIF_stPulseBase *pstBase = (PIF_stPulseBase *)pstOwner;
 	uint8_t index;
 
-	pifLog_Printf(LT_enNone, "\nFree = %d\n", pstBase->unFreeNext);
+	pifLog_Printf(LT_enNone, "\nFree = %d\n", pstOwner->__unFreeNext);
 
-    if (pstBase->unFreeNext == PIF_PULSE_INDEX_NULL) return;
+    if (pstOwner->__unFreeNext == PIF_PULSE_INDEX_NULL) return;
 
-    index = pstBase->unFreeNext;
+    index = pstOwner->__unFreeNext;
     do {
     	pifLog_Printf(LT_enNone, "\n  %d, Next = %d, Prev = %d",
-    			index, pstBase->pstItems[index].unNext, pstBase->pstItems[index].unPrev);
+    			index, pstOwner->__pstItems[index].__unNext, pstOwner->__pstItems[index].__unPrev);
 
-        index = pstBase->pstItems[index].unNext;
+        index = pstOwner->__pstItems[index].__unNext;
     } while (index != PIF_PULSE_INDEX_NULL);
 #else
     (void)pstOwner;
@@ -595,19 +530,18 @@ void pifPulse_PrintItemFree(PIF_stPulse *pstOwner)
 void pifPulse_PrintItemAlloc(PIF_stPulse *pstOwner)
 {
 #ifndef __PIF_NO_LOG__
-	PIF_stPulseBase *pstBase = (PIF_stPulseBase *)pstOwner;
 	uint8_t index;
 
-	pifLog_Printf(LT_enNone, "\nAlloc = %d\n", pstBase->unAllocNext);
+	pifLog_Printf(LT_enNone, "\nAlloc = %d\n", pstOwner->__unAllocNext);
 
-    if (pstBase->unAllocNext == PIF_PULSE_INDEX_NULL) return;
+    if (pstOwner->__unAllocNext == PIF_PULSE_INDEX_NULL) return;
 
-    index = pstBase->unAllocNext;
+    index = pstOwner->__unAllocNext;
     do {
     	pifLog_Printf(LT_enNone, "\n  %d, Next = %d, Prev = %d",
-    			index, pstBase->pstItems[index].unNext, pstBase->pstItems[index].unPrev);
+    			index, pstOwner->__pstItems[index].__unNext, pstOwner->__pstItems[index].__unPrev);
 
-        index = pstBase->pstItems[index].unNext;
+        index = pstOwner->__pstItems[index].__unNext;
     } while (index != PIF_PULSE_INDEX_NULL);
 #else
     (void)pstOwner;
@@ -615,3 +549,4 @@ void pifPulse_PrintItemAlloc(PIF_stPulse *pstOwner)
 }
 
 #endif  // __PIF_DEBUG__
+

@@ -30,6 +30,10 @@ typedef enum _PIF_enPulseStep
 } PIF_enPulseStep;
 
 
+struct _PIF_stPulse;
+typedef struct _PIF_stPulse PIF_stPulse;
+
+
 /**
  * @struct _PIF_stPulseItem
  * @brief 한 Pulse내에 항목을 관리하는 구조체
@@ -38,22 +42,51 @@ typedef struct _PIF_stPulseItem
 {
 	// Public Member Variable
 
-	// Read-onlyPublic Member Variable
+	// Read-only Member Variable
     PIF_enPulseType _enType;
+
+	// Private Member Variable
+	PIF_stPulse *__pstOwner;
+    uint32_t __unValue;
+    uint32_t __unPulse;
+    void *__pvFinishIssuer;
+    uint32_t __unPretime;
+    uint32_t __unPwmGap;
+	BOOL __bEvent;
+    BOOL __bPwmState;
+    PIF_enPulseStep __enStep;
+
+    uint8_t __unIndex;
+    uint8_t __unNext;
+    uint8_t __unPrev;
+
+    // Private Action Function
+    PIF_actPulsePwm __actPwm;
+
+    // Private Event Function
+    PIF_evtPulseFinish __evtFinish;
 } PIF_stPulseItem;
 
 /**
  * @struct _PIF_Pulse
  * @brief Pulse를 관리하기 위한 구조체
  */
-typedef struct _PIF_stPulse
+struct _PIF_stPulse
 {
 	// Public Member Variable
 
-	// Read-onlyPublic Member Variable
+	// Read-only Member Variable
 	PIF_usId _usPifId;
 	uint32_t _unPeriodUs;
-} PIF_stPulse;
+
+	// Private Member Variable
+    uint8_t __unFreeNext;
+    uint8_t __unAllocNext;
+    uint8_t __ucItemSize;
+    PIF_stPulseItem *__pstItems;
+
+	PIF_enTaskLoop __enTaskLoop;
+};
 
 
 #ifdef __cplusplus
