@@ -14,10 +14,30 @@ typedef void (*PIF_actFndDisplay)(uint8_t ucSegment, uint8_t ucDigit);
 typedef struct _PIF_stFnd
 {
 	// Public Member Variable
-	PIF_usId usPifId;
-    uint8_t ucFndCount;
-    uint8_t ucDigitSize;
 	uint8_t ucSubNumericDigits;
+
+	// Read-only Member Variable
+	PIF_usId _usPifId;
+    uint8_t _ucFndCount;
+    uint8_t _ucDigitSize;
+
+	// Private Member Variable
+	struct {
+		uint8_t __btRun			: 1;
+		uint8_t __btBlink		: 1;
+		uint8_t __btFillZero	: 1;
+	};
+    uint16_t __usControlPeriodMs;
+	uint16_t __usPretimeMs;
+	uint8_t __ucDigitIndex;
+	uint8_t __ucStringSize;
+    char *__pcString;
+	PIF_stPulseItem *__pstTimerBlink;
+
+	PIF_enTaskLoop __enTaskLoop;
+
+	// Private Action Function
+   	PIF_actFndDisplay __actDisplay;
 } PIF_stFnd;
 
 
@@ -25,7 +45,7 @@ typedef struct _PIF_stFnd
 extern "C" {
 #endif
 
-BOOL pifFnd_Init(PIF_stPulse *pstTimer1ms, uint8_t ucSize);
+BOOL pifFnd_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifFnd_Exit();
 
 PIF_stFnd *pifFnd_Add(PIF_usId usPifId, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
