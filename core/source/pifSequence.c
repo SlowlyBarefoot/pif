@@ -21,7 +21,7 @@ static void _evtTimerTimeoutFinish(void *pvIssuer)
     PIF_stSequence *pstOwner = (PIF_stSequence *)pvIssuer;
 
 	pif_enError = E_enTimeout;
-	if (pstOwner->__evtError) (*pstOwner->__evtError)(pstOwner);
+	if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
 	pstOwner->_ucPhaseNo = PIF_SEQUENCE_PHASE_NO_IDLE;
 }
 
@@ -102,7 +102,7 @@ fail:
 #ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "Sequence:Error(%d) EC:%d", pstOwner->_ucPhaseNo, pif_enError);
 #endif
-	if (pstOwner->__evtError) (*pstOwner->__evtError)(pstOwner);
+	if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
 	pstOwner->_ucPhaseNo = PIF_SEQUENCE_PHASE_NO_IDLE;
 }
 
@@ -191,17 +191,6 @@ fail:
 	pifLog_Printf(LT_enError, "Sequence:Add() EC:%d", pif_enError);
 #endif
     return NULL;
-}
-
-/**
- * @fn pifSequence_AttachEvent
- * @brief
- * @param pstOwner
- * @param evtError
- */
-void pifSequence_AttachEvent(PIF_stSequence *pstOwner, PIF_evtSequenceError evtError)
-{
-	pstOwner->__evtError = evtError;
 }
 
 /**

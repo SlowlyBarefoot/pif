@@ -183,17 +183,6 @@ fail:
 }
 
 /**
- * @fn pifFnd_GetControlPeriod
- * @brief
- * @param pstOwner
- * @return
- */
-uint16_t pifFnd_GetControlPeriod(PIF_stFnd *pstOwner)
-{
-    return pstOwner->__usControlPeriodMs;
-}
-
-/**
  * @fn pifFnd_SetControlPeriod
  * @brief
  * @param pstOwner
@@ -298,7 +287,7 @@ void pifFnd_BlinkOff(PIF_stFnd *pstOwner)
 void pifFnd_ChangeBlinkPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
 {
 	if (pstOwner->__pstTimerBlink) {
-		pifPulse_SetPulse(pstOwner->__pstTimerBlink, usPeriodMs * 1000);
+		pstOwner->__pstTimerBlink->unTarget = usPeriodMs * 1000 / s_pstFndTimer->_unPeriodUs;
 	}
 }
 

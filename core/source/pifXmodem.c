@@ -463,7 +463,8 @@ void pifXmodem_SetReceiveTimeout(PIF_stXmodem *pstOwner, uint16_t usReceiveTimeo
 void pifXmodem_AttachComm(PIF_stXmodem *pstOwner, PIF_stComm *pstComm)
 {
 	pifComm_AttachClient(pstComm, pstOwner);
-	pifComm_AttachEvent(pstComm, _evtParsing, _evtSending, NULL);
+	pstComm->evtParsing = _evtParsing;
+	pstComm->evtSending = _evtSending;
 }
 
 /**

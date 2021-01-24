@@ -28,6 +28,11 @@ struct _PIF_stDutyMotor
 {
 	// Public Member Variable
 
+    // Public Event Function
+    PIF_evtDutyMotorStable evtStable;
+    PIF_evtDutyMotorStop evtStop;
+    PIF_evtDutyMotorError evtError;
+
     // Read-only Member Variable
     PIF_usId _usPifId;
 	uint16_t _usMaxDuty;
@@ -49,11 +54,6 @@ struct _PIF_stDutyMotor
     PIF_actDutyMotorSetDirection __actSetDirection;
     PIF_actDutyMotorOperateBreak __actOperateBreak;
 
-    // Private Event Function
-    PIF_evtDutyMotorStable __evtStable;
-    PIF_evtDutyMotorStop __evtStop;
-    PIF_evtDutyMotorError __evtError;
-
 	// Private Member Function
     PIF_fnDutyMotorControl __fnControl;
 };
@@ -73,8 +73,6 @@ PIF_stDutyMotor *pifDutyMotor_Add(PIF_usId usPifId, uint16_t usMaxDuty);
 
 void pifDutyMotor_AttachAction(PIF_stDutyMotor *pstOwner, PIF_actDutyMotorSetDuty actSetDuty, PIF_actDutyMotorSetDirection actSetDirection,
 		PIF_actDutyMotorOperateBreak actOperateBreak);
-void pifDutyMotor_AttachEvent(PIF_stDutyMotor *pstOwner, PIF_evtDutyMotorStable evtStable, PIF_evtDutyMotorStop evtStop,
-		PIF_evtDutyMotorError evtError);
 
 void pifDutyMotor_SetDirection(PIF_stDutyMotor *pstOwner, uint8_t ucDirection);
 void pifDutyMotor_SetDuty(PIF_stDutyMotor *pstOwner, uint16_t usDuty);

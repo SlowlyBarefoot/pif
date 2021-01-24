@@ -234,26 +234,6 @@ void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod)
 }
 
 /**
- * @fn pifTask_Pause
- * @brief Task를 일시중지한다.
- * @param pstOwner Task 자신
- */
-void pifTask_Pause(PIF_stTask *pstOwner)
-{
-	pstOwner->__bPause = TRUE;
-}
-
-/**
- * @fn pifTask_Restart
- * @brief 일시중지한 Task를 재개하다.
- * @param pstOwner Task 자신
- */
-void pifTask_Restart(PIF_stTask *pstOwner)
-{
-	pstOwner->__bPause = FALSE;
-}
-
-/**
  * @fn pifTask_Loop
  * @brief Main loop에서 수행해야 하는 Task 함수이다.
  */
@@ -265,7 +245,7 @@ void pifTask_Loop()
 
 	for (int i = 0; i < s_ucTaskPos; i++) {
 		pstOwner = &s_pstTask[i];
-		if (pstOwner->__bPause) continue;
+		if (pstOwner->bPause) continue;
 
 		switch (pstOwner->_enMode) {
 		case TM_enAlways:

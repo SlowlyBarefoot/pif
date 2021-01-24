@@ -296,7 +296,7 @@ fail:
  */
 PIF_stPidControl *pifDutyMotorSpeedEnc_GetPidControl(PIF_stDutyMotor *pstOwner)
 {
-	return &((PIF_stDutyMotorSpeedEnc *)(pstOwner)->__pvChild)->__stPidControl;
+	return &((PIF_stDutyMotorSpeedEnc *)pstOwner->__pvChild)->__stPidControl;
 }
 
 /**

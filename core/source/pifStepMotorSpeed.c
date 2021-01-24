@@ -38,7 +38,7 @@ static void _ControlSpeed(PIF_stStepMotor *pstOwner)
 		if (usTmpPps >= pstStage->usFsFixedPps) {
 			usTmpPps = pstStage->usFsFixedPps;
 			pstOwner->_enState = MS_enConst;
-			if (pstOwner->__evtStable) (*pstOwner->__evtStable)(pstOwner, pstOwner->__pvChild);
+			if (pstOwner->evtStable) (*pstOwner->evtStable)(pstOwner, pstOwner->__pvChild);
 
 #ifndef __PIF_NO_LOG__
 			nLine = __LINE__;
@@ -305,7 +305,7 @@ BOOL pifStepMotorSpeed_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, ui
         pifSwitch_AttachEvtChange(*pstStage->ppstStopSwitch, _SwitchStopChange, pstOwner);
     }
 
-    pstOwner->ucDirection = (pstStage->enMode & MM_D_enMask) >> MM_D_enShift;
+    pstOwner->_ucDirection = (pstStage->enMode & MM_D_enMask) >> MM_D_enShift;
 
     if (pstStage->usGsCtrlPps) {
     	pifStepMotor_SetPps(pstOwner, pstStage->usGsStartPps);

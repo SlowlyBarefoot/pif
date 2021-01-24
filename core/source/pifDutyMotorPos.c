@@ -34,7 +34,7 @@ static void _ControlPos(PIF_stDutyMotor *pstOwner)
 		if (usTmpDuty >= pstStage->usFsHighDuty) {
 			usTmpDuty = pstStage->usFsHighDuty;
 			pstOwner->_enState = MS_enConst;
-			if (pstOwner->__evtStable) (*pstOwner->__evtStable)(pstOwner, pstOwner->__pvChild);
+			if (pstOwner->evtStable) (*pstOwner->evtStable)(pstOwner, pstOwner->__pvChild);
 
 #ifndef __PIF_NO_LOG__
 			nLine = __LINE__;

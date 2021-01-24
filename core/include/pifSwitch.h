@@ -57,10 +57,10 @@ typedef struct _PIF_stSwitch
 
 	PIF_enTaskLoop __enTaskLoop;			// Default: TL_enAll
 
-	// Public Action Function
+	// Private Action Function
 	PIF_actSwitchAcquire __actAcquire;		// Default: NULL
 
-	// Public Event Function
+	// Private Event Function
     PIF_evtSwitchChange __evtChange;		// Default: NULL
 } PIF_stSwitch;
 

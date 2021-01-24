@@ -23,7 +23,7 @@ static void _ActionOn(PIF_stSolenoid *pstOwner, uint16_t usDelay, PIF_enSolenoid
 					pstOwner->__enCurrentDir = SD_enInvalid;
 					(*pstOwner->__actControl)(OFF, SD_enInvalid);
 					pstOwner->__bState = FALSE;
-					if (pstOwner->__evtError) (*pstOwner->__evtError)(pstOwner);
+					if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
 				}
 			}
 		}
@@ -31,7 +31,7 @@ static void _ActionOn(PIF_stSolenoid *pstOwner, uint16_t usDelay, PIF_enSolenoid
 	else {
 		pstOwner->__enDir = enDir;
 		if (!pifPulse_StartItem(pstOwner->__pstTimerDelay, usDelay)) {
-			if (pstOwner->__evtError) (*pstOwner->__evtError)(pstOwner);
+			if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
 		}
 	}
 }
@@ -54,7 +54,7 @@ static void _evtTimerDelayFinish(void *pvIssuer)
 				pstOwner->__enCurrentDir = SD_enInvalid;
 				(*pstOwner->__actControl)(OFF, SD_enInvalid);
 				pstOwner->__bState = FALSE;
-				if (pstOwner->__evtError) (*pstOwner->__evtError)(pstOwner);
+				if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
 			}
 		}
 	}
@@ -78,7 +78,7 @@ static void _evtTimerOnFinish(void *pvIssuer)
 
     if (pstOwner->__bState) {
         (*pstOwner->__actControl)(OFF, SD_enInvalid);
-        if (pstOwner->__evtOff) (*pstOwner->__evtOff)(pstOwner);
+        if (pstOwner->evtOff) (*pstOwner->evtOff)(pstOwner);
         pstOwner->__bState = FALSE;
     }
 }
@@ -193,19 +193,6 @@ fail:
 }
 
 /**
- * @fn pifSolenoid_AttachEvent
- * @brief
- * @param pstOwner
- * @param evtOff
- * @param evtError
- */
-void pifSolenoid_AttachEvent(PIF_stSolenoid *pstOwner, PIF_evtSolenoid evtOff, PIF_evtSolenoid evtError)
-{
-	pstOwner->__evtOff = evtOff;
-	pstOwner->__evtError = evtError;
-}
-
-/**
  * @fn pifSolenoid_SetBuffer
  * @brief
  * @param pstOwner
@@ -265,7 +252,7 @@ void pifSolenoid_ActionOn(PIF_stSolenoid *pstOwner, uint16_t usDelay)
 	int32_t time;
 
 	if (pstOwner->__pstBuffer) {
-		if (pifPulse_GetStep(pstOwner->__pstTimerDelay) == PS_enRunning) {
+		if (pstOwner->__pstTimerDelay->_enStep == PS_enRunning) {
 			time = _CalcurateTime(pstOwner);
 			pstContent = pifRingData_Add(pstOwner->__pstBuffer);
 			pstContent->usDelay = usDelay > time ? usDelay - time : 0;
@@ -289,7 +276,7 @@ void pifSolenoid_ActionOnDir(PIF_stSolenoid *pstOwner, uint16_t usDelay, PIF_enS
 	int32_t time;
 
 	if (pstOwner->__pstBuffer) {
-		if (pifPulse_GetStep(pstOwner->__pstTimerDelay) == PS_enRunning) {
+		if (pstOwner->__pstTimerDelay->_enStep == PS_enRunning) {
 			time = _CalcurateTime(pstOwner);
 			pstContent = pifRingData_Add(pstOwner->__pstBuffer);
 			pstContent->usDelay = usDelay >= time ? usDelay - time : 0;

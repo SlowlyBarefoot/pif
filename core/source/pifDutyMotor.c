@@ -23,13 +23,13 @@ static void _TimerControlFinish(void *pvIssuer)
 			pstOwner->_enState = MS_enBreak;
         }
 
-        if (pstOwner->__evtError) (*pstOwner->__evtError)(pstOwner, pstOwner->__pvChild);
+        if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner, pstOwner->__pvChild);
     }
 
 	if (pstOwner->_enState == MS_enStop) {
 		pifPulse_StopItem(pstOwner->__pstTimerControl);
 		pstOwner->_enState = MS_enIdle;
-		if (pstOwner->__evtStop) (*pstOwner->__evtStop)(pstOwner, pstOwner->__pvChild);
+		if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner, pstOwner->__pvChild);
 	}
 }
 
@@ -144,22 +144,6 @@ void pifDutyMotor_AttachAction(PIF_stDutyMotor *pstOwner, PIF_actDutyMotorSetDut
     pstOwner->__actSetDuty = actSetDuty;
     pstOwner->__actSetDirection = actSetDirection;
     pstOwner->__actOperateBreak = actOperateBreak;
-}
-
-/**
- * @fn pifDutyMotor_AttachEvent
- * @brief
- * @param pstOwner
- * @param evtStable
- * @param evtStop
- * @param evtError
- */
-void pifDutyMotor_AttachEvent(PIF_stDutyMotor *pstOwner, PIF_evtDutyMotorStable evtStable, PIF_evtDutyMotorStop evtStop,
-		PIF_evtDutyMotorError evtError)
-{
-    pstOwner->__evtStable = evtStable;
-    pstOwner->__evtStop = evtStop;
-    pstOwner->__evtError = evtError;
 }
 
 /**

@@ -38,7 +38,7 @@ static void _ControlSpeed(PIF_stDutyMotor *pstOwner)
 		if (usTmpDuty >= pstStage->usFsHighDuty) {
 			usTmpDuty = pstStage->usFsHighDuty;
 			pstOwner->_enState = MS_enConst;
-			if (pstOwner->__evtStable) (*pstOwner->__evtStable)(pstOwner, pstSpeed);
+			if (pstOwner->evtStable) (*pstOwner->evtStable)(pstOwner, pstSpeed);
 
 #ifndef __PIF_NO_LOG__
 			nLine = __LINE__;

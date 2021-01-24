@@ -303,7 +303,8 @@ PIF_stRingBuffer *pifTerminal_GetTxBuffer()
 void pifTerminal_AttachComm(PIF_stComm *pstComm)
 {
 	pifComm_AttachClient(pstComm, &s_stTerminal);
-	pifComm_AttachEvent(pstComm, _evtParsing, _evtSending, NULL);
+	pstComm->evtParsing = _evtParsing;
+	pstComm->evtSending = _evtSending;
 }
 
 /**

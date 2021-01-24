@@ -38,6 +38,7 @@ typedef void (*PIF_evtTaskLoop)(PIF_stTask *pstTask);
 struct _PIF_stTask
 {
 	// Public Member Variable
+	BOOL bPause;
 	void *pvLoopEach;
 
 	// Read-only Member Variable
@@ -47,7 +48,6 @@ struct _PIF_stTask
 	// Private Member Variable
 	const char *__pcName;
 	uint8_t __ucRatio;
-	BOOL __bPause;
 	uint16_t __usPeriod;
 	uint32_t __unPretime;
 #ifdef __PIF_DEBUG__
@@ -73,9 +73,6 @@ PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, vo
 
 void pifTask_SetName(PIF_stTask *pstOwner, const char *pcName);
 void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod);
-
-void pifTask_Pause(PIF_stTask *pstTask);
-void pifTask_Restart(PIF_stTask *pstTask);
 
 void pifTask_Loop();
 

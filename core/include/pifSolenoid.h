@@ -48,6 +48,10 @@ struct _PIF_stSolenoid
 	// Public Member Variable
     uint16_t usOnTime;
 
+	// Public Event Function
+    PIF_evtSolenoid evtOff;
+    PIF_evtSolenoid evtError;
+
     // Read-only Member Variable
     PIF_usId _usPifId;
     PIF_enSolenoidType _enType;
@@ -62,10 +66,6 @@ struct _PIF_stSolenoid
 
     // Private Action Function
     PIF_actSolenoidControl __actControl;
-
-	// Public Event Function
-    PIF_evtSolenoid __evtOff;
-    PIF_evtSolenoid __evtError;
 };
 
 
@@ -78,8 +78,6 @@ void pifSolenoid_Exit();
 
 PIF_stSolenoid *pifSolenoid_Add(PIF_usId usPifId, PIF_enSolenoidType enType, uint16_t usOnTime,
 		PIF_actSolenoidControl actControl);
-
-void pifSolenoid_AttachEvent(PIF_stSolenoid *pstOwner, PIF_evtSolenoid evtOff, PIF_evtSolenoid evtError);
 
 BOOL pifSolenoid_SetBuffer(PIF_stSolenoid *pstOwner, uint16_t usSize);
 void pifSolenoid_SetInvalidDirection(PIF_stSolenoid *pstOwner);

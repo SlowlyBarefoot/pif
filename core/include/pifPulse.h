@@ -41,20 +41,22 @@ typedef struct _PIF_stPulse PIF_stPulse;
 typedef struct _PIF_stPulseItem
 {
 	// Public Member Variable
+    uint32_t unTarget;
 
 	// Read-only Member Variable
     PIF_enPulseType _enType;
+    PIF_enPulseStep _enStep;
 
 	// Private Member Variable
 	PIF_stPulse *__pstOwner;
-    uint32_t __unValue;
-    uint32_t __unPulse;
+    uint32_t __unCurrent;
     void *__pvFinishIssuer;
     uint32_t __unPretime;
     uint32_t __unPwmGap;
-	BOOL __bEvent;
-    BOOL __bPwmState;
-    PIF_enPulseStep __enStep;
+    struct {
+		uint8_t __btEvent		: 1;
+		uint8_t __btPwmState	: 1;
+    };
 
     uint8_t __unIndex;
     uint8_t __unNext;
@@ -104,10 +106,7 @@ void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstItem);
 BOOL pifPulse_StartItem(PIF_stPulseItem *pstItem, uint32_t unPulse);
 void pifPulse_StopItem(PIF_stPulseItem *pstItem);
 
-void pifPulse_SetPulse(PIF_stPulseItem *pstItem, uint32_t unPulse);
 void pifPulse_SetPwmDuty(PIF_stPulseItem *pstItem, uint16_t usDuty);
-
-PIF_enPulseStep pifPulse_GetStep(PIF_stPulseItem *pstItem);
 
 uint32_t pifPulse_RemainItem(PIF_stPulseItem *pstItem);
 uint32_t pifPulse_ElapsedItem(PIF_stPulseItem *pstItem);

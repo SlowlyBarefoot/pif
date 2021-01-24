@@ -18,14 +18,14 @@ static void _CheckKeyState(int idx, BOOL button)
 			pstKey->bPressed = FALSE;
 			pstKey->bLongReleased = FALSE;
 			pstKey->unPressedTime = pif_unTimer1sec * 1000 + pif_usTimer1ms;
-			if (s_stKeypad.__evtDoublePressed) {
+			if (s_stKeypad.evtDoublePressed) {
 				if (!pstKey->unFirstTime) {
 					pstKey->unFirstTime = pstKey->unPressedTime;
 					pstKey->bDoublePressed = FALSE;
 				}
 				else {
-					if (pstKey->unPressedTime - pstKey->unFirstTime < s_stKeypad.__usDoubleTimeMs) {
-						(*s_stKeypad.__evtDoublePressed)(s_stKeypad.__pcUserKeymap[idx]);
+					if (pstKey->unPressedTime - pstKey->unFirstTime < s_stKeypad._usDoubleTimeMs) {
+						(*s_stKeypad.evtDoublePressed)(s_stKeypad.__pcUserKeymap[idx]);
 						pstKey->bDoublePressed = TRUE;
 					}
 				}
@@ -34,12 +34,12 @@ static void _CheckKeyState(int idx, BOOL button)
 		}
 		else if (pstKey->bShortClicked) {
 			unTime = pif_unTimer1sec * 1000 + pif_usTimer1ms - pstKey->unPressedTime;
-			if (unTime >= s_stKeypad.__usDoubleTimeMs) {
-				if (s_stKeypad.__evtPressed)  {
-					(*s_stKeypad.__evtPressed)(s_stKeypad.__pcUserKeymap[idx]);
+			if (unTime >= s_stKeypad._usDoubleTimeMs) {
+				if (s_stKeypad.evtPressed)  {
+					(*s_stKeypad.evtPressed)(s_stKeypad.__pcUserKeymap[idx]);
 				}
-				if (s_stKeypad.__evtReleased)  {
-					(*s_stKeypad.__evtReleased)(s_stKeypad.__pcUserKeymap[idx], unTime);
+				if (s_stKeypad.evtReleased)  {
+					(*s_stKeypad.evtReleased)(s_stKeypad.__pcUserKeymap[idx], unTime);
 				}
 				pstKey->bShortClicked = FALSE;
 				pstKey->unFirstTime = 0L;
@@ -57,7 +57,7 @@ static void _CheckKeyState(int idx, BOOL button)
 		}
 		else {
 			unTime = pif_unTimer1sec * 1000 + pif_usTimer1ms - pstKey->unPressedTime;
-			if (unTime >= s_stKeypad.__usHoldTimeMs) {
+			if (unTime >= s_stKeypad._usHoldTimeMs) {
 				pstKey->enState = KS_enHold;
 			}
 		}
@@ -66,18 +66,18 @@ static void _CheckKeyState(int idx, BOOL button)
 	case KS_enHold:
 		if (!pstKey->bDoublePressed) {
 			unTime = pif_unTimer1sec * 1000 + pif_usTimer1ms - pstKey->unPressedTime;
-			if (unTime >= s_stKeypad.__usLongTimeMs) {
+			if (unTime >= s_stKeypad._usLongTimeMs) {
 				if (!pstKey->bLongReleased) {
-					if (s_stKeypad.__evtLongReleased)  {
-						(*s_stKeypad.__evtLongReleased)(s_stKeypad.__pcUserKeymap[idx], unTime);
+					if (s_stKeypad.evtLongReleased)  {
+						(*s_stKeypad.evtLongReleased)(s_stKeypad.__pcUserKeymap[idx], unTime);
 					}
 					pstKey->bLongReleased = TRUE;
 				}
 			}
-			else if (unTime >= s_stKeypad.__usDoubleTimeMs) {
+			else if (unTime >= s_stKeypad._usDoubleTimeMs) {
 				if (!pstKey->bPressed) {
-					if (s_stKeypad.__evtPressed)  {
-						(*s_stKeypad.__evtPressed)(s_stKeypad.__pcUserKeymap[idx]);
+					if (s_stKeypad.evtPressed)  {
+						(*s_stKeypad.evtPressed)(s_stKeypad.__pcUserKeymap[idx]);
 					}
 					pstKey->bPressed = TRUE;
 				}
@@ -104,9 +104,9 @@ static void _CheckKeyState(int idx, BOOL button)
 		break;
 
 	case KS_enReleased:
-		if (!pstKey->bLongReleased && s_stKeypad.__evtReleased)  {
+		if (!pstKey->bLongReleased && s_stKeypad.evtReleased)  {
 			unTime = pif_unTimer1sec * 1000 + pif_usTimer1ms - pstKey->unPressedTime;
-			(*s_stKeypad.__evtReleased)(s_stKeypad.__pcUserKeymap[idx], unTime);
+			(*s_stKeypad.evtReleased)(s_stKeypad.__pcUserKeymap[idx], unTime);
 		}
 		pstKey->enState = KS_enIdle;
 		break;
@@ -143,16 +143,16 @@ PIF_stKeypad *pifKeypad_Init(PIF_usId usPifId, uint8_t ucNumRows, uint8_t ucNumC
 	s_stKeypad.__pcUserKeymap = pcUserKeymap;
 	s_stKeypad.__ucNumRows = ucNumRows;
 	s_stKeypad.__ucNumCols = ucNumCols;
-	s_stKeypad.__usHoldTimeMs = PIF_KEYPAD_DEFAULT_HOLD_TIME;
-	s_stKeypad.__usLongTimeMs = PIF_KEYPAD_DEFAULT_LONG_TIME;
-	s_stKeypad.__usDoubleTimeMs = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
+	s_stKeypad._usHoldTimeMs = PIF_KEYPAD_DEFAULT_HOLD_TIME;
+	s_stKeypad._usLongTimeMs = PIF_KEYPAD_DEFAULT_LONG_TIME;
+	s_stKeypad._usDoubleTimeMs = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
 
 	s_stKeypad.__actAcquire = NULL;
 
-	s_stKeypad.__evtPressed = NULL;
-	s_stKeypad.__evtReleased = NULL;
-	s_stKeypad.__evtLongReleased = NULL;
-	s_stKeypad.__evtDoublePressed = NULL;
+	s_stKeypad.evtPressed = NULL;
+	s_stKeypad.evtReleased = NULL;
+	s_stKeypad.evtLongReleased = NULL;
+	s_stKeypad.evtDoublePressed = NULL;
 
 	for (i = 0; i < ucNumRows * ucNumCols; i++) {
 		s_stKeypad.__pstKey[i].enState = KS_enIdle;
@@ -198,33 +198,6 @@ void pifKeypad_AttachAction(PIF_actKeypadAcquire actAcquire)
 }
 
 /**
- * @fn pifKeypad_AttachAction
- * @brief
- * @param evtPressed
- * @param evtReleased
- * @param evtLongReleased
- * @param evtDoublePressed
- */
-void pifKeypad_AttachEvent(PIF_evtKeypadPressed evtPressed, PIF_evtKeypadReleased evtReleased,
-		PIF_evtKeypadLongReleased evtLongReleased, PIF_evtKeypadDoublePressed evtDoublePressed)
-{
-	s_stKeypad.__evtPressed = evtPressed;
-	s_stKeypad.__evtReleased = evtReleased;
-	s_stKeypad.__evtLongReleased = evtLongReleased;
-	s_stKeypad.__evtDoublePressed = evtDoublePressed;
-}
-
-/**
- * @fn pifKeypad_GetHoldTime
- * @brief
- * @return
- */
-uint16_t pifKeypad_GetHoldTime()
-{
-	return s_stKeypad.__usHoldTimeMs;
-}
-
-/**
  * @fn pifKeypad_SetHoldTime
  * @brief
  * @param usHoldTimeMs
@@ -232,23 +205,13 @@ uint16_t pifKeypad_GetHoldTime()
  */
 BOOL pifKeypad_SetHoldTime(uint16_t usHoldTimeMs)
 {
-	if (usHoldTimeMs >= s_stKeypad.__usDoubleTimeMs) {
+	if (usHoldTimeMs >= s_stKeypad._usDoubleTimeMs) {
 		pif_enError = E_enInvalidParam;
 		return FALSE;
 	}
 
-	s_stKeypad.__usHoldTimeMs = usHoldTimeMs;
+	s_stKeypad._usHoldTimeMs = usHoldTimeMs;
 	return TRUE;
-}
-
-/**
- * @fn pifKeypad_GetLongTime
- * @brief
- * @return
- */
-uint16_t pifKeypad_GetLongTime()
-{
-	return s_stKeypad.__usLongTimeMs;
 }
 
 /**
@@ -259,23 +222,13 @@ uint16_t pifKeypad_GetLongTime()
  */
 BOOL pifKeypad_SetLongTime(uint16_t usLongTimeMs)
 {
-	if (usLongTimeMs <= s_stKeypad.__usDoubleTimeMs) {
+	if (usLongTimeMs <= s_stKeypad._usDoubleTimeMs) {
 		pif_enError = E_enInvalidParam;
 		return FALSE;
 	}
 
-	s_stKeypad.__usLongTimeMs = usLongTimeMs;
+	s_stKeypad._usLongTimeMs = usLongTimeMs;
 	return TRUE;
-}
-
-/**
- * @fn pifKeypad_GetDoubleTime
- * @brief
- * @return
- */
-uint16_t pifKeypad_GetDoubleTime()
-{
-	return s_stKeypad.__usDoubleTimeMs;
 }
 
 /**
@@ -286,12 +239,12 @@ uint16_t pifKeypad_GetDoubleTime()
  */
 BOOL pifKeypad_SetDoubleTime(uint16_t usDoubleTimeMs)
 {
-	if (usDoubleTimeMs <= s_stKeypad.__usHoldTimeMs || usDoubleTimeMs >= s_stKeypad.__usLongTimeMs) {
+	if (usDoubleTimeMs <= s_stKeypad._usHoldTimeMs || usDoubleTimeMs >= s_stKeypad._usLongTimeMs) {
 		pif_enError = E_enInvalidParam;
 		return FALSE;
 	}
 
-	s_stKeypad.__usDoubleTimeMs = usDoubleTimeMs;
+	s_stKeypad._usDoubleTimeMs = usDoubleTimeMs;
 	return TRUE;
 }
 

@@ -49,27 +49,27 @@ typedef struct _PIF_stKeypad
 {
 	// Public Member Variable
 
+	// Public Event Function
+	PIF_evtKeypadPressed evtPressed;				// Default: NULL
+	PIF_evtKeypadReleased evtReleased;				// Default: NULL
+	PIF_evtKeypadLongReleased evtLongReleased;		// Default: NULL
+	PIF_evtKeypadDoublePressed evtDoublePressed;	// Default: NULL
+
 	// Read-only Member Variable
 	PIF_usId _usPifId;
+	uint16_t _usHoldTimeMs;							// Default: PIF_KEYPAD_DEFAULT_HOLD_TIME
+	uint16_t _usLongTimeMs;							// Default: PIF_KEYPAD_DEFAULT_LONG_TIME
+	uint16_t _usDoubleTimeMs;						// Default: PIF_KEYPAD_DEFAULT_DOUBLE_TIME
 
 	// Private Member Variable
 	const char *__pcUserKeymap;
 	uint8_t __ucNumRows;
 	uint8_t __ucNumCols;
-	uint16_t __usHoldTimeMs;						// Default: PIF_KEYPAD_DEFAULT_HOLD_TIME
-	uint16_t __usLongTimeMs;						// Default: PIF_KEYPAD_DEFAULT_LONG_TIME
-	uint16_t __usDoubleTimeMs;						// Default: PIF_KEYPAD_DEFAULT_DOUBLE_TIME
 	uint16_t *__pusState;
 	PIF_stKey *__pstKey;
 
-	// Public Action Function
+	// Private Action Function
 	PIF_actKeypadAcquire __actAcquire;				// Default: NULL
-
-	// Public Event Function
-	PIF_evtKeypadPressed __evtPressed;				// Default: NULL
-	PIF_evtKeypadReleased __evtReleased;			// Default: NULL
-	PIF_evtKeypadLongReleased __evtLongReleased;	// Default: NULL
-	PIF_evtKeypadDoublePressed __evtDoublePressed;	// Default: NULL
 } PIF_stKeypad;
 
 
@@ -81,16 +81,9 @@ PIF_stKeypad *pifKeypad_Init(PIF_usId usPifId, uint8_t ucNumRows, uint8_t ucNumC
 void pifKeypad_Exit();
 
 void pifKeypad_AttachAction(PIF_actKeypadAcquire actAcquire);
-void pifKeypad_AttachEvent(PIF_evtKeypadPressed evtPressed, PIF_evtKeypadReleased evtReleased,
-		PIF_evtKeypadLongReleased evtLongReleased, PIF_evtKeypadDoublePressed evtDoublePressed);
 
-uint16_t pifKeypad_GetHoldTime();
 BOOL pifKeypad_SetHoldTime(uint16_t usHoldTimeMs);
-
-uint16_t pifKeypad_GetLongTime();
 BOOL pifKeypad_SetLongTime(uint16_t usLongTimeMs);
-
-uint16_t pifKeypad_GetDoubleTime();
 BOOL pifKeypad_SetDoubleTime(uint16_t usDoubleTimeMs);
 
 // Task Function

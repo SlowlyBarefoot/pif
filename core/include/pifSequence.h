@@ -41,6 +41,9 @@ struct _PIF_stSequence
 	uint16_t usDelay;
 	void *pvParam;
 
+    // Public Event Function
+	PIF_evtSequenceError evtError;
+
 	// Read-only Member Variable
 	PIF_usId _usPifId;
 	uint8_t _ucPhaseNo;
@@ -51,9 +54,6 @@ struct _PIF_stSequence
 	PIF_stPulseItem *__pstTimerDelay;
 
 	PIF_enTaskLoop __enTaskLoop;
-
-    // Private Event Function
-	PIF_evtSequenceError __evtError;
 };
 
 
@@ -65,8 +65,6 @@ BOOL pifSequence_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifSequence_Exit();
 
 PIF_stSequence *pifSequence_Add(PIF_usId usPifId, const PIF_stSequencePhase *pstPhaseList, void *pvParam);
-
-void pifSequence_AttachEvent(PIF_stSequence *pstOwner, PIF_evtSequenceError evtError);
 
 void pifSequence_Start(PIF_stSequence *pstOwner);
 

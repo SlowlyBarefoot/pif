@@ -51,6 +51,9 @@ typedef struct _PIF_stDotMatrix
 {
 	// Public Member Variable
 
+	// Public Event Function
+    PIF_evtDotMatrixShiftFinish evtShiftFinish;
+
 	// Read-only Member Variable
 	PIF_usId _usPifId;
 
@@ -96,9 +99,6 @@ typedef struct _PIF_stDotMatrix
 
 	// Private Action Function
    	PIF_actDotMatrixDisplay __actDisplay;
-
-	// Private Event Function
-    PIF_evtDotMatrixShiftFinish __evtShiftFinish;
 } PIF_stDotMatrix;
 
 
@@ -112,9 +112,6 @@ void pifDotMatrix_Exit();
 PIF_stDotMatrix *pifDotMatrix_Add(PIF_usId usPifId, uint16_t usColSize, uint16_t usRowSize,
 		PIF_actDotMatrixDisplay actDisplay);
 
-void pifDotMatrix_AttachEvent(PIF_stDotMatrix *pstOwner, PIF_evtDotMatrixShiftFinish evtShiftFinish);
-
-uint16_t pifDotMatrix_GetControlPeriod(PIF_stDotMatrix *pstOwner);
 BOOL pifDotMatrix_SetControlPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
 
 BOOL pifDotMatrix_SetPatternSize(PIF_stDotMatrix *pstOwner, uint8_t ucSize);

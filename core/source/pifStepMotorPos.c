@@ -34,7 +34,7 @@ static void _ControlPos(PIF_stStepMotor *pstOwner)
 		if (usTmpPps >= pstStage->usFsHighPps) {
 			usTmpPps = pstStage->usFsHighPps;
 			pstOwner->_enState = MS_enConst;
-			if (pstOwner->__evtStable) (*pstOwner->__evtStable)(pstOwner, pstOwner->__pvChild);
+			if (pstOwner->evtStable) (*pstOwner->evtStable)(pstOwner, pstOwner->__pvChild);
 
 #ifndef __PIF_NO_LOG__
 			nLine = __LINE__;
@@ -339,7 +339,7 @@ BOOL pifStepMotorPos_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, uint
         pifSwitch_AttachEvtChange(*pstStage->ppstStopSwitch, _SwitchStopChange, pstOwner);
     }
 
-    pstOwner->ucDirection = (pstStage->enMode & MM_D_enMask) >> MM_D_enShift;
+    pstOwner->_ucDirection = (pstStage->enMode & MM_D_enMask) >> MM_D_enShift;
 
     if (pstStage->usGsCtrlPps) {
     	pifStepMotor_SetPps(pstOwner, pstStage->usGsStartPps);

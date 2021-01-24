@@ -70,6 +70,11 @@ typedef struct _PIF_stComm
 {
 	// Public Member Variable
 
+    // Public Event Function
+    PIF_evtCommParsing evtParsing;
+    PIF_evtCommSending evtSending;
+    PIF_evtCommSended evtSended;
+
 	// Read-only Member Variable
     PIF_usId _usPifId;
 
@@ -85,11 +90,6 @@ typedef struct _PIF_stComm
 
 	// Private Action Function
     PIF_actCommSendData __actSendData;
-
-    // Private Event Function
-    PIF_evtCommParsing __evtParsing;
-    PIF_evtCommSending __evtSending;
-    PIF_evtCommSended __evtSended;
 } PIF_stComm;
 
 
@@ -107,7 +107,6 @@ BOOL pifComm_ResizeTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize);
 
 void pifComm_AttachClient(PIF_stComm *pstOwner, void *pvClient);
 void pifComm_AttachAction(PIF_stComm *pstOwner, PIF_actCommSendData actSendData);
-void pifComm_AttachEvent(PIF_stComm *pstOwner, PIF_evtCommParsing evtParsing, PIF_evtCommSending evtSending, PIF_evtCommSended evtSended);
 
 uint16_t pifComm_GetRemainSizeOfRxBuffer(PIF_stComm *pstOwner);
 uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner);

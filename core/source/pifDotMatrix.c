@@ -77,8 +77,8 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 		}
 		else {
 			pifPulse_StopItem(pstOwner->__pstTimerShift);
-			if (pstOwner->__evtShiftFinish) {
-				(*pstOwner->__evtShiftFinish)(pstOwner->_usPifId);
+			if (pstOwner->evtShiftFinish) {
+				(*pstOwner->evtShiftFinish)(pstOwner->_usPifId);
 			}
         }
     	break;
@@ -95,8 +95,8 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 		}
 		else {
 			pifPulse_StopItem(pstOwner->__pstTimerShift);
-			if (pstOwner->__evtShiftFinish) {
-				(*pstOwner->__evtShiftFinish)(pstOwner->_usPifId);
+			if (pstOwner->evtShiftFinish) {
+				(*pstOwner->evtShiftFinish)(pstOwner->_usPifId);
 			}
 		}
     	break;
@@ -113,8 +113,8 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 		}
 		else {
 			pifPulse_StopItem(pstOwner->__pstTimerShift);
-			if (pstOwner->__evtShiftFinish) {
-				(*pstOwner->__evtShiftFinish)(pstOwner->_usPifId);
+			if (pstOwner->evtShiftFinish) {
+				(*pstOwner->evtShiftFinish)(pstOwner->_usPifId);
 			}
         }
     	break;
@@ -131,8 +131,8 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 		}
 		else {
 			pifPulse_StopItem(pstOwner->__pstTimerShift);
-			if (pstOwner->__evtShiftFinish) {
-				(*pstOwner->__evtShiftFinish)(pstOwner->_usPifId);
+			if (pstOwner->evtShiftFinish) {
+				(*pstOwner->evtShiftFinish)(pstOwner->_usPifId);
 			}
 		}
     	break;
@@ -286,28 +286,6 @@ fail:
 			usColSize, usRowSize, pif_enError);
 #endif
     return NULL;
-}
-
-/**
- * @fn pifDotMatrix_AttachEvent
- * @brief
- * @param pstOwner
- * @param evtShiftFinish
- */
-void pifDotMatrix_AttachEvent(PIF_stDotMatrix *pstOwner, PIF_evtDotMatrixShiftFinish evtShiftFinish)
-{
-    pstOwner->__evtShiftFinish = evtShiftFinish;
-}
-
-/**
- * @fn pifDotMatrix_GetControlPeriod
- * @brief
- * @param pstOwner
- * @return
- */
-uint16_t pifDotMatrix_GetControlPeriod(PIF_stDotMatrix *pstOwner)
-{
-    return pstOwner->__usControlPeriodMs;
 }
 
 /**
@@ -509,7 +487,7 @@ void pifDotMatrix_BlinkOff(PIF_stDotMatrix *pstOwner)
 void pifDotMatrix_ChangeBlinkPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs)
 {
 	if (pstOwner->__pstTimerBlink) {
-		pifPulse_SetPulse(pstOwner->__pstTimerBlink, usPeriodMs);
+		pstOwner->__pstTimerBlink->unTarget = usPeriodMs * 1000 / s_pstDotMatrixTimer->_unPeriodUs;
 	}
 }
 
@@ -597,7 +575,7 @@ void pifDotMatrix_ShiftOff(PIF_stDotMatrix *pstOwner)
 void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs)
 {
 	if (pstOwner->__pstTimerShift) {
-		pifPulse_SetPulse(pstOwner->__pstTimerShift, usPeriodMs);
+		pstOwner->__pstTimerShift->unTarget = usPeriodMs * 1000 / s_pstDotMatrixTimer->_unPeriodUs;
 	}
 }
 

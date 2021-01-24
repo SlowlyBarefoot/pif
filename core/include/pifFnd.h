@@ -50,7 +50,6 @@ void pifFnd_Exit();
 
 PIF_stFnd *pifFnd_Add(PIF_usId usPifId, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
 
-uint16_t pifFnd_GetControlPeriod(PIF_stFnd *pstOwner);
 BOOL pifFnd_SetControlPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs);
 
 void pifFnd_Start(PIF_stFnd *pstOwner);

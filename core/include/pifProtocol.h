@@ -179,6 +179,9 @@ typedef struct _PIF_stProtocol
 {
 	// Public Member Variable
 
+	// Public Event Function
+    PIF_evtProtocolError evtError;
+
 	// Read-only Member Variable
     PIF_usId _usPifId;
     PIF_enProtocolType _enType;
@@ -190,9 +193,6 @@ typedef struct _PIF_stProtocol
     PIF_stProtocolTx __stTx;
 	uint8_t __ucHeaderSize;
 	uint8_t __ucPacketId;
-
-	// Public Event Function
-    PIF_evtProtocolError __evtError;
 } PIF_stProtocol;
 
 
@@ -205,8 +205,6 @@ void pifProtocol_Exit();
 
 PIF_stProtocol *pifProtocol_Add(PIF_usId usPifId, PIF_enProtocolType enType,
 		const PIF_stProtocolQuestion *pstQuestions);
-
-void pifProtocol_AttachEvent(PIF_stProtocol *pstOwner, PIF_evtProtocolError evtError);
 
 BOOL pifProtocol_ResizeRxPacket(PIF_stProtocol *pstOwner, uint16_t usRxPacketSize);
 BOOL pifProtocol_ResizeTxRequest(PIF_stProtocol *pstOwner, uint16_t usTxRequestSize);

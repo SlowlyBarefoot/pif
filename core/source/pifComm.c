@@ -16,16 +16,16 @@ static void _LoopCommon(PIF_stComm *pstOwner)
 	uint8_t ucData;
 
 	if (!pifRingBuffer_IsEmpty(pstOwner->__pstRxBuffer)) {
-		if (pstOwner->__evtParsing) {
-			(*pstOwner->__evtParsing)(pstOwner->__pvClient, pstOwner->__pstRxBuffer);
+		if (pstOwner->evtParsing) {
+			(*pstOwner->evtParsing)(pstOwner->__pvClient, pstOwner->__pstRxBuffer);
 		}
 	}
 
 	if (pifRingBuffer_IsEmpty(pstOwner->__pstTxBuffer)) {
 		switch (pstOwner->__enState) {
 		case STS_enIdle:
-			if (pstOwner->__evtSending) {
-				if ((*pstOwner->__evtSending)(pstOwner->__pvClient, pstOwner->__pstTxBuffer)) {
+			if (pstOwner->evtSending) {
+				if ((*pstOwner->evtSending)(pstOwner->__pvClient, pstOwner->__pstTxBuffer)) {
 					if (pstOwner->__actSendData) {
 						pifRingBuffer_GetByte(pstOwner->__pstTxBuffer, &ucData);
 						(*pstOwner->__actSendData)(ucData);
@@ -36,9 +36,9 @@ static void _LoopCommon(PIF_stComm *pstOwner)
 			break;
 
 		case STS_enSending:
-			if (pstOwner->__evtSended) {
+			if (pstOwner->evtSended) {
 				if (pifRingBuffer_IsEmpty(pstOwner->__pstTxBuffer)) {
-					(*pstOwner->__evtSended)(pstOwner->__pvClient);
+					(*pstOwner->evtSended)(pstOwner->__pvClient);
 				}
 			}
 			pstOwner->__enState = STS_enIdle;
@@ -200,21 +200,6 @@ void pifComm_AttachClient(PIF_stComm *pstOwner, void *pvClient)
 void pifComm_AttachAction(PIF_stComm *pstOwner, PIF_actCommSendData actSendData)
 {
 	pstOwner->__actSendData = actSendData;
-}
-
-/**
- * @fn pifComm_AttachEvent
- * @brief
- * @param pstOwner
- * @param evtParsing
- * @param evtSending
- * @param fnSended
- */
-void pifComm_AttachEvent(PIF_stComm *pstOwner, PIF_evtCommParsing evtParsing, PIF_evtCommSending evtSending, PIF_evtCommSended evtSended)
-{
-	pstOwner->__evtParsing = evtParsing;
-	pstOwner->__evtSending = evtSending;
-	pstOwner->__evtSended = evtSended;
 }
 
 /**
