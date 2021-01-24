@@ -135,7 +135,8 @@ PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize, uint32_t unPeriodUs)
     }
 
     pstOwner->_unPeriodUs = unPeriodUs;
-    pstOwner->__ucItemSize = ucSize;
+    pstOwner->_ucItemSize = ucSize;
+    pstOwner->_ucItemCount = 0;
 
     pstOwner->__unFreeNext = 0;
     pstOwner->__unAllocNext = PIF_PULSE_INDEX_NULL;
@@ -194,6 +195,8 @@ PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType)
         pstOwner->__pstItems[pstItem->__unNext].__unPrev = index;
     }
 
+    pstOwner->_ucItemCount++;
+
     return pstItem;
 
 fail:
@@ -231,6 +234,8 @@ void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstItem)
     pstItem->__unPrev = PIF_PULSE_INDEX_NULL;
     pstItem->_enStep = PS_enRemove;
     pstOwner->__unFreeNext = pstItem->__unIndex;
+
+    if (pstOwner->_ucItemCount) pstOwner->_ucItemCount--;
 }
 
 /**

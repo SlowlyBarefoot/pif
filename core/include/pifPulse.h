@@ -80,11 +80,12 @@ struct _PIF_stPulse
 	// Read-only Member Variable
 	PIF_usId _usPifId;
 	uint32_t _unPeriodUs;
+    uint8_t _ucItemSize;
+    uint8_t _ucItemCount;
 
 	// Private Member Variable
     uint8_t __unFreeNext;
     uint8_t __unAllocNext;
-    uint8_t __ucItemSize;
     PIF_stPulseItem *__pstItems;
 
 	PIF_enTaskLoop __enTaskLoop;
