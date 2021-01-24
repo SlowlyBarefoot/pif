@@ -48,6 +48,8 @@ extern "C" {
 BOOL pifFnd_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
 void pifFnd_Exit();
 
+void pifFnd_SetUserChar(const uint8_t *pucUserChar, uint8_t ucCount);
+
 PIF_stFnd *pifFnd_Add(PIF_usId usPifId, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
 
 BOOL pifFnd_SetControlPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs);
@@ -57,7 +59,7 @@ void pifFnd_Stop(PIF_stFnd *pstOwner);
 
 BOOL pifFnd_BlinkOn(PIF_stFnd *pstOwner, uint16_t usPeriodMs);
 void pifFnd_BlinkOff(PIF_stFnd *pstOwner);
-void pifFnd_ChangeBlinkPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs);
+BOOL pifFnd_ChangeBlinkPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs);
 
 void pifFnd_SetFillZero(PIF_stFnd *pstOwner, BOOL bFillZero);
 void pifFnd_SetFloat(PIF_stFnd *pstOwner, double dValue);
