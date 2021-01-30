@@ -361,6 +361,12 @@ void pifXmodem_Exit()
 				free(pstOwner->__pucData);
 				pstOwner->__pucData = NULL;
 			}
+			if (pstOwner->__stRx.pstTimer) {
+				pifPulse_RemoveItem(s_pstXmodemTimer, pstOwner->__stRx.pstTimer);
+			}
+			if (pstOwner->__stTx.pstTimer) {
+				pifPulse_RemoveItem(s_pstXmodemTimer, pstOwner->__stTx.pstTimer);
+			}
         }
     	free(s_pstXmodem);
         s_pstXmodem = NULL;

@@ -229,6 +229,12 @@ void pifDotMatrix_Exit()
 				free(pstOwner->__pstPattern);
 				pstOwner->__pstPattern = NULL;
 			}
+			if (pstOwner->__pstTimerBlink) {
+				pifPulse_RemoveItem(s_pstDotMatrixTimer, pstOwner->__pstTimerBlink);
+			}
+			if (pstOwner->__pstTimerShift) {
+				pifPulse_RemoveItem(s_pstDotMatrixTimer, pstOwner->__pstTimerShift);
+			}
 		}
     	free(s_pstDotMatrix);
         s_pstDotMatrix = NULL;

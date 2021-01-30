@@ -454,7 +454,12 @@ void pifProtocol_Exit()
         	}
         	pifRingBuffer_Exit(pstOwner->__stTx.pstRequestBuffer);
         	pifRingBuffer_Exit(pstOwner->__stTx.pstAnswerBuffer);
-        	pifPulse_RemoveItem(s_pstProtocolTimer, pstOwner->__stTx.pstTimer);
+        	if (pstOwner->__stRx.pstTimer) {
+        		pifPulse_RemoveItem(s_pstProtocolTimer, pstOwner->__stRx.pstTimer);
+        	}
+        	if (pstOwner->__stTx.pstTimer) {
+        		pifPulse_RemoveItem(s_pstProtocolTimer, pstOwner->__stTx.pstTimer);
+        	}
         }
     	free(s_pstProtocol);
         s_pstProtocol = NULL;

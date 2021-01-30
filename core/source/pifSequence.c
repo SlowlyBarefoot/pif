@@ -154,6 +154,9 @@ void pifSequence_Exit()
 			if (pstOwner->__pstTimerDelay) {
 				pifPulse_RemoveItem(s_pstSequenceTimer, pstOwner->__pstTimerDelay);
 			}
+			if (pstOwner->__pstTimerTimeout) {
+				pifPulse_RemoveItem(s_pstSequenceTimer, pstOwner->__pstTimerTimeout);
+			}
 		}		
         free(s_pstSequence);
         s_pstSequence = NULL;

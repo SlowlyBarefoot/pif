@@ -137,6 +137,15 @@ fail:
 void pifSolenoid_Exit()
 {
     if (s_pstSolenoid) {
+        for (int i = 0; i < s_ucSolenoidPos; i++) {
+        	PIF_stSolenoid *pstOwner = (PIF_stSolenoid *)&s_pstSolenoid[i];
+        	if (pstOwner->__pstTimerOn) {
+        		pifPulse_RemoveItem(s_pstSolenoidTimer, pstOwner->__pstTimerOn);
+        	}
+        	if (pstOwner->__pstTimerDelay) {
+        		pifPulse_RemoveItem(s_pstSolenoidTimer, pstOwner->__pstTimerDelay);
+        	}
+        }
     	free(s_pstSolenoid);
         s_pstSolenoid = NULL;
     }

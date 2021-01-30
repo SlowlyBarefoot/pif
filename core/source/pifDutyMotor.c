@@ -91,6 +91,15 @@ void pifDutyMotor_Exit()
 				free(pstOwner->__pvChild);
 				pstOwner->__pvChild = NULL;
 			}
+			if (pstOwner->__pstTimerControl) {
+				pifPulse_RemoveItem(g_pstDutyMotorTimer, pstOwner->__pstTimerControl);
+			}
+			if (pstOwner->__pstTimerDelay) {
+				pifPulse_RemoveItem(g_pstDutyMotorTimer, pstOwner->__pstTimerDelay);
+			}
+			if (pstOwner->__pstTimerBreak) {
+				pifPulse_RemoveItem(g_pstDutyMotorTimer, pstOwner->__pstTimerBreak);
+			}
 		}
         free(s_pstDutyMotor);
         s_pstDutyMotor = NULL;

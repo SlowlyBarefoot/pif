@@ -456,7 +456,7 @@ BOOL pifPulse_CheckItem(PIF_stPulse *pstOwner)
             index = pstOwner->__pstItems[index].__unNext;
         } while (index != PIF_PULSE_INDEX_NULL);
     }
-    return count == pstOwner->__ucItemSize;
+    return count == pstOwner->_ucItemSize;
 }
 
 /**
@@ -470,7 +470,7 @@ void pifPulse_PrintItemList(PIF_stPulse *pstOwner)
 	pifLog_Printf(LT_enNone, "\nFree = %d, Alloc = %d\n",
 			pstOwner->__unFreeNext, pstOwner->__unAllocNext);
 
-    for (int index = 0; index < pstOwner->__ucItemSize; index++) {
+    for (int index = 0; index < pstOwner->_ucItemSize; index++) {
     	pifLog_Printf(LT_enNone, "\n  %d, Next = %d, Prev = %d",
     			index, pstOwner->__pstItems[index].__unNext, pstOwner->__pstItems[index].__unPrev);
     }

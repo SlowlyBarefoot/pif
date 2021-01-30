@@ -129,6 +129,9 @@ void pifFnd_Exit()
     			free(pstOwner->__pcString);
     			pstOwner->__pcString = NULL;
     		}
+    		if (pstOwner->__pstTimerBlink) {
+    			pifPulse_RemoveItem(s_pstFndTimer, pstOwner->__pstTimerBlink);
+    		}
     	}
     	free(s_pstFnd);
         s_pstFnd = NULL;

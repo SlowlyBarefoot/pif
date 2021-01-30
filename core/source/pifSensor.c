@@ -131,6 +131,9 @@ void pifSensor_Exit()
 					pstFilter->apusBuffer = NULL;
 				}
         	}
+        	if (pstOwner->__pstTimerPeriod) {
+        		pifPulse_RemoveItem(s_pstSensorTimer, pstOwner->__pstTimerPeriod);
+        	}
         }
         free(s_pstSensor);
         s_pstSensor = NULL;

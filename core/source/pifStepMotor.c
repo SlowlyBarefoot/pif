@@ -182,6 +182,18 @@ void pifStepMotor_Exit()
 				free(pstOwner->__pvChild);
 				pstOwner->__pvChild = NULL;
 			}
+			if (pstOwner->__pstTimerStep) {
+				pifPulse_RemoveItem(g_pstStepMotorTimer, pstOwner->__pstTimerStep);
+			}
+			if (pstOwner->__pstTimerControl) {
+				pifPulse_RemoveItem(g_pstStepMotorTimer, pstOwner->__pstTimerControl);
+			}
+			if (pstOwner->__pstTimerBreak) {
+				pifPulse_RemoveItem(g_pstStepMotorTimer, pstOwner->__pstTimerBreak);
+			}
+			if (pstOwner->__pstTimerDelay) {
+				pifPulse_RemoveItem(g_pstStepMotorTimer, pstOwner->__pstTimerDelay);
+			}
 		}
         free(s_pstStepMotor);
         s_pstStepMotor = NULL;
