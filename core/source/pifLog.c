@@ -245,7 +245,7 @@ void pifLog_Disable()
  */
 void pifLog_Print(char *pcString)
 {
-	if (pifRingBuffer_IsBuffer(s_stLog.pstBuffer)) {
+	if (s_stLog.pstBuffer && pifRingBuffer_IsBuffer(s_stLog.pstBuffer)) {
 		pifRingBuffer_PutString(s_stLog.pstBuffer, pcString);
 	}
 
@@ -282,7 +282,7 @@ void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
 	int nOffset = 0;
 	size_t nSize;
     static char acTmpBuf[PIF_LOG_LINE_SIZE];
-    static int nMinute = -1;
+    static uint8_t nMinute = 255;
     const char cType[] = { 'I', 'W', 'E', 'C' };
 
     if (enType) {

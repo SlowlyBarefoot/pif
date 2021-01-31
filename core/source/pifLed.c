@@ -160,7 +160,7 @@ BOOL pifLed_AttachBlink(PIF_stLed *pstOwner, uint16_t usPeriodMs)
 	}
 
 	pstOwner->__unBlinkFlag = 0L;
-    pifPulse_StartItem(pstOwner->__pstTimerBlink, usPeriodMs * 1000 / s_pstLedTimer->_unPeriodUs);
+    pifPulse_StartItem(pstOwner->__pstTimerBlink, usPeriodMs * 1000L / s_pstLedTimer->_unPeriodUs);
 	return TRUE;
 
 fail:
@@ -202,7 +202,7 @@ BOOL pifLed_ChangeBlinkPeriod(PIF_stLed *pstOwner, uint16_t usPeriodMs)
 		goto fail;
 	}
 
-	pstOwner->__pstTimerBlink->unTarget = usPeriodMs * 1000 / s_pstLedTimer->_unPeriodUs;
+	pstOwner->__pstTimerBlink->unTarget = usPeriodMs * 1000L / s_pstLedTimer->_unPeriodUs;
 	return TRUE;
 
 fail:
