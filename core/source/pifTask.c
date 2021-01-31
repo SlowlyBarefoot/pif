@@ -234,6 +234,67 @@ void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod)
 }
 
 /**
+ * @fn pifTask_SetDelay
+ * @brief
+ * @param pstOwner Task 자신
+ * @param usDelayMs
+ */
+void pifTask_SetDelay(PIF_stTask *pstOwner, uint16_t usDelayMs)
+{
+	pstOwner->__unPretimeDelay = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+	pstOwner->__ucDelayNo = pstOwner->__ucDelayStep;
+	pstOwner->__usDelayMs = usDelayMs;
+	pstOwner->__bDelay = TRUE;
+}
+
+/**
+ * @fn pifTask_FirstDelay
+ * @brief
+ * @param pstOwner Task 자신
+ * @return
+ */
+BOOL pifTask_FirstDelay(PIF_stTask *pstOwner)
+{
+	pstOwner->__ucDelayStep = 1;
+	return pstOwner->__ucDelayStep > pstOwner->__ucDelayNo;
+}
+
+/**
+ * @fn pifTask_NextDelay
+ * @brief
+ * @param pstOwner Task 자신
+ * @return
+ */
+BOOL pifTask_NextDelay(PIF_stTask *pstOwner)
+{
+	pstOwner->__ucDelayStep++;
+	if (pstOwner->__bDelay) {
+		return FALSE;
+	}
+	else {
+		return pstOwner->__ucDelayStep > pstOwner->__ucDelayNo;
+	}
+}
+
+/**
+ * @fn pifTask_LastDelay
+ * @brief
+ * @param pstOwner Task 자신
+ * @return
+ */
+BOOL pifTask_LastDelay(PIF_stTask *pstOwner)
+{
+	pstOwner->__ucDelayStep++;
+	if (pstOwner->__bDelay) {
+		return FALSE;
+	}
+	else {
+		pstOwner->__ucDelayNo = 0;
+		return TRUE;
+	}
+}
+
+/**
  * @fn pifTask_Loop
  * @brief Main loop에서 수행해야 하는 Task 함수이다.
  */
@@ -246,6 +307,19 @@ void pifTask_Loop()
 	for (int i = 0; i < s_ucTaskPos; i++) {
 		pstOwner = &s_pstTask[i];
 		if (pstOwner->bPause) continue;
+		else if (pstOwner->__bDelay) {
+			unTime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+			if (unTime < pstOwner->__unPretimeDelay) {
+				unGap = 60000L - pstOwner->__unPretimeDelay + unTime;
+			}
+			else {
+				unGap = unTime - pstOwner->__unPretimeDelay;
+			}
+			if (unGap >= pstOwner->__usDelayMs) {
+				pstOwner->__bDelay = FALSE;
+			}
+			continue;
+		}
 
 		switch (pstOwner->_enMode) {
 		case TM_enAlways:

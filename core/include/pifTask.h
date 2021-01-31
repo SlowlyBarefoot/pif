@@ -48,8 +48,13 @@ struct _PIF_stTask
 	// Private Member Variable
 	const char *__pcName;
 	uint8_t __ucRatio;
+	BOOL __bDelay;
+	uint8_t __ucDelayNo;
+	uint8_t __ucDelayStep;
+	uint16_t __usDelayMs;
 	uint16_t __usPeriod;
 	uint32_t __unPretime;
+	uint32_t __unPretimeDelay;
 #ifdef __PIF_DEBUG__
 	uint32_t __unCount;
 	float __fPeriod;
@@ -73,6 +78,11 @@ PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, vo
 
 void pifTask_SetName(PIF_stTask *pstOwner, const char *pcName);
 void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod);
+
+void pifTask_SetDelay(PIF_stTask *pstOwner, uint16_t usDelayMs);
+BOOL pifTask_FirstDelay(PIF_stTask *pstOwner);
+BOOL pifTask_NextDelay(PIF_stTask *pstOwner);
+BOOL pifTask_LastDelay(PIF_stTask *pstOwner);
 
 void pifTask_Loop();
 
