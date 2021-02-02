@@ -140,6 +140,24 @@ void pifLed_Off(PIF_stLed *pstOwner, uint8_t ucIndex)
 }
 
 /**
+ * @fn pifLed_Change
+ * @brief
+ * @param pstOwner
+ * @param ucIndex
+ * @param swState
+ */
+void pifLed_Change(PIF_stLed *pstOwner, uint8_t ucIndex, SWITCH swState)
+{
+	if (swState) {
+		pstOwner->__unState |= 1 << ucIndex;
+	}
+	else {
+		pstOwner->__unState &= ~(1 << ucIndex);
+	}
+	(*pstOwner->__actState)(pstOwner->_usPifId, ucIndex, swState);
+}
+
+/**
  * @fn pifLed_AttachBlink
  * @brief
  * @param pstOwner

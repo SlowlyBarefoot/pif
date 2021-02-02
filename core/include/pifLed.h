@@ -41,6 +41,7 @@ PIF_stLed *pifLed_Add(PIF_usId usPifId, uint8_t ucCount, PIF_actLedState actStat
 
 void pifLed_On(PIF_stLed *pstOwner, uint8_t ucIndex);
 void pifLed_Off(PIF_stLed *pstOwner, uint8_t ucIndex);
+void pifLed_Change(PIF_stLed *pstOwner, uint8_t ucIndex, SWITCH swState);
 
 BOOL pifLed_AttachBlink(PIF_stLed *pstOwner, uint16_t usPeriodMs);
 void pifLed_DetachBlink(PIF_stLed *pstOwner);
