@@ -15,36 +15,15 @@ static uint8_t s_ucPulsePos;
 static void _TaskCommon(PIF_stPulse *pstOwner)
 {
 	uint8_t index;
-	uint32_t unTime, unGap;
 	PIF_stPulseItem *pstItem;
 
 	index = pstOwner->__unAllocNext;
 	while (index != PIF_PULSE_INDEX_NULL) {
 		pstItem = &pstOwner->__pstItems[index];
 
-		if (pstItem->_enType == PT_enPwm) {
-			if (pstItem->__btPwmState == ON) {
-				if (pif_stPerformance._unCount > pif_stPerformance._unCurrent) {
-					unTime = PIF_PERFORMANCE_PERIOD_US;
-				}
-				else {
-					unTime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
-				}
-				if (unTime < pstItem->__unPretime) {
-					unGap = PIF_PERFORMANCE_PERIOD_US - pstItem->__unPretime + unTime;
-				}
-				else {
-					unGap = unTime - pstItem->__unPretime;
-				}
-				if (unGap >= pstItem->__unPwmGap) {
-					(*pstItem->__actPwm)(OFF);
-					pstItem->__btPwmState = OFF;
-				}
-			}
-		}
-		else {
-			if (pstItem->__btEvent) {
-				pstItem->__btEvent = FALSE;
+		if (pstItem->_enType != PT_enPwm) {
+			if (pstItem->__bEvent) {
+				pstItem->__bEvent = FALSE;
 
 				if (pstItem->__evtFinish) (*pstItem->__evtFinish)(pstItem->__pvFinishIssuer);
 			}
@@ -254,21 +233,14 @@ BOOL pifPulse_StartItem(PIF_stPulseItem *pstItem, uint32_t unTarget)
 
     if (pstItem->_enStep == PS_enStop) {
     	pstItem->_enStep = PS_enRunning;
-    	pstItem->__btEvent = FALSE;
-
-        if (pstItem->_enType == PT_enPwm) {
-    		(*pstItem->__actPwm)(ON);
-    		pstItem->__btPwmState = ON;
-			if (pif_stPerformance._unCount > pif_stPerformance._unCurrent) {
-				pstItem->__unPretime = PIF_PERFORMANCE_PERIOD_US;
-			}
-			else {
-				pstItem->__unPretime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
-			}
-        }
+    	pstItem->__bEvent = FALSE;
     }
     pstItem->unTarget = unTarget;
     pstItem->__unCurrent = unTarget;
+
+    if (pstItem->_enType == PT_enPwm) {
+    	pstItem->__unPwmDuty = 0;
+    }
     return TRUE;
 
 fail:
@@ -287,6 +259,9 @@ void pifPulse_StopItem(PIF_stPulseItem *pstItem)
 {
 	pstItem->__unCurrent = 0;
 	pstItem->_enStep = PS_enStop;
+	if (pstItem->_enType == PT_enPwm) {
+		(*pstItem->__actPwm)(OFF);
+	}
 }
 
 /**
@@ -297,7 +272,10 @@ void pifPulse_StopItem(PIF_stPulseItem *pstItem)
  */
 void pifPulse_SetPwmDuty(PIF_stPulseItem *pstItem, uint16_t usDuty)
 {
-	pstItem->__unPwmGap = pstItem->__pstOwner->_unPeriodUs * pstItem->unTarget * usDuty / PIF_PWM_MAX_DUTY;
+	pstItem->__unPwmDuty = pstItem->unTarget * usDuty / PIF_PWM_MAX_DUTY;
+	if (pstItem->__unPwmDuty == pstItem->unTarget) {
+		(*pstItem->__actPwm)(ON);
+	}
 }
 
 /**
@@ -341,30 +319,37 @@ void pifPulse_sigTick(PIF_stPulse *pstOwner)
 
 		if (pstItem->__unCurrent) {
 			pstItem->__unCurrent--;
-			if (!pstItem->__unCurrent) {
-				switch (pstItem->_enType) {
-				case PT_enOnce:
+			switch (pstItem->_enType) {
+			case PT_enOnce:
+				if (!pstItem->__unCurrent) {
 					pstItem->_enStep = PS_enStop;
-					pstItem->__btEvent = TRUE;
-					break;
-
-				case PT_enRepeat:
-					pstItem->__unCurrent = pstItem->unTarget;
-					pstItem->__btEvent = TRUE;
-					break;
-
-				case PT_enPwm:
-					pstItem->__unCurrent = pstItem->unTarget;
-					(*pstItem->__actPwm)(ON);
-					pstItem->__btPwmState = ON;
-					if (pif_stPerformance._unCount > pif_stPerformance._unCurrent) {
-						pstItem->__unPretime = PIF_PERFORMANCE_PERIOD_US;
-					}
-					else {
-						pstItem->__unPretime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
-					}
-					break;
+					pstItem->__bEvent = TRUE;
 				}
+				break;
+
+			case PT_enRepeat:
+				if (!pstItem->__unCurrent) {
+					pstItem->__unCurrent = pstItem->unTarget;
+					pstItem->__bEvent = TRUE;
+				}
+				break;
+
+			case PT_enPwm:
+				if (pstItem->__unPwmDuty != pstItem->unTarget) {
+					if (!pstItem->__unCurrent) {
+						(*pstItem->__actPwm)(OFF);
+						pstItem->__unCurrent = pstItem->unTarget;
+					}
+					if (pstItem->__unCurrent == pstItem->__unPwmDuty) {
+						(*pstItem->__actPwm)(ON);
+					}
+				}
+				else {
+					if (!pstItem->__unCurrent) {
+						pstItem->__unCurrent = pstItem->unTarget;
+					}
+				}
+				break;
 			}
 		}
 

@@ -51,12 +51,8 @@ typedef struct _PIF_stPulseItem
 	PIF_stPulse *__pstOwner;
     uint32_t __unCurrent;
     void *__pvFinishIssuer;
-    uint32_t __unPretime;
-    uint32_t __unPwmGap;
-    struct {
-		uint8_t __btEvent		: 1;
-		uint8_t __btPwmState	: 1;
-    };
+    uint32_t __unPwmDuty;
+	BOOL __bEvent;
 
     uint8_t __unIndex;
     uint8_t __unNext;
