@@ -159,18 +159,18 @@ static void _ControlSpeedEnc(PIF_stDutyMotor *pstOwner)
 		pstOwner->_enState = MS_enStop;
 
 		if (pstStage->enMode & MM_CFPS_enMask) {
-	    	if (*pstStage->ppstStopSwitch) {
-	    		if ((*pstStage->ppstStopSwitch)->_swCurrState == OFF) {
+	    	if (*pstStage->ppstStopSensor) {
+	    		if ((*pstStage->ppstStopSensor)->_swCurrState == OFF) {
 	    			pstOwner->__ucError = 1;
 	    		}
 	    	}
 	    }
 
-		if (*pstStage->ppstReduceSwitch) {
-			pifSwitch_DetachEvtChange(*pstStage->ppstReduceSwitch);
+		if (*pstStage->ppstReduceSensor) {
+			pifSensor_DetachEvtChange(*pstStage->ppstReduceSensor);
 		}
-		if (*pstStage->ppstStopSwitch) {
-			pifSwitch_DetachEvtChange(*pstStage->ppstStopSwitch);
+		if (*pstStage->ppstStopSensor) {
+			pifSensor_DetachEvtChange(*pstStage->ppstStopSensor);
 		}
 
 #ifndef __PIF_NO_LOG__
@@ -185,7 +185,7 @@ static void _ControlSpeedEnc(PIF_stDutyMotor *pstOwner)
 #endif
 }
 
-static void _SwitchReduceChange(PIF_usId _usPifId, SWITCH swState, void *pvIssuer)
+static void _SwitchReduceChange(PIF_usId _usPifId, uint16_t usLevel, void *pvIssuer)
 {
 	PIF_stDutyMotor *pstOwner = (PIF_stDutyMotor *)pvIssuer;
 
@@ -193,12 +193,12 @@ static void _SwitchReduceChange(PIF_usId _usPifId, SWITCH swState, void *pvIssue
 
 	if (pstOwner->_enState >= MS_enReduce) return;
 
-	if (swState) {
+	if (usLevel) {
 		pifDutyMotorSpeedEnc_Stop(pstOwner);
 	}
 }
 
-static void _SwitchStopChange(PIF_usId _usPifId, SWITCH swState, void *pvIssuer)
+static void _SwitchStopChange(PIF_usId _usPifId, uint16_t usLevel, void *pvIssuer)
 {
 	PIF_stDutyMotor *pstOwner = (PIF_stDutyMotor *)pvIssuer;
 
@@ -206,7 +206,7 @@ static void _SwitchStopChange(PIF_usId _usPifId, SWITCH swState, void *pvIssuer)
 
 	if (pstOwner->_enState >= MS_enBreak) return;
 
-	if (swState) {
+	if (usLevel) {
 		pstOwner->_usCurrentDuty = 0;
 		pstOwner->_enState = MS_enBreak;
 	}
@@ -323,18 +323,18 @@ BOOL pifDutyMotorSpeedEnc_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex,
 
     if (pstStage->enMode & MM_CIAS_enMask) {
     	ucState = 0;
-    	if (*pstStage->ppstStartSwitch) {
-    		if ((*pstStage->ppstStartSwitch)->_swCurrState != ON) {
+    	if (*pstStage->ppstStartSensor) {
+    		if ((*pstStage->ppstStartSensor)->_swCurrState != ON) {
     			ucState |= 1;
     		}
     	}
-    	if (*pstStage->ppstReduceSwitch) {
-    		if ((*pstStage->ppstReduceSwitch)->_swCurrState != OFF) {
+    	if (*pstStage->ppstReduceSensor) {
+    		if ((*pstStage->ppstReduceSensor)->_swCurrState != OFF) {
     			ucState |= 2;
     		}
     	}
-    	if (*pstStage->ppstStopSwitch) {
-    		if ((*pstStage->ppstStopSwitch)->_swCurrState != OFF) {
+    	if (*pstStage->ppstStopSensor) {
+    		if ((*pstStage->ppstStopSensor)->_swCurrState != OFF) {
     			ucState |= 4;
     		}
     	}
@@ -361,12 +361,12 @@ BOOL pifDutyMotorSpeedEnc_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex,
 
     pstSpeedEnc->_ucStageIndex = ucStageIndex;
 
-    if (*pstStage->ppstReduceSwitch) {
-        pifSwitch_AttachEvtChange(*pstStage->ppstReduceSwitch, _SwitchReduceChange, pstOwner);
+    if (*pstStage->ppstReduceSensor) {
+        pifSensor_AttachEvtChange(*pstStage->ppstReduceSensor, _SwitchReduceChange, pstOwner);
     }
 
-    if (*pstStage->ppstStopSwitch) {
-        pifSwitch_AttachEvtChange(*pstStage->ppstStopSwitch, _SwitchStopChange, pstOwner);
+    if (*pstStage->ppstStopSensor) {
+        pifSensor_AttachEvtChange(*pstStage->ppstStopSensor, _SwitchStopChange, pstOwner);
     }
 
     if (pstOwner->__actSetDirection) (*pstOwner->__actSetDirection)((pstStage->enMode & MM_D_enMask) >> MM_D_enShift);

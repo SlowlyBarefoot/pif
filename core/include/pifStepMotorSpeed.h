@@ -3,7 +3,7 @@
 
 
 #include "pifStepMotor.h"
-#include "pifSwitch.h"
+#include "pifSensor.h"
 
 
 /**
@@ -14,10 +14,10 @@ typedef struct _PIF_stStepMotorSpeedStage
 {
 	uint8_t enMode;				// PIF_enMotorMode
 
-    // Switch
-    PIF_stSwitch **ppstStartSwitch;
-    PIF_stSwitch **ppstReduceSwitch;
-    PIF_stSwitch **ppstStopSwitch;
+    // Sensor
+    PIF_stSensor **ppstStartSensor;
+    PIF_stSensor **ppstReduceSensor;
+    PIF_stSensor **ppstStopSensor;
 
 	// 가속 구간 (Gained speed range)
 	uint16_t usGsStartPps;		// 초기 기동 P/S 설정

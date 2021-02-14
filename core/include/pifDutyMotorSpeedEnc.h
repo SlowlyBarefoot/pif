@@ -3,7 +3,7 @@
 
 
 #include "pifDutyMotor.h"
-#include "pifSwitch.h"
+#include "pifSensor.h"
 
 
 #define MAX_STABLE_CNT				(10)
@@ -17,10 +17,10 @@ typedef struct _PIF_stDutyMotorSpeedEncStage
 {
 	uint8_t enMode;					// PIF_enMotorMode
 
-    // Switch
-    PIF_stSwitch **ppstStartSwitch;
-    PIF_stSwitch **ppstReduceSwitch;
-    PIF_stSwitch **ppstStopSwitch;
+    // Sensor
+    PIF_stSensor **ppstStartSensor;
+    PIF_stSensor **ppstReduceSensor;
+    PIF_stSensor **ppstStopSensor;
 
 	// 가속 구간 (Gained speed range)
 	uint8_t ucGsArriveRatio;		// % (0 ~ 100)
