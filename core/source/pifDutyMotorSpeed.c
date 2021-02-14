@@ -26,7 +26,7 @@ static void _TimerDelayFinish(void *pvIssuer)
 static void _ControlSpeed(PIF_stDutyMotor *pstOwner)
 {
 	uint16_t usTmpDuty = 0;
-    PIF_stDutyMotorSpeed *pstSpeed = pstOwner->__pvChild;
+    PIF_stDutyMotorSpeed *pstSpeed = pstOwner->_pvChild;
     const PIF_stDutyMotorSpeedStage *pstStage = pstSpeed->__pstCurrentStage;
 #ifndef __PIF_NO_LOG__
     int nLine = 0;
@@ -38,7 +38,7 @@ static void _ControlSpeed(PIF_stDutyMotor *pstOwner)
 		if (usTmpDuty >= pstStage->usFsHighDuty) {
 			usTmpDuty = pstStage->usFsHighDuty;
 			pstOwner->_enState = MS_enConst;
-			if (pstOwner->evtStable) (*pstOwner->evtStable)(pstOwner, pstSpeed);
+			if (pstOwner->evtStable) (*pstOwner->evtStable)(pstOwner);
 
 #ifndef __PIF_NO_LOG__
 			nLine = __LINE__;
@@ -170,8 +170,8 @@ PIF_stDutyMotor *pifDutyMotorSpeed_Add(PIF_usId _usPifId, uint16_t usMaxDuty, ui
 
     if (!pifDutyMotor_InitControl(pstOwner, usControlPeriod)) goto fail_clear;
 
-    pstOwner->__pvChild = calloc(sizeof(PIF_stDutyMotorSpeed), 1);
-    if (!pstOwner->__pvChild) {
+    pstOwner->_pvChild = calloc(sizeof(PIF_stDutyMotorSpeed), 1);
+    if (!pstOwner->_pvChild) {
         pif_enError = E_enOutOfHeap;
         goto fail;
     }
@@ -189,9 +189,9 @@ fail:
 #endif
 fail_clear:
     if (pstOwner) {
-        if (pstOwner->__pvChild) {
-            free(pstOwner->__pvChild);
-            pstOwner->__pvChild = NULL;
+        if (pstOwner->_pvChild) {
+            free(pstOwner->_pvChild);
+            pstOwner->_pvChild = NULL;
         }
     }
     return NULL;
@@ -207,7 +207,7 @@ fail_clear:
  */
 BOOL pifDutyMotorSpeed_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorSpeedStage *pstStages)
 {
-    if (!pstOwner->__pvChild) {
+    if (!pstOwner->_pvChild) {
         pif_enError = E_enInvalidParam;
         goto fail;
     }
@@ -223,7 +223,7 @@ BOOL pifDutyMotorSpeed_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize,
     	}
     }
 
-    PIF_stDutyMotorSpeed *pstSpeed = pstOwner->__pvChild;
+    PIF_stDutyMotorSpeed *pstSpeed = pstOwner->_pvChild;
     pstSpeed->__ucStageSize = ucStageSize;
     pstSpeed->__pstStages = pstStages;
     return TRUE;
@@ -245,7 +245,7 @@ fail:
  */
 BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime)
 {
-    PIF_stDutyMotorSpeed *pstSpeed = pstOwner->__pvChild;
+    PIF_stDutyMotorSpeed *pstSpeed = pstOwner->_pvChild;
     const PIF_stDutyMotorSpeedStage *pstStage;
     uint8_t ucState;
 
@@ -340,7 +340,7 @@ fail:
  */
 void pifDutyMotorSpeed_Stop(PIF_stDutyMotor *pstOwner)
 {
-    const PIF_stDutyMotorSpeedStage *pstStage = ((PIF_stDutyMotorSpeed *)pstOwner->__pvChild)->__pstCurrentStage;
+    const PIF_stDutyMotorSpeedStage *pstStage = ((PIF_stDutyMotorSpeed *)pstOwner->_pvChild)->__pstCurrentStage;
 
     if (pstOwner->_enState == MS_enIdle) return;
 

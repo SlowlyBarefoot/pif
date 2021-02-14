@@ -22,7 +22,7 @@ static void _TimerDelayFinish(void *pvIssuer)
 static void _ControlPos(PIF_stStepMotor *pstOwner)
 {
 	uint16_t usTmpPps = 0;
-    PIF_stStepMotorPos *pstPos = pstOwner->__pvChild;
+    PIF_stStepMotorPos *pstPos = pstOwner->_pvChild;
     const PIF_stStepMotorPosStage *pstStage = pstPos->__pstCurrentStage;
 #ifndef __PIF_NO_LOG__
     int nLine = 0;
@@ -34,7 +34,7 @@ static void _ControlPos(PIF_stStepMotor *pstOwner)
 		if (usTmpPps >= pstStage->usFsHighPps) {
 			usTmpPps = pstStage->usFsHighPps;
 			pstOwner->_enState = MS_enConst;
-			if (pstOwner->evtStable) (*pstOwner->evtStable)(pstOwner, pstOwner->__pvChild);
+			if (pstOwner->evtStable) (*pstOwner->evtStable)(pstOwner);
 
 #ifndef __PIF_NO_LOG__
 			nLine = __LINE__;
@@ -207,8 +207,8 @@ PIF_stStepMotor *pifStepMotorPos_Add(PIF_usId usPifId, uint8_t ucResolution, PIF
 
     if (!pifStepMotor_InitControl(pstOwner, usControlPeriodMs)) goto fail_clear;
 
-    pstOwner->__pvChild = calloc(sizeof(PIF_stStepMotorPos), 1);
-    if (!pstOwner->__pvChild) {
+    pstOwner->_pvChild = calloc(sizeof(PIF_stStepMotorPos), 1);
+    if (!pstOwner->_pvChild) {
         pif_enError = E_enOutOfHeap;
         goto fail;
     }
@@ -227,9 +227,9 @@ fail:
 #endif
 fail_clear:
     if (pstOwner) {
-        if (pstOwner->__pvChild) {
-            free(pstOwner->__pvChild);
-            pstOwner->__pvChild = NULL;
+        if (pstOwner->_pvChild) {
+            free(pstOwner->_pvChild);
+            pstOwner->_pvChild = NULL;
         }
     }
     return NULL;
@@ -245,7 +245,7 @@ fail_clear:
  */
 BOOL pifStepMotorPos_AddStages(PIF_stStepMotor *pstOwner, uint8_t ucStageSize, const PIF_stStepMotorPosStage *pstStages)
 {
-    if (!pstOwner->__pvChild) {
+    if (!pstOwner->_pvChild) {
         pif_enError = E_enInvalidParam;
         goto fail;
     }
@@ -257,7 +257,7 @@ BOOL pifStepMotorPos_AddStages(PIF_stStepMotor *pstOwner, uint8_t ucStageSize, c
     	}
     }
 
-    PIF_stStepMotorPos *pstPos = pstOwner->__pvChild;
+    PIF_stStepMotorPos *pstPos = pstOwner->_pvChild;
     pstPos->__ucStageSize = ucStageSize;
     pstPos->__pstStages = pstStages;
     return TRUE;
@@ -279,7 +279,7 @@ fail:
  */
 BOOL pifStepMotorPos_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime)
 {
-    PIF_stStepMotorPos *pstPos = pstOwner->__pvChild;
+    PIF_stStepMotorPos *pstPos = pstOwner->_pvChild;
     const PIF_stStepMotorPosStage *pstStage;
     uint8_t ucState;
 

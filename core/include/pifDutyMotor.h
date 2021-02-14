@@ -13,9 +13,9 @@ typedef void (*PIF_actDutyMotorSetDuty)(uint16_t usDuty);
 typedef void (*PIF_actDutyMotorSetDirection)(uint8_t ucDir);
 typedef void (*PIF_actDutyMotorOperateBreak)(uint8_t ucState);
 
-typedef void (*PIF_evtDutyMotorStable)(PIF_stDutyMotor *pstOwner, void *pvInfo);
-typedef void (*PIF_evtDutyMotorStop)(PIF_stDutyMotor *pstOwner, void *pvInfo);
-typedef void (*PIF_evtDutyMotorError)(PIF_stDutyMotor *pstOwner, void *pvInfo);
+typedef void (*PIF_evtDutyMotorStable)(PIF_stDutyMotor *pstOwner);
+typedef void (*PIF_evtDutyMotorStop)(PIF_stDutyMotor *pstOwner);
+typedef void (*PIF_evtDutyMotorError)(PIF_stDutyMotor *pstOwner);
 
 typedef void (*PIF_fnDutyMotorControl)(PIF_stDutyMotor *pstOwner);
 
@@ -39,9 +39,9 @@ struct _PIF_stDutyMotor
 	uint16_t _usCurrentDuty;
 	uint8_t _ucDirection;
     PIF_enMotorState _enState;
+    void *_pvChild;
 
 	// Private Member Variable
-    void *__pvChild;
     uint8_t __ucError;
 	uint16_t __usControlPeriod;
 

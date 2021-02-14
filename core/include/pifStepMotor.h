@@ -29,9 +29,9 @@ typedef struct _PIF_stStepMotor PIF_stStepMotor;
 
 typedef void (*PIF_actStepMotorSetStep)(uint16_t usPhase);
 
-typedef void (*PIF_evtStepMotorStable)(PIF_stStepMotor *pstOwner, void *pvInfo);
-typedef void (*PIF_evtStepMotorStop)(PIF_stStepMotor *pstOwner, void *pvInfo);
-typedef void (*PIF_evtStepMotorError)(PIF_stStepMotor *pstOwner, void *pvInfo);
+typedef void (*PIF_evtStepMotorStable)(PIF_stStepMotor *pstOwner);
+typedef void (*PIF_evtStepMotorStop)(PIF_stStepMotor *pstOwner);
+typedef void (*PIF_evtStepMotorError)(PIF_stStepMotor *pstOwner);
 
 typedef void (*PIF_fnStepMotorControl)(PIF_stStepMotor *pstOwner);
 typedef void (*PIF_fnStepMotorStopStep)(PIF_stStepMotor *pstOwner);
@@ -60,9 +60,9 @@ struct _PIF_stStepMotor
     uint8_t _ucDirection;
     PIF_enMotorState _enState;
     uint32_t _unCurrentPulse;
+    void *_pvChild;
 
 	// Private Member Variable
-    void *__pvChild;
     uint8_t __ucError;
 	uint8_t __ucStepSize;
 	uint16_t __usStepPeriodUs;

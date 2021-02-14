@@ -86,7 +86,7 @@ static void _TimerStepFinish(void *pvIssuer)
 		if (pstOwner->_unCurrentPulse >= pstOwner->__unTargetPulse) {
 			pifPulse_StopItem(pstOwner->__pstTimerStep);
 			if (pstOwner->__fnStopStep) (*pstOwner->__fnStopStep)(pstOwner);
-			else if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner, NULL);
+			else if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner);
 		}
 	}
 }
@@ -100,7 +100,7 @@ static void _TimerControlFinish(void *pvIssuer)
 	if (pstOwner->_enState == MS_enStop) {
 		pifPulse_StopItem(pstOwner->__pstTimerControl);
 		pstOwner->_enState = MS_enIdle;
-		if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner, pstOwner->__pvChild);
+		if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner);
 	}
 }
 
@@ -126,7 +126,7 @@ static void _TaskCommon(PIF_stTask *pstTask, PIF_stStepMotor *pstOwner)
 		if (pstOwner->_unCurrentPulse >= pstOwner->__unTargetPulse) {
 			pstOwner->__pstTask->bPause = TRUE;
 			if (pstOwner->__fnStopStep) (*pstOwner->__fnStopStep)(pstOwner);
-			else if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner, NULL);
+			else if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner);
 		}
 	}
 
@@ -178,9 +178,9 @@ void pifStepMotor_Exit()
     if (s_pstStepMotor) {
 		for (int i = 0; i < s_ucStepMotorSize; i++) {
 			PIF_stStepMotor *pstOwner = &s_pstStepMotor[i];
-			if (pstOwner->__pvChild) {
-				free(pstOwner->__pvChild);
-				pstOwner->__pvChild = NULL;
+			if (pstOwner->_pvChild) {
+				free(pstOwner->_pvChild);
+				pstOwner->_pvChild = NULL;
 			}
 			if (pstOwner->__pstTimerStep) {
 				pifPulse_RemoveItem(g_pstStepMotorTimer, pstOwner->__pstTimerStep);

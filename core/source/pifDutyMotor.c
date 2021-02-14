@@ -23,13 +23,13 @@ static void _TimerControlFinish(void *pvIssuer)
 			pstOwner->_enState = MS_enBreak;
         }
 
-        if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner, pstOwner->__pvChild);
+        if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
     }
 
 	if (pstOwner->_enState == MS_enStop) {
 		pifPulse_StopItem(pstOwner->__pstTimerControl);
 		pstOwner->_enState = MS_enIdle;
-		if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner, pstOwner->__pvChild);
+		if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner);
 	}
 }
 
@@ -87,9 +87,9 @@ void pifDutyMotor_Exit()
     if (s_pstDutyMotor) {
 		for (int i = 0; i < s_ucDutyMotorSize; i++) {
 			PIF_stDutyMotor *pstOwner = &s_pstDutyMotor[i];
-			if (pstOwner->__pvChild) {
-				free(pstOwner->__pvChild);
-				pstOwner->__pvChild = NULL;
+			if (pstOwner->_pvChild) {
+				free(pstOwner->_pvChild);
+				pstOwner->_pvChild = NULL;
 			}
 			if (pstOwner->__pstTimerControl) {
 				pifPulse_RemoveItem(g_pstDutyMotorTimer, pstOwner->__pstTimerControl);
