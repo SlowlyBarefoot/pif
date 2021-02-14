@@ -18,6 +18,7 @@ PIF는 플랫폼에 종속적인 코드와 application 사이에 존재한다. �
 4. PIF -> Application : event. 함수 포인터로써 변수명 앞에 evt가 붙어 있다.
 
 이 framework를 사용한 예제는 아래 주소를 참조한다.
+
 https://github.com/SlowlyBarefoot/pif-example
 
 ---
@@ -40,4 +41,5 @@ PIF exists between platform-dependent code and application. So we need a way to 
 4. PIF -> Application: event. As a function pointer, evt is attached in front of the variable name.
 
 See the address below for an example using this framework.
+
 https://github.com/SlowlyBarefoot/pif-example
