@@ -9,7 +9,7 @@ static uint8_t s_ucDutyMotorPos;
 PIF_stPulse *g_pstDutyMotorTimer;
 
 
-static void _TimerControlFinish(void *pvIssuer)
+static void _evtTimerControlFinish(void *pvIssuer)
 {
 	PIF_stDutyMotor *pstOwner = (PIF_stDutyMotor *)pvIssuer;
 
@@ -33,7 +33,7 @@ static void _TimerControlFinish(void *pvIssuer)
 	}
 }
 
-static void _TimerBreakFinish(void *pvIssuer)
+static void _evtTimerBreakFinish(void *pvIssuer)
 {
     PIF_stDutyMotor *pstOwner = (PIF_stDutyMotor *)pvIssuer;
 
@@ -194,7 +194,7 @@ BOOL pifDutyMotor_SetOperatingTime(PIF_stDutyMotor *pstOwner, uint32_t unOperati
 		pstOwner->__pstTimerBreak = pifPulse_AddItem(g_pstDutyMotorTimer, PT_enOnce);
 	}
 	if (pstOwner->__pstTimerBreak) {
-		pifPulse_AttachEvtFinish(pstOwner->__pstTimerBreak, _TimerBreakFinish, pstOwner);
+		pifPulse_AttachEvtFinish(pstOwner->__pstTimerBreak, _evtTimerBreakFinish, pstOwner);
 		if (pifPulse_StartItem(pstOwner->__pstTimerBreak, unOperatingTime)) {
 			return TRUE;
 		}
@@ -247,7 +247,7 @@ void pifDutyMotor_BreakRelease(PIF_stDutyMotor *pstOwner, uint16_t usBreakTime)
 	    	pstOwner->__pstTimerBreak = pifPulse_AddItem(g_pstDutyMotorTimer, PT_enOnce);
 	    }
 	    if (pstOwner->__pstTimerBreak) {
-	    	pifPulse_AttachEvtFinish(pstOwner->__pstTimerBreak, _TimerBreakFinish, pstOwner);
+	    	pifPulse_AttachEvtFinish(pstOwner->__pstTimerBreak, _evtTimerBreakFinish, pstOwner);
 			if (pifPulse_StartItem(pstOwner->__pstTimerBreak, usBreakTime)) {
 		    	(*pstOwner->__actOperateBreak)(1);
 			}
@@ -269,7 +269,7 @@ BOOL pifDutyMotor_InitControl(PIF_stDutyMotor *pstOwner, uint16_t usControlPerio
 
     pstOwner->__usControlPeriod = usControlPeriod;
 
-	pifPulse_AttachEvtFinish(pstOwner->__pstTimerControl, _TimerControlFinish, pstOwner);
+	pifPulse_AttachEvtFinish(pstOwner->__pstTimerControl, _evtTimerControlFinish, pstOwner);
 	return TRUE;
 }
 

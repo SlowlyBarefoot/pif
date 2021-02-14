@@ -39,7 +39,7 @@ static void _evtTimerDelayFinish(void *pvIssuer)
 	pstOwner->usDelay = 0;
 }
 
-static void _LoopCommon(PIF_stSequence *pstOwner)
+static void _taskCommon(PIF_stSequence *pstOwner)
 {
 	const PIF_stSequencePhase *pstPhase;
 	uint8_t ucPhaseNoNext;
@@ -231,7 +231,7 @@ void pifSequence_taskAll(PIF_stTask *pstTask)
 
     for (int i = 0; i < s_ucSequencePos; i++) {
         PIF_stSequence *pstOwner = &s_pstSequence[i];
-    	if (!pstOwner->__enTaskLoop) _LoopCommon(pstOwner);
+    	if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
     }
 }
 
@@ -248,6 +248,6 @@ void pifSequence_taskEach(PIF_stTask *pstTask)
 		pstOwner->__enTaskLoop = TL_enEach;
 	}
 	else {
-		_LoopCommon(pstOwner);
+		_taskCommon(pstOwner);
 	}
 }

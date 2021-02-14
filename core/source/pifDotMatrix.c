@@ -147,7 +147,7 @@ static void _evtTimerShiftFinish(void *pvIssuer)
     }
 }
 
-static void _TaskCommon(PIF_stDotMatrix *pstOwner)
+static void _taskCommon(PIF_stDotMatrix *pstOwner)
 {
 	uint8_t *pucPattern;
 	uint8_t ucOff = 0;
@@ -596,7 +596,7 @@ void pifDotMatrix_taskAll(PIF_stTask *pstTask)
 
 	for (int i = 0; i < s_ucDotMatrixPos; i++) {
 		PIF_stDotMatrix *pstOwner = &s_pstDotMatrix[i];
-		if (!pstOwner->__enTaskLoop) _TaskCommon(pstOwner);
+		if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
 	}
 }
 
@@ -613,6 +613,6 @@ void pifDotMatrix_taskEach(PIF_stTask *pstTask)
 		pstOwner->__enTaskLoop = TL_enEach;
 	}
 	else {
-		_TaskCommon(pstOwner);
+		_taskCommon(pstOwner);
 	}
 }

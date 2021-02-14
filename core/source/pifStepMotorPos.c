@@ -2,7 +2,7 @@
 #include "pifStepMotorPos.h"
 
 
-static void _TimerDelayFinish(void *pvIssuer)
+static void _evtTimerDelayFinish(void *pvIssuer)
 {
     PIF_stStepMotor *pstOwner = (PIF_stStepMotor *)pvIssuer;
 
@@ -19,7 +19,7 @@ static void _TimerDelayFinish(void *pvIssuer)
 	}
 }
 
-static void _ControlPos(PIF_stStepMotor *pstOwner)
+static void _fnControlPos(PIF_stStepMotor *pstOwner)
 {
 	uint16_t usTmpPps = 0;
     PIF_stStepMotorPos *pstPos = pstOwner->_pvChild;
@@ -152,7 +152,7 @@ static void _ControlPos(PIF_stStepMotor *pstOwner)
 #endif
 }
 
-static void _SwitchReduceChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer)
+static void _evtSwitchReduceChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer)
 {
 	PIF_stStepMotor *pstOwner = (PIF_stStepMotor *)pvIssuer;
 
@@ -165,7 +165,7 @@ static void _SwitchReduceChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssu
 	}
 }
 
-static void _SwitchStopChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer)
+static void _evtSwitchStopChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer)
 {
 	PIF_stStepMotor *pstOwner = (PIF_stStepMotor *)pvIssuer;
 
@@ -178,7 +178,7 @@ static void _SwitchStopChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer
 	}
 }
 
-static void _StopStep(PIF_stStepMotor *pstOwner)
+static void _fnStopStep(PIF_stStepMotor *pstOwner)
 {
     pstOwner->_usCurrentPps = 0;
 	pstOwner->_enState = MS_enBreak;
@@ -215,10 +215,10 @@ PIF_stStepMotor *pifStepMotorPos_Add(PIF_usId usPifId, uint8_t ucResolution, PIF
 
     pstOwner->__pstTimerDelay = pifPulse_AddItem(g_pstStepMotorTimer, PT_enOnce);
     if (!pstOwner->__pstTimerDelay) goto fail_clear;
-    pifPulse_AttachEvtFinish(pstOwner->__pstTimerDelay, _TimerDelayFinish, pstOwner);
+    pifPulse_AttachEvtFinish(pstOwner->__pstTimerDelay, _evtTimerDelayFinish, pstOwner);
 
-	pstOwner->__fnControl = _ControlPos;
-	pstOwner->__fnStopStep = _StopStep;
+	pstOwner->__fnControl = _fnControlPos;
+	pstOwner->__fnStopStep = _fnStopStep;
     return pstOwner;
 
 fail:
@@ -332,11 +332,11 @@ BOOL pifStepMotorPos_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, uint
     pstPos->_ucStageIndex = ucStageIndex;
 
     if (*pstStage->ppstReduceSensor) {
-        pifSensor_AttachEvtChange(*pstStage->ppstReduceSensor, _SwitchReduceChange, pstOwner);
+        pifSensor_AttachEvtChange(*pstStage->ppstReduceSensor, _evtSwitchReduceChange, pstOwner);
     }
 
     if (*pstStage->ppstStopSensor) {
-        pifSensor_AttachEvtChange(*pstStage->ppstStopSensor, _SwitchStopChange, pstOwner);
+        pifSensor_AttachEvtChange(*pstStage->ppstStopSensor, _evtSwitchStopChange, pstOwner);
     }
 
     pstOwner->_ucDirection = (pstStage->enMode & MM_D_enMask) >> MM_D_enShift;

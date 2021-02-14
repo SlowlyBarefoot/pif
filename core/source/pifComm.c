@@ -11,7 +11,7 @@ static uint8_t s_ucCommSize;
 static uint8_t s_ucCommPos;
 
 
-static void _LoopCommon(PIF_stComm *pstOwner)
+static void _taskCommon(PIF_stComm *pstOwner)
 {
 	uint8_t ucData;
 
@@ -272,7 +272,7 @@ void pifComm_taskAll(PIF_stTask *pstTask)
 
 	for (int i = 0; i < s_ucCommPos; i++) {
 		PIF_stComm *pstOwner = &s_pstComm[i];
-		if (!pstOwner->__enTaskLoop) _LoopCommon(pstOwner);
+		if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
 	}
 }
 
@@ -289,6 +289,6 @@ void pifComm_taskEach(PIF_stTask *pstTask)
 		pstOwner->__enTaskLoop = TL_enEach;
 	}
 	else {
-		_LoopCommon(pstOwner);
+		_taskCommon(pstOwner);
 	}
 }

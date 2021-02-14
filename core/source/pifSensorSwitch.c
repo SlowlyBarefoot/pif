@@ -9,7 +9,7 @@ static uint8_t s_ucSensorSwitchSize;
 static uint8_t s_ucSensorSwitchPos;
 
 
-static SWITCH _FilterCount(SWITCH swState, PIF_stSensorSwitchFilter *pstOwner)
+static SWITCH _evtFilterCount(SWITCH swState, PIF_stSensorSwitchFilter *pstOwner)
 {
     if (pstOwner->unList & pstOwner->unMsb) {
     	pstOwner->unList &= ~pstOwner->unMsb;
@@ -23,7 +23,7 @@ static SWITCH _FilterCount(SWITCH swState, PIF_stSensorSwitchFilter *pstOwner)
     return pstOwner->ucCount >= pstOwner->ucHalf;
 }
 
-static SWITCH _FilterContinue(SWITCH swState, PIF_stSensorSwitchFilter *pstOwner)
+static SWITCH _evtFilterContinue(SWITCH swState, PIF_stSensorSwitchFilter *pstOwner)
 {
 	int i, count;
 	SWITCH sw;
@@ -61,7 +61,7 @@ static SWITCH _FilterContinue(SWITCH swState, PIF_stSensorSwitchFilter *pstOwner
     return (pstOwner->unList >> pstOwner->ucHalf) & 1;
 }
 
-static void _TaskCommon(PIF_stSensorSwitch *pstOwner)
+static void _taskCommon(PIF_stSensorSwitch *pstOwner)
 {
 	PIF_stSensor *pstSensor = &pstOwner->stSensor;
 
@@ -189,11 +189,11 @@ BOOL pifSensorSwitch_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMetho
 	pstFilter->unList = 0L;
 	switch (ucFilterMethod) {
     case PIF_SENSOR_SWITCH_FILTER_COUNT:
-    	pstFilter->evtFilter = _FilterCount;
+    	pstFilter->evtFilter = _evtFilterCount;
         break;
 
     case PIF_SENSOR_SWITCH_FILTER_CONTINUE:
-    	pstFilter->evtFilter = _FilterContinue;
+    	pstFilter->evtFilter = _evtFilterContinue;
         break;
 
     default:
@@ -261,7 +261,7 @@ void pifSensorSwitch_taskAll(PIF_stTask *pstTask)
 
     for (int i = 0; i < s_ucSensorSwitchPos; i++) {
     	PIF_stSensorSwitch *pstOwner = &s_pstSensorSwitch[i];
-        if (!pstOwner->stSensor.__enTaskLoop) _TaskCommon(pstOwner);
+        if (!pstOwner->stSensor.__enTaskLoop) _taskCommon(pstOwner);
     }
 }
 
@@ -278,6 +278,6 @@ void pifSensorSwitch_taskEach(PIF_stTask *pstTask)
 		pstOwner->stSensor.__enTaskLoop = TL_enEach;
 	}
 	else {
-		_TaskCommon(pstOwner);
+		_taskCommon(pstOwner);
 	}
 }

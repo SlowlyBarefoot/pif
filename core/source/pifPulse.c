@@ -12,7 +12,7 @@ static uint8_t s_ucPulseSize;
 static uint8_t s_ucPulsePos;
 
 
-static void _TaskCommon(PIF_stPulse *pstOwner)
+static void _taskCommon(PIF_stPulse *pstOwner)
 {
 	uint8_t index;
 	PIF_stPulseItem *pstItem;
@@ -392,7 +392,7 @@ void pifPulse_taskAll(PIF_stTask *pstTask)
 
     for (int i = 0; i < s_ucPulsePos; i++) {
         PIF_stPulse *pstOwner = &s_pstPulse[i];
-    	if (!pstOwner->__enTaskLoop) _TaskCommon(pstOwner);
+    	if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
     }
 }
 
@@ -409,7 +409,7 @@ void pifPulse_taskEach(PIF_stTask *pstTask)
 		pstOwner->__enTaskLoop = TL_enEach;
 	}
 	else {
-		_TaskCommon(pstOwner);
+		_taskCommon(pstOwner);
 	}
 }
 

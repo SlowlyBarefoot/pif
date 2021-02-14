@@ -2,7 +2,7 @@
 #include "pifDutyMotorPos.h"
 
 
-static void _TimerDelayFinish(void *pvIssuer)
+static void _evtTimerDelayFinish(void *pvIssuer)
 {
     PIF_stDutyMotor *pstOwner = (PIF_stDutyMotor *)pvIssuer;
 
@@ -19,7 +19,7 @@ static void _TimerDelayFinish(void *pvIssuer)
 	}
 }
 
-static void _ControlPos(PIF_stDutyMotor *pstOwner)
+static void _fnControlPos(PIF_stDutyMotor *pstOwner)
 {
 	uint16_t usTmpDuty = 0;
     PIF_stDutyMotorPos *pstPos = pstOwner->_pvChild;
@@ -152,7 +152,7 @@ static void _ControlPos(PIF_stDutyMotor *pstOwner)
 #endif
 }
 
-static void _SwitchReduceChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer)
+static void _evtSwitchReduceChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer)
 {
 	PIF_stDutyMotor *pstOwner = (PIF_stDutyMotor *)pvIssuer;
 
@@ -165,7 +165,7 @@ static void _SwitchReduceChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssu
 	}
 }
 
-static void _SwitchStopChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer)
+static void _evtSwitchStopChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer)
 {
 	PIF_stDutyMotor *pstOwner = (PIF_stDutyMotor *)pvIssuer;
 
@@ -202,9 +202,9 @@ PIF_stDutyMotor *pifDutyMotorPos_Add(PIF_usId usPifId, uint16_t usMaxDuty, uint1
 
     pstOwner->__pstTimerDelay = pifPulse_AddItem(g_pstDutyMotorTimer, PT_enOnce);
     if (!pstOwner->__pstTimerDelay) goto fail_clear;
-    pifPulse_AttachEvtFinish(pstOwner->__pstTimerDelay, _TimerDelayFinish, pstOwner);
+    pifPulse_AttachEvtFinish(pstOwner->__pstTimerDelay, _evtTimerDelayFinish, pstOwner);
 
-	pstOwner->__fnControl = _ControlPos;
+	pstOwner->__fnControl = _fnControlPos;
     return pstOwner;
 
 fail:
@@ -318,11 +318,11 @@ BOOL pifDutyMotorPos_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, uint
     pstPos->_ucStageIndex = ucStageIndex;
 
     if (*pstStage->ppstReduceSensor) {
-        pifSensor_AttachEvtChange(*pstStage->ppstReduceSensor, _SwitchReduceChange, pstOwner);
+        pifSensor_AttachEvtChange(*pstStage->ppstReduceSensor, _evtSwitchReduceChange, pstOwner);
     }
 
     if (*pstStage->ppstStopSensor) {
-        pifSensor_AttachEvtChange(*pstStage->ppstStopSensor, _SwitchStopChange, pstOwner);
+        pifSensor_AttachEvtChange(*pstStage->ppstStopSensor, _evtSwitchStopChange, pstOwner);
     }
 
     if (pstOwner->__actSetDirection) (*pstOwner->__actSetDirection)((pstStage->enMode & MM_D_enMask) >> MM_D_enShift);

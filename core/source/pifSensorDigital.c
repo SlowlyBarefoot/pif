@@ -25,7 +25,7 @@ static void _evtTimerPeriodFinish(void *pvIssuer)
     }
 }
 
-static uint16_t _FilterAverage(uint16_t usLevel, PIF_stSensorDigitalFilter *pstFilter)
+static uint16_t _evtFilterAverage(uint16_t usLevel, PIF_stSensorDigitalFilter *pstFilter)
 {
     uint8_t pos;
 
@@ -45,7 +45,7 @@ static uint16_t _FilterAverage(uint16_t usLevel, PIF_stSensorDigitalFilter *pstF
     return pstFilter->unSum / pstFilter->ucSize;
 }
 
-static void _TaskCommon(PIF_stSensorDigital *pstOwner)
+static void _taskCommon(PIF_stSensorDigital *pstOwner)
 {
 	PIF_stSensor *pstSensor = &pstOwner->stSensor;
 	SWITCH swState;
@@ -290,7 +290,7 @@ BOOL pifSensorDigital_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMeth
 
 	switch (ucFilterMethod) {
     case PIF_SENSOR_DIGITAL_FILTER_AVERAGE:
-    	pstFilter->evtFilter = _FilterAverage;
+    	pstFilter->evtFilter = _evtFilterAverage;
         break;
 
     default:
@@ -362,7 +362,7 @@ void pifSensorDigital_taskAll(PIF_stTask *pstTask)
 
     for (int i = 0; i < s_ucSensorDigitalPos; i++) {
     	PIF_stSensorDigital *pstOwner = &s_pstSensorDigital[i];
-        if (!pstOwner->stSensor.__enTaskLoop) _TaskCommon(pstOwner);
+        if (!pstOwner->stSensor.__enTaskLoop) _taskCommon(pstOwner);
     }
 }
 
@@ -379,6 +379,6 @@ void pifSensorDigital_taskEach(PIF_stTask *pstTask)
 		pstOwner->stSensor.__enTaskLoop = TL_enEach;
 	}
 	else {
-		_TaskCommon(pstOwner);
+		_taskCommon(pstOwner);
 	}
 }
