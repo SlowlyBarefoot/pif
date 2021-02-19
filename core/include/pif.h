@@ -131,7 +131,9 @@ extern volatile uint16_t pif_usTimer1ms;
 extern volatile uint32_t pif_unTimer1sec;
 extern volatile PIF_stDateTime pif_stDateTime;
 
+#ifndef __PIF_NO_LOG__
 extern PIF_stLogFlag pif_stLogFlag;
+#endif
 
 extern PIF_stPerformance pif_stPerformance;
 

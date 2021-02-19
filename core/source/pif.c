@@ -14,7 +14,9 @@ volatile uint16_t pif_usTimer1ms = 0;
 volatile uint32_t pif_unTimer1sec = 0;
 volatile PIF_stDateTime pif_stDateTime;
 
+#ifndef __PIF_NO_LOG__
 PIF_stLogFlag pif_stLogFlag;
+#endif
 
 PIF_stPerformance pif_stPerformance = { FALSE, 0, 0, 0, 0, 0 };
 
@@ -31,7 +33,9 @@ const uint8_t c_ucDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 
  */
 void pif_Init()
 {
+#ifndef __PIF_NO_LOG__
     memset(&pif_stLogFlag, 0, sizeof(pif_stLogFlag));
+#endif
 }
 
 /**
