@@ -1,3 +1,6 @@
+#ifdef __PIF_COLLECT_SIGNAL__
+#include "pifCollectSignal.h"
+#endif
 #ifndef __PIF_NO_LOG__
 #include "pifLog.h"
 #endif
@@ -11,6 +14,16 @@ static uint8_t s_ucSequencePos;
 static PIF_stPulse *s_pstSequenceTimer;
 
 
+static void _SetPhaseNo(PIF_stSequence *pstOwner, uint8_t ucPhaseNo)
+{
+	pstOwner->_ucPhaseNo = ucPhaseNo;
+#ifdef __PIF_COLLECT_SIGNAL__
+	if (pstOwner->__ucCsFlag & SqCsF_enPhaseBit) {
+		pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SqCsF_enPhaseIdx], pstOwner->_ucPhaseNo);
+	}
+#endif
+}
+
 static void _evtTimerTimeoutFinish(void *pvIssuer)
 {
     if (!pvIssuer) {
@@ -22,7 +35,7 @@ static void _evtTimerTimeoutFinish(void *pvIssuer)
 
 	pif_enError = E_enTimeout;
 	if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
-	pstOwner->_ucPhaseNo = PIF_SEQUENCE_PHASE_NO_IDLE;
+	_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
 }
 
 static void _evtTimerDelayFinish(void *pvIssuer)
@@ -85,11 +98,11 @@ static void _taskCommon(PIF_stSequence *pstOwner)
 #ifndef __PIF_NO_LOG__
 		pifLog_Printf(LT_enInfo, "Sequence:Next(%u->%u)", pstOwner->_ucPhaseNo, ucPhaseNoNext);
 #endif		
-		pstOwner->_ucPhaseNo = ucPhaseNoNext;
+		_SetPhaseNo(pstOwner, ucPhaseNoNext);
 		break;
 
 	case SR_enFinish:
-		pstOwner->_ucPhaseNo = PIF_SEQUENCE_PHASE_NO_IDLE;
+		_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
 		break;
 
 	default:
@@ -103,8 +116,26 @@ fail:
 	pifLog_Printf(LT_enError, "Sequence:Error(%d) EC:%d", pstOwner->_ucPhaseNo, pif_enError);
 #endif
 	if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
-	pstOwner->_ucPhaseNo = PIF_SEQUENCE_PHASE_NO_IDLE;
+	_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
 }
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+static void _AddDeviceInCollectSignal()
+{
+	const char *prefix[SqCsF_enCount] = { "SQ" };
+
+	for (int i = 0; i < s_ucSequencePos; i++) {
+		PIF_stSequence *pstOwner = &s_pstSequence[i];
+		if (pstOwner->__ucCsFlag) {
+			for (int f = 0; f < SqCsF_enCount; f++) {
+				pstOwner->__cCsIndex[f] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enWire, 8, prefix[f], 0xFF);
+			}
+		}
+	}
+}
+
+#endif
 
 /**
  * @fn pifSequence_Init
@@ -131,6 +162,9 @@ BOOL pifSequence_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
 
     s_pstSequenceTimer = pstTimer;
 
+#ifdef __PIF_COLLECT_SIGNAL__
+	pifCollectSignal_Attach(CSF_enSequence, _AddDeviceInCollectSignal);
+#endif
     return TRUE;
 
 fail:
@@ -179,11 +213,12 @@ PIF_stSequence *pifSequence_Add(PIF_usId usPifId, const PIF_stSequencePhase *pst
 	}
 
     PIF_stSequence *pstOwner = &s_pstSequence[s_ucSequencePos];
+    pstOwner->__ucIndex = s_ucSequencePos;
     pstOwner->__pstPhaseList = pstPhaseList;
 
     if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
     pstOwner->_usPifId = usPifId;
-    pstOwner->_ucPhaseNo = PIF_SEQUENCE_PHASE_NO_IDLE;
+    _SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
     pstOwner->pvParam = pvParam;
 
     s_ucSequencePos = s_ucSequencePos + 1;
@@ -196,6 +231,56 @@ fail:
     return NULL;
 }
 
+#ifdef __PIF_COLLECT_SIGNAL__
+
+/**
+ * @fn pifSequence_SetCsFlagAll
+ * @brief
+ * @param enFlag
+ */
+void pifSequence_SetCsFlagAll(PIF_enSequenceCsFlag enFlag)
+{
+    for (int i = 0; i < s_ucSequencePos; i++) {
+        s_pstSequence[i].__ucCsFlag |= enFlag;
+    }
+}
+
+/**
+ * @fn pifSequence_ResetCsFlagAll
+ * @brief
+ * @param enFlag
+ */
+void pifSequence_ResetCsFlagAll(PIF_enSequenceCsFlag enFlag)
+{
+    for (int i = 0; i < s_ucSequencePos; i++) {
+        s_pstSequence[i].__ucCsFlag &= ~enFlag;
+    }
+}
+
+/**
+ * @fn pifSequence_SetCsFlagEach
+ * @brief
+ * @param pstOwner
+ * @param enFlag
+ */
+void pifSequence_SetCsFlagEach(PIF_stSequence *pstOwner, PIF_enSequenceCsFlag enFlag)
+{
+	pstOwner->__ucCsFlag |= enFlag;
+}
+
+/**
+ * @fn pifSequence_ResetCsFlagEach
+ * @brief
+ * @param pstOwner
+ * @param enFlag
+ */
+void pifSequence_ResetCsFlagEach(PIF_stSequence *pstOwner, PIF_enSequenceCsFlag enFlag)
+{
+	pstOwner->__ucCsFlag &= ~enFlag;
+}
+
+#endif
+
 /**
  * @fn pifSequence_Start
  * @brief 
@@ -203,7 +288,7 @@ fail:
  */
 void pifSequence_Start(PIF_stSequence *pstOwner)
 {
-	pstOwner->_ucPhaseNo = 0;
+	_SetPhaseNo(pstOwner, 0);
 	pstOwner->ucStep = PIF_SEQUENCE_STEP_INIT;
 	pstOwner->ucPhaseNoNext = PIF_SEQUENCE_PHASE_NO_IDLE;
 	pstOwner->usDelay = 0;

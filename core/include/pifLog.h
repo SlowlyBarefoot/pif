@@ -16,10 +16,11 @@
 typedef enum _PIF_enLogType
 {
 	LT_enNone	= 0,
-	LT_enInfo	= 1,
-	LT_enWarn	= 2,
-	LT_enError	= 3,
-	LT_enComm	= 4
+	LT_enVcd	= 1,			// Collect Signal : VCD file
+	LT_enInfo	= 2,
+	LT_enWarn	= 3,
+	LT_enError	= 4,
+	LT_enComm	= 5
 } PIF_enLogType;
 
 
@@ -42,7 +43,8 @@ void pifLog_UseTerminal(BOOL bUse);
 void pifLog_Enable();
 void pifLog_Disable();
 
-void pifLog_Print(char *pcString);
+BOOL pifLog_IsEmpty();
+
 void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...);
 
 void pifLog_PrintInBuffer();

@@ -1,5 +1,3 @@
-#include <string.h>
-
 #include "pifComm.h"
 #ifndef __PIF_NO_LOG__
 #include "pifLog.h"

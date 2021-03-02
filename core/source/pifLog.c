@@ -1,5 +1,4 @@
 #include <stdarg.h>
-#include <string.h>
 
 #include "pifLog.h"
 
@@ -22,106 +21,24 @@ typedef struct _PIF_stLog
 
 static PIF_stLog s_stLog;
 
-const char *c_apcHexChar[2] = {
-		"0123456789abcdef",
-		"0123456789ABCDEF"
-};
 
-
-static int _DecToAscii(char *pcBuf, uint32_t unVal, uint16_t usStrCnt)
+static void _PrintLog(char *pcString, BOOL bVcd)
 {
-    uint16_t usExpCnt = 0;
-    uint16_t usZeroStrCnt = 0;
-    int nIdx = 0;
-    uint32_t unIdxInv = 0;
-    uint32_t unTmpVal;
-    char acInvBuf[11] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-    unTmpVal = unVal;
-    if (unTmpVal != 0) {
-        while (unTmpVal) {
-        	usExpCnt++;
-            if (unTmpVal >= 10) {
-                acInvBuf[unIdxInv++] = (unTmpVal % 10) + '0';
-            }
-            else {
-                acInvBuf[unIdxInv++] = unTmpVal + '0';
-                break;
-            }
-            unTmpVal = unTmpVal / 10;
-        }
-
-        if ((usStrCnt != 0) && (usExpCnt < usStrCnt)) {
-            usZeroStrCnt = usStrCnt - usExpCnt;
-            while (usZeroStrCnt) {
-            	pcBuf[nIdx++] = '0';
-                usZeroStrCnt--;
-            }
-        }
-        while (unIdxInv) {
-            unIdxInv--;
-            pcBuf[nIdx++] = acInvBuf[unIdxInv];
-        }
-    }
-    else {
-        usZeroStrCnt = usStrCnt;
-        do {
-        	pcBuf[nIdx++] = '0';
-            if (usZeroStrCnt > 0) usZeroStrCnt--;
-        }
-        while (usZeroStrCnt);
-    }
-    return nIdx;
-}
-
-static int _HexToAscii(char *pcBuf, uint32_t unVal, uint16_t usStrCnt, BOOL bUpper)
-{
-	int i, nIdx = 0;
-	BOOL bFirst;
-    uint32_t unTmpVal;
-
-    if (usStrCnt) {
-    	for (i = (usStrCnt - 1) * 4; i >= 0; i -= 4) {
-    		unTmpVal = (unVal >> i) & 0x0F;
-    		pcBuf[nIdx++] = c_apcHexChar[bUpper][unTmpVal];
-    	}
-    }
-    else if (unVal > 0) {
-    	bFirst = TRUE;
-    	for (i = 28; i >= 0; i -= 4) {
-    		unTmpVal = (unVal >> i) & 0x0F;
-    		if (!bFirst || unTmpVal) {
-    			pcBuf[nIdx++] = c_apcHexChar[bUpper][unTmpVal];
-    			bFirst = FALSE;
-    		}
-    	}
-    }
-    else {
-    	pcBuf[nIdx++] = '0';
-    }
-    return nIdx;
-}
-
-static int _FloatToAscii(char *pcBuf, double dNum, uint16_t usPoint)
-{
-	uint16_t i, nIdx = 0;
-	uint32_t unNum;
-
-	if (dNum < 0.0) {
-		pcBuf[nIdx++] = '-';
-		dNum *= -1.0;
+	if (!bVcd && s_stLog.pstBuffer && pifRingBuffer_IsBuffer(s_stLog.pstBuffer)) {
+		pifRingBuffer_PutString(s_stLog.pstBuffer, pcString);
 	}
 
-	unNum = (uint32_t)dNum;
-	nIdx += _DecToAscii(pcBuf + nIdx, unNum, 0);
-	pcBuf[nIdx++] = '.';
+	if (s_stLog.bEnable || bVcd) {
+#ifndef __PIF_NO_TERMINAL__
+		if (s_stLog.bUseTerminal) {
+			pifRingBuffer_PutString(pifTerminal_GetTxBuffer(), pcString);
+		}
+#endif
 
-	if (usPoint == 0) usPoint = 6;
-	dNum -= unNum;
-	for (i = 0; i < usPoint; i++) dNum *= 10;
-
-	nIdx += _DecToAscii(pcBuf + nIdx, (uint32_t)dNum, usPoint);
-    return nIdx;
+		if (s_stLog.actPrint) {
+			(*s_stLog.actPrint)(pcString);
+		}
+	}
 }
 
 static void _PrintTime()
@@ -130,18 +47,18 @@ static void _PrintTime()
     static char acTmpBuf[20];
 
 	acTmpBuf[nOffset++] = '\n';
-	nOffset += _DecToAscii(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucSec, 2);
+	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucSec, 2);
 	acTmpBuf[nOffset++] = '.';
-	nOffset += _DecToAscii(acTmpBuf + nOffset, (uint32_t)pif_usTimer1ms, 3);
+	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_usTimer1ms, 3);
 	acTmpBuf[nOffset++] = ' ';
 	acTmpBuf[nOffset++] = 'T';
 	acTmpBuf[nOffset++] = ' ';
-	nOffset += _DecToAscii(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucHour, 2);
+	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucHour, 2);
 	acTmpBuf[nOffset++] = ':';
-	nOffset += _DecToAscii(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucMinute, 2);
+	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucMinute, 2);
 	acTmpBuf[nOffset++] = ' ';
 
-	pifLog_Print(acTmpBuf);
+	_PrintLog(acTmpBuf, FALSE);
 }
 
 /**
@@ -239,27 +156,13 @@ void pifLog_Disable()
 }
 
 /**
- * @fn pifLog_Print
+ * @fn pifLog_IsEmpty
  * @brief
- * @param pcString
+ * @return
  */
-void pifLog_Print(char *pcString)
+BOOL pifLog_IsEmpty()
 {
-	if (s_stLog.pstBuffer && pifRingBuffer_IsBuffer(s_stLog.pstBuffer)) {
-		pifRingBuffer_PutString(s_stLog.pstBuffer, pcString);
-	}
-
-	if (s_stLog.bEnable) {
-#ifndef __PIF_NO_TERMINAL__
-		if (s_stLog.bUseTerminal) {
-			pifRingBuffer_PutString(pifTerminal_GetTxBuffer(), pcString);
-		}
-#endif
-
-		if (s_stLog.actPrint) {
-			(*s_stLog.actPrint)(pcString);
-		}
-	}
+	return pifRingBuffer_IsEmpty(s_stLog.pstBuffer);
 }
 
 /**
@@ -271,156 +174,32 @@ void pifLog_Print(char *pcString)
 void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
 {
 	va_list data;
-	unsigned int unVal;
-	int nSignVal;
-	unsigned long unLongVal;
-	long nSignLongVal;
-	uint16_t usNumStrCnt;
-	BOOL bLong;
-	char *pcVarStr;
-    const char *pcStr;
 	int nOffset = 0;
-	size_t nSize;
     static char acTmpBuf[PIF_LOG_LINE_SIZE];
     static uint8_t nMinute = 255;
     const char cType[] = { 'I', 'W', 'E', 'C' };
+    extern void _PrintFormat(char *pcBuffer, va_list *pstData, const char *pcFormat);
 
-    if (enType) {
+    if (enType >= LT_enInfo) {
         if (nMinute != pif_stDateTime.ucMinute) {
         	_PrintTime();
         	nMinute = pif_stDateTime.ucMinute;
     	}
 
     	acTmpBuf[nOffset++] = '\n';
-		nOffset += _DecToAscii(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucSec, 2);
+		nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucSec, 2);
     	acTmpBuf[nOffset++] = '.';
-		nOffset += _DecToAscii(acTmpBuf + nOffset, (uint32_t)pif_usTimer1ms, 3);
+		nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_usTimer1ms, 3);
     	acTmpBuf[nOffset++] = ' ';
     	acTmpBuf[nOffset++] = cType[enType - 1];
     	acTmpBuf[nOffset++] = ' ';
     }
 
-	pcStr = pcFormat;
 	va_start(data, pcFormat);
-
-	while (*pcStr) {
-        if (*pcStr == '%') {
-            usNumStrCnt = 0;
-        	bLong = FALSE;
-NEXT_STR:
-            pcStr = pcStr + 1;
-            switch(*pcStr) {
-                case '0':
-                    goto NEXT_STR;
-
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                    usNumStrCnt *= 10;
-                    usNumStrCnt += *pcStr - '0';
-                    goto NEXT_STR;
-
-                case 'l':
-					bLong = TRUE;
-					goto NEXT_STR;
-
-                case 'd':
-                case 'i':
-                	if (bLong) {
-            			nSignLongVal = va_arg(data, long);
-            			if (nSignLongVal < 0) {
-            			    acTmpBuf[nOffset++] = '-';
-            			    nSignLongVal *= -1;
-            			}
-            			nOffset += _DecToAscii(acTmpBuf + nOffset, nSignLongVal, usNumStrCnt);
-                	}
-                	else {
-            			nSignVal = va_arg(data, int);
-            			if (nSignVal < 0) {
-            			    acTmpBuf[nOffset++] = '-';
-                			nSignVal *= -1;
-            			}
-            			nOffset += _DecToAscii(acTmpBuf + nOffset, nSignVal, usNumStrCnt);
-                	}
-                    break;
-
-                case 'u':
-                	if (bLong) {
-						unLongVal = va_arg(data, unsigned long);
-						nOffset += _DecToAscii(acTmpBuf + nOffset, unLongVal, usNumStrCnt);
-                	}
-                	else {
-						unVal = va_arg(data, unsigned int);
-						nOffset += _DecToAscii(acTmpBuf + nOffset, unVal, usNumStrCnt);
-                	}
-                    break;
-
-                case 'x':
-                	if (bLong) {
-                		unLongVal = va_arg(data, unsigned long);
-						nOffset += _HexToAscii(acTmpBuf + nOffset, unLongVal, usNumStrCnt, FALSE);
-                	}
-                	else {
-						unVal = va_arg(data, unsigned int);
-						nOffset += _HexToAscii(acTmpBuf + nOffset, unVal, usNumStrCnt, FALSE);
-                	}
-                    break;
-
-                case 'X':
-                	if (bLong) {
-                		unLongVal = va_arg(data, unsigned long);
-                		nOffset += _HexToAscii(acTmpBuf + nOffset, unLongVal, usNumStrCnt, TRUE);
-                	}
-                	else {
-                		unVal = va_arg(data, unsigned int);
-                		nOffset += _HexToAscii(acTmpBuf + nOffset, unVal, usNumStrCnt, TRUE);
-                	}
-                    break;
-
-                case 'f':
-					nOffset += _FloatToAscii(acTmpBuf + nOffset, va_arg(data, double), usNumStrCnt);
-                    break;
-
-                case 's':
-                    pcVarStr = va_arg(data, char *);
-                    if (pcVarStr) {
-						nSize = strlen(pcVarStr);
-						if (nOffset + nSize < PIF_LOG_LINE_SIZE - 1) {
-							strcpy(acTmpBuf + nOffset, pcVarStr);
-						}
-						else {
-							nSize = PIF_LOG_LINE_SIZE - 1 - nOffset;
-							strncpy(acTmpBuf + nOffset, pcVarStr, nSize);
-						}
-						nOffset += nSize;
-                    }
-                    break;
-
-                case 'c':
-                    acTmpBuf[nOffset++] = va_arg(data, int);
-                    break;
-
-                case '%':
-                    acTmpBuf[nOffset++] = '%';
-                    break;
-            }
-        }
-        else {
-            acTmpBuf[nOffset++] = *pcStr;
-        }
-        pcStr = pcStr + 1;
-	}
-	acTmpBuf[nOffset] = 0;
-
+	_PrintFormat(acTmpBuf + nOffset, &data, pcFormat);
 	va_end(data);
 
-	pifLog_Print(acTmpBuf);
+	_PrintLog(acTmpBuf, enType == LT_enVcd);
 }
 
 /**

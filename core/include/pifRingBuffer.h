@@ -51,9 +51,9 @@ BOOL pifRingBuffer_ResizeHeap(PIF_stRingBuffer *pstOwner, uint16_t usSize);
 
 void pifRingBuffer_SetName(PIF_stRingBuffer *pstOwner, const char *psName);
 
-void pifRingBuffer_ChopOffNone(PIF_stRingBuffer *pstOwner);
-void pifRingBuffer_ChopOffChar(PIF_stRingBuffer *pstOwner, char cChar);
-void pifRingBuffer_ChopOffLength(PIF_stRingBuffer *pstOwner, uint16_t usLength);
+void pifRingBuffer_ChopsOffNone(PIF_stRingBuffer *pstOwner);
+void pifRingBuffer_ChopsOffChar(PIF_stRingBuffer *pstOwner, char cChar);
+void pifRingBuffer_ChopsOffLength(PIF_stRingBuffer *pstOwner, uint16_t usLength);
 
 BOOL pifRingBuffer_IsBuffer(PIF_stRingBuffer *pstOwner);
 BOOL pifRingBuffer_IsEmpty(PIF_stRingBuffer *pstOwner);

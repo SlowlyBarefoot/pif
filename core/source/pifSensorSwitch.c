@@ -1,10 +1,13 @@
+#ifdef __PIF_COLLECT_SIGNAL__
+#include "pifCollectSignal.h"
+#endif
 #ifndef __PIF_NO_LOG__
 #include "pifLog.h"
 #endif
 #include "pifSensorSwitch.h"
 
 
-static PIF_stSensorSwitch *s_pstSensorSwitch;
+static PIF_stSensorSwitch *s_pstSensorSwitch = NULL;
 static uint8_t s_ucSensorSwitchSize;
 static uint8_t s_ucSensorSwitchPos;
 
@@ -72,10 +75,34 @@ static void _taskCommon(PIF_stSensorSwitch *pstOwner)
 	if (pstOwner->__swState != pstSensor->_swCurrState) {
 		if (pstSensor->__evtChange) {
 			(*pstSensor->__evtChange)(pstSensor->_usPifId, pstOwner->__swState, pstSensor->__pvChangeIssuer);
+#ifdef __PIF_COLLECT_SIGNAL__
+			if (pstOwner->__ucCsFlag & SSCsF_enFilterBit) {
+				pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SSCsF_enFilterIdx], pstOwner->__swState);
+			}
+#endif
 		}
 		pstSensor->_swCurrState = pstOwner->__swState;
 	}
 }
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+static void _AddDeviceInCollectSignal()
+{
+	const char *prefix[SSCsF_enCount] = { "SSR", "SSF" };
+
+	for (int i = 0; i < s_ucSensorSwitchPos; i++) {
+		PIF_stSensorSwitch *pstOwner = &s_pstSensorSwitch[i];
+		if (pstOwner->__ucCsFlag) {
+			for (int f = 0; f < SSCsF_enCount; f++) {
+				pstOwner->__cCsIndex[f] = pifCollectSignal_AddDevice(pstOwner->stSensor._usPifId, CSVT_enWire, 1,
+						prefix[f], pstOwner->stSensor._swCurrState);
+			}
+		}
+	}
+}
+
+#endif
 
 /**
  * @fn pifSensorSwitch_Init
@@ -98,6 +125,10 @@ BOOL pifSensorSwitch_Init(uint8_t ucSize)
 
     s_ucSensorSwitchSize = ucSize;
     s_ucSensorSwitchPos = 0;
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	pifCollectSignal_Attach(CSF_enSensorSwitch, _AddDeviceInCollectSignal);
+#endif
     return TRUE;
 
 fail:
@@ -136,10 +167,14 @@ PIF_stSensor *pifSensorSwitch_Add(PIF_usId usPifId, SWITCH swInitState)
     PIF_stSensorSwitch *pstOwner = &s_pstSensorSwitch[s_ucSensorSwitchPos];
     PIF_stSensor *pstSensor = &pstOwner->stSensor;
 
+    pstOwner->__ucIndex = s_ucSensorSwitchPos;
     if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
 	pstOwner->stSensor._usPifId = usPifId;
 	pstSensor->_swInitState = swInitState;
 	pstSensor->_swCurrState = swInitState;
+#ifdef __PIF_COLLECT_SIGNAL__
+	pstOwner->__swRawState = swInitState;
+#endif
 
     s_ucSensorSwitchPos = s_ucSensorSwitchPos + 1;
     return &pstOwner->stSensor;
@@ -158,8 +193,13 @@ fail:
  */
 void pifSensorSwitch_InitialState(PIF_stSensor *pstSensor)
 {
+	PIF_stSensorSwitch *pstOwner = (PIF_stSensorSwitch *)pstSensor;
+
 	pstSensor->_swCurrState = pstSensor->_swInitState;
-	((PIF_stSensorSwitch *)pstSensor)->__swState = pstSensor->_swInitState;
+#ifdef __PIF_COLLECT_SIGNAL__
+	pstOwner->__swRawState = pstSensor->_swInitState;
+#endif
+	pstOwner->__swState = pstSensor->_swInitState;
 }
 
 /**
@@ -231,6 +271,56 @@ void pifSensorSwitch_DetachFilter(PIF_stSensor *pstSensor)
 	pstOwner->__pstFilter = NULL;
 }
 
+#ifdef __PIF_COLLECT_SIGNAL__
+
+/**
+ * @fn pifSensorSwitch_SetCsFlagAll
+ * @brief
+ * @param enFlag
+ */
+void pifSensorSwitch_SetCsFlagAll(PIF_enSensorSwitchCsFlag enFlag)
+{
+    for (int i = 0; i < s_ucSensorSwitchPos; i++) {
+    	s_pstSensorSwitch[i].__ucCsFlag |= enFlag;
+    }
+}
+
+/**
+ * @fn pifSensorSwitch_ResetCsFlagAll
+ * @brief
+ * @param enFlag
+ */
+void pifSensorSwitch_ResetCsFlagAll(PIF_enSensorSwitchCsFlag enFlag)
+{
+    for (int i = 0; i < s_ucSensorSwitchPos; i++) {
+    	s_pstSensorSwitch[i].__ucCsFlag &= ~enFlag;
+    }
+}
+
+/**
+ * @fn pifSensorSwitch_SetCsFlagEach
+ * @brief
+ * @param pstSensor
+ * @param enFlag
+ */
+void pifSensorSwitch_SetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorSwitchCsFlag enFlag)
+{
+	((PIF_stSensorSwitch *)pstSensor)->__ucCsFlag |= enFlag;
+}
+
+/**
+ * @fn pifSensorSwitch_ResetCsFlagEach
+ * @brief
+ * @param pstSensor
+ * @param enFlag
+ */
+void pifSensorSwitch_ResetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorSwitchCsFlag enFlag)
+{
+	((PIF_stSensorSwitch *)pstSensor)->__ucCsFlag &= ~enFlag;
+}
+
+#endif
+
 /**
  * @fn pifSensorSwitch_sigData
  * @brief 
@@ -248,6 +338,14 @@ void pifSensorSwitch_sigData(PIF_stSensor *pstSensor, SWITCH swState)
 	else {
 		pstOwner->__swState = swState;
 	}
+#ifdef __PIF_COLLECT_SIGNAL__
+	if (pstOwner->__ucCsFlag & SSCsF_enRawBit) {
+		if (pstOwner->__swRawState != swState) {
+			pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SSCsF_enRawIdx], swState);
+			pstOwner->__swRawState = swState;
+		}
+	}
+#endif
 }
 
 /**

@@ -5,6 +5,19 @@
 #include "pif.h"
 
 
+typedef enum _PIF_enGpioCsFlag
+{
+    GpCsF_enOff			= 0,
+
+	GpCsF_enStateIdx	= 0,
+
+	GpCsF_enStateBit	= 1,
+	GpCsF_enAllBit		= 1,
+
+	GpCsF_enCount		= 1
+} PIF_enGpioCsFlag;
+
+
 typedef uint8_t (*PIF_actGpioIn)(PIF_usId usPifId);
 typedef void (*PIF_actGpioOut)(PIF_usId usPifId, uint8_t ucState);
 
@@ -22,7 +35,13 @@ typedef struct _PIF_stGpio
 	PIF_usId _usPifId;
 
 	// Private Member Variable
+	uint8_t __ucIndex;
 	uint8_t __ucState;
+
+#ifdef __PIF_COLLECT_SIGNAL__
+    uint8_t __ucCsFlag;
+    int8_t __cCsIndex[GpCsF_enCount];
+#endif
 
 	// Private Action Function
 	union {
@@ -47,6 +66,16 @@ SWITCH pifGpio_ReadBit(PIF_stGpio *pstOwner, uint8_t ucIndex);
 
 void pifGpio_WriteAll(PIF_stGpio *pstOwner, uint8_t ucState);
 void pifGpio_WriteBit(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState);
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+void pifGpio_SetCsFlagAll(PIF_enGpioCsFlag enFlag);
+void pifGpio_ResetCsFlagAll(PIF_enGpioCsFlag enFlag);
+
+void pifGpio_SetCsFlagEach(PIF_stGpio *pstSensor, PIF_enGpioCsFlag enFlag);
+void pifGpio_ResetCsFlagEach(PIF_stGpio *pstSensor, PIF_enGpioCsFlag enFlag);
+
+#endif
 
 #ifdef __cplusplus
 }

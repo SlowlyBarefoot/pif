@@ -17,6 +17,18 @@ typedef enum _PIF_enSensorDigitalEventType
 	SDET_enThreshold2P	= 3
 } PIF_enSensorDigitalEventType;
 
+typedef enum _PIF_enSensorDigitalCsFlag
+{
+    SDCsF_enOff			= 0,
+
+    SDCsF_enStateIdx	= 0,
+
+	SDCsF_enStateBit	= 1,
+    SDCsF_enAllBit		= 1,
+
+    SDCsF_enCount		= 1
+} PIF_enSensorDigitalCsFlag;
+
 
 struct _PIF_stSensorDigitalFilter;
 typedef struct _PIF_stSensorDigitalFilter PIF_stSensorDigitalFilter;
@@ -49,6 +61,7 @@ typedef struct _PIF_stSensorDigital
 	PIF_stSensor stSensor;
 
 	// Private Member Variable
+	uint8_t __ucIndex;
     PIF_enSensorDigitalEventType __enEventType;
     union {
     	struct {
@@ -66,6 +79,11 @@ typedef struct _PIF_stSensorDigital
 
     uint8_t __ucFilterMethod;					// Default: PIF_SENSOR_DIGITAL_FILTER_NONE
     PIF_stSensorDigitalFilter *__pstFilter;		// Default: NULL
+
+#ifdef __PIF_COLLECT_SIGNAL__
+    uint8_t __ucCsFlag;
+    int8_t __cCsIndex[SDCsF_enCount];
+#endif
 
 	// Private Event Function
     PIF_evtSensorDigitalPeriod __evtPeriod;		// Default: NULL
@@ -92,6 +110,16 @@ void pifSensorDigital_SetEventThreshold2P(PIF_stSensor *pstSensor, uint16_t usTh
 
 BOOL pifSensorDigital_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMethod, uint8_t ucFilterSize, PIF_stSensorDigitalFilter *pstFilter, BOOL bInitFilter);
 void pifSensorDigital_DetachFilter(PIF_stSensor *pstSensor);
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+void pifSensorDigital_SetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag);
+void pifSensorDigital_ResetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag);
+
+void pifSensorDigital_SetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorDigitalCsFlag enFlag);
+void pifSensorDigital_ResetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorDigitalCsFlag enFlag);
+
+#endif
 
 // Signal Function
 void pifSensorDigital_sigData(PIF_stSensor *pstSensor, uint16_t usLevel);

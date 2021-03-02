@@ -1,3 +1,6 @@
+#ifdef __PIF_COLLECT_SIGNAL__
+#include "pifCollectSignal.h"
+#endif
 #include "pifGpio.h"
 #ifndef __PIF_NO_LOG__
 #include "pifLog.h"
@@ -8,6 +11,25 @@ static PIF_stGpio *s_pstGpio = NULL;
 static uint8_t s_ucGpioSize;
 static uint8_t s_ucGpioPos;
 
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+static void _AddDeviceInCollectSignal()
+{
+	const char *prefix[GpCsF_enCount] = { "GP" };
+
+	for (int i = 0; i < s_ucGpioPos; i++) {
+		PIF_stGpio *pstOwner = &s_pstGpio[i];
+		if (pstOwner->__ucCsFlag) {
+			for (int f = 0; f < GpCsF_enCount; f++) {
+				pstOwner->__cCsIndex[f] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enWire, 1,
+						prefix[f], pstOwner->__ucState);
+			}
+		}
+	}
+}
+
+#endif
 
 /**
  * @fn pifGpio_Init
@@ -31,6 +53,10 @@ BOOL pifGpio_Init(uint8_t ucSize)
 
     s_ucGpioSize = ucSize;
     s_ucGpioPos = 0;
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	pifCollectSignal_Attach(CSF_enGpio, _AddDeviceInCollectSignal);
+#endif
     return TRUE;
 
 fail:
@@ -74,6 +100,7 @@ PIF_stGpio *pifGpio_AddIn(PIF_usId usPifId, uint8_t ucCount, PIF_actGpioIn actIn
 
     PIF_stGpio *pstOwner = &s_pstGpio[s_ucGpioPos];
 
+    pstOwner->__ucIndex = s_ucGpioPos;
     if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->ucGpioCount = ucCount;
@@ -111,6 +138,7 @@ PIF_stGpio *pifGpio_AddOut(PIF_usId usPifId, uint8_t ucCount, PIF_actGpioOut act
 
     PIF_stGpio *pstOwner = &s_pstGpio[s_ucGpioPos];
 
+    pstOwner->__ucIndex = s_ucGpioPos;
     if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->ucGpioCount = ucCount;
@@ -178,3 +206,53 @@ void pifGpio_WriteBit(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState)
 	}
 	pstOwner->__actOut(pstOwner->_usPifId, pstOwner->__ucState);
 }
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+/**
+ * @fn pifGpio_SetCsFlagAll
+ * @brief
+ * @param enFlag
+ */
+void pifGpio_SetCsFlagAll(PIF_enGpioCsFlag enFlag)
+{
+    for (int i = 0; i < s_ucGpioPos; i++) {
+    	s_pstGpio[i].__ucCsFlag |= enFlag;
+    }
+}
+
+/**
+ * @fn pifGpio_ResetCsFlagAll
+ * @brief
+ * @param enFlag
+ */
+void pifGpio_ResetCsFlagAll(PIF_enGpioCsFlag enFlag)
+{
+    for (int i = 0; i < s_ucGpioPos; i++) {
+    	s_pstGpio[i].__ucCsFlag &= ~enFlag;
+    }
+}
+
+/**
+ * @fn pifGpio_SetCsFlagEach
+ * @brief
+ * @param pstSensor
+ * @param enFlag
+ */
+void pifGpio_SetCsFlagEach(PIF_stGpio *pstOwner, PIF_enGpioCsFlag enFlag)
+{
+	pstOwner->__ucCsFlag |= enFlag;
+}
+
+/**
+ * @fn pifGpio_ResetCsFlagEach
+ * @brief
+ * @param pstSensor
+ * @param enFlag
+ */
+void pifGpio_ResetCsFlagEach(PIF_stGpio *pstOwner, PIF_enGpioCsFlag enFlag)
+{
+	pstOwner->__ucCsFlag &= ~enFlag;
+}
+
+#endif

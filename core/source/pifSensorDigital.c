@@ -1,10 +1,13 @@
+#ifdef __PIF_COLLECT_SIGNAL__
+#include "pifCollectSignal.h"
+#endif
 #ifndef __PIF_NO_LOG__
 #include "pifLog.h"
 #endif
 #include "pifSensorDigital.h"
 
 
-static PIF_stSensorDigital *s_pstSensorDigital;
+static PIF_stSensorDigital *s_pstSensorDigital = NULL;
 static uint8_t s_ucSensorDigitalSize;
 static uint8_t s_ucSensorDigitalPos;
 
@@ -78,10 +81,34 @@ static void _taskCommon(PIF_stSensorDigital *pstOwner)
 	if (swState != pstSensor->_swCurrState) {
 		if (pstSensor->__evtChange) {
 			(*pstSensor->__evtChange)(pstSensor->_usPifId, swState, pstSensor->__pvChangeIssuer);
+#ifdef __PIF_COLLECT_SIGNAL__
+			if (pstOwner->__ucCsFlag & SDCsF_enStateBit) {
+				pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SDCsF_enStateIdx], swState);
+			}
+#endif
 		}
 		pstSensor->_swCurrState = swState;
 	}
 }
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+static void _AddDeviceInCollectSignal()
+{
+	const char *prefix[SDCsF_enCount] = { "SD" };
+
+	for (int i = 0; i < s_ucSensorDigitalPos; i++) {
+		PIF_stSensorDigital *pstOwner = &s_pstSensorDigital[i];
+		if (pstOwner->__ucCsFlag) {
+			for (int f = 0; f < SDCsF_enCount; f++) {
+				pstOwner->__cCsIndex[f] = pifCollectSignal_AddDevice(pstOwner->stSensor._usPifId, CSVT_enWire, 1,
+						prefix[f], pstOwner->stSensor._swCurrState);
+			}
+		}
+	}
+}
+
+#endif
 
 /**
  * @fn pifSensorDigital_Init
@@ -105,6 +132,10 @@ BOOL pifSensorDigital_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
 
     s_ucSensorDigitalSize = ucSize;
     s_ucSensorDigitalPos = 0;
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	pifCollectSignal_Attach(CSF_enSensorDigital, _AddDeviceInCollectSignal);
+#endif
 
     s_pstSensorDigitalTimer = pstTimer;
     return TRUE;
@@ -158,6 +189,7 @@ PIF_stSensor *pifSensorDigital_Add(PIF_usId usPifId)
 
     PIF_stSensorDigital *pstOwner = &s_pstSensorDigital[s_ucSensorDigitalPos];
 
+    pstOwner->__ucIndex = s_ucSensorDigitalPos;
 	pstOwner->stSensor._swCurrState = OFF;
 
     if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
@@ -329,6 +361,56 @@ void pifSensorDigital_DetachFilter(PIF_stSensor *pstSensor)
 	pstOwner->__ucFilterMethod = PIF_SENSOR_DIGITAL_FILTER_NONE;
 	pstOwner->__pstFilter = NULL;
 }
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+/**
+ * @fn pifSensorDigital_SetCsFlagAll
+ * @brief
+ * @param enFlag
+ */
+void pifSensorDigital_SetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag)
+{
+    for (int i = 0; i < s_ucSensorDigitalPos; i++) {
+    	s_pstSensorDigital[i].__ucCsFlag |= enFlag;
+    }
+}
+
+/**
+ * @fn pifSensorDigital_ResetCsFlagAll
+ * @brief
+ * @param enFlag
+ */
+void pifSensorDigital_ResetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag)
+{
+    for (int i = 0; i < s_ucSensorDigitalPos; i++) {
+    	s_pstSensorDigital[i].__ucCsFlag &= ~enFlag;
+    }
+}
+
+/**
+ * @fn pifSensorDigital_SetCsFlagEach
+ * @brief
+ * @param pstSensor
+ * @param enFlag
+ */
+void pifSensorDigital_SetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorDigitalCsFlag enFlag)
+{
+	((PIF_stSensorDigital *)pstSensor)->__ucCsFlag |= enFlag;
+}
+
+/**
+ * @fn pifSensorDigital_ResetCsFlagEach
+ * @brief
+ * @param pstSensor
+ * @param enFlag
+ */
+void pifSensorDigital_ResetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorDigitalCsFlag enFlag)
+{
+	((PIF_stSensorDigital *)pstSensor)->__ucCsFlag &= ~enFlag;
+}
+
+#endif
 
 /**
  * @fn pifSensorDigital_sigData

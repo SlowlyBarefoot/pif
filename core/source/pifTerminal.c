@@ -33,6 +33,7 @@ const struct {
 		{ "Step Motor", "smt" }
 };
 
+
 static BOOL _GetDebugString(PIF_stRingBuffer *pstBuffer)
 {
     BOOL bRes;

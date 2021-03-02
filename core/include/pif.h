@@ -9,6 +9,7 @@
 //#define __PIF_DEBUG__
 //#define __PIF_NO_LOG__
 //#define __PIF_NO_TERMINAL__
+//#define __PIF_COLLECT_SIGNAL__
 
 #define PIF_VERSION_MAJOR	0
 #define PIF_VERSION_MINOR	1
@@ -135,6 +136,10 @@ extern volatile PIF_stDateTime pif_stDateTime;
 extern PIF_stLogFlag pif_stLogFlag;
 #endif
 
+#ifdef __PIF_COLLECT_SIGNAL__
+extern volatile uint32_t pif_unCollectSignalTimer1ms;
+#endif
+
 extern PIF_stPerformance pif_stPerformance;
 
 extern PIF_usId g_usPifId;
@@ -149,6 +154,12 @@ void pif_Loop();
 void pif_sigTimer1ms();
 
 void pif_ClearError();
+
+int pif_BinToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt);
+int pif_DecToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt);
+int pif_HexToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt, BOOL bUpper);
+int pif_FloatToString(char *pcBuf, double dNum, uint16_t usPoint);
+void pif_Printf(char *pcBuffer, const char *pcFormat, ...);
 
 void pifCrc7_Init();
 void pifCrc7_Calcurate(uint8_t ucData);

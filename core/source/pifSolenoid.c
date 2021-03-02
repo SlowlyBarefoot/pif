@@ -1,3 +1,6 @@
+#ifdef __PIF_COLLECT_SIGNAL__
+#include "pifCollectSignal.h"
+#endif
 #ifndef __PIF_NO_LOG__
 #include "pifLog.h"
 #endif
@@ -10,18 +13,30 @@ static uint8_t s_ucSolenoidPos;
 
 static PIF_stPulse *s_pstSolenoidTimer;
 
+static void _Action(PIF_stSolenoid *pstOwner, BOOL bState, PIF_enSolenoidDir enDir)
+{
+	(*pstOwner->__actControl)(bState, enDir);
+#ifdef __PIF_COLLECT_SIGNAL__
+	if (pstOwner->__ucCsFlag & SnCsF_enActionBit) {
+		pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SnCsF_enActionIdx], bState);
+	}
+	if (pstOwner->__ucCsFlag & SnCsF_enDirBit) {
+		pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SnCsF_enDirIdx], enDir);
+	}
+#endif
+}
 
 static void _ActionOn(PIF_stSolenoid *pstOwner, uint16_t usDelay, PIF_enSolenoidDir enDir)
 {
 	if (!usDelay) {
 		if (pstOwner->_enType != ST_en2Point || enDir != pstOwner->__enCurrentDir) {
 			pstOwner->__enCurrentDir = enDir;
-			(*pstOwner->__actControl)(ON, enDir);
+			_Action(pstOwner, ON, enDir);
 			pstOwner->__bState = TRUE;
 			if (pstOwner->usOnTime) {
 				if (!pifPulse_StartItem(pstOwner->__pstTimerOn, pstOwner->usOnTime)) {
 					pstOwner->__enCurrentDir = SD_enInvalid;
-					(*pstOwner->__actControl)(OFF, SD_enInvalid);
+					_Action(pstOwner, OFF, SD_enInvalid);
 					pstOwner->__bState = FALSE;
 					if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
 				}
@@ -47,12 +62,12 @@ static void _evtTimerDelayFinish(void *pvIssuer)
 
 	if (pstOwner->_enType != ST_en2Point || pstOwner->__enDir != pstOwner->__enCurrentDir) {
 		pstOwner->__enCurrentDir = pstOwner->__enDir;
-		(*pstOwner->__actControl)(ON, pstOwner->__enDir);
+		_Action(pstOwner, ON, pstOwner->__enDir);
 		pstOwner->__bState = TRUE;
 		if (pstOwner->usOnTime) {
 			if (!pifPulse_StartItem(pstOwner->__pstTimerOn, pstOwner->usOnTime)) {
 				pstOwner->__enCurrentDir = SD_enInvalid;
-				(*pstOwner->__actControl)(OFF, SD_enInvalid);
+				_Action(pstOwner, OFF, SD_enInvalid);
 				pstOwner->__bState = FALSE;
 				if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
 			}
@@ -77,7 +92,7 @@ static void _evtTimerOnFinish(void *pvIssuer)
     PIF_stSolenoid *pstOwner = (PIF_stSolenoid *)pvIssuer;
 
     if (pstOwner->__bState) {
-        (*pstOwner->__actControl)(OFF, SD_enInvalid);
+        _Action(pstOwner, OFF, SD_enInvalid);
         if (pstOwner->evtOff) (*pstOwner->evtOff)(pstOwner);
         pstOwner->__bState = FALSE;
     }
@@ -96,6 +111,23 @@ static int32_t _CalcurateTime(PIF_stSolenoid *pstOwner)
 	}
 	return time;
 }
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+static void _AddDeviceInCollectSignal()
+{
+	const char *prefix[SnCsF_enCount] = { "SNA", "SND" };
+
+	for (int i = 0; i < s_ucSolenoidPos; i++) {
+		PIF_stSolenoid *pstOwner = &s_pstSolenoid[i];
+		if (pstOwner->__ucCsFlag) {
+			pstOwner->__cCsIndex[0] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enWire, 1, prefix[0], 0);
+			pstOwner->__cCsIndex[1] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enWire, 2, prefix[1], 0);
+		}
+	}
+}
+
+#endif
 
 /**
  * @fn pifSolenoid_Init
@@ -119,6 +151,10 @@ BOOL pifSolenoid_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
 
     s_ucSolenoidSize = ucSize;
     s_ucSolenoidPos = 0;
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	pifCollectSignal_Attach(CSF_enSolenoid, _AddDeviceInCollectSignal);
+#endif
 
     s_pstSolenoidTimer = pstTimer;
     return TRUE;
@@ -183,6 +219,7 @@ PIF_stSolenoid *pifSolenoid_Add(PIF_usId usPifId, PIF_enSolenoidType enType, uin
     if (!pstOwner->__pstTimerDelay) return FALSE;
     pifPulse_AttachEvtFinish(pstOwner->__pstTimerDelay, _evtTimerDelayFinish, pstOwner);
 
+    pstOwner->__ucIndex = s_ucSolenoidPos;
     pstOwner->__actControl = actControl;
     pstOwner->__bState = FALSE;
 
@@ -306,7 +343,57 @@ void pifSolenoid_ActionOff(PIF_stSolenoid *pstOwner)
 {
 	if (pstOwner->__bState) {
 		pifPulse_StopItem(pstOwner->__pstTimerOn);
-		(*pstOwner->__actControl)(OFF, SD_enInvalid);
+		_Action(pstOwner, OFF, SD_enInvalid);
 		pstOwner->__bState = FALSE;
     }
 }
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+/**
+ * @fn pifSolenoid_SetCsFlagAll
+ * @brief
+ * @param enFlag
+ */
+void pifSolenoid_SetCsFlagAll(PIF_enSolenoidCsFlag enFlag)
+{
+    for (int i = 0; i < s_ucSolenoidPos; i++) {
+    	s_pstSolenoid[i].__ucCsFlag |= enFlag;
+    }
+}
+
+/**
+ * @fn pifSolenoid_ResetCsFlagAll
+ * @brief
+ * @param enFlag
+ */
+void pifSolenoid_ResetCsFlagAll(PIF_enSolenoidCsFlag enFlag)
+{
+    for (int i = 0; i < s_ucSolenoidPos; i++) {
+    	s_pstSolenoid[i].__ucCsFlag &= ~enFlag;
+    }
+}
+
+/**
+ * @fn pifSolenoid_SetCsFlagEach
+ * @brief
+ * @param pstSensor
+ * @param enFlag
+ */
+void pifSolenoid_SetCsFlagEach(PIF_stSolenoid *pstOwner, PIF_enSolenoidCsFlag enFlag)
+{
+	((PIF_stSolenoid *)pstOwner)->__ucCsFlag |= enFlag;
+}
+
+/**
+ * @fn pifSolenoid_ResetCsFlagEach
+ * @brief
+ * @param pstSensor
+ * @param enFlag
+ */
+void pifSolenoid_ResetCsFlagEach(PIF_stSolenoid *pstOwner, PIF_enSolenoidCsFlag enFlag)
+{
+	((PIF_stSolenoid *)pstOwner)->__ucCsFlag &= ~enFlag;
+}
+
+#endif
