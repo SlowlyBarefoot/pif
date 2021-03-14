@@ -7,10 +7,10 @@
 
 
 #ifndef PIF_COMM_RX_BUFFER_SIZE
-#define PIF_COMM_RX_BUFFER_SIZE		8
+#define PIF_COMM_RX_BUFFER_SIZE		16
 #endif
 #ifndef PIF_COMM_TX_BUFFER_SIZE
-#define PIF_COMM_TX_BUFFER_SIZE		8
+#define PIF_COMM_TX_BUFFER_SIZE		16
 #endif
 
 #define ASCII_NUL	0	// Null Character
@@ -53,7 +53,8 @@ typedef void (*PIF_evtCommParsing)(void *pvClient, PIF_stRingBuffer *pstBuffer);
 typedef BOOL (*PIF_evtCommSending)(void *pvClient, PIF_stRingBuffer *pstBuffer);
 typedef void (*PIF_evtCommSended)(void *pvClient);
 
-typedef BOOL (*PIF_actCommSendData)(uint8_t ucData);
+typedef void (*PIF_actCommReceiveData)(PIF_stRingBuffer *pstBuffer);
+typedef BOOL (*PIF_actCommSendData)(PIF_stRingBuffer *pstBuffer);
 
 
 typedef enum _PIF_enCommTxState
@@ -77,18 +78,17 @@ typedef struct _PIF_stComm
 
 	// Read-only Member Variable
     PIF_usId _usPifId;
+    PIF_stRingBuffer *_pstTxBuffer;
+    PIF_stRingBuffer *_pstRxBuffer;
 
 	// Private Member Variable
     void *__pvClient;
-
-    PIF_stRingBuffer *__pstTxBuffer;
     PIF_enCommTxState __enState;
-
-    PIF_stRingBuffer *__pstRxBuffer;
 
 	PIF_enTaskLoop __enTaskLoop;
 
 	// Private Action Function
+	PIF_actCommReceiveData __actReceiveData;
     PIF_actCommSendData __actSendData;
 } PIF_stComm;
 
@@ -106,7 +106,7 @@ BOOL pifComm_ResizeRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize);
 BOOL pifComm_ResizeTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize);
 
 void pifComm_AttachClient(PIF_stComm *pstOwner, void *pvClient);
-void pifComm_AttachAction(PIF_stComm *pstOwner, PIF_actCommSendData actSendData);
+void pifComm_AttachAction(PIF_stComm *pstOwner, PIF_actCommReceiveData actReceiveData, PIF_actCommSendData actSendData);
 
 uint16_t pifComm_GetRemainSizeOfRxBuffer(PIF_stComm *pstOwner);
 uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner);

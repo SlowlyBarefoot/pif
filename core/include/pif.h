@@ -168,6 +168,7 @@ uint8_t pifCrc7_Result();
 uint16_t pifCrc16(uint8_t *pucData, uint16_t usLength);
 
 uint8_t pifCheckSum(uint8_t *pucData, uint16_t usLength);
+uint8_t pifCheckXor(uint8_t *pucData, uint16_t usLength);
 
 void pifPidControl_Init(PIF_stPidControl *pstOwner, float fFsKp, float fFsKi, float fFsKd, float fMaxIntegration);
 float pifPidControl_Calcurate(PIF_stPidControl *pstOwner, float fErr);

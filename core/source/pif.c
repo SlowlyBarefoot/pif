@@ -560,12 +560,29 @@ uint16_t pifCrc16(uint8_t *pucData, uint16_t usLength)
 uint8_t pifCheckSum(uint8_t *pucData, uint16_t usLength)
 {
 	uint16_t i;
-	uint8_t ucChecksum = 0;
+	uint8_t ucSum = 0;
 
 	for (i = 0; i < usLength; i++) {
-		ucChecksum += pucData[i];
+		ucSum += pucData[i];
 	}
-	return ucChecksum & 0xFF;
+	return ucSum & 0xFF;
+}
+
+/**
+ * @fn pifCheckXor
+ * @brief Byte 단위로 Xor한 결과를 반환한다.
+ * @param pucData CheckXor할 데이터.
+ * @param usLength CheckXor할 데이터의 크기.
+ */
+uint8_t pifCheckXor(uint8_t *pucData, uint16_t usLength)
+{
+	uint16_t i;
+	uint8_t ucXor = 0;
+
+	for (i = 0; i < usLength; i++) {
+		ucXor ^= pucData[i];
+	}
+	return ucXor & 0xFF;
 }
 
 /**

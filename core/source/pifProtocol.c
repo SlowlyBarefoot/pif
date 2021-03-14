@@ -209,6 +209,7 @@ static void _ParsingPacket(PIF_stProtocol *pstOwner, PIF_stRingBuffer *pstBuffer
 	            pifPulse_StopItem(pstOwner->__stRx.pstTimer);
 #endif
 	            pstOwner->__stRx.enState = PRS_enDone;
+	            return;
 			}
 			else {
 				ucPktErr = PKT_ERR_WRONG_ETX;

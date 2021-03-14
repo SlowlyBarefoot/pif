@@ -191,7 +191,7 @@ void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
     	acTmpBuf[nOffset++] = '.';
 		nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_usTimer1ms, 3);
     	acTmpBuf[nOffset++] = ' ';
-    	acTmpBuf[nOffset++] = cType[enType - 1];
+    	acTmpBuf[nOffset++] = cType[enType - LT_enInfo];
     	acTmpBuf[nOffset++] = ' ';
     }
 
