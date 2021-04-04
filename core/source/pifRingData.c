@@ -22,7 +22,7 @@ PIF_stRingData *pifRingData_Init(PIF_usId usPifId, uint16_t usDataSize, uint16_t
 		goto fail;
 	}
 
-	if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+	if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->_usDataSize = usDataSize;
     pstOwner->_usDataCount = usDataCount;

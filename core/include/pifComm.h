@@ -51,7 +51,6 @@
 
 typedef void (*PIF_evtCommParsing)(void *pvClient, PIF_stRingBuffer *pstBuffer);
 typedef BOOL (*PIF_evtCommSending)(void *pvClient, PIF_stRingBuffer *pstBuffer);
-typedef void (*PIF_evtCommSended)(void *pvClient);
 
 typedef void (*PIF_actCommReceiveData)(PIF_stRingBuffer *pstBuffer);
 typedef BOOL (*PIF_actCommSendData)(PIF_stRingBuffer *pstBuffer);
@@ -74,7 +73,6 @@ typedef struct _PIF_stComm
     // Public Event Function
     PIF_evtCommParsing evtParsing;
     PIF_evtCommSending evtSending;
-    PIF_evtCommSended evtSended;
 
 	// Read-only Member Variable
     PIF_usId _usPifId;

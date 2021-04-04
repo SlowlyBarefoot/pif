@@ -101,7 +101,7 @@ PIF_stGpio *pifGpio_AddIn(PIF_usId usPifId, uint8_t ucCount, PIF_actGpioIn actIn
     PIF_stGpio *pstOwner = &s_pstGpio[s_ucGpioPos];
 
     pstOwner->__ucIndex = s_ucGpioPos;
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->ucGpioCount = ucCount;
     pstOwner->__actIn = actIn;
@@ -139,7 +139,7 @@ PIF_stGpio *pifGpio_AddOut(PIF_usId usPifId, uint8_t ucCount, PIF_actGpioOut act
     PIF_stGpio *pstOwner = &s_pstGpio[s_ucGpioPos];
 
     pstOwner->__ucIndex = s_ucGpioPos;
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->ucGpioCount = ucCount;
     pstOwner->__actOut = actOut;

@@ -276,7 +276,7 @@ PIF_stDotMatrix *pifDotMatrix_Add(PIF_usId usPifId, uint16_t usColSize, uint16_t
 		goto fail;
 	}
 
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->__usControlPeriodMs = PIF_DM_CONTROL_PERIOD_DEFAULT;
     pstOwner->__actDisplay = actDisplay;

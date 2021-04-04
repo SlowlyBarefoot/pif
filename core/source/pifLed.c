@@ -100,7 +100,7 @@ PIF_stLed *pifLed_Add(PIF_usId usPifId, uint8_t ucCount, PIF_actLedState actStat
 
     PIF_stLed *pstOwner = &s_pstLed[s_ucLedPos];
 
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->ucLedCount = ucCount;
     pstOwner->__actState = actState;

@@ -425,7 +425,7 @@ PIF_stXmodem *pifXmodem_Add(PIF_usId usPifId, PIF_enXmodemType enType)
     pifPulse_AttachEvtFinish(pstOwner->__stRx.pstTimer, _evtTimerRxTimeout, pstOwner);
     pstOwner->__stRx.usTimeout = PIF_XMODEM_RECEIVE_TIMEOUT;
 
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
 
     s_ucXmodemPos = s_ucXmodemPos + 1;

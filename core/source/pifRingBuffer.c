@@ -75,7 +75,7 @@ PIF_stRingBuffer *pifRingBuffer_InitHeap(PIF_usId usPifId, uint16_t usSize)
 		goto fail;
 	}
 
-	if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+	if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
 	pstOwner->_usPifId = usPifId;
 	pstOwner->__psName = NULL;
     pstOwner->_btStatic = FALSE;
@@ -121,7 +121,7 @@ PIF_stRingBuffer *pifRingBuffer_InitStatic(PIF_usId usPifId, uint16_t usSize, ch
 
 	pstOwner->__pcBuffer = pcBuffer;
 
-	if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+	if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
 	pstOwner->_usPifId = usPifId;
 	pstOwner->__psName = NULL;
     pstOwner->_btStatic = TRUE;
@@ -177,6 +177,7 @@ BOOL pifRingBuffer_ResizeHeap(PIF_stRingBuffer *pstOwner, uint16_t usSize)
 		pif_enError = E_enOutOfHeap;
 		return FALSE;
 	}
+    pstOwner->_usSize = usSize;
 	return TRUE;
 }
 

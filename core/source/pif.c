@@ -16,13 +16,13 @@ volatile PIF_stDateTime pif_stDateTime;
 PIF_stLogFlag pif_stLogFlag = { .unFlags = 0L };
 #endif
 
-#ifdef __PIF_COLLECT_SIGNAL__
-volatile uint32_t pif_unCollectSignalTimer1ms;
-#endif
+volatile uint32_t pif_unCumulativeTimer1ms = 0L;
 
 PIF_stPerformance pif_stPerformance = { FALSE, 0, 0, 0, 0, 0 };
 
-PIF_usId g_usPifId = 1;
+PIF_usId pif_usPifId = 1;
+
+PIF_actTimer1us pif_actTimer1us = NULL;
 
 static const uint8_t c_ucDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
@@ -37,9 +37,12 @@ static uint8_t ucCrc7;
 /**
  * @fn pif_Init
  * @brief pif의 전역 변수를 초기화한다.
+ * @param actTimer1us
  */
-void pif_Init()
+void pif_Init(PIF_actTimer1us actTimer1us)
 {
+	pif_actTimer1us = actTimer1us;
+
 #ifndef __PIF_NO_LOG__
     memset(&pif_stLogFlag, 0, sizeof(pif_stLogFlag));
 #endif
@@ -127,9 +130,7 @@ void pif_sigTimer1ms()
 		}
     }
 
-#ifdef __PIF_COLLECT_SIGNAL__
-	pif_unCollectSignalTimer1ms++;
-#endif
+	pif_unCumulativeTimer1ms++;
     pif_usTimer1ms++;
     if (pif_usTimer1ms >= 1000) {
         pif_usTimer1ms = 0;
@@ -166,6 +167,17 @@ void pif_sigTimer1ms()
     		}
     	}
     }
+}
+
+/**
+ * @fn pif_Delay1ms
+ * @brief
+ * @param usDelay
+ */
+void pif_Delay1ms(uint16_t usDelay)
+{
+	uint32_t unLimit = pif_unCumulativeTimer1ms + usDelay;
+	while (pif_unCumulativeTimer1ms != unLimit);
 }
 
 /**

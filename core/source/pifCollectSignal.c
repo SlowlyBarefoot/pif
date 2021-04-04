@@ -248,7 +248,6 @@ void pifCollectSignal_Start()
 	for (int i = 0; i < 32; i++) {
 		if (s_stCollectSignal.afnDevice[i]) (*s_stCollectSignal.afnDevice[i])();
 	}
-	pif_unCollectSignalTimer1ms = 0L;
 	s_stCollectSignal.unTimer1ms = 0L;
 
 	switch (s_stCollectSignal.enMethod) {
@@ -279,11 +278,11 @@ void pifCollectSignal_Stop()
 
 	switch (s_stCollectSignal.enMethod) {
 	case CSM_enRealTime:
-		pifLog_Printf(LT_enVcd, "#%u\n", pif_unCollectSignalTimer1ms);
+		pifLog_Printf(LT_enVcd, "#%u\n", pif_unCumulativeTimer1ms);
 		break;
 
 	case CSM_enBuffer:
-		pif_Printf(cBuffer, "#%u\n", pif_unCollectSignalTimer1ms);
+		pif_Printf(cBuffer, "#%u\n", pif_unCumulativeTimer1ms);
 		pifRingBuffer_PutString(s_stCollectSignal.pstBuffer, cBuffer);
 		break;
 	}
@@ -303,9 +302,9 @@ void pifCollectSignal_AddSignal(int8_t cIndex, uint16_t usState)
 
 	switch (s_stCollectSignal.enMethod) {
 	case CSM_enRealTime:
-		if (s_stCollectSignal.unTimer1ms != pif_unCollectSignalTimer1ms) {
-			pifLog_Printf(LT_enVcd, "#%u\n", pif_unCollectSignalTimer1ms);
-			s_stCollectSignal.unTimer1ms = pif_unCollectSignalTimer1ms;
+		if (s_stCollectSignal.unTimer1ms != pif_unCumulativeTimer1ms) {
+			pifLog_Printf(LT_enVcd, "#%u\n", pif_unCumulativeTimer1ms);
+			s_stCollectSignal.unTimer1ms = pif_unCumulativeTimer1ms;
 		}
 		if (s_stCollectSignal.stDevice[cIndex].usSize == 1) {
 			pifLog_Printf(LT_enVcd, "%u%c\n", usState, '!' + cIndex);
@@ -316,10 +315,10 @@ void pifCollectSignal_AddSignal(int8_t cIndex, uint16_t usState)
 		break;
 
 	case CSM_enBuffer:
-		if (s_stCollectSignal.unTimer1ms != pif_unCollectSignalTimer1ms) {
-			pif_Printf(cBuffer, "#%u\n", pif_unCollectSignalTimer1ms);
+		if (s_stCollectSignal.unTimer1ms != pif_unCumulativeTimer1ms) {
+			pif_Printf(cBuffer, "#%u\n", pif_unCumulativeTimer1ms);
 			pifRingBuffer_PutString(s_stCollectSignal.pstBuffer, cBuffer);
-			s_stCollectSignal.unTimer1ms = pif_unCollectSignalTimer1ms;
+			s_stCollectSignal.unTimer1ms = pif_unCumulativeTimer1ms;
 		}
 		if (s_stCollectSignal.stDevice[cIndex].usSize == 1) {
 			pif_Printf(cBuffer, "%u%c\n", usState, '!' + cIndex);

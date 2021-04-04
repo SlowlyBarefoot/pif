@@ -105,7 +105,7 @@ PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize, uint32_t unPeriodUs)
 
     PIF_stPulse *pstOwner = &s_pstPulse[s_ucPulsePos];
 
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->__pstItems = calloc(sizeof(PIF_stPulseItem), ucSize);
     if (!pstOwner->__pstItems) {

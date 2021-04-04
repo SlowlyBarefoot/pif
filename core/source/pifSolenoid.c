@@ -223,7 +223,7 @@ PIF_stSolenoid *pifSolenoid_Add(PIF_usId usPifId, PIF_enSolenoidType enType, uin
     pstOwner->__actControl = actControl;
     pstOwner->__bState = FALSE;
 
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->_enType = enType;
     pstOwner->usOnTime = usOnTime;

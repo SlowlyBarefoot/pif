@@ -225,7 +225,7 @@ PIF_stStepMotor *pifStepMotor_Add(PIF_usId usPifId, uint16_t usResolution, PIF_e
 
 	pifStepMotor_SetOperation(pstOwner, enOperation);
 
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->_usResolution = usResolution;
     pstOwner->_ucReductionGearRatio = 1;

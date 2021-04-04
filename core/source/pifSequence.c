@@ -216,7 +216,7 @@ PIF_stSequence *pifSequence_Add(PIF_usId usPifId, const PIF_stSequencePhase *pst
     pstOwner->__ucIndex = s_ucSequencePos;
     pstOwner->__pstPhaseList = pstPhaseList;
 
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     _SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
     pstOwner->pvParam = pvParam;

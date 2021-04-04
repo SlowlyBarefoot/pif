@@ -104,7 +104,7 @@ PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvL
 		pstOwner->_enMode = TM_enAlways;
 		pstOwner->__ucRatio = 100;
     }
-	pstOwner->_usPifId = g_usPifId++;
+	pstOwner->_usPifId = pif_usPifId++;
 	pstOwner->__evtLoop = evtLoop;
 	pstOwner->pvLoopEach = pvLoopEach;
 
@@ -143,7 +143,7 @@ PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, vo
     PIF_stTask *pstOwner = &s_pstTask[s_ucTaskPos];
 
     pstOwner->_enMode = TM_enPeriodMs;
-    pstOwner->_usPifId = g_usPifId++;
+    pstOwner->_usPifId = pif_usPifId++;
     pstOwner->__usPeriod = usPeriodMs;
     pstOwner->__evtLoop = evtLoop;
     pstOwner->pvLoopEach = pvLoopEach;
@@ -183,7 +183,7 @@ PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, vo
     PIF_stTask *pstOwner = &s_pstTask[s_ucTaskPos];
 
     pstOwner->_enMode = TM_enPeriodUs;
-    pstOwner->_usPifId = g_usPifId++;
+    pstOwner->_usPifId = pif_usPifId++;
     pstOwner->__usPeriod = usPeriodUs;
     pstOwner->__evtLoop = evtLoop;
     pstOwner->pvLoopEach = pvLoopEach;

@@ -168,7 +168,7 @@ PIF_stSensor *pifSensorSwitch_Add(PIF_usId usPifId, SWITCH swInitState)
     PIF_stSensor *pstSensor = &pstOwner->stSensor;
 
     pstOwner->__ucIndex = s_ucSensorSwitchPos;
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
 	pstOwner->stSensor._usPifId = usPifId;
 	pstSensor->_swInitState = swInitState;
 	pstSensor->_swCurrState = swInitState;

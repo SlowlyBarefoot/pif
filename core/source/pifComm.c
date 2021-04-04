@@ -11,46 +11,39 @@ static uint8_t s_ucCommPos;
 
 static void _taskCommon(PIF_stComm *pstOwner)
 {
-	BOOL bComplete = FALSE;
-
 	if (pstOwner->__actReceiveData) {
 		(*pstOwner->__actReceiveData)(pstOwner->_pstRxBuffer);
 	}
-	if (!pifRingBuffer_IsEmpty(pstOwner->_pstRxBuffer)) {
+	if (pifRingBuffer_GetFillSize(pstOwner->_pstRxBuffer) > 5) {
 		if (pstOwner->evtParsing) {
 			(*pstOwner->evtParsing)(pstOwner->__pvClient, pstOwner->_pstRxBuffer);
 		}
 	}
 
-	if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) {
-		switch (pstOwner->__enState) {
-		case STS_enIdle:
-			if (pstOwner->evtSending) {
+	switch (pstOwner->__enState) {
+	case STS_enIdle:
+		if (pstOwner->evtSending) {
+			if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) {
 				if ((*pstOwner->evtSending)(pstOwner->__pvClient, pstOwner->_pstTxBuffer)) {
 					if (pstOwner->__actSendData) {
-						if ((*pstOwner->__actSendData)(pstOwner->_pstTxBuffer)) bComplete = TRUE;
+						if ((*pstOwner->__actSendData)(pstOwner->_pstTxBuffer)) pstOwner->__enState = STS_enIdle;
 						else pstOwner->__enState = STS_enSending;
 					}
 					else pstOwner->__enState = STS_enSending;
 				}
-			}
-			break;
-
-		case STS_enSending:
-			if (pstOwner->__actSendData) {
-				if ((*pstOwner->__actSendData)(pstOwner->_pstTxBuffer)) bComplete = TRUE;
-			}
-			else {
-				if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) bComplete = TRUE;
-			}
-	    	break;
+		    }
 		}
+		break;
 
-		if (bComplete) {
-			if (pstOwner->evtSended) (*pstOwner->evtSended)(pstOwner->__pvClient);
-			pstOwner->__enState = STS_enIdle;
+	case STS_enSending:
+		if (pstOwner->__actSendData) {
+			if ((*pstOwner->__actSendData)(pstOwner->_pstTxBuffer)) pstOwner->__enState = STS_enIdle;
 		}
-    }
+		else {
+			if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) pstOwner->__enState = STS_enIdle;
+		}
+    	break;
+	}
 }
 
 /**
@@ -115,7 +108,7 @@ PIF_stComm *pifComm_Add(PIF_usId usPifId)
 
     PIF_stComm *pstOwner = &s_pstComm[s_ucCommPos];
 
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
 
     pstOwner->_pstRxBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_COMM_RX_BUFFER_SIZE);
     if (!pstOwner->_pstRxBuffer) goto fail;

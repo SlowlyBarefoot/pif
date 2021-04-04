@@ -192,7 +192,7 @@ PIF_stSensor *pifSensorDigital_Add(PIF_usId usPifId)
     pstOwner->__ucIndex = s_ucSensorDigitalPos;
 	pstOwner->stSensor._swCurrState = OFF;
 
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->stSensor._usPifId = usPifId;
 
     s_ucSensorDigitalPos = s_ucSensorDigitalPos + 1;

@@ -138,7 +138,7 @@ PIF_stKeypad *pifKeypad_Init(PIF_usId usPifId, uint8_t ucNumRows, uint8_t ucNumC
 		goto fail;
 	}
 
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
 	s_stKeypad._usPifId = usPifId;
 	s_stKeypad.__pcUserKeymap = pcUserKeymap;
 	s_stKeypad.__ucNumRows = ucNumRows;

@@ -124,7 +124,7 @@ PIF_stDutyMotor *pifDutyMotor_Add(PIF_usId usPifId, uint16_t usMaxDuty)
 
     pstOwner = &s_pstDutyMotor[s_ucDutyMotorPos];
 
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->_enState = MS_enIdle;
     pstOwner->_usMaxDuty = usMaxDuty;

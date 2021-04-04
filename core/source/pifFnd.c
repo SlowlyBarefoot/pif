@@ -174,7 +174,7 @@ PIF_stFnd *pifFnd_Add(PIF_usId usPifId, uint8_t ucDigitSize, PIF_actFndDisplay a
 	}
     for (int i = 0; i < ucDigitSize; i++) pstOwner->__pcString[i] = 0x20;
 
-    if (usPifId == PIF_ID_AUTO) usPifId = g_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->__usControlPeriodMs = PIF_FND_CONTROL_PERIOD_DEFAULT / ucDigitSize;
     pstOwner->_ucDigitSize = ucDigitSize;

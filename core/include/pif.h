@@ -125,6 +125,8 @@ typedef struct _PIF_stPerformance
 	uint32_t __unTarget;
 } PIF_stPerformance;
 
+typedef uint32_t (*PIF_actTimer1us)();
+
 
 extern PIF_enError pif_enError;
 
@@ -136,22 +138,24 @@ extern volatile PIF_stDateTime pif_stDateTime;
 extern PIF_stLogFlag pif_stLogFlag;
 #endif
 
-#ifdef __PIF_COLLECT_SIGNAL__
-extern volatile uint32_t pif_unCollectSignalTimer1ms;
-#endif
+extern volatile uint32_t pif_unCumulativeTimer1ms;
 
 extern PIF_stPerformance pif_stPerformance;
 
-extern PIF_usId g_usPifId;
+extern PIF_usId pif_usPifId;
+
+extern PIF_actTimer1us pif_actTimer1us;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void pif_Init();
+void pif_Init(PIF_actTimer1us actTimer1us);
 void pif_Loop();
 void pif_sigTimer1ms();
+
+void pif_Delay1ms(uint16_t usDelay);
 
 void pif_ClearError();
 
