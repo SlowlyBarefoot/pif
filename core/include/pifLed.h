@@ -5,7 +5,7 @@
 #include "pifPulse.h"
 
 
-typedef void (*PIF_actLedState)(PIF_usId usPifId, uint8_t ucIndex, SWITCH swState);
+typedef void (*PIF_actLedState)(PIF_usId usPifId, uint32_t unState);
 
 /**
  * @class _PIF_stLed
@@ -39,9 +39,15 @@ void pifLed_Exit();
 
 PIF_stLed *pifLed_Add(PIF_usId usPifId, uint8_t ucCount, PIF_actLedState actState);
 
-void pifLed_On(PIF_stLed *pstOwner, uint8_t ucIndex);
-void pifLed_Off(PIF_stLed *pstOwner, uint8_t ucIndex);
-void pifLed_Change(PIF_stLed *pstOwner, uint8_t ucIndex, SWITCH swState);
+void pifLed_EachOn(PIF_stLed *pstOwner, uint8_t ucIndex);
+void pifLed_EachOff(PIF_stLed *pstOwner, uint8_t ucIndex);
+void pifLed_EachChange(PIF_stLed *pstOwner, uint8_t ucIndex, SWITCH swState);
+void pifLed_EachToggle(PIF_stLed *pstOwner, uint8_t ucIndex);
+
+void pifLed_AllOn(PIF_stLed *pstOwner);
+void pifLed_AllOff(PIF_stLed *pstOwner);
+void pifLed_AllChange(PIF_stLed *pstOwner, uint32_t unState);
+void pifLed_AllToggle(PIF_stLed *pstOwner);
 
 BOOL pifLed_AttachBlink(PIF_stLed *pstOwner, uint16_t usPeriodMs);
 void pifLed_DetachBlink(PIF_stLed *pstOwner);
