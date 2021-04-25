@@ -180,6 +180,11 @@ PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, vo
         goto fail;
     }
 
+    if (!pif_actTimer1us) {
+        pif_enError = E_enCanNotUse;
+        goto fail;
+    }
+
     PIF_stTask *pstOwner = &s_pstTask[s_ucTaskPos];
 
     pstOwner->_enMode = TM_enPeriodUs;
@@ -327,14 +332,9 @@ void pifTask_Loop()
 			break;
 
 		case TM_enPeriodUs:
-			if (pif_stPerformance._unCount > pif_stPerformance._unCurrent) {
-				unTime = PIF_PERFORMANCE_PERIOD_US;
-			}
-			else {
-				unTime = PIF_PERFORMANCE_PERIOD_US * pif_stPerformance._unCount / pif_stPerformance._unCurrent;
-			}
+			unTime = (*pif_actTimer1us)();
 			if (unTime < pstOwner->__unPretime) {
-				unGap = PIF_PERFORMANCE_PERIOD_US - pstOwner->__unPretime + unTime;
+				unGap = 0xFFFFFFFF - pstOwner->__unPretime + unTime + 1;
 			}
 			else {
 				unGap = unTime - pstOwner->__unPretime;

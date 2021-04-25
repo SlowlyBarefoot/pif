@@ -41,11 +41,6 @@
 
 #define PIF_ID_AUTO		0
 
-#ifndef PIF_PERFORMANCE_PERIOD_MS
-#define PIF_PERFORMANCE_PERIOD_MS	100
-#endif
-#define PIF_PERFORMANCE_PERIOD_US	(PIF_PERFORMANCE_PERIOD_MS * 1000L)
-
 
 typedef uint16_t PIF_usId;
 
@@ -61,6 +56,7 @@ typedef enum _PIF_enError
 	E_enWrongData				= 0x06,
 	E_enTimeout					= 0x07,
 	E_enNotSetEvent				= 0x08,
+	E_enCanNotUse				= 0x09
 } PIF_enError;
 
 
@@ -115,14 +111,10 @@ typedef struct _PIF_stPerformance
 	// Public Member Variable
 
 	// Read-only Member Variable
-	BOOL _bReady;
-	volatile uint32_t _unCurrent;
 	volatile uint32_t _unCount;
 
 	// Private Member Variable
 	uint8_t __ucState;
-	int __nStep;
-	uint32_t __unTarget;
 } PIF_stPerformance;
 
 typedef uint32_t (*PIF_actTimer1us)();
