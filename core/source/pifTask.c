@@ -145,6 +145,7 @@ PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, vo
     pstOwner->_enMode = TM_enPeriodMs;
     pstOwner->_usPifId = pif_usPifId++;
     pstOwner->__usPeriod = usPeriodMs;
+    pstOwner->__unPretime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
     pstOwner->__evtLoop = evtLoop;
     pstOwner->pvLoopEach = pvLoopEach;
 
@@ -190,6 +191,7 @@ PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, vo
     pstOwner->_enMode = TM_enPeriodUs;
     pstOwner->_usPifId = pif_usPifId++;
     pstOwner->__usPeriod = usPeriodUs;
+    pstOwner->__unPretime = (*pif_actTimer1us)();
     pstOwner->__evtLoop = evtLoop;
     pstOwner->pvLoopEach = pvLoopEach;
 

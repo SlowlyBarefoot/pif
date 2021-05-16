@@ -38,27 +38,19 @@ static void _evtTimerTimeoutFinish(void *pvIssuer)
 	_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
 }
 
-static void _evtTimerDelayFinish(void *pvIssuer)
-{
-    if (!pvIssuer) {
-        pif_enError = E_enInvalidParam;
-        return;
-    }
-
-    PIF_stSequence *pstOwner = (PIF_stSequence *)pvIssuer;
-
-	pstOwner->ucStep = PIF_SEQUENCE_STEP_INIT;
-	pstOwner->ucPhaseNoNext = PIF_SEQUENCE_PHASE_NO_IDLE;
-	pstOwner->usDelay = 0;
-}
-
 static void _taskCommon(PIF_stSequence *pstOwner)
 {
 	const PIF_stSequencePhase *pstPhase;
 	uint8_t ucPhaseNoNext;
 	
-	if (pstOwner->_ucPhaseNo == PIF_SEQUENCE_PHASE_NO_IDLE ||
-			pstOwner->ucStep == PIF_SEQUENCE_STEP_DELAY) return;
+	if (pstOwner->_ucPhaseNo == PIF_SEQUENCE_PHASE_NO_IDLE) return;
+
+	if (pstOwner->usDelay1us) {
+		if ((*pif_actTimer1us)() >= pstOwner->__unTargetDelay) {
+			pstOwner->usDelay1us = 0;
+		}
+		else return;
+	}
 
 	pstPhase = &pstOwner->__pstPhaseList[pstOwner->_ucPhaseNo];
 
@@ -69,6 +61,9 @@ static void _taskCommon(PIF_stSequence *pstOwner)
 
 	switch ((*pstPhase->fnProcess)(pstOwner)) {
 	case SR_enContinue:
+		if (pstOwner->usDelay1us) {
+			pstOwner->__unTargetDelay = (*pif_actTimer1us)() + pstOwner->usDelay1us;
+		}
 		break;
 
 	case SR_enNext:
@@ -80,24 +75,12 @@ static void _taskCommon(PIF_stSequence *pstOwner)
 		}
 
 		if (ucPhaseNoNext != PIF_SEQUENCE_PHASE_NO_IDLE) {
-			if (pstOwner->usDelay) {
-				if (!pstOwner->__pstTimerDelay) {
-					pstOwner->__pstTimerDelay = pifPulse_AddItem(s_pstSequenceTimer, PT_enOnce);
-					if (!pstOwner->__pstTimerDelay) goto fail;
-					pifPulse_AttachEvtFinish(pstOwner->__pstTimerDelay, _evtTimerDelayFinish, pstOwner);
-				}
-				pifPulse_StartItem(pstOwner->__pstTimerDelay, pstOwner->usDelay);
-				pstOwner->ucStep = PIF_SEQUENCE_STEP_DELAY;
+			if (pstOwner->usDelay1us) {
+				pstOwner->__unTargetDelay = (*pif_actTimer1us)() + pstOwner->usDelay1us;
 			}
-			else {
-				pstOwner->ucStep = PIF_SEQUENCE_STEP_INIT;
-				pstOwner->ucPhaseNoNext = PIF_SEQUENCE_PHASE_NO_IDLE;
-				pstOwner->usDelay = 0;
-			}
+			pstOwner->ucStep = PIF_SEQUENCE_STEP_INIT;
+			pstOwner->ucPhaseNoNext = PIF_SEQUENCE_PHASE_NO_IDLE;
 		}
-#ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enInfo, "Sequence:Next(%u->%u)", pstOwner->_ucPhaseNo, ucPhaseNoNext);
-#endif		
 		_SetPhaseNo(pstOwner, ucPhaseNoNext);
 		break;
 
@@ -146,6 +129,11 @@ static void _AddDeviceInCollectSignal()
  */
 BOOL pifSequence_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
 {
+    if (!pif_actTimer1us) {
+        pif_enError = E_enCanNotUse;
+        goto fail;
+    }
+
     if (ucSize == 0) {
 		pif_enError = E_enInvalidParam;
 		goto fail;
@@ -185,9 +173,6 @@ void pifSequence_Exit()
 	if (s_pstSequence) {
 		for (int i = 0; i < s_ucSequencePos; i++) {
 			pstOwner = &s_pstSequence[i];
-			if (pstOwner->__pstTimerDelay) {
-				pifPulse_RemoveItem(s_pstSequenceTimer, pstOwner->__pstTimerDelay);
-			}
 			if (pstOwner->__pstTimerTimeout) {
 				pifPulse_RemoveItem(s_pstSequenceTimer, pstOwner->__pstTimerTimeout);
 			}
@@ -291,7 +276,7 @@ void pifSequence_Start(PIF_stSequence *pstOwner)
 	_SetPhaseNo(pstOwner, 0);
 	pstOwner->ucStep = PIF_SEQUENCE_STEP_INIT;
 	pstOwner->ucPhaseNoNext = PIF_SEQUENCE_PHASE_NO_IDLE;
-	pstOwner->usDelay = 0;
+	pstOwner->usDelay1us = 0;
 }	
 
 BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout)

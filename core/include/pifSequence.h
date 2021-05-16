@@ -9,7 +9,6 @@
 #define PIF_SEQUENCE_PHASE_NO_IDLE	0xFF
 
 #define PIF_SEQUENCE_STEP_INIT		0
-#define PIF_SEQUENCE_STEP_DELAY		0xFF
 
 
 typedef enum _PIF_enSequenceCsFlag
@@ -50,7 +49,7 @@ struct _PIF_stSequence
 	// Public Member Variable
 	uint8_t ucStep;
 	uint8_t ucPhaseNoNext;
-	uint16_t usDelay;
+	uint32_t usDelay1us;
 	void *pvParam;
 
     // Public Event Function
@@ -64,7 +63,7 @@ struct _PIF_stSequence
 	uint8_t __ucIndex;
 	const PIF_stSequencePhase *__pstPhaseList;
 	PIF_stPulseItem *__pstTimerTimeout;
-	PIF_stPulseItem *__pstTimerDelay;
+	uint32_t __unTargetDelay;
 #ifdef __PIF_COLLECT_SIGNAL__
 	uint8_t __ucCsFlag;
     int8_t __cCsIndex[SqCsF_enCount];
