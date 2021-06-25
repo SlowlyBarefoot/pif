@@ -385,8 +385,9 @@ void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstItem, PIF_evtPulseFinish evtFi
  * @fn pifPulse_taskAll
  * @brief Task에 연결하는 함수이다.
  * @param pstTask Task에서 결정한다.
+ * @return
  */
-void pifPulse_taskAll(PIF_stTask *pstTask)
+uint16_t pifPulse_taskAll(PIF_stTask *pstTask)
 {
 	(void) pstTask;
 
@@ -394,14 +395,16 @@ void pifPulse_taskAll(PIF_stTask *pstTask)
         PIF_stPulse *pstOwner = &s_pstPulse[i];
     	if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
     }
+    return 0;
 }
 
 /**
  * @fn pifPulse_taskEach
  * @brief Task에 연결하는 함수이다.
  * @param pstTask Task에서 결정한다.
+ * @return
  */
-void pifPulse_taskEach(PIF_stTask *pstTask)
+uint16_t pifPulse_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stPulse *pstOwner = pstTask->pvLoopEach;
 
@@ -411,6 +414,7 @@ void pifPulse_taskEach(PIF_stTask *pstTask)
 	else {
 		_taskCommon(pstOwner);
 	}
+	return 0;
 }
 
 #ifdef __PIF_DEBUG__

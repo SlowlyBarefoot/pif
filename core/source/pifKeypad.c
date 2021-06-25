@@ -252,8 +252,9 @@ BOOL pifKeypad_SetDoubleTime(uint16_t usDoubleTimeMs)
  * @fn pifKeypad_taskAll
  * @brief
  * @param pstTask
+ * @return
  */
-void pifKeypad_taskAll(PIF_stTask *pstTask)
+uint16_t pifKeypad_taskAll(PIF_stTask *pstTask)
 {
 	int idx, r, c;
 
@@ -268,4 +269,5 @@ void pifKeypad_taskAll(PIF_stTask *pstTask)
 			_CheckKeyState(idx, (s_stKeypad.__pusState[r] >> c) & 1);
 		}
 	}
+	return 0;
 }

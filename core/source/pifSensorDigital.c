@@ -437,8 +437,9 @@ void pifSensorDigital_sigData(PIF_stSensor *pstSensor, uint16_t usLevel)
  * @fn pifSensorDigital_taskAll
  * @brief
  * @param pstTask
+ * @return
  */
-void pifSensorDigital_taskAll(PIF_stTask *pstTask)
+uint16_t pifSensorDigital_taskAll(PIF_stTask *pstTask)
 {
 	(void)pstTask;
 
@@ -446,14 +447,16 @@ void pifSensorDigital_taskAll(PIF_stTask *pstTask)
     	PIF_stSensorDigital *pstOwner = &s_pstSensorDigital[i];
         if (!pstOwner->stSensor.__enTaskLoop) _taskCommon(pstOwner);
     }
+    return 0;
 }
 
 /**
  * @fn pifSensorDigital_taskEach
  * @brief
  * @param pstTask
+ * @return
  */
-void pifSensorDigital_taskEach(PIF_stTask *pstTask)
+uint16_t pifSensorDigital_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stSensorDigital *pstOwner = pstTask->pvLoopEach;
 
@@ -463,4 +466,5 @@ void pifSensorDigital_taskEach(PIF_stTask *pstTask)
 	else {
 		_taskCommon(pstOwner);
 	}
+    return 0;
 }

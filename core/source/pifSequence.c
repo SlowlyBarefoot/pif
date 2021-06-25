@@ -294,8 +294,9 @@ BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout)
  * @fn pifSequence_taskAll
  * @brief Task에 연결하는 함수이다.
  * @param pstTask Task에서 결정한다.
+ * @return
  */
-void pifSequence_taskAll(PIF_stTask *pstTask)
+uint16_t pifSequence_taskAll(PIF_stTask *pstTask)
 {
 	(void) pstTask;
 
@@ -303,14 +304,16 @@ void pifSequence_taskAll(PIF_stTask *pstTask)
         PIF_stSequence *pstOwner = &s_pstSequence[i];
     	if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
     }
+    return 0;
 }
 
 /**
  * @fn pifSequence_taskEach
  * @brief Task에 연결하는 함수이다.
  * @param pstTask Task에서 결정한다.
+ * @return
  */
-void pifSequence_taskEach(PIF_stTask *pstTask)
+uint16_t pifSequence_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stSequence *pstOwner = pstTask->pvLoopEach;
 
@@ -320,4 +323,5 @@ void pifSequence_taskEach(PIF_stTask *pstTask)
 	else {
 		_taskCommon(pstOwner);
 	}
+    return 0;
 }

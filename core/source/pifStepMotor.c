@@ -661,8 +661,9 @@ fail:
  * @fn pifStepMotor_taskAll
  * @brief
  * @param pstTask
+ * @return
  */
-void pifStepMotor_taskAll(PIF_stTask *pstTask)
+uint16_t pifStepMotor_taskAll(PIF_stTask *pstTask)
 {
 	(void)pstTask;
 
@@ -670,14 +671,16 @@ void pifStepMotor_taskAll(PIF_stTask *pstTask)
 		PIF_stStepMotor *pstOwner = &s_pstStepMotor[i];
 		if (!pstOwner->__enTaskLoop) _taskCommon(pstTask, pstOwner);
 	}
+	return 0;
 }
 
 /**
  * @fn pifStepMotor_taskEach
  * @brief
  * @param pstTask
+ * @return
  */
-void pifStepMotor_taskEach(PIF_stTask *pstTask)
+uint16_t pifStepMotor_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stStepMotor *pstOwner = pstTask->pvLoopEach;
 
@@ -687,4 +690,5 @@ void pifStepMotor_taskEach(PIF_stTask *pstTask)
 	else {
 		_taskCommon(pstTask, pstOwner);
 	}
+	return 0;
 }

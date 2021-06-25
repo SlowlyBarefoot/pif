@@ -114,8 +114,8 @@ BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLen
 BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData);
 
 // Task Function
-void pifComm_taskAll(PIF_stTask *pstTask);
-void pifComm_taskEach(PIF_stTask *pstTask);
+uint16_t pifComm_taskAll(PIF_stTask *pstTask);
+uint16_t pifComm_taskEach(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

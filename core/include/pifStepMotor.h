@@ -124,8 +124,8 @@ BOOL pifStepMotor_InitControl(PIF_stStepMotor *pstOwner, uint16_t usControlPerio
 BOOL pifStepMotor_StartControl(PIF_stStepMotor *pstOwner);
 
 // Task Function
-void pifStepMotor_taskAll(PIF_stTask *pstTask);
-void pifStepMotor_taskEach(PIF_stTask *pstTask);
+uint16_t pifStepMotor_taskAll(PIF_stTask *pstTask);
+uint16_t pifStepMotor_taskEach(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

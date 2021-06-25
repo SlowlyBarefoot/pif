@@ -266,8 +266,9 @@ BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
  * @fn pifComm_taskAll
  * @brief
  * @param pstTask
+ * @return
  */
-void pifComm_taskAll(PIF_stTask *pstTask)
+uint16_t pifComm_taskAll(PIF_stTask *pstTask)
 {
 	(void)pstTask;
 
@@ -275,14 +276,16 @@ void pifComm_taskAll(PIF_stTask *pstTask)
 		PIF_stComm *pstOwner = &s_pstComm[i];
 		if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
 	}
+	return 0;
 }
 
 /**
  * @fn pifComm_taskEach
  * @brief
  * @param pstTask
+ * @return
  */
-void pifComm_taskEach(PIF_stTask *pstTask)
+uint16_t pifComm_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stComm *pstOwner = pstTask->pvLoopEach;
 
@@ -292,4 +295,5 @@ void pifComm_taskEach(PIF_stTask *pstTask)
 	else {
 		_taskCommon(pstOwner);
 	}
+	return 0;
 }

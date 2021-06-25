@@ -589,8 +589,9 @@ void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriod
  * @fn pifDotMatrix_taskAll
  * @brief
  * @param pstTask
+ * @return
  */
-void pifDotMatrix_taskAll(PIF_stTask *pstTask)
+uint16_t pifDotMatrix_taskAll(PIF_stTask *pstTask)
 {
 	(void)pstTask;
 
@@ -598,14 +599,16 @@ void pifDotMatrix_taskAll(PIF_stTask *pstTask)
 		PIF_stDotMatrix *pstOwner = &s_pstDotMatrix[i];
 		if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
 	}
+	return 0;
 }
 
 /**
  * @fn pifDotMatrix_taskEach
  * @brief
  * @param pstTask
+ * @return
  */
-void pifDotMatrix_taskEach(PIF_stTask *pstTask)
+uint16_t pifDotMatrix_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stDotMatrix *pstOwner = pstTask->pvLoopEach;
 
@@ -615,4 +618,5 @@ void pifDotMatrix_taskEach(PIF_stTask *pstTask)
 	else {
 		_taskCommon(pstOwner);
 	}
+	return 0;
 }

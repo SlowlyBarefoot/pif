@@ -352,8 +352,9 @@ void pifSensorSwitch_sigData(PIF_stSensor *pstSensor, SWITCH swState)
  * @fn pifSensorSwitch_taskAll
  * @brief
  * @param pstTask
+ * @return
  */
-void pifSensorSwitch_taskAll(PIF_stTask *pstTask)
+uint16_t pifSensorSwitch_taskAll(PIF_stTask *pstTask)
 {
 	(void)pstTask;
 
@@ -361,14 +362,16 @@ void pifSensorSwitch_taskAll(PIF_stTask *pstTask)
     	PIF_stSensorSwitch *pstOwner = &s_pstSensorSwitch[i];
         if (!pstOwner->stSensor.__enTaskLoop) _taskCommon(pstOwner);
     }
+    return 0;
 }
 
 /**
  * @fn pifSensorSwitch_taskEach
  * @brief
  * @param pstTask
+ * @return
  */
-void pifSensorSwitch_taskEach(PIF_stTask *pstTask)
+uint16_t pifSensorSwitch_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stSensorSwitch *pstOwner = pstTask->pvLoopEach;
 
@@ -378,4 +381,5 @@ void pifSensorSwitch_taskEach(PIF_stTask *pstTask)
 	else {
 		_taskCommon(pstOwner);
 	}
+    return 0;
 }

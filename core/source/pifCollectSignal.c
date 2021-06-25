@@ -347,8 +347,9 @@ void pifCollectSignal_PrintLog()
  * @fn pifCollectSignal_taskAll
  * @brief Task에 연결하는 함수이다.
  * @param pstTask Task에서 결정한다.
+ * @return
  */
-void pifCollectSignal_taskAll(PIF_stTask *pstTask)
+uint16_t pifCollectSignal_taskAll(PIF_stTask *pstTask)
 {
 	uint16_t usSize, usLength;
 	static uint8_t acTmpBuf[PIF_LOG_LINE_SIZE + 1];
@@ -381,6 +382,7 @@ void pifCollectSignal_taskAll(PIF_stTask *pstTask)
 			pifLog_Enable();
 		}
 	}
+	return 0;
 }
 
 #endif	// __PIF_COLLECT_SIGNAL__

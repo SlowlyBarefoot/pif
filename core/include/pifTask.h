@@ -15,7 +15,9 @@ typedef enum _PIF_enTaskMode
 	TM_enRatio		= 0,
 	TM_enPeriodMs	= 1,
 	TM_enPeriodUs	= 2,
-	TM_enAlways		= 3
+	TM_enAlways		= 3,
+	TM_enChangeMs	= 4,
+	TM_enChangeUs	= 5
 } PIF_enTaskMode;
 
 typedef enum _PIF_enTaskLoop
@@ -28,7 +30,7 @@ typedef enum _PIF_enTaskLoop
 struct _PIF_stTask;
 typedef struct _PIF_stTask PIF_stTask;
 
-typedef void (*PIF_evtTaskLoop)(PIF_stTask *pstTask);
+typedef uint16_t (*PIF_evtTaskLoop)(PIF_stTask *pstTask);
 
 
 /**
@@ -39,6 +41,7 @@ struct _PIF_stTask
 {
 	// Public Member Variable
 	BOOL bPause;
+	BOOL bImmediate;
 	void *pvLoopEach;
 
 	// Read-only Member Variable
@@ -48,13 +51,8 @@ struct _PIF_stTask
 	// Private Member Variable
 	const char *__pcName;
 	uint8_t __ucRatio;
-	BOOL __bDelay;
-	uint8_t __ucDelayNo;
-	uint8_t __ucDelayStep;
-	uint16_t __usDelayMs;
 	uint16_t __usPeriod;
 	uint32_t __unPretime;
-	uint32_t __unPretimeDelay;
 #ifdef __PIF_DEBUG__
 	uint32_t __unCount;
 	float __fPeriod;
@@ -75,14 +73,11 @@ void pifTask_Exit();
 PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvLoopEach);
 PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopEach);
 PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, void *pvLoopEach);
+PIF_stTask *pifTask_AddChangeMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopEach);
+PIF_stTask *pifTask_AddChangeUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, void *pvLoopEach);
 
 void pifTask_SetName(PIF_stTask *pstOwner, const char *pcName);
 void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod);
-
-void pifTask_SetDelay(PIF_stTask *pstOwner, uint16_t usDelayMs);
-BOOL pifTask_FirstDelay(PIF_stTask *pstOwner);
-BOOL pifTask_NextDelay(PIF_stTask *pstOwner);
-BOOL pifTask_LastDelay(PIF_stTask *pstOwner);
 
 void pifTask_Loop();
 

@@ -67,8 +67,8 @@ void pifFnd_SetInterger(PIF_stFnd *pstOwner, int32_t nValue);
 void pifFnd_SetString(PIF_stFnd *pstOwner, char *pcString);
 
 // Task Function
-void pifFnd_taskAll(PIF_stTask *pstTask);
-void pifFnd_taskEach(PIF_stTask *pstTask);
+uint16_t pifFnd_taskAll(PIF_stTask *pstTask);
+uint16_t pifFnd_taskEach(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

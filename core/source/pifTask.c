@@ -208,6 +208,93 @@ fail:
 }
 
 /**
+ * @fn pifTask_AddChangeMs
+ * @brief Task를 추가한다.
+ * @param usPeriodMs Task 초기 주기를 설정한다. 단위는 1ms.
+ * @param evtLoop Task 함수
+ * @param pvLoopEach 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @return Task 구조체 포인터를 반환한다.
+ */
+PIF_stTask *pifTask_AddChangeMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopEach)
+{
+	if (!usPeriodMs || !evtLoop) {
+        pif_enError = E_enInvalidParam;
+        goto fail;
+	}
+
+    if (s_ucTaskPos >= s_ucTaskSize) {
+        pif_enError = E_enOverflowBuffer;
+        goto fail;
+    }
+
+    PIF_stTask *pstOwner = &s_pstTask[s_ucTaskPos];
+
+    pstOwner->_enMode = TM_enChangeMs;
+    pstOwner->_usPifId = pif_usPifId++;
+    pstOwner->__usPeriod = usPeriodMs;
+    pstOwner->__unPretime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+    pstOwner->__evtLoop = evtLoop;
+    pstOwner->pvLoopEach = pvLoopEach;
+
+	if (pvLoopEach) (*evtLoop)(pstOwner);
+
+    s_ucTaskPos = s_ucTaskPos + 1;
+    return pstOwner;
+
+fail:
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_enError, "Task:AddPeriod(P:%ums) EC:%d", usPeriodMs, pif_enError);
+#endif
+    return NULL;
+}
+
+/**
+ * @fn pifTask_AddChangeUs
+ * @brief Task를 추가한다.
+ * @param usPeriodUs Task 초기 주기를 설정한다. 단위는 1us.
+ * @param evtLoop Task 함수
+ * @param pvLoopEach 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @return Task 구조체 포인터를 반환한다.
+ */
+PIF_stTask *pifTask_AddChangeUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, void *pvLoopEach)
+{
+	if (!usPeriodUs || !evtLoop) {
+        pif_enError = E_enInvalidParam;
+        goto fail;
+	}
+
+    if (s_ucTaskPos >= s_ucTaskSize) {
+        pif_enError = E_enOverflowBuffer;
+        goto fail;
+    }
+
+    if (!pif_actTimer1us) {
+        pif_enError = E_enCanNotUse;
+        goto fail;
+    }
+
+    PIF_stTask *pstOwner = &s_pstTask[s_ucTaskPos];
+
+    pstOwner->_enMode = TM_enChangeUs;
+    pstOwner->_usPifId = pif_usPifId++;
+    pstOwner->__usPeriod = usPeriodUs;
+    pstOwner->__unPretime = (*pif_actTimer1us)();
+    pstOwner->__evtLoop = evtLoop;
+    pstOwner->pvLoopEach = pvLoopEach;
+
+	if (pvLoopEach) (*evtLoop)(pstOwner);
+
+    s_ucTaskPos = s_ucTaskPos + 1;
+    return pstOwner;
+
+fail:
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_enError, "Task:AddPeriod(P:%uus) EC:%d", usPeriodUs, pif_enError);
+#endif
+    return NULL;
+}
+
+/**
  * @fn pifTask_SetName
  * @brief Task의 이름을 지정한다.
  * @param pstOwner Task 자신
@@ -241,90 +328,22 @@ void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod)
 }
 
 /**
- * @fn pifTask_SetDelay
- * @brief
- * @param pstOwner Task 자신
- * @param usDelayMs
- */
-void pifTask_SetDelay(PIF_stTask *pstOwner, uint16_t usDelayMs)
-{
-	pstOwner->__unPretimeDelay = 1000L * pif_unTimer1sec + pif_usTimer1ms;
-	pstOwner->__ucDelayNo = pstOwner->__ucDelayStep;
-	pstOwner->__usDelayMs = usDelayMs;
-	pstOwner->__bDelay = TRUE;
-}
-
-/**
- * @fn pifTask_FirstDelay
- * @brief
- * @param pstOwner Task 자신
- * @return
- */
-BOOL pifTask_FirstDelay(PIF_stTask *pstOwner)
-{
-	pstOwner->__ucDelayStep = 1;
-	return pstOwner->__ucDelayStep > pstOwner->__ucDelayNo;
-}
-
-/**
- * @fn pifTask_NextDelay
- * @brief
- * @param pstOwner Task 자신
- * @return
- */
-BOOL pifTask_NextDelay(PIF_stTask *pstOwner)
-{
-	pstOwner->__ucDelayStep++;
-	if (pstOwner->__bDelay) {
-		return FALSE;
-	}
-	else {
-		return pstOwner->__ucDelayStep > pstOwner->__ucDelayNo;
-	}
-}
-
-/**
- * @fn pifTask_LastDelay
- * @brief
- * @param pstOwner Task 자신
- * @return
- */
-BOOL pifTask_LastDelay(PIF_stTask *pstOwner)
-{
-	pstOwner->__ucDelayStep++;
-	if (pstOwner->__bDelay) {
-		return FALSE;
-	}
-	else {
-		pstOwner->__ucDelayNo = 0;
-		return TRUE;
-	}
-}
-
-/**
  * @fn pifTask_Loop
  * @brief Main loop에서 수행해야 하는 Task 함수이다.
  */
 void pifTask_Loop()
 {
 	PIF_stTask *pstOwner;
+	uint16_t usPeriod;
 	uint32_t unTime, unGap;
 	static uint8_t ucNumber = 0;
 
 	for (int i = 0; i < s_ucTaskPos; i++) {
 		pstOwner = &s_pstTask[i];
 		if (pstOwner->bPause) continue;
-		else if (pstOwner->__bDelay) {
-			unTime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
-			if (unTime < pstOwner->__unPretimeDelay) {
-				unGap = 60000L - pstOwner->__unPretimeDelay + unTime;
-			}
-			else {
-				unGap = unTime - pstOwner->__unPretimeDelay;
-			}
-			if (unGap >= pstOwner->__usDelayMs) {
-				pstOwner->__bDelay = FALSE;
-			}
+		else if (pstOwner->bImmediate) {
+			(*pstOwner->__evtLoop)(pstOwner);
+			pstOwner->bImmediate = FALSE;
 			continue;
 		}
 
@@ -357,6 +376,36 @@ void pifTask_Loop()
 			}
 			if (unGap >= pstOwner->__usPeriod) {
 				(*pstOwner->__evtLoop)(pstOwner);
+				pstOwner->__unPretime = unTime;
+			}
+			break;
+
+		case TM_enChangeUs:
+			unTime = (*pif_actTimer1us)();
+			if (unTime < pstOwner->__unPretime) {
+				unGap = 0xFFFFFFFF - pstOwner->__unPretime + unTime + 1;
+			}
+			else {
+				unGap = unTime - pstOwner->__unPretime;
+			}
+			if (unGap >= pstOwner->__usPeriod) {
+				usPeriod = (*pstOwner->__evtLoop)(pstOwner);
+				if (usPeriod > 0) pstOwner->__usPeriod = usPeriod;
+				pstOwner->__unPretime = unTime;
+			}
+			break;
+
+		case TM_enChangeMs:
+			unTime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+			if (unTime < pstOwner->__unPretime) {
+				unGap = 60000L - pstOwner->__unPretime + unTime;
+			}
+			else {
+				unGap = unTime - pstOwner->__unPretime;
+			}
+			if (unGap >= pstOwner->__usPeriod) {
+				usPeriod = (*pstOwner->__evtLoop)(pstOwner);
+				if (usPeriod > 0) pstOwner->__usPeriod = usPeriod;
 				pstOwner->__unPretime = unTime;
 			}
 			break;

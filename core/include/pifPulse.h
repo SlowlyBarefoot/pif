@@ -118,8 +118,8 @@ void pifPulse_AttachAction(PIF_stPulseItem *pstItem, PIF_actPulsePwm actPwm);
 void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstItem, PIF_evtPulseFinish evtFinish, void *pvIssuer);
 
 // Task Function
-void pifPulse_taskAll(PIF_stTask *pstTask);
-void pifPulse_taskEach(PIF_stTask *pstTask);
+uint16_t pifPulse_taskAll(PIF_stTask *pstTask);
+uint16_t pifPulse_taskEach(PIF_stTask *pstTask);
 
 #ifdef __PIF_DEBUG__
 

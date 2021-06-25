@@ -464,8 +464,9 @@ void pifFnd_SetString(PIF_stFnd *pstOwner, char *pcString)
  * @fn pifFnd_taskAll
  * @brief
  * @param pstTask
+ * @return
  */
-void pifFnd_taskAll(PIF_stTask *pstTask)
+uint16_t pifFnd_taskAll(PIF_stTask *pstTask)
 {
 	(void)pstTask;
 
@@ -473,14 +474,16 @@ void pifFnd_taskAll(PIF_stTask *pstTask)
 		PIF_stFnd *pstOwner = &s_pstFnd[i];
 		if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
 	}
+	return 0;
 }
 
 /**
  * @fn pifFnd_taskEach
  * @brief
  * @param pstTask
+ * @return
  */
-void pifFnd_taskEach(PIF_stTask *pstTask)
+uint16_t pifFnd_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stFnd *pstOwner = pstTask->pvLoopEach;
 
@@ -490,4 +493,5 @@ void pifFnd_taskEach(PIF_stTask *pstTask)
 	else {
 		_taskCommon(pstOwner);
 	}
+	return 0;
 }

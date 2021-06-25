@@ -98,8 +98,8 @@ void pifSensorSwitch_ResetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorSwitch
 void pifSensorSwitch_sigData(PIF_stSensor *pstSensor, SWITCH swState);
 
 // Task Function
-void pifSensorSwitch_taskAll(PIF_stTask *pstTask);
-void pifSensorSwitch_taskEach(PIF_stTask *pstTask);
+uint16_t pifSensorSwitch_taskAll(PIF_stTask *pstTask);
+uint16_t pifSensorSwitch_taskEach(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }
