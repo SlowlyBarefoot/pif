@@ -47,11 +47,12 @@ struct _PIF_stTask
 	// Read-only Member Variable
 	PIF_usId _usPifId;
 	PIF_enTaskMode _enMode;
+	uint16_t _usPeriod;
 
 	// Private Member Variable
 	const char *__pcName;
 	uint8_t __ucRatio;
-	uint16_t __usPeriod;
+	BOOL __bRunning;
 	uint32_t __unPretime;
 #ifdef __PIF_DEBUG__
 	uint32_t __unCount;
@@ -80,6 +81,7 @@ void pifTask_SetName(PIF_stTask *pstOwner, const char *pcName);
 void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod);
 
 void pifTask_Loop();
+void pifTask_Yield();
 
 #ifdef __PIF_DEBUG__
 

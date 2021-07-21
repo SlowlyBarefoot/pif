@@ -64,17 +64,17 @@ typedef struct _PIF_stDotMatrix
 	uint8_t __ucPatternIndex;
 
 	struct {
-		uint8_t __btRun			: 1;
-		uint8_t __btBlink		: 1;
-	};
+		uint8_t Run			: 1;
+		uint8_t Blink		: 1;
+	} __bt;
 
 	union {
-		PIF_enDotMatrixShift __enShift;
+		PIF_enDotMatrixShift enAll;
 		struct {
-			uint8_t btDirection	: 4;	// 2 : Left, 3 : Right, 4 : Up, 5 : Down
-			uint8_t btMethod	: 4;	// 0 : Off, 2 : Repeat Hor, 3 : Repeat Ver, 4 : PingPong Hor, 5 : PingPong Ver
-		} __btShift;
-	};
+			uint8_t Direction	: 4;	// 2 : Left, 3 : Right, 4 : Up, 5 : Down
+			uint8_t Method		: 4;	// 0 : Off, 2 : Repeat Hor, 3 : Repeat Ver, 4 : PingPong Hor, 5 : PingPong Ver
+		} bt;
+	} __uiShift;
 
     uint16_t __usColBytes;
     uint16_t __usTotalBytes;

@@ -14,7 +14,7 @@
 #define PIF_XMODEM_RECEIVE_TIMEOUT		300
 
 
-static PIF_stXmodem *s_pstXmodem;
+static PIF_stXmodem *s_pstXmodem = NULL;
 static uint8_t s_ucXmodemSize;
 static uint8_t s_ucXmodemPos;
 

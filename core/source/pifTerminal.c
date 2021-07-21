@@ -338,7 +338,7 @@ int pifTerminal_SetStatus(int argc, char *argv[])
 
 	if (argc == 1) {
 		for (i = 0; i < LOG_FLAG_COUNT; i++) {
-			pifLog_Printf(LT_enNone, "\n  %s(%s): %d", c_stLogFlags[i].acName, c_stLogFlags[i].acCommand, (pif_stLogFlag.unFlags >> i) & 1);
+			pifLog_Printf(LT_enNone, "\n  %s(%s): %d", c_stLogFlags[i].acName, c_stLogFlags[i].acCommand, (pif_stLogFlag.unAll >> i) & 1);
 		}
 		return PIF_TERM_CMD_NO_ERROR;
 	}
@@ -362,10 +362,10 @@ int pifTerminal_SetStatus(int argc, char *argv[])
 		for (i = 0; i < LOG_FLAG_COUNT; i++) {
 			if (!strcmp(argv[1], c_stLogFlags[i].acCommand)) {
 				if (value) {
-					pif_stLogFlag.unFlags |= 1L << i;
+					pif_stLogFlag.unAll |= 1L << i;
 				}
 				else {
-					pif_stLogFlag.unFlags &= ~(1L << i);
+					pif_stLogFlag.unAll &= ~(1L << i);
 				}
 				return PIF_TERM_CMD_NO_ERROR;
 			}

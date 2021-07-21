@@ -121,7 +121,7 @@ static void _fnControlSpeed(PIF_stStepMotor *pstOwner)
     }
 
 #ifndef __PIF_NO_LOG__
-	if (nLine && pif_stLogFlag.btStepMotor) {
+	if (nLine && pif_stLogFlag.bt.StepMotor) {
 		pifLog_Printf(LT_enInfo, "SMS:%u(%u) %s P/S:%u", nLine, pstOwner->_usPifId, c_cMotorState[pstOwner->_enState], usTmpPps);
 	}
 #endif
@@ -320,7 +320,7 @@ BOOL pifStepMotorSpeed_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, ui
     pifStepMotor_Start(pstOwner, 0);
 
 #ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.btStepMotor) {
+    if (pif_stLogFlag.bt.StepMotor) {
     	pifLog_Printf(LT_enInfo, "SMS:%u(%u) Start", __LINE__, pstOwner->_usPifId);
     }
 #endif
@@ -352,7 +352,7 @@ void pifStepMotorSpeed_Stop(PIF_stStepMotor *pstOwner)
     }
 
 #ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.btStepMotor) {
+    if (pif_stLogFlag.bt.StepMotor) {
     	pifLog_Printf(LT_enInfo, "SMS:%u(%u) Stop OT=%u", __LINE__, pstOwner->_usPifId, pstStage->usFsOverTime);
     }
 #endif

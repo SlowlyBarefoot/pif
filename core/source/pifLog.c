@@ -21,6 +21,8 @@ typedef struct _PIF_stLog
 
 static PIF_stLog s_stLog;
 
+PIF_stLogFlag pif_stLogFlag = { .unAll = 0L };
+
 
 static void _PrintLog(char *pcString, BOOL bVcd)
 {

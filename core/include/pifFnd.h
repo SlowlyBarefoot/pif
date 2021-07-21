@@ -23,10 +23,10 @@ typedef struct _PIF_stFnd
 
 	// Private Member Variable
 	struct {
-		uint8_t __btRun			: 1;
-		uint8_t __btBlink		: 1;
-		uint8_t __btFillZero	: 1;
-	};
+		uint8_t Run			: 1;
+		uint8_t Blink		: 1;
+		uint8_t FillZero	: 1;
+	} __bt;
     uint16_t __usControlPeriodMs;
 	uint16_t __usPretimeMs;
 	uint8_t __ucDigitIndex;

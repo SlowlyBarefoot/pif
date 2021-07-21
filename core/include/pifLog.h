@@ -27,6 +27,25 @@ typedef enum _PIF_enLogType
 typedef void (*PIF_actLogPrint)(char *pcString);
 
 
+/**
+ * @struct _PIF_stLogFlag
+ * @brief 항목별 Log 출력 여부
+ */
+typedef union _PIF_stLogFlag
+{
+	uint32_t unAll;
+	struct {
+		uint32_t Performance		: 1;
+		uint32_t Task				: 1;
+		uint32_t DutyMotor			: 1;
+		uint32_t StepMotor			: 1;
+	} bt;
+} PIF_stLogFlag;
+
+
+extern PIF_stLogFlag pif_stLogFlag;
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif

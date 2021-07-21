@@ -21,9 +21,9 @@ typedef struct _PIF_stRingBuffer
 	// Read-only Member Variable
 	PIF_usId _usPifId;
 	struct {
-		uint8_t _btStatic	: 1;
-		uint8_t _btChopOff	: 2;	// RB_CHOP_OFF_
-	};
+		uint8_t Static	: 1;
+		uint8_t ChopOff	: 2;	// RB_CHOP_OFF_
+	} _bt;
     uint16_t _usSize;
 
 	// Private Member Variable

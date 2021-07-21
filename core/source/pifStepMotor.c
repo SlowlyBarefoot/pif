@@ -2,7 +2,7 @@
 #include "pifStepMotor.h"
 
 
-static PIF_stStepMotor *s_pstStepMotor;
+static PIF_stStepMotor *s_pstStepMotor = NULL;
 static uint8_t s_ucStepMotorSize;
 static uint8_t s_ucStepMotorPos;
 
@@ -437,7 +437,7 @@ BOOL pifStepMotor_SetPps(PIF_stStepMotor *pstOwner, uint16_t usPps)
 	pstOwner->__usStepPeriodUs = period;
 
 #ifndef __PIF_NO_LOG__
-	if (pif_stLogFlag.btStepMotor) {
+	if (pif_stLogFlag.bt.StepMotor) {
 		pifLog_Printf(LT_enInfo, "SM:%u(%u) P/S:%d SP:%uus", __LINE__, pstOwner->_usPifId,
 				pstOwner->_usCurrentPps, pstOwner->__usStepPeriodUs);
 	}

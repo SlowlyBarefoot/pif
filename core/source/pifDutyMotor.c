@@ -2,7 +2,7 @@
 #include "pifDutyMotor.h"
 
 
-static PIF_stDutyMotor *s_pstDutyMotor;
+static PIF_stDutyMotor *s_pstDutyMotor = NULL;
 static uint8_t s_ucDutyMotorSize;
 static uint8_t s_ucDutyMotorPos;
 

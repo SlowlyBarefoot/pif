@@ -145,7 +145,7 @@ static void _fnControlPos(PIF_stStepMotor *pstOwner)
     }
 
 #ifndef __PIF_NO_LOG__
-	if (nLine && pif_stLogFlag.btStepMotor) {
+	if (nLine && pif_stLogFlag.bt.StepMotor) {
 		pifLog_Printf(LT_enInfo, "SMP:%u(%u) %s P/S:%u P:%u", nLine, pstOwner->_usPifId,
 				c_cMotorState[pstOwner->_enState], usTmpPps, pstOwner->_unCurrentPulse);
 	}
@@ -184,7 +184,7 @@ static void _fnStopStep(PIF_stStepMotor *pstOwner)
 	pstOwner->_enState = MS_enBreak;
 
 #ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.btStepMotor) {
+    if (pif_stLogFlag.bt.StepMotor) {
     	pifLog_Printf(LT_enInfo, "evtStopStep(%d, %d)", pstOwner->_unCurrentPulse, pstOwner->_enState);
     }
 #endif
@@ -359,7 +359,7 @@ BOOL pifStepMotorPos_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, uint
     }
 
 #ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.btStepMotor) {
+    if (pif_stLogFlag.bt.StepMotor) {
     	pifLog_Printf(LT_enInfo, "SMP:%u(%u) Start", __LINE__, pstOwner->_usPifId);
     }
 #endif
@@ -384,7 +384,7 @@ void pifStepMotorPos_Stop(PIF_stStepMotor *pstOwner)
     pstOwner->_enState = MS_enReduce;
 
 #ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.btStepMotor) {
+    if (pif_stLogFlag.bt.StepMotor) {
     	pifLog_Printf(LT_enInfo, "SMP:%u(%u) Stop", __LINE__, pstOwner->_usPifId);
     }
 #endif

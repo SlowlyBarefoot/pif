@@ -2,7 +2,9 @@
 #include <string.h>
 
 #include "pif.h"
+#ifndef	__PIF_NO_LOG__
 #include "pifLog.h"
+#endif
 #include "pifTask.h"
 
 
@@ -11,10 +13,6 @@ PIF_enError pif_enError = E_enSuccess;
 volatile uint16_t pif_usTimer1ms = 0;
 volatile uint32_t pif_unTimer1sec = 0L;
 volatile PIF_stDateTime pif_stDateTime;
-
-#ifndef __PIF_NO_LOG__
-PIF_stLogFlag pif_stLogFlag = { .unFlags = 0L };
-#endif
 
 volatile uint32_t pif_unCumulativeTimer1ms = 0L;
 
@@ -26,10 +24,12 @@ PIF_actTimer1us pif_actTimer1us = NULL;
 
 static const uint8_t c_ucDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
+#ifndef __PIF_NO_LOG__
 static const char *c_apcHexChar[2] = {
 		"0123456789abcdef",
 		"0123456789ABCDEF"
 };
+#endif
 
 static uint8_t ucCrc7;
 
@@ -59,12 +59,13 @@ void pif_Loop()
 #endif
 
 #ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.btPerformance) {
+    if (pif_stLogFlag.bt.Performance) {
 		pif_stPerformance._unCount++;
 		if (pif_stPerformance.__ucState) {
         	double fValue = (double)1000 / pif_stPerformance._unCount;
+#ifndef	__PIF_NO_LOG__
         	pifLog_Printf(LT_enInfo, "Performance: %lur/s, %2fus", pif_stPerformance._unCount, fValue);
-
+#endif
         	pif_stPerformance._unCount = 0;
     		pif_stPerformance.__ucState = 0;
         }
@@ -86,10 +87,10 @@ void pif_Loop()
 void pif_sigTimer1ms()
 {
 	uint8_t days;
+#ifndef __PIF_NO_LOG__
 	static uint16_t usTimerPerform = 0;
 
-#ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.btPerformance) {
+    if (pif_stLogFlag.bt.Performance) {
 		usTimerPerform++;
 		if (usTimerPerform >= 1000) {
 			usTimerPerform = 0;
@@ -156,6 +157,8 @@ void pif_ClearError()
 {
 	pif_enError = E_enSuccess;
 }
+
+#ifndef	__PIF_NO_LOG__
 
 /**
  * @fn pif_BinToString
@@ -473,6 +476,8 @@ void pif_Printf(char *pcBuffer, const char *pcFormat, ...)
 	_PrintFormat(pcBuffer, &data, pcFormat);
 	va_end(data);
 }
+
+#endif
 
 /**
  * @fn pifCrc7_Init

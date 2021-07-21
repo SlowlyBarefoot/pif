@@ -75,21 +75,6 @@ typedef struct _PIF_stDateTime
 } PIF_stDateTime;
 
 /**
- * @struct _PIF_stLogFlag
- * @brief 항목별 Log 출력 여부
- */
-typedef union _PIF_stLogFlag
-{
-	uint32_t unFlags;
-	struct {
-		uint32_t btPerformance			: 1;
-		uint32_t btTask					: 1;
-		uint32_t btDutyMotor			: 1;
-		uint32_t btStepMotor			: 1;
-	};
-} PIF_stLogFlag;
-
-/**
  * @struct _PIF_stPidControl
  * @brief PID Control을 계산하기 위한 구조체
  */
@@ -126,10 +111,6 @@ extern volatile uint16_t pif_usTimer1ms;
 extern volatile uint32_t pif_unTimer1sec;
 extern volatile PIF_stDateTime pif_stDateTime;
 
-#ifndef __PIF_NO_LOG__
-extern PIF_stLogFlag pif_stLogFlag;
-#endif
-
 extern volatile uint32_t pif_unCumulativeTimer1ms;
 
 extern PIF_stPerformance pif_stPerformance;
@@ -151,11 +132,15 @@ void pif_Delay1ms(uint16_t usDelay);
 
 void pif_ClearError();
 
+#ifndef	__PIF_NO_LOG__
+
 int pif_BinToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt);
 int pif_DecToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt);
 int pif_HexToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt, BOOL bUpper);
 int pif_FloatToString(char *pcBuf, double dNum, uint16_t usPoint);
 void pif_Printf(char *pcBuffer, const char *pcFormat, ...);
+
+#endif
 
 void pifCrc7_Init();
 void pifCrc7_Calcurate(uint8_t ucData);

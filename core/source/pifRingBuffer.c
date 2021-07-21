@@ -11,7 +11,7 @@ static BOOL _ChopOff(PIF_stRingBuffer *pstOwner, uint16_t usAlloc)
 	uint16_t usLength = pifRingBuffer_GetFillSize(pstOwner);
 	uint16_t usSize, usTail;
 
-	switch (pstOwner->_btChopOff) {
+	switch (pstOwner->_bt.ChopOff) {
 	case RB_CHOP_OFF_CHAR:
 		usSize = 0;
 		usTail = pstOwner->__usTail;
@@ -78,7 +78,7 @@ PIF_stRingBuffer *pifRingBuffer_InitHeap(PIF_usId usPifId, uint16_t usSize)
 	if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
 	pstOwner->_usPifId = usPifId;
 	pstOwner->__psName = NULL;
-    pstOwner->_btStatic = FALSE;
+    pstOwner->_bt.Static = FALSE;
     pstOwner->_usSize = usSize;
     pstOwner->__usHead = 0;
     pstOwner->__usTail = 0;
@@ -124,7 +124,7 @@ PIF_stRingBuffer *pifRingBuffer_InitStatic(PIF_usId usPifId, uint16_t usSize, ch
 	if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
 	pstOwner->_usPifId = usPifId;
 	pstOwner->__psName = NULL;
-    pstOwner->_btStatic = TRUE;
+    pstOwner->_bt.Static = TRUE;
     pstOwner->_usSize = usSize;
     pstOwner->__usHead = 0;
     pstOwner->__usTail = 0;
@@ -147,7 +147,7 @@ fail:
  */
 void pifRingBuffer_Exit(PIF_stRingBuffer *pstOwner)
 {
-	if (pstOwner->_btStatic == FALSE && pstOwner->__pcBuffer) {
+	if (pstOwner->_bt.Static == FALSE && pstOwner->__pcBuffer) {
         free(pstOwner->__pcBuffer);
         pstOwner->__pcBuffer = NULL;
     }
@@ -162,7 +162,7 @@ void pifRingBuffer_Exit(PIF_stRingBuffer *pstOwner)
  */
 BOOL pifRingBuffer_ResizeHeap(PIF_stRingBuffer *pstOwner, uint16_t usSize)
 {
-    if (pstOwner->_btStatic) {
+    if (pstOwner->_bt.Static) {
 		pif_enError = E_enInvalidState;
     	return FALSE;
     }
@@ -199,7 +199,7 @@ void pifRingBuffer_SetName(PIF_stRingBuffer *pstOwner, const char *psName)
  */
 void pifRingBuffer_ChopsOffNone(PIF_stRingBuffer *pstOwner)
 {
-	pstOwner->_btChopOff = RB_CHOP_OFF_NONE;
+	pstOwner->_bt.ChopOff = RB_CHOP_OFF_NONE;
 }
 
 /**
@@ -210,7 +210,7 @@ void pifRingBuffer_ChopsOffNone(PIF_stRingBuffer *pstOwner)
  */
 void pifRingBuffer_ChopsOffChar(PIF_stRingBuffer *pstOwner, char cChar)
 {
-	pstOwner->_btChopOff = RB_CHOP_OFF_CHAR;
+	pstOwner->_bt.ChopOff = RB_CHOP_OFF_CHAR;
 	pstOwner->__cChopOffChar = cChar;
 }
 
@@ -222,7 +222,7 @@ void pifRingBuffer_ChopsOffChar(PIF_stRingBuffer *pstOwner, char cChar)
  */
 void pifRingBuffer_ChopsOffLength(PIF_stRingBuffer *pstOwner, uint16_t usLength)
 {
-	pstOwner->_btChopOff = RB_CHOP_OFF_LENGTH;
+	pstOwner->_bt.ChopOff = RB_CHOP_OFF_LENGTH;
 	pstOwner->__usChopOffLength = usLength;
 }
 

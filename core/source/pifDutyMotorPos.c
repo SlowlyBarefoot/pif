@@ -146,7 +146,7 @@ static void _fnControlPos(PIF_stDutyMotor *pstOwner)
     }
 
 #ifndef __PIF_NO_LOG__
-	if (nLine && pif_stLogFlag.btDutyMotor) {
+	if (nLine && pif_stLogFlag.bt.DutyMotor) {
 		pifLog_Printf(LT_enInfo, "DMP:%u(%u) %s D:%u P:%u", nLine, pstOwner->_usPifId, c_cMotorState[pstOwner->_enState], usTmpDuty, pstPos->_unCurrentPulse);
 	}
 #endif
@@ -341,7 +341,7 @@ BOOL pifDutyMotorPos_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, uint
     (*pstOwner->__actSetDuty)(pstOwner->_usCurrentDuty);
 
 #ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.btDutyMotor) {
+    if (pif_stLogFlag.bt.DutyMotor) {
     	pifLog_Printf(LT_enInfo, "DMP:%u(%u) Start", __LINE__, pstOwner->_usPifId);
     }
 #endif
@@ -366,7 +366,7 @@ void pifDutyMotorPos_Stop(PIF_stDutyMotor *pstOwner)
     pstOwner->_enState = MS_enReduce;
 
 #ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.btDutyMotor) {
+    if (pif_stLogFlag.bt.DutyMotor) {
     	pifLog_Printf(LT_enInfo, "DMP:%u(%u) Stop", __LINE__, pstOwner->_usPifId);
     }
 #endif

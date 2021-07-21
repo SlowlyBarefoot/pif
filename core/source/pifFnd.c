@@ -31,7 +31,7 @@ static void _evtTimerBlinkFinish(void *pvIssuer)
     }
 
     PIF_stFnd *pstOwner = (PIF_stFnd *)pvIssuer;
-    pstOwner->__btBlink ^= 1;
+    pstOwner->__bt.Blink ^= 1;
 }
 
 static void _taskCommon(PIF_stFnd *pstOwner)
@@ -39,7 +39,7 @@ static void _taskCommon(PIF_stFnd *pstOwner)
 	uint8_t ch, seg = 0;
 	BOOL bPoint = FALSE;
 
-	if (!pstOwner->__btRun) return;
+	if (!pstOwner->__bt.Run) return;
 
 	if (pif_usTimer1ms > pstOwner->__usPretimeMs) {
 		if (pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return;
@@ -49,7 +49,7 @@ static void _taskCommon(PIF_stFnd *pstOwner)
 	}
 	else return;
 
-	if (!pstOwner->__btBlink) {
+	if (!pstOwner->__bt.Blink) {
 		ch = pstOwner->__pcString[pstOwner->__ucDigitIndex];
 		if (ch & 0x80) {
 			bPoint = TRUE;
@@ -222,7 +222,7 @@ fail:
  */
 void pifFnd_Start(PIF_stFnd *pstOwner)
 {
-	pstOwner->__btRun = TRUE;
+	pstOwner->__bt.Run = TRUE;
 }
 
 /**
@@ -237,10 +237,10 @@ void pifFnd_Stop(PIF_stFnd *pstOwner)
 	for (i = 0; i < pstOwner->_ucDigitSize; i++) {
 		(*pstOwner->__actDisplay)(0, 1 << i);
 	}
-	pstOwner->__btRun = FALSE;
-    if (pstOwner->__btBlink) {
+	pstOwner->__bt.Run = FALSE;
+    if (pstOwner->__bt.Blink) {
 		pifPulse_StopItem(pstOwner->__pstTimerBlink);
-		pstOwner->__btBlink = FALSE;
+		pstOwner->__bt.Blink = FALSE;
     }
 }
 
@@ -280,7 +280,7 @@ fail:
  */
 void pifFnd_BlinkOff(PIF_stFnd *pstOwner)
 {
-	pstOwner->__btBlink = FALSE;
+	pstOwner->__bt.Blink = FALSE;
 	if (pstOwner->__pstTimerBlink) {
 		pifPulse_RemoveItem(s_pstFndTimer, pstOwner->__pstTimerBlink);
 		pstOwner->__pstTimerBlink = NULL;
@@ -324,7 +324,7 @@ fail:
  */
 void pifFnd_SetFillZero(PIF_stFnd *pstOwner, BOOL bFillZero)
 {
-    pstOwner->__btFillZero = bFillZero;
+    pstOwner->__bt.FillZero = bFillZero;
 }
 
 /**
@@ -399,7 +399,7 @@ void pifFnd_SetInterger(PIF_stFnd *pstOwner, int32_t nValue)
     	}
     	sp -= pstOwner->ucSubNumericDigits;
     }
-    if (pstOwner->__btFillZero) {
+    if (pstOwner->__bt.FillZero) {
         for (int p = sp; p >= minus; p--) {
 			uint8_t digit = nValue % 10;
 			pstOwner->__pcString[p] = '0' + digit;

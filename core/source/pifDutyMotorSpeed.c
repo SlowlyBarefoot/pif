@@ -122,7 +122,7 @@ static void _fnControlSpeed(PIF_stDutyMotor *pstOwner)
     }
 
 #ifndef __PIF_NO_LOG__
-	if (nLine && pif_stLogFlag.btDutyMotor) {
+	if (nLine && pif_stLogFlag.bt.DutyMotor) {
 		pifLog_Printf(LT_enInfo, "DMS:%u(%u) %s D:%u", nLine, pstOwner->_usPifId, c_cMotorState[pstOwner->_enState], usTmpDuty);
 	}
 #endif
@@ -320,7 +320,7 @@ BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, ui
     (*pstOwner->__actSetDuty)(pstOwner->_usCurrentDuty);
 
 #ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.btDutyMotor) {
+    if (pif_stLogFlag.bt.DutyMotor) {
     	pifLog_Printf(LT_enInfo, "DMS:%u(%u) Start", __LINE__, pstOwner->_usPifId);
     }
 #endif
@@ -352,7 +352,7 @@ void pifDutyMotorSpeed_Stop(PIF_stDutyMotor *pstOwner)
     }
 
 #ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.btDutyMotor) {
+    if (pif_stLogFlag.bt.DutyMotor) {
     	pifLog_Printf(LT_enInfo, "DMS:%u(%u) Stop OT=%u", __LINE__, pstOwner->_usPifId, pstStage->usFsOverTime);
     }
 #endif
