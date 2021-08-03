@@ -28,7 +28,7 @@ typedef struct _PIF_stRingBuffer
 
 	// Private Member Variable
 	const char *__psName;
-    char *__pcBuffer;
+    uint8_t *__pucBuffer;
     uint16_t __usHead;
     uint16_t __usTail;
     uint16_t __usBackupHead;
@@ -44,12 +44,14 @@ extern "C" {
 #endif
 
 PIF_stRingBuffer *pifRingBuffer_InitHeap(PIF_usId usPifId, uint16_t usSize);
-PIF_stRingBuffer *pifRingBuffer_InitStatic(PIF_usId usPifId, uint16_t usSize, char *pcBuffer);
+PIF_stRingBuffer *pifRingBuffer_InitStatic(PIF_usId usPifId, uint16_t usSize, uint8_t *pucBuffer);
 void pifRingBuffer_Exit(PIF_stRingBuffer *pstOwner);
 
 BOOL pifRingBuffer_ResizeHeap(PIF_stRingBuffer *pstOwner, uint16_t usSize);
 
 void pifRingBuffer_SetName(PIF_stRingBuffer *pstOwner, const char *psName);
+
+uint8_t *pifRingBuffer_GetTailPointer(PIF_stRingBuffer *pstOwner, uint16_t usPos);
 
 void pifRingBuffer_ChopsOffNone(PIF_stRingBuffer *pstOwner);
 void pifRingBuffer_ChopsOffChar(PIF_stRingBuffer *pstOwner, char cChar);
@@ -59,6 +61,7 @@ BOOL pifRingBuffer_IsBuffer(PIF_stRingBuffer *pstOwner);
 BOOL pifRingBuffer_IsEmpty(PIF_stRingBuffer *pstOwner);
 
 uint16_t pifRingBuffer_GetFillSize(PIF_stRingBuffer *pstOwner);
+uint16_t pifRingBuffer_GetLinerSize(PIF_stRingBuffer *pstOwner, uint16_t usPos);
 uint16_t pifRingBuffer_GetRemainSize(PIF_stRingBuffer *pstOwner);
 
 void pifRingBuffer_BackupHead(PIF_stRingBuffer *pstOwner);
@@ -69,7 +72,7 @@ BOOL pifRingBuffer_PutData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16_
 BOOL pifRingBuffer_PutString(PIF_stRingBuffer *pstOwner, char *pcString);
 BOOL pifRingBuffer_GetByte(PIF_stRingBuffer *pstOwner, uint8_t *pucData);
 
-uint16_t pifRingBuffer_CopyToArray(uint8_t *punDst, PIF_stRingBuffer *pstSrc, uint16_t usCount);
+uint16_t pifRingBuffer_CopyToArray(uint8_t *pucDst, uint16_t usCount, PIF_stRingBuffer *pstSrc, uint16_t usPos);
 uint16_t pifRingBuffer_CopyAll(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc, uint16_t usPos);
 BOOL pifRingBuffer_CopyLength(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc, uint16_t usPos, uint16_t usLength);
 

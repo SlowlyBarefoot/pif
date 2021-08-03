@@ -58,7 +58,7 @@ extern "C" {
 
 void pifCollectSignal_Init(const char *c_pcModuleName);
 BOOL pifCollectSignal_InitHeap(const char *c_pcModuleName, uint16_t usSize);
-BOOL pifCollectSignal_InitStatic(const char *c_pcModuleName, uint16_t usSize, char *pcBuffer);
+BOOL pifCollectSignal_InitStatic(const char *c_pcModuleName, uint16_t usSize, uint8_t *pucBuffer);
 void pifCollectSignal_Exit();
 
 void pifCollectSignal_ChangeFlag(uint8_t *pucFlag, uint8_t ucIndex, uint8_t ucFlag);

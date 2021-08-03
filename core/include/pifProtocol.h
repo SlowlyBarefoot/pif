@@ -16,7 +16,7 @@
 #endif
 
 #ifndef PIF_PROTOCOL_TX_ANSWER_SIZE
-#define PIF_PROTOCOL_TX_ANSWER_SIZE	32
+#define PIF_PROTOCOL_TX_ANSWER_SIZE		32
 #endif
 
 // 한 packet을 전부 받는 시간 제한
@@ -156,7 +156,7 @@ typedef struct _PIF_stProtocolTx
 	uint16_t usDataSize;
 	PIF_enProtocolTxState enState;
 	union {
-		uint8_t ucInfo[9];
+		uint8_t ucAll[9];
 		struct {
 			uint16_t usLength;
 			uint16_t usTimeout;
@@ -165,8 +165,8 @@ typedef struct _PIF_stProtocolTx
 			uint8_t ucFlags;
 			uint8_t ucCommand;
 			uint8_t ucPacketId;
-		};
-	};
+		} st;
+	} uiInfo;
 	uint16_t usPos;
 	PIF_stPulseItem *pstTimer;
 } PIF_stProtocolTx;
@@ -188,6 +188,7 @@ typedef struct _PIF_stProtocol
 	uint8_t _ucOwnerId;				// Default : 0xFF
 
 	// Private Member Variable
+	PIF_stComm *__pstComm;
     const PIF_stProtocolQuestion *__pstQuestions;
     PIF_stProtocolRx __stRx;
     PIF_stProtocolTx __stTx;

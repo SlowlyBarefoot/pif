@@ -62,9 +62,9 @@ void pif_Loop()
     if (pif_stLogFlag.bt.Performance) {
 		pif_stPerformance._unCount++;
 		if (pif_stPerformance.__ucState) {
-        	double fValue = (double)1000 / pif_stPerformance._unCount;
+        	uint32_t unValue = 1000000L / pif_stPerformance._unCount;
 #ifndef	__PIF_NO_LOG__
-        	pifLog_Printf(LT_enInfo, "Performance: %lur/s, %2fus", pif_stPerformance._unCount, fValue);
+        	pifLog_Printf(LT_enInfo, "Performance: %lur/s, %uns", pif_stPerformance._unCount, unValue);
 #endif
         	pif_stPerformance._unCount = 0;
     		pif_stPerformance.__ucState = 0;
@@ -147,6 +147,21 @@ void pif_Delay1ms(uint16_t usDelay)
 {
 	uint32_t unLimit = pif_unCumulativeTimer1ms + usDelay;
 	while (pif_unCumulativeTimer1ms != unLimit);
+}
+
+BOOL pif_CheckElapseTime1ms(uint32_t unStartTime, uint16_t ElapseTime)
+{
+	if (unStartTime & 0x80000000) {
+		if (pif_unCumulativeTimer1ms - ElapseTime >= unStartTime) {
+			return TRUE;
+		}
+	}
+	else {
+		if (pif_unCumulativeTimer1ms >= unStartTime + ElapseTime) {
+			return TRUE;
+		}
+	}
+	return FALSE;
 }
 
 /**

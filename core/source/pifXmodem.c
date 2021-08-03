@@ -30,17 +30,13 @@ static void _evtTimerRxTimeout(void *pvIssuer)
 
 	PIF_stXmodem *pstOwner = (PIF_stXmodem *)pvIssuer;
 
-	switch (pstOwner->__stTx.enState) {
-	case XTS_enDelayC:
-		pstOwner->__stTx.enState = XTS_enSendC;
-		break;
-
+	switch (pstOwner->__stTx.ui.enState) {
 	default:
 #ifndef __PIF_NO_LOG__
 		pifLog_Printf(LT_enError, "XM ParsingPacket(Timeout) State:%u Cnt:%u",
 				pstOwner->__stRx.enState, pstOwner->__stRx.usCount);
 #endif
-		pstOwner->__stTx.enState = XTS_enNAK;
+		pstOwner->__stTx.ui.enState = XTS_enNAK;
 		pstOwner->__stRx.enState = XRS_enIdle;
 		break;
 	}
@@ -55,18 +51,20 @@ static void _evtTimerTxTimeout(void *pvIssuer)
 
 	PIF_stXmodem *pstOwner = (PIF_stXmodem *)pvIssuer;
 
-	switch (pstOwner->__stTx.enState) {
+	switch (pstOwner->__stTx.ui.enState) {
 	case XTS_enWaitResponse:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "XM TxTimeout State:%u", pstOwner->__stTx.enState);
+		pifLog_Printf(LT_enWarn, "XM TxTimeout State:%u Count=%u", pstOwner->__stTx.ui.enState, pstOwner->__stRx.usCount);
 #endif
-		pstOwner->__stTx.enState = XTS_enIdle;
-		(*pstOwner->__stTx.evtReceive)(ASCII_NAK, pstOwner->__pucData[1]);
+		pstOwner->__stTx.ui.enState = XTS_enIdle;
+		if (pstOwner->__stTx.evtReceive) {
+			(*pstOwner->__stTx.evtReceive)(ASCII_NAK, pstOwner->__pucData[1]);
+		}
 		break;
 
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "XM TxTimeout State:%u", pstOwner->__stTx.enState);
+		pifLog_Printf(LT_enWarn, "XM TxTimeout State:%u", pstOwner->__stTx.ui.enState);
 #endif
 		break;
 	}
@@ -84,13 +82,13 @@ static const char *c_cPktErr[] = {
 
 #endif
 
-static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_stRingBuffer *pstBuffer)
+static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_actCommReceiveData actReceiveData)
 {
 	PIF_stXmodemPacket *pstPacket = &pstOwner->__stRx.stPacket;
 	uint8_t data;
 	uint16_t crc;
 
-	while (pifRingBuffer_GetByte(pstBuffer, &data)) {
+	while ((*actReceiveData)(pstOwner->__pstComm, &data)) {
 		switch (pstOwner->__stRx.enState)	{
 		case XRS_enIdle:
 			switch (data) {
@@ -99,7 +97,7 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_stRingBuffer *pstBuffer)
 				break;
 
 			case ASCII_SOH:
-				pstOwner->__stTx.enState = XTS_enIdle;
+				pstOwner->__stTx.ui.enState = XTS_enIdle;
 
 				pstOwner->__stRx.usCount = 1;
 				pstOwner->__stRx.enState = XRS_enGetHeader;
@@ -113,7 +111,7 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_stRingBuffer *pstBuffer)
 			case ASCII_EOT:
 				pstOwner->__stRx.enState = XRS_enEOT;
 
-				pstOwner->__stTx.enState = XTS_enACK;
+				pstOwner->__stTx.ui.enState = XTS_enACK;
 				break;
 
 			case ASCII_CAN:
@@ -159,7 +157,7 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_stRingBuffer *pstBuffer)
 					pifPulse_StopItem(pstOwner->__stRx.pstTimer);
 					pstOwner->__stRx.enState = XRS_enSOH;
 
-					pstOwner->__stTx.enState = XTS_enACK;
+					pstOwner->__stTx.ui.enState = XTS_enACK;
 				}
 				else {
 #ifndef __PIF_NO_LOG__
@@ -182,7 +180,7 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_stRingBuffer *pstBuffer)
 			            pifPulse_StopItem(pstOwner->__stRx.pstTimer);
 			            pstOwner->__stRx.enState = XRS_enSOH;
 
-			            pstOwner->__stTx.enState = XTS_enACK;
+			            pstOwner->__stTx.ui.enState = XTS_enACK;
 					}
 					else {
 #ifndef __PIF_NO_LOG__
@@ -206,45 +204,55 @@ fail:
 	pifPulse_StopItem(pstOwner->__stRx.pstTimer);
 	pstOwner->__stRx.enState = XRS_enIdle;
 
-	pstOwner->__stTx.enState = XTS_enNAK;
+	pstOwner->__stTx.ui.enState = XTS_enNAK;
 }
 
-static void _evtParsing(void *pvOwner, PIF_stRingBuffer *pstBuffer)
+static void _evtParsing(void *pvOwner, PIF_actCommReceiveData actReceiveData)
 {
 	PIF_stXmodem *pstOwner = (PIF_stXmodem *)pvOwner;
 	uint8_t data;
 
-	if (pstOwner->__stTx.enState == XTS_enWaitResponse) {
-		if (pifRingBuffer_GetByte(pstBuffer, &data)) {
+	if (pstOwner->__stTx.ui.enState == XTS_enWaitResponse) {
+		if ((*actReceiveData)(pstOwner->__pstComm, &data)) {
 			switch (data) {
 			case ASCII_ACK:
 			case ASCII_NAK:
 			case ASCII_CAN:
 				pifPulse_StopItem(pstOwner->__stTx.pstTimer);
-				pstOwner->__stTx.enState = XTS_enIdle;
-				(*pstOwner->__stTx.evtReceive)(data, pstOwner->__pucData[1]);
+				pstOwner->__stTx.ui.enState = XTS_enIdle;
+				if (pstOwner->__stTx.evtReceive) {
+					(*pstOwner->__stTx.evtReceive)(data, pstOwner->__pucData[1]);
+				}
 				break;
 			}
 		}
 	}
 	else {
-		_ParsingPacket(pstOwner, pstBuffer);
+		_ParsingPacket(pstOwner, actReceiveData);
 
 		switch (pstOwner->__stRx.enState) {
 		case XRS_enC:
-			(*pstOwner->__stTx.evtReceive)(pstOwner->__stRx.enState, 0);
+			if (pstOwner->__stTx.evtReceive) {
+				(*pstOwner->__stTx.evtReceive)(pstOwner->__stRx.enState, 0);
+			}
 			pstOwner->__stRx.enState = XRS_enIdle;
+#ifndef __PIF_NO_LOG__
 			pifLog_Printf(LT_enNone, "C");
+#endif
 			break;
 
 		case XRS_enEOT:
 		case XRS_enCAN:
-			(*pstOwner->__stRx.evtReceive)(pstOwner->__stRx.enState, NULL);
+			if (pstOwner->__stRx.evtReceive) {
+				(*pstOwner->__stRx.evtReceive)(pstOwner->__stRx.enState, NULL);
+			}
 			pstOwner->__stRx.enState = XRS_enIdle;
 			break;
 
 		case XRS_enSOH:
-			(*pstOwner->__stRx.evtReceive)(pstOwner->__stRx.enState, &pstOwner->__stRx.stPacket);
+			if (pstOwner->__stRx.evtReceive) {
+				(*pstOwner->__stRx.evtReceive)(pstOwner->__stRx.enState, &pstOwner->__stRx.stPacket);
+			}
 			pstOwner->__stRx.enState = XRS_enIdle;
 			break;
 
@@ -254,59 +262,63 @@ static void _evtParsing(void *pvOwner, PIF_stRingBuffer *pstBuffer)
 	}
 }
 
-static BOOL _evtSending(void *pvClient, PIF_stRingBuffer *pstBuffer)
+static BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
 {
 	PIF_stXmodem *pstOwner = (PIF_stXmodem *)pvClient;
 	uint16_t usLength;
+	uint8_t ucData;
+	static uint32_t unTimer1ms;
 
-	switch (pstOwner->__stTx.enState) {
+	switch (pstOwner->__stTx.ui.enState) {
 	case XTS_enSendC:
-		if (pifRingBuffer_GetRemainSize(pstBuffer)) {
-			pifRingBuffer_PutByte(pstBuffer, 'C');
-   			if (!pifPulse_StartItem(pstOwner->__stRx.pstTimer, 3000 * 1000L / s_pstXmodemTimer->_unPeriodUs)) {
+		ucData = 'C';
+		if ((*actSendData)(pstOwner->__pstComm, &ucData, 1)) {
 #ifndef __PIF_NO_LOG__
-				pifLog_Printf(LT_enWarn, "XM Not start timer");
-#endif
-			}
 			pifLog_Printf(LT_enNone, "C");
-
-			pstOwner->__stTx.enState = XTS_enDelayC;
-		}
-		return TRUE;
-
-	case XTS_enSending:
-		if (pifRingBuffer_IsEmpty(pstBuffer)) {
-			usLength = pifRingBuffer_GetRemainSize(pstBuffer);
-			if (pstOwner->__stTx.usDataPos + usLength > pstOwner->__usPacketSize) usLength = pstOwner->__usPacketSize - pstOwner->__stTx.usDataPos;
-			if (pifRingBuffer_PutData(pstBuffer, pstOwner->__pucData + pstOwner->__stTx.usDataPos, usLength)) {
-				pstOwner->__stTx.usDataPos += usLength;
-				if (pstOwner->__stTx.usDataPos >= pstOwner->__usPacketSize) {
-					pstOwner->__stTx.enState = XTS_enWaitResponse;
-				}
-				return TRUE;
-			}
+#endif
+			unTimer1ms = pif_unCumulativeTimer1ms;
+			pstOwner->__stTx.ui.enState = XTS_enDelayC;
+			return TRUE;
 		}
 		break;
 
+	case XTS_enDelayC:
+		if (pif_CheckElapseTime1ms(unTimer1ms, 3000)) {			// 3000ms
+			pstOwner->__stTx.ui.enState = XTS_enSendC;
+		}
+		break;
+
+	case XTS_enSending:
+    	usLength = (*actSendData)(pstOwner->__pstComm, pstOwner->__pucData + pstOwner->__stTx.usDataPos,
+    			pstOwner->__usPacketSize - pstOwner->__stTx.usDataPos);
+		pstOwner->__stTx.usDataPos += usLength;
+		if (pstOwner->__stTx.usDataPos >= pstOwner->__usPacketSize) {
+			pstOwner->__stTx.ui.enState = XTS_enWaitResponse;
+		}
+		return TRUE;
+
 	case XTS_enEOT:
-		pifRingBuffer_PutByte(pstBuffer, pstOwner->__stTx.enState);
-		pstOwner->__stTx.enState = XTS_enWaitResponse;
+		if ((*actSendData)(pstOwner->__pstComm, &pstOwner->__stTx.ui.ucState, 1)) {
+			pstOwner->__stTx.ui.enState = XTS_enWaitResponse;
+		}
 		return TRUE;
 
 	case XTS_enCAN:
-		pifRingBuffer_PutByte(pstBuffer, pstOwner->__stTx.enState);
-		if (pstOwner->__stTx.evtReceive) {
-			pstOwner->__stTx.enState = XTS_enWaitResponse;
-		}
-		else {
-			pstOwner->__stTx.enState = XTS_enIdle;
+		if ((*actSendData)(pstOwner->__pstComm, &pstOwner->__stTx.ui.ucState, 1)) {
+			if (pstOwner->__stTx.evtReceive) {
+				pstOwner->__stTx.ui.enState = XTS_enWaitResponse;
+			}
+			else {
+				pstOwner->__stTx.ui.enState = XTS_enIdle;
+			}
 		}
 		return TRUE;
 
 	case XTS_enACK:
 	case XTS_enNAK:
-		pifRingBuffer_PutByte(pstBuffer, pstOwner->__stTx.enState);
-		pstOwner->__stTx.enState = XTS_enIdle;
+		if ((*actSendData)(pstOwner->__pstComm, &pstOwner->__stTx.ui.ucState, 1)) {
+			pstOwner->__stTx.ui.enState = XTS_enIdle;
+		}
 		return TRUE;
 
 	default:
@@ -417,7 +429,7 @@ PIF_stXmodem *pifXmodem_Add(PIF_usId usPifId, PIF_enXmodemType enType)
 
     pstOwner->__enType = enType;
 
-    pstOwner->__stTx.enState = XTS_enIdle;
+    pstOwner->__stTx.ui.enState = XTS_enIdle;
     pifPulse_AttachEvtFinish(pstOwner->__stTx.pstTimer, _evtTimerTxTimeout, pstOwner);
     pstOwner->__stTx.usTimeout = PIF_XMODEM_RESPONSE_TIMEOUT;
 
@@ -468,21 +480,31 @@ void pifXmodem_SetReceiveTimeout(PIF_stXmodem *pstOwner, uint16_t usReceiveTimeo
  */
 void pifXmodem_AttachComm(PIF_stXmodem *pstOwner, PIF_stComm *pstComm)
 {
+	pstOwner->__pstComm = pstComm;
 	pifComm_AttachClient(pstComm, pstOwner);
 	pstComm->evtParsing = _evtParsing;
 	pstComm->evtSending = _evtSending;
 }
 
 /**
- * @fn pifXmodem_AttachEvent
+ * @fn pifXmodem_AttachEvtTxReceive
  * @brief
  * @param pstOwner
  * @param evtTxReceive
- * @param evtRxReceive
  */
-void pifXmodem_AttachEvent(PIF_stXmodem *pstOwner, PIF_evtXmodemTxReceive evtTxReceive, PIF_evtXmodemRxReceive evtRxReceive)
+void pifXmodem_AttachEvtTxReceive(PIF_stXmodem *pstOwner, PIF_evtXmodemTxReceive evtTxReceive)
 {
 	pstOwner->__stTx.evtReceive = evtTxReceive;
+}
+
+/**
+ * @fn pifXmodem_AttachEvtRxReceive
+ * @brief
+ * @param pstOwner
+ * @param evtRxReceive
+ */
+void pifXmodem_AttachEvtRxReceive(PIF_stXmodem *pstOwner, PIF_evtXmodemRxReceive evtRxReceive)
+{
 	pstOwner->__stRx.evtReceive = evtRxReceive;
 }
 
@@ -509,7 +531,7 @@ BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *puc
 		goto fail;
 	}
 
-	if (pstOwner->__stTx.enState != XTS_enIdle) {
+	if (pstOwner->__stTx.ui.enState != XTS_enIdle) {
 		pif_enError = E_enInvalidState;
 		goto fail;
 	}
@@ -540,7 +562,7 @@ BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *puc
 	}
 
 	pstOwner->__stTx.usDataPos = 0;
-	pstOwner->__stTx.enState = XTS_enSending;
+	pstOwner->__stTx.ui.enState = XTS_enSending;
 	if (!pifPulse_StartItem(pstOwner->__stTx.pstTimer, pstOwner->__stTx.usTimeout * 1000L / s_pstXmodemTimer->_unPeriodUs)) {
 #ifndef __PIF_NO_LOG__
 		pifLog_Printf(LT_enWarn, "XM Not start timer");
@@ -550,7 +572,7 @@ BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *puc
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Xmodem:SendData(PN:%u DS:%u S:%u) EC:%d", ucPacketNo, usDataSize, pstOwner->__stTx.enState, pif_enError);
+	pifLog_Printf(LT_enError, "Xmodem:SendData(PN:%u DS:%u S:%u) EC:%d", ucPacketNo, usDataSize, pstOwner->__stTx.ui.enState, pif_enError);
 #endif
 	return FALSE;
 }
@@ -562,7 +584,7 @@ fail:
  */
 void pifXmodem_SendEot(PIF_stXmodem *pstOwner)
 {
-	pstOwner->__stTx.enState = XTS_enEOT;
+	pstOwner->__stTx.ui.enState = XTS_enEOT;
 }
 
 /**
@@ -572,22 +594,15 @@ void pifXmodem_SendEot(PIF_stXmodem *pstOwner)
  */
 void pifXmodem_SendCancel(PIF_stXmodem *pstOwner)
 {
-	pstOwner->__stTx.enState = XTS_enCAN;
+	pstOwner->__stTx.ui.enState = XTS_enCAN;
 }
 
 /**
  * @fn pifXmodem_ReadyReceive
  * @brief
  * @param pstOwner
- * @return
  */
-BOOL pifXmodem_ReadyReceive(PIF_stXmodem *pstOwner)
+void pifXmodem_ReadyReceive(PIF_stXmodem *pstOwner)
 {
-	if (!pstOwner->__stRx.evtReceive) {
-		pif_enError = E_enNotSetEvent;
-		return FALSE;
-	}
-
-	pstOwner->__stTx.enState = XTS_enSendC;
-	return TRUE;
+	pstOwner->__stTx.ui.enState = XTS_enSendC;
 }

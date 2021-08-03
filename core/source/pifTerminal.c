@@ -7,6 +7,7 @@
 
 typedef struct _PIF_stTerminal
 {
+	PIF_stComm *pstComm;
     PIF_stRingBuffer *pstTxBuffer;
     uint8_t ucCharIdx;
     uint8_t ucRxBufferSize;
@@ -34,7 +35,7 @@ const struct {
 };
 
 
-static BOOL _GetDebugString(PIF_stRingBuffer *pstBuffer)
+static BOOL _GetDebugString(PIF_actCommReceiveData actReceiveData)
 {
     BOOL bRes;
     char cTmpChar;
@@ -43,7 +44,7 @@ static BOOL _GetDebugString(PIF_stRingBuffer *pstBuffer)
 
     if (s_stTerminal.pcRxBuffer == NULL) return FALSE;
 
-    if (pifRingBuffer_GetByte(pstBuffer, (uint8_t *)&cTmpChar)) {
+	while ((*actReceiveData)(s_stTerminal.pstComm, (uint8_t *)&cTmpChar)) {
         bRes = 0;
         switch (cTmpChar) {
         case '\b':
@@ -152,12 +153,12 @@ static void _ClearDebugStr()
     }
 }
 
-static void _evtParsing(void *pvClient, PIF_stRingBuffer *pstBuffer)
+static void _evtParsing(void *pvClient, PIF_actCommReceiveData actReceiveData)
 {
 	PIF_stTerminal *pstOwner = (PIF_stTerminal *)pvClient;
     int nStatus = PIF_TERM_CMD_NO_ERROR;
 
-    if (_GetDebugString(pstBuffer)) {
+    if (_GetDebugString(actReceiveData)) {
         nStatus = _ProcessDebugCmd(pstOwner->pcRxBuffer);
 
         _ClearDebugStr();
@@ -188,13 +189,14 @@ static void _evtParsing(void *pvClient, PIF_stRingBuffer *pstBuffer)
     }
 }
 
-static BOOL _evtSending(void *pvClient, PIF_stRingBuffer *pstBuffer)
+static BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
 {
 	PIF_stTerminal *pstOwner = (PIF_stTerminal *)pvClient;
 	uint16_t usLength;
 
 	if (!pifRingBuffer_IsEmpty(pstOwner->pstTxBuffer)) {
-		usLength = pifRingBuffer_CopyAll(pstBuffer, pstOwner->pstTxBuffer, 0);
+    	usLength = (*actSendData)(pstOwner->pstComm, pifRingBuffer_GetTailPointer(pstOwner->pstTxBuffer, 0),
+    			pifRingBuffer_GetLinerSize(pstOwner->pstTxBuffer, 0));
 		pifRingBuffer_Remove(pstOwner->pstTxBuffer, usLength);
 		return TRUE;
 	}
@@ -303,6 +305,7 @@ PIF_stRingBuffer *pifTerminal_GetTxBuffer()
  */
 void pifTerminal_AttachComm(PIF_stComm *pstComm)
 {
+	s_stTerminal.pstComm = pstComm;
 	pifComm_AttachClient(pstComm, &s_stTerminal);
 	pstComm->evtParsing = _evtParsing;
 	pstComm->evtSending = _evtSending;

@@ -49,11 +49,15 @@
 #define ASCII_US	31	// Unit Separator
 
 
-typedef void (*PIF_evtCommParsing)(void *pvClient, PIF_stRingBuffer *pstBuffer);
-typedef BOOL (*PIF_evtCommSending)(void *pvClient, PIF_stRingBuffer *pstBuffer);
+typedef struct _PIF_stComm PIF_stComm;
 
-typedef void (*PIF_actCommReceiveData)(PIF_stRingBuffer *pstBuffer);
-typedef BOOL (*PIF_actCommSendData)(PIF_stRingBuffer *pstBuffer);
+typedef BOOL (*PIF_actCommReceiveData)(PIF_stComm *pstComm, uint8_t *pucData);
+typedef uint16_t (*PIF_actCommSendData)(PIF_stComm *pstComm, uint8_t *pucBuffer, uint16_t usSize);
+
+typedef void (*PIF_evtCommParsing)(void *pvClient, PIF_actCommReceiveData actReceiveData);
+typedef BOOL (*PIF_evtCommSending)(void *pvClient, PIF_actCommSendData actSendData);
+
+typedef uint16_t (*PIF_actCommStartTransfer)();
 
 
 typedef enum _PIF_enCommTxState
@@ -66,7 +70,7 @@ typedef enum _PIF_enCommTxState
  * @class _PIF_stComm
  * @brief
  */
-typedef struct _PIF_stComm
+struct _PIF_stComm
 {
 	// Public Member Variable
 
@@ -88,7 +92,8 @@ typedef struct _PIF_stComm
 	// Private Action Function
 	PIF_actCommReceiveData __actReceiveData;
     PIF_actCommSendData __actSendData;
-} PIF_stComm;
+    PIF_actCommStartTransfer __actStartTransfer;
+};
 
 
 #ifdef __cplusplus
@@ -100,11 +105,13 @@ void pifComm_Exit();
 
 PIF_stComm *pifComm_Add(PIF_usId usPifId);
 
-BOOL pifComm_ResizeRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize);
-BOOL pifComm_ResizeTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize);
+BOOL pifComm_AllocRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize);
+BOOL pifComm_AllocTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize);
 
 void pifComm_AttachClient(PIF_stComm *pstOwner, void *pvClient);
-void pifComm_AttachAction(PIF_stComm *pstOwner, PIF_actCommReceiveData actReceiveData, PIF_actCommSendData actSendData);
+void pifComm_AttachActReceiveData(PIF_stComm *pstOwner, PIF_actCommReceiveData actReceiveData);
+void pifComm_AttachActSendData(PIF_stComm *pstOwner, PIF_actCommSendData actSendData);
+void pifComm_AttachActStartTransfer(PIF_stComm *pstOwner, PIF_actCommStartTransfer actStartTransfer);
 
 uint16_t pifComm_GetRemainSizeOfRxBuffer(PIF_stComm *pstOwner);
 uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner);

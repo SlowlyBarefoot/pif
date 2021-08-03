@@ -260,7 +260,7 @@ uint16_t pifKeypad_taskAll(PIF_stTask *pstTask)
 
 	(void)pstTask;
 
-	if (!s_stKeypad.__pstKey || !s_stKeypad.__actAcquire) return;
+	if (!s_stKeypad.__pstKey || !s_stKeypad.__actAcquire) return 0;
 
 	(*s_stKeypad.__actAcquire)(s_stKeypad.__pusState);
 

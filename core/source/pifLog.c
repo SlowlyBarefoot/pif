@@ -102,10 +102,10 @@ BOOL pifLog_InitHeap(uint16_t usSize)
  * @param pcBuffer
  * @return
  */
-BOOL pifLog_InitStatic(uint16_t usSize, char *pcBuffer)
+BOOL pifLog_InitStatic(uint16_t usSize, uint8_t *pucBuffer)
 {
 	s_stLog.bEnable = TRUE;
-	s_stLog.pstBuffer = pifRingBuffer_InitStatic(PIF_ID_AUTO, usSize, pcBuffer);
+	s_stLog.pstBuffer = pifRingBuffer_InitStatic(PIF_ID_AUTO, usSize, pucBuffer);
 	if (!s_stLog.pstBuffer) return FALSE;
 #ifndef __PIF_NO_TERMINAL__
 	s_stLog.bUseTerminal = FALSE;
@@ -210,15 +210,15 @@ void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
  */
 void pifLog_PrintInBuffer()
 {
-	uint8_t pBuffer[128];
+	uint8_t aucBuffer[128];
 	uint16_t usLength;
 
 	if (!s_stLog.actPrint || !pifRingBuffer_IsBuffer(s_stLog.pstBuffer)) return;
 
 	while (!pifRingBuffer_IsEmpty(s_stLog.pstBuffer)) {
-		usLength = pifRingBuffer_CopyToArray(pBuffer, s_stLog.pstBuffer, 127);
-		pBuffer[usLength] = 0;
-		(*s_stLog.actPrint)((char *)pBuffer);
+		usLength = pifRingBuffer_CopyToArray(aucBuffer, 127, s_stLog.pstBuffer, 0);
+		aucBuffer[usLength] = 0;
+		(*s_stLog.actPrint)((char *)aucBuffer);
 		pifRingBuffer_Remove(s_stLog.pstBuffer, usLength);
 	}
 }

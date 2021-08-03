@@ -56,7 +56,8 @@ typedef enum _PIF_enError
 	E_enWrongData				= 0x06,
 	E_enTimeout					= 0x07,
 	E_enNotSetEvent				= 0x08,
-	E_enCanNotUse				= 0x09
+	E_enCanNotUse				= 0x09,
+	E_enTransferFailed			= 0x0A
 } PIF_enError;
 
 
@@ -129,6 +130,7 @@ void pif_Loop();
 void pif_sigTimer1ms();
 
 void pif_Delay1ms(uint16_t usDelay);
+BOOL pif_CheckElapseTime1ms(uint32_t unStartTime, uint16_t ElapseTime);
 
 void pif_ClearError();
 

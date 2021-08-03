@@ -52,7 +52,7 @@ extern "C" {
 
 void pifLog_Init();
 BOOL pifLog_InitHeap(uint16_t usSize);
-BOOL pifLog_InitStatic(uint16_t usSize, char *pcBuffer);
+BOOL pifLog_InitStatic(uint16_t usSize, uint8_t *pucBuffer);
 void pifLog_Exit();
 
 #ifndef __PIF_NO_TERMINAL__

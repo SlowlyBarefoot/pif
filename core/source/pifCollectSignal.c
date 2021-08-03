@@ -145,11 +145,11 @@ BOOL pifCollectSignal_InitHeap(const char *c_pcModuleName, uint16_t usSize)
  * @param pcBuffer
  * @return
  */
-BOOL pifCollectSignal_InitStatic(const char *c_pcModuleName, uint16_t usSize, char *pcBuffer)
+BOOL pifCollectSignal_InitStatic(const char *c_pcModuleName, uint16_t usSize, uint8_t *pucBuffer)
 {
 	pifCollectSignal_Init(c_pcModuleName);
 
-	s_stCollectSignal.pstBuffer = pifRingBuffer_InitStatic(PIF_ID_AUTO, usSize, pcBuffer);
+	s_stCollectSignal.pstBuffer = pifRingBuffer_InitStatic(PIF_ID_AUTO, usSize, pucBuffer);
 	if (!s_stCollectSignal.pstBuffer) return FALSE;
 	pifRingBuffer_ChopsOffChar(s_stCollectSignal.pstBuffer, '#');
 	s_stCollectSignal.enMethod = CSM_enBuffer;
@@ -360,7 +360,7 @@ uint16_t pifCollectSignal_taskAll(PIF_stTask *pstTask)
 		usSize = pifRingBuffer_GetFillSize(s_stCollectSignal.pstBuffer);
 		usLength = PIF_LOG_LINE_SIZE;
 		if (usSize > usLength) {
-			pifRingBuffer_CopyToArray(acTmpBuf, s_stCollectSignal.pstBuffer, usLength);
+			pifRingBuffer_CopyToArray(acTmpBuf, usLength, s_stCollectSignal.pstBuffer, 0);
 			while (usLength) {
 				if (acTmpBuf[usLength - 1] == '\n') {
 					acTmpBuf[usLength] = 0;
@@ -374,7 +374,7 @@ uint16_t pifCollectSignal_taskAll(PIF_stTask *pstTask)
 			pifLog_Printf(LT_enVcd, (char *)acTmpBuf);
 		}
 		else {
-			pifRingBuffer_CopyToArray(acTmpBuf, s_stCollectSignal.pstBuffer, usSize);
+			pifRingBuffer_CopyToArray(acTmpBuf, usSize, s_stCollectSignal.pstBuffer, 0);
 			acTmpBuf[usSize] = 0;
 			pifRingBuffer_Remove(s_stCollectSignal.pstBuffer, usSize);
 			pifLog_Printf(LT_enVcd, (char *)acTmpBuf);
