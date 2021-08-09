@@ -561,7 +561,6 @@ PIF_stProtocol *pifProtocol_Add(PIF_usId usPifId, PIF_enProtocolType enType,
     pstOwner->__pstQuestions = pstQuestions;
     pstOwner->_usPifId = usPifId;
     pstOwner->__ucPacketId = 0x20;
-    pstOwner->_ucOwnerId = 0xFF;
     pstOwner->__stRx.usPacketSize = 10 + PIF_PROTOCOL_RX_PACKET_SIZE;
 
     s_ucProtocolPos = s_ucProtocolPos + 1;
@@ -664,29 +663,6 @@ void pifProtocol_AttachComm(PIF_stProtocol *pstOwner, PIF_stComm *pstComm)
 	pstComm->evtSending = _evtSending;
 }
 
-/**
- * @fn pifProtocol_SetOwnerId
- * @brief
- * @param pvOwner
- * @param ucOwnerId
- * @return
- */
-BOOL pifProtocol_SetOwnerId(PIF_stProtocol *pstOwner, uint8_t ucOwnerId)
-{
-	if (ucOwnerId < 0x20) {
-		pif_enError = E_enInvalidParam;
-		goto fail;
-	}
-	pstOwner->_ucOwnerId = ucOwnerId;
-	return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PTC(%u) SetOwnerId(I:%u) EC:%d", pstOwner->_usPifId, ucOwnerId, pif_enError);
-#endif
-	return FALSE;
-}
-
 static BOOL _MakeRequest(PIF_stProtocol *pstOwner, uint16_t usDataSize)
 {
 	uint16_t usLength;
@@ -695,7 +671,7 @@ static BOOL _MakeRequest(PIF_stProtocol *pstOwner, uint16_t usDataSize)
 	uint8_t ucPacketId = 0, ucData;
 	const PIF_stProtocolRequest *pstTable = pstOwner->__stTx.pstRequest;
 
-	pifRingBuffer_BackupHead(pstOwner->__stTx.pstAnswerBuffer);
+	pifRingBuffer_BackupHead(pstOwner->__stTx.pstRequestBuffer);
 
 	uint16_t usCount = 0;
 	for (uint16_t i = 0; i < usDataSize; i++) {
@@ -760,7 +736,7 @@ static BOOL _MakeRequest(PIF_stProtocol *pstOwner, uint16_t usDataSize)
 	return TRUE;
 
 fail:
-	pifRingBuffer_RestoreHead(pstOwner->__stTx.pstAnswerBuffer);
+	pifRingBuffer_RestoreHead(pstOwner->__stTx.pstRequestBuffer);
 	if (!pif_enError) pif_enError = E_enOverflowBuffer;
 	return FALSE;
 }

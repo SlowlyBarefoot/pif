@@ -1,4 +1,3 @@
-#include <stdarg.h>
 #include <string.h>
 
 #include "pif.h"
@@ -22,14 +21,10 @@ PIF_usId pif_usPifId = 1;
 
 PIF_actTimer1us pif_actTimer1us = NULL;
 
-static const uint8_t c_ucDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+const char *pif_pcHexUpperChar = "0123456789ABCDEF";
+const char *pif_pcHexLowerChar = "0123456789abcdef";
 
-#ifndef __PIF_NO_LOG__
-static const char *c_apcHexChar[2] = {
-		"0123456789abcdef",
-		"0123456789ABCDEF"
-};
-#endif
+static const uint8_t c_ucDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
 static uint8_t ucCrc7;
 
@@ -73,9 +68,9 @@ void pif_Loop()
 #endif
 
 #ifdef __PIF_DEBUG__
-    if (ucSec != pif_stDateTime.ucSec) {
+    if (ucSec != pif_stDateTime.ucSecond) {
     	pifTask_Print();
-    	ucSec = pif_stDateTime.ucSec;
+    	ucSec = pif_stDateTime.ucSecond;
     }
 #endif
 }
@@ -87,6 +82,7 @@ void pif_Loop()
 void pif_sigTimer1ms()
 {
 	uint8_t days;
+	uint16_t year;
 #ifndef __PIF_NO_LOG__
 	static uint16_t usTimerPerform = 0;
 
@@ -105,9 +101,9 @@ void pif_sigTimer1ms()
         pif_usTimer1ms = 0;
 
         pif_unTimer1sec++;
-    	pif_stDateTime.ucSec++;
-    	if (pif_stDateTime.ucSec >= 60) {
-    		pif_stDateTime.ucSec = 0;
+    	pif_stDateTime.ucSecond++;
+    	if (pif_stDateTime.ucSecond >= 60) {
+    		pif_stDateTime.ucSecond = 0;
     		pif_stDateTime.ucMinute++;
     		if (pif_stDateTime.ucMinute >= 60) {
     			pif_stDateTime.ucMinute = 0;
@@ -117,9 +113,10 @@ void pif_sigTimer1ms()
     				pif_stDateTime.ucDay++;
     				days = c_ucDaysInMonth[pif_stDateTime.ucMonth - 1];
     				if (pif_stDateTime.ucMonth == 2) {
-    					if (pif_stDateTime.usYear / 4 == 0) {
-    						if (pif_stDateTime.usYear / 100 == 0) {
-    							if (pif_stDateTime.usYear / 400 == 0) days++;
+    					year = 2000 + pif_stDateTime.ucYear;
+    					if (year / 4 == 0) {
+    						if (year / 100 == 0) {
+    							if (year / 400 == 0) days++;
     						}
     						else days++;
     					}
@@ -129,7 +126,7 @@ void pif_sigTimer1ms()
     					pif_stDateTime.ucMonth++;
     					if (pif_stDateTime.ucMonth > 12) {
     						pif_stDateTime.ucMonth = 1;
-    						pif_stDateTime.usYear++;
+    						pif_stDateTime.ucYear++;
     					}
     				}
     			}
@@ -278,11 +275,12 @@ int pif_HexToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt, BOOL bUpper)
 	int i, nIdx = 0;
 	BOOL bFirst;
     uint32_t unTmpVal;
+    const char *pcHexChar = bUpper ? pif_pcHexUpperChar : pif_pcHexLowerChar;
 
     if (usStrCnt) {
     	for (i = (usStrCnt - 1) * 4; i >= 0; i -= 4) {
     		unTmpVal = (unVal >> i) & 0x0F;
-    		pcBuf[nIdx++] = c_apcHexChar[bUpper][unTmpVal];
+    		pcBuf[nIdx++] = pcHexChar[unTmpVal];
     	}
     }
     else if (unVal > 0) {
@@ -290,7 +288,7 @@ int pif_HexToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt, BOOL bUpper)
     	for (i = 28; i >= 0; i -= 4) {
     		unTmpVal = (unVal >> i) & 0x0F;
     		if (!bFirst || unTmpVal) {
-    			pcBuf[nIdx++] = c_apcHexChar[bUpper][unTmpVal];
+    			pcBuf[nIdx++] = pcHexChar[unTmpVal];
     			bFirst = FALSE;
     		}
     	}
@@ -332,13 +330,13 @@ int pif_FloatToString(char *pcBuf, double dNum, uint16_t usPoint)
 }
 
 /**
- * @fn _PrintFormat
+ * @fn pif_PrintFormat
  * @brief
  * @param pcBuffer
  * @param pstData
  * @param pcStr
  */
-void _PrintFormat(char *pcBuffer, va_list *pstData, const char *pcFormat)
+void pif_PrintFormat(char *pcBuffer, va_list *pstData, const char *pcFormat)
 {
 	unsigned int unVal;
 	int nSignVal;
@@ -488,7 +486,7 @@ void pif_Printf(char *pcBuffer, const char *pcFormat, ...)
 	va_list data;
 
 	va_start(data, pcFormat);
-	_PrintFormat(pcBuffer, &data, pcFormat);
+	pif_PrintFormat(pcBuffer, &data, pcFormat);
 	va_end(data);
 }
 

@@ -49,7 +49,7 @@ static void _PrintTime()
     static char acTmpBuf[20];
 
 	acTmpBuf[nOffset++] = '\n';
-	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucSec, 2);
+	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucSecond, 2);
 	acTmpBuf[nOffset++] = '.';
 	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_usTimer1ms, 3);
 	acTmpBuf[nOffset++] = ' ';
@@ -180,7 +180,6 @@ void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
     static char acTmpBuf[PIF_LOG_LINE_SIZE];
     static uint8_t nMinute = 255;
     const char cType[] = { 'I', 'W', 'E', 'C' };
-    extern void _PrintFormat(char *pcBuffer, va_list *pstData, const char *pcFormat);
 
     if (enType >= LT_enInfo) {
         if (nMinute != pif_stDateTime.ucMinute) {
@@ -189,7 +188,7 @@ void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
     	}
 
     	acTmpBuf[nOffset++] = '\n';
-		nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucSec, 2);
+		nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucSecond, 2);
     	acTmpBuf[nOffset++] = '.';
 		nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_usTimer1ms, 3);
     	acTmpBuf[nOffset++] = ' ';
@@ -198,7 +197,7 @@ void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
     }
 
 	va_start(data, pcFormat);
-	_PrintFormat(acTmpBuf + nOffset, &data, pcFormat);
+	pif_PrintFormat(acTmpBuf + nOffset, &data, pcFormat);
 	va_end(data);
 
 	_PrintLog(acTmpBuf, enType == LT_enVcd);

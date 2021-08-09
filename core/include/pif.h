@@ -2,6 +2,7 @@
 #define PIF_H
 
 
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -67,12 +68,13 @@ typedef enum _PIF_enError
  */
 typedef struct _PIF_stDateTime
 {
-    uint16_t usYear;
+    uint8_t ucYear;
     uint8_t ucMonth;
     uint8_t ucDay;
     uint8_t ucHour;
     uint8_t ucMinute;
-    uint8_t ucSec;
+    uint8_t ucSecond;
+    uint16_t usMilisecond;
 } PIF_stDateTime;
 
 /**
@@ -120,6 +122,9 @@ extern PIF_usId pif_usPifId;
 
 extern PIF_actTimer1us pif_actTimer1us;
 
+extern const char *pif_pcHexUpperChar;
+extern const char *pif_pcHexLowerChar;
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -140,6 +145,7 @@ int pif_BinToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt);
 int pif_DecToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt);
 int pif_HexToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt, BOOL bUpper);
 int pif_FloatToString(char *pcBuf, double dNum, uint16_t usPoint);
+void pif_PrintFormat(char *pcBuffer, va_list *pstData, const char *pcFormat);
 void pif_Printf(char *pcBuffer, const char *pcFormat, ...);
 
 #endif

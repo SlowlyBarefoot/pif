@@ -67,8 +67,8 @@ static void _PrintHeader()
 	int i;
 
 	pifLog_Printf(LT_enVcd, "\n$date\n");
-	pifLog_Printf(LT_enVcd, "\t%u-%u-%u %u:%u:%u\n", pif_stDateTime.usYear, pif_stDateTime.ucMinute, pif_stDateTime.ucDay,
-			pif_stDateTime.ucHour, pif_stDateTime.ucMinute, pif_stDateTime.ucSec);
+	pifLog_Printf(LT_enVcd, "\t%u-%u-%u %u:%u:%u\n", pif_stDateTime.ucYear, pif_stDateTime.ucMinute, pif_stDateTime.ucDay,
+			pif_stDateTime.ucHour, pif_stDateTime.ucMinute, pif_stDateTime.ucSecond);
 	pifLog_Printf(LT_enVcd, "$end\n");
 
 	pifLog_Printf(LT_enVcd, "$version\n");

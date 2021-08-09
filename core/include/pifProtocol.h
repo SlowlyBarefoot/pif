@@ -185,7 +185,6 @@ typedef struct _PIF_stProtocol
 	// Read-only Member Variable
     PIF_usId _usPifId;
     PIF_enProtocolType _enType;
-	uint8_t _ucOwnerId;				// Default : 0xFF
 
 	// Private Member Variable
 	PIF_stComm *__pstComm;
@@ -212,8 +211,6 @@ BOOL pifProtocol_ResizeTxRequest(PIF_stProtocol *pstOwner, uint16_t usTxRequestS
 BOOL pifProtocol_ResizeTxResponse(PIF_stProtocol *pstOwner, uint16_t usTxResponseSize);
 
 void pifProtocol_AttachComm(PIF_stProtocol *pstOwner, PIF_stComm *pstComm);
-
-BOOL pifProtocol_SetOwnerId(PIF_stProtocol *pstOwner, uint8_t ucOwnerId);
 
 BOOL pifProtocol_MakeRequest(PIF_stProtocol *pstOwner, const PIF_stProtocolRequest *pstRequest, uint8_t *pucData, uint16_t usDataSize);
 BOOL pifProtocol_MakeAnswer(PIF_stProtocol *pstOwner, PIF_stProtocolPacket *pstQuestion, uint8_t enFlags,
