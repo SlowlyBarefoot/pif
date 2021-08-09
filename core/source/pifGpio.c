@@ -104,7 +104,7 @@ PIF_stGpio *pifGpio_AddIn(PIF_usId usPifId, uint8_t ucCount, PIF_actGpioIn actIn
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->ucGpioCount = ucCount;
-    pstOwner->__actIn = actIn;
+    pstOwner->__ui.actIn = actIn;
 
     s_ucGpioPos = s_ucGpioPos + 1;
     return pstOwner;
@@ -142,7 +142,7 @@ PIF_stGpio *pifGpio_AddOut(PIF_usId usPifId, uint8_t ucCount, PIF_actGpioOut act
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->ucGpioCount = ucCount;
-    pstOwner->__actOut = actOut;
+    pstOwner->__ui.actOut = actOut;
 
     s_ucGpioPos = s_ucGpioPos + 1;
     return pstOwner;
@@ -162,7 +162,7 @@ fail:
  */
 uint8_t pifGpio_ReadAll(PIF_stGpio *pstOwner)
 {
-	return pstOwner->__actIn(pstOwner->_usPifId);
+	return pstOwner->__ui.actIn(pstOwner->_usPifId);
 }
 
 /**
@@ -174,7 +174,7 @@ uint8_t pifGpio_ReadAll(PIF_stGpio *pstOwner)
  */
 SWITCH pifGpio_ReadBit(PIF_stGpio *pstOwner, uint8_t ucIndex)
 {
-	return (pstOwner->__actIn(pstOwner->_usPifId) >> ucIndex) & 1;
+	return (pstOwner->__ui.actIn(pstOwner->_usPifId) >> ucIndex) & 1;
 }
 
 /**
@@ -186,7 +186,7 @@ SWITCH pifGpio_ReadBit(PIF_stGpio *pstOwner, uint8_t ucIndex)
 void pifGpio_WriteAll(PIF_stGpio *pstOwner, uint8_t ucState)
 {
 	pstOwner->__ucState = ucState;
-	pstOwner->__actOut(pstOwner->_usPifId, ucState);
+	pstOwner->__ui.actOut(pstOwner->_usPifId, ucState);
 }
 
 /**
@@ -204,7 +204,7 @@ void pifGpio_WriteBit(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState)
 	else {
 		pstOwner->__ucState &= ~(1 << ucIndex);
 	}
-	pstOwner->__actOut(pstOwner->_usPifId, pstOwner->__ucState);
+	pstOwner->__ui.actOut(pstOwner->_usPifId, pstOwner->__ucState);
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__

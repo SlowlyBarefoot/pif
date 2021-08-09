@@ -64,15 +64,15 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 
     PIF_stDotMatrix *pstOwner = (PIF_stDotMatrix *)pvIssuer;
 
-    switch (pstOwner->__uiShift.bt.Direction) {
+    switch (pstOwner->__ui.btShift.Direction) {
     case DMS_enLeft:
         if (pstOwner->__usPositionX < pstOwner->__pstPattern[pstOwner->__ucPatternIndex].ucColSize - pstOwner->__usColSize) {
         	pstOwner->__usPositionX++;
         }
-        else if (pstOwner->__uiShift.bt.Method == DMS_btPingPongHor) {
-        	pstOwner->__uiShift.bt.Direction = DMS_enRight;
+        else if (pstOwner->__ui.btShift.Method == DMS_btPingPongHor) {
+        	pstOwner->__ui.btShift.Direction = DMS_enRight;
 		}
-        else if (pstOwner->__uiShift.bt.Method == DMS_btRepeatHor) {
+        else if (pstOwner->__ui.btShift.Method == DMS_btRepeatHor) {
         	pstOwner->__usPositionX = 0;
 		}
 		else {
@@ -87,10 +87,10 @@ static void _evtTimerShiftFinish(void *pvIssuer)
         if (pstOwner->__usPositionX) {
         	pstOwner->__usPositionX--;
         }
-        else if (pstOwner->__uiShift.bt.Method == DMS_btPingPongHor) {
-        	pstOwner->__uiShift.bt.Direction = DMS_enLeft;
+        else if (pstOwner->__ui.btShift.Method == DMS_btPingPongHor) {
+        	pstOwner->__ui.btShift.Direction = DMS_enLeft;
 		}
-        else if (pstOwner->__uiShift.bt.Method == DMS_btRepeatHor) {
+        else if (pstOwner->__ui.btShift.Method == DMS_btRepeatHor) {
         	pstOwner->__usPositionX = pstOwner->__pstPattern[pstOwner->__ucPatternIndex].ucColSize - pstOwner->__usColSize;
 		}
 		else {
@@ -105,10 +105,10 @@ static void _evtTimerShiftFinish(void *pvIssuer)
         if (pstOwner->__usPositionY < pstOwner->__pstPattern[pstOwner->__ucPatternIndex].ucRowSize - pstOwner->__usRowSize) {
         	pstOwner->__usPositionY++;
         }
-        else if (pstOwner->__uiShift.bt.Method == DMS_btPingPongVer) {
-        	pstOwner->__uiShift.bt.Direction = DMS_enDown;
+        else if (pstOwner->__ui.btShift.Method == DMS_btPingPongVer) {
+        	pstOwner->__ui.btShift.Direction = DMS_enDown;
 		}
-        else if (pstOwner->__uiShift.bt.Method == DMS_btRepeatVer) {
+        else if (pstOwner->__ui.btShift.Method == DMS_btRepeatVer) {
         	pstOwner->__usPositionY = 0;
 		}
 		else {
@@ -123,10 +123,10 @@ static void _evtTimerShiftFinish(void *pvIssuer)
         if (pstOwner->__usPositionY) {
         	pstOwner->__usPositionY--;
         }
-        else if (pstOwner->__uiShift.bt.Method == DMS_btPingPongVer) {
-        	pstOwner->__uiShift.bt.Direction = DMS_enUp;
+        else if (pstOwner->__ui.btShift.Method == DMS_btPingPongVer) {
+        	pstOwner->__ui.btShift.Direction = DMS_enUp;
 		}
-        else if (pstOwner->__uiShift.bt.Method == DMS_btRepeatVer) {
+        else if (pstOwner->__ui.btShift.Method == DMS_btRepeatVer) {
         	pstOwner->__usPositionY = pstOwner->__pstPattern[pstOwner->__ucPatternIndex].ucRowSize - pstOwner->__usRowSize;
 		}
 		else {
@@ -546,7 +546,7 @@ BOOL pifDotMatrix_ShiftOn(PIF_stDotMatrix *pstOwner, PIF_enDotMatrixShift enShif
 		pifPulse_AttachEvtFinish(pstOwner->__pstTimerShift, _evtTimerShiftFinish, pstOwner);
 	}
 	if(!pifPulse_StartItem(pstOwner->__pstTimerShift, usPeriodMs * 1000L / s_pstDotMatrixTimer->_unPeriodUs)) return FALSE;
-	pstOwner->__uiShift.enAll = enShift;
+	pstOwner->__ui.enShift = enShift;
 	pstOwner->__usShiftCount = usCount;
 	return TRUE;
 
@@ -565,7 +565,7 @@ fail:
 void pifDotMatrix_ShiftOff(PIF_stDotMatrix *pstOwner)
 {
 	if (pstOwner->__pstTimerShift) {
-		pstOwner->__uiShift.enAll = DMS_enNone;
+		pstOwner->__ui.enShift = DMS_enNone;
 		pifPulse_StopItem(pstOwner->__pstTimerShift);
 		pstOwner->__usPositionX = 0;
 		pstOwner->__usPositionY = 0;

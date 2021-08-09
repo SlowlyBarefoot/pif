@@ -45,9 +45,9 @@ typedef struct _PIF_stGpio
 
 	// Private Action Function
 	union {
-		PIF_actGpioIn __actIn;
-		PIF_actGpioOut __actOut;
-	};
+		PIF_actGpioIn actIn;
+		PIF_actGpioOut actOut;
+	} __ui;
 } PIF_stGpio;
 
 

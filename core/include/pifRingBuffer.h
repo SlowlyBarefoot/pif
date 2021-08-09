@@ -33,9 +33,9 @@ typedef struct _PIF_stRingBuffer
     uint16_t __usTail;
     uint16_t __usBackupHead;
     union {
-		char __cChopOffChar;
-		uint16_t __usChopOffLength;
-    };
+		char cChopOffChar;
+		uint16_t usChopOffLength;
+    } __ui;
 } PIF_stRingBuffer;
 
 

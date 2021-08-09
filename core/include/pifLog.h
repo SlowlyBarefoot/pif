@@ -9,7 +9,7 @@
 
 
 #ifndef PIF_LOG_LINE_SIZE
-#define PIF_LOG_LINE_SIZE	128
+#define PIF_LOG_LINE_SIZE	80
 #endif
 
 

@@ -156,7 +156,7 @@ typedef struct _PIF_stProtocolTx
 	uint16_t usDataSize;
 	PIF_enProtocolTxState enState;
 	union {
-		uint8_t ucAll[9];
+		uint8_t ucInfo[9];
 		struct {
 			uint16_t usLength;
 			uint16_t usTimeout;
@@ -165,8 +165,8 @@ typedef struct _PIF_stProtocolTx
 			uint8_t ucFlags;
 			uint8_t ucCommand;
 			uint8_t ucPacketId;
-		} st;
-	} uiInfo;
+		} stInfo;
+	} ui;
 	uint16_t usPos;
 	PIF_stPulseItem *pstTimer;
 } PIF_stProtocolTx;

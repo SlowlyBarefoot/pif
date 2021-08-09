@@ -65,15 +65,15 @@ typedef struct _PIF_stSensorDigital
     PIF_enSensorDigitalEventType __enEventType;
     union {
     	struct {
-    		uint16_t __usPeriod;
-    	    PIF_stPulseItem *__pstTimerPeriod;
-    	};
-		uint16_t __usThreshold;
+    		uint16_t usPeriod;
+    	    PIF_stPulseItem *pstTimerPeriod;
+    	} stP;
+		uint16_t usThreshold;
     	struct {
-			uint16_t __usThresholdLow;
-			uint16_t __usThresholdHigh;
-    	};
-    };
+			uint16_t usThresholdLow;
+			uint16_t usThresholdHigh;
+    	} stT;
+    } __ui;
     uint16_t __usCurrLevel;
     uint16_t __usPrevLevel;
 

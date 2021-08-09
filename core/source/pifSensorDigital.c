@@ -59,14 +59,14 @@ static void _taskCommon(PIF_stSensorDigital *pstOwner)
 
    	switch (pstOwner->__enEventType) {
    	case SDET_enThreshold1P:
-   		swState = pstOwner->__usCurrLevel >= pstOwner->__usThreshold;
+   		swState = pstOwner->__usCurrLevel >= pstOwner->__ui.usThreshold;
    		break;
 
    	case SDET_enThreshold2P:
-   		if (pstOwner->__usCurrLevel <= pstOwner->__usThresholdLow) {
+   		if (pstOwner->__usCurrLevel <= pstOwner->__ui.stT.usThresholdLow) {
    			swState = OFF;
    		}
-   		else if (pstOwner->__usCurrLevel >= pstOwner->__usThresholdHigh) {
+   		else if (pstOwner->__usCurrLevel >= pstOwner->__ui.stT.usThresholdHigh) {
    			swState = ON;
    		}
    		else {
@@ -165,8 +165,8 @@ void pifSensorDigital_Exit()
 					pstFilter->apusBuffer = NULL;
 				}
         	}
-        	if (pstOwner->__pstTimerPeriod) {
-        		pifPulse_RemoveItem(s_pstSensorDigitalTimer, pstOwner->__pstTimerPeriod);
+        	if (pstOwner->__ui.stP.pstTimerPeriod) {
+        		pifPulse_RemoveItem(s_pstSensorDigitalTimer, pstOwner->__ui.stP.pstTimerPeriod);
         	}
         }
         free(s_pstSensorDigital);
@@ -227,9 +227,9 @@ BOOL pifSensorDigital_AttachEvtPeriod(PIF_stSensor *pstSensor, PIF_evtSensorDigi
 {
 	PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pstSensor;
 
-	pstOwner->__pstTimerPeriod = pifPulse_AddItem(s_pstSensorDigitalTimer, PT_enRepeat);
-    if (!pstOwner->__pstTimerPeriod) return FALSE;
-    pifPulse_AttachEvtFinish(pstOwner->__pstTimerPeriod, _evtTimerPeriodFinish, pstOwner);
+	pstOwner->__ui.stP.pstTimerPeriod = pifPulse_AddItem(s_pstSensorDigitalTimer, PT_enRepeat);
+    if (!pstOwner->__ui.stP.pstTimerPeriod) return FALSE;
+    pifPulse_AttachEvtFinish(pstOwner->__ui.stP.pstTimerPeriod, _evtTimerPeriodFinish, pstOwner);
     pstOwner->__enEventType = SDET_enPeriod;
     pstOwner->__evtPeriod = evtPeriod;
 	return TRUE;
@@ -244,7 +244,7 @@ BOOL pifSensorDigital_AttachEvtPeriod(PIF_stSensor *pstSensor, PIF_evtSensorDigi
  */
 BOOL pifSensorDigital_StartPeriod(PIF_stSensor *pstSensor, uint16_t usPeriod)
 {
-	return pifPulse_StartItem(((PIF_stSensorDigital *)pstSensor)->__pstTimerPeriod, usPeriod);
+	return pifPulse_StartItem(((PIF_stSensorDigital *)pstSensor)->__ui.stP.pstTimerPeriod, usPeriod);
 }
 
 /**
@@ -254,7 +254,7 @@ BOOL pifSensorDigital_StartPeriod(PIF_stSensor *pstSensor, uint16_t usPeriod)
  */
 void pifSensorDigital_StopPeriod(PIF_stSensor *pstSensor)
 {
-	pifPulse_StopItem(((PIF_stSensorDigital *)pstSensor)->__pstTimerPeriod);
+	pifPulse_StopItem(((PIF_stSensorDigital *)pstSensor)->__ui.stP.pstTimerPeriod);
 }
 
 /**
@@ -268,7 +268,7 @@ void pifSensorDigital_SetEventThreshold1P(PIF_stSensor *pstSensor, uint16_t usTh
 	PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pstSensor;
 
 	pstOwner->__enEventType = SDET_enThreshold1P;
-	pstOwner->__usThreshold = usThreshold;
+	pstOwner->__ui.usThreshold = usThreshold;
 }
 
 /**
@@ -283,8 +283,8 @@ void pifSensorDigital_SetEventThreshold2P(PIF_stSensor *pstSensor, uint16_t usTh
 	PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pstSensor;
 
 	pstOwner->__enEventType = SDET_enThreshold2P;
-    pstOwner->__usThresholdLow = usThresholdLow;
-    pstOwner->__usThresholdHigh = usThresholdHigh;
+    pstOwner->__ui.stT.usThresholdLow = usThresholdLow;
+    pstOwner->__ui.stT.usThresholdHigh = usThresholdHigh;
 }
 
 /**

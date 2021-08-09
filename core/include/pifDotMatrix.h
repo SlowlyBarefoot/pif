@@ -69,12 +69,12 @@ typedef struct _PIF_stDotMatrix
 	} __bt;
 
 	union {
-		PIF_enDotMatrixShift enAll;
+		PIF_enDotMatrixShift enShift;
 		struct {
 			uint8_t Direction	: 4;	// 2 : Left, 3 : Right, 4 : Up, 5 : Down
 			uint8_t Method		: 4;	// 0 : Off, 2 : Repeat Hor, 3 : Repeat Ver, 4 : PingPong Hor, 5 : PingPong Ver
-		} bt;
-	} __uiShift;
+		} btShift;
+	} __ui;
 
     uint16_t __usColBytes;
     uint16_t __usTotalBytes;

@@ -297,9 +297,9 @@ static void _evtParsing(void *pvOwner, PIF_actCommReceiveData actReceiveData)
     	    	}
 #endif
 
-    	    	if (pstOwner->__stTx.uiInfo.st.ucCommand == pstPacket->ucCommand && (pstOwner->_enType == PT_enSmall ||
-    	    			pstOwner->__stTx.uiInfo.st.ucPacketId == pstPacket->ucPacketId)) {
-    				pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.uiInfo.st.usLength);
+    	    	if (pstOwner->__stTx.ui.stInfo.ucCommand == pstPacket->ucCommand && (pstOwner->_enType == PT_enSmall ||
+    	    			pstOwner->__stTx.ui.stInfo.ucPacketId == pstPacket->ucPacketId)) {
+    				pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.ui.stInfo.usLength);
 		            pifPulse_StopItem(pstOwner->__stTx.pstTimer);
 					(*pstOwner->__stTx.pstRequest->evtResponse)(pstPacket);
 					pstOwner->__stTx.enState = PTS_enIdle;
@@ -323,7 +323,7 @@ static void _evtParsing(void *pvOwner, PIF_actCommReceiveData actReceiveData)
     	pstOwner->__stRx.enState = PRS_enIdle;
     }
     else if (pstOwner->__stRx.enState == PRS_enAck) {
-		pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.uiInfo.st.usLength);
+		pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.ui.stInfo.usLength);
         pifPulse_StopItem(pstOwner->__stTx.pstTimer);
 		(*pstOwner->__stTx.pstRequest->evtResponse)(NULL);
 		pstOwner->__stTx.enState = PTS_enIdle;
@@ -342,7 +342,7 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
 		switch (pstOwner->__stTx.enState) {
 	    case PTS_enIdle:
 	    	if (!pifRingBuffer_IsEmpty(pstOwner->__stTx.pstAnswerBuffer)) {
-				pstOwner->__stTx.uiInfo.st.usLength = pifRingBuffer_GetFillSize(pstOwner->__stTx.pstAnswerBuffer);
+				pstOwner->__stTx.ui.stInfo.usLength = pifRingBuffer_GetFillSize(pstOwner->__stTx.pstAnswerBuffer);
 				pstOwner->__stTx.usPos = 0;
 				pstOwner->__stTx.enState = PTS_enSending;
 	    	}
@@ -352,7 +352,7 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
 	    	usLength = (*actSendData)(pstOwner->__pstComm, pifRingBuffer_GetTailPointer(pstOwner->__stTx.pstAnswerBuffer, pstOwner->__stTx.usPos),
 	    			pifRingBuffer_GetLinerSize(pstOwner->__stTx.pstAnswerBuffer, pstOwner->__stTx.usPos));
 	    	pstOwner->__stTx.usPos += usLength;
-			if (pstOwner->__stTx.usPos >= pstOwner->__stTx.uiInfo.st.usLength) {
+			if (pstOwner->__stTx.usPos >= pstOwner->__stTx.ui.stInfo.usLength) {
 				pifRingBuffer_Remove(pstOwner->__stTx.pstAnswerBuffer, pstOwner->__stTx.usPos);
 				pstOwner->__stTx.enState = PTS_enIdle;
 			}
@@ -366,7 +366,7 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
 	    switch (pstOwner->__stTx.enState) {
 	    case PTS_enIdle:
 	    	if (!pifRingBuffer_IsEmpty(pstOwner->__stTx.pstRequestBuffer)) {
-				pifRingBuffer_CopyToArray(pstOwner->__stTx.uiInfo.ucAll, 9, pstOwner->__stTx.pstRequestBuffer, 0);
+				pifRingBuffer_CopyToArray(pstOwner->__stTx.ui.ucInfo, 9, pstOwner->__stTx.pstRequestBuffer, 0);
 				pstOwner->__stTx.usPos = 5;
 				pstOwner->__stTx.enState = PTS_enSending;
 	    	}
@@ -376,21 +376,21 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
 	    	usLength = (*actSendData)(pstOwner->__pstComm, pifRingBuffer_GetTailPointer(pstOwner->__stTx.pstRequestBuffer, pstOwner->__stTx.usPos),
 	    			pifRingBuffer_GetLinerSize(pstOwner->__stTx.pstRequestBuffer, pstOwner->__stTx.usPos));
 	    	pstOwner->__stTx.usPos += usLength;
-			if (pstOwner->__stTx.usPos >= 5 + pstOwner->__stTx.uiInfo.st.usLength) {
+			if (pstOwner->__stTx.usPos >= 5 + pstOwner->__stTx.ui.stInfo.usLength) {
 				pstOwner->__stTx.enState = PTS_enWaitSended;
 			}
 			return TRUE;
 
 	    case PTS_enWaitSended:
-			if ((pstOwner->__stTx.uiInfo.st.ucFlags & PF_enResponse_Mask) == PF_enResponse_No) {
-				pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.uiInfo.st.usLength);
+			if ((pstOwner->__stTx.ui.stInfo.ucFlags & PF_enResponse_Mask) == PF_enResponse_No) {
+				pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.ui.stInfo.usLength);
 				pstOwner->__stTx.enState = PTS_enIdle;
 			}
 			else {
-				if (!pifPulse_StartItem(pstOwner->__stTx.pstTimer, pstOwner->__stTx.uiInfo.st.usTimeout)) {
+				if (!pifPulse_StartItem(pstOwner->__stTx.pstTimer, pstOwner->__stTx.ui.stInfo.usTimeout)) {
 					pif_enError = E_enOverflowBuffer;
 					if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner->_usPifId);
-					pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.uiInfo.st.usLength);
+					pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.ui.stInfo.usLength);
 #ifndef __PIF_NO_LOG__
 					pifLog_Printf(LT_enWarn, "PTC(%u) Not start timer", pstOwner->_usPifId);
 #endif
@@ -403,10 +403,10 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
 			break;
 
 	    case PTS_enRetry:
-	    	pstOwner->__stTx.uiInfo.st.ucRetry--;
-			if (pstOwner->__stTx.uiInfo.st.ucRetry) {
+	    	pstOwner->__stTx.ui.stInfo.ucRetry--;
+			if (pstOwner->__stTx.ui.stInfo.ucRetry) {
 #ifndef __PIF_NO_LOG__
-				pifLog_Printf(LT_enWarn, "PTC(%u) Retry: %d", pstOwner->_usPifId, pstOwner->__stTx.uiInfo.st.ucRetry);
+				pifLog_Printf(LT_enWarn, "PTC(%u) Retry: %d", pstOwner->_usPifId, pstOwner->__stTx.ui.stInfo.ucRetry);
 #endif
 				pstOwner->__stRx.enState = PRS_enIdle;
 				pstOwner->__stTx.usPos = 5;
@@ -415,7 +415,7 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
 			else {
 				pif_enError = E_enTransferFailed;
 				if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner->_usPifId);
-				pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.uiInfo.st.usLength);
+				pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.ui.stInfo.usLength);
 #ifndef __PIF_NO_LOG__
 				pifLog_Printf(LT_enError, "PTC(%u) EventSending EC:%d", pstOwner->_usPifId, pif_enError);
 #endif
