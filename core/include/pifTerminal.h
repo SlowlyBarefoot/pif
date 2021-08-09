@@ -7,10 +7,10 @@
 
 
 #ifndef PIF_TERMINAL_RX_BUFFER_SIZE
-#define PIF_TERMINAL_RX_BUFFER_SIZE		64
+#define PIF_TERMINAL_RX_BUFFER_SIZE		32
 #endif
 #ifndef PIF_TERMINAL_TX_BUFFER_SIZE
-#define PIF_TERMINAL_TX_BUFFER_SIZE		128
+#define PIF_TERMINAL_TX_BUFFER_SIZE		80
 #endif
 
 #define PIF_TERM_CMD_MAX_ARGS           8
@@ -46,9 +46,6 @@ extern "C" {
 #endif
 
 BOOL pifTerminal_Init(const PIF_stTermCmdEntry *pstCmdTable, const char *pcPrompt);
-
-BOOL pifTerminal_ResizeRxBuffer(uint16_t usRxSize);
-BOOL pifTerminal_ResizeTxBuffer(uint16_t usTxSize);
 
 PIF_stRingBuffer *pifTerminal_GetTxBuffer();
 

@@ -334,7 +334,7 @@ int pif_FloatToString(char *pcBuf, double dNum, uint16_t usPoint)
  * @brief
  * @param pcBuffer
  * @param pstData
- * @param pcStr
+ * @param pcFormat
  */
 void pif_PrintFormat(char *pcBuffer, va_list *pstData, const char *pcFormat)
 {
