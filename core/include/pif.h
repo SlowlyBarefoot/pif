@@ -9,7 +9,7 @@
 
 //#define __PIF_DEBUG__
 //#define __PIF_NO_LOG__
-//#define __PIF_NO_TERMINAL__
+//#define __PIF_LOG_COMMAND__
 //#define __PIF_COLLECT_SIGNAL__
 
 #define PIF_VERSION_MAJOR	0
@@ -121,6 +121,8 @@ extern PIF_stPerformance pif_stPerformance;
 extern PIF_usId pif_usPifId;
 
 extern PIF_actTimer1us pif_actTimer1us;
+
+extern const char *pif_pacMonth3[12];
 
 extern const char *pif_pcHexUpperChar;
 extern const char *pif_pcHexLowerChar;

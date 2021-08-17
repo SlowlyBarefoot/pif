@@ -93,8 +93,8 @@ static void _AddDeviceInCollectSignal()
 
 	for (int i = 0; i < s_ucSensorSwitchPos; i++) {
 		PIF_stSensorSwitch *pstOwner = &s_pstSensorSwitch[i];
-		if (pstOwner->__ucCsFlag) {
-			for (int f = 0; f < SSCsF_enCount; f++) {
+		for (int f = 0; f < SSCsF_enCount; f++) {
+			if (pstOwner->__ucCsFlag & (1 << f)) {
 				pstOwner->__cCsIndex[f] = pifCollectSignal_AddDevice(pstOwner->stSensor._usPifId, CSVT_enWire, 1,
 						prefix[f], pstOwner->stSensor._swCurrState);
 			}
@@ -169,7 +169,7 @@ PIF_stSensor *pifSensorSwitch_Add(PIF_usId usPifId, SWITCH swInitState)
 
     pstOwner->__ucIndex = s_ucSensorSwitchPos;
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
-	pstOwner->stSensor._usPifId = usPifId;
+    pstSensor->_usPifId = usPifId;
 	pstSensor->_swInitState = swInitState;
 	pstSensor->_swCurrState = swInitState;
 #ifdef __PIF_COLLECT_SIGNAL__

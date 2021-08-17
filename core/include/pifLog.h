@@ -2,15 +2,28 @@
 #define PIF_LOG_H
 
 
+#include "pifComm.h"
 #include "pifRingBuffer.h"
-#ifndef __PIF_NO_TERMINAL__
-#include "pifTerminal.h"
-#endif
 
 
 #ifndef PIF_LOG_LINE_SIZE
-#define PIF_LOG_LINE_SIZE	80
+#define PIF_LOG_LINE_SIZE			80
 #endif
+
+#ifndef PIF_LOG_RX_BUFFER_SIZE
+#define PIF_LOG_RX_BUFFER_SIZE		32
+#endif
+#ifndef PIF_LOG_TX_BUFFER_SIZE
+#define PIF_LOG_TX_BUFFER_SIZE		80
+#endif
+
+#define PIF_LOG_CMD_MAX_ARGS        8
+
+#define PIF_LOG_CMD_NO_ERROR        (0)
+#define PIF_LOG_CMD_BAD_CMD         (-1)
+#define PIF_LOG_CMD_TOO_MANY_ARGS   (-2)
+#define PIF_LOG_CMD_TOO_FEW_ARGS   	(-3)
+#define PIF_LOG_CMD_INVALID_ARG		(-4)
 
 
 typedef enum _PIF_enLogType
@@ -23,9 +36,23 @@ typedef enum _PIF_enLogType
 	LT_enComm	= 5
 } PIF_enLogType;
 
+typedef int (*PIF_fnLogCmd)(int argc, char *argv[]);
 
-typedef void (*PIF_actLogPrint)(char *pcString);
+/**
+ * @class _PIF_stLogCmdEntry
+ * @brief
+ */
+typedef struct _PIF_stLogCmdEntry
+{
+    //! A pointer to a string containing the name of the command.
+    const char *pcName;
 
+    //! A function pointer to the implementation of the command.
+    PIF_fnLogCmd fnProcessor;
+
+    //! A pointer to a string of brief help text for the command.
+    const char *pcHelp;
+} PIF_stLogCmdEntry;
 
 /**
  * @struct _PIF_stLogFlag
@@ -37,6 +64,7 @@ typedef union _PIF_stLogFlag
 	struct {
 		uint32_t Performance		: 1;
 		uint32_t Task				: 1;
+		uint32_t CollectSignal		: 1;
 		uint32_t DutyMotor			: 1;
 		uint32_t StepMotor			: 1;
 	} bt;
@@ -55,8 +83,8 @@ BOOL pifLog_InitHeap(uint16_t usSize);
 BOOL pifLog_InitStatic(uint16_t usSize, uint8_t *pucBuffer);
 void pifLog_Exit();
 
-#ifndef __PIF_NO_TERMINAL__
-void pifLog_UseTerminal(BOOL bUse);
+#ifdef __PIF_LOG_COMMAND__
+BOOL pifLog_UseCommand(const PIF_stLogCmdEntry *pstCmdTable, const char *pcPrompt);
 #endif
 
 void pifLog_Enable();
@@ -68,9 +96,15 @@ void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...);
 
 void pifLog_PrintInBuffer();
 
-// Attach Action Function
-void pifLog_AttachActPrint(PIF_actLogPrint actPrint);
-void pifLog_DetachActPrint();
+PIF_stTask *pifLog_GetCommTask();
+
+// Attach Function
+BOOL pifLog_AttachComm(PIF_stComm *pstComm);
+
+#ifdef __PIF_LOG_COMMAND__
+// Task Function
+uint16_t pifLog_taskAll(PIF_stTask *pstTask);
+#endif
 
 #ifdef __cplusplus
 }

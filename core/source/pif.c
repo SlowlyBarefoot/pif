@@ -21,6 +21,8 @@ PIF_usId pif_usPifId = 1;
 
 PIF_actTimer1us pif_actTimer1us = NULL;
 
+const char *pif_pacMonth3[12] = { "Jan", "Fab", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
 const char *pif_pcHexUpperChar = "0123456789ABCDEF";
 const char *pif_pcHexLowerChar = "0123456789abcdef";
 
@@ -37,6 +39,9 @@ static uint8_t ucCrc7;
 void pif_Init(PIF_actTimer1us actTimer1us)
 {
 	pif_actTimer1us = actTimer1us;
+
+	pif_stDateTime.ucMonth = 1;
+	pif_stDateTime.ucDay = 1;
 
 #ifndef __PIF_NO_LOG__
     memset(&pif_stLogFlag, 0, sizeof(pif_stLogFlag));

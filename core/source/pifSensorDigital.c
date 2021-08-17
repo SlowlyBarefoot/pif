@@ -99,8 +99,8 @@ static void _AddDeviceInCollectSignal()
 
 	for (int i = 0; i < s_ucSensorDigitalPos; i++) {
 		PIF_stSensorDigital *pstOwner = &s_pstSensorDigital[i];
-		if (pstOwner->__ucCsFlag) {
-			for (int f = 0; f < SDCsF_enCount; f++) {
+		for (int f = 0; f < SDCsF_enCount; f++) {
+			if (pstOwner->__ucCsFlag & (1 << f)) {
 				pstOwner->__cCsIndex[f] = pifCollectSignal_AddDevice(pstOwner->stSensor._usPifId, CSVT_enWire, 1,
 						prefix[f], pstOwner->stSensor._swCurrState);
 			}

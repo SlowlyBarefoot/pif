@@ -13,6 +13,8 @@ static PIF_stPulse *s_pstLedTimer;
 
 static void _evtTimerBlinkFinish(void *pvIssuer)
 {
+	BOOL bBlink = FALSE;
+
     if (!pvIssuer) {
         pif_enError = E_enInvalidParam;
         return;
@@ -28,9 +30,10 @@ static void _evtTimerBlinkFinish(void *pvIssuer)
     		else {
     			pstOwner->__unState &= ~(1 << i);
     		}
+    		bBlink = TRUE;
     	}
     }
-	(*pstOwner->__actState)(pstOwner->_usPifId, pstOwner->__unState);
+    if (bBlink) (*pstOwner->__actState)(pstOwner->_usPifId, pstOwner->__unState);
 }
 
 /**

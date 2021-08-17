@@ -49,7 +49,7 @@ struct _PIF_stSequence
 	// Public Member Variable
 	uint8_t ucStep;
 	uint8_t ucPhaseNoNext;
-	uint32_t usDelay1us;
+	uint32_t unDelay1us;
 	void *pvParam;
 
     // Public Event Function

@@ -120,8 +120,10 @@ static void _AddDeviceInCollectSignal()
 
 	for (int i = 0; i < s_ucSolenoidPos; i++) {
 		PIF_stSolenoid *pstOwner = &s_pstSolenoid[i];
-		if (pstOwner->__ucCsFlag) {
+		if (pstOwner->__ucCsFlag & 1) {
 			pstOwner->__cCsIndex[0] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enWire, 1, prefix[0], 0);
+		}
+		if (pstOwner->__ucCsFlag & 2) {
 			pstOwner->__cCsIndex[1] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enWire, 2, prefix[1], 0);
 		}
 	}

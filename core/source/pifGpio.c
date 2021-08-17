@@ -20,8 +20,8 @@ static void _AddDeviceInCollectSignal()
 
 	for (int i = 0; i < s_ucGpioPos; i++) {
 		PIF_stGpio *pstOwner = &s_pstGpio[i];
-		if (pstOwner->__ucCsFlag) {
-			for (int f = 0; f < GpCsF_enCount; f++) {
+		for (int f = 0; f < GpCsF_enCount; f++) {
+			if (pstOwner->__ucCsFlag & (1 << f)) {
 				pstOwner->__cCsIndex[f] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enWire, 1,
 						prefix[f], pstOwner->__ucState);
 			}

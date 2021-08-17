@@ -44,47 +44,44 @@ static PIF_stCollectSignal s_stCollectSignal;
 
 static void _PrintHeader()
 {
-	const char *pc_acVarType[] =
+	const char *c_pacVarType[] =
 	{
-		"event",
-		"integer",
-		"parameter",
-		"real",
-		"reg",
-		"supply0",
-		"supply1",
-		"time",
-		"tri",
-		"triand",
-		"trior",
-		"triReg",
-		"tri0",
-		"tri1",
-		"wand",
-		"wire",
-		"wor"
+			"event",
+			"integer",
+			"parameter",
+			"real",
+			"reg",
+			"supply0",
+			"supply1",
+			"time",
+			"tri",
+			"triand",
+			"trior",
+			"triReg",
+			"tri0",
+			"tri1",
+			"wand",
+			"wire",
+			"wor"
 	};
 	int i;
 
-	pifLog_Printf(LT_enVcd, "\n$date\n");
-	pifLog_Printf(LT_enVcd, "\t%u-%u-%u %u:%u:%u\n", pif_stDateTime.ucYear, pif_stDateTime.ucMinute, pif_stDateTime.ucDay,
+	pifLog_Printf(LT_enVcd, "\n$date %s %u, %u %2u:%2u:%2u $end\n",
+			pif_pacMonth3[pif_stDateTime.ucMonth - 1], pif_stDateTime.ucDay, 2000 + pif_stDateTime.ucYear,
 			pif_stDateTime.ucHour, pif_stDateTime.ucMinute, pif_stDateTime.ucSecond);
-	pifLog_Printf(LT_enVcd, "$end\n");
 
-	pifLog_Printf(LT_enVcd, "$version\n");
-	pifLog_Printf(LT_enVcd, "\tPIF collect signal\n");
-	pifLog_Printf(LT_enVcd, "$end\n");
+	pifLog_Printf(LT_enVcd, "$version %u.%u.%u $end\n", PIF_VERSION_MAJOR, PIF_VERSION_MINOR, PIF_VERSION_PATCH);
 
 	pifLog_Printf(LT_enVcd, "$timescale 1ms $end\n");
 
 	pifLog_Printf(LT_enVcd, "$scope module %s $end\n", s_stCollectSignal.c_pcModuleName);
 	for (i = 0; i < s_stCollectSignal.ucDeviceCount; i++) {
 		if (s_stCollectSignal.stDevice[i].usSize == 1) {
-			pifLog_Printf(LT_enVcd, "$var %s 1 %c %s $end\n", pc_acVarType[s_stCollectSignal.stDevice[i].enVarType], '!' + i,
+			pifLog_Printf(LT_enVcd, "$var %s 1 %c %s $end\n", c_pacVarType[s_stCollectSignal.stDevice[i].enVarType], '!' + i,
 					s_stCollectSignal.stDevice[i].pcReference);
 		}
 		else {
-			pifLog_Printf(LT_enVcd, "$var %s %u %c %s [%u:0] $end\n", pc_acVarType[s_stCollectSignal.stDevice[i].enVarType],
+			pifLog_Printf(LT_enVcd, "$var %s %u %c %s[%u:0] $end\n", c_pacVarType[s_stCollectSignal.stDevice[i].enVarType],
 					s_stCollectSignal.stDevice[i].usSize, '!' + i, s_stCollectSignal.stDevice[i].pcReference,
 					s_stCollectSignal.stDevice[i].usSize - 1);
 		}

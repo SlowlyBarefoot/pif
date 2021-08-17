@@ -471,6 +471,82 @@ void pifTask_Yield()
 	}
 }
 
+/**
+ * @fn pifTask_YieldMs
+ * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
+ * @param usTime
+ */
+void pifTask_YieldMs(uint16_t usTime)
+{
+    uint32_t unCurrent = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+    uint32_t unTarget = unCurrent + usTime;
+
+    if (!usTime) return;
+
+    if (unTarget < unCurrent) {
+    	while (unCurrent <= 0xFFFFFFFF) {
+    		pifTask_Yield();
+    		unCurrent = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+    	}
+    }
+	while (unCurrent < unTarget) {
+		pifTask_Yield();
+		unCurrent = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+	}
+}
+
+/**
+ * @fn pifTask_YieldUs
+ * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
+ * @param usTime
+ */
+void pifTask_YieldUs(uint16_t usTime)
+{
+    uint32_t unCurrent = (*pif_actTimer1us)();
+    uint32_t unTarget = unCurrent + usTime;
+
+    if (!usTime || !pif_actTimer1us) return;
+
+    if (unTarget < unCurrent) {
+    	while (unCurrent <= 0xFFFFFFFF) {
+    		pifTask_Yield();
+    		unCurrent = (*pif_actTimer1us)();
+    	}
+    }
+	while (unCurrent < unTarget) {
+		pifTask_Yield();
+		unCurrent = (*pif_actTimer1us)();
+	}
+}
+
+/**
+ * @fn pifTask_YieldPeriod
+ * @brief loop내에서 지정된 주기동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
+ * @param pstOwner
+ */
+void pifTask_YieldPeriod(PIF_stTask *pstOwner)
+{
+	int i, count;
+
+	switch (pstOwner->_enMode) {
+	case TM_enRatio:
+		count = PIF_TASK_TABLE_SIZE - PIF_TASK_TABLE_SIZE * pstOwner->__ucRatio / 101;
+		for (i = 0; i < s_ucTaskPos * count; i++) pifTask_Yield();
+		break;
+
+	case TM_enPeriodMs:
+		pifTask_YieldMs(pstOwner->_usPeriod);
+		break;
+
+	case TM_enPeriodUs:
+		pifTask_YieldUs(pstOwner->_usPeriod);
+		break;
+
+	default:
+		break;
+	}
+}
+
 #ifdef __PIF_DEBUG__
 
 /**

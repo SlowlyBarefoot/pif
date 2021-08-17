@@ -82,6 +82,7 @@ struct _PIF_stComm
     PIF_usId _usPifId;
     PIF_stRingBuffer *_pstTxBuffer;
     PIF_stRingBuffer *_pstRxBuffer;
+    PIF_stTask *_pstTask;
 
 	// Private Member Variable
     void *__pvClient;
@@ -119,6 +120,8 @@ uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner);
 BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData);
 BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength);
 BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData);
+
+void pifComm_ForceSendData(PIF_stComm *pstOwner);
 
 // Task Function
 uint16_t pifComm_taskAll(PIF_stTask *pstTask);

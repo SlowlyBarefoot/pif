@@ -25,6 +25,19 @@ static uint16_t _actSendData(PIF_stComm *pstOwner, uint8_t *pucBuffer, uint16_t 
 	return 0;
 }
 
+static void _sendData(PIF_stComm *pstOwner)
+{
+	if (pstOwner->__actSendData) {
+		(*pstOwner->evtSending)(pstOwner->__pvClient, pstOwner->__actSendData);
+	}
+	else if (pstOwner->_pstTxBuffer && pstOwner->__actStartTransfer) {
+		if ((*pstOwner->evtSending)(pstOwner->__pvClient, _actSendData)) {
+			(*pstOwner->__actStartTransfer)();
+			pstOwner->__enState = STS_enSending;
+		}
+	}
+}
+
 static void _taskCommon(PIF_stComm *pstOwner)
 {
 	if (pstOwner->evtParsing) {
@@ -38,17 +51,7 @@ static void _taskCommon(PIF_stComm *pstOwner)
 
 	switch (pstOwner->__enState) {
 	case STS_enIdle:
-		if (pstOwner->evtSending) {
-			if (pstOwner->__actSendData) {
-				(*pstOwner->evtSending)(pstOwner->__pvClient, pstOwner->__actSendData);
-			}
-			else if (pstOwner->_pstTxBuffer && pstOwner->__actStartTransfer) {
-				if ((*pstOwner->evtSending)(pstOwner->__pvClient, _actSendData)) {
-					(*pstOwner->__actStartTransfer)();
-					pstOwner->__enState = STS_enSending;
-				}
-			}
-		}
+		if (pstOwner->evtSending) _sendData(pstOwner);
 		break;
 
 	case STS_enSending:
@@ -293,6 +296,18 @@ BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
 }
 
 /**
+ * @fn pifComm_ForceSendData
+ * @brief
+ * @param pstOwner
+ */
+void pifComm_ForceSendData(PIF_stComm *pstOwner)
+{
+	if (pstOwner->__enState != STS_enIdle || !pstOwner->evtSending) return;
+
+	_sendData(pstOwner);
+}
+
+/**
  * @fn pifComm_taskAll
  * @brief
  * @param pstTask
@@ -304,6 +319,7 @@ uint16_t pifComm_taskAll(PIF_stTask *pstTask)
 
 	for (int i = 0; i < s_ucCommPos; i++) {
 		PIF_stComm *pstOwner = &s_pstComm[i];
+		pstOwner->_pstTask = pstTask;
 		if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
 	}
 	return 0;
@@ -319,6 +335,7 @@ uint16_t pifComm_taskEach(PIF_stTask *pstTask)
 {
 	PIF_stComm *pstOwner = pstTask->pvLoopEach;
 
+	pstOwner->_pstTask = pstTask;
 	if (pstOwner->__enTaskLoop != TL_enEach) {
 		pstOwner->__enTaskLoop = TL_enEach;
 	}
