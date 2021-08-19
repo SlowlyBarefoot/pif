@@ -102,7 +102,12 @@ typedef struct _PIF_stPerformance
 	volatile uint32_t _unCount;
 
 	// Private Member Variable
-	uint8_t __ucState;
+	BOOL __bState;
+#ifdef __PIF_DEBUG__
+#ifndef __PIF_NO_LOG__
+	uint32_t __unMaxLoopTimeUs;
+#endif
+#endif
 } PIF_stPerformance;
 
 typedef uint32_t (*PIF_actTimer1us)();

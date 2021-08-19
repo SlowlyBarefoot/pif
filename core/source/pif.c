@@ -15,7 +15,15 @@ volatile PIF_stDateTime pif_stDateTime;
 
 volatile uint32_t pif_unCumulativeTimer1ms = 0L;
 
-PIF_stPerformance pif_stPerformance = { 0, 0 };
+PIF_stPerformance pif_stPerformance = {
+		._unCount = 0,
+		.__bState = FALSE,
+#ifdef __PIF_DEBUG__
+#ifndef __PIF_NO_LOG__
+		.__unMaxLoopTimeUs = 0UL
+#endif
+#endif
+};
 
 PIF_usId pif_usPifId = 1;
 
@@ -57,19 +65,39 @@ void pif_Loop()
 #ifdef __PIF_DEBUG__
 	static uint8_t ucSec = 0;
 #endif
-
 #ifndef __PIF_NO_LOG__
+#ifdef __PIF_DEBUG__
+	static BOOL bFirst = TRUE;
+	static uint32_t unPreTime;
+	uint32_t unGap;
+#endif
+
     if (pif_stLogFlag.bt.Performance) {
 		pif_stPerformance._unCount++;
-		if (pif_stPerformance.__ucState) {
+		if (pif_stPerformance.__bState) {
         	uint32_t unValue = 1000000L / pif_stPerformance._unCount;
-#ifndef	__PIF_NO_LOG__
         	pifLog_Printf(LT_enInfo, "Performance: %lur/s, %uns", pif_stPerformance._unCount, unValue);
-#endif
         	pif_stPerformance._unCount = 0;
-    		pif_stPerformance.__ucState = 0;
+    		pif_stPerformance.__bState = FALSE;
         }
     }
+#ifdef __PIF_DEBUG__
+    else {
+    	if (pif_actTimer1us) {
+    		if (!bFirst) {
+    			unGap = (*pif_actTimer1us)() - unPreTime;
+    			if (unGap > pif_stPerformance.__unMaxLoopTimeUs) {
+    				pif_stPerformance.__unMaxLoopTimeUs = unGap;
+    				pifLog_Printf(LT_enNone, "\nMLT: %luus", pif_stPerformance.__unMaxLoopTimeUs);
+    			}
+    		}
+    		else {
+    			bFirst = FALSE;
+    		}
+    		unPreTime = (*pif_actTimer1us)();
+    	}
+	}
+#endif
 #endif
 
 #ifdef __PIF_DEBUG__
@@ -95,7 +123,7 @@ void pif_sigTimer1ms()
 		usTimerPerform++;
 		if (usTimerPerform >= 1000) {
 			usTimerPerform = 0;
-			pif_stPerformance.__ucState = 1;
+			pif_stPerformance.__bState = TRUE;
 		}
     }
 #endif
@@ -108,6 +136,11 @@ void pif_sigTimer1ms()
         pif_unTimer1sec++;
     	pif_stDateTime.ucSecond++;
     	if (pif_stDateTime.ucSecond >= 60) {
+#ifdef __PIF_DEBUG__
+#ifndef __PIF_NO_LOG__
+    		pif_stPerformance.__unMaxLoopTimeUs = 0UL;
+#endif
+#endif
     		pif_stDateTime.ucSecond = 0;
     		pif_stDateTime.ucMinute++;
     		if (pif_stDateTime.ucMinute >= 60) {
