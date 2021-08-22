@@ -351,6 +351,8 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
 	    case PTS_enSending:
 	    	usLength = (*actSendData)(pstOwner->__pstComm, pifRingBuffer_GetTailPointer(pstOwner->__stTx.pstAnswerBuffer, pstOwner->__stTx.usPos),
 	    			pifRingBuffer_GetLinerSize(pstOwner->__stTx.pstAnswerBuffer, pstOwner->__stTx.usPos));
+	    	if (!usLength) return FALSE;
+
 	    	pstOwner->__stTx.usPos += usLength;
 			if (pstOwner->__stTx.usPos >= pstOwner->__stTx.ui.stInfo.usLength) {
 				pifRingBuffer_Remove(pstOwner->__stTx.pstAnswerBuffer, pstOwner->__stTx.usPos);

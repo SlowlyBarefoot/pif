@@ -48,6 +48,10 @@
 #define ASCII_RS	30	// Record Separator
 #define ASCII_US	31	// Unit Separator
 
+#define PIF_COMM_SEND_DATA_STATE_INIT		0
+#define PIF_COMM_SEND_DATA_STATE_DATA		1
+#define PIF_COMM_SEND_DATA_STATE_EMPTY		2
+
 
 typedef struct _PIF_stComm PIF_stComm;
 
@@ -57,14 +61,8 @@ typedef uint16_t (*PIF_actCommSendData)(PIF_stComm *pstComm, uint8_t *pucBuffer,
 typedef void (*PIF_evtCommParsing)(void *pvClient, PIF_actCommReceiveData actReceiveData);
 typedef BOOL (*PIF_evtCommSending)(void *pvClient, PIF_actCommSendData actSendData);
 
-typedef uint16_t (*PIF_actCommStartTransfer)();
+typedef void (*PIF_actCommStartTransfer)();
 
-
-typedef enum _PIF_enCommTxState
-{
-	STS_enIdle		= 0,
-	STS_enSending	= 1
-} PIF_enCommTxState;
 
 /**
  * @class _PIF_stComm
@@ -86,7 +84,6 @@ struct _PIF_stComm
 
 	// Private Member Variable
     void *__pvClient;
-    PIF_enCommTxState __enState;
 
 	PIF_enTaskLoop __enTaskLoop;
 
@@ -119,7 +116,7 @@ uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner);
 
 BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData);
 BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength);
-BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData);
+uint8_t pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData);
 
 void pifComm_ForceSendData(PIF_stComm *pstOwner);
 

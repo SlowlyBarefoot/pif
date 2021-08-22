@@ -18,6 +18,7 @@ static uint16_t _actSendData(PIF_stComm *pstOwner, uint8_t *pucBuffer, uint16_t 
 {
 	uint16_t usRemain = pifRingBuffer_GetRemainSize(pstOwner->_pstTxBuffer);
 
+	if (!usRemain) return 0;
 	if (usSize > usRemain) usSize = usRemain;
 	if (pifRingBuffer_PutData(pstOwner->_pstTxBuffer, pucBuffer, usSize)) {
 		return usSize;
@@ -30,10 +31,11 @@ static void _sendData(PIF_stComm *pstOwner)
 	if (pstOwner->__actSendData) {
 		(*pstOwner->evtSending)(pstOwner->__pvClient, pstOwner->__actSendData);
 	}
-	else if (pstOwner->_pstTxBuffer && pstOwner->__actStartTransfer) {
-		if ((*pstOwner->evtSending)(pstOwner->__pvClient, _actSendData)) {
-			(*pstOwner->__actStartTransfer)();
-			pstOwner->__enState = STS_enSending;
+	else if (pstOwner->_pstTxBuffer) {
+		if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) {
+			if ((*pstOwner->evtSending)(pstOwner->__pvClient, _actSendData)) {
+				if (pstOwner->__actStartTransfer) (*pstOwner->__actStartTransfer)();
+			}
 		}
 	}
 }
@@ -49,15 +51,7 @@ static void _taskCommon(PIF_stComm *pstOwner)
 		}
 	}
 
-	switch (pstOwner->__enState) {
-	case STS_enIdle:
-		if (pstOwner->evtSending) _sendData(pstOwner);
-		break;
-
-	case STS_enSending:
-		if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) pstOwner->__enState = STS_enIdle;
-    	break;
-	}
+	if (pstOwner->evtSending) _sendData(pstOwner);
 }
 
 /**
@@ -125,7 +119,6 @@ PIF_stComm *pifComm_Add(PIF_usId usPifId)
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
 
     pstOwner->_usPifId = usPifId;
-    pstOwner->__enState = STS_enIdle;
 
     s_ucCommPos = s_ucCommPos + 1;
     return pstOwner;
@@ -264,8 +257,9 @@ uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner)
  */
 BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData)
 {
-	if (pstOwner->_pstRxBuffer)	return pifRingBuffer_PutByte(pstOwner->_pstRxBuffer, ucData);
-	return FALSE;
+	if (!pstOwner->_pstRxBuffer) return FALSE;
+
+	return pifRingBuffer_PutByte(pstOwner->_pstRxBuffer, ucData);
 }
 
 /**
@@ -278,8 +272,9 @@ BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData)
  */
 BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength)
 {
-	if (pstOwner->_pstRxBuffer) return pifRingBuffer_PutData(pstOwner->_pstRxBuffer, pucData, usLength);
-	return FALSE;
+	if (!pstOwner->_pstRxBuffer) return FALSE;
+
+	return pifRingBuffer_PutData(pstOwner->_pstRxBuffer, pucData, usLength);
 }
 
 /**
@@ -289,10 +284,18 @@ BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLen
  * @param pucData
  * @return
  */
-BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
+uint8_t pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
 {
-    if (pstOwner->_pstTxBuffer) return pifRingBuffer_GetByte(pstOwner->_pstTxBuffer, pucData);
-	return FALSE;
+	uint8_t ucState = PIF_COMM_SEND_DATA_STATE_INIT;
+
+    if (!pstOwner->_pstTxBuffer) return FALSE;
+
+    ucState = pifRingBuffer_GetByte(pstOwner->_pstTxBuffer, pucData);
+	if (ucState) {
+	    ucState |= pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer) << 1;
+	}
+	else ucState |= PIF_COMM_SEND_DATA_STATE_EMPTY;
+	return ucState;
 }
 
 /**
@@ -302,7 +305,7 @@ BOOL pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
  */
 void pifComm_ForceSendData(PIF_stComm *pstOwner)
 {
-	if (pstOwner->__enState != STS_enIdle || !pstOwner->evtSending) return;
+	if (!pstOwner->evtSending) return;
 
 	_sendData(pstOwner);
 }
