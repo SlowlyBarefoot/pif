@@ -109,7 +109,7 @@ typedef struct _PIF_stXmodem
 extern "C" {
 #endif
 
-BOOL pifXmodem_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
+BOOL pifXmodem_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
 void pifXmodem_Exit();
 
 PIF_stXmodem *pifXmodem_Add(PIF_usId usPifId, PIF_enXmodemType enType);

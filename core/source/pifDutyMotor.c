@@ -48,11 +48,11 @@ static void _evtTimerBreakFinish(void *pvIssuer)
 /**
  * @fn pifDutyMotor_Init
  * @brief 
- * @param pstTimer
  * @param ucSize
+ * @param pstTimer
  * @return 
  */
-BOOL pifDutyMotor_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
+BOOL pifDutyMotor_Init(uint8_t ucSize, PIF_stPulse *pstTimer)
 {
     if (!pstTimer || ucSize == 0) {
 		pif_enError = E_enInvalidParam;

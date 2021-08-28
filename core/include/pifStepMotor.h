@@ -97,7 +97,7 @@ extern PIF_stPulse *g_pstStepMotorTimer;
 extern "C" {
 #endif
 
-BOOL pifStepMotor_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
+BOOL pifStepMotor_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
 void pifStepMotor_Exit();
 
 PIF_stStepMotor *pifStepMotor_Add(PIF_usId usPifId, uint16_t usResolution, PIF_enStepMotorOperation enOperation);

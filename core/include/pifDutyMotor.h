@@ -66,7 +66,7 @@ extern PIF_stPulse *g_pstDutyMotorTimer;
 extern "C" {
 #endif
 
-BOOL pifDutyMotor_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
+BOOL pifDutyMotor_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
 void pifDutyMotor_Exit();
 
 PIF_stDutyMotor *pifDutyMotor_Add(PIF_usId usPifId, uint16_t usMaxDuty);

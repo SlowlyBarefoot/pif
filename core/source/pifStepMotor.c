@@ -139,11 +139,11 @@ static void _taskCommon(PIF_stTask *pstTask, PIF_stStepMotor *pstOwner)
 /**
  * @fn pifStepMotor_Init
  * @brief 
- * @param pstTimer
  * @param ucSize
+ * @param pstTimer
  * @return 
  */
-BOOL pifStepMotor_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
+BOOL pifStepMotor_Init(uint8_t ucSize, PIF_stPulse *pstTimer)
 {
     if (!pstTimer || ucSize == 0) {
 		pif_enError = E_enInvalidParam;

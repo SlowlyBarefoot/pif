@@ -77,7 +77,7 @@ struct _PIF_stSequence
 extern "C" {
 #endif
 
-BOOL pifSequence_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
+BOOL pifSequence_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
 void pifSequence_Exit();
 
 PIF_stSequence *pifSequence_Add(PIF_usId usPifId, const PIF_stSequencePhase *pstPhaseList, void *pvParam);

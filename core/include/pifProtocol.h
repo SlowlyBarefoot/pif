@@ -204,7 +204,7 @@ typedef struct _PIF_stProtocol
 extern "C" {
 #endif
 
-BOOL pifProtocol_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
+BOOL pifProtocol_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
 void pifProtocol_Exit();
 
 PIF_stProtocol *pifProtocol_Add(PIF_usId usPifId, PIF_enProtocolType enType,

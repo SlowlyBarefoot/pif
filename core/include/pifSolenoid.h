@@ -92,7 +92,7 @@ struct _PIF_stSolenoid
 extern "C" {
 #endif
 
-BOOL pifSolenoid_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
+BOOL pifSolenoid_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
 void pifSolenoid_Exit();
 
 PIF_stSolenoid *pifSolenoid_Add(PIF_usId usPifId, PIF_enSolenoidType enType, uint16_t usOnTime,

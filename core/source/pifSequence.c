@@ -123,11 +123,11 @@ static void _AddDeviceInCollectSignal()
 /**
  * @fn pifSequence_Init
  * @brief 입력된 크기만큼 Sequence 구조체를 할당하고 초기화한다.
- * @param pstTimer
  * @param ucSize Sequence 크기
+ * @param pstTimer
  * @return 성공 여부
  */
-BOOL pifSequence_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
+BOOL pifSequence_Init(uint8_t ucSize, PIF_stPulse *pstTimer)
 {
     if (!pif_actTimer1us) {
         pif_enError = E_enCanNotUse;

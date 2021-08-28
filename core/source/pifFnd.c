@@ -79,11 +79,11 @@ static void _taskCommon(PIF_stFnd *pstOwner)
 /**
  * @fn pifFnd_Init
  * @brief
- * @param pstTimer
  * @param ucSize
+ * @param pstTimer
  * @return
  */
-BOOL pifFnd_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
+BOOL pifFnd_Init(uint8_t ucSize, PIF_stPulse *pstTimer)
 {
     if (!pstTimer || ucSize == 0) {
 		pif_enError = E_enInvalidParam;

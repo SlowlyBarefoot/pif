@@ -94,7 +94,7 @@ typedef struct _PIF_stSensorDigital
 extern "C" {
 #endif
 
-BOOL pifSensorDigital_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
+BOOL pifSensorDigital_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
 void pifSensorDigital_Exit();
 
 PIF_stSensor *pifSensorDigital_Add(PIF_usId usPifId);

@@ -106,7 +106,7 @@ typedef struct _PIF_stDotMatrix
 extern "C" {
 #endif
 
-BOOL pifDotMatrix_Init(PIF_stPulse *pstTimer, uint8_t ucSize);
+BOOL pifDotMatrix_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
 void pifDotMatrix_Exit();
 
 PIF_stDotMatrix *pifDotMatrix_Add(PIF_usId usPifId, uint16_t usColSize, uint16_t usRowSize,

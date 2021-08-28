@@ -39,11 +39,11 @@ static void _evtTimerBlinkFinish(void *pvIssuer)
 /**
  * @fn pifLed_Init
  * @brief
- * @param pstTimer
  * @param ucSize
+ * @param pstTimer
  * @return
  */
-BOOL pifLed_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
+BOOL pifLed_Init(uint8_t ucSize, PIF_stPulse *pstTimer)
 {
     if (!pstTimer || ucSize == 0) {
 		pif_enError = E_enInvalidParam;

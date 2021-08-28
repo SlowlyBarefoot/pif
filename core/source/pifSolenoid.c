@@ -134,11 +134,11 @@ static void _AddDeviceInCollectSignal()
 /**
  * @fn pifSolenoid_Init
  * @brief
- * @param pstTimer
  * @param ucSize
+ * @param pstTimer
  * @return
  */
-BOOL pifSolenoid_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
+BOOL pifSolenoid_Init(uint8_t ucSize, PIF_stPulse *pstTimer)
 {
     if (!pstTimer || ucSize == 0) {
 		pif_enError = E_enInvalidParam;

@@ -431,11 +431,11 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
 /**
  * @fn pifProtocol_Init
  * @brief
- * @param pstTimer
  * @param ucSize
+ * @param pstTimer
  * @return
  */
-BOOL pifProtocol_Init(PIF_stPulse *pstTimer, uint8_t ucSize)
+BOOL pifProtocol_Init(uint8_t ucSize, PIF_stPulse *pstTimer)
 {
     if (!pstTimer || ucSize == 0) {
 		pif_enError = E_enInvalidParam;
