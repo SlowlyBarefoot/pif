@@ -278,11 +278,7 @@ static void _evtParsing(void *pvOwner, PIF_actCommReceiveData actReceiveData)
         	    				pstPacket->enFlags, pstPacket->ucPacketId, pstPacket->usLength, pstPacket->ucCrc);
         	    	}
 #endif
-
-        	    	if ((pstPacket->enFlags & PF_enResponse_Mask) == PF_enResponse_Ack) {
-        	    		pifRingBuffer_PutByte(pstOwner->__stTx.pstAnswerBuffer, ASCII_ACK);
-        	    	}
-       	    		(*pstQuestion->evtQuestion)(pstPacket);
+        	    	if (pstQuestion->evtAnswer) (*pstQuestion->evtAnswer)(pstPacket);
         			break;
         		}
         		pstQuestion++;

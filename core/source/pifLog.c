@@ -255,8 +255,17 @@ static void _PrintLog(char *pcString, BOOL bVcd)
 	}
 
 	if (s_stLog.bEnable || bVcd) {
-        pifRingBuffer_PutString(s_stLog.pstTxBuffer, pcString);
+#if 1
+        if (!pifRingBuffer_PutString(s_stLog.pstTxBuffer, pcString)) {
+            pifRingBuffer_PutString(s_stLog.pstTxBuffer, "..");
+        }
         pifComm_ForceSendData(s_stLog.pstComm);
+#else
+        while (!pifRingBuffer_PutString(s_stLog.pstTxBuffer, pcString)) {
+            pifTask_Yield();
+        }
+        pifComm_ForceSendData(s_stLog.pstComm);
+#endif
 	}
 }
 

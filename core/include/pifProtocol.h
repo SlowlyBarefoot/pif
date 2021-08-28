@@ -55,11 +55,15 @@ typedef enum _PIF_enProtocolFlags
 	PF_enType_Question		= 0x00,	// Default
 	PF_enType_Answer		= 0x01,
 
-	// 요청 명령의 응답 요구 선택 여부
-	PF_enResponse_Mask		= 0x06,
+	// 요청 명령에 응답 요구 선택 여부
+	PF_enResponse_Mask		= 0x02,
 	PF_enResponse_Yes		= 0x00,	// Default
-	PF_enResponse_Ack		= 0x02,
-	PF_enResponse_No		= 0x04,
+	PF_enResponse_No		= 0x02,
+
+	// 질문 명령에 답변 요구 선택 여부
+	PF_enAnswer_Mask		= 0x02,
+	PF_enAnswer_Yes			= 0x00,	// Default
+	PF_enAnswer_No			= 0x02,
 
 	// 명령 송수신시 로그 출력 사용 여부
 	PF_enLogPrint_Mask		= 0x08,
@@ -131,7 +135,7 @@ typedef struct _PIF_stProtocolQuestion
 {
     uint8_t ucCommand;
     uint8_t enFlags;					// PIF_enProtocolFlags
-    PIF_evtProtocolFinish evtQuestion;
+    PIF_evtProtocolFinish evtAnswer;
 } PIF_stProtocolQuestion;
 
 typedef struct _PIF_stProtocolRx

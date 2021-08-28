@@ -32,8 +32,9 @@ static void _sendData(PIF_stComm *pstOwner)
 		(*pstOwner->evtSending)(pstOwner->__pvClient, pstOwner->__actSendData);
 	}
 	else if (pstOwner->_pstTxBuffer) {
-		if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) {
-			if ((*pstOwner->evtSending)(pstOwner->__pvClient, _actSendData)) {
+		if ((*pstOwner->evtSending)(pstOwner->__pvClient, _actSendData)) {
+			if (pstOwner->__enState == CTS_enIdle) {
+				pstOwner->__enState = CTS_enSending;
 				if (pstOwner->__actStartTransfer) (*pstOwner->__actStartTransfer)();
 			}
 		}
@@ -119,6 +120,7 @@ PIF_stComm *pifComm_Add(PIF_usId usPifId)
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
 
     pstOwner->_usPifId = usPifId;
+    pstOwner->__enState = CTS_enIdle;
 
     s_ucCommPos = s_ucCommPos + 1;
     return pstOwner;
@@ -288,14 +290,51 @@ uint8_t pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
 {
 	uint8_t ucState = PIF_COMM_SEND_DATA_STATE_INIT;
 
-    if (!pstOwner->_pstTxBuffer) return FALSE;
+    if (!pstOwner->_pstTxBuffer) return ucState;
 
     ucState = pifRingBuffer_GetByte(pstOwner->_pstTxBuffer, pucData);
 	if (ucState) {
-	    ucState |= pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer) << 1;
+		if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) {
+			ucState |= PIF_COMM_SEND_DATA_STATE_EMPTY;
+		}
 	}
 	else ucState |= PIF_COMM_SEND_DATA_STATE_EMPTY;
 	return ucState;
+}
+
+/**
+ * @fn pifComm_SendDatas
+ * @brief
+ * @param pstOwner
+ * @param pucData
+ * @param pusLength
+ * @return
+ */
+uint8_t pifComm_SendDatas(PIF_stComm *pstOwner, uint8_t **ppucData, uint16_t *pusLength)
+{
+	uint8_t ucState = PIF_COMM_SEND_DATA_STATE_DATA;
+
+    if (!pstOwner->_pstTxBuffer) return PIF_COMM_SEND_DATA_STATE_INIT;
+    if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) return PIF_COMM_SEND_DATA_STATE_EMPTY;
+
+    *ppucData = pifRingBuffer_GetTailPointer(pstOwner->_pstTxBuffer, 0);
+    *pusLength = pifRingBuffer_GetLinerSize(pstOwner->_pstTxBuffer, 0);
+    pifRingBuffer_Remove(pstOwner->_pstTxBuffer, *pusLength);
+	if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) {
+	    ucState |= PIF_COMM_SEND_DATA_STATE_EMPTY;
+	}
+	return ucState;
+}
+
+/**
+ * @fn pifComm_FinishTransfer
+ * @brief
+ * @param pstOwner
+ */
+void pifComm_FinishTransfer(PIF_stComm *pstOwner)
+{
+	pstOwner->__enState = CTS_enIdle;
+	pstOwner->_pstTask->bImmediate = TRUE;
 }
 
 /**
@@ -305,9 +344,7 @@ uint8_t pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
  */
 void pifComm_ForceSendData(PIF_stComm *pstOwner)
 {
-	if (!pstOwner->evtSending) return;
-
-	_sendData(pstOwner);
+	if (pstOwner->evtSending) _sendData(pstOwner);
 }
 
 /**

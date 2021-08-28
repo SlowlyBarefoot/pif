@@ -63,6 +63,11 @@ typedef BOOL (*PIF_evtCommSending)(void *pvClient, PIF_actCommSendData actSendDa
 
 typedef void (*PIF_actCommStartTransfer)();
 
+typedef enum _PIF_enCommTxState
+{
+	CTS_enIdle		= 0,
+	CTS_enSending	= 1
+} PIF_enCommTxState;
 
 /**
  * @class _PIF_stComm
@@ -84,6 +89,7 @@ struct _PIF_stComm
 
 	// Private Member Variable
     void *__pvClient;
+    PIF_enCommTxState __enState;
 
 	PIF_enTaskLoop __enTaskLoop;
 
@@ -117,6 +123,8 @@ uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner);
 BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData);
 BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength);
 uint8_t pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData);
+uint8_t pifComm_SendDatas(PIF_stComm *pstOwner, uint8_t **ppucData, uint16_t *pusLength);
+void pifComm_FinishTransfer(PIF_stComm *pstOwner);
 
 void pifComm_ForceSendData(PIF_stComm *pstOwner);
 
