@@ -255,17 +255,10 @@ static void _PrintLog(char *pcString, BOOL bVcd)
 	}
 
 	if (s_stLog.bEnable || bVcd) {
-#if 1
-        if (!pifRingBuffer_PutString(s_stLog.pstTxBuffer, pcString)) {
-            pifRingBuffer_PutString(s_stLog.pstTxBuffer, "..");
-        }
-        pifComm_ForceSendData(s_stLog.pstComm);
-#else
         while (!pifRingBuffer_PutString(s_stLog.pstTxBuffer, pcString)) {
-            pifTask_Yield();
+        	pifTask_YieldPeriod(s_stLog.pstComm->_pstTask);
         }
         pifComm_ForceSendData(s_stLog.pstComm);
-#endif
 	}
 }
 
@@ -496,12 +489,12 @@ BOOL pifLog_AttachComm(PIF_stComm *pstComm)
 #ifdef __PIF_LOG_COMMAND__
 
 /**
- * @fn pifLog_taskAll
+ * @fn pifLog_Task
  * @brief
  * @param pstTask
  * @return
  */
-uint16_t pifLog_taskAll(PIF_stTask *pstTask)
+uint16_t pifLog_Task(PIF_stTask *pstTask)
 {
     int nStatus = PIF_LOG_CMD_NO_ERROR;
 

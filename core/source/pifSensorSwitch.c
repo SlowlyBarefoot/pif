@@ -64,25 +64,33 @@ static SWITCH _evtFilterContinue(SWITCH swState, PIF_stSensorSwitchFilter *pstOw
     return (pstOwner->unList >> pstOwner->ucHalf) & 1;
 }
 
-static void _taskCommon(PIF_stSensorSwitch *pstOwner)
+/**
+ * @fn pifSensorSwitch_Task
+ * @brief
+ * @param pstTask
+ * @return
+ */
+uint16_t pifSensorSwitch_Task(PIF_stTask *pstTask)
 {
-	PIF_stSensor *pstSensor = &pstOwner->stSensor;
+	PIF_stSensorSwitch *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stSensor *pstParent = &pstOwner->stSensor;
 
-	if (pstSensor->__actAcquire) {
-		pifSensorSwitch_sigData(pstSensor, (*pstSensor->__actAcquire)(pstSensor->_usPifId));
+	if (pstParent->__actAcquire) {
+		pifSensorSwitch_sigData(pstParent, (*pstParent->__actAcquire)(pstParent->_usPifId));
 	}
 
-	if (pstOwner->__swState != pstSensor->_swCurrState) {
-		if (pstSensor->__evtChange) {
-			(*pstSensor->__evtChange)(pstSensor->_usPifId, pstOwner->__swState, pstSensor->__pvChangeIssuer);
+	if (pstOwner->__swState != pstParent->_swCurrState) {
+		if (pstParent->__evtChange) {
+			(*pstParent->__evtChange)(pstParent->_usPifId, pstOwner->__swState, pstParent->__pvChangeIssuer);
 #ifdef __PIF_COLLECT_SIGNAL__
 			if (pstOwner->__ucCsFlag & SSCsF_enFilterBit) {
 				pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SSCsF_enFilterIdx], pstOwner->__swState);
 			}
 #endif
 		}
-		pstSensor->_swCurrState = pstOwner->__swState;
+		pstParent->_swCurrState = pstOwner->__swState;
 	}
+    return 0;
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -348,38 +356,3 @@ void pifSensorSwitch_sigData(PIF_stSensor *pstSensor, SWITCH swState)
 #endif
 }
 
-/**
- * @fn pifSensorSwitch_taskAll
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifSensorSwitch_taskAll(PIF_stTask *pstTask)
-{
-	(void)pstTask;
-
-    for (int i = 0; i < s_ucSensorSwitchPos; i++) {
-    	PIF_stSensorSwitch *pstOwner = &s_pstSensorSwitch[i];
-        if (!pstOwner->stSensor.__enTaskLoop) _taskCommon(pstOwner);
-    }
-    return 0;
-}
-
-/**
- * @fn pifSensorSwitch_taskEach
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifSensorSwitch_taskEach(PIF_stTask *pstTask)
-{
-	PIF_stSensorSwitch *pstOwner = pstTask->pvLoopEach;
-
-	if (pstOwner->stSensor.__enTaskLoop != TL_enEach) {
-		pstOwner->stSensor.__enTaskLoop = TL_enEach;
-	}
-	else {
-		_taskCommon(pstOwner);
-	}
-    return 0;
-}

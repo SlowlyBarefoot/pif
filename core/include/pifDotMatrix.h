@@ -95,8 +95,6 @@ typedef struct _PIF_stDotMatrix
 	PIF_stPulseItem *__pstTimerBlink;
 	PIF_stPulseItem *__pstTimerShift;
 
-	PIF_enTaskLoop __enTaskLoop;
-
 	// Private Action Function
    	PIF_actDotMatrixDisplay __actDisplay;
 } PIF_stDotMatrix;
@@ -132,8 +130,7 @@ void pifDotMatrix_ShiftOff(PIF_stDotMatrix *pstOwner);
 void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
 
 // Task Function
-uint16_t pifDotMatrix_taskAll(PIF_stTask *pstTask);
-uint16_t pifDotMatrix_taskEach(PIF_stTask *pstTask);
+uint16_t pifDotMatrix_Task(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

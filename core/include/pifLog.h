@@ -103,7 +103,7 @@ BOOL pifLog_AttachComm(PIF_stComm *pstComm);
 
 #ifdef __PIF_LOG_COMMAND__
 // Task Function
-uint16_t pifLog_taskAll(PIF_stTask *pstTask);
+uint16_t pifLog_Task(PIF_stTask *pstTask);
 #endif
 
 #ifdef __cplusplus

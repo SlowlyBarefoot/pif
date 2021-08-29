@@ -25,8 +25,6 @@ typedef struct _PIF_stSensor
 	// Private Member Variable
     void *__pvChangeIssuer;
 
-	PIF_enTaskLoop __enTaskLoop;				// Default: TL_enAll
-
 	// Private Action Function
 	PIF_actSensorAcquire __actAcquire;			// Default: NULL
 

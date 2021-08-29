@@ -249,12 +249,12 @@ BOOL pifKeypad_SetDoubleTime(uint16_t usDoubleTimeMs)
 }
 
 /**
- * @fn pifKeypad_taskAll
+ * @fn pifKeypad_Task
  * @brief
  * @param pstTask
  * @return
  */
-uint16_t pifKeypad_taskAll(PIF_stTask *pstTask)
+uint16_t pifKeypad_Task(PIF_stTask *pstTask)
 {
 	int idx, r, c;
 

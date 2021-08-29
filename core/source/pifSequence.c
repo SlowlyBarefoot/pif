@@ -38,18 +38,25 @@ static void _evtTimerTimeoutFinish(void *pvIssuer)
 	_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
 }
 
-static void _taskCommon(PIF_stSequence *pstOwner)
+/**
+ * @fn pifSequence_Task
+ * @brief Task에 연결하는 함수이다.
+ * @param pstTask Task에서 결정한다.
+ * @return
+ */
+uint16_t pifSequence_Task(PIF_stTask *pstTask)
 {
+	PIF_stSequence *pstOwner = pstTask->_pvLoopOwner;
 	const PIF_stSequencePhase *pstPhase;
 	uint8_t ucPhaseNoNext;
 	
-	if (pstOwner->_ucPhaseNo == PIF_SEQUENCE_PHASE_NO_IDLE) return;
+	if (pstOwner->_ucPhaseNo == PIF_SEQUENCE_PHASE_NO_IDLE) return 0;
 
 	if (pstOwner->unDelay1us) {
 		if ((*pif_actTimer1us)() >= pstOwner->__unTargetDelay) {
 			pstOwner->unDelay1us = 0;
 		}
-		else return;
+		else return 0;
 	}
 
 	pstPhase = &pstOwner->__pstPhaseList[pstOwner->_ucPhaseNo];
@@ -92,7 +99,7 @@ static void _taskCommon(PIF_stSequence *pstOwner)
 		pif_enError = E_enWrongData;
 		goto fail;
 	}
-	return;
+	return 0;
 
 fail:
 #ifndef __PIF_NO_LOG__
@@ -100,6 +107,7 @@ fail:
 #endif
 	if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
 	_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
+	return 0;
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -288,40 +296,4 @@ BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout)
 	}
 	pifPulse_StartItem(pstOwner->__pstTimerTimeout, usTimeout);
 	return TRUE;
-}
-
-/**
- * @fn pifSequence_taskAll
- * @brief Task에 연결하는 함수이다.
- * @param pstTask Task에서 결정한다.
- * @return
- */
-uint16_t pifSequence_taskAll(PIF_stTask *pstTask)
-{
-	(void) pstTask;
-
-    for (int i = 0; i < s_ucSequencePos; i++) {
-        PIF_stSequence *pstOwner = &s_pstSequence[i];
-    	if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
-    }
-    return 0;
-}
-
-/**
- * @fn pifSequence_taskEach
- * @brief Task에 연결하는 함수이다.
- * @param pstTask Task에서 결정한다.
- * @return
- */
-uint16_t pifSequence_taskEach(PIF_stTask *pstTask)
-{
-	PIF_stSequence *pstOwner = pstTask->pvLoopEach;
-
-	if (pstOwner->__enTaskLoop != TL_enEach) {
-		pstOwner->__enTaskLoop = TL_enEach;
-	}
-	else {
-		_taskCommon(pstOwner);
-	}
-    return 0;
 }

@@ -91,8 +91,6 @@ struct _PIF_stComm
     void *__pvClient;
     PIF_enCommTxState __enState;
 
-	PIF_enTaskLoop __enTaskLoop;
-
 	// Private Action Function
 	PIF_actCommReceiveData __actReceiveData;
     PIF_actCommSendData __actSendData;
@@ -123,14 +121,14 @@ uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner);
 BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData);
 BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength);
 uint8_t pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData);
-uint8_t pifComm_SendDatas(PIF_stComm *pstOwner, uint8_t **ppucData, uint16_t *pusLength);
+uint8_t pifComm_StartSendDatas(PIF_stComm *pstOwner, uint8_t **ppucData, uint16_t *pusLength);
+uint8_t pifComm_EndSendDatas(PIF_stComm *pstOwner, uint16_t usLength);
 void pifComm_FinishTransfer(PIF_stComm *pstOwner);
 
 void pifComm_ForceSendData(PIF_stComm *pstOwner);
 
 // Task Function
-uint16_t pifComm_taskAll(PIF_stTask *pstTask);
-uint16_t pifComm_taskEach(PIF_stTask *pstTask);
+uint16_t pifComm_Task(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

@@ -125,8 +125,7 @@ void pifSensorDigital_ResetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorDigit
 void pifSensorDigital_sigData(PIF_stSensor *pstSensor, uint16_t usLevel);
 
 // Task Function
-uint16_t pifSensorDigital_taskAll(PIF_stTask *pstTask);
-uint16_t pifSensorDigital_taskEach(PIF_stTask *pstTask);
+uint16_t pifSensorDigital_Task(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

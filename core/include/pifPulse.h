@@ -83,8 +83,6 @@ struct _PIF_stPulse
     uint8_t __unFreeNext;
     uint8_t __unAllocNext;
     PIF_stPulseItem *__pstItems;
-
-	PIF_enTaskLoop __enTaskLoop;
 };
 
 
@@ -118,8 +116,7 @@ void pifPulse_AttachAction(PIF_stPulseItem *pstItem, PIF_actPulsePwm actPwm);
 void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstItem, PIF_evtPulseFinish evtFinish, void *pvIssuer);
 
 // Task Function
-uint16_t pifPulse_taskAll(PIF_stTask *pstTask);
-uint16_t pifPulse_taskEach(PIF_stTask *pstTask);
+uint16_t pifPulse_Task(PIF_stTask *pstTask);
 
 #ifdef __PIF_DEBUG__
 

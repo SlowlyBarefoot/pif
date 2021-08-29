@@ -79,8 +79,6 @@ struct _PIF_stStepMotor
 	uint32_t __unTargetPulse;
 	const uint16_t *__pusPhaseOperation;
 
-	PIF_enTaskLoop __enTaskLoop;
-
     // Private Action Function
     PIF_actStepMotorSetStep __actSetStep;
 
@@ -103,7 +101,6 @@ void pifStepMotor_Exit();
 PIF_stStepMotor *pifStepMotor_Add(PIF_usId usPifId, uint16_t usResolution, PIF_enStepMotorOperation enOperation);
 
 void pifStepMotor_AttachAction(PIF_stStepMotor *pstOwner, PIF_actStepMotorSetStep actSetStep);
-void pifStepMotor_AttachTask(PIF_stStepMotor *pstOwner, PIF_stTask *pstTask);
 
 BOOL pifStepMotor_SetDirection(PIF_stStepMotor *pstOwner, uint8_t ucDirection);
 BOOL pifStepMotor_SetMethod(PIF_stStepMotor *pstOwner, PIF_enStepMotorMethod enMethod);
@@ -124,8 +121,7 @@ BOOL pifStepMotor_InitControl(PIF_stStepMotor *pstOwner, uint16_t usControlPerio
 BOOL pifStepMotor_StartControl(PIF_stStepMotor *pstOwner);
 
 // Task Function
-uint16_t pifStepMotor_taskAll(PIF_stTask *pstTask);
-uint16_t pifStepMotor_taskEach(PIF_stTask *pstTask);
+uint16_t pifStepMotor_Task(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

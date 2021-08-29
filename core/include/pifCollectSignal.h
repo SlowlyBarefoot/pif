@@ -76,7 +76,7 @@ void pifCollectSignal_AddSignal(int8_t cIndex, uint16_t usState);
 void pifCollectSignal_PrintLog();
 
 // Task Function
-uint16_t pifCollectSignal_taskAll(PIF_stTask *pstTask);
+uint16_t pifCollectSignal_Task(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }

@@ -12,10 +12,17 @@ static uint8_t s_ucPulseSize;
 static uint8_t s_ucPulsePos;
 
 
-static void _taskCommon(PIF_stPulse *pstOwner)
+/**
+ * @fn pifPulse_Task
+ * @brief Task에 연결하는 함수이다.
+ * @param pstTask Task에서 결정한다.
+ * @return
+ */
+uint16_t pifPulse_Task(PIF_stTask *pstTask)
 {
-	uint8_t index;
+	PIF_stPulse *pstOwner = pstTask->_pvLoopOwner;
 	PIF_stPulseItem *pstItem;
+	uint8_t index;
 
 	index = pstOwner->__unAllocNext;
 	while (index != PIF_PULSE_INDEX_NULL) {
@@ -31,6 +38,7 @@ static void _taskCommon(PIF_stPulse *pstOwner)
 
 		index = pstItem->__unNext;
 	}
+	return 0;
 }
 
 /**
@@ -379,42 +387,6 @@ void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstItem, PIF_evtPulseFinish evtFi
 {
 	pstItem->__evtFinish = evtFinish;
 	pstItem->__pvFinishIssuer = pvIssuer;
-}
-
-/**
- * @fn pifPulse_taskAll
- * @brief Task에 연결하는 함수이다.
- * @param pstTask Task에서 결정한다.
- * @return
- */
-uint16_t pifPulse_taskAll(PIF_stTask *pstTask)
-{
-	(void) pstTask;
-
-    for (int i = 0; i < s_ucPulsePos; i++) {
-        PIF_stPulse *pstOwner = &s_pstPulse[i];
-    	if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
-    }
-    return 0;
-}
-
-/**
- * @fn pifPulse_taskEach
- * @brief Task에 연결하는 함수이다.
- * @param pstTask Task에서 결정한다.
- * @return
- */
-uint16_t pifPulse_taskEach(PIF_stTask *pstTask)
-{
-	PIF_stPulse *pstOwner = pstTask->pvLoopEach;
-
-	if (pstOwner->__enTaskLoop != TL_enEach) {
-		pstOwner->__enTaskLoop = TL_enEach;
-	}
-	else {
-		_taskCommon(pstOwner);
-	}
-	return 0;
 }
 
 #ifdef __PIF_DEBUG__

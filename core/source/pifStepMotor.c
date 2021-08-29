@@ -116,9 +116,18 @@ static void _evtTimerBreakFinish(void *pvIssuer)
     }
 }
 
-static void _taskCommon(PIF_stTask *pstTask, PIF_stStepMotor *pstOwner)
+/**
+ * @fn pifStepMotor_Task
+ * @brief
+ * @param pstTask
+ * @return
+ */
+uint16_t pifStepMotor_Task(PIF_stTask *pstTask)
 {
+	PIF_stStepMotor *pstOwner = pstTask->_pvLoopOwner;
 	static uint16_t usnStepPeriodUs = 0;
+
+	pstOwner->__pstTask = pstTask;
 
 	_SetStep(pstOwner);
 
@@ -134,6 +143,7 @@ static void _taskCommon(PIF_stTask *pstTask, PIF_stStepMotor *pstOwner)
 		pifTask_SetPeriod(pstTask, pstOwner->__usStepPeriodUs);
 		usnStepPeriodUs = pstOwner->__usStepPeriodUs;
 	}
+	return 0;
 }
 
 /**
@@ -252,18 +262,6 @@ fail:
 void pifStepMotor_AttachAction(PIF_stStepMotor *pstOwner, PIF_actStepMotorSetStep actSetStep)
 {
     pstOwner->__actSetStep = actSetStep;
-}
-
-/**
- * @fn pifStepMotor_AttachTask
- * @brief
- * @param pstOwner
- * @param pstTask
- */
-void pifStepMotor_AttachTask(PIF_stStepMotor *pstOwner, PIF_stTask *pstTask)
-{
-    pstTask->bPause = TRUE;
-    pstOwner->__pstTask = pstTask;
 }
 
 /**
@@ -655,40 +653,4 @@ fail:
     pifLog_Printf(LT_enError, "SM:%u(%u) S:%u EC:%u", __LINE__, pstOwner->_usPifId, pstOwner->_enState, pif_enError);
 #endif
     return FALSE;
-}
-
-/**
- * @fn pifStepMotor_taskAll
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifStepMotor_taskAll(PIF_stTask *pstTask)
-{
-	(void)pstTask;
-
-	for (int i = 0; i < s_ucStepMotorPos; i++) {
-		PIF_stStepMotor *pstOwner = &s_pstStepMotor[i];
-		if (!pstOwner->__enTaskLoop) _taskCommon(pstTask, pstOwner);
-	}
-	return 0;
-}
-
-/**
- * @fn pifStepMotor_taskEach
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifStepMotor_taskEach(PIF_stTask *pstTask)
-{
-	PIF_stStepMotor *pstOwner = pstTask->pvLoopEach;
-
-	if (pstOwner->__enTaskLoop != TL_enEach) {
-		pstOwner->__enTaskLoop = TL_enEach;
-	}
-	else {
-		_taskCommon(pstTask, pstOwner);
-	}
-	return 0;
 }

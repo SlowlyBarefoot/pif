@@ -147,20 +147,27 @@ static void _evtTimerShiftFinish(void *pvIssuer)
     }
 }
 
-static void _taskCommon(PIF_stDotMatrix *pstOwner)
+/**
+ * @fn pifDotMatrix_Task
+ * @brief
+ * @param pstTask
+ * @return
+ */
+uint16_t pifDotMatrix_Task(PIF_stTask *pstTask)
 {
+	PIF_stDotMatrix *pstOwner = pstTask->_pvLoopOwner;
 	uint8_t *pucPattern;
 	uint8_t ucOff = 0;
 
-	if (!pstOwner->__bt.Run) return;
+	if (!pstOwner->__bt.Run) return 0;
 
 	if (pif_usTimer1ms > pstOwner->__usPretimeMs) {
-		if (pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return;
+		if (pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
 	}
 	else if (pif_usTimer1ms < pstOwner->__usPretimeMs) {
-		if (1000 - pstOwner->__usPretimeMs + pif_usTimer1ms < pstOwner->__usControlPeriodMs) return;
+		if (1000 - pstOwner->__usPretimeMs + pif_usTimer1ms < pstOwner->__usControlPeriodMs) return 0;
 	}
-	else return;
+	else return 0;
 
 	if (!pstOwner->__bt.Blink) {
 		pucPattern = pstOwner->__pucPattern;
@@ -175,6 +182,7 @@ static void _taskCommon(PIF_stDotMatrix *pstOwner)
 	if (pstOwner->__ucRowIndex >= pstOwner->__usRowSize) pstOwner->__ucRowIndex = 0;
 
 	pstOwner->__usPretimeMs = pif_usTimer1ms;
+	return 0;
 }
 
 /**
@@ -585,38 +593,3 @@ void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriod
 	}
 }
 
-/**
- * @fn pifDotMatrix_taskAll
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifDotMatrix_taskAll(PIF_stTask *pstTask)
-{
-	(void)pstTask;
-
-	for (int i = 0; i < s_ucDotMatrixPos; i++) {
-		PIF_stDotMatrix *pstOwner = &s_pstDotMatrix[i];
-		if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
-	}
-	return 0;
-}
-
-/**
- * @fn pifDotMatrix_taskEach
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifDotMatrix_taskEach(PIF_stTask *pstTask)
-{
-	PIF_stDotMatrix *pstOwner = pstTask->pvLoopEach;
-
-	if (pstOwner->__enTaskLoop != TL_enEach) {
-		pstOwner->__enTaskLoop = TL_enEach;
-	}
-	else {
-		_taskCommon(pstOwner);
-	}
-	return 0;
-}

@@ -48,13 +48,20 @@ static uint16_t _evtFilterAverage(uint16_t usLevel, PIF_stSensorDigitalFilter *p
     return pstFilter->unSum / pstFilter->ucSize;
 }
 
-static void _taskCommon(PIF_stSensorDigital *pstOwner)
+/**
+ * @fn pifSensorDigital_Task
+ * @brief
+ * @param pstTask
+ * @return
+ */
+uint16_t pifSensorDigital_Task(PIF_stTask *pstTask)
 {
-	PIF_stSensor *pstSensor = &pstOwner->stSensor;
+	PIF_stSensorDigital *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stSensor *pstParent = &pstOwner->stSensor;
 	SWITCH swState;
 
-	if (pstSensor->__actAcquire) {
-		pifSensorDigital_sigData(pstSensor, (*pstSensor->__actAcquire)(pstSensor->_usPifId));
+	if (pstParent->__actAcquire) {
+		pifSensorDigital_sigData(pstParent, (*pstParent->__actAcquire)(pstParent->_usPifId));
 	}
 
    	switch (pstOwner->__enEventType) {
@@ -70,25 +77,26 @@ static void _taskCommon(PIF_stSensorDigital *pstOwner)
    			swState = ON;
    		}
    		else {
-   			swState = pstSensor->_swCurrState;
+   			swState = pstParent->_swCurrState;
    		}
    		break;
 
    	default:
-   		return;
+   		return 0;
    	}
 
-	if (swState != pstSensor->_swCurrState) {
-		if (pstSensor->__evtChange) {
-			(*pstSensor->__evtChange)(pstSensor->_usPifId, swState, pstSensor->__pvChangeIssuer);
+	if (swState != pstParent->_swCurrState) {
+		if (pstParent->__evtChange) {
+			(*pstParent->__evtChange)(pstParent->_usPifId, swState, pstParent->__pvChangeIssuer);
 #ifdef __PIF_COLLECT_SIGNAL__
 			if (pstOwner->__ucCsFlag & SDCsF_enStateBit) {
 				pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SDCsF_enStateIdx], swState);
 			}
 #endif
 		}
-		pstSensor->_swCurrState = swState;
+		pstParent->_swCurrState = swState;
 	}
+    return 0;
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -431,40 +439,4 @@ void pifSensorDigital_sigData(PIF_stSensor *pstSensor, uint16_t usLevel)
     else {
     	pstOwner->__usCurrLevel = usLevel;
     }
-}
-
-/**
- * @fn pifSensorDigital_taskAll
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifSensorDigital_taskAll(PIF_stTask *pstTask)
-{
-	(void)pstTask;
-
-    for (int i = 0; i < s_ucSensorDigitalPos; i++) {
-    	PIF_stSensorDigital *pstOwner = &s_pstSensorDigital[i];
-        if (!pstOwner->stSensor.__enTaskLoop) _taskCommon(pstOwner);
-    }
-    return 0;
-}
-
-/**
- * @fn pifSensorDigital_taskEach
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifSensorDigital_taskEach(PIF_stTask *pstTask)
-{
-	PIF_stSensorDigital *pstOwner = pstTask->pvLoopEach;
-
-	if (pstOwner->stSensor.__enTaskLoop != TL_enEach) {
-		pstOwner->stSensor.__enTaskLoop = TL_enEach;
-	}
-	else {
-		_taskCommon(pstOwner);
-	}
-    return 0;
 }

@@ -175,10 +175,11 @@ void pifTask_Exit()
  * @brief Task를 추가한다.
  * @param ucRatio Task 동작 속도(1% ~ 100%) 높을수록 빠르다.
  * @param evtLoop Task 함수
- * @param pvLoopEach 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @param pvLoopOwner 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvLoopEach)
+PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvLoopOwner, BOOL bStart)
 {
 	static int base = 0;
 	
@@ -216,9 +217,8 @@ PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvL
     }
 	pstOwner->_usPifId = pif_usPifId++;
 	pstOwner->__evtLoop = evtLoop;
-	pstOwner->pvLoopEach = pvLoopEach;
-
-	if (pvLoopEach) (*evtLoop)(pstOwner);
+	pstOwner->_pvLoopOwner = pvLoopOwner;
+    pstOwner->bPause = !bStart;
 
     s_ucTaskPos = s_ucTaskPos + 1;
     return pstOwner;
@@ -235,10 +235,11 @@ fail:
  * @brief Task를 추가한다.
  * @param usPeriodMs Task 주기를 설정한다. 단위는 1ms.
  * @param evtLoop Task 함수
- * @param pvLoopEach 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @param pvLoopOwner 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopEach)
+PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopOwner, BOOL bStart)
 {
 	if (!usPeriodMs || !evtLoop) {
         pif_enError = E_enInvalidParam;
@@ -257,9 +258,8 @@ PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, vo
     pstOwner->_usPeriod = usPeriodMs;
     pstOwner->__unPretime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
     pstOwner->__evtLoop = evtLoop;
-    pstOwner->pvLoopEach = pvLoopEach;
-
-	if (pvLoopEach) (*evtLoop)(pstOwner);
+    pstOwner->_pvLoopOwner = pvLoopOwner;
+    pstOwner->bPause = !bStart;
 
     s_ucTaskPos = s_ucTaskPos + 1;
     return pstOwner;
@@ -276,10 +276,11 @@ fail:
  * @brief Task를 추가한다.
  * @param usPeriodUs Task 주기를 설정한다. 단위는 1us.
  * @param evtLoop Task 함수
- * @param pvLoopEach 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @param pvLoopOwner 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, void *pvLoopEach)
+PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, void *pvLoopOwner, BOOL bStart)
 {
 	if (!usPeriodUs || !evtLoop) {
         pif_enError = E_enInvalidParam;
@@ -303,9 +304,8 @@ PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, vo
     pstOwner->_usPeriod = usPeriodUs;
     pstOwner->__unPretime = (*pif_actTimer1us)();
     pstOwner->__evtLoop = evtLoop;
-    pstOwner->pvLoopEach = pvLoopEach;
-
-	if (pvLoopEach) (*evtLoop)(pstOwner);
+    pstOwner->_pvLoopOwner = pvLoopOwner;
+    pstOwner->bPause = !bStart;
 
     s_ucTaskPos = s_ucTaskPos + 1;
     return pstOwner;
@@ -322,10 +322,11 @@ fail:
  * @brief Task를 추가한다.
  * @param usPeriodMs Task 초기 주기를 설정한다. 단위는 1ms.
  * @param evtLoop Task 함수
- * @param pvLoopEach 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @param pvLoopOwner 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifTask_AddChangeMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopEach)
+PIF_stTask *pifTask_AddChangeMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopOwner, BOOL bStart)
 {
 	if (!usPeriodMs || !evtLoop) {
         pif_enError = E_enInvalidParam;
@@ -344,9 +345,8 @@ PIF_stTask *pifTask_AddChangeMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, vo
     pstOwner->_usPeriod = usPeriodMs;
     pstOwner->__unPretime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
     pstOwner->__evtLoop = evtLoop;
-    pstOwner->pvLoopEach = pvLoopEach;
-
-	if (pvLoopEach) (*evtLoop)(pstOwner);
+    pstOwner->_pvLoopOwner = pvLoopOwner;
+    pstOwner->bPause = !bStart;
 
     s_ucTaskPos = s_ucTaskPos + 1;
     return pstOwner;
@@ -363,10 +363,11 @@ fail:
  * @brief Task를 추가한다.
  * @param usPeriodUs Task 초기 주기를 설정한다. 단위는 1us.
  * @param evtLoop Task 함수
- * @param pvLoopEach 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @param pvLoopOwner 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifTask_AddChangeUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, void *pvLoopEach)
+PIF_stTask *pifTask_AddChangeUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, void *pvLoopOwner, BOOL bStart)
 {
 	if (!usPeriodUs || !evtLoop) {
         pif_enError = E_enInvalidParam;
@@ -390,9 +391,8 @@ PIF_stTask *pifTask_AddChangeUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, vo
     pstOwner->_usPeriod = usPeriodUs;
     pstOwner->__unPretime = (*pif_actTimer1us)();
     pstOwner->__evtLoop = evtLoop;
-    pstOwner->pvLoopEach = pvLoopEach;
-
-	if (pvLoopEach) (*evtLoop)(pstOwner);
+    pstOwner->_pvLoopOwner = pvLoopOwner;
+    pstOwner->bPause = !bStart;
 
     s_ucTaskPos = s_ucTaskPos + 1;
     return pstOwner;

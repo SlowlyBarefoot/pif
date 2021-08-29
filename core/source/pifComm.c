@@ -41,8 +41,18 @@ static void _sendData(PIF_stComm *pstOwner)
 	}
 }
 
-static void _taskCommon(PIF_stComm *pstOwner)
+/**
+ * @fn pifComm_Task
+ * @brief
+ * @param pstTask
+ * @return
+ */
+uint16_t pifComm_Task(PIF_stTask *pstTask)
 {
+	PIF_stComm *pstOwner = pstTask->_pvLoopOwner;
+
+	pstOwner->_pstTask = pstTask;
+
 	if (pstOwner->evtParsing) {
 		if (pstOwner->__actReceiveData) {
 			(*pstOwner->evtParsing)(pstOwner->__pvClient, pstOwner->__actReceiveData);
@@ -53,6 +63,7 @@ static void _taskCommon(PIF_stComm *pstOwner)
 	}
 
 	if (pstOwner->evtSending) _sendData(pstOwner);
+	return 0;
 }
 
 /**
@@ -303,27 +314,34 @@ uint8_t pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
 }
 
 /**
- * @fn pifComm_SendDatas
+ * @fn pifComm_StartSendDatas
  * @brief
  * @param pstOwner
  * @param pucData
  * @param pusLength
  * @return
  */
-uint8_t pifComm_SendDatas(PIF_stComm *pstOwner, uint8_t **ppucData, uint16_t *pusLength)
+uint8_t pifComm_StartSendDatas(PIF_stComm *pstOwner, uint8_t **ppucData, uint16_t *pusLength)
 {
-	uint8_t ucState = PIF_COMM_SEND_DATA_STATE_DATA;
-
     if (!pstOwner->_pstTxBuffer) return PIF_COMM_SEND_DATA_STATE_INIT;
     if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) return PIF_COMM_SEND_DATA_STATE_EMPTY;
 
     *ppucData = pifRingBuffer_GetTailPointer(pstOwner->_pstTxBuffer, 0);
     *pusLength = pifRingBuffer_GetLinerSize(pstOwner->_pstTxBuffer, 0);
-    pifRingBuffer_Remove(pstOwner->_pstTxBuffer, *pusLength);
-	if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) {
-	    ucState |= PIF_COMM_SEND_DATA_STATE_EMPTY;
-	}
-	return ucState;
+	return PIF_COMM_SEND_DATA_STATE_DATA;
+}
+
+/**
+ * @fn pifComm_EndSendDatas
+ * @brief
+ * @param pstOwner
+ * @param usLength
+ * @return
+ */
+uint8_t pifComm_EndSendDatas(PIF_stComm *pstOwner, uint16_t usLength)
+{
+    pifRingBuffer_Remove(pstOwner->_pstTxBuffer, usLength);
+	return pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer) << 1;
 }
 
 /**
@@ -347,40 +365,3 @@ void pifComm_ForceSendData(PIF_stComm *pstOwner)
 	if (pstOwner->evtSending) _sendData(pstOwner);
 }
 
-/**
- * @fn pifComm_taskAll
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifComm_taskAll(PIF_stTask *pstTask)
-{
-	(void)pstTask;
-
-	for (int i = 0; i < s_ucCommPos; i++) {
-		PIF_stComm *pstOwner = &s_pstComm[i];
-		pstOwner->_pstTask = pstTask;
-		if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
-	}
-	return 0;
-}
-
-/**
- * @fn pifComm_taskEach
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifComm_taskEach(PIF_stTask *pstTask)
-{
-	PIF_stComm *pstOwner = pstTask->pvLoopEach;
-
-	pstOwner->_pstTask = pstTask;
-	if (pstOwner->__enTaskLoop != TL_enEach) {
-		pstOwner->__enTaskLoop = TL_enEach;
-	}
-	else {
-		_taskCommon(pstOwner);
-	}
-	return 0;
-}

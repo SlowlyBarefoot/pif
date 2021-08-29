@@ -34,20 +34,27 @@ static void _evtTimerBlinkFinish(void *pvIssuer)
     pstOwner->__bt.Blink ^= 1;
 }
 
-static void _taskCommon(PIF_stFnd *pstOwner)
+/**
+ * @fn pifFnd_Task
+ * @brief
+ * @param pstTask
+ * @return
+ */
+uint16_t pifFnd_Task(PIF_stTask *pstTask)
 {
+	PIF_stFnd *pstOwner = pstTask->_pvLoopOwner;
 	uint8_t ch, seg = 0;
 	BOOL bPoint = FALSE;
 
-	if (!pstOwner->__bt.Run) return;
+	if (!pstOwner->__bt.Run) return 0;
 
 	if (pif_usTimer1ms > pstOwner->__usPretimeMs) {
-		if (pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return;
+		if (pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
 	}
 	else if (pif_usTimer1ms < pstOwner->__usPretimeMs) {
-		if (1000 + pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return;
+		if (1000 + pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
 	}
-	else return;
+	else return 0;
 
 	if (!pstOwner->__bt.Blink) {
 		ch = pstOwner->__pcString[pstOwner->__ucDigitIndex];
@@ -74,6 +81,7 @@ static void _taskCommon(PIF_stFnd *pstOwner)
 	if (pstOwner->__ucDigitIndex >= pstOwner->_ucDigitSize) pstOwner->__ucDigitIndex = 0;
 
 	pstOwner->__usPretimeMs = pif_usTimer1ms;
+	return 0;
 }
 
 /**
@@ -460,38 +468,3 @@ void pifFnd_SetString(PIF_stFnd *pstOwner, char *pcString)
     }
 }
 
-/**
- * @fn pifFnd_taskAll
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifFnd_taskAll(PIF_stTask *pstTask)
-{
-	(void)pstTask;
-
-	for (int i = 0; i < s_ucFndPos; i++) {
-		PIF_stFnd *pstOwner = &s_pstFnd[i];
-		if (!pstOwner->__enTaskLoop) _taskCommon(pstOwner);
-	}
-	return 0;
-}
-
-/**
- * @fn pifFnd_taskEach
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifFnd_taskEach(PIF_stTask *pstTask)
-{
-	PIF_stFnd *pstOwner = pstTask->pvLoopEach;
-
-	if (pstOwner->__enTaskLoop != TL_enEach) {
-		pstOwner->__enTaskLoop = TL_enEach;
-	}
-	else {
-		_taskCommon(pstOwner);
-	}
-	return 0;
-}

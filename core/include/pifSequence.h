@@ -68,8 +68,6 @@ struct _PIF_stSequence
 	uint8_t __ucCsFlag;
     int8_t __cCsIndex[SqCsF_enCount];
 #endif
-
-	PIF_enTaskLoop __enTaskLoop;
 };
 
 
@@ -97,8 +95,7 @@ void pifSequence_Start(PIF_stSequence *pstOwner);
 BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout);
 
 // Task Function
-uint16_t pifSequence_taskAll(PIF_stTask *pstTask);
-uint16_t pifSequence_taskEach(PIF_stTask *pstTask);
+uint16_t pifSequence_Task(PIF_stTask *pstTask);
 
 #ifdef __cplusplus
 }
