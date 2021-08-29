@@ -48,57 +48,6 @@ static uint16_t _evtFilterAverage(uint16_t usLevel, PIF_stSensorDigitalFilter *p
     return pstFilter->unSum / pstFilter->ucSize;
 }
 
-/**
- * @fn pifSensorDigital_Task
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifSensorDigital_Task(PIF_stTask *pstTask)
-{
-	PIF_stSensorDigital *pstOwner = pstTask->_pvLoopOwner;
-	PIF_stSensor *pstParent = &pstOwner->stSensor;
-	SWITCH swState;
-
-	if (pstParent->__actAcquire) {
-		pifSensorDigital_sigData(pstParent, (*pstParent->__actAcquire)(pstParent->_usPifId));
-	}
-
-   	switch (pstOwner->__enEventType) {
-   	case SDET_enThreshold1P:
-   		swState = pstOwner->__usCurrLevel >= pstOwner->__ui.usThreshold;
-   		break;
-
-   	case SDET_enThreshold2P:
-   		if (pstOwner->__usCurrLevel <= pstOwner->__ui.stT.usThresholdLow) {
-   			swState = OFF;
-   		}
-   		else if (pstOwner->__usCurrLevel >= pstOwner->__ui.stT.usThresholdHigh) {
-   			swState = ON;
-   		}
-   		else {
-   			swState = pstParent->_swCurrState;
-   		}
-   		break;
-
-   	default:
-   		return 0;
-   	}
-
-	if (swState != pstParent->_swCurrState) {
-		if (pstParent->__evtChange) {
-			(*pstParent->__evtChange)(pstParent->_usPifId, swState, pstParent->__pvChangeIssuer);
-#ifdef __PIF_COLLECT_SIGNAL__
-			if (pstOwner->__ucCsFlag & SDCsF_enStateBit) {
-				pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SDCsF_enStateIdx], swState);
-			}
-#endif
-		}
-		pstParent->_swCurrState = swState;
-	}
-    return 0;
-}
-
 #ifdef __PIF_COLLECT_SIGNAL__
 
 static void _AddDeviceInCollectSignal()
@@ -439,4 +388,55 @@ void pifSensorDigital_sigData(PIF_stSensor *pstSensor, uint16_t usLevel)
     else {
     	pstOwner->__usCurrLevel = usLevel;
     }
+}
+
+/**
+ * @fn pifSensorDigital_Task
+ * @brief
+ * @param pstTask
+ * @return
+ */
+uint16_t pifSensorDigital_Task(PIF_stTask *pstTask)
+{
+	PIF_stSensorDigital *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stSensor *pstParent = &pstOwner->stSensor;
+	SWITCH swState;
+
+	if (pstParent->__actAcquire) {
+		pifSensorDigital_sigData(pstParent, (*pstParent->__actAcquire)(pstParent->_usPifId));
+	}
+
+   	switch (pstOwner->__enEventType) {
+   	case SDET_enThreshold1P:
+   		swState = pstOwner->__usCurrLevel >= pstOwner->__ui.usThreshold;
+   		break;
+
+   	case SDET_enThreshold2P:
+   		if (pstOwner->__usCurrLevel <= pstOwner->__ui.stT.usThresholdLow) {
+   			swState = OFF;
+   		}
+   		else if (pstOwner->__usCurrLevel >= pstOwner->__ui.stT.usThresholdHigh) {
+   			swState = ON;
+   		}
+   		else {
+   			swState = pstParent->_swCurrState;
+   		}
+   		break;
+
+   	default:
+   		return 0;
+   	}
+
+	if (swState != pstParent->_swCurrState) {
+		if (pstParent->__evtChange) {
+			(*pstParent->__evtChange)(pstParent->_usPifId, swState, pstParent->__pvChangeIssuer);
+#ifdef __PIF_COLLECT_SIGNAL__
+			if (pstOwner->__ucCsFlag & SDCsF_enStateBit) {
+				pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SDCsF_enStateIdx], swState);
+			}
+#endif
+		}
+		pstParent->_swCurrState = swState;
+	}
+    return 0;
 }

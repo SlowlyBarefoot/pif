@@ -148,44 +148,6 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 }
 
 /**
- * @fn pifDotMatrix_Task
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifDotMatrix_Task(PIF_stTask *pstTask)
-{
-	PIF_stDotMatrix *pstOwner = pstTask->_pvLoopOwner;
-	uint8_t *pucPattern;
-	uint8_t ucOff = 0;
-
-	if (!pstOwner->__bt.Run) return 0;
-
-	if (pif_usTimer1ms > pstOwner->__usPretimeMs) {
-		if (pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
-	}
-	else if (pif_usTimer1ms < pstOwner->__usPretimeMs) {
-		if (1000 - pstOwner->__usPretimeMs + pif_usTimer1ms < pstOwner->__usControlPeriodMs) return 0;
-	}
-	else return 0;
-
-	if (!pstOwner->__bt.Blink) {
-		pucPattern = pstOwner->__pucPattern;
-		int index = pstOwner->__ucRowIndex * pstOwner->__usColBytes;
-		(*pstOwner->__actDisplay)(pstOwner->__ucRowIndex, pucPattern + index);
-		pucPattern += pstOwner->__usTotalBytes;
-	}
-	else {
-		(*pstOwner->__actDisplay)(pstOwner->__ucRowIndex, &ucOff);
-	}
-	pstOwner->__ucRowIndex++;
-	if (pstOwner->__ucRowIndex >= pstOwner->__usRowSize) pstOwner->__ucRowIndex = 0;
-
-	pstOwner->__usPretimeMs = pif_usTimer1ms;
-	return 0;
-}
-
-/**
  * @fn pifDotMatrix_Init
  * @brief
  * @param ucSize
@@ -591,5 +553,43 @@ void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriod
 	if (pstOwner->__pstTimerShift) {
 		pstOwner->__pstTimerShift->unTarget = usPeriodMs * 1000 / s_pstDotMatrixTimer->_unPeriodUs;
 	}
+}
+
+/**
+ * @fn pifDotMatrix_Task
+ * @brief
+ * @param pstTask
+ * @return
+ */
+uint16_t pifDotMatrix_Task(PIF_stTask *pstTask)
+{
+	PIF_stDotMatrix *pstOwner = pstTask->_pvLoopOwner;
+	uint8_t *pucPattern;
+	uint8_t ucOff = 0;
+
+	if (!pstOwner->__bt.Run) return 0;
+
+	if (pif_usTimer1ms > pstOwner->__usPretimeMs) {
+		if (pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
+	}
+	else if (pif_usTimer1ms < pstOwner->__usPretimeMs) {
+		if (1000 - pstOwner->__usPretimeMs + pif_usTimer1ms < pstOwner->__usControlPeriodMs) return 0;
+	}
+	else return 0;
+
+	if (!pstOwner->__bt.Blink) {
+		pucPattern = pstOwner->__pucPattern;
+		int index = pstOwner->__ucRowIndex * pstOwner->__usColBytes;
+		(*pstOwner->__actDisplay)(pstOwner->__ucRowIndex, pucPattern + index);
+		pucPattern += pstOwner->__usTotalBytes;
+	}
+	else {
+		(*pstOwner->__actDisplay)(pstOwner->__ucRowIndex, &ucOff);
+	}
+	pstOwner->__ucRowIndex++;
+	if (pstOwner->__ucRowIndex >= pstOwner->__usRowSize) pstOwner->__ucRowIndex = 0;
+
+	pstOwner->__usPretimeMs = pif_usTimer1ms;
+	return 0;
 }
 

@@ -38,78 +38,6 @@ static void _evtTimerTimeoutFinish(void *pvIssuer)
 	_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
 }
 
-/**
- * @fn pifSequence_Task
- * @brief Task에 연결하는 함수이다.
- * @param pstTask Task에서 결정한다.
- * @return
- */
-uint16_t pifSequence_Task(PIF_stTask *pstTask)
-{
-	PIF_stSequence *pstOwner = pstTask->_pvLoopOwner;
-	const PIF_stSequencePhase *pstPhase;
-	uint8_t ucPhaseNoNext;
-	
-	if (pstOwner->_ucPhaseNo == PIF_SEQUENCE_PHASE_NO_IDLE) return 0;
-
-	if (pstOwner->unDelay1us) {
-		if ((*pif_actTimer1us)() >= pstOwner->__unTargetDelay) {
-			pstOwner->unDelay1us = 0;
-		}
-		else return 0;
-	}
-
-	pstPhase = &pstOwner->__pstPhaseList[pstOwner->_ucPhaseNo];
-
-	if (!pstPhase->fnProcess) {
-		pif_enError = E_enWrongData;
-		goto fail;
-	}
-
-	switch ((*pstPhase->fnProcess)(pstOwner)) {
-	case SR_enContinue:
-		if (pstOwner->unDelay1us) {
-			pstOwner->__unTargetDelay = (*pif_actTimer1us)() + pstOwner->unDelay1us;
-		}
-		break;
-
-	case SR_enNext:
-		if (pstOwner->__pstTimerTimeout) pifPulse_StopItem(pstOwner->__pstTimerTimeout);
-
-		ucPhaseNoNext = pstOwner->ucPhaseNoNext;
-		if (ucPhaseNoNext == PIF_SEQUENCE_PHASE_NO_IDLE) {
-			ucPhaseNoNext = pstPhase->ucPhaseNoNext;
-		}
-
-		if (ucPhaseNoNext != PIF_SEQUENCE_PHASE_NO_IDLE) {
-			if (pstOwner->unDelay1us) {
-				pstOwner->__unTargetDelay = (*pif_actTimer1us)() + pstOwner->unDelay1us;
-			}
-			pstOwner->ucStep = PIF_SEQUENCE_STEP_INIT;
-			pstOwner->ucPhaseNoNext = PIF_SEQUENCE_PHASE_NO_IDLE;
-		}
-		_SetPhaseNo(pstOwner, ucPhaseNoNext);
-		break;
-
-	case SR_enFinish:
-		_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
-		break;
-
-	default:
-		pif_enError = E_enWrongData;
-		goto fail;
-	}
-	return 0;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "SQ:Error(%d) EC:%d", pstOwner->_ucPhaseNo, pif_enError);
-#endif
-	if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
-	_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
-	return 0;
-}
-
 #ifdef __PIF_COLLECT_SIGNAL__
 
 static void _AddDeviceInCollectSignal()
@@ -296,4 +224,76 @@ BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout)
 	}
 	pifPulse_StartItem(pstOwner->__pstTimerTimeout, usTimeout);
 	return TRUE;
+}
+
+/**
+ * @fn pifSequence_Task
+ * @brief Task에 연결하는 함수이다.
+ * @param pstTask Task에서 결정한다.
+ * @return
+ */
+uint16_t pifSequence_Task(PIF_stTask *pstTask)
+{
+	PIF_stSequence *pstOwner = pstTask->_pvLoopOwner;
+	const PIF_stSequencePhase *pstPhase;
+	uint8_t ucPhaseNoNext;
+	
+	if (pstOwner->_ucPhaseNo == PIF_SEQUENCE_PHASE_NO_IDLE) return 0;
+
+	if (pstOwner->unDelay1us) {
+		if ((*pif_actTimer1us)() >= pstOwner->__unTargetDelay) {
+			pstOwner->unDelay1us = 0;
+		}
+		else return 0;
+	}
+
+	pstPhase = &pstOwner->__pstPhaseList[pstOwner->_ucPhaseNo];
+
+	if (!pstPhase->fnProcess) {
+		pif_enError = E_enWrongData;
+		goto fail;
+	}
+
+	switch ((*pstPhase->fnProcess)(pstOwner)) {
+	case SR_enContinue:
+		if (pstOwner->unDelay1us) {
+			pstOwner->__unTargetDelay = (*pif_actTimer1us)() + pstOwner->unDelay1us;
+		}
+		break;
+
+	case SR_enNext:
+		if (pstOwner->__pstTimerTimeout) pifPulse_StopItem(pstOwner->__pstTimerTimeout);
+
+		ucPhaseNoNext = pstOwner->ucPhaseNoNext;
+		if (ucPhaseNoNext == PIF_SEQUENCE_PHASE_NO_IDLE) {
+			ucPhaseNoNext = pstPhase->ucPhaseNoNext;
+		}
+
+		if (ucPhaseNoNext != PIF_SEQUENCE_PHASE_NO_IDLE) {
+			if (pstOwner->unDelay1us) {
+				pstOwner->__unTargetDelay = (*pif_actTimer1us)() + pstOwner->unDelay1us;
+			}
+			pstOwner->ucStep = PIF_SEQUENCE_STEP_INIT;
+			pstOwner->ucPhaseNoNext = PIF_SEQUENCE_PHASE_NO_IDLE;
+		}
+		_SetPhaseNo(pstOwner, ucPhaseNoNext);
+		break;
+
+	case SR_enFinish:
+		_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
+		break;
+
+	default:
+		pif_enError = E_enWrongData;
+		goto fail;
+	}
+	return 0;
+
+fail:
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_enError, "SQ:Error(%d) EC:%d", pstOwner->_ucPhaseNo, pif_enError);
+#endif
+	if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
+	_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
+	return 0;
 }

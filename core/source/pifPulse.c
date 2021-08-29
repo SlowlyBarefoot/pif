@@ -13,35 +13,6 @@ static uint8_t s_ucPulsePos;
 
 
 /**
- * @fn pifPulse_Task
- * @brief Task에 연결하는 함수이다.
- * @param pstTask Task에서 결정한다.
- * @return
- */
-uint16_t pifPulse_Task(PIF_stTask *pstTask)
-{
-	PIF_stPulse *pstOwner = pstTask->_pvLoopOwner;
-	PIF_stPulseItem *pstItem;
-	uint8_t index;
-
-	index = pstOwner->__unAllocNext;
-	while (index != PIF_PULSE_INDEX_NULL) {
-		pstItem = &pstOwner->__pstItems[index];
-
-		if (pstItem->_enType != PT_enPwm) {
-			if (pstItem->__bEvent) {
-				pstItem->__bEvent = FALSE;
-
-				if (pstItem->__evtFinish) (*pstItem->__evtFinish)(pstItem->__pvFinishIssuer);
-			}
-		}
-
-		index = pstItem->__unNext;
-	}
-	return 0;
-}
-
-/**
  * @fn pifPulse_Init
  * @brief 입력된 크기만큼 Pulse 구조체를 할당하고 초기화한다.
  * @param ucSize Pulse 크기
@@ -387,6 +358,35 @@ void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstItem, PIF_evtPulseFinish evtFi
 {
 	pstItem->__evtFinish = evtFinish;
 	pstItem->__pvFinishIssuer = pvIssuer;
+}
+
+/**
+ * @fn pifPulse_Task
+ * @brief Task에 연결하는 함수이다.
+ * @param pstTask Task에서 결정한다.
+ * @return
+ */
+uint16_t pifPulse_Task(PIF_stTask *pstTask)
+{
+	PIF_stPulse *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stPulseItem *pstItem;
+	uint8_t index;
+
+	index = pstOwner->__unAllocNext;
+	while (index != PIF_PULSE_INDEX_NULL) {
+		pstItem = &pstOwner->__pstItems[index];
+
+		if (pstItem->_enType != PT_enPwm) {
+			if (pstItem->__bEvent) {
+				pstItem->__bEvent = FALSE;
+
+				if (pstItem->__evtFinish) (*pstItem->__evtFinish)(pstItem->__pvFinishIssuer);
+			}
+		}
+
+		index = pstItem->__unNext;
+	}
+	return 0;
 }
 
 #ifdef __PIF_DEBUG__

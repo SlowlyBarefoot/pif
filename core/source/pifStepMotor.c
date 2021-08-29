@@ -117,36 +117,6 @@ static void _evtTimerBreakFinish(void *pvIssuer)
 }
 
 /**
- * @fn pifStepMotor_Task
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifStepMotor_Task(PIF_stTask *pstTask)
-{
-	PIF_stStepMotor *pstOwner = pstTask->_pvLoopOwner;
-	static uint16_t usnStepPeriodUs = 0;
-
-	pstOwner->__pstTask = pstTask;
-
-	_SetStep(pstOwner);
-
-	if (pstOwner->__unTargetPulse) {
-		if (pstOwner->_unCurrentPulse >= pstOwner->__unTargetPulse) {
-			pstOwner->__pstTask->bPause = TRUE;
-			if (pstOwner->__fnStopStep) (*pstOwner->__fnStopStep)(pstOwner);
-			else if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner);
-		}
-	}
-
-	if (usnStepPeriodUs != pstOwner->__usStepPeriodUs) {
-		pifTask_SetPeriod(pstTask, pstOwner->__usStepPeriodUs);
-		usnStepPeriodUs = pstOwner->__usStepPeriodUs;
-	}
-	return 0;
-}
-
-/**
  * @fn pifStepMotor_Init
  * @brief 
  * @param ucSize
@@ -653,4 +623,34 @@ fail:
     pifLog_Printf(LT_enError, "SM:%u(%u) S:%u EC:%u", __LINE__, pstOwner->_usPifId, pstOwner->_enState, pif_enError);
 #endif
     return FALSE;
+}
+
+/**
+ * @fn pifStepMotor_Task
+ * @brief
+ * @param pstTask
+ * @return
+ */
+uint16_t pifStepMotor_Task(PIF_stTask *pstTask)
+{
+	PIF_stStepMotor *pstOwner = pstTask->_pvLoopOwner;
+	static uint16_t usnStepPeriodUs = 0;
+
+	pstOwner->__pstTask = pstTask;
+
+	_SetStep(pstOwner);
+
+	if (pstOwner->__unTargetPulse) {
+		if (pstOwner->_unCurrentPulse >= pstOwner->__unTargetPulse) {
+			pstOwner->__pstTask->bPause = TRUE;
+			if (pstOwner->__fnStopStep) (*pstOwner->__fnStopStep)(pstOwner);
+			else if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner);
+		}
+	}
+
+	if (usnStepPeriodUs != pstOwner->__usStepPeriodUs) {
+		pifTask_SetPeriod(pstTask, pstOwner->__usStepPeriodUs);
+		usnStepPeriodUs = pstOwner->__usStepPeriodUs;
+	}
+	return 0;
 }

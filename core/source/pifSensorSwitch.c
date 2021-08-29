@@ -64,35 +64,6 @@ static SWITCH _evtFilterContinue(SWITCH swState, PIF_stSensorSwitchFilter *pstOw
     return (pstOwner->unList >> pstOwner->ucHalf) & 1;
 }
 
-/**
- * @fn pifSensorSwitch_Task
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifSensorSwitch_Task(PIF_stTask *pstTask)
-{
-	PIF_stSensorSwitch *pstOwner = pstTask->_pvLoopOwner;
-	PIF_stSensor *pstParent = &pstOwner->stSensor;
-
-	if (pstParent->__actAcquire) {
-		pifSensorSwitch_sigData(pstParent, (*pstParent->__actAcquire)(pstParent->_usPifId));
-	}
-
-	if (pstOwner->__swState != pstParent->_swCurrState) {
-		if (pstParent->__evtChange) {
-			(*pstParent->__evtChange)(pstParent->_usPifId, pstOwner->__swState, pstParent->__pvChangeIssuer);
-#ifdef __PIF_COLLECT_SIGNAL__
-			if (pstOwner->__ucCsFlag & SSCsF_enFilterBit) {
-				pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SSCsF_enFilterIdx], pstOwner->__swState);
-			}
-#endif
-		}
-		pstParent->_swCurrState = pstOwner->__swState;
-	}
-    return 0;
-}
-
 #ifdef __PIF_COLLECT_SIGNAL__
 
 static void _AddDeviceInCollectSignal()
@@ -354,5 +325,34 @@ void pifSensorSwitch_sigData(PIF_stSensor *pstSensor, SWITCH swState)
 		}
 	}
 #endif
+}
+
+/**
+ * @fn pifSensorSwitch_Task
+ * @brief
+ * @param pstTask
+ * @return
+ */
+uint16_t pifSensorSwitch_Task(PIF_stTask *pstTask)
+{
+	PIF_stSensorSwitch *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stSensor *pstParent = &pstOwner->stSensor;
+
+	if (pstParent->__actAcquire) {
+		pifSensorSwitch_sigData(pstParent, (*pstParent->__actAcquire)(pstParent->_usPifId));
+	}
+
+	if (pstOwner->__swState != pstParent->_swCurrState) {
+		if (pstParent->__evtChange) {
+			(*pstParent->__evtChange)(pstParent->_usPifId, pstOwner->__swState, pstParent->__pvChangeIssuer);
+#ifdef __PIF_COLLECT_SIGNAL__
+			if (pstOwner->__ucCsFlag & SSCsF_enFilterBit) {
+				pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SSCsF_enFilterIdx], pstOwner->__swState);
+			}
+#endif
+		}
+		pstParent->_swCurrState = pstOwner->__swState;
+	}
+    return 0;
 }
 

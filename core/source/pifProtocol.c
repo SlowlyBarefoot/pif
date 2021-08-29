@@ -661,13 +661,31 @@ void pifProtocol_AttachComm(PIF_stProtocol *pstOwner, PIF_stComm *pstComm)
 	pstComm->evtSending = _evtSending;
 }
 
-static BOOL _MakeRequest(PIF_stProtocol *pstOwner, uint16_t usDataSize)
+/**
+ * @fn pifProtocol_MakeRequest
+ * @brief
+ * @param pvOwner
+ * @param pstRequest
+ * @param pucData
+ * @param usDataSize
+ * @return
+ */
+BOOL pifProtocol_MakeRequest(PIF_stProtocol *pstOwner, const PIF_stProtocolRequest *pstRequest, uint8_t *pucData, uint16_t usDataSize)
 {
 	uint16_t usLength;
 	uint8_t aucHeader[13];
 	uint8_t aucTailer[2];
 	uint8_t ucPacketId = 0, ucData;
 	const PIF_stProtocolRequest *pstTable = pstOwner->__stTx.pstRequest;
+
+	if (pstOwner->__stTx.enState != PTS_enIdle) {
+		pif_enError = E_enInvalidState;
+		return FALSE;
+	}
+
+	pstOwner->__stTx.pstRequest = pstRequest;
+	pstOwner->__stTx.pucData = pucData;
+	pstOwner->__stTx.usDataSize = usDataSize;
 
 	pifRingBuffer_BackupHead(pstOwner->__stTx.pstRequestBuffer);
 
@@ -737,28 +755,6 @@ fail:
 	pifRingBuffer_RestoreHead(pstOwner->__stTx.pstRequestBuffer);
 	if (!pif_enError) pif_enError = E_enOverflowBuffer;
 	return FALSE;
-}
-
-/**
- * @fn pifProtocol_MakeRequest
- * @brief
- * @param pvOwner
- * @param pstRequest
- * @param pucData
- * @param usDataSize
- * @return
- */
-BOOL pifProtocol_MakeRequest(PIF_stProtocol *pstOwner, const PIF_stProtocolRequest *pstRequest, uint8_t *pucData, uint16_t usDataSize)
-{
-	if (pstOwner->__stTx.enState != PTS_enIdle) {
-		pif_enError = E_enInvalidState;
-		return FALSE;
-	}
-
-	pstOwner->__stTx.pstRequest = pstRequest;
-	pstOwner->__stTx.pucData = pucData;
-	pstOwner->__stTx.usDataSize = usDataSize;
-	return _MakeRequest(pstOwner, usDataSize);
 }
 
 /**

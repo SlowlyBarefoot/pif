@@ -35,56 +35,6 @@ static void _evtTimerBlinkFinish(void *pvIssuer)
 }
 
 /**
- * @fn pifFnd_Task
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifFnd_Task(PIF_stTask *pstTask)
-{
-	PIF_stFnd *pstOwner = pstTask->_pvLoopOwner;
-	uint8_t ch, seg = 0;
-	BOOL bPoint = FALSE;
-
-	if (!pstOwner->__bt.Run) return 0;
-
-	if (pif_usTimer1ms > pstOwner->__usPretimeMs) {
-		if (pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
-	}
-	else if (pif_usTimer1ms < pstOwner->__usPretimeMs) {
-		if (1000 + pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
-	}
-	else return 0;
-
-	if (!pstOwner->__bt.Blink) {
-		ch = pstOwner->__pcString[pstOwner->__ucDigitIndex];
-		if (ch & 0x80) {
-			bPoint = TRUE;
-			ch &= 0x7F;
-		}
-		if (ch >= '0' && ch <= '9') {
-			seg = c_aucFndNumber[ch - '0'];
-		}
-		else if (ch == '-') {
-			seg = 0x40;
-		}
-		else if (s_ucFndUserCharCount && ch >= 'A' && ch < 'A' + s_ucFndUserCharCount) {
-			seg = c_pucFndUserChar[ch - 'A'];
-		}
-		if (bPoint) seg |= 0x80;
-		(*pstOwner->__actDisplay)(seg, pstOwner->__ucDigitIndex);
-	}
-	else {
-		(*pstOwner->__actDisplay)(0, pstOwner->__ucDigitIndex);
-	}
-	pstOwner->__ucDigitIndex++;
-	if (pstOwner->__ucDigitIndex >= pstOwner->_ucDigitSize) pstOwner->__ucDigitIndex = 0;
-
-	pstOwner->__usPretimeMs = pif_usTimer1ms;
-	return 0;
-}
-
-/**
  * @fn pifFnd_Init
  * @brief
  * @param ucSize
@@ -466,5 +416,55 @@ void pifFnd_SetString(PIF_stFnd *pstOwner, char *pcString)
     	}
     	src++;
     }
+}
+
+/**
+ * @fn pifFnd_Task
+ * @brief
+ * @param pstTask
+ * @return
+ */
+uint16_t pifFnd_Task(PIF_stTask *pstTask)
+{
+	PIF_stFnd *pstOwner = pstTask->_pvLoopOwner;
+	uint8_t ch, seg = 0;
+	BOOL bPoint = FALSE;
+
+	if (!pstOwner->__bt.Run) return 0;
+
+	if (pif_usTimer1ms > pstOwner->__usPretimeMs) {
+		if (pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
+	}
+	else if (pif_usTimer1ms < pstOwner->__usPretimeMs) {
+		if (1000 + pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
+	}
+	else return 0;
+
+	if (!pstOwner->__bt.Blink) {
+		ch = pstOwner->__pcString[pstOwner->__ucDigitIndex];
+		if (ch & 0x80) {
+			bPoint = TRUE;
+			ch &= 0x7F;
+		}
+		if (ch >= '0' && ch <= '9') {
+			seg = c_aucFndNumber[ch - '0'];
+		}
+		else if (ch == '-') {
+			seg = 0x40;
+		}
+		else if (s_ucFndUserCharCount && ch >= 'A' && ch < 'A' + s_ucFndUserCharCount) {
+			seg = c_pucFndUserChar[ch - 'A'];
+		}
+		if (bPoint) seg |= 0x80;
+		(*pstOwner->__actDisplay)(seg, pstOwner->__ucDigitIndex);
+	}
+	else {
+		(*pstOwner->__actDisplay)(0, pstOwner->__ucDigitIndex);
+	}
+	pstOwner->__ucDigitIndex++;
+	if (pstOwner->__ucDigitIndex >= pstOwner->_ucDigitSize) pstOwner->__ucDigitIndex = 0;
+
+	pstOwner->__usPretimeMs = pif_usTimer1ms;
+	return 0;
 }
 

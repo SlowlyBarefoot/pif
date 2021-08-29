@@ -44,31 +44,6 @@ static void _sendData(PIF_stComm *pstOwner)
 }
 
 /**
- * @fn pifComm_Task
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifComm_Task(PIF_stTask *pstTask)
-{
-	PIF_stComm *pstOwner = pstTask->_pvLoopOwner;
-
-	pstOwner->_pstTask = pstTask;
-
-	if (pstOwner->evtParsing) {
-		if (pstOwner->__actReceiveData) {
-			(*pstOwner->evtParsing)(pstOwner->__pvClient, pstOwner->__actReceiveData);
-		}
-		else if (pstOwner->_pstRxBuffer) {
-			(*pstOwner->evtParsing)(pstOwner->__pvClient, _actReceiveData);
-		}
-	}
-
-	if (pstOwner->evtSending) _sendData(pstOwner);
-	return 0;
-}
-
-/**
  * @fn pifComm_Init
  * @brief 
  * @param ucSize
@@ -365,5 +340,30 @@ void pifComm_FinishTransfer(PIF_stComm *pstOwner)
 void pifComm_ForceSendData(PIF_stComm *pstOwner)
 {
 	if (pstOwner->evtSending) _sendData(pstOwner);
+}
+
+/**
+ * @fn pifComm_Task
+ * @brief
+ * @param pstTask
+ * @return
+ */
+uint16_t pifComm_Task(PIF_stTask *pstTask)
+{
+	PIF_stComm *pstOwner = pstTask->_pvLoopOwner;
+
+	pstOwner->_pstTask = pstTask;
+
+	if (pstOwner->evtParsing) {
+		if (pstOwner->__actReceiveData) {
+			(*pstOwner->evtParsing)(pstOwner->__pvClient, pstOwner->__actReceiveData);
+		}
+		else if (pstOwner->_pstRxBuffer) {
+			(*pstOwner->evtParsing)(pstOwner->__pvClient, _actReceiveData);
+		}
+	}
+
+	if (pstOwner->evtSending) _sendData(pstOwner);
+	return 0;
 }
 
