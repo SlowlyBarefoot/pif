@@ -35,7 +35,9 @@ static void _sendData(PIF_stComm *pstOwner)
 		if ((*pstOwner->evtSending)(pstOwner->__pvClient, _actSendData)) {
 			if (pstOwner->__enState == CTS_enIdle) {
 				pstOwner->__enState = CTS_enSending;
-				if (pstOwner->__actStartTransfer) (*pstOwner->__actStartTransfer)();
+				if (pstOwner->__actStartTransfer) {
+					if (!(*pstOwner->__actStartTransfer)()) pstOwner->__enState = CTS_enIdle;
+				}
 			}
 		}
 	}

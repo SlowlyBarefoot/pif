@@ -61,7 +61,7 @@ typedef uint16_t (*PIF_actCommSendData)(PIF_stComm *pstComm, uint8_t *pucBuffer,
 typedef void (*PIF_evtCommParsing)(void *pvClient, PIF_actCommReceiveData actReceiveData);
 typedef BOOL (*PIF_evtCommSending)(void *pvClient, PIF_actCommSendData actSendData);
 
-typedef void (*PIF_actCommStartTransfer)();
+typedef BOOL (*PIF_actCommStartTransfer)();
 
 typedef enum _PIF_enCommTxState
 {
