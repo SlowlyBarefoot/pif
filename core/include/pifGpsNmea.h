@@ -6,14 +6,6 @@
 #include "pifGps.h"
 
 
-#ifndef PIF_GPS_NMEA_TX_SIZE
-#define PIF_GPS_NMEA_TX_SIZE		32
-#endif
-
-#ifndef PIF_GPS_NMEA_VALUE_SIZE
-#define PIF_GPS_NMEA_VALUE_SIZE		32
-#endif
-
 #define NMEA_MESSAGE_ID_NONE	0
 
 #define NMEA_MESSAGE_ID_DTM		1		// Output

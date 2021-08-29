@@ -5,11 +5,6 @@
 #include "pif.h"
 
 
-#ifndef PIF_TASK_TABLE_SIZE
-#define PIF_TASK_TABLE_SIZE		32
-#endif
-
-
 typedef enum _PIF_enTaskMode
 {
 	TM_enRatio		= 0,

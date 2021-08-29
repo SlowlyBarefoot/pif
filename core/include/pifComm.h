@@ -6,13 +6,6 @@
 #include "pifTask.h"
 
 
-#ifndef PIF_COMM_RX_BUFFER_SIZE
-#define PIF_COMM_RX_BUFFER_SIZE		16
-#endif
-#ifndef PIF_COMM_TX_BUFFER_SIZE
-#define PIF_COMM_TX_BUFFER_SIZE		16
-#endif
-
 #define ASCII_NUL	0	// Null Character
 #define ASCII_SOH	1	// Start of Header
 #define ASCII_STX	2	// Start of Text

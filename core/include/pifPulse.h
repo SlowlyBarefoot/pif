@@ -5,11 +5,6 @@
 #include "pifTask.h"
 
 
-#ifndef PIF_PWM_MAX_DUTY
-#define PIF_PWM_MAX_DUTY		1000
-#endif
-
-
 typedef void (*PIF_actPulsePwm)(SWITCH swValue);
 
 typedef void (*PIF_evtPulseFinish)(void *pvIssuer);

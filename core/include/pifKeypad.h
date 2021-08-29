@@ -5,11 +5,6 @@
 #include "pifTask.h"
 
 
-#define PIF_KEYPAD_DEFAULT_HOLD_TIME	100
-#define PIF_KEYPAD_DEFAULT_LONG_TIME	1000
-#define PIF_KEYPAD_DEFAULT_DOUBLE_TIME	300
-
-
 typedef enum _PIF_enKeyState
 {
 	KS_enIdle,
