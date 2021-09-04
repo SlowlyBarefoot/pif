@@ -161,6 +161,7 @@ typedef struct _PIF_stProtocol
 	// Read-only Member Variable
     PIF_usId _usPifId;
     PIF_enProtocolType _enType;
+    uint8_t _ucFrameSize;
 
 	// Private Member Variable
 	PIF_stComm *__pstComm;
@@ -181,6 +182,8 @@ void pifProtocol_Exit();
 
 PIF_stProtocol *pifProtocol_Add(PIF_usId usPifId, PIF_enProtocolType enType,
 		const PIF_stProtocolQuestion *pstQuestions);
+
+BOOL pifProtocol_SetFrameSize(PIF_stProtocol *pstOwner, uint8_t ucFrameSize);
 
 BOOL pifProtocol_ResizeRxPacket(PIF_stProtocol *pstOwner, uint16_t usRxPacketSize);
 BOOL pifProtocol_ResizeTxRequest(PIF_stProtocol *pstOwner, uint16_t usTxRequestSize);

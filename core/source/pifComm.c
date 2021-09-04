@@ -300,11 +300,14 @@ uint8_t pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData)
  */
 uint8_t pifComm_StartSendDatas(PIF_stComm *pstOwner, uint8_t **ppucData, uint16_t *pusLength)
 {
+	uint16_t usLength;
+
     if (!pstOwner->_pstTxBuffer) return PIF_COMM_SEND_DATA_STATE_INIT;
     if (pifRingBuffer_IsEmpty(pstOwner->_pstTxBuffer)) return PIF_COMM_SEND_DATA_STATE_EMPTY;
 
     *ppucData = pifRingBuffer_GetTailPointer(pstOwner->_pstTxBuffer, 0);
-    *pusLength = pifRingBuffer_GetLinerSize(pstOwner->_pstTxBuffer, 0);
+    usLength = pifRingBuffer_GetLinerSize(pstOwner->_pstTxBuffer, 0);
+    if (!*pusLength || usLength <= *pusLength) *pusLength = usLength;
 	return PIF_COMM_SEND_DATA_STATE_DATA;
 }
 
