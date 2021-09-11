@@ -197,9 +197,6 @@ int16_t pifAds1x1x_GetHiThresh(PIF_stAds1x1x *pstOwner);
 BOOL pifAds1x1x_SetHiThreshVoltage(PIF_stAds1x1x *pstOwner, double sThreshold);
 double pifAds1x1x_GetHiThreshVoltage(PIF_stAds1x1x *pstOwner);
 
-void pifAds1x1x_AttachAction(PIF_stAds1x1x *pstOwner, PIF_actI2cRead actRead, PIF_actI2cWrite actWrite);
-void pifAds1x1x_AttachEvent(PIF_stAds1x1x *pstOwner, PIF_evtI2cRead evtRead, PIF_evtI2cWrite evtWrite);
-
 #ifdef __cplusplus
 }
 #endif

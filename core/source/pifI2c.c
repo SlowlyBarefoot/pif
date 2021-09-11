@@ -35,6 +35,26 @@ fail:
 }
 
 /**
+ * @fn pifI2c_ScanAddress
+ * @brief
+ * @param pstOwner
+ * @return
+ */
+void pifI2c_ScanAddress(PIF_stI2c *pstOwner)
+{
+	int i;
+
+	for (i = 0; i < 127; i++) {
+		pstOwner->ucAddr = i;
+		if (pifI2c_Write(pstOwner, 0)) {
+#ifndef __PIF_NO_LOG__
+			pifLog_Printf(LT_enInfo, "I2C:%u Addr:%xh OK", __LINE__, i);
+#endif
+		}
+	}
+}
+
+/**
  * @fn pifI2c_Read
  * @brief
  * @param pstOwner
@@ -100,4 +120,17 @@ void pifI2c_sigEndRead(PIF_stI2c *pstOwner, BOOL bResult)
 void pifI2c_sigEndWrite(PIF_stI2c *pstOwner, BOOL bResult)
 {
 	pstOwner->_enStateWrite = bResult ? IS_enComplete : IS_enError;
+}
+
+/**
+ * @fn pifI2c_AttachAction
+ * @brief
+ * @param pstOwner
+ * @param actRead
+ * @param actWrite
+ */
+void pifI2c_AttachAction(PIF_stI2c *pstOwner, PIF_actI2cRead actRead, PIF_actI2cWrite actWrite)
+{
+	pstOwner->__actRead = actRead;
+	pstOwner->__actWrite = actWrite;
 }

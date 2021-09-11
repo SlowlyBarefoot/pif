@@ -231,6 +231,7 @@ void pif_Loop();
 void pif_sigTimer1ms();
 
 void pif_Delay1ms(uint16_t usDelay);
+void pif_Delay1us(uint16_t usDelay);
 BOOL pif_CheckElapseTime1ms(uint32_t unStartTime, uint16_t ElapseTime);
 
 void pif_ClearError();

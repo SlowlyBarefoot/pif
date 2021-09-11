@@ -20,9 +20,6 @@ typedef struct _PIF_stI2c PIF_stI2c;
 typedef BOOL (*PIF_actI2cRead)(PIF_stI2c *pstOwner, uint16_t usSize);
 typedef BOOL (*PIF_actI2cWrite)(PIF_stI2c *pstOwner, uint16_t usSize);
 
-typedef void (*PIF_evtI2cRead)(PIF_stI2c *pstOwner, BOOL bResult);
-typedef void (*PIF_evtI2cWrite)(PIF_stI2c *pstOwner, BOOL bResult);
-
 /**
  * @class _PIF_stI2c
  * @brief
@@ -44,10 +41,6 @@ struct _PIF_stI2c
 	// Private Action Function
 	PIF_actI2cRead __actRead;
 	PIF_actI2cWrite __actWrite;
-
-	// Private Event Function
-	PIF_evtI2cRead __evtRead;
-	PIF_evtI2cWrite __evtWrite;
 };
 
 
@@ -57,11 +50,15 @@ extern "C" {
 
 BOOL pifI2c_Add(PIF_stI2c *pstOwner, PIF_usId usPifId, uint16_t ucDataSize);
 
+void pifI2c_ScanAddress(PIF_stI2c *pstOwner);
+
 BOOL pifI2c_Read(PIF_stI2c *pstOwner, uint8_t ucSize);
 BOOL pifI2c_Write(PIF_stI2c *pstOwner,  uint8_t ucSize);
 
 void pifI2c_sigEndRead(PIF_stI2c *pstOwner, BOOL bResult);
 void pifI2c_sigEndWrite(PIF_stI2c *pstOwner, BOOL bResult);
+
+void pifI2c_AttachAction(PIF_stI2c *pstOwner, PIF_actI2cRead actRead, PIF_actI2cWrite actWrite);
 
 #ifdef __cplusplus
 }

@@ -180,10 +180,48 @@ void pif_sigTimer1ms()
  */
 void pif_Delay1ms(uint16_t usDelay)
 {
-	uint32_t unLimit = pif_unCumulativeTimer1ms + usDelay;
-	while (pif_unCumulativeTimer1ms != unLimit);
+	uint32_t unStart, unCurrent, unDiff;
+
+	unStart = pif_unCumulativeTimer1ms;
+	do {
+		unCurrent = pif_unCumulativeTimer1ms;
+		if (unStart > unCurrent) {
+			unDiff = 0xFFFFFFFF - unStart + unCurrent;
+		}
+		else {
+			unDiff = unCurrent - unStart;
+		}
+	} while (unDiff < usDelay);
 }
 
+/**
+ * @fn pif_Delay1us
+ * @brief
+ * @param usDelay
+ */
+void pif_Delay1us(uint16_t usDelay)
+{
+	uint32_t unStart, unCurrent, unDiff;
+
+	unStart = (*pif_actTimer1us)();
+	do {
+		unCurrent = (*pif_actTimer1us)();
+		if (unStart > unCurrent) {
+			unDiff = 0xFFFFFFFF - unStart + unCurrent;
+		}
+		else {
+			unDiff = unCurrent - unStart;
+		}
+	} while (unDiff < usDelay);
+}
+
+/**
+ * @fn pif_CheckElapseTime1ms
+ * @brief
+ * @param unStartTime
+ * @param ElapseTime
+ * @return
+ */
 BOOL pif_CheckElapseTime1ms(uint32_t unStartTime, uint16_t ElapseTime)
 {
 	if (unStartTime & 0x80000000) {

@@ -505,7 +505,11 @@ void pifTask_YieldUs(uint32_t unTime)
     uint32_t unCurrent = (*pif_actTimer1us)();
     uint32_t unTarget = unCurrent + unTime;
 
-    if (!unTime || !pif_actTimer1us) return;
+    if (!unTime) return;
+    if (!pif_actTimer1us) {
+    	pifTask_YieldMs((unTime + 999) / 1000);
+    	return;
+    }
 
     if (unTarget < unCurrent) {
     	while (unCurrent <= 0xFFFFFFFF) {

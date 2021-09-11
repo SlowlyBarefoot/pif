@@ -589,29 +589,3 @@ double pifAds1x1x_GetHiThreshVoltage(PIF_stAds1x1x *pstOwner)
 {
     return pifAds1x1x_GetHiThresh(pstOwner) * pstOwner->dConvertVoltage;
 }
-
-/**
- * @fn pifAds1x1x_AttachAction
- * @brief
- * @param pstOwner
- * @param actRead
- * @param actWrite
- */
-void pifAds1x1x_AttachAction(PIF_stAds1x1x *pstOwner, PIF_actI2cRead actRead, PIF_actI2cWrite actWrite)
-{
-	pstOwner->_stI2c.__actRead = actRead;
-	pstOwner->_stI2c.__actWrite = actWrite;
-}
-
-/**
- * @fn pifAds1x1x_AttachEvent
- * @brief
- * @param pstOwner
- * @param evtRead
- * @param evtWrite
- */
-void pifAds1x1x_AttachEvent(PIF_stAds1x1x *pstOwner, PIF_evtI2cRead evtRead, PIF_evtI2cWrite evtWrite)
-{
-	pstOwner->_stI2c.__evtRead = evtRead;
-	pstOwner->_stI2c.__evtWrite = evtWrite;
-}
