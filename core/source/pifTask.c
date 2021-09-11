@@ -476,12 +476,12 @@ void pifTask_Yield()
  * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
  * @param usTime
  */
-void pifTask_YieldMs(uint16_t usTime)
+void pifTask_YieldMs(uint32_t unTime)
 {
     uint32_t unCurrent = 1000L * pif_unTimer1sec + pif_usTimer1ms;
-    uint32_t unTarget = unCurrent + usTime;
+    uint32_t unTarget = unCurrent + unTime;
 
-    if (!usTime) return;
+    if (!unTime) return;
 
     if (unTarget < unCurrent) {
     	while (unCurrent <= 0xFFFFFFFF) {
@@ -500,12 +500,12 @@ void pifTask_YieldMs(uint16_t usTime)
  * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
  * @param usTime
  */
-void pifTask_YieldUs(uint16_t usTime)
+void pifTask_YieldUs(uint32_t unTime)
 {
     uint32_t unCurrent = (*pif_actTimer1us)();
-    uint32_t unTarget = unCurrent + usTime;
+    uint32_t unTarget = unCurrent + unTime;
 
-    if (!usTime || !pif_actTimer1us) return;
+    if (!unTime || !pif_actTimer1us) return;
 
     if (unTarget < unCurrent) {
     	while (unCurrent <= 0xFFFFFFFF) {

@@ -77,8 +77,8 @@ void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod);
 
 void pifTask_Loop();
 void pifTask_Yield();
-void pifTask_YieldMs(uint16_t usTime);
-void pifTask_YieldUs(uint16_t usTime);
+void pifTask_YieldMs(uint32_t unTime);
+void pifTask_YieldUs(uint32_t unTime);
 void pifTask_YieldPeriod(PIF_stTask *pstOwner);
 
 #ifdef __PIF_DEBUG__
