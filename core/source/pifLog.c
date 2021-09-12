@@ -255,8 +255,9 @@ static void _PrintLog(char *pcString, BOOL bVcd)
 	}
 
 	if (s_stLog.bEnable || bVcd) {
-        while (!pifRingBuffer_PutString(s_stLog.pstTxBuffer, pcString)) {
+        if (!pifRingBuffer_PutString(s_stLog.pstTxBuffer, pcString)) {
         	pifTask_YieldPeriod(s_stLog.pstComm->_pstTask);
+            pifRingBuffer_PutString(s_stLog.pstTxBuffer, pcString);
         }
         pifComm_ForceSendData(s_stLog.pstComm);
 	}

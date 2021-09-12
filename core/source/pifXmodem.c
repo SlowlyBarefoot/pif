@@ -283,7 +283,7 @@ static BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
 		break;
 
 	case XTS_enDelayC:
-		if (pif_CheckElapseTime1ms(unTimer1ms, 3000)) {			// 3000ms
+		if (PIF_CHECK_ELAPSE_TIME_1MS(unTimer1ms, 3000)) {			// 3000ms
 			pstOwner->__stTx.ui.enState = XTS_enSendC;
 		}
 		break;

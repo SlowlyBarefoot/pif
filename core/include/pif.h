@@ -131,6 +131,9 @@
 
 #define PIF_ID_AUTO		0
 
+#define PIF_CHECK_ELAPSE_TIME_1MS(START, ELAPSE)	(pif_unCumulativeTimer1ms - (START) >= (ELAPSE))
+#define PIF_CHECK_ELAPSE_TIME_1US(START, ELAPSE)	((*PIF_actTimer1us)() - (START) >= (ELAPSE))
+
 
 typedef uint16_t PIF_usId;
 
@@ -232,7 +235,6 @@ void pif_sigTimer1ms();
 
 void pif_Delay1ms(uint16_t usDelay);
 void pif_Delay1us(uint16_t usDelay);
-BOOL pif_CheckElapseTime1ms(uint32_t unStartTime, uint16_t ElapseTime);
 
 void pif_ClearError();
 
