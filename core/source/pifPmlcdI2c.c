@@ -246,6 +246,24 @@ void pifPmlcdI2c_Print(PIF_stPmlcdI2c *pstOwner, const char *pcString)
 }
 
 /**
+ * @fn pifPmlcdI2c_Printf
+ * @brief
+ * @param pstOwner
+ * @param pcFormat
+ */
+void pifPmlcdI2c_Printf(PIF_stPmlcdI2c *pstOwner, const char *pcFormat, ...)
+{
+	va_list data;
+	char cBuffer[32];
+
+	va_start(data, pcFormat);
+	pif_PrintFormat(cBuffer, &data, pcFormat);
+	va_end(data);
+
+	pifPmlcdI2c_Print(pstOwner, cBuffer);
+}
+
+/**
  * @fn pifPmlcdI2c_Clear
  * @brief
  * @param pstOwner

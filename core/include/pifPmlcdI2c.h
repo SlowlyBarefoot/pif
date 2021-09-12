@@ -16,7 +16,6 @@
 typedef struct _PIF_stPmlcdI2c
 {
 	// Public Member Variable
-	double dConvertVoltage;
 
 	// Read-only Member Variable
 	PIF_stI2c _stI2c;
@@ -27,8 +26,6 @@ typedef struct _PIF_stPmlcdI2c
 	uint8_t __ucDisplayMode;
 	uint8_t __ucNumLines;
 	uint8_t __ucBacklightVal;
-
-	// Read-only Action Function
 } PIF_stPmlcdI2c;
 
 
@@ -44,6 +41,7 @@ PIF_stPmlcdI2c *pifPmlcdI2c_Add(PIF_usId usPifId, uint8_t ucAddr);
 void pifPmlcdI2c_Begin(PIF_stPmlcdI2c *pstOwner, uint8_t ucLines, uint8_t ucDotSize);
 
 void pifPmlcdI2c_Print(PIF_stPmlcdI2c *pstOwner, const char *pcString);
+void pifPmlcdI2c_Printf(PIF_stPmlcdI2c *pstOwner, const char *pcFormat, ...);
 
 void pifPmlcdI2c_Clear(PIF_stPmlcdI2c *pstOwner);
 

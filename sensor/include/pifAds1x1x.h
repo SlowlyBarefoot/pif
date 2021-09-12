@@ -134,8 +134,6 @@ typedef struct _PIF_stAds1x1x
     PIF_stAds1x1xConfig __stConfig;
     uint8_t __ucBitOffset;
     uint32_t __unConversionDelay;
-
-	// Read-only Action Function
 } PIF_stAds1x1x;
 
 
