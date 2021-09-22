@@ -633,7 +633,7 @@ fail:
  */
 uint16_t pifStepMotor_Task(PIF_stTask *pstTask)
 {
-	PIF_stStepMotor *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stStepMotor *pstOwner = pstTask->_pvClient;
 	static uint16_t usnStepPeriodUs = 0;
 
 	pstOwner->__pstTask = pstTask;

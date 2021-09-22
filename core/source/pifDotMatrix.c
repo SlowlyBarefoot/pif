@@ -563,7 +563,7 @@ void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriod
  */
 uint16_t pifDotMatrix_Task(PIF_stTask *pstTask)
 {
-	PIF_stDotMatrix *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stDotMatrix *pstOwner = pstTask->_pvClient;
 	uint8_t *pucPattern;
 	uint8_t ucOff = 0;
 

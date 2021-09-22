@@ -368,7 +368,7 @@ void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstItem, PIF_evtPulseFinish evtFi
  */
 uint16_t pifPulse_Task(PIF_stTask *pstTask)
 {
-	PIF_stPulse *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stPulse *pstOwner = pstTask->_pvClient;
 	PIF_stPulseItem *pstItem;
 	uint8_t index;
 

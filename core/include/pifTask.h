@@ -8,18 +8,12 @@
 typedef enum _PIF_enTaskMode
 {
 	TM_enRatio		= 0,
-	TM_enPeriodMs	= 1,
-	TM_enPeriodUs	= 2,
-	TM_enAlways		= 3,
+	TM_enAlways		= 1,
+	TM_enPeriodMs	= 2,
+	TM_enPeriodUs	= 3,
 	TM_enChangeMs	= 4,
 	TM_enChangeUs	= 5
 } PIF_enTaskMode;
-
-typedef enum _PIF_enTaskLoop
-{
-	TL_enAll	= 0,
-	TL_enEach	= 1
-} PIF_enTaskLoop;
 
 
 struct _PIF_stTask;
@@ -42,11 +36,9 @@ struct _PIF_stTask
 	PIF_usId _usPifId;
 	PIF_enTaskMode _enMode;
 	uint16_t _usPeriod;
-	void *_pvLoopOwner;
+	void *_pvClient;
 
 	// Private Member Variable
-	const char *__pcName;
-	uint8_t __ucRatio;
 	BOOL __bRunning;
 	uint32_t __unPretime;
 #ifdef __PIF_DEBUG__
@@ -66,13 +58,8 @@ extern "C" {
 BOOL pifTask_Init(uint8_t ucSize);
 void pifTask_Exit();
 
-PIF_stTask *pifTask_AddRatio(uint8_t ucRatio, PIF_evtTaskLoop evtLoop, void *pvLoopOwner, BOOL bStart);
-PIF_stTask *pifTask_AddPeriodMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopOwner, BOOL bStart);
-PIF_stTask *pifTask_AddPeriodUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, void *pvLoopOwner, BOOL bStart);
-PIF_stTask *pifTask_AddChangeMs(uint16_t usPeriodMs, PIF_evtTaskLoop evtLoop, void *pvLoopOwner, BOOL bStart);
-PIF_stTask *pifTask_AddChangeUs(uint16_t usPeriodUs, PIF_evtTaskLoop evtLoop, void *pvLoopOwner, BOOL bStart);
+PIF_stTask *pifTask_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evtTaskLoop evtLoop, void *pvClient, BOOL bStart);
 
-void pifTask_SetName(PIF_stTask *pstOwner, const char *pcName);
 void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod);
 
 void pifTask_Loop();

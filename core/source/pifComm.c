@@ -353,7 +353,7 @@ void pifComm_ForceSendData(PIF_stComm *pstOwner)
  */
 uint16_t pifComm_Task(PIF_stTask *pstTask)
 {
-	PIF_stComm *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stComm *pstOwner = pstTask->_pvClient;
 
 	pstOwner->_pstTask = pstTask;
 

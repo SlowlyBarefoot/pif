@@ -398,7 +398,7 @@ void pifSensorDigital_sigData(PIF_stSensor *pstSensor, uint16_t usLevel)
  */
 uint16_t pifSensorDigital_Task(PIF_stTask *pstTask)
 {
-	PIF_stSensorDigital *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stSensorDigital *pstOwner = pstTask->_pvClient;
 	PIF_stSensor *pstParent = &pstOwner->stSensor;
 	SWITCH swState;
 

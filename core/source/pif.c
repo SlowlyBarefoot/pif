@@ -62,9 +62,6 @@ void pif_Init(PIF_actTimer1us actTimer1us)
  */
 void pif_Loop()
 {
-#ifdef __PIF_DEBUG__
-	static uint8_t ucSec = 0;
-#endif
 #ifndef __PIF_NO_LOG__
 #ifdef __PIF_DEBUG__
 	static BOOL bFirst = TRUE;
@@ -98,13 +95,6 @@ void pif_Loop()
     	}
 	}
 #endif
-#endif
-
-#ifdef __PIF_DEBUG__
-    if (ucSec != pif_stDateTime.ucSecond) {
-    	pifTask_Print();
-    	ucSec = pif_stDateTime.ucSecond;
-    }
 #endif
 }
 
@@ -211,8 +201,6 @@ void pif_ClearError()
 {
 	pif_enError = E_enSuccess;
 }
-
-#ifndef	__PIF_NO_LOG__
 
 /**
  * @fn pif_BinToString
@@ -531,8 +519,6 @@ void pif_Printf(char *pcBuffer, const char *pcFormat, ...)
 	pif_PrintFormat(pcBuffer, &data, pcFormat);
 	va_end(data);
 }
-
-#endif
 
 /**
  * @fn pifCrc7_Init

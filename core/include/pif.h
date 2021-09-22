@@ -238,16 +238,12 @@ void pif_Delay1us(uint16_t usDelay);
 
 void pif_ClearError();
 
-#ifndef	__PIF_NO_LOG__
-
 int pif_BinToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt);
 int pif_DecToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt);
 int pif_HexToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt, BOOL bUpper);
 int pif_FloatToString(char *pcBuf, double dNum, uint16_t usPoint);
 void pif_PrintFormat(char *pcBuffer, va_list *pstData, const char *pcFormat);
 void pif_Printf(char *pcBuffer, const char *pcFormat, ...);
-
-#endif
 
 void pifCrc7_Init();
 void pifCrc7_Calcurate(uint8_t ucData);

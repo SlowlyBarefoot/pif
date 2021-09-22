@@ -234,7 +234,7 @@ BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout)
  */
 uint16_t pifSequence_Task(PIF_stTask *pstTask)
 {
-	PIF_stSequence *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stSequence *pstOwner = pstTask->_pvClient;
 	const PIF_stSequencePhase *pstPhase;
 	uint8_t ucPhaseNoNext;
 	

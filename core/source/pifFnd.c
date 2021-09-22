@@ -426,7 +426,7 @@ void pifFnd_SetString(PIF_stFnd *pstOwner, char *pcString)
  */
 uint16_t pifFnd_Task(PIF_stTask *pstTask)
 {
-	PIF_stFnd *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stFnd *pstOwner = pstTask->_pvClient;
 	uint8_t ch, seg = 0;
 	BOOL bPoint = FALSE;
 

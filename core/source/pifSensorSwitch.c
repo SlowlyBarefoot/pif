@@ -335,7 +335,7 @@ void pifSensorSwitch_sigData(PIF_stSensor *pstSensor, SWITCH swState)
  */
 uint16_t pifSensorSwitch_Task(PIF_stTask *pstTask)
 {
-	PIF_stSensorSwitch *pstOwner = pstTask->_pvLoopOwner;
+	PIF_stSensorSwitch *pstOwner = pstTask->_pvClient;
 	PIF_stSensor *pstParent = &pstOwner->stSensor;
 
 	if (pstParent->__actAcquire) {
