@@ -3,7 +3,7 @@
 PIF(Platform-independent framework)는 각종 디바이스를 제어하는 프레임워크로써 플랫폼에 비종속적인 코드만으로 구성된다. 그래서 모든 플랫폼에서 사용 가능하게 구현하는 것을 목적으로 한다. 
 
 PIF의 기본 방침.
-1. 메모리 할당은 메인 루프 진입전 초기 동작에서만 실행한다.
+1. ~~메모리 할당은 메인 루프 진입전 초기 동작에서만 실행한다.~~
 2. C로 작성되었기에 구조체내 선언된 변수의 접근 권한을 부여할 수 없다. 
    그래서 private 변수는 변수명 앞에 __를 붙이고 외부에서 이 변수를 되도록 읽거나 쓰지 않도록 한다.
    또한 읽기 전용 변수명 앞에는 _를 붙이고 외부에서 이 변수를 되도록 변경하지 않도록 한다.
@@ -26,7 +26,7 @@ https://github.com/SlowlyBarefoot/pif-example
 PIF (Platform-independent framework) is a framework that controls various devices, and consists of only code independent of the platform. So, it aims to be implemented so that it can be used on all platforms.
 
 PIF's basic policy.
-1. Memory allocation is executed only in the initial operation before entering the main loop.
+1. ~~Memory allocation is executed only in the initial operation before entering the main loop.~~
 2. Since it is written in C, it is not possible to grant access rights to variables declared in the structure.
    So, for private variables, prefix the variable name with __ and avoid reading or writing this variable from outside.
    Also, add _ in front of the name of a read-only variable, and do not change this variable externally.
