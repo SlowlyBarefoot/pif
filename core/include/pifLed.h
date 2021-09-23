@@ -20,6 +20,7 @@ typedef struct _PIF_stLed
 	PIF_usId _usPifId;
 
 	// Private Member Variable
+	PIF_stPulse *__pstTimer;
 	uint32_t __unState;
 	SWITCH __swBlink;
 	uint32_t __unBlinkFlag;
@@ -34,10 +35,8 @@ typedef struct _PIF_stLed
 extern "C" {
 #endif
 
-BOOL pifLed_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
-void pifLed_Exit();
-
-PIF_stLed *pifLed_Add(PIF_usId usPifId, uint8_t ucCount, PIF_actLedState actState);
+PIF_stLed *pifLed_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState);
+void pifLed_Exit(PIF_stLed *pstOwner);
 
 void pifLed_EachOn(PIF_stLed *pstOwner, uint8_t ucIndex);
 void pifLed_EachOff(PIF_stLed *pstOwner, uint8_t ucIndex);

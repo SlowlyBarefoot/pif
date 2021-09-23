@@ -85,10 +85,8 @@ struct _PIF_stPulse
 extern "C" {
 #endif
 
-BOOL pifPulse_Init(uint8_t ucSize);
-void pifPulse_Exit();
-
-PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize, uint32_t unPeriodUs);
+PIF_stPulse *pifPulse_Init(PIF_usId usPifId, uint8_t ucSize, uint32_t unPeriodUs);
+void pifPulse_Exit(PIF_stPulse *pstOwner);
 
 PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType);
 void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstItem);

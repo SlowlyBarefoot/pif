@@ -14,13 +14,6 @@
 #define PIF_XMODEM_RECEIVE_TIMEOUT		300
 
 
-static PIF_stXmodem *s_pstXmodem = NULL;
-static uint8_t s_ucXmodemSize;
-static uint8_t s_ucXmodemPos;
-
-static PIF_stPulse *s_pstXmodemTimer;
-
-
 static void _evtTimerRxTimeout(void *pvIssuer)
 {
 	if (!pvIssuer) {
@@ -101,7 +94,7 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_actCommReceiveData actRec
 
 				pstOwner->__stRx.usCount = 1;
 				pstOwner->__stRx.enState = XRS_enGetHeader;
-				if (!pifPulse_StartItem(pstOwner->__stRx.pstTimer, pstOwner->__stRx.usTimeout * 1000L / s_pstXmodemTimer->_unPeriodUs)) {
+				if (!pifPulse_StartItem(pstOwner->__stRx.pstTimer, pstOwner->__stRx.usTimeout * 1000L / pstOwner->__pstTimer->_unPeriodUs)) {
 #ifndef __PIF_NO_LOG__
 					pifLog_Printf(LT_enWarn, "XM Not start timer");
 #endif
@@ -330,77 +323,27 @@ static BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
 /**
  * @fn pifXmodem_Init
  * @brief
- * @param ucSize
+ * @param usPifId
  * @param pstTimer
+ * @param enType
  * @return
  */
-BOOL pifXmodem_Init(uint8_t ucSize, PIF_stPulse *pstTimer)
+PIF_stXmodem *pifXmodem_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enXmodemType enType)
 {
-    if (!pstTimer || ucSize == 0) {
+    PIF_stXmodem *pstOwner = NULL;
+
+    if (!pstTimer) {
 		pif_enError = E_enInvalidParam;
 		goto fail;
 	}
 
-    s_pstXmodem = calloc(sizeof(PIF_stXmodem), ucSize);
-    if (!s_pstXmodem) {
+    pstOwner = calloc(sizeof(PIF_stXmodem), 1);
+    if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
 
-    s_ucXmodemSize = ucSize;
-    s_ucXmodemPos = 0;
-
-    s_pstXmodemTimer = pstTimer;
-    return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Xmodem:Init(S:%u) EC:%d", ucSize, pif_enError);
-#endif
-    return FALSE;
-}
-
-/**
- * @fn pifXmodem_Exit
- * @brief
- */
-void pifXmodem_Exit()
-{
-    if (s_pstXmodem) {
-        for (int i = 0; i < s_ucXmodemPos; i++) {
-        	PIF_stXmodem *pstOwner = &s_pstXmodem[i];
-			if (pstOwner->__pucData) {
-				free(pstOwner->__pucData);
-				pstOwner->__pucData = NULL;
-			}
-			if (pstOwner->__stRx.pstTimer) {
-				pifPulse_RemoveItem(s_pstXmodemTimer, pstOwner->__stRx.pstTimer);
-			}
-			if (pstOwner->__stTx.pstTimer) {
-				pifPulse_RemoveItem(s_pstXmodemTimer, pstOwner->__stTx.pstTimer);
-			}
-        }
-    	free(s_pstXmodem);
-        s_pstXmodem = NULL;
-    }
-}
-
-/**
- * @fn pifXmodem_Add
- * @brief
- * @param usPifId
- * @param enType
- * @return
- */
-PIF_stXmodem *pifXmodem_Add(PIF_usId usPifId, PIF_enXmodemType enType)
-{
-    if (s_ucXmodemPos >= s_ucXmodemSize) {
-        pif_enError = E_enOverflowBuffer;
-        goto fail;
-    }
-
-    PIF_stXmodem *pstOwner = &s_pstXmodem[s_ucXmodemPos];
-
+    pstOwner->__pstTimer = pstTimer;
     switch (enType) {
     case XT_enOriginal:
     	pstOwner->__usPacketSize = 3 + 128 + 1;
@@ -421,10 +364,10 @@ PIF_stXmodem *pifXmodem_Add(PIF_usId usPifId, PIF_enXmodemType enType)
         goto fail;
     }
 
-    pstOwner->__stTx.pstTimer = pifPulse_AddItem(s_pstXmodemTimer, PT_enOnce);
+    pstOwner->__stTx.pstTimer = pifPulse_AddItem(pstTimer, PT_enOnce);
     if (!pstOwner->__stTx.pstTimer) goto fail;
 
-    pstOwner->__stRx.pstTimer = pifPulse_AddItem(s_pstXmodemTimer, PT_enOnce);
+    pstOwner->__stRx.pstTimer = pifPulse_AddItem(pstTimer, PT_enOnce);
     if (!pstOwner->__stRx.pstTimer) goto fail;
 
     pstOwner->__enType = enType;
@@ -439,15 +382,36 @@ PIF_stXmodem *pifXmodem_Add(PIF_usId usPifId, PIF_enXmodemType enType)
 
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
-
-    s_ucXmodemPos = s_ucXmodemPos + 1;
     return pstOwner;
 
 fail:
+	pifXmodem_Exit(pstOwner);
 #ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "%u Xmodem:Init(T:%u) EC:%d", enType, pif_enError);
 #endif
 	return NULL;
+}
+
+/**
+ * @fn pifXmodem_Exit
+ * @brief
+ * @param pstOwner
+ */
+void pifXmodem_Exit(PIF_stXmodem *pstOwner)
+{
+    if (pstOwner) {
+		if (pstOwner->__pucData) {
+			free(pstOwner->__pucData);
+			pstOwner->__pucData = NULL;
+		}
+		if (pstOwner->__stRx.pstTimer) {
+			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__stRx.pstTimer);
+		}
+		if (pstOwner->__stTx.pstTimer) {
+			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__stTx.pstTimer);
+		}
+    	free(pstOwner);
+    }
 }
 
 /**
@@ -563,7 +527,7 @@ BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *puc
 
 	pstOwner->__stTx.usDataPos = 0;
 	pstOwner->__stTx.ui.enState = XTS_enSending;
-	if (!pifPulse_StartItem(pstOwner->__stTx.pstTimer, pstOwner->__stTx.usTimeout * 1000L / s_pstXmodemTimer->_unPeriodUs)) {
+	if (!pifPulse_StartItem(pstOwner->__stTx.pstTimer, pstOwner->__stTx.usTimeout * 1000L / pstOwner->__pstTimer->_unPeriodUs)) {
 #ifndef __PIF_NO_LOG__
 		pifLog_Printf(LT_enWarn, "XM Not start timer");
 #endif

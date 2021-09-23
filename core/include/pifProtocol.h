@@ -164,6 +164,7 @@ typedef struct _PIF_stProtocol
     uint8_t _ucFrameSize;
 
 	// Private Member Variable
+    PIF_stPulse *__pstTimer;
 	PIF_stComm *__pstComm;
     const PIF_stProtocolQuestion *__pstQuestions;
     PIF_stProtocolRx __stRx;
@@ -177,11 +178,9 @@ typedef struct _PIF_stProtocol
 extern "C" {
 #endif
 
-BOOL pifProtocol_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
-void pifProtocol_Exit();
-
-PIF_stProtocol *pifProtocol_Add(PIF_usId usPifId, PIF_enProtocolType enType,
+PIF_stProtocol *pifProtocol_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enProtocolType enType,
 		const PIF_stProtocolQuestion *pstQuestions);
+void pifProtocol_Exit(PIF_stProtocol *pstOwner);
 
 BOOL pifProtocol_SetFrameSize(PIF_stProtocol *pstOwner, uint8_t ucFrameSize);
 

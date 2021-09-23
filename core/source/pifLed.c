@@ -4,13 +4,6 @@
 #endif
 
 
-static PIF_stLed *s_pstLed = NULL;
-static uint8_t s_ucLedSize;
-static uint8_t s_ucLedPos;
-
-static PIF_stPulse *s_pstLedTimer;
-
-
 static void _evtTimerBlinkFinish(void *pvIssuer)
 {
 	BOOL bBlink = FALSE;
@@ -39,82 +32,32 @@ static void _evtTimerBlinkFinish(void *pvIssuer)
 /**
  * @fn pifLed_Init
  * @brief
- * @param ucSize
- * @param pstTimer
- * @return
- */
-BOOL pifLed_Init(uint8_t ucSize, PIF_stPulse *pstTimer)
-{
-    if (!pstTimer || ucSize == 0) {
-		pif_enError = E_enInvalidParam;
-		goto fail;
-	}
-
-    s_pstLed = calloc(sizeof(PIF_stLed), ucSize);
-    if (!s_pstLed) {
-		pif_enError = E_enOutOfHeap;
-		goto fail;
-	}
-
-    s_ucLedSize = ucSize;
-    s_ucLedPos = 0;
-
-    s_pstLedTimer = pstTimer;
-    return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "LED:%u S:%u EC:%d", __LINE__, ucSize, pif_enError);
-#endif
-    return FALSE;
-}
-
-/**
- * @fn pifLed_Exit
- * @brief
- */
-void pifLed_Exit()
-{
-    if (s_pstLed) {
-        for (int i = 0; i < s_ucLedPos; i++) {
-        	PIF_stLed *pstOwner = (PIF_stLed *)&s_pstLed[i];
-        	if (pstOwner->__pstTimerBlink) {
-        		pifPulse_RemoveItem(s_pstLedTimer, pstOwner->__pstTimerBlink);
-        	}
-        }
-    	free(s_pstLed);
-        s_pstLed = NULL;
-    }
-}
-
-/**
- * @fn pifLed_Add
- * @brief
  * @param usPifId
+ * @param pstTimer
  * @param ucCount
  * @param actState
  * @return
  */
-PIF_stLed *pifLed_Add(PIF_usId usPifId, uint8_t ucCount, PIF_actLedState actState)
+PIF_stLed *pifLed_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState)
 {
-    if (s_ucLedPos >= s_ucLedSize) {
-        pif_enError = E_enOverflowBuffer;
-        goto fail;
-    }
+	PIF_stLed *pstOwner = NULL;
 
-    if (!ucCount || ucCount > 32 || !actState) {
+    if (!pstTimer || !ucCount || ucCount > 32 || !actState) {
         pif_enError = E_enInvalidParam;
         goto fail;
     }
 
-    PIF_stLed *pstOwner = &s_pstLed[s_ucLedPos];
+    pstOwner = calloc(sizeof(PIF_stLed), 1);
+    if (!pstOwner) {
+		pif_enError = E_enOutOfHeap;
+		goto fail;
+	}
 
+    pstOwner->__pstTimer = pstTimer;
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
     pstOwner->ucLedCount = ucCount;
     pstOwner->__actState = actState;
-
-    s_ucLedPos = s_ucLedPos + 1;
     return pstOwner;
 
 fail:
@@ -122,6 +65,21 @@ fail:
 	pifLog_Printf(LT_enError, "LED:%u(%u) C=%u EC:%d", __LINE__, usPifId, ucCount, pif_enError);
 #endif
     return NULL;
+}
+
+/**
+ * @fn pifLed_Exit
+ * @brief
+ * @param pstOwner
+ */
+void pifLed_Exit(PIF_stLed *pstOwner)
+{
+	if (pstOwner) {
+		if (pstOwner->__pstTimerBlink) {
+			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__pstTimerBlink);
+		}
+		free(pstOwner);
+	}
 }
 
 /**
@@ -238,13 +196,13 @@ BOOL pifLed_AttachBlink(PIF_stLed *pstOwner, uint16_t usPeriodMs)
     }
 
 	if (!pstOwner->__pstTimerBlink) {
-		pstOwner->__pstTimerBlink = pifPulse_AddItem(s_pstLedTimer, PT_enRepeat);
+		pstOwner->__pstTimerBlink = pifPulse_AddItem(pstOwner->__pstTimer, PT_enRepeat);
 		if (!pstOwner->__pstTimerBlink) goto fail;
 		pifPulse_AttachEvtFinish(pstOwner->__pstTimerBlink, _evtTimerBlinkFinish, pstOwner);
 	}
 
 	pstOwner->__unBlinkFlag = 0L;
-    pifPulse_StartItem(pstOwner->__pstTimerBlink, usPeriodMs * 1000L / s_pstLedTimer->_unPeriodUs);
+    pifPulse_StartItem(pstOwner->__pstTimerBlink, usPeriodMs * 1000L / pstOwner->__pstTimer->_unPeriodUs);
 	return TRUE;
 
 fail:
@@ -262,7 +220,7 @@ fail:
 void pifLed_DetachBlink(PIF_stLed *pstOwner)
 {
 	if (pstOwner->__pstTimerBlink) {
-		pifPulse_RemoveItem(s_pstLedTimer, pstOwner->__pstTimerBlink);
+		pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__pstTimerBlink);
 		pstOwner->__pstTimerBlink = NULL;
 	}
 }
@@ -286,7 +244,7 @@ BOOL pifLed_ChangeBlinkPeriod(PIF_stLed *pstOwner, uint16_t usPeriodMs)
 		goto fail;
 	}
 
-	pstOwner->__pstTimerBlink->unTarget = usPeriodMs * 1000L / s_pstLedTimer->_unPeriodUs;
+	pstOwner->__pstTimerBlink->unTarget = usPeriodMs * 1000L / pstOwner->__pstTimer->_unPeriodUs;
 	return TRUE;
 
 fail:

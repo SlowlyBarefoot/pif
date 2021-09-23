@@ -4,11 +4,6 @@
 #endif
 
 
-static PIF_stComm *s_pstComm = NULL;
-static uint8_t s_ucCommSize;
-static uint8_t s_ucCommPos;
-
-
 static BOOL _actReceiveData(PIF_stComm *pstOwner, uint8_t *pucData)
 {
 	return pifRingBuffer_GetByte(pstOwner->_pstRxBuffer, pucData);
@@ -46,78 +41,44 @@ static void _sendData(PIF_stComm *pstOwner)
 /**
  * @fn pifComm_Init
  * @brief 
- * @param ucSize
- * @return 
- */
-BOOL pifComm_Init(uint8_t ucSize)
-{
-    if (ucSize == 0) {
-		pif_enError = E_enInvalidParam;
-		goto fail;
-	}
-
-    s_pstComm = calloc(sizeof(PIF_stComm), ucSize);
-    if (!s_pstComm) {
-		pif_enError = E_enOutOfHeap;
-		goto fail;
-	}
-
-    s_ucCommSize = ucSize;
-    s_ucCommPos = 0;
-    return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Comm:Init(S:%u) EC:%d", ucSize, pif_enError);
-#endif
-    return FALSE;
-}
-
-/**
- * @fn pifComm_Exit
- * @brief 
- */
-void pifComm_Exit()
-{
-    if (s_pstComm) {
-    	for (int i = 0; i < s_ucCommPos; i++) {
-    		PIF_stComm *pstOwner = &s_pstComm[i];
-    		if (pstOwner->_pstRxBuffer)	pifRingBuffer_Exit(pstOwner->_pstRxBuffer);
-    		if (pstOwner->_pstTxBuffer)	pifRingBuffer_Exit(pstOwner->_pstTxBuffer);
-    	}
-        free(s_pstComm);
-        s_pstComm = NULL;
-    }
-}
-
-/**
- * @fn pifComm_Add
- * @brief 
  * @param usPifId
  * @return 
  */
-PIF_stComm *pifComm_Add(PIF_usId usPifId)
+PIF_stComm *pifComm_Init(PIF_usId usPifId)
 {
-    if (s_ucCommPos >= s_ucCommSize) {
-        pif_enError = E_enOverflowBuffer;
-        goto fail;
-    }
+    PIF_stComm *pstOwner = NULL;
 
-    PIF_stComm *pstOwner = &s_pstComm[s_ucCommPos];
+    pstOwner = calloc(sizeof(PIF_stComm), 1);
+    if (!pstOwner) {
+		pif_enError = E_enOutOfHeap;
+		goto fail;
+	}
 
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
 
     pstOwner->_usPifId = usPifId;
     pstOwner->__enState = CTS_enIdle;
-
-    s_ucCommPos = s_ucCommPos + 1;
     return pstOwner;
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Comm:Add(D:%u) EC:%d", usPifId, pif_enError);
+	pifLog_Printf(LT_enError, "Comm:Init(ID:%u) EC:%d", usPifId, pif_enError);
 #endif
     return NULL;
+}
+
+/**
+ * @fn pifComm_Exit
+ * @brief 
+ * @param pstOwner
+ */
+void pifComm_Exit(PIF_stComm *pstOwner)
+{
+	if (pstOwner) {
+		if (pstOwner->_pstRxBuffer)	pifRingBuffer_Exit(pstOwner->_pstRxBuffer);
+		if (pstOwner->_pstTxBuffer)	pifRingBuffer_Exit(pstOwner->_pstTxBuffer);
+		free(pstOwner);
+	}
 }
 
 /**

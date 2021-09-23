@@ -7,82 +7,28 @@
 #define PIF_PULSE_INDEX_NULL   0xFF
 
 
-static PIF_stPulse *s_pstPulse = NULL;
-static uint8_t s_ucPulseSize;
-static uint8_t s_ucPulsePos;
-
-
 /**
  * @fn pifPulse_Init
- * @brief 입력된 크기만큼 Pulse 구조체를 할당하고 초기화한다.
- * @param ucSize Pulse 크기
- * @return 성공 여부
- */
-BOOL pifPulse_Init(uint8_t ucSize)
-{
-    if (ucSize == 0) {
-		pif_enError = E_enInvalidParam;
-		goto fail;
-	}
-
-    s_pstPulse = calloc(sizeof(PIF_stPulse), ucSize);
-    if (!s_pstPulse) {
-		pif_enError = E_enOutOfHeap;
-		goto fail;
-	}
-
-    s_ucPulseSize = ucSize;
-    s_ucPulsePos = 0;
-    return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Pulse:Init(S:%u) EC:%d", ucSize, pif_enError);
-#endif
-    return FALSE;
-}
-
-/**
- * @fn pifPulse_Exit
- * @brief Pulse용 메모리를 반환한다.
- */
-void pifPulse_Exit()
-{
-	PIF_stPulse *pstOwner;
-
-    if (s_pstPulse) {
-		for (int i = 0; i < s_ucPulsePos; i++) {
-			pstOwner = &s_pstPulse[i];
-			if (pstOwner->__pstItems) {
-				free(pstOwner->__pstItems);
-				pstOwner->__pstItems = NULL;
-			}
-		}
-        free(s_pstPulse);
-        s_pstPulse = NULL;
-    }
-}
-
-/**
- * @fn pifPulse_Add
  * @brief Pulse를 추가한다.
  * @param usPifId
  * @param ucSize Pulse 항목 크기
  * @param unPeriodUs
  * @return Pulse 구조체 포인터를 반환한다.
  */
-PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize, uint32_t unPeriodUs)
+PIF_stPulse *pifPulse_Init(PIF_usId usPifId, uint8_t ucSize, uint32_t unPeriodUs)
 {
-    if (ucSize >= PIF_PULSE_INDEX_NULL) {
-		pif_enError = E_enInvalidParam;
-		goto fail;
-	}
-    if (s_ucPulsePos >= s_ucPulseSize) {
-		pif_enError = E_enOverflowBuffer;
-		goto fail;
-	}
+	PIF_stPulse *pstOwner = NULL;
 
-    PIF_stPulse *pstOwner = &s_pstPulse[s_ucPulsePos];
+    if (!ucSize || !unPeriodUs) {
+        pif_enError = E_enInvalidParam;
+        goto fail;
+    }
+
+    pstOwner = calloc(sizeof(PIF_stPulse), 1);
+    if (!pstOwner) {
+		pif_enError = E_enOutOfHeap;
+		goto fail;
+	}
 
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
     pstOwner->_usPifId = usPifId;
@@ -104,15 +50,30 @@ PIF_stPulse *pifPulse_Add(PIF_usId usPifId, uint8_t ucSize, uint32_t unPeriodUs)
     }
     pstOwner->__pstItems[ucSize - 1].__unPrev = PIF_PULSE_INDEX_NULL;
     pstOwner->__pstItems[ucSize - 1].__unNext = PIF_PULSE_INDEX_NULL;
-
-    s_ucPulsePos = s_ucPulsePos + 1;
     return pstOwner;
 
 fail:
+	if (pstOwner) free(pstOwner);
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Pulse:Add(SZ:%u) EC:%d", ucSize, pif_enError);
+	pifLog_Printf(LT_enError, "Pulse:Init(SZ:%u P:%lu) EC:%d", ucSize, unPeriodUs, pif_enError);
 #endif
     return NULL;
+}
+
+/**
+ * @fn pifPulse_Exit
+ * @brief Pulse용 메모리를 반환한다.
+ * @param pstOwner Pulse 자신
+ */
+void pifPulse_Exit(PIF_stPulse *pstOwner)
+{
+	if (pstOwner) {
+		if (pstOwner->__pstItems) {
+			free(pstOwner->__pstItems);
+			pstOwner->__pstItems = NULL;
+		}
+		free(pstOwner);
+	}
 }
 
 /**

@@ -96,6 +96,7 @@ typedef struct _PIF_stXmodem
 	PIF_usId _usPifId;
 
 	// Private Member Variable
+	PIF_stPulse *__pstTimer;
 	PIF_stComm *__pstComm;
 	PIF_enXmodemType __enType;
 	uint16_t __usPacketSize;
@@ -109,10 +110,8 @@ typedef struct _PIF_stXmodem
 extern "C" {
 #endif
 
-BOOL pifXmodem_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
+PIF_stXmodem *pifXmodem_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enXmodemType enType);
 void pifXmodem_Exit();
-
-PIF_stXmodem *pifXmodem_Add(PIF_usId usPifId, PIF_enXmodemType enType);
 
 void pifXmodem_SetResponseTimeout(PIF_stXmodem *pstOwner, uint16_t usResponseTimeout);
 void pifXmodem_SetReceiveTimeout(PIF_stXmodem *pstOwner, uint16_t usReceiveTimeout);
