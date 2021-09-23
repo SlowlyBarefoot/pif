@@ -555,13 +555,7 @@ void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriod
 	}
 }
 
-/**
- * @fn pifDotMatrix_Task
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifDotMatrix_Task(PIF_stTask *pstTask)
+static uint16_t _DoTask(PIF_stTask *pstTask)
 {
 	PIF_stDotMatrix *pstOwner = pstTask->_pvClient;
 	uint8_t *pucPattern;
@@ -593,3 +587,16 @@ uint16_t pifDotMatrix_Task(PIF_stTask *pstTask)
 	return 0;
 }
 
+/**
+ * @fn pifDotMatrix_AttachTask
+ * @brief Task를 추가한다.
+ * @param pstOwner
+ * @param enMode Task의 Mode를 설정한다.
+ * @param usPeriod Mode에 따라 주기의 단위가 변경된다.
+ * @param bStart 즉시 시작할지를 지정한다.
+ * @return Task 구조체 포인터를 반환한다.
+ */
+PIF_stTask *pifDotMatrix_AttachTask(PIF_stDotMatrix *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+{
+	return pifTask_Add(enMode, usPeriod, _DoTask, pstOwner, bStart);
+}

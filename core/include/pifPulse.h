@@ -111,7 +111,7 @@ void pifPulse_AttachAction(PIF_stPulseItem *pstItem, PIF_actPulsePwm actPwm);
 void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstItem, PIF_evtPulseFinish evtFinish, void *pvIssuer);
 
 // Task Function
-uint16_t pifPulse_Task(PIF_stTask *pstTask);
+PIF_stTask *pifPulse_AttachTask(PIF_stPulse *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart);
 
 #ifdef __PIF_DEBUG__
 

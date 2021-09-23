@@ -82,7 +82,7 @@ BOOL pifKeypad_SetLongTime(uint16_t usLongTimeMs);
 BOOL pifKeypad_SetDoubleTime(uint16_t usDoubleTimeMs);
 
 // Task Function
-uint16_t pifKeypad_Task(PIF_stTask *pstTask);
+PIF_stTask *pifKeypad_AttachTask(PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart);
 
 #ifdef __cplusplus
 }

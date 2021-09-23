@@ -345,13 +345,7 @@ void pifComm_ForceSendData(PIF_stComm *pstOwner)
 	if (pstOwner->evtSending) _sendData(pstOwner);
 }
 
-/**
- * @fn pifComm_Task
- * @brief
- * @param pstTask
- * @return
- */
-uint16_t pifComm_Task(PIF_stTask *pstTask)
+static uint16_t _DoTask(PIF_stTask *pstTask)
 {
 	PIF_stComm *pstOwner = pstTask->_pvClient;
 
@@ -368,5 +362,19 @@ uint16_t pifComm_Task(PIF_stTask *pstTask)
 
 	if (pstOwner->evtSending) _sendData(pstOwner);
 	return 0;
+}
+
+/**
+ * @fn pifComm_AttachTask
+ * @brief Task를 추가한다.
+ * @param pstOwner
+ * @param enMode Task의 Mode를 설정한다.
+ * @param usPeriod Mode에 따라 주기의 단위가 변경된다.
+ * @param bStart 즉시 시작할지를 지정한다.
+ * @return Task 구조체 포인터를 반환한다.
+ */
+PIF_stTask *pifComm_AttachTask(PIF_stComm *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+{
+	return pifTask_Add(enMode, usPeriod, _DoTask, pstOwner, bStart);
 }
 

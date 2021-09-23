@@ -130,7 +130,7 @@ void pifDotMatrix_ShiftOff(PIF_stDotMatrix *pstOwner);
 void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
 
 // Task Function
-uint16_t pifDotMatrix_Task(PIF_stTask *pstTask);
+PIF_stTask *pifDotMatrix_AttachTask(PIF_stDotMatrix *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart);
 
 #ifdef __cplusplus
 }

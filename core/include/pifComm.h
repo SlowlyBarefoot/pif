@@ -121,7 +121,7 @@ void pifComm_FinishTransfer(PIF_stComm *pstOwner);
 void pifComm_ForceSendData(PIF_stComm *pstOwner);
 
 // Task Function
-uint16_t pifComm_Task(PIF_stTask *pstTask);
+PIF_stTask *pifComm_AttachTask(PIF_stComm *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart);
 
 #ifdef __cplusplus
 }
