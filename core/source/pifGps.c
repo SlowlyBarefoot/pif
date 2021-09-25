@@ -4,91 +4,53 @@
 #endif
 
 
-static PIF_stGps *s_pstGps;
-static uint8_t s_ucGpsSize;
-static uint8_t s_ucGpsPos;
-
-
 /**
- * @fn pifGps_Init
- * @brief
- * @param ucSize
- * @return
- */
-BOOL pifGps_Init(uint8_t ucSize)
-{
-    if (ucSize == 0) {
-		pif_enError = E_enInvalidParam;
-		goto fail;
-	}
-
-    s_pstGps = calloc(sizeof(PIF_stGps), ucSize);
-    if (!s_pstGps) {
-		pif_enError = E_enOutOfHeap;
-		goto fail;
-	}
-
-    s_ucGpsSize = ucSize;
-    s_ucGpsPos = 0;
-    return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "GPS:%u S:%u EC:%d", __LINE__, ucSize, pif_enError);
-#endif
-    return FALSE;
-}
-
-/**
- * @fn pifGps_Exit
- * @brief
- */
-void pifGps_Exit()
-{
-    if (s_pstGps) {
-		for (int i = 0; i < s_ucGpsSize; i++) {
-			PIF_stGps *pstOwner = &s_pstGps[i];
-			if (pstOwner->_pvChild) {
-				if (pstOwner->__evtRemove) {
-					(pstOwner->__evtRemove)(pstOwner->_pvChild);
-				}
-				free(pstOwner->_pvChild);
-				pstOwner->_pvChild = NULL;
-			}
-		}
-        free(s_pstGps);
-        s_pstGps = NULL;
-    }
-}
-
-/**
- * @fn pifGps_Add
+ * @fn pifGps_Create
  * @brief
  * @param usPifId
  * @return
  */
-PIF_stGps *pifGps_Add(PIF_usId usPifId)
+PIF_stGps *pifGps_Create(PIF_usId usPifId)
 {
-    PIF_stGps *pstOwner = NULL;
+	PIF_stGps *pstOwner = calloc(sizeof(PIF_stGps), 1);
+	if (!pstOwner) {
+		pif_enError = E_enOutOfHeap;
+		goto fail;
+	}
 
-    if (s_ucGpsPos >= s_ucGpsSize) {
-        pif_enError = E_enOverflowBuffer;
-        goto fail;
-    }
-
-    pstOwner = &s_pstGps[s_ucGpsPos];
-
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
-    pstOwner->_usPifId = usPifId;
-
-    s_ucGpsPos = s_ucGpsPos + 1;
+	pifGps_Init(pstOwner, usPifId);
     return pstOwner;
 
 fail:
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "GPS:%u(%u) EC:%d", __LINE__, usPifId, pif_enError);
+	pifLog_Printf(LT_enError, "GPS:%u EC:%d", __LINE__, pif_enError);
 #endif
     return NULL;
+}
+
+/**
+ * @fn pifGps_Destroy
+ * @brief
+ * @param ppstOwner
+ */
+void pifGps_Destroy(PIF_stGps **ppstOwner)
+{
+	if (*ppstOwner) {
+		free(*ppstOwner);
+		*ppstOwner = NULL;
+	}
+}
+
+/**
+ * @fn pifGps_Init
+ * @brief
+ * @param pstOwner
+ * @param usPifId
+ */
+void pifGps_Init(PIF_stGps *pstOwner, PIF_usId usPifId)
+{
+	if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+	pstOwner->_usPifId = usPifId;
 }
 
 /**

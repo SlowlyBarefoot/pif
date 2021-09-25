@@ -11,7 +11,6 @@
 
 typedef struct _PIF_stGps PIF_stGps;
 
-typedef void (*PIF_evtGpsRemove)(void *pvChild);
 typedef void (*PIF_evtGpsReceive)(PIF_stGps *pstOwner);
 
 typedef double PIF_dDeg;
@@ -43,15 +42,12 @@ struct _PIF_stGps
 	double _dSpeedN;          	// speed         		- unit: knots
 	double _dSpeedK;          	// speed         		- unit: km/h
 	double _dGroundCourse;		//                   	- unit: degree
-	uint8_t  _ucNumSat;
-	uint8_t  _ucFix;
-    void *_pvChild;
-    PIF_stComm *_pstComm;
+	uint8_t _ucNumSat;
+	uint8_t _ucFix;
 
 	// Private Member Variable
 
     // Private Event Function
-	PIF_evtGpsRemove __evtRemove;
 	PIF_evtGpsReceive __evtReceive;
 };
 
@@ -60,10 +56,10 @@ struct _PIF_stGps
 extern "C" {
 #endif
 
-BOOL pifGps_Init(uint8_t ucSize);
-void pifGps_Exit();
+PIF_stGps *pifGps_Create(PIF_usId usPifId);
+void pifGps_Destroy(PIF_stGps **ppstOwner);
 
-PIF_stGps *pifGps_Add(PIF_usId usPifId);
+void pifGps_Init(PIF_stGps *pstOwner, PIF_usId usPifId);
 
 void pifGps_AttachEvent(PIF_stGps *pstOwner, PIF_evtGpsReceive evtReceive);
 

@@ -141,10 +141,8 @@ typedef struct _PIF_stAds1x1x
 extern "C" {
 #endif
 
-BOOL pifAds1x1x_Init(uint8_t ucSize);
-void pifAds1x1x_Exit();
-
-PIF_stAds1x1x *pifAds1x1x_Add(PIF_usId usPifId, PIF_enAds1x1xType enType);
+PIF_stAds1x1x *pifAds1x1x_Create(PIF_usId usPifId, PIF_enAds1x1xType enType);
+void pifAds1x1x_Destroy(PIF_stAds1x1x **ppstOwner);
 
 void pifAds1x1x_SetAddress(PIF_stAds1x1x *pstOwner, uint8_t ucAddr);
 

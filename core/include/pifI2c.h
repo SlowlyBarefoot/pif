@@ -48,7 +48,10 @@ struct _PIF_stI2c
 extern "C" {
 #endif
 
-BOOL pifI2c_Add(PIF_stI2c *pstOwner, PIF_usId usPifId, uint16_t ucDataSize);
+PIF_stI2c *pifI2c_Create(PIF_usId usPifId, uint16_t ucDataSize);
+void pifI2c_Destroy(PIF_stI2c **ppstOwner);
+
+BOOL pifI2c_Init(PIF_stI2c *pstOwner, PIF_usId usPifId, uint16_t ucDataSize);
 
 void pifI2c_ScanAddress(PIF_stI2c *pstOwner);
 

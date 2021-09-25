@@ -75,12 +75,10 @@ typedef struct _PIF_stGpsNmea
 {
 	// Public Member Variable
 
-	// Public Event Function
-
 	// Read-only Member Variable
-    PIF_usId _usPifId;
 
 	// Private Member Variable
+    PIF_stGps __stGps;
 	PIF_stComm *__pstComm;
     PIF_stGpsNmeaTx __stTx;
     uint32_t __unProcessMessageId;
@@ -96,18 +94,19 @@ typedef struct _PIF_stGpsNmea
 extern "C" {
 #endif
 
-PIF_stGps *pifGpsNmea_Add(PIF_usId usPifId);
+PIF_stGpsNmea *pifGpsNmea_Create(PIF_usId usPifId);
+void pifGpsNmea_Destroy(PIF_stGpsNmea **ppstOwner);
 
-void pifGpsNmea_AttachComm(PIF_stGps *pstParent, PIF_stComm *pstComm);
-void pifGpsNmea_AttachEvtText(PIF_stGps *pstParent, PIF_evtGpsNmeaText evtText);
+void pifGpsNmea_AttachComm(PIF_stGpsNmea *pstOwner, PIF_stComm *pstComm);
+void pifGpsNmea_AttachEvtText(PIF_stGpsNmea *pstOwner, PIF_evtGpsNmeaText evtText);
 
-BOOL pifGpsNmea_SetProcessMessageId(PIF_stGps *pstParent, int nCount, ...);
-void pifGpsNmea_SetEventMessageId(PIF_stGps *pstParent, PIF_ucGpsNmeaMessageId ucMessageId);
+BOOL pifGpsNmea_SetProcessMessageId(PIF_stGpsNmea *pstOwner, int nCount, ...);
+void pifGpsNmea_SetEventMessageId(PIF_stGpsNmea *pstOwner, PIF_ucGpsNmeaMessageId ucMessageId);
 
-BOOL pifGpsNmea_PollRequestGBQ(PIF_stGps *pstParent, const char *pcMagId);
-BOOL pifGpsNmea_PollRequestGLQ(PIF_stGps *pstParent, const char *pcMagId);
-BOOL pifGpsNmea_PollRequestGNQ(PIF_stGps *pstParent, const char *pcMagId);
-BOOL pifGpsNmea_PollRequestGPQ(PIF_stGps *pstParent, const char *pcMagId);
+BOOL pifGpsNmea_PollRequestGBQ(PIF_stGpsNmea *pstOwner, const char *pcMagId);
+BOOL pifGpsNmea_PollRequestGLQ(PIF_stGpsNmea *pstOwner, const char *pcMagId);
+BOOL pifGpsNmea_PollRequestGNQ(PIF_stGpsNmea *pstOwner, const char *pcMagId);
+BOOL pifGpsNmea_PollRequestGPQ(PIF_stGpsNmea *pstOwner, const char *pcMagId);
 
 #ifdef __cplusplus
 }

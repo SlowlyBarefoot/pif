@@ -162,17 +162,6 @@ fail:
 	return FALSE;
 }
 
-static void _evtGpsRemove(void *pvChild)
-{
-	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pvChild;
-
-	pifRingBuffer_Exit(pstOwner->__stTx.pstBuffer);
-	if (pstOwner->__pstTxt) {
-		free(pstOwner->__pstTxt);
-		pstOwner->__pstTxt = NULL;
-	}
-}
-
 /* This is a light implementation of a GPS frame decoding
    This should work with most of modern GPS devices configured to output NMEA frames.
    It assumes there are some NMEA GGA frames to decode on the serial bus
@@ -187,15 +176,15 @@ static void _evtGpsRemove(void *pvChild)
 
 static void _evtParsing(void *pvClient, PIF_actCommReceiveData actReceiveData)
 {
-	PIF_stGps *pstParent = (PIF_stGps *)pvClient;
-	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pstParent->_pvChild;
+	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pvClient;
+	PIF_stGps *pstParent = &pstOwner->__stGps;
 	uint8_t c, frameOK = 0;
 	static uint8_t param = 0, offset = 0, parity = 0;
 	static char string[PIF_GPS_NMEA_VALUE_SIZE];
 	static uint8_t checksum_param = 0;
 	static uint16_t usMessageId = NMEA_MESSAGE_ID_NONE;
 
-	while ((*actReceiveData)(pstParent->_pstComm, &c)) {
+	while ((*actReceiveData)(pstOwner->__pstComm, &c)) {
 		if (c == '$') {
 			param = 0;
 			offset = 0;
@@ -352,7 +341,7 @@ static void _evtParsing(void *pvClient, PIF_actCommReceiveData actReceiveData)
 
 BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
 {
-	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)((PIF_stGps *)pvClient)->_pvChild;
+	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pvClient;
 	uint16_t usLength;
 
 	switch (pstOwner->__stTx.enState) {
@@ -387,33 +376,28 @@ BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
 }
 
 /**
- * @fn pifGpsNmea_Add
+ * @fn pifGpsNmea_Create
  * @brief
  * @param usPifId
  * @return
  */
-PIF_stGps *pifGpsNmea_Add(PIF_usId usPifId)
+PIF_stGpsNmea *pifGpsNmea_Create(PIF_usId usPifId)
 {
-    PIF_stGps *pstParent = pifGps_Add(usPifId);
-    if (!pstParent) goto fail;
-
-    pstParent->_pvChild = calloc(sizeof(PIF_stGpsNmea), 1);
-    if (!pstParent->_pvChild) {
+	PIF_stGpsNmea *pstOwner = calloc(sizeof(PIF_stGpsNmea), 1);
+    if (!pstOwner) {
         pif_enError = E_enOutOfHeap;
         goto fail;
     }
 
-    PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pstParent->_pvChild;
+    pifGps_Init(&pstOwner->__stGps, usPifId);
 
     pstOwner->__stTx.pstBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_GPS_NMEA_TX_SIZE);
     if (!pstOwner->__stTx.pstBuffer) goto fail;
     pifRingBuffer_SetName(pstOwner->__stTx.pstBuffer, "TxB");
-
-    pstParent->__evtRemove = _evtGpsRemove;
-
-    return pstParent;
+    return pstOwner;
 
 fail:
+	if (pstOwner) free(pstOwner);
 #ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "GN:%u(%u) EC:%d", __LINE__, usPifId, pif_enError);
 #endif
@@ -421,15 +405,36 @@ fail:
 }
 
 /**
+ * @fn pifGpsNmea_Destroy
+ * @brief
+ * @param ppstOwner
+ */
+void pifGpsNmea_Destroy(PIF_stGpsNmea **ppstOwner)
+{
+	if (*ppstOwner) {
+		if ((*ppstOwner)->__stTx.pstBuffer) {
+			pifRingBuffer_Exit((*ppstOwner)->__stTx.pstBuffer);
+			(*ppstOwner)->__stTx.pstBuffer = NULL;
+		}
+		if ((*ppstOwner)->__pstTxt) {
+			free((*ppstOwner)->__pstTxt);
+			(*ppstOwner)->__pstTxt = NULL;
+		}
+		free(*ppstOwner);
+		*ppstOwner = NULL;
+	}
+}
+
+/**
  * @fn pifGpsNmea_AttachComm
  * @brief
- * @param pstParent
+ * @param pstOwner
  * @param pstComm
  */
-void pifGpsNmea_AttachComm(PIF_stGps *pstParent, PIF_stComm *pstComm)
+void pifGpsNmea_AttachComm(PIF_stGpsNmea *pstOwner, PIF_stComm *pstComm)
 {
-	pstParent->_pstComm = pstComm;
-	pifComm_AttachClient(pstComm, pstParent);
+	pstOwner->__pstComm = pstComm;
+	pifComm_AttachClient(pstComm, pstOwner);
 	pstComm->evtParsing = _evtParsing;
 	pstComm->evtSending = _evtSending;
 }
@@ -437,25 +442,24 @@ void pifGpsNmea_AttachComm(PIF_stGps *pstParent, PIF_stComm *pstComm)
 /**
  * @fn pifGpsNmea_AttachEvtText
  * @brief
- * @param pstParent
+ * @param pstOwner
  * @param evtText
  * @param ucMaxSize
  */
-void pifGpsNmea_AttachEvtText(PIF_stGps *pstParent, PIF_evtGpsNmeaText evtText)
+void pifGpsNmea_AttachEvtText(PIF_stGpsNmea *pstOwner, PIF_evtGpsNmeaText evtText)
 {
-	((PIF_stGpsNmea *)pstParent->_pvChild)->__evtText = evtText;
+	pstOwner->__evtText = evtText;
 }
 
 /**
  * @fn pifGpsNmea_SetProcessMessageId
  * @brief
- * @param pstParent
+ * @param pstOwner
  * @param nCount
  * @return
  */
-BOOL pifGpsNmea_SetProcessMessageId(PIF_stGps *pstParent, int nCount, ...)
+BOOL pifGpsNmea_SetProcessMessageId(PIF_stGpsNmea *pstOwner, int nCount, ...)
 {
-	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pstParent->_pvChild;
 	va_list ap;
 	int i, arg;
 
@@ -495,30 +499,27 @@ BOOL pifGpsNmea_SetProcessMessageId(PIF_stGps *pstParent, int nCount, ...)
 /**
  * @fn pifGpsNmea_SetEventMessageId
  * @brief
- * @param pstParent
+ * @param pstOwner
  * @param ucMessageId
  */
-void pifGpsNmea_SetEventMessageId(PIF_stGps *pstParent, PIF_ucGpsNmeaMessageId ucMessageId)
+void pifGpsNmea_SetEventMessageId(PIF_stGpsNmea *pstOwner, PIF_ucGpsNmeaMessageId ucMessageId)
 {
-	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pstParent->_pvChild;
-
 	pstOwner->__ucEventMessageId = ucMessageId;
 }
 
 /**
  * @fn pifGpsNmea_PollRequestGBQ
  * @brief
- * @param pstParent
+ * @param pstOwner
  * @param pcMagId
  * @return
  */
-BOOL pifGpsNmea_PollRequestGBQ(PIF_stGps *pstParent, const char *pcMagId)
+BOOL pifGpsNmea_PollRequestGBQ(PIF_stGpsNmea *pstOwner, const char *pcMagId)
 {
-	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pstParent->_pvChild;
 	char data[16] = "$GBGBQ,";
 	int i;
 
-	if (!pstParent->_pstComm->__actSendData) {
+	if (!pstOwner->__pstComm->__actSendData) {
 		pif_enError = E_enTransferFailed;
 		return FALSE;
 	}
@@ -541,17 +542,16 @@ BOOL pifGpsNmea_PollRequestGBQ(PIF_stGps *pstParent, const char *pcMagId)
 /**
  * @fn pifGpsNmea_PollRequestGLQ
  * @brief
- * @param pstParent
+ * @param pstOwner
  * @param pcMagId
  * @return
  */
-BOOL pifGpsNmea_PollRequestGLQ(PIF_stGps *pstParent, const char *pcMagId)
+BOOL pifGpsNmea_PollRequestGLQ(PIF_stGpsNmea *pstOwner, const char *pcMagId)
 {
-	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pstParent->_pvChild;
 	char data[16] = "$GLGLQ,";
 	int i;
 
-	if (!pstParent->_pstComm->__actSendData) {
+	if (!pstOwner->__pstComm->__actSendData) {
 		pif_enError = E_enTransferFailed;
 		return FALSE;
 	}
@@ -574,17 +574,16 @@ BOOL pifGpsNmea_PollRequestGLQ(PIF_stGps *pstParent, const char *pcMagId)
 /**
  * @fn pifGpsNmea_PollRequestGNQ
  * @brief
- * @param pstParent
+ * @param pstOwner
  * @param pcMagId
  * @return
  */
-BOOL pifGpsNmea_PollRequestGNQ(PIF_stGps *pstParent, const char *pcMagId)
+BOOL pifGpsNmea_PollRequestGNQ(PIF_stGpsNmea *pstOwner, const char *pcMagId)
 {
-	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pstParent->_pvChild;
 	char data[16] = "$GNGNQ,";
 	int i;
 
-	if (!pstParent->_pstComm->__actSendData) {
+	if (!pstOwner->__pstComm->__actSendData) {
 		pif_enError = E_enTransferFailed;
 		return FALSE;
 	}
@@ -607,17 +606,16 @@ BOOL pifGpsNmea_PollRequestGNQ(PIF_stGps *pstParent, const char *pcMagId)
 /**
  * @fn pifGpsNmea_PollRequestGPQ
  * @brief
- * @param pstParent
+ * @param pstOwner
  * @param pcMagId
  * @return
  */
-BOOL pifGpsNmea_PollRequestGPQ(PIF_stGps *pstParent, const char *pcMagId)
+BOOL pifGpsNmea_PollRequestGPQ(PIF_stGpsNmea *pstOwner, const char *pcMagId)
 {
-	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pstParent->_pvChild;
 	char data[16] = "$GPGPQ,";
 	int i;
 
-	if (!pstParent->_pstComm->__actSendData) {
+	if (!pstOwner->__pstComm->__actSendData) {
 		pif_enError = E_enTransferFailed;
 		return FALSE;
 	}

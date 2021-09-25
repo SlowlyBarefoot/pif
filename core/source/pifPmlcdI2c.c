@@ -53,11 +53,6 @@
 #define Rs 0x01  // Register select bit
 
 
-static PIF_stPmlcdI2c *s_pstPmlcdI2c = NULL;
-static uint8_t s_ucPmlcdI2cSize;
-static uint8_t s_ucPmlcdI2cPos;
-
-
 static BOOL _ExpanderWrite(PIF_stPmlcdI2c *pstOwner, uint8_t ucData)
 {
 	pstOwner->_stI2c.pucData[0] = ucData | pstOwner->__ucBacklightVal;
@@ -87,80 +82,56 @@ static void _Send(PIF_stPmlcdI2c *pstOwner, uint8_t ucValue, uint8_t ucMode)
 }
 
 /**
- * @fn pifPmlcdI2c_Init
- * @brief
- * @param ucSize
- * @return
- */
-BOOL pifPmlcdI2c_Init(uint8_t ucSize)
-{
-    if (ucSize == 0 || !pif_actTimer1us) {
-		pif_enError = E_enInvalidParam;
-		goto fail;
-	}
-
-    s_pstPmlcdI2c = calloc(sizeof(PIF_stPmlcdI2c), ucSize);
-    if (!s_pstPmlcdI2c) {
-		pif_enError = E_enOutOfHeap;
-		goto fail;
-	}
-
-    s_ucPmlcdI2cSize = ucSize;
-    s_ucPmlcdI2cPos = 0;
-    return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PMLCD:%u S:%u EC:%d", __LINE__, ucSize, pif_enError);
-#endif
-    return FALSE;
-}
-
-/**
- * @fn pifPmlcdI2c_Exit
- * @brief
- */
-void pifPmlcdI2c_Exit()
-{
-    if (s_pstPmlcdI2c) {
-    	if (s_pstPmlcdI2c->_stI2c.pucData) {
-        	free(s_pstPmlcdI2c->_stI2c.pucData);
-            s_pstPmlcdI2c->_stI2c.pucData = NULL;
-    	}
-    	free(s_pstPmlcdI2c);
-        s_pstPmlcdI2c = NULL;
-    }
-}
-
-/**
- * @fn pifPmlcdI2c_Add
+ * @fn pifPmlcdI2c_Create
  * @brief
  * @param usPifId
  * @param ucAddr
  * @return
  */
-PIF_stPmlcdI2c *pifPmlcdI2c_Add(PIF_usId usPifId, uint8_t ucAddr)
+PIF_stPmlcdI2c *pifPmlcdI2c_Create(PIF_usId usPifId, uint8_t ucAddr)
 {
-    if (s_ucPmlcdI2cPos >= s_ucPmlcdI2cSize) {
-        pif_enError = E_enOverflowBuffer;
-        goto fail;
-    }
+    PIF_stPmlcdI2c *pstOwner = NULL;
 
-    PIF_stPmlcdI2c *pstOwner = &s_pstPmlcdI2c[s_ucPmlcdI2cPos];
+    if (!pif_actTimer1us) {
+		pif_enError = E_enInvalidParam;
+		goto fail;
+	}
 
-    if (!pifI2c_Add(&pstOwner->_stI2c, usPifId, 2)) goto fail;
+    pstOwner = calloc(sizeof(PIF_stPmlcdI2c), 1);
+    if (!pstOwner) {
+		pif_enError = E_enOutOfHeap;
+		goto fail;
+	}
+
+    if (!pifI2c_Init(&pstOwner->_stI2c, usPifId, 2)) goto fail;
     pstOwner->_stI2c.ucAddr = ucAddr;
     pstOwner->__ucBacklightVal = LCD_NO_BACK_LIGHT;
     pstOwner->__ucDisplayFunction = LCD_4BIT_MODE | LCD_1LINE | LCD_5x8_DOTS;
-
-    s_ucPmlcdI2cPos = s_ucPmlcdI2cPos + 1;
     return pstOwner;
 
 fail:
+	if (pstOwner) free(pstOwner);
 #ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "PMLCD:%u(%u) EC:%d", __LINE__, usPifId, pif_enError);
 #endif
     return NULL;
+}
+
+/**
+ * @fn pifPmlcdI2c_Destroy
+ * @brief
+ * @param ppstOwner
+ */
+void pifPmlcdI2c_Destroy(PIF_stPmlcdI2c **ppstOwner)
+{
+    if (*ppstOwner) {
+    	if ((*ppstOwner)->_stI2c.pucData) {
+        	free((*ppstOwner)->_stI2c.pucData);
+            (*ppstOwner)->_stI2c.pucData = NULL;
+    	}
+    	free(*ppstOwner);
+    	*ppstOwner = NULL;
+    }
 }
 
 /**

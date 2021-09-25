@@ -33,10 +33,8 @@ typedef struct _PIF_stPmlcdI2c
 extern "C" {
 #endif
 
-BOOL pifPmlcdI2c_Init(uint8_t ucSize);
-void pifPmlcdI2c_Exit();
-
-PIF_stPmlcdI2c *pifPmlcdI2c_Add(PIF_usId usPifId, uint8_t ucAddr);
+PIF_stPmlcdI2c *pifPmlcdI2c_Create(PIF_usId usPifId, uint8_t ucAddr);
+void pifPmlcdI2c_Destroy(PIF_stPmlcdI2c **ppstOwner);
 
 void pifPmlcdI2c_Begin(PIF_stPmlcdI2c *pstOwner, uint8_t ucLines, uint8_t ucDotSize);
 

@@ -7,11 +7,6 @@
 #define DEFAULT_I2C_ADDR	0x48
 
 
-static PIF_stAds1x1x *s_pstAds1x1x = NULL;
-static uint8_t s_ucAds1x1xSize;
-static uint8_t s_ucAds1x1xPos;
-
-
 static BOOL _ReadWord(PIF_stAds1x1x *pstOwner, const PIF_enAds1x1xReg enReg, uint16_t *pusData)
 {
 	pstOwner->_stI2c.pucData[0] = enReg;
@@ -81,68 +76,23 @@ static uint32_t _ConversionDelay(PIF_stAds1x1x *pstOwner)
 }
 
 /**
- * @fn pifAds1x1x_Init
- * @brief
- * @param ucSize
- * @return
- */
-BOOL pifAds1x1x_Init(uint8_t ucSize)
-{
-    if (ucSize == 0) {
-		pif_enError = E_enInvalidParam;
-		goto fail;
-	}
-
-    s_pstAds1x1x = calloc(sizeof(PIF_stAds1x1x), ucSize);
-    if (!s_pstAds1x1x) {
-		pif_enError = E_enOutOfHeap;
-		goto fail;
-	}
-
-    s_ucAds1x1xSize = ucSize;
-    s_ucAds1x1xPos = 0;
-    return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "ADS1x1x:%u S:%u EC:%d", __LINE__, ucSize, pif_enError);
-#endif
-    return FALSE;
-}
-
-/**
- * @fn pifAds1x1x_Exit
- * @brief
- */
-void pifAds1x1x_Exit()
-{
-    if (s_pstAds1x1x) {
-    	if (s_pstAds1x1x->_stI2c.pucData) {
-        	free(s_pstAds1x1x->_stI2c.pucData);
-            s_pstAds1x1x->_stI2c.pucData = NULL;
-    	}
-    	free(s_pstAds1x1x);
-        s_pstAds1x1x = NULL;
-    }
-}
-
-/**
- * @fn pifAds1x1x_Add
+ * @fn pifAds1x1x_Create
  * @brief
  * @param usPifId
  * @param enType
  * @return
  */
-PIF_stAds1x1x *pifAds1x1x_Add(PIF_usId usPifId, PIF_enAds1x1xType enType)
+PIF_stAds1x1x *pifAds1x1x_Create(PIF_usId usPifId, PIF_enAds1x1xType enType)
 {
-    if (s_ucAds1x1xPos >= s_ucAds1x1xSize) {
-        pif_enError = E_enOverflowBuffer;
-        goto fail;
-    }
+    PIF_stAds1x1x *pstOwner = NULL;
 
-    PIF_stAds1x1x *pstOwner = &s_pstAds1x1x[s_ucAds1x1xPos];
+    pstOwner = calloc(sizeof(PIF_stAds1x1x), 1);
+    if (!pstOwner) {
+		pif_enError = E_enOutOfHeap;
+		goto fail;
+	}
 
-    if (!pifI2c_Add(&pstOwner->_stI2c, usPifId, 4)) goto fail;
+    if (!pifI2c_Init(&pstOwner->_stI2c, usPifId, 4)) goto fail;
 
     pstOwner->_stI2c.ucAddr = DEFAULT_I2C_ADDR;
     switch (enType) {
@@ -159,8 +109,6 @@ PIF_stAds1x1x *pifAds1x1x_Add(PIF_usId usPifId, PIF_enAds1x1xType enType)
     _ReadWord(pstOwner, AR_enCONFIG, &pstOwner->__stConfig.usAll);
     pstOwner->dConvertVoltage = _ConvertVoltage(pstOwner);
     pstOwner->__unConversionDelay = _ConversionDelay(pstOwner);
-
-    s_ucAds1x1xPos = s_ucAds1x1xPos + 1;
     return pstOwner;
 
 fail:
@@ -168,6 +116,23 @@ fail:
 	pifLog_Printf(LT_enError, "ADS1x1x:%u(%u) EC:%d", __LINE__, usPifId, pif_enError);
 #endif
     return NULL;
+}
+
+/**
+ * @fn pifAds1x1x_Destroy
+ * @brief
+ * @param ppstOwner
+ */
+void pifAds1x1x_Destroy(PIF_stAds1x1x **ppstOwner)
+{
+    if (*ppstOwner) {
+    	if ((*ppstOwner)->_stI2c.pucData) {
+        	free((*ppstOwner)->_stI2c.pucData);
+        	(*ppstOwner)->_stI2c.pucData = NULL;
+    	}
+    	free(*ppstOwner);
+    	*ppstOwner = NULL;
+    }
 }
 
 /**
