@@ -177,7 +177,7 @@ fail:
 static void _evtParsing(void *pvClient, PIF_actCommReceiveData actReceiveData)
 {
 	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pvClient;
-	PIF_stGps *pstParent = &pstOwner->__stGps;
+	PIF_stGps *pstParent = &pstOwner->_stGps;
 	uint8_t c, frameOK = 0;
 	static uint8_t param = 0, offset = 0, parity = 0;
 	static char string[PIF_GPS_NMEA_VALUE_SIZE];
@@ -389,7 +389,7 @@ PIF_stGpsNmea *pifGpsNmea_Create(PIF_usId usPifId)
         goto fail;
     }
 
-    pifGps_Init(&pstOwner->__stGps, usPifId);
+    pifGps_Init(&pstOwner->_stGps, usPifId);
 
     pstOwner->__stTx.pstBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_GPS_NMEA_TX_SIZE);
     if (!pstOwner->__stTx.pstBuffer) goto fail;

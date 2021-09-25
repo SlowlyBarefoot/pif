@@ -76,9 +76,9 @@ typedef struct _PIF_stGpsNmea
 	// Public Member Variable
 
 	// Read-only Member Variable
+    PIF_stGps _stGps;
 
 	// Private Member Variable
-    PIF_stGps __stGps;
 	PIF_stComm *__pstComm;
     PIF_stGpsNmeaTx __stTx;
     uint32_t __unProcessMessageId;
