@@ -256,7 +256,7 @@ static void _PrintLog(char *pcString, BOOL bVcd)
 
 	if (s_stLog.bEnable || bVcd) {
         if (!pifRingBuffer_PutString(s_stLog.pstTxBuffer, pcString)) {
-        	pifTask_YieldPeriod(s_stLog.pstComm->_pstTask);
+        	pifTaskManager_YieldPeriod(s_stLog.pstComm->_pstTask);
             pifRingBuffer_PutString(s_stLog.pstTxBuffer, pcString);
         }
         pifComm_ForceSendData(s_stLog.pstComm);
@@ -450,7 +450,7 @@ void pifLog_PrintInBuffer()
 
 	while (!pifRingBuffer_IsEmpty(s_stLog.pstBuffer)) {
 		while (!pifRingBuffer_IsEmpty(s_stLog.pstTxBuffer)) {
-			pifTask_YieldPeriod(s_stLog.pstComm->_pstTask);
+			pifTaskManager_YieldPeriod(s_stLog.pstComm->_pstTask);
 		}
 		usLength = pifRingBuffer_CopyAll(s_stLog.pstTxBuffer, s_stLog.pstBuffer, 0);
 		pifRingBuffer_Remove(s_stLog.pstBuffer, usLength);
@@ -547,7 +547,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
  */
 PIF_stTask *pifLog_AttachTask(PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart)
 {
-	return pifTask_Add(enMode, usPeriod, _DoTask, &s_stLog, bStart);
+	return pifTaskManager_Add(enMode, usPeriod, _DoTask, &s_stLog, bStart);
 }
 
 #endif

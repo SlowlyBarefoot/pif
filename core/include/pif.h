@@ -10,6 +10,7 @@
 // -------- pif Configuration --------------------
 
 //#define __PIF_DEBUG__
+//#define __PIF_NO_USE_INLINE__
 
 // -------- pifCollectSignal ---------------------
 
@@ -230,6 +231,8 @@ extern "C" {
 #endif
 
 void pif_Init(PIF_actTimer1us actTimer1us);
+void pif_Exit();
+
 void pif_Loop();
 void pif_sigTimer1ms();
 

@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include "pif_list.h"
 #ifndef __PIF_NO_LOG__
 #include "pifLog.h"
 #endif
@@ -9,13 +10,12 @@
 #define PIF_TASK_TABLE_MASK		(PIF_TASK_TABLE_SIZE - 1)
 
 
-static PIF_stTask *s_pstTask = NULL;
-static uint8_t s_ucTaskSize;
-static uint8_t s_ucTaskPos;
+static PIF_DList s_tasks;
+static PIF_DListIterator s_it_current;
 
+static uint32_t s_table_number;
 static uint32_t s_aunTable[PIF_TASK_TABLE_SIZE];
 static uint8_t s_ucNumber = 0;
-static uint8_t s_ucCurrent = 0;
 
 
 static void _Processing(PIF_stTask *pstOwner, BOOL bRatio)
@@ -108,50 +108,62 @@ static void _Processing(PIF_stTask *pstOwner, BOOL bRatio)
 
 /**
  * @fn pifTask_Init
- * @brief 입력된 크기만큼 Task 구조체를 할당하고 초기화한다.
- * @param ucSize Task 갯수
- * @return 성공 여부
+ * @brief
+ * @param pstOwner
  */
-BOOL pifTask_Init(uint8_t ucSize)
+void pifTask_Init(PIF_stTask *pstOwner)
 {
-    if (ucSize == 0 || ucSize > 32) {
-		pif_enError = E_enInvalidParam;
-		goto fail;
-	}
-
-    s_pstTask = calloc(sizeof(PIF_stTask), ucSize);
-    if (!s_pstTask) {
-		pif_enError = E_enOutOfHeap;
-		goto fail;
-	}
-
-    s_ucTaskSize = ucSize;
-    s_ucTaskPos = 0;
-
-    memset(s_aunTable, 0, sizeof(s_aunTable));
-    return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Task:Init(S:%u) EC:%d", ucSize, pif_enError);
-#endif
-    return FALSE;
+    pif_usPifId++;
+    pstOwner->_usPifId = pif_usPifId;
 }
 
 /**
- * @fn pifTask_Exit
+ * @fn pifTask_SetPeriod
+ * @brief Task의 주기를 설정한다.
+ * @param pstOwner Task 자신
+ * @param usPeriod Task 주기 (ms, us)
+ */
+void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod)
+{
+	switch (pstOwner->_enMode) {
+	case TM_enPeriodMs:
+	case TM_enPeriodUs:
+		pstOwner->_usPeriod = usPeriod;
+		break;
+
+	default:
+#ifndef __PIF_NO_LOG__
+		pifLog_Printf(LT_enWarn, "Task:ChangePeriod(P:%u)", usPeriod);
+#endif
+		break;
+	}
+}
+
+
+/**
+ * @fn pifTaskManager_Init
+ * @brief Task용 구조체를 초기화한다.
+ */
+void pifTaskManager_Init()
+{
+	pifDList_Init(&s_tasks);
+	s_it_current = NULL;
+
+	s_table_number = 0L;
+	memset(s_aunTable, 0, sizeof(s_aunTable));
+}
+
+/**
+ * @fn pifTaskManager_Destroy
  * @brief Task용 메모리를 반환한다.
  */
-void pifTask_Exit()
+void pifTaskManager_Destroy()
 {
-    if (s_pstTask) {
-        free(s_pstTask);
-        s_pstTask = NULL;
-    }
+	pifDList_Clear(&s_tasks);
 }
 
 /**
- * @fn pifTask_Add
+ * @fn pifTaskManager_Add
  * @brief Task를 추가한다.
  * @param enMode Task의 Mode를 설정한다.
  * @param usPeriod Mode에 따라 주기의 단위가 변경된다.
@@ -160,15 +172,11 @@ void pifTask_Exit()
  * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifTask_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evtTaskLoop evtLoop, void *pvClient, BOOL bStart)
+PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evtTaskLoop evtLoop, void *pvClient, BOOL bStart)
 {
 	uint32_t count, gap, index;
 	static int base = 0;
-
-	if (s_ucTaskPos >= s_ucTaskSize) {
-        pif_enError = E_enOverflowBuffer;
-        goto fail;
-    }
+	int i, num = -1;
 
 	if (!evtLoop) {
         pif_enError = E_enInvalidParam;
@@ -210,12 +218,24 @@ PIF_stTask *pifTask_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evtTaskLoo
 
     switch (enMode) {
     case TM_enRatio:
+    	for (i = 0; i < PIF_TASK_TABLE_SIZE; i++) {
+    		if (!(s_table_number & (1 << i))) {
+    			num = i;
+    			break;
+    		}
+    	}
+    	if (i >= PIF_TASK_TABLE_SIZE) {
+    		pif_enError = E_enOverflowBuffer;
+    		goto fail;
+    	}
+    	s_table_number |= 1 << num;
+
 		count = (PIF_TASK_TABLE_SIZE - 1) * usPeriod + 100;
 		gap = 10000L * PIF_TASK_TABLE_SIZE / count;
 		if (gap > 100) {
 			index = 100 * base;
 			for (uint16_t i = 0; i < count / 100; i++) {
-				s_aunTable[(index / 100) & PIF_TASK_TABLE_MASK] |= 1 << s_ucTaskPos;
+				s_aunTable[(index / 100) & PIF_TASK_TABLE_MASK] |= 1 << num;
 				index += gap;
 			}
 			base++;
@@ -235,9 +255,14 @@ PIF_stTask *pifTask_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evtTaskLoo
     	break;
     }
 
-    PIF_stTask *pstOwner = &s_pstTask[s_ucTaskPos];
+	PIF_stTask *pstOwner = (PIF_stTask *)pifDList_AddLast(&s_tasks, sizeof(PIF_stTask));
+	if (!pstOwner) goto fail;
 
     switch (enMode) {
+    case TM_enRatio:
+    	pstOwner->__table_number = num;
+    	break;
+
     case TM_enPeriodMs:
     case TM_enChangeMs:
     	pstOwner->__unPretime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
@@ -256,8 +281,6 @@ PIF_stTask *pifTask_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evtTaskLoo
     pstOwner->__evtLoop = evtLoop;
     pstOwner->_pvClient = pvClient;
     pstOwner->bPause = !bStart;
-
-    s_ucTaskPos = s_ucTaskPos + 1;
     return pstOwner;
 
 fail:
@@ -268,145 +291,136 @@ fail:
 }
 
 /**
- * @fn pifTask_SetPeriod
- * @brief Task의 주기를 설정한다.
- * @param pstOwner Task 자신
- * @param usPeriod Task 주기 (ms, us)
- */
-void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod)
-{
-	switch (pstOwner->_enMode) {
-	case TM_enPeriodMs:
-	case TM_enPeriodUs:
-		pstOwner->_usPeriod = usPeriod;
-		break;
-
-	default:
-#ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "Task:ChangePeriod(P:%u)", usPeriod);
-#endif
-		break;
-	}
-}
-
-/**
- * @fn pifTask_Loop
+ * @fn pifTaskManager_Loop
  * @brief Main loop에서 수행해야 하는 Task 함수이다.
  */
-void pifTask_Loop()
+void pifTaskManager_Loop()
 {
 #ifdef __PIF_DEBUG__
 	static uint8_t ucSec = 0;
 #endif
 
-	for (int i = s_ucCurrent; i < s_ucTaskPos; i++) {
-		s_ucCurrent = i;
-		_Processing(&s_pstTask[i], s_aunTable[s_ucNumber] & (1 << i));
+	PIF_DListIterator it = s_it_current ? s_it_current : pifDList_Begin(&s_tasks);
+	while (it) {
+		s_it_current = it;
+		PIF_stTask* p_owner = (PIF_stTask*)it->data;
+		_Processing(p_owner, s_aunTable[s_ucNumber] & (1 << p_owner->__table_number));
+		it = pifDList_Next(it);
 	}
 
 	s_ucNumber = (s_ucNumber + 1) & PIF_TASK_TABLE_MASK;
-	s_ucCurrent = 0;
+	s_it_current = NULL;
 
 #ifdef __PIF_DEBUG__
     if (ucSec != pif_stDateTime.ucSecond) {
-    	pifTask_Print();
+    	pifTaskManager_Print();
     	ucSec = pif_stDateTime.ucSecond;
     }
 #endif
 }
 
 /**
- * @fn pifTask_Yield
+ * @fn pifTaskManager_Yield
  * @brief Task내에서 대기중에 다른 Task를 호출하고자 할 경우에 사용하는 함수이다.
  */
-void pifTask_Yield()
+void pifTaskManager_Yield()
 {
 	PIF_stTask *pstOwner;
 
-	s_ucCurrent++;
-	if (s_ucCurrent >= s_ucTaskPos) {
+	if (!pifDList_Size(&s_tasks)) return;
+
+	s_it_current = pifDList_Next(s_it_current);
+	if (!s_it_current) {
 		s_ucNumber = (s_ucNumber + 1) & PIF_TASK_TABLE_MASK;
-		s_ucCurrent = 0;
+		s_it_current = pifDList_Begin(&s_tasks);
 	}
-	pstOwner = &s_pstTask[s_ucCurrent];
+	pstOwner = (PIF_stTask*)s_it_current->data;
 	if (!pstOwner->__bRunning) {
-		_Processing(pstOwner, s_aunTable[s_ucNumber] & (1 << s_ucCurrent));
+		_Processing(pstOwner, s_aunTable[s_ucNumber] & (1 << pstOwner->__table_number));
 	}
 }
 
 /**
- * @fn pifTask_YieldMs
+ * @fn pifTaskManager_YieldMs
  * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
  * @param usTime
  */
-void pifTask_YieldMs(uint32_t unTime)
+void pifTaskManager_YieldMs(uint32_t unTime)
 {
     uint32_t unCurrent = 1000L * pif_unTimer1sec + pif_usTimer1ms;
     uint32_t unTarget = unCurrent + unTime;
 
+	if (!pifDList_Size(&s_tasks)) return;
     if (!unTime) return;
 
     if (unTarget < unCurrent) {
     	while (unCurrent <= 0xFFFFFFFF) {
-    		pifTask_Yield();
+    		pifTaskManager_Yield();
     		unCurrent = 1000L * pif_unTimer1sec + pif_usTimer1ms;
     	}
     }
 	while (unCurrent < unTarget) {
-		pifTask_Yield();
+		pifTaskManager_Yield();
 		unCurrent = 1000L * pif_unTimer1sec + pif_usTimer1ms;
 	}
 }
 
 /**
- * @fn pifTask_YieldUs
+ * @fn pifTaskManager_YieldUs
  * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
  * @param usTime
  */
-void pifTask_YieldUs(uint32_t unTime)
+void pifTaskManager_YieldUs(uint32_t unTime)
 {
     uint32_t unCurrent = (*pif_actTimer1us)();
     uint32_t unTarget = unCurrent + unTime;
 
+	if (!pifDList_Size(&s_tasks)) return;
     if (!unTime) return;
     if (!pif_actTimer1us) {
-    	pifTask_YieldMs((unTime + 999) / 1000);
+    	pifTaskManager_YieldMs((unTime + 999) / 1000);
     	return;
     }
 
     if (unTarget < unCurrent) {
     	while (unCurrent <= 0xFFFFFFFF) {
-    		pifTask_Yield();
+    		pifTaskManager_Yield();
     		unCurrent = (*pif_actTimer1us)();
     	}
     }
 	while (unCurrent < unTarget) {
-		pifTask_Yield();
+		pifTaskManager_Yield();
 		unCurrent = (*pif_actTimer1us)();
 	}
 }
 
 /**
- * @fn pifTask_YieldPeriod
+ * @fn pifTaskManager_YieldPeriod
  * @brief loop내에서 지정된 주기동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
  * @param pstOwner
  */
-void pifTask_YieldPeriod(PIF_stTask *pstOwner)
+void pifTaskManager_YieldPeriod(PIF_stTask *pstOwner)
 {
+	PIF_DListIterator it;
+
 	switch (pstOwner->_enMode) {
 	case TM_enRatio:
 	case TM_enAlways:
-		for (int i = 0; i < s_ucTaskPos; i++) pifTask_Yield();
+		it = pifDList_Begin(&s_tasks);
+		while (it) {
+			pifTaskManager_Yield();
+			it = pifDList_Next(it);
+		}
 		break;
 
 	case TM_enPeriodMs:
 	case TM_enChangeMs:
-		pifTask_YieldMs(pstOwner->_usPeriod);
+		pifTaskManager_YieldMs(pstOwner->_usPeriod);
 		break;
 
 	case TM_enPeriodUs:
 	case TM_enChangeUs:
-		pifTask_YieldUs(pstOwner->_usPeriod);
+		pifTaskManager_YieldUs(pstOwner->_usPeriod);
 		break;
 
 	default:
@@ -417,21 +431,25 @@ void pifTask_YieldPeriod(PIF_stTask *pstOwner)
 #ifdef __PIF_DEBUG__
 
 /**
- * @fn pifTask_Print
+ * @fn pifTaskManager_Print
  * @brief Task 할당 정보를 출력한다.
  */
-void pifTask_Print()
+void pifTaskManager_Print()
 {
+	PIF_DListIterator it;
+
 	if (!pif_stLogFlag.bt.Task) return;
 
-	for (int i = 0; i < s_ucTaskPos; i++) {
-		PIF_stTask *pstOwner = &s_pstTask[i];
+	it = pifDList_Begin(&s_tasks);
+	while (it) {
+		PIF_stTask* pstOwner = (PIF_stTask*)it->data;
 		if (pstOwner->_enMode == TM_enRatio) {
 #ifndef __PIF_NO_LOG__
 			pifLog_Printf(LT_enInfo, "Task Id=%d Ratio=%d%% Period=%2fus",
 					pstOwner->_usPifId, pstOwner->_usPeriod, pstOwner->__fPeriod);
 #endif
 		}
+		it = pifDList_Next(it);
 	}
 }
 

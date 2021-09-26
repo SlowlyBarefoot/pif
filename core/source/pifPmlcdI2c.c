@@ -65,7 +65,7 @@ static void _PulseEnable(PIF_stPmlcdI2c *pstOwner, uint8_t ucData)
 	pif_Delay1us(1);						// enable pulse must be >450ns
 
 	_ExpanderWrite(pstOwner, ucData & ~En);	// En low
-	pifTask_YieldUs(50);					// commands need > 37us to settle
+	pifTaskManager_YieldUs(50);					// commands need > 37us to settle
 }
 
 static void _Write4bits(PIF_stPmlcdI2c *pstOwner, uint8_t ucValue)
@@ -157,11 +157,11 @@ void pifPmlcdI2c_Begin(PIF_stPmlcdI2c *pstOwner, uint8_t ucLines, uint8_t ucDotS
 	// SEE PAGE 45/46 FOR INITIALIZATION SPECIFICATION!
 	// according to datasheet, we need at least 40ms after power rises above 2.7V
 	// before sending commands. Arduino can turn on way befer 4.5V so we'll wait 50
-	pifTask_YieldMs(50);
+	pifTaskManager_YieldMs(50);
 
 	// Now we pull both RS and R/W low to begin commands
 	_ExpanderWrite(pstOwner, pstOwner->__ucBacklightVal);	// reset expanderand turn backlight off (Bit 8 =1)
-	pifTask_YieldMs(1000);
+	pifTaskManager_YieldMs(1000);
 
   	//put the LCD into 4 bit mode
 	// this is according to the hitachi HD44780 datasheet
@@ -169,15 +169,15 @@ void pifPmlcdI2c_Begin(PIF_stPmlcdI2c *pstOwner, uint8_t ucLines, uint8_t ucDotS
 
 	// we start in 8bit mode, try to set 4 bit mode
 	_Write4bits(pstOwner, 0x03 << 4);
-	pifTask_YieldUs(4500); // wait min 4.1ms
+	pifTaskManager_YieldUs(4500); // wait min 4.1ms
 
 	// second try
 	_Write4bits(pstOwner, 0x03 << 4);
-	pifTask_YieldUs(4500); // wait min 4.1ms
+	pifTaskManager_YieldUs(4500); // wait min 4.1ms
 
 	// third go!
 	_Write4bits(pstOwner, 0x03 << 4);
-	pifTask_YieldUs(150);
+	pifTaskManager_YieldUs(150);
 
 	// finally, set to 4-bit interface
 	_Write4bits(pstOwner, 0x02 << 4);
@@ -242,7 +242,7 @@ void pifPmlcdI2c_Printf(PIF_stPmlcdI2c *pstOwner, const char *pcFormat, ...)
 void pifPmlcdI2c_Clear(PIF_stPmlcdI2c *pstOwner)
 {
 	_Send(pstOwner, LCD_CLEAR_DISPLAY, 0);// clear display, set cursor position to zero
-	pifTask_YieldMs(2);  // this command takes a long time!
+	pifTaskManager_YieldMs(2);  // this command takes a long time!
 }
 
 /**
@@ -253,7 +253,7 @@ void pifPmlcdI2c_Clear(PIF_stPmlcdI2c *pstOwner)
 void pifPmlcdI2c_Home(PIF_stPmlcdI2c *pstOwner)
 {
 	_Send(pstOwner, LCD_RETURN_HOME, 0);  // set cursor position to zero
-	pifTask_YieldMs(2);  // this command takes a long time!
+	pifTaskManager_YieldMs(2);  // this command takes a long time!
 }
 
 /**

@@ -39,6 +39,7 @@ struct _PIF_stTask
 	void *_pvClient;
 
 	// Private Member Variable
+	int __table_number;
 	BOOL __bRunning;
 	uint32_t __unPretime;
 #ifdef __PIF_DEBUG__
@@ -55,22 +56,25 @@ struct _PIF_stTask
 extern "C" {
 #endif
 
-BOOL pifTask_Init(uint8_t ucSize);
-void pifTask_Exit();
-
-PIF_stTask *pifTask_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evtTaskLoop evtLoop, void *pvClient, BOOL bStart);
+void pifTask_Init(PIF_stTask *pstOwner);
 
 void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod);
 
-void pifTask_Loop();
-void pifTask_Yield();
-void pifTask_YieldMs(uint32_t unTime);
-void pifTask_YieldUs(uint32_t unTime);
-void pifTask_YieldPeriod(PIF_stTask *pstOwner);
+
+void pifTaskManager_Init();
+void pifTaskManager_Destroy();
+
+PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evtTaskLoop evtLoop, void *pvClient, BOOL bStart);
+
+void pifTaskManager_Loop();
+void pifTaskManager_Yield();
+void pifTaskManager_YieldMs(uint32_t unTime);
+void pifTaskManager_YieldUs(uint32_t unTime);
+void pifTaskManager_YieldPeriod(PIF_stTask *pstOwner);
 
 #ifdef __PIF_DEBUG__
 
-void pifTask_Print();
+void pifTaskManager_Print();
 
 #endif
 

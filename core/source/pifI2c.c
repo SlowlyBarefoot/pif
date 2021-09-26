@@ -127,7 +127,7 @@ BOOL pifI2c_Read(PIF_stI2c *pstOwner, uint8_t ucSize)
 	}
 
 	while (pstOwner->_enStateRead == IS_enRun) {
-		pifTask_Yield();
+		pifTaskManager_Yield();
 	}
 	return pstOwner->_enStateRead == IS_enComplete;
 }
@@ -150,7 +150,7 @@ BOOL pifI2c_Write(PIF_stI2c *pstOwner, uint8_t ucSize)
 	}
 
 	while (pstOwner->_enStateWrite == IS_enRun) {
-		pifTask_Yield();
+		pifTaskManager_Yield();
 	}
 	return pstOwner->_enStateWrite == IS_enComplete;
 }

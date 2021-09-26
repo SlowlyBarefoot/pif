@@ -303,5 +303,5 @@ fail:
  */
 PIF_stTask *pifSequence_AttachTask(PIF_stSequence *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart)
 {
-	return pifTask_Add(enMode, usPeriod, _DoTask, pstOwner, bStart);
+	return pifTaskManager_Add(enMode, usPeriod, _DoTask, pstOwner, bStart);
 }

@@ -276,5 +276,5 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
  */
 PIF_stTask *pifKeypad_AttachTask(PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart)
 {
-	return pifTask_Add(enMode, usPeriod, _DoTask, &s_stKeypad, bStart);
+	return pifTaskManager_Add(enMode, usPeriod, _DoTask, &s_stKeypad, bStart);
 }

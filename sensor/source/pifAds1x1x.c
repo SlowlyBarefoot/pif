@@ -180,10 +180,10 @@ int16_t pifAds1x1x_ReadMux(PIF_stAds1x1x *pstOwner, PIF_enAds1x1xConfigMux enMux
 	if (!_WriteWord(pstOwner, AR_enCONFIG, stConfig.usAll)) return 0;
 	if (pstOwner->__unConversionDelay) {
 		if (pif_actTimer1us) {
-			pifTask_YieldUs(pstOwner->__unConversionDelay);
+			pifTaskManager_YieldUs(pstOwner->__unConversionDelay);
 		}
 		else {
-			pifTask_YieldMs(pstOwner->__unConversionDelay);
+			pifTaskManager_YieldMs(pstOwner->__unConversionDelay);
 		}
 	}
 	if (!_ReadWord(pstOwner, AR_enCONVERSION, &usData)) return 0;

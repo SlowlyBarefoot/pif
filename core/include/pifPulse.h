@@ -2,6 +2,7 @@
 #define PIF_PULSE_H
 
 
+#include "pif_list.h"
 #include "pifTask.h"
 
 
@@ -49,10 +50,6 @@ typedef struct _PIF_stPulseItem
     uint32_t __unPwmDuty;
 	BOOL __bEvent;
 
-    uint8_t __unIndex;
-    uint8_t __unNext;
-    uint8_t __unPrev;
-
     // Private Action Function
     PIF_actPulsePwm __actPwm;
 
@@ -71,13 +68,9 @@ struct _PIF_stPulse
 	// Read-only Member Variable
 	PIF_usId _usPifId;
 	uint32_t _unPeriodUs;
-    uint8_t _ucItemSize;
-    uint8_t _ucItemCount;
 
 	// Private Member Variable
-    uint8_t __unFreeNext;
-    uint8_t __unAllocNext;
-    PIF_stPulseItem *__pstItems;
+    PIF_DList __items;
 };
 
 
@@ -85,8 +78,8 @@ struct _PIF_stPulse
 extern "C" {
 #endif
 
-PIF_stPulse *pifPulse_Init(PIF_usId usPifId, uint8_t ucSize, uint32_t unPeriodUs);
-void pifPulse_Exit(PIF_stPulse *pstOwner);
+PIF_stPulse *pifPulse_Create(PIF_usId usPifId, uint32_t unPeriodUs);
+void pifPulse_Destroy(PIF_stPulse **PpstOwner);
 
 PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType);
 void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstItem);
@@ -110,16 +103,6 @@ void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstItem, PIF_evtPulseFinish evtFi
 
 // Task Function
 PIF_stTask *pifPulse_AttachTask(PIF_stPulse *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart);
-
-#ifdef __PIF_DEBUG__
-
-BOOL pifPulse_CheckItem(PIF_stPulse *pstOwner);
-
-void pifPulse_PrintItemList(PIF_stPulse *pstOwner);
-void pifPulse_PrintItemFree(PIF_stPulse *pstOwner);
-void pifPulse_PrintItemAlloc(PIF_stPulse *pstOwner);
-
-#endif  // __PIF_DEBUG__
 
 #ifdef __cplusplus
 }

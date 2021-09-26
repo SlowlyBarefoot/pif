@@ -46,6 +46,8 @@ static uint8_t ucCrc7;
  */
 void pif_Init(PIF_actTimer1us actTimer1us)
 {
+	extern void pifTaskManager_Init();
+
 	pif_actTimer1us = actTimer1us;
 
 	pif_stDateTime.ucMonth = 1;
@@ -54,6 +56,19 @@ void pif_Init(PIF_actTimer1us actTimer1us)
 #ifndef __PIF_NO_LOG__
     memset(&pif_stLogFlag, 0, sizeof(pif_stLogFlag));
 #endif
+
+    pifTaskManager_Init();
+}
+
+/**
+ * @fn pif_Exit
+ * @brief
+ */
+void pif_Exit()
+{
+	extern void pifTaskManager_Destroy();
+
+	pifTaskManager_Destroy();
 }
 
 /**
@@ -62,6 +77,8 @@ void pif_Init(PIF_actTimer1us actTimer1us)
  */
 void pif_Loop()
 {
+    extern void pifTaskManager_Loop();
+
 #ifndef __PIF_NO_LOG__
 #ifdef __PIF_DEBUG__
 	static BOOL bFirst = TRUE;
@@ -96,6 +113,8 @@ void pif_Loop()
 	}
 #endif
 #endif
+
+    pifTaskManager_Loop();
 }
 
 /**
