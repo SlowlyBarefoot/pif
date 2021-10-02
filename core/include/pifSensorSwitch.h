@@ -25,6 +25,9 @@ typedef enum _PIF_enSensorSwitchCsFlag
 } PIF_enSensorSwitchCsFlag;
 
 
+struct _PIF_stSensorSwitch;
+typedef struct _PIF_stSensorSwitch PIF_stSensorSwitch;
+
 struct _PIF_stSensorSwitchFilter;
 typedef struct _PIF_stSensorSwitchFilter PIF_stSensorSwitchFilter;
 
@@ -47,37 +50,44 @@ struct _PIF_stSensorSwitchFilter
 	PIF_evtSensorSwitchFilter evtFilter;
 };
 
+#ifdef __PIF_COLLECT_SIGNAL__
+
+typedef struct
+{
+	PIF_stSensorSwitch* p_owner;
+    uint8_t flag;
+    void* p_device[SSCsF_enCount];
+    SWITCH state;
+} PIF_SensorSwitchColSig;
+
+#endif
+
 /**
  * @class _PIF_stSensorSwitch
  * @brief
  */
-typedef struct _PIF_stSensorSwitch
+struct _PIF_stSensorSwitch
 {
 	PIF_stSensor stSensor;
 
 	// Private Member Variable
-	uint8_t __ucIndex;
     SWITCH __swState;
 
     uint8_t __ucFilterMethod;					// Default: PIF_SENSOR_SWITCH_FILTER_NONE
     PIF_stSensorSwitchFilter *__pstFilter;		// Default: NULL
 
 #ifdef __PIF_COLLECT_SIGNAL__
-    uint8_t __ucCsFlag;
-    int8_t __cCsIndex[SSCsF_enCount];
-    SWITCH __swRawState;
+    PIF_SensorSwitchColSig* __p_colsig;
 #endif
-} PIF_stSensorSwitch;
+};
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-BOOL pifSensorSwitch_Init(uint8_t ucSize);
-void pifSensorSwitch_Exit();
-
-PIF_stSensor *pifSensorSwitch_Add(PIF_usId usPifId, SWITCH swInitState);
+PIF_stSensor* pifSensorSwitch_Create(PIF_usId usPifId, SWITCH swInitState);
+void pifSensorSwitch_Destroy(PIF_stSensor** pp_sensor);
 
 void pifSensorSwitch_InitialState(PIF_stSensor *pstSensor);
 

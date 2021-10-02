@@ -39,6 +39,25 @@ static const uint8_t c_ucDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 3
 static uint8_t ucCrc7;
 
 
+#ifdef __PIF_COLLECT_SIGNAL__
+
+void PIF_WEAK pifGpio_ColSigInit() {}
+void PIF_WEAK pifGpio_ColSigClear() {}
+
+void PIF_WEAK pifSensorDigital_ColSigInit() {}
+void PIF_WEAK pifSensorDigital_ColSigClear() {}
+
+void PIF_WEAK pifSensorSwitch_ColSigInit() {}
+void PIF_WEAK pifSensorSwitch_ColSigClear() {}
+
+void PIF_WEAK pifSolenoid_ColSigInit() {}
+void PIF_WEAK pifSolenoid_ColSigClear() {}
+
+void PIF_WEAK pifSequence_ColSigInit() {}
+void PIF_WEAK pifSequence_ColSigClear() {}
+
+#endif
+
 /**
  * @fn pif_Init
  * @brief pif의 전역 변수를 초기화한다.
@@ -58,6 +77,14 @@ void pif_Init(PIF_actTimer1us actTimer1us)
 #endif
 
     pifTaskManager_Init();
+
+#ifdef __PIF_COLLECT_SIGNAL__
+    pifGpio_ColSigInit();
+    pifSensorDigital_ColSigInit();
+    pifSensorSwitch_ColSigInit();
+    pifSolenoid_ColSigInit();
+    pifSequence_ColSigInit();
+#endif
 }
 
 /**
@@ -69,6 +96,14 @@ void pif_Exit()
 	extern void pifTaskManager_Destroy();
 
 	pifTaskManager_Destroy();
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	pifGpio_ColSigClear();
+	pifSensorDigital_ColSigClear();
+	pifSensorSwitch_ColSigClear();
+	pifSolenoid_ColSigClear();
+    pifSequence_ColSigClear();
+#endif
 }
 
 /**

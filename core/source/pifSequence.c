@@ -1,3 +1,4 @@
+#include "pif_list.h"
 #ifdef __PIF_COLLECT_SIGNAL__
 #include "pifCollectSignal.h"
 #endif
@@ -7,19 +8,17 @@
 #include "pifSequence.h"
 
 
-static PIF_stSequence *s_pstSequence = NULL;
-static uint8_t s_ucSequenceSize;
-static uint8_t s_ucSequencePos;
-
-static PIF_stPulse *s_pstSequenceTimer;
+#ifdef __PIF_COLLECT_SIGNAL__
+static PIF_DList s_cs_list;
+#endif
 
 
 static void _SetPhaseNo(PIF_stSequence *pstOwner, uint8_t ucPhaseNo)
 {
 	pstOwner->_ucPhaseNo = ucPhaseNo;
 #ifdef __PIF_COLLECT_SIGNAL__
-	if (pstOwner->__ucCsFlag & SqCsF_enPhaseBit) {
-		pifCollectSignal_AddSignal(pstOwner->__cCsIndex[SqCsF_enPhaseIdx], pstOwner->_ucPhaseNo);
+	if (pstOwner->__p_colsig->flag & SqCsF_enPhaseBit) {
+		pifCollectSignal_AddSignal(pstOwner->__p_colsig->p_device[SqCsF_enPhaseIdx], pstOwner->_ucPhaseNo);
 	}
 #endif
 }
@@ -44,97 +43,58 @@ static void _AddDeviceInCollectSignal()
 {
 	const char *prefix[SqCsF_enCount] = { "SQ" };
 
-	for (int i = 0; i < s_ucSequencePos; i++) {
-		PIF_stSequence *pstOwner = &s_pstSequence[i];
+	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PIF_SequenceColSig* p_colsig = (PIF_SequenceColSig*)it->data;
+		PIF_stSequence* pstOwner = p_colsig->p_owner;
 		for (int f = 0; f < SqCsF_enCount; f++) {
-			if (pstOwner->__ucCsFlag & (1 << f)) {
-				pstOwner->__cCsIndex[f] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enReg, 8, prefix[f], 0xFF);
+			if (p_colsig->flag & (1 << f)) {
+				p_colsig->p_device[f] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enReg, 8, prefix[f], 0xFF);
 			}
 		}
+		pifLog_Printf(LT_enInfo, "SQ_CS:Add(DC:%u F:%u)", pstOwner->_usPifId, p_colsig->flag);
+
+		it = pifDList_Next(it);
 	}
+}
+
+void pifSequence_ColSigInit()
+{
+	pifDList_Init(&s_cs_list);
+}
+
+void pifSequence_ColSigClear()
+{
+	pifDList_Clear(&s_cs_list);
 }
 
 #endif
 
 /**
- * @fn pifSequence_Init
- * @brief 입력된 크기만큼 Sequence 구조체를 할당하고 초기화한다.
- * @param ucSize Sequence 크기
+ * @fn pifSequence_Create
+ * @brief Sequence를 추가한다.
+ * @param usPifId
  * @param pstTimer
- * @return 성공 여부
+ * @param pstPhaseList
+ * @param pvParam
+ * @return Sequence 구조체 포인터를 반환한다.
  */
-BOOL pifSequence_Init(uint8_t ucSize, PIF_stPulse *pstTimer)
+PIF_stSequence *pifSequence_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, const PIF_stSequencePhase *pstPhaseList, void *pvParam)
 {
+    PIF_stSequence *pstOwner = NULL;
+
     if (!pif_actTimer1us) {
         pif_enError = E_enCanNotUse;
         goto fail;
     }
 
-    if (ucSize == 0) {
-		pif_enError = E_enInvalidParam;
-		goto fail;
-	}
-
-    s_pstSequence = calloc(sizeof(PIF_stSequence), ucSize);
-    if (!s_pstSequence) {
+    pstOwner = calloc(sizeof(PIF_stSequence), 1);
+    if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
 
-    s_ucSequenceSize = ucSize;
-    s_ucSequencePos = 0;
-
-    s_pstSequenceTimer = pstTimer;
-
-#ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_enSequence, _AddDeviceInCollectSignal);
-#endif
-    return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "SQ:Init(S:%u) EC:%d", ucSize, pif_enError);
-#endif
-    return FALSE;
-}
-
-/**
- * @fn pifSequence_Exit
- * @brief Sequence용 메모리를 반환한다.
- */
-void pifSequence_Exit()
-{
-	PIF_stSequence *pstOwner;
-
-	if (s_pstSequence) {
-		for (int i = 0; i < s_ucSequencePos; i++) {
-			pstOwner = &s_pstSequence[i];
-			if (pstOwner->__pstTimerTimeout) {
-				pifPulse_RemoveItem(s_pstSequenceTimer, pstOwner->__pstTimerTimeout);
-			}
-		}		
-        free(s_pstSequence);
-        s_pstSequence = NULL;
-    }
-}
-
-/**
- * @fn pifSequence_Add
- * @brief Sequence를 추가한다.
- * @param usPifId
- * @param pstPhaseList
- * @param pvParam
- * @return Sequence 구조체 포인터를 반환한다.
- */
-PIF_stSequence *pifSequence_Add(PIF_usId usPifId, const PIF_stSequencePhase *pstPhaseList, void *pvParam)
-{
-    if (s_ucSequencePos >= s_ucSequenceSize) {
-		pif_enError = E_enOverflowBuffer;
-		goto fail;
-	}
-
-    PIF_stSequence *pstOwner = &s_pstSequence[s_ucSequencePos];
-    pstOwner->__ucIndex = s_ucSequencePos;
+    pstOwner->__pstTimer = pstTimer;
     pstOwner->__pstPhaseList = pstPhaseList;
 
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
@@ -142,7 +102,13 @@ PIF_stSequence *pifSequence_Add(PIF_usId usPifId, const PIF_stSequencePhase *pst
     _SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
     pstOwner->pvParam = pvParam;
 
-    s_ucSequencePos = s_ucSequencePos + 1;
+#ifdef __PIF_COLLECT_SIGNAL__
+	pifCollectSignal_Attach(CSF_enSequence, _AddDeviceInCollectSignal);
+	PIF_SequenceColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_SequenceColSig));
+	if (!p_colsig) goto fail;
+	p_colsig->p_owner = pstOwner;
+	pstOwner->__p_colsig = p_colsig;
+#endif
     return pstOwner;
 
 fail:
@@ -150,6 +116,23 @@ fail:
 	pifLog_Printf(LT_enError, "SQ:Add() EC:%d", pif_enError);
 #endif
     return NULL;
+}
+
+/**
+ * @fn pifSequence_Destroy
+ * @brief Sequence용 메모리를 반환한다.
+ * @param pp_owner
+ */
+void pifSequence_Destroy(PIF_stSequence** pp_owner)
+{
+	if (*pp_owner) {
+		PIF_stSequence *pstOwner = *pp_owner;
+		if (pstOwner->__pstTimerTimeout) {
+			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__pstTimerTimeout);
+		}
+        free(*pp_owner);
+        *pp_owner = NULL;
+    }
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -161,9 +144,12 @@ fail:
  */
 void pifSequence_SetCsFlagAll(PIF_enSequenceCsFlag enFlag)
 {
-    for (int i = 0; i < s_ucSequencePos; i++) {
-        s_pstSequence[i].__ucCsFlag |= enFlag;
-    }
+	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PIF_SequenceColSig* p_colsig = (PIF_SequenceColSig*)it->data;
+		p_colsig->flag |= enFlag;
+		it = pifDList_Next(it);
+	}
 }
 
 /**
@@ -173,9 +159,12 @@ void pifSequence_SetCsFlagAll(PIF_enSequenceCsFlag enFlag)
  */
 void pifSequence_ResetCsFlagAll(PIF_enSequenceCsFlag enFlag)
 {
-    for (int i = 0; i < s_ucSequencePos; i++) {
-        s_pstSequence[i].__ucCsFlag &= ~enFlag;
-    }
+	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PIF_SequenceColSig* p_colsig = (PIF_SequenceColSig*)it->data;
+		p_colsig->flag &= ~enFlag;
+		it = pifDList_Next(it);
+	}
 }
 
 /**
@@ -186,7 +175,7 @@ void pifSequence_ResetCsFlagAll(PIF_enSequenceCsFlag enFlag)
  */
 void pifSequence_SetCsFlagEach(PIF_stSequence *pstOwner, PIF_enSequenceCsFlag enFlag)
 {
-	pstOwner->__ucCsFlag |= enFlag;
+	pstOwner->__p_colsig->flag |= enFlag;
 }
 
 /**
@@ -197,7 +186,7 @@ void pifSequence_SetCsFlagEach(PIF_stSequence *pstOwner, PIF_enSequenceCsFlag en
  */
 void pifSequence_ResetCsFlagEach(PIF_stSequence *pstOwner, PIF_enSequenceCsFlag enFlag)
 {
-	pstOwner->__ucCsFlag &= ~enFlag;
+	pstOwner->__p_colsig->flag &= ~enFlag;
 }
 
 #endif
@@ -218,7 +207,7 @@ void pifSequence_Start(PIF_stSequence *pstOwner)
 BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout)
 {
 	if (!pstOwner->__pstTimerTimeout) {
-		pstOwner->__pstTimerTimeout = pifPulse_AddItem(s_pstSequenceTimer, PT_enOnce);
+		pstOwner->__pstTimerTimeout = pifPulse_AddItem(pstOwner->__pstTimer, PT_enOnce);
 		if (!pstOwner->__pstTimerTimeout) return FALSE;
 		pifPulse_AttachEvtFinish(pstOwner->__pstTimerTimeout, _evtTimerTimeoutFinish, pstOwner);
 	}

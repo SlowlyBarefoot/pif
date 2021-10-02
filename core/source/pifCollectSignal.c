@@ -2,11 +2,9 @@
 
 #include <string.h>
 
+#include "pif_list.h"
 #include "pifCollectSignal.h"
 #include "pifLog.h"
-
-
-#define COLLECT_SIGNAL_DEVICE_MAX		94
 
 
 typedef enum _PIF_enCollectSignalStep
@@ -21,6 +19,7 @@ typedef struct _PIF_stCollectSignalDevice
 {
 	PIF_usId usPifId;
 	PIF_enCollectSignalVarType enVarType;
+	uint8_t index;
 	uint16_t usSize;
 	uint16_t usInitialValue;
 	char pcReference[10];
@@ -34,7 +33,7 @@ typedef struct _PIF_stCollectSignal
 	uint8_t ucDeviceCount;
 	uint32_t unTimer1ms;
 	PIF_stRingBuffer *pstBuffer;
-	PIF_stCollectSignalDevice stDevice[COLLECT_SIGNAL_DEVICE_MAX];
+	PIF_DList stDevice;
 	PIF_fnCollectSignalDevice afnDevice[32];
 } PIF_stCollectSignal;
 
@@ -64,7 +63,7 @@ static void _PrintHeader()
 			"wire",
 			"wor"
 	};
-	int i;
+	PIF_DListIterator it;
 
 	pifLog_Printf(LT_enVcd, "\n$date %s %u, %u %2u:%2u:%2u $end\n",
 			pif_pacMonth3[pif_stDateTime.ucMonth - 1], pif_stDateTime.ucDay, 2000 + pif_stDateTime.ucYear,
@@ -75,28 +74,34 @@ static void _PrintHeader()
 	pifLog_Printf(LT_enVcd, "$timescale 1ms $end\n");
 
 	pifLog_Printf(LT_enVcd, "$scope module %s $end\n", s_stCollectSignal.c_pcModuleName);
-	for (i = 0; i < s_stCollectSignal.ucDeviceCount; i++) {
-		if (s_stCollectSignal.stDevice[i].usSize == 1) {
-			pifLog_Printf(LT_enVcd, "$var %s 1 %c %s $end\n", c_pacVarType[s_stCollectSignal.stDevice[i].enVarType], '!' + i,
-					s_stCollectSignal.stDevice[i].pcReference);
+	it = pifDList_Begin(&s_stCollectSignal.stDevice);
+	while (it) {
+		PIF_stCollectSignalDevice* p_device = (PIF_stCollectSignalDevice*)it->data;
+		if (p_device->usSize == 1) {
+			pifLog_Printf(LT_enVcd, "$var %s 1 %c %s $end\n", c_pacVarType[p_device->enVarType], '!' + p_device->index, p_device->pcReference);
 		}
 		else {
-			pifLog_Printf(LT_enVcd, "$var %s %u %c %s[%u:0] $end\n", c_pacVarType[s_stCollectSignal.stDevice[i].enVarType],
-					s_stCollectSignal.stDevice[i].usSize, '!' + i, s_stCollectSignal.stDevice[i].pcReference,
-					s_stCollectSignal.stDevice[i].usSize - 1);
+			pifLog_Printf(LT_enVcd, "$var %s %u %c %s[%u:0] $end\n", c_pacVarType[p_device->enVarType],
+					p_device->usSize, '!' + p_device->index, p_device->pcReference, p_device->usSize - 1);
 		}
+
+		it = pifDList_Next(it);
 	}
 	pifLog_Printf(LT_enVcd, "$upscope $end\n");
 	pifLog_Printf(LT_enVcd, "$enddefinitions $end\n");
 
 	pifLog_Printf(LT_enVcd, "$dumpvars\n");
-	for (i = 0; i < s_stCollectSignal.ucDeviceCount; i++) {
-		if (s_stCollectSignal.stDevice[i].usSize == 1) {
-			pifLog_Printf(LT_enVcd, "%u%c\n", s_stCollectSignal.stDevice[i].usInitialValue, '!' + i);
+	it = pifDList_Begin(&s_stCollectSignal.stDevice);
+	while (it) {
+		PIF_stCollectSignalDevice* p_device = (PIF_stCollectSignalDevice*)it->data;
+		if (p_device->usSize == 1) {
+			pifLog_Printf(LT_enVcd, "%u%c\n", p_device->usInitialValue, '!' + p_device->index);
 		}
 		else {
-			pifLog_Printf(LT_enVcd, "b%b %c\n", s_stCollectSignal.stDevice[i].usInitialValue, '!' + i);
+			pifLog_Printf(LT_enVcd, "b%b %c\n", p_device->usInitialValue, '!' + p_device->index);
 		}
+
+		it = pifDList_Next(it);
 	}
 	pifLog_Printf(LT_enVcd, "$end\n");
 }
@@ -113,6 +118,7 @@ void pifCollectSignal_Init(const char *c_pcModuleName)
 	s_stCollectSignal.enStep = CSS_enIdle;
 	s_stCollectSignal.pstBuffer = NULL;
 	s_stCollectSignal.ucDeviceCount = 0;
+	pifDList_Init(&s_stCollectSignal.stDevice);
 	memset(s_stCollectSignal.afnDevice, 0, sizeof(s_stCollectSignal.afnDevice));
 }
 
@@ -154,13 +160,14 @@ BOOL pifCollectSignal_InitStatic(const char *c_pcModuleName, uint16_t usSize, ui
 }
 
 /**
- * @fn pifCollectSignal_Exit
+ * @fn pifCollectSignal_Clear
  * @brief CollectSignal 구조체를 파기하다.
  */
-void pifCollectSignal_Exit()
+void pifCollectSignal_Clear()
 {
 	if (s_stCollectSignal.pstBuffer) {
 		pifRingBuffer_Exit(s_stCollectSignal.pstBuffer);
+		s_stCollectSignal.pstBuffer = NULL;
 	}
 }
 
@@ -218,20 +225,25 @@ void pifCollectSignal_Attach(PIF_enCollectSignalFlag enFlag, PIF_fnCollectSignal
  * @param usInitialValue
  * @return
  */
-int8_t pifCollectSignal_AddDevice(PIF_usId usPifId, PIF_enCollectSignalVarType enVarType, uint16_t usSize, const char *pcReference,
-		uint16_t usInitialValue)
+void* pifCollectSignal_AddDevice(PIF_usId usPifId, PIF_enCollectSignalVarType enVarType, uint16_t usSize,
+		const char* pcReference, uint16_t usInitialValue)
 {
-	int8_t index = s_stCollectSignal.ucDeviceCount;
+	PIF_stCollectSignalDevice* p_device;
 
-	if (s_stCollectSignal.ucDeviceCount >= COLLECT_SIGNAL_DEVICE_MAX) return -1;
+	p_device = pifDList_AddLast(&s_stCollectSignal.stDevice, sizeof(PIF_stCollectSignalDevice));
+	if (!p_device) return NULL;
 
-	s_stCollectSignal.stDevice[index].usPifId = usPifId;
-	s_stCollectSignal.stDevice[index].enVarType = enVarType;
-	s_stCollectSignal.stDevice[index].usSize = usSize;
-	pif_Printf(s_stCollectSignal.stDevice[index].pcReference, "%s_%x", pcReference, usPifId);
-	s_stCollectSignal.stDevice[index].usInitialValue = usInitialValue;
+	p_device->usPifId = usPifId;
+	p_device->enVarType = enVarType;
+	p_device->index = s_stCollectSignal.ucDeviceCount;
+	p_device->usSize = usSize;
+	pif_Printf(p_device->pcReference, "%s_%x", pcReference, usPifId);
+	p_device->usInitialValue = usInitialValue;
 	s_stCollectSignal.ucDeviceCount++;
-	return index;
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_enInfo, "CS:Add(ID:%u VT:%u SZ:%u) DC:%d", usPifId, enVarType, usSize, p_device->usSize);
+#endif
+	return p_device;
 }
 
 /**
@@ -283,16 +295,20 @@ void pifCollectSignal_Stop()
 		pifRingBuffer_PutString(s_stCollectSignal.pstBuffer, cBuffer);
 		break;
 	}
+
+	pifDList_Clear(&s_stCollectSignal.stDevice);
+	s_stCollectSignal.ucDeviceCount = 0;
 }
 
 /**
  * @fn pifCollectSignal_AddSignal
  * @brief
- * @param cIndex
+ * @param p_dev
  * @param usState
  */
-void pifCollectSignal_AddSignal(int8_t cIndex, uint16_t usState)
+void pifCollectSignal_AddSignal(void* p_dev, uint16_t usState)
 {
+	PIF_stCollectSignalDevice* p_device = (PIF_stCollectSignalDevice*)p_dev;
 	char cBuffer[24];
 
 	if (s_stCollectSignal.enStep != CSS_enCollect) return;
@@ -303,11 +319,11 @@ void pifCollectSignal_AddSignal(int8_t cIndex, uint16_t usState)
 			pifLog_Printf(LT_enVcd, "#%u\n", pif_unCumulativeTimer1ms);
 			s_stCollectSignal.unTimer1ms = pif_unCumulativeTimer1ms;
 		}
-		if (s_stCollectSignal.stDevice[cIndex].usSize == 1) {
-			pifLog_Printf(LT_enVcd, "%u%c\n", usState, '!' + cIndex);
+		if (p_device->usSize == 1) {
+			pifLog_Printf(LT_enVcd, "%u%c\n", usState, '!' + p_device->index);
 		}
 		else {
-			pifLog_Printf(LT_enVcd, "b%b %c\n", usState, '!' + cIndex);
+			pifLog_Printf(LT_enVcd, "b%b %c\n", usState, '!' + p_device->index);
 		}
 		break;
 
@@ -317,11 +333,11 @@ void pifCollectSignal_AddSignal(int8_t cIndex, uint16_t usState)
 			pifRingBuffer_PutString(s_stCollectSignal.pstBuffer, cBuffer);
 			s_stCollectSignal.unTimer1ms = pif_unCumulativeTimer1ms;
 		}
-		if (s_stCollectSignal.stDevice[cIndex].usSize == 1) {
-			pif_Printf(cBuffer, "%u%c\n", usState, '!' + cIndex);
+		if (p_device->usSize == 1) {
+			pif_Printf(cBuffer, "%u%c\n", usState, '!' + p_device->index);
 		}
 		else {
-			pif_Printf(cBuffer, "b%b %c\n", usState, '!' + cIndex);
+			pif_Printf(cBuffer, "b%b %c\n", usState, '!' + p_device->index);
 		}
 		pifRingBuffer_PutString(s_stCollectSignal.pstBuffer, cBuffer);
 		break;

@@ -30,6 +30,9 @@ typedef enum _PIF_enSensorDigitalCsFlag
 } PIF_enSensorDigitalCsFlag;
 
 
+struct _PIF_stSensorDigital;
+typedef struct _PIF_stSensorDigital PIF_stSensorDigital;
+
 struct _PIF_stSensorDigitalFilter;
 typedef struct _PIF_stSensorDigitalFilter PIF_stSensorDigitalFilter;
 
@@ -52,16 +55,27 @@ struct _PIF_stSensorDigitalFilter
 	PIF_evtSensorDigitalFilter evtFilter;
 };
 
+#ifdef __PIF_COLLECT_SIGNAL__
+
+typedef struct
+{
+	PIF_stSensorDigital* p_owner;
+    uint8_t flag;
+    void* p_device[SDCsF_enCount];
+} PIF_SensorDigitalColSig;
+
+#endif
+
 /**
  * @class _PIF_stSensorDigital
  * @brief
  */
-typedef struct _PIF_stSensorDigital
+struct _PIF_stSensorDigital
 {
 	PIF_stSensor stSensor;
 
 	// Private Member Variable
-	uint8_t __ucIndex;
+	PIF_stPulse* __pstTimer;
     PIF_enSensorDigitalEventType __enEventType;
     union {
     	struct {
@@ -81,23 +95,20 @@ typedef struct _PIF_stSensorDigital
     PIF_stSensorDigitalFilter *__pstFilter;		// Default: NULL
 
 #ifdef __PIF_COLLECT_SIGNAL__
-    uint8_t __ucCsFlag;
-    int8_t __cCsIndex[SDCsF_enCount];
+    PIF_SensorDigitalColSig* __p_colsig;
 #endif
 
 	// Private Event Function
     PIF_evtSensorDigitalPeriod __evtPeriod;		// Default: NULL
-} PIF_stSensorDigital;
+};
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-BOOL pifSensorDigital_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
-void pifSensorDigital_Exit();
-
-PIF_stSensor *pifSensorDigital_Add(PIF_usId usPifId);
+PIF_stSensor* pifSensorDigital_Create(PIF_usId usPifId, PIF_stPulse* pstTimer);
+void pifSensorDigital_Destroy(PIF_stSensor** pp_sensor);
 
 void pifSensorDigital_InitialState(PIF_stSensor *pstSensor);
 

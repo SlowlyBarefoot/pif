@@ -44,6 +44,17 @@ typedef struct _PIF_stSequencePhase
 	uint8_t ucPhaseNoNext;
 } PIF_stSequencePhase;
 
+#ifdef __PIF_COLLECT_SIGNAL__
+
+typedef struct
+{
+	PIF_stSequence* p_owner;
+	uint8_t flag;
+    void* p_device[SqCsF_enCount];
+} PIF_SequenceColSig;
+
+#endif
+
 struct _PIF_stSequence
 {
 	// Public Member Variable
@@ -60,13 +71,12 @@ struct _PIF_stSequence
 	uint8_t _ucPhaseNo;
 
 	// Private Member Variable
-	uint8_t __ucIndex;
+	PIF_stPulse* __pstTimer;
 	const PIF_stSequencePhase *__pstPhaseList;
 	PIF_stPulseItem *__pstTimerTimeout;
 	uint32_t __unTargetDelay;
 #ifdef __PIF_COLLECT_SIGNAL__
-	uint8_t __ucCsFlag;
-    int8_t __cCsIndex[SqCsF_enCount];
+	PIF_SequenceColSig* __p_colsig;
 #endif
 };
 
@@ -75,10 +85,8 @@ struct _PIF_stSequence
 extern "C" {
 #endif
 
-BOOL pifSequence_Init(uint8_t ucSize, PIF_stPulse *pstTimer);
-void pifSequence_Exit();
-
-PIF_stSequence *pifSequence_Add(PIF_usId usPifId, const PIF_stSequencePhase *pstPhaseList, void *pvParam);
+PIF_stSequence* pifSequence_Create(PIF_usId usPifId, PIF_stPulse* pstTimer, const PIF_stSequencePhase* pstPhaseList, void* pvParam);
+void pifSequence_Destroy(PIF_stSequence** pp_owner);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 

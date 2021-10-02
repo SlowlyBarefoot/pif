@@ -1,3 +1,4 @@
+#include "pif_list.h"
 #ifdef __PIF_COLLECT_SIGNAL__
 #include "pifCollectSignal.h"
 #endif
@@ -7,9 +8,9 @@
 #endif
 
 
-static PIF_stGpio *s_pstGpio = NULL;
-static uint8_t s_ucGpioSize;
-static uint8_t s_ucGpioPos;
+#ifdef __PIF_COLLECT_SIGNAL__
+static PIF_DList s_cs_list;
+#endif
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -18,95 +19,67 @@ static void _AddDeviceInCollectSignal()
 {
 	const char *prefix[GpCsF_enCount] = { "GP" };
 
-	for (int i = 0; i < s_ucGpioPos; i++) {
-		PIF_stGpio *pstOwner = &s_pstGpio[i];
+	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PIF_GpioColSig* p_colsig = (PIF_GpioColSig*)it->data;
+		PIF_stGpio* pstOwner = p_colsig->p_owner;
 		for (int f = 0; f < GpCsF_enCount; f++) {
-			if (pstOwner->__ucCsFlag & (1 << f)) {
-				pstOwner->__cCsIndex[f] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enWire, 1,
-						prefix[f], pstOwner->__ucState);
+			if (p_colsig->flag & (1 << f)) {
+				p_colsig->p_device[f] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enReg, pstOwner->ucGpioCount,
+						prefix[f], pstOwner->__write_state);
 			}
 		}
+		pifLog_Printf(LT_enInfo, "GP_CS:Add(DC:%u CNT:%u)", pstOwner->_usPifId, pstOwner->ucGpioCount);
+
+		it = pifDList_Next(it);
 	}
+}
+
+void pifGpio_ColSigInit()
+{
+	pifDList_Init(&s_cs_list);
+}
+
+void pifGpio_ColSigClear()
+{
+	pifDList_Clear(&s_cs_list);
 }
 
 #endif
 
 /**
- * @fn pifGpio_Init
+ * @fn pifGpio_Create
  * @brief
- * @param pstTimer
- * @param ucSize
+ * @param usPifId
+ * @param ucCount
  * @return
  */
-BOOL pifGpio_Init(uint8_t ucSize)
+PIF_stGpio* pifGpio_Create(PIF_usId usPifId, uint8_t ucCount)
 {
-    if (ucSize == 0) {
-		pif_enError = E_enInvalidParam;
-		goto fail;
-	}
+    PIF_stGpio* pstOwner = NULL;
 
-    s_pstGpio = calloc(sizeof(PIF_stGpio), ucSize);
-    if (!s_pstGpio) {
+    if (!ucCount || ucCount > PIF_GPIO_MAX_COUNT) {
+        pif_enError = E_enInvalidParam;
+        goto fail;
+    }
+
+    pstOwner = calloc(sizeof(PIF_stGpio), 1);
+    if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
 
-    s_ucGpioSize = ucSize;
-    s_ucGpioPos = 0;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    pstOwner->_usPifId = usPifId;
+    pstOwner->ucGpioCount = ucCount;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	pifCollectSignal_Attach(CSF_enGpio, _AddDeviceInCollectSignal);
+	PIF_GpioColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_GpioColSig));
+	if (!p_colsig) goto fail;
+	p_colsig->p_owner = pstOwner;
+	pstOwner->__p_colsig = p_colsig;
 #endif
-    return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "GPIO:%u S:%u EC:%d", __LINE__, ucSize, pif_enError);
-#endif
-    return FALSE;
-}
-
-/**
- * @fn pifGpio_Exit
- * @brief
- */
-void pifGpio_Exit()
-{
-    if (s_pstGpio) {
-    	free(s_pstGpio);
-        s_pstGpio = NULL;
-    }
-}
-
-/**
- * @fn pifGpio_AddIn
- * @brief
- * @param usPifId
- * @param ucCount
- * @param actIn
- * @return
- */
-PIF_stGpio *pifGpio_AddIn(PIF_usId usPifId, uint8_t ucCount, PIF_actGpioIn actIn)
-{
-    if (s_ucGpioPos >= s_ucGpioSize) {
-        pif_enError = E_enOverflowBuffer;
-        goto fail;
-    }
-
-    if (!ucCount || ucCount > 8 || !actIn) {
-        pif_enError = E_enInvalidParam;
-        goto fail;
-    }
-
-    PIF_stGpio *pstOwner = &s_pstGpio[s_ucGpioPos];
-
-    pstOwner->__ucIndex = s_ucGpioPos;
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
-    pstOwner->_usPifId = usPifId;
-    pstOwner->ucGpioCount = ucCount;
-    pstOwner->__ui.actIn = actIn;
-
-    s_ucGpioPos = s_ucGpioPos + 1;
     return pstOwner;
 
 fail:
@@ -117,41 +90,16 @@ fail:
 }
 
 /**
- * @fn pifGpio_AddOut
+ * @fn pifGpio_Destroy
  * @brief
- * @param usPifId
- * @param ucCount
- * @param actOut
- * @return
+ * @param pp_owner
  */
-PIF_stGpio *pifGpio_AddOut(PIF_usId usPifId, uint8_t ucCount, PIF_actGpioOut actOut)
+void pifGpio_Destroy(PIF_stGpio** pp_owner)
 {
-    if (s_ucGpioPos >= s_ucGpioSize) {
-        pif_enError = E_enOverflowBuffer;
-        goto fail;
+    if (*pp_owner) {
+    	free(*pp_owner);
+        *pp_owner = NULL;
     }
-
-    if (!ucCount || ucCount > 8 || !actOut) {
-        pif_enError = E_enInvalidParam;
-        goto fail;
-    }
-
-    PIF_stGpio *pstOwner = &s_pstGpio[s_ucGpioPos];
-
-    pstOwner->__ucIndex = s_ucGpioPos;
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
-    pstOwner->_usPifId = usPifId;
-    pstOwner->ucGpioCount = ucCount;
-    pstOwner->__ui.actOut = actOut;
-
-    s_ucGpioPos = s_ucGpioPos + 1;
-    return pstOwner;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "GPIO:%u(%u) C=%u EC:%d", __LINE__, usPifId, ucCount, pif_enError);
-#endif
-    return NULL;
 }
 
 /**
@@ -162,19 +110,40 @@ fail:
  */
 uint8_t pifGpio_ReadAll(PIF_stGpio *pstOwner)
 {
-	return pstOwner->__ui.actIn(pstOwner->_usPifId);
+	if (!pstOwner->__ui.actIn) return 0;
+
+	uint8_t state = pstOwner->__ui.actIn(pstOwner->_usPifId);
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	if (pstOwner->__p_colsig->flag & GpCsF_enStateBit) {
+		pifCollectSignal_AddSignal(pstOwner->__p_colsig->p_device[GpCsF_enStateIdx], state);
+	}
+#endif
+
+	return state;
 }
 
 /**
- * @fn pifGpio_ReadBit
+ * @fn pifGpio_ReadCell
  * @brief
  * @param pstOwner
  * @param ucIndex
  * @return
  */
-SWITCH pifGpio_ReadBit(PIF_stGpio *pstOwner, uint8_t ucIndex)
+SWITCH pifGpio_ReadCell(PIF_stGpio *pstOwner, uint8_t ucIndex)
 {
-	return (pstOwner->__ui.actIn(pstOwner->_usPifId) >> ucIndex) & 1;
+	if (!pstOwner->__ui.actIn) return 0;
+
+	uint8_t state = (pstOwner->__ui.actIn(pstOwner->_usPifId) >> ucIndex) & 1;
+	pstOwner->__read_state = (pstOwner->__read_state & (1 << ucIndex)) | state;
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	if (pstOwner->__p_colsig->flag & GpCsF_enStateBit) {
+		pifCollectSignal_AddSignal(pstOwner->__p_colsig->p_device[GpCsF_enStateIdx], pstOwner->__read_state);
+	}
+#endif
+
+	return state;
 }
 
 /**
@@ -185,26 +154,42 @@ SWITCH pifGpio_ReadBit(PIF_stGpio *pstOwner, uint8_t ucIndex)
  */
 void pifGpio_WriteAll(PIF_stGpio *pstOwner, uint8_t ucState)
 {
-	pstOwner->__ucState = ucState;
+	if (!pstOwner->__ui.actOut) return;
+
+	pstOwner->__write_state = ucState;
 	pstOwner->__ui.actOut(pstOwner->_usPifId, ucState);
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	if (pstOwner->__p_colsig->flag & GpCsF_enStateBit) {
+		pifCollectSignal_AddSignal(pstOwner->__p_colsig->p_device[GpCsF_enStateIdx], pstOwner->__write_state);
+	}
+#endif
 }
 
 /**
- * @fn pifGpio_WriteBit
+ * @fn pifGpio_WriteCell
  * @brief
  * @param pstOwner
  * @param ucIndex
  * @param swState
  */
-void pifGpio_WriteBit(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState)
+void pifGpio_WriteCell(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState)
 {
+	if (!pstOwner->__ui.actOut) return;
+
 	if (swState) {
-		pstOwner->__ucState |= 1 << ucIndex;
+		pstOwner->__write_state |= 1 << ucIndex;
 	}
 	else {
-		pstOwner->__ucState &= ~(1 << ucIndex);
+		pstOwner->__write_state &= ~(1 << ucIndex);
 	}
-	pstOwner->__ui.actOut(pstOwner->_usPifId, pstOwner->__ucState);
+	pstOwner->__ui.actOut(pstOwner->_usPifId, pstOwner->__write_state);
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	if (pstOwner->__p_colsig->flag & GpCsF_enStateBit) {
+		pifCollectSignal_AddSignal(pstOwner->__p_colsig->p_device[GpCsF_enStateIdx], pstOwner->__write_state);
+	}
+#endif
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -216,9 +201,12 @@ void pifGpio_WriteBit(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState)
  */
 void pifGpio_SetCsFlagAll(PIF_enGpioCsFlag enFlag)
 {
-    for (int i = 0; i < s_ucGpioPos; i++) {
-    	s_pstGpio[i].__ucCsFlag |= enFlag;
-    }
+	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PIF_GpioColSig* p_colsig = (PIF_GpioColSig*)it->data;
+		p_colsig->flag |= enFlag;
+		it = pifDList_Next(it);
+	}
 }
 
 /**
@@ -228,31 +216,113 @@ void pifGpio_SetCsFlagAll(PIF_enGpioCsFlag enFlag)
  */
 void pifGpio_ResetCsFlagAll(PIF_enGpioCsFlag enFlag)
 {
-    for (int i = 0; i < s_ucGpioPos; i++) {
-    	s_pstGpio[i].__ucCsFlag &= ~enFlag;
-    }
+	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PIF_GpioColSig* p_colsig = (PIF_GpioColSig*)it->data;
+		p_colsig->flag &= ~enFlag;
+		it = pifDList_Next(it);
+	}
 }
 
 /**
  * @fn pifGpio_SetCsFlagEach
  * @brief
- * @param pstSensor
+ * @param pstOwner
  * @param enFlag
  */
 void pifGpio_SetCsFlagEach(PIF_stGpio *pstOwner, PIF_enGpioCsFlag enFlag)
 {
-	pstOwner->__ucCsFlag |= enFlag;
+	pstOwner->__p_colsig->flag |= enFlag;
 }
 
 /**
  * @fn pifGpio_ResetCsFlagEach
  * @brief
- * @param pstSensor
+ * @param pstOwner
  * @param enFlag
  */
 void pifGpio_ResetCsFlagEach(PIF_stGpio *pstOwner, PIF_enGpioCsFlag enFlag)
 {
-	pstOwner->__ucCsFlag &= ~enFlag;
+	pstOwner->__p_colsig->flag &= ~enFlag;
 }
 
 #endif
+
+static uint16_t _DoTask(PIF_stTask *pstTask)
+{
+	PIF_stGpio *p_owner = pstTask->_pvClient;
+	uint8_t state, bit;
+#ifdef __PIF_COLLECT_SIGNAL__
+	BOOL change = FALSE;
+#endif
+
+	state = p_owner->__ui.actIn(p_owner->_usPifId);
+	for (int i = 0; i < p_owner->ucGpioCount; i++) {
+		bit = 1 << i;
+		if ((state & bit) != (p_owner->__read_state & bit)) {
+			if (p_owner->evtIn) (*p_owner->evtIn)(i, (state >> 1) & 1);
+#ifdef __PIF_COLLECT_SIGNAL__
+			change = TRUE;
+#endif
+		}
+	}
+	p_owner->__read_state = state;
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	if (change && (p_owner->__p_colsig->flag & GpCsF_enStateBit)) {
+		pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[GpCsF_enStateIdx], state);
+	}
+#endif
+
+    return 0;
+}
+
+void pifGpio_sigData(PIF_stGpio *p_owner, uint8_t index, SWITCH state)
+{
+	if (state != ((p_owner->__read_state >> index) & 1)) {
+		p_owner->__read_state = (p_owner->__read_state & (1 << index)) | state;
+		if (p_owner->evtIn) (*p_owner->evtIn)(index, state);
+
+#ifdef __PIF_COLLECT_SIGNAL__
+		if (p_owner->__p_colsig->flag & GpCsF_enStateBit) {
+			pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[GpCsF_enStateIdx], p_owner->__read_state);
+		}
+#endif
+	}
+}
+
+/**
+ * @fn pifGpio_AttachActIn
+ * @brief
+ * @param p_owner
+ * @param act_in
+ */
+void pifGpio_AttachActIn(PIF_stGpio* p_owner, PIF_actGpioIn act_in)
+{
+    p_owner->__ui.actIn = act_in;
+}
+
+/**
+ * @fn pifGpio_AttachActOut
+ * @brief
+ * @param p_owner
+ * @param act_out
+ */
+void pifGpio_AttachActOut(PIF_stGpio* p_owner, PIF_actGpioOut act_out)
+{
+    p_owner->__ui.actOut = act_out;
+}
+
+/**
+ * @fn pifGpio_AttachTaskIn
+ * @brief Task를 추가한다.
+ * @param p_owner
+ * @param mode Task의 Mode를 설정한다.
+ * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @param start 즉시 시작할지를 지정한다.
+ * @return Task 구조체 포인터를 반환한다.
+ */
+PIF_stTask *pifGpio_AttachTaskIn(PIF_stGpio *p_owner, PIF_enTaskMode mode, uint16_t period, BOOL start)
+{
+	return pifTaskManager_Add(mode, period, _DoTask, p_owner, start);
+}

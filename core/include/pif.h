@@ -12,6 +12,10 @@
 //#define __PIF_DEBUG__
 //#define __PIF_NO_USE_INLINE__
 
+#ifndef PIF_WEAK
+#define PIF_WEAK __attribute__ ((weak))
+#endif
+
 // -------- pifCollectSignal ---------------------
 
 //#define __PIF_COLLECT_SIGNAL__
@@ -25,7 +29,6 @@
 #ifndef PIF_GPS_NMEA_VALUE_SIZE
 #define PIF_GPS_NMEA_VALUE_SIZE			32
 #endif
-
 
 // -------- pifKeypad ----------------------------
 

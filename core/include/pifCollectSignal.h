@@ -59,19 +59,19 @@ extern "C" {
 void pifCollectSignal_Init(const char *c_pcModuleName);
 BOOL pifCollectSignal_InitHeap(const char *c_pcModuleName, uint16_t usSize);
 BOOL pifCollectSignal_InitStatic(const char *c_pcModuleName, uint16_t usSize, uint8_t *pucBuffer);
-void pifCollectSignal_Exit();
+void pifCollectSignal_Clear();
 
 void pifCollectSignal_ChangeFlag(uint8_t *pucFlag, uint8_t ucIndex, uint8_t ucFlag);
 BOOL pifCollectSignal_ChangeMethod(PIF_enCollectSignalMethod enMethod);
 
 void pifCollectSignal_Attach(PIF_enCollectSignalFlag enFlag, PIF_fnCollectSignalDevice fnDevice);
-int8_t pifCollectSignal_AddDevice(PIF_usId usPifId, PIF_enCollectSignalVarType enVarType, uint16_t usSize, const char *pcReference,
-		uint16_t usInitialValue);
+void* pifCollectSignal_AddDevice(PIF_usId usPifId, PIF_enCollectSignalVarType enVarType, uint16_t usSize,
+		const char* pcReference, uint16_t usInitialValue);
 
 void pifCollectSignal_Start();
 void pifCollectSignal_Stop();
 
-void pifCollectSignal_AddSignal(int8_t cIndex, uint16_t usState);
+void pifCollectSignal_AddSignal(void* p_dev, uint16_t usState);
 
 void pifCollectSignal_PrintLog();
 
