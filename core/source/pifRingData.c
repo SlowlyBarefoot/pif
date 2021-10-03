@@ -5,14 +5,14 @@
 
 
 /**
- * @fn pifRingData_Init
+ * @fn pifRingData_Create
  * @brief
  * @param usPifId
  * @param usDataSize
  * @param usDataCount
  * @return
  */
-PIF_stRingData *pifRingData_Init(PIF_usId usPifId, uint16_t usDataSize, uint16_t usDataCount)
+PIF_stRingData *pifRingData_Create(PIF_usId usPifId, uint16_t usDataSize, uint16_t usDataCount)
 {
 	PIF_stRingData *pstOwner;
 
@@ -39,15 +39,15 @@ fail:
 }
 
 /**
- * @fn pifRingData_Exit
+ * @fn pifRingData_Destroy
  * @brief
- * @param pstOwner
+ * @param pp_owner
  */
-void pifRingData_Exit(PIF_stRingData *pstOwner)
+void pifRingData_Destroy(PIF_stRingData** pp_owner)
 {
-	if (pstOwner) {
-        free(pstOwner);
-        pstOwner = NULL;
+	if (*pp_owner) {
+        free(*pp_owner);
+        *pp_owner = NULL;
     }
 }
 

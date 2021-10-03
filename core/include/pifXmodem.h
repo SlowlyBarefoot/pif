@@ -110,8 +110,8 @@ typedef struct _PIF_stXmodem
 extern "C" {
 #endif
 
-PIF_stXmodem *pifXmodem_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enXmodemType enType);
-void pifXmodem_Exit();
+PIF_stXmodem *pifXmodem_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enXmodemType enType);
+void pifXmodem_Destroy(PIF_stXmodem** pp_owner);
 
 void pifXmodem_SetResponseTimeout(PIF_stXmodem *pstOwner, uint16_t usResponseTimeout);
 void pifXmodem_SetReceiveTimeout(PIF_stXmodem *pstOwner, uint16_t usReceiveTimeout);

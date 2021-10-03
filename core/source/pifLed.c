@@ -30,7 +30,7 @@ static void _evtTimerBlinkFinish(void *pvIssuer)
 }
 
 /**
- * @fn pifLed_Init
+ * @fn pifLed_Create
  * @brief
  * @param usPifId
  * @param pstTimer
@@ -38,7 +38,7 @@ static void _evtTimerBlinkFinish(void *pvIssuer)
  * @param actState
  * @return
  */
-PIF_stLed *pifLed_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState)
+PIF_stLed *pifLed_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState)
 {
 	PIF_stLed *pstOwner = NULL;
 
@@ -68,17 +68,19 @@ fail:
 }
 
 /**
- * @fn pifLed_Exit
+ * @fn pifLed_Destroy
  * @brief
- * @param pstOwner
+ * @param pp_owner
  */
-void pifLed_Exit(PIF_stLed *pstOwner)
+void pifLed_Destroy(PIF_stLed** pp_owner)
 {
-	if (pstOwner) {
+	if (*pp_owner) {
+		PIF_stLed* pstOwner = *pp_owner;
 		if (pstOwner->__pstTimerBlink) {
 			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__pstTimerBlink);
 		}
-		free(pstOwner);
+		free(*pp_owner);
+		*pp_owner = NULL;
 	}
 }
 

@@ -323,10 +323,10 @@ BOOL pifLog_InitStatic(uint16_t usSize, uint8_t *pucBuffer)
 }
 
 /**
- * @fn pifLog_Exit
+ * @fn pifLog_Clear
  * @brief Log 구조체를 파기하다.
  */
-void pifLog_Exit()
+void pifLog_Clear()
 {
 	if (s_stLog.pstBuffer) {
 		pifRingBuffer_Exit(s_stLog.pstBuffer);

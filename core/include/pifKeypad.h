@@ -72,17 +72,17 @@ typedef struct _PIF_stKeypad
 extern "C" {
 #endif
 
-PIF_stKeypad *pifKeypad_Init(PIF_usId usPifId, uint8_t ucNumRows, uint8_t ucNumCols, const char *pcUserKeymap);
-void pifKeypad_Exit();
+PIF_stKeypad *pifKeypad_Create(PIF_usId usPifId, uint8_t ucNumRows, uint8_t ucNumCols, const char *pcUserKeymap);
+void pifKeypad_Destroy(PIF_stKeypad** pp_owner);
 
-void pifKeypad_AttachAction(PIF_actKeypadAcquire actAcquire);
+void pifKeypad_AttachAction(PIF_stKeypad* p_owner, PIF_actKeypadAcquire actAcquire);
 
-BOOL pifKeypad_SetHoldTime(uint16_t usHoldTimeMs);
-BOOL pifKeypad_SetLongTime(uint16_t usLongTimeMs);
-BOOL pifKeypad_SetDoubleTime(uint16_t usDoubleTimeMs);
+BOOL pifKeypad_SetHoldTime(PIF_stKeypad* p_owner, uint16_t usHoldTimeMs);
+BOOL pifKeypad_SetLongTime(PIF_stKeypad* p_owner, uint16_t usLongTimeMs);
+BOOL pifKeypad_SetDoubleTime(PIF_stKeypad* p_owner, uint16_t usDoubleTimeMs);
 
 // Task Function
-PIF_stTask *pifKeypad_AttachTask(PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PIF_stTask *pifKeypad_AttachTask(PIF_stKeypad* p_owner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart);
 
 #ifdef __cplusplus
 }

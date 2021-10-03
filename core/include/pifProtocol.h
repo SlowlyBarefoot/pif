@@ -178,9 +178,9 @@ typedef struct _PIF_stProtocol
 extern "C" {
 #endif
 
-PIF_stProtocol *pifProtocol_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enProtocolType enType,
+PIF_stProtocol *pifProtocol_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enProtocolType enType,
 		const PIF_stProtocolQuestion *pstQuestions);
-void pifProtocol_Exit(PIF_stProtocol *pstOwner);
+void pifProtocol_Destroy(PIF_stProtocol** pp_owner);
 
 BOOL pifProtocol_SetFrameSize(PIF_stProtocol *pstOwner, uint8_t ucFrameSize);
 

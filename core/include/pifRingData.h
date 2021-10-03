@@ -30,8 +30,8 @@ typedef struct _PIF_stRingData
 extern "C" {
 #endif
 
-PIF_stRingData *pifRingData_Init(PIF_usId usPifId, uint16_t usDataSize, uint16_t usDataCount);
-void pifRingData_Exit(PIF_stRingData *pstOwner);
+PIF_stRingData *pifRingData_Create(PIF_usId usPifId, uint16_t usDataSize, uint16_t usDataCount);
+void pifRingData_Destroy(PIF_stRingData** pp_owner);
 
 BOOL pifRingData_IsEmpty(PIF_stRingData *pstOwner);
 

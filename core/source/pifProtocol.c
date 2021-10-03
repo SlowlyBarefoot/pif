@@ -422,7 +422,7 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
 }
 
 /**
- * @fn pifProtocol_Init
+ * @fn pifProtocol_Create
  * @brief
  * @param usPifId
  * @param pstTimer
@@ -430,7 +430,7 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
  * @param pstQuestion
  * @return
  */
-PIF_stProtocol *pifProtocol_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enProtocolType enType,
+PIF_stProtocol *pifProtocol_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enProtocolType enType,
 		const PIF_stProtocolQuestion *pstQuestions)
 {
     PIF_stProtocol *pstOwner = NULL;
@@ -505,7 +505,7 @@ PIF_stProtocol *pifProtocol_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_en
     return pstOwner;
 
 fail:
-	pifProtocol_Exit(pstOwner);
+	pifProtocol_Destroy(&pstOwner);
 #ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "PTC(%u) Add(T:%d) EC:%d", usPifId, enType, pif_enError);
 #endif
@@ -513,13 +513,14 @@ fail:
 }
 
 /**
- * @fn pifProtocol_Exit
+ * @fn pifProtocol_Destroy
  * @brief
- * @param pvOwner
+ * @param pp_owner
  */
-void pifProtocol_Exit(PIF_stProtocol *pstOwner)
+void pifProtocol_Destroy(PIF_stProtocol** pp_owner)
 {
-    if (pstOwner) {
+    if (*pp_owner) {
+    	PIF_stProtocol* pstOwner = *pp_owner;
 		if (pstOwner->__stRx.pucPacket) {
 			free(pstOwner->__stRx.pucPacket);
 			pstOwner->__stRx.pucPacket = NULL;
@@ -532,7 +533,8 @@ void pifProtocol_Exit(PIF_stProtocol *pstOwner)
 		if (pstOwner->__stTx.pstTimer) {
 			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__stTx.pstTimer);
 		}
-    	free(pstOwner);
+    	free(*pp_owner);
+    	*pp_owner = NULL;
     }
 }
 

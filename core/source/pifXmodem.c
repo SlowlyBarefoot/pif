@@ -321,14 +321,14 @@ static BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
 }
 
 /**
- * @fn pifXmodem_Init
+ * @fn pifXmodem_Create
  * @brief
  * @param usPifId
  * @param pstTimer
  * @param enType
  * @return
  */
-PIF_stXmodem *pifXmodem_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enXmodemType enType)
+PIF_stXmodem *pifXmodem_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enXmodemType enType)
 {
     PIF_stXmodem *pstOwner = NULL;
 
@@ -385,7 +385,7 @@ PIF_stXmodem *pifXmodem_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enXmod
     return pstOwner;
 
 fail:
-	pifXmodem_Exit(pstOwner);
+	pifXmodem_Destroy(&pstOwner);
 #ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_enError, "%u Xmodem:Init(T:%u) EC:%d", enType, pif_enError);
 #endif
@@ -393,13 +393,14 @@ fail:
 }
 
 /**
- * @fn pifXmodem_Exit
+ * @fn pifXmodem_Destroy
  * @brief
- * @param pstOwner
+ * @param pp_owner
  */
-void pifXmodem_Exit(PIF_stXmodem *pstOwner)
+void pifXmodem_Destroy(PIF_stXmodem** pp_owner)
 {
-    if (pstOwner) {
+    if (*pp_owner) {
+    	PIF_stXmodem* pstOwner = *pp_owner;
 		if (pstOwner->__pucData) {
 			free(pstOwner->__pucData);
 			pstOwner->__pucData = NULL;
@@ -410,7 +411,8 @@ void pifXmodem_Exit(PIF_stXmodem *pstOwner)
 		if (pstOwner->__stTx.pstTimer) {
 			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__stTx.pstTimer);
 		}
-    	free(pstOwner);
+    	free(*pp_owner);
+    	*pp_owner = NULL;
     }
 }
 

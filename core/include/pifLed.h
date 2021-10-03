@@ -35,8 +35,8 @@ typedef struct _PIF_stLed
 extern "C" {
 #endif
 
-PIF_stLed *pifLed_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState);
-void pifLed_Exit(PIF_stLed *pstOwner);
+PIF_stLed *pifLed_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState);
+void pifLed_Destroy(PIF_stLed** pp_owner);
 
 void pifLed_EachOn(PIF_stLed *pstOwner, uint8_t ucIndex);
 void pifLed_EachOff(PIF_stLed *pstOwner, uint8_t ucIndex);

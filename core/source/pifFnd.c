@@ -41,7 +41,7 @@ void pifFnd_SetUserChar(const uint8_t *pucUserChar, uint8_t ucCount)
 }
 
 /**
- * @fn pifFnd_Init
+ * @fn pifFnd_Create
  * @brief
  * @param usPifId
  * @param pstTimer
@@ -49,7 +49,7 @@ void pifFnd_SetUserChar(const uint8_t *pucUserChar, uint8_t ucCount)
  * @param actDisplay
  * @return
  */
-PIF_stFnd *pifFnd_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay)
+PIF_stFnd *pifFnd_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay)
 {
     PIF_stFnd *pstOwner = NULL;
 
@@ -89,13 +89,14 @@ fail:
 }
 
 /**
- * @fn pifFnd_Exit
+ * @fn pifFnd_Destroy
  * @brief
- * @param pstOwner
+ * @param pp_owner
  */
-void pifFnd_Exit(PIF_stFnd *pstOwner)
+void pifFnd_Destroy(PIF_stFnd** pp_owner)
 {
-	if (pstOwner) {
+	if (*pp_owner) {
+		PIF_stFnd* pstOwner = *pp_owner;
 		if (pstOwner->__pcString) {
 			free(pstOwner->__pcString);
 			pstOwner->__pcString = NULL;
@@ -103,7 +104,8 @@ void pifFnd_Exit(PIF_stFnd *pstOwner)
 		if (pstOwner->__pstTimerBlink) {
 			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__pstTimerBlink);
 		}
-		free(pstOwner);
+		free(*pp_owner);
+		*pp_owner = NULL;
 	}
 }
 

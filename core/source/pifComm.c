@@ -39,12 +39,12 @@ static void _sendData(PIF_stComm *pstOwner)
 }
 
 /**
- * @fn pifComm_Init
+ * @fn pifComm_Create
  * @brief 
  * @param usPifId
  * @return 
  */
-PIF_stComm *pifComm_Init(PIF_usId usPifId)
+PIF_stComm *pifComm_Create(PIF_usId usPifId)
 {
     PIF_stComm *pstOwner = NULL;
 
@@ -68,16 +68,18 @@ fail:
 }
 
 /**
- * @fn pifComm_Exit
+ * @fn pifComm_Destroy
  * @brief 
- * @param pstOwner
+ * @param pp_owner
  */
-void pifComm_Exit(PIF_stComm *pstOwner)
+void pifComm_Destroy(PIF_stComm** pp_owner)
 {
-	if (pstOwner) {
+	if (*pp_owner) {
+		PIF_stComm* pstOwner = *pp_owner;
 		if (pstOwner->_pstRxBuffer)	pifRingBuffer_Exit(pstOwner->_pstRxBuffer);
 		if (pstOwner->_pstTxBuffer)	pifRingBuffer_Exit(pstOwner->_pstTxBuffer);
-		free(pstOwner);
+		free(*pp_owner);
+		*pp_owner = NULL;
 	}
 }
 

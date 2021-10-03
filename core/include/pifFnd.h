@@ -44,8 +44,8 @@ typedef struct _PIF_stFnd
 extern "C" {
 #endif
 
-PIF_stFnd *pifFnd_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
-void pifFnd_Exit();
+PIF_stFnd *pifFnd_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
+void pifFnd_Destroy(PIF_stFnd** pp_owner);
 
 void pifFnd_SetUserChar(const uint8_t *pucUserChar, uint8_t ucCount);
 

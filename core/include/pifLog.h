@@ -70,7 +70,7 @@ extern "C" {
 void pifLog_Init();
 BOOL pifLog_InitHeap(uint16_t usSize);
 BOOL pifLog_InitStatic(uint16_t usSize, uint8_t *pucBuffer);
-void pifLog_Exit();
+void pifLog_Clear();
 
 #ifdef __PIF_LOG_COMMAND__
 BOOL pifLog_UseCommand(const PIF_stLogCmdEntry *pstCmdTable, const char *pcPrompt);

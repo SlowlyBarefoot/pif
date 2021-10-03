@@ -221,7 +221,7 @@ void pifSolenoid_Destroy(PIF_stSolenoid** pp_owner)
 		if (pstOwner->__pstTimerDelay) {
 			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__pstTimerDelay);
 		}
-
+		pifRingData_Destroy(&pstOwner->__pstBuffer);
     	free(*pp_owner);
         *pp_owner = NULL;
     }
@@ -236,7 +236,7 @@ void pifSolenoid_Destroy(PIF_stSolenoid** pp_owner)
  */
 BOOL pifSolenoid_SetBuffer(PIF_stSolenoid *pstOwner, uint16_t usSize)
 {
-	pstOwner->__pstBuffer = pifRingData_Init(PIF_ID_AUTO, sizeof(PIF_stSolenoidContent), usSize);
+	pstOwner->__pstBuffer = pifRingData_Create(PIF_ID_AUTO, sizeof(PIF_stSolenoidContent), usSize);
 	if (!pstOwner->__pstBuffer) return FALSE;
 	return TRUE;
 }

@@ -141,7 +141,7 @@ static void _evtTimerShiftFinish(void *pvIssuer)
 }
 
 /**
- * @fn pifDotMatrix_Init
+ * @fn pifDotMatrix_Create
  * @brief
  * @param usPifId
  * @param pstTimer
@@ -150,7 +150,7 @@ static void _evtTimerShiftFinish(void *pvIssuer)
  * @param actDisplay
  * @return
  */
-PIF_stDotMatrix *pifDotMatrix_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
+PIF_stDotMatrix *pifDotMatrix_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
 		PIF_actDotMatrixDisplay actDisplay)
 {
 	PIF_stDotMatrix *pstOwner = NULL;
@@ -196,12 +196,14 @@ fail:
 }
 
 /**
- * @fn pifDotMatrix_Exit
+ * @fn pifDotMatrix_Destroy
  * @brief
+ * @param pp_owner
  */
-void pifDotMatrix_Exit(PIF_stDotMatrix *pstOwner)
+void pifDotMatrix_Destroy(PIF_stDotMatrix** pp_owner)
 {
-	if (pstOwner) {
+	if (*pp_owner) {
+		PIF_stDotMatrix* pstOwner = *pp_owner;
 		if (pstOwner->__pucPattern) {
 			free(pstOwner->__pucPattern);
 			pstOwner->__pucPattern = NULL;
@@ -216,7 +218,8 @@ void pifDotMatrix_Exit(PIF_stDotMatrix *pstOwner)
 		if (pstOwner->__pstTimerShift) {
 			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__pstTimerShift);
 		}
-		free(pstOwner);
+		free(*pp_owner);
+		*pp_owner = NULL;
 	}
 }
 

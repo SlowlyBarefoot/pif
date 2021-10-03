@@ -105,9 +105,9 @@ typedef struct _PIF_stDotMatrix
 extern "C" {
 #endif
 
-PIF_stDotMatrix *pifDotMatrix_Init(PIF_usId usPifId, PIF_stPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
+PIF_stDotMatrix *pifDotMatrix_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
 		PIF_actDotMatrixDisplay actDisplay);
-void pifDotMatrix_Exit(PIF_stDotMatrix *pstOwner);
+void pifDotMatrix_Destroy(PIF_stDotMatrix** pp_owner);
 
 BOOL pifDotMatrix_SetControlPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
 

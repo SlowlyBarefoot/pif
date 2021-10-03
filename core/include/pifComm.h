@@ -95,8 +95,8 @@ struct _PIF_stComm
 extern "C" {
 #endif
 
-PIF_stComm *pifComm_Init(PIF_usId usPifId);
-void pifComm_Exit(PIF_stComm *pstOwner);
+PIF_stComm *pifComm_Create(PIF_usId usPifId);
+void pifComm_Destroy(PIF_stComm** pp_owner);
 
 BOOL pifComm_AllocRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize);
 BOOL pifComm_AllocTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize);
