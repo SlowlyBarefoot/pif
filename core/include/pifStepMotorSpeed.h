@@ -39,6 +39,8 @@ typedef struct _PIF_stStepMotorSpeedStage
  */
 typedef struct _PIF_stStepMotorSpeed
 {
+	PIF_stStepMotor parent;
+
 	// Public Member Variable
 
 	// Read-only Member Variable
@@ -55,8 +57,10 @@ typedef struct _PIF_stStepMotorSpeed
 extern "C" {
 #endif
 
-PIF_stStepMotor *pifStepMotorSpeed_Add(PIF_usId usPifId, uint8_t ucResolution, PIF_enStepMotorOperation enOperation,
-		uint16_t usControlPeriodMs);
+PIF_stStepMotor *pifStepMotorSpeed_Create(PIF_usId usPifId, PIF_stPulse* p_timer, uint8_t ucResolution,
+		PIF_enStepMotorOperation enOperation, uint16_t usControlPeriodMs);
+void pifStepMotorSpeed_Destroy(PIF_stStepMotor** pp_parent);
+
 BOOL pifStepMotorSpeed_AddStages(PIF_stStepMotor *pstOwner, uint8_t ucStageSize, const PIF_stStepMotorSpeedStage *pstStages);
 
 BOOL pifStepMotorSpeed_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime);

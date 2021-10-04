@@ -48,6 +48,8 @@ typedef struct _PIF_stDutyMotorSpeedEncStage
  */
 typedef struct _PIF_stDutyMotorSpeedEnc
 {
+	PIF_stDutyMotor parent;
+
 	// Public Member Variable
 
 	// Read-only Member Variable
@@ -74,7 +76,9 @@ typedef struct _PIF_stDutyMotorSpeedEnc
 extern "C" {
 #endif
 
-PIF_stDutyMotor *pifDutyMotorSpeedEnc_Add(PIF_usId usPifId, uint16_t usMaxDuty, uint16_t usControlPeriod);
+PIF_stDutyMotor *pifDutyMotorSpeedEnc_Create(PIF_usId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod);
+void pifDutyMotorSpeedEnc_Destroy(PIF_stDutyMotor** pp_owner);
+
 BOOL pifDutyMotorSpeedEnc_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorSpeedEncStage *pstStages);
 
 PIF_stPidControl *pifDutyMotorSpeedEnc_GetPidControl(PIF_stDutyMotor *pstOwner);

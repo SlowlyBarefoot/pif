@@ -22,7 +22,7 @@ static void _evtTimerDelayFinish(void *pvIssuer)
 static void _fnControlPos(PIF_stDutyMotor *pstOwner)
 {
 	uint16_t usTmpDuty = 0;
-    PIF_stDutyMotorPos *pstPos = pstOwner->_pvChild;
+    PIF_stDutyMotorPos* pstPos = (PIF_stDutyMotorPos*)pstOwner;
     const PIF_stDutyMotorPosStage *pstStage = pstPos->__pstCurrentStage;
 #ifndef __PIF_NO_LOG__
     int nLine = 0;
@@ -180,27 +180,30 @@ static void _evtSwitchStopChange(PIF_usId usPifId, uint16_t usLevel, void *pvIss
 }
 
 /**
- * @fn pifDutyMotorPos_Add
+ * @fn pifDutyMotorPos_Create
  * @brief 
  * @param usPifId
+ * @param p_timer
  * @param usMaxDuty
  * @param usControlPeriod
  * @return 
  */
-PIF_stDutyMotor *pifDutyMotorPos_Add(PIF_usId usPifId, uint16_t usMaxDuty, uint16_t usControlPeriod)
+PIF_stDutyMotor *pifDutyMotorPos_Create(PIF_usId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod)
 {
-    PIF_stDutyMotor *pstOwner = pifDutyMotor_Add(usPifId, usMaxDuty);
-    if (!pstOwner) goto fail_clear;
+    PIF_stDutyMotorPos *p_owner = NULL;
 
-    if (!pifDutyMotor_InitControl(pstOwner, usControlPeriod)) goto fail_clear;
-
-    pstOwner->_pvChild = calloc(sizeof(PIF_stDutyMotorPos), 1);
-    if (!pstOwner->_pvChild) {
+    p_owner = calloc(sizeof(PIF_stDutyMotorPos), 1);
+    if (!p_owner) {
         pif_enError = E_enOutOfHeap;
         goto fail;
     }
 
-    pstOwner->__pstTimerDelay = pifPulse_AddItem(g_pstDutyMotorTimer, PT_enOnce);
+    PIF_stDutyMotor* pstOwner = &p_owner->parent;
+    if (!pifDutyMotor_Init(pstOwner, usPifId, p_timer, usMaxDuty)) goto fail_clear;
+
+    if (!pifDutyMotor_InitControl(pstOwner, usControlPeriod)) goto fail_clear;
+
+    pstOwner->__pstTimerDelay = pifPulse_AddItem(pstOwner->_p_timer, PT_enOnce);
     if (!pstOwner->__pstTimerDelay) goto fail_clear;
     pifPulse_AttachEvtFinish(pstOwner->__pstTimerDelay, _evtTimerDelayFinish, pstOwner);
 
@@ -212,13 +215,22 @@ fail:
 	pifLog_Printf(LT_enError, "DMP:%u(%u) MD:%u P:%u EC:%u", __LINE__, usPifId, usMaxDuty, usControlPeriod, pif_enError);
 #endif
 fail_clear:
-    if (pstOwner) {
-        if (pstOwner->_pvChild) {
-            free(pstOwner->_pvChild);
-            pstOwner->_pvChild = NULL;
-        }
-    }
+	pifDutyMotorPos_Destroy(&pstOwner);
     return NULL;
+}
+
+/**
+ * @fn pifDutyMotorPos_Destroy
+ * @brief
+ * @param pp_parent
+ */
+void pifDutyMotorPos_Destroy(PIF_stDutyMotor** pp_parent)
+{
+    if (*pp_parent) {
+    	pifDutyMotor_Clear(*pp_parent);
+        free(*pp_parent);
+        *pp_parent = NULL;
+    }
 }
 
 /**
@@ -231,11 +243,6 @@ fail_clear:
  */
 BOOL pifDutyMotorPos_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorPosStage *pstStages)
 {
-    if (!pstOwner->_pvChild) {
-        pif_enError = E_enInvalidParam;
-        goto fail;
-    }
-
     for (int i = 0; i < ucStageSize; i++) {
     	if (pstStages[i].enMode & MM_SC_enMask) {
             pif_enError = E_enInvalidParam;
@@ -243,7 +250,7 @@ BOOL pifDutyMotorPos_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize, c
     	}
     }
 
-    PIF_stDutyMotorPos *pstPos = pstOwner->_pvChild;
+    PIF_stDutyMotorPos* pstPos = (PIF_stDutyMotorPos*)pstOwner;
     pstPos->__ucStageSize = ucStageSize;
     pstPos->__pstStages = pstStages;
     return TRUE;
@@ -265,7 +272,7 @@ fail:
  */
 BOOL pifDutyMotorPos_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime)
 {
-    PIF_stDutyMotorPos *pstPos = pstOwner->_pvChild;
+    PIF_stDutyMotorPos* pstPos = (PIF_stDutyMotorPos*)pstOwner;
     const PIF_stDutyMotorPosStage *pstStage;
     uint8_t ucState;
 
@@ -390,7 +397,7 @@ void pifDutyMotorPos_Emergency(PIF_stDutyMotor *pstOwner)
  */
 void pifDutyMotorPos_sigEncoder(PIF_stDutyMotor *pstOwner)
 {
-    PIF_stDutyMotorPos *pstPos = pstOwner->_pvChild;
+    PIF_stDutyMotorPos* pstPos = (PIF_stDutyMotorPos*)pstOwner;
 
     pstPos->_unCurrentPulse++;
 	if (pstPos->__pstCurrentStage->enMode & MM_PC_enMask) {

@@ -2,13 +2,6 @@
 #include "pifDutyMotor.h"
 
 
-static PIF_stDutyMotor *s_pstDutyMotor = NULL;
-static uint8_t s_ucDutyMotorSize;
-static uint8_t s_ucDutyMotorPos;
-
-PIF_stPulse *g_pstDutyMotorTimer;
-
-
 static void _evtTimerControlFinish(void *pvIssuer)
 {
 	PIF_stDutyMotor *pstOwner = (PIF_stDutyMotor *)pvIssuer;
@@ -46,90 +39,24 @@ static void _evtTimerBreakFinish(void *pvIssuer)
 }
 
 /**
- * @fn pifDutyMotor_Init
+ * @fn pifDutyMotor_Create
  * @brief 
- * @param ucSize
- * @param pstTimer
+ * @param usPifId
+ * @param p_timer
+ * @param usMaxDuty
  * @return 
  */
-BOOL pifDutyMotor_Init(uint8_t ucSize, PIF_stPulse *pstTimer)
+PIF_stDutyMotor *pifDutyMotor_Create(PIF_usId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty)
 {
-    if (!pstTimer || ucSize == 0) {
-		pif_enError = E_enInvalidParam;
-		goto fail;
-	}
+    PIF_stDutyMotor *pstOwner = NULL;
 
-    s_pstDutyMotor = calloc(sizeof(PIF_stDutyMotor), ucSize);
-    if (!s_pstDutyMotor) {
+    pstOwner = calloc(sizeof(PIF_stDutyMotor), 1);
+    if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
 		goto fail;
 	}
 
-    s_ucDutyMotorSize = ucSize;
-    s_ucDutyMotorPos = 0;
-
-    g_pstDutyMotorTimer = pstTimer;
-    return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DM:%u S:%u EC:%d", __LINE__, ucSize, pif_enError);
-#endif
-    return FALSE;
-}
-
-/**
- * @fn pifDutyMotor_Exit
- * @brief 
- */
-void pifDutyMotor_Exit()
-{
-    if (s_pstDutyMotor) {
-		for (int i = 0; i < s_ucDutyMotorSize; i++) {
-			PIF_stDutyMotor *pstOwner = &s_pstDutyMotor[i];
-			if (pstOwner->_pvChild) {
-				free(pstOwner->_pvChild);
-				pstOwner->_pvChild = NULL;
-			}
-			if (pstOwner->__pstTimerControl) {
-				pifPulse_RemoveItem(g_pstDutyMotorTimer, pstOwner->__pstTimerControl);
-			}
-			if (pstOwner->__pstTimerDelay) {
-				pifPulse_RemoveItem(g_pstDutyMotorTimer, pstOwner->__pstTimerDelay);
-			}
-			if (pstOwner->__pstTimerBreak) {
-				pifPulse_RemoveItem(g_pstDutyMotorTimer, pstOwner->__pstTimerBreak);
-			}
-		}
-        free(s_pstDutyMotor);
-        s_pstDutyMotor = NULL;
-    }
-}
-
-/**
- * @fn pifDutyMotor_Add
- * @brief 
- * @param usPifId
- * @param usMaxDuty
- * @return 
- */
-PIF_stDutyMotor *pifDutyMotor_Add(PIF_usId usPifId, uint16_t usMaxDuty)
-{
-    PIF_stDutyMotor *pstOwner = NULL;
-
-    if (s_ucDutyMotorPos >= s_ucDutyMotorSize) {
-        pif_enError = E_enOverflowBuffer;
-        goto fail;
-    }
-
-    pstOwner = &s_pstDutyMotor[s_ucDutyMotorPos];
-
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
-    pstOwner->_usPifId = usPifId;
-    pstOwner->_enState = MS_enIdle;
-    pstOwner->_usMaxDuty = usMaxDuty;
-
-    s_ucDutyMotorPos = s_ucDutyMotorPos + 1;
+    if (!pifDutyMotor_Init(pstOwner, usPifId, p_timer, usMaxDuty)) goto fail;
     return pstOwner;
 
 fail:
@@ -137,6 +64,66 @@ fail:
 	pifLog_Printf(LT_enError, "DM:%u(%u) MD:%u EC:%d", __LINE__, usPifId, usMaxDuty, pif_enError);
 #endif
     return NULL;
+}
+
+void pifDutyMotor_Destroy(PIF_stDutyMotor** pp_owner)
+{
+	if (*pp_owner) {
+		pifDutyMotor_Clear(*pp_owner);
+		free(*pp_owner);
+		*pp_owner = NULL;
+	}
+}
+
+/**
+ * @fn pifDutyMotor_Init
+ * @brief 
+ * @param pstOwner
+ * @param usPifId
+ * @param p_timer
+ * @param usMaxDuty
+ * @return 
+ */
+BOOL pifDutyMotor_Init(PIF_stDutyMotor* pstOwner, PIF_usId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty)
+{
+    if (!p_timer) {
+		pif_enError = E_enInvalidParam;
+		goto fail;
+	}
+
+    pstOwner->_p_timer = p_timer;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    pstOwner->_usPifId = usPifId;
+    pstOwner->_enState = MS_enIdle;
+    pstOwner->_usMaxDuty = usMaxDuty;
+    return TRUE;
+
+fail:
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_enError, "DM:%u PID:%u EC:%d", __LINE__, usPifId, pif_enError);
+#endif
+    return FALSE;
+}
+
+/**
+ * @fn pifDutyMotor_Clear
+ * @brief
+ * @param pstOwner
+ */
+void pifDutyMotor_Clear(PIF_stDutyMotor* pstOwner)
+{
+	if (pstOwner->__pstTimerControl) {
+		pifPulse_RemoveItem(pstOwner->_p_timer, pstOwner->__pstTimerControl);
+		pstOwner->__pstTimerControl = NULL;
+	}
+	if (pstOwner->__pstTimerDelay) {
+		pifPulse_RemoveItem(pstOwner->_p_timer, pstOwner->__pstTimerDelay);
+		pstOwner->__pstTimerDelay = NULL;
+	}
+	if (pstOwner->__pstTimerBreak) {
+		pifPulse_RemoveItem(pstOwner->_p_timer, pstOwner->__pstTimerBreak);
+		pstOwner->__pstTimerBreak = NULL;
+	}
 }
 
 /**
@@ -191,7 +178,7 @@ void pifDutyMotor_SetDuty(PIF_stDutyMotor *pstOwner, uint16_t usDuty)
 BOOL pifDutyMotor_SetOperatingTime(PIF_stDutyMotor *pstOwner, uint32_t unOperatingTime)
 {
 	if (!pstOwner->__pstTimerBreak) {
-		pstOwner->__pstTimerBreak = pifPulse_AddItem(g_pstDutyMotorTimer, PT_enOnce);
+		pstOwner->__pstTimerBreak = pifPulse_AddItem(pstOwner->_p_timer, PT_enOnce);
 	}
 	if (pstOwner->__pstTimerBreak) {
 		pifPulse_AttachEvtFinish(pstOwner->__pstTimerBreak, _evtTimerBreakFinish, pstOwner);
@@ -244,7 +231,7 @@ void pifDutyMotor_BreakRelease(PIF_stDutyMotor *pstOwner, uint16_t usBreakTime)
 
     if (usBreakTime && pstOwner->__actOperateBreak) {
 	    if (!pstOwner->__pstTimerBreak) {
-	    	pstOwner->__pstTimerBreak = pifPulse_AddItem(g_pstDutyMotorTimer, PT_enOnce);
+	    	pstOwner->__pstTimerBreak = pifPulse_AddItem(pstOwner->_p_timer, PT_enOnce);
 	    }
 	    if (pstOwner->__pstTimerBreak) {
 	    	pifPulse_AttachEvtFinish(pstOwner->__pstTimerBreak, _evtTimerBreakFinish, pstOwner);
@@ -264,7 +251,7 @@ void pifDutyMotor_BreakRelease(PIF_stDutyMotor *pstOwner, uint16_t usBreakTime)
  */
 BOOL pifDutyMotor_InitControl(PIF_stDutyMotor *pstOwner, uint16_t usControlPeriod)
 {
-	pstOwner->__pstTimerControl = pifPulse_AddItem(g_pstDutyMotorTimer, PT_enRepeat);
+	pstOwner->__pstTimerControl = pifPulse_AddItem(pstOwner->_p_timer, PT_enRepeat);
     if (!pstOwner->__pstTimerControl) return FALSE;
 
     pstOwner->__usControlPeriod = usControlPeriod;
