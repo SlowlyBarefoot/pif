@@ -126,19 +126,19 @@ PIF_stKeypad *pifKeypad_Create(PIF_usId usPifId, uint8_t ucNumRows, uint8_t ucNu
 	p_owner = calloc(sizeof(PIF_stKeypad), 1);
 	if (!p_owner) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+		return NULL;
 	}
 
 	p_owner->__pstKey = calloc(sizeof(PIF_stKey), ucNumRows * ucNumCols);
 	if (!p_owner->__pstKey) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+		return NULL;
 	}
 
 	p_owner->__pusState = calloc(sizeof(uint16_t), ucNumRows);
 	if (!p_owner->__pusState) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+		return NULL;
 	}
 
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
@@ -150,12 +150,6 @@ PIF_stKeypad *pifKeypad_Create(PIF_usId usPifId, uint8_t ucNumRows, uint8_t ucNu
     p_owner->_usLongTimeMs = PIF_KEYPAD_DEFAULT_LONG_TIME;
     p_owner->_usDoubleTimeMs = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
     return p_owner;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Keypad:Init(R:%u C:%d) EC:%d", ucNumRows, ucNumCols, pif_enError);
-#endif
-	return NULL;
 }
 
 /**

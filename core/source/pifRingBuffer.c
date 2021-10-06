@@ -86,14 +86,9 @@ PIF_stRingBuffer *pifRingBuffer_InitHeap(PIF_usId usPifId, uint16_t usSize)
 
 fail:
 	if (pstOwner) {
-		if (pstOwner->__pucBuffer) {
-			free(pstOwner->__pucBuffer);
-		}
+		if (pstOwner->__pucBuffer) free(pstOwner->__pucBuffer);
 		free(pstOwner);
 	}
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "RB:Init(S:%u) EC:%d", usSize, pif_enError);
-#endif
     return NULL;
 }
 
@@ -131,12 +126,7 @@ PIF_stRingBuffer *pifRingBuffer_InitStatic(PIF_usId usPifId, uint16_t usSize, ui
     return pstOwner;
 
 fail:
-	if (pstOwner) {
-		free(pstOwner);
-	}
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "RB:Init(S:%u) EC:%d", usSize, pif_enError);
-#endif
+	if (pstOwner) free(pstOwner);
     return NULL;
 }
 

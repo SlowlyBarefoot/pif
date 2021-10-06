@@ -352,13 +352,13 @@ BOOL pifLog_UseCommand(const PIF_stLogCmdEntry *pstCmdTable, const char *pcPromp
 {
     if (!pstCmdTable || !pcPrompt) {
     	pif_enError = E_enInvalidParam;
-    	goto fail;
+		return FALSE;
     }
 
     s_stLog.pcRxBuffer = calloc(sizeof(char), PIF_LOG_RX_BUFFER_SIZE);
     if (!s_stLog.pcRxBuffer) {
         pif_enError = E_enOutOfHeap;
-        goto fail;
+		return FALSE;
     }
     s_stLog.ucRxBufferSize = PIF_LOG_RX_BUFFER_SIZE;
 
@@ -366,10 +366,6 @@ BOOL pifLog_UseCommand(const PIF_stLogCmdEntry *pstCmdTable, const char *pcPromp
     s_stLog.pstCmdTable[1] = pstCmdTable;
     s_stLog.pcPrompt = pcPrompt;
     return TRUE;
-
-fail:
-	pifLog_Printf(LT_enError, "%u Log:Init(R:%u T:%u) EC:%d", PIF_LOG_RX_BUFFER_SIZE, PIF_LOG_TX_BUFFER_SIZE, pif_enError);
-	return FALSE;
 }
 
 #endif

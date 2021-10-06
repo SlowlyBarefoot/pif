@@ -15,17 +15,11 @@ PIF_stGps *pifGps_Create(PIF_usId usPifId)
 	PIF_stGps *pstOwner = calloc(sizeof(PIF_stGps), 1);
 	if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+	    return NULL;
 	}
 
 	pifGps_Init(pstOwner, usPifId);
     return pstOwner;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "GPS:%u EC:%d", __LINE__, pif_enError);
-#endif
-    return NULL;
 }
 
 /**

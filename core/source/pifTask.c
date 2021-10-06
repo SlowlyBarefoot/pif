@@ -180,14 +180,14 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
 
 	if (!evtLoop) {
         pif_enError = E_enInvalidParam;
-        goto fail;
+	    return NULL;
 	}
 
 	switch (enMode) {
     case TM_enRatio:
     	if (!usPeriod || usPeriod > 100) {
     		pif_enError = E_enInvalidParam;
-            goto fail;
+		    return NULL;
     	}
     	break;
 
@@ -198,7 +198,7 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
     case TM_enChangeMs:
     	if (!usPeriod) {
             pif_enError = E_enInvalidParam;
-            goto fail;
+		    return NULL;
     	}
     	break;
 
@@ -206,12 +206,12 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
     case TM_enChangeUs:
     	if (!usPeriod) {
             pif_enError = E_enInvalidParam;
-            goto fail;
+		    return NULL;
     	}
 
     	if (!pif_actTimer1us) {
             pif_enError = E_enCanNotUse;
-            goto fail;
+		    return NULL;
         }
     	break;
     }
@@ -226,7 +226,7 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
     	}
     	if (i >= PIF_TASK_TABLE_SIZE) {
     		pif_enError = E_enOverflowBuffer;
-    		goto fail;
+		    return NULL;
     	}
     	s_table_number |= 1 << num;
 
@@ -256,7 +256,7 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
     }
 
 	PIF_stTask *pstOwner = (PIF_stTask *)pifDList_AddLast(&s_tasks, sizeof(PIF_stTask));
-	if (!pstOwner) goto fail;
+	if (!pstOwner) return NULL;
 
     switch (enMode) {
     case TM_enRatio:
@@ -282,12 +282,6 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
     pstOwner->_pvClient = pvClient;
     pstOwner->bPause = !bStart;
     return pstOwner;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Task:Add(P:%uus) EC:%d", usPeriod, pif_enError);
-#endif
-    return NULL;
 }
 
 /**

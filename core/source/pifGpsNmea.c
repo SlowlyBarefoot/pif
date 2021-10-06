@@ -398,9 +398,6 @@ PIF_stGpsNmea *pifGpsNmea_Create(PIF_usId usPifId)
 
 fail:
 	if (pstOwner) free(pstOwner);
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "GN:%u(%u) EC:%d", __LINE__, usPifId, pif_enError);
-#endif
     return NULL;
 }
 

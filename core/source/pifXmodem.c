@@ -16,11 +16,6 @@
 
 static void _evtTimerRxTimeout(void *pvIssuer)
 {
-	if (!pvIssuer) {
-		pif_enError = E_enInvalidParam;
-		return;
-	}
-
 	PIF_stXmodem *pstOwner = (PIF_stXmodem *)pvIssuer;
 
 	switch (pstOwner->__stTx.ui.enState) {
@@ -37,11 +32,6 @@ static void _evtTimerRxTimeout(void *pvIssuer)
 
 static void _evtTimerTxTimeout(void *pvIssuer)
 {
-	if (!pvIssuer) {
-		pif_enError = E_enInvalidParam;
-		return;
-	}
-
 	PIF_stXmodem *pstOwner = (PIF_stXmodem *)pvIssuer;
 
 	switch (pstOwner->__stTx.ui.enState) {
@@ -386,9 +376,6 @@ PIF_stXmodem *pifXmodem_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enXm
 
 fail:
 	pifXmodem_Destroy(&pstOwner);
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "%u Xmodem:Init(T:%u) EC:%d", enType, pif_enError);
-#endif
 	return NULL;
 }
 
@@ -489,17 +476,17 @@ BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *puc
 
 	if (!pstOwner->__stTx.evtReceive) {
 		pif_enError = E_enNotSetEvent;
-		goto fail;
+		return FALSE;
 	}
 
 	if (!usDataSize || usDataSize > 128) {
 		pif_enError = E_enInvalidParam;
-		goto fail;
+		return FALSE;
 	}
 
 	if (pstOwner->__stTx.ui.enState != XTS_enIdle) {
 		pif_enError = E_enInvalidState;
-		goto fail;
+		return FALSE;
 	}
 
 	pstOwner->__pucData[0] = ASCII_SOH;
@@ -535,12 +522,6 @@ BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *puc
 #endif
 	}
 	return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Xmodem:SendData(PN:%u DS:%u S:%u) EC:%d", ucPacketNo, usDataSize, pstOwner->__stTx.ui.enState, pif_enError);
-#endif
-	return FALSE;
 }
 
 /**

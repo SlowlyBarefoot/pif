@@ -53,17 +53,11 @@ PIF_stDutyMotor *pifDutyMotor_Create(PIF_usId usPifId, PIF_stPulse* p_timer, uin
     pstOwner = calloc(sizeof(PIF_stDutyMotor), 1);
     if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+	    return NULL;
 	}
 
-    if (!pifDutyMotor_Init(pstOwner, usPifId, p_timer, usMaxDuty)) goto fail;
+    if (!pifDutyMotor_Init(pstOwner, usPifId, p_timer, usMaxDuty)) return NULL;
     return pstOwner;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DM:%u(%u) MD:%u EC:%d", __LINE__, usPifId, usMaxDuty, pif_enError);
-#endif
-    return NULL;
 }
 
 void pifDutyMotor_Destroy(PIF_stDutyMotor** pp_owner)
@@ -88,7 +82,7 @@ BOOL pifDutyMotor_Init(PIF_stDutyMotor* pstOwner, PIF_usId usPifId, PIF_stPulse*
 {
     if (!p_timer) {
 		pif_enError = E_enInvalidParam;
-		goto fail;
+	    return FALSE;
 	}
 
     pstOwner->_p_timer = p_timer;
@@ -97,12 +91,6 @@ BOOL pifDutyMotor_Init(PIF_stDutyMotor* pstOwner, PIF_usId usPifId, PIF_stPulse*
     pstOwner->_enState = MS_enIdle;
     pstOwner->_usMaxDuty = usMaxDuty;
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DM:%u PID:%u EC:%d", __LINE__, usPifId, pif_enError);
-#endif
-    return FALSE;
 }
 
 /**
@@ -200,7 +188,7 @@ BOOL pifDutyMotor_Start(PIF_stDutyMotor *pstOwner, uint16_t usDuty)
 {
     if (!pstOwner->__actSetDuty || !pstOwner->__actSetDirection) {
         pif_enError = E_enInvalidParam;
-        goto fail;
+		return FALSE;
     }
 
     (*pstOwner->__actSetDirection)(pstOwner->_ucDirection);
@@ -209,12 +197,6 @@ BOOL pifDutyMotor_Start(PIF_stDutyMotor *pstOwner, uint16_t usDuty)
 
     (*pstOwner->__actSetDuty)(pstOwner->_usCurrentDuty);
 	return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DM:%u(%u) EC:%d", __LINE__, pstOwner->_usPifId, usDuty, pif_enError);
-#endif
-	return FALSE;
 }
 
 /**
@@ -270,14 +252,8 @@ BOOL pifDutyMotor_StartControl(PIF_stDutyMotor *pstOwner)
 {
 	if (pstOwner->_enState != MS_enIdle) {
         pif_enError = E_enInvalidState;
-        goto fail;
+	    return FALSE;
     }
 
     return pifPulse_StartItem(pstOwner->__pstTimerControl, pstOwner->__usControlPeriod);
-
-fail:
-#ifndef __PIF_NO_LOG__
-    pifLog_Printf(LT_enError, "DM:%u(%u) S:%u EC:%u", __LINE__, pstOwner->_usPifId, pstOwner->_enState, pif_enError);
-#endif
-    return FALSE;
 }

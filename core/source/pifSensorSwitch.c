@@ -113,7 +113,7 @@ PIF_stSensor *pifSensorSwitch_Create(PIF_usId usPifId, SWITCH swInitState)
     pstOwner = calloc(sizeof(PIF_stSensorSwitch), 1);
     if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+	    return NULL;
 	}
 
     PIF_stSensor *pstSensor = &pstOwner->stSensor;
@@ -126,18 +126,12 @@ PIF_stSensor *pifSensorSwitch_Create(PIF_usId usPifId, SWITCH swInitState)
 #ifdef __PIF_COLLECT_SIGNAL__
 	pifCollectSignal_Attach(CSF_enSensorSwitch, _AddDeviceInCollectSignal);
 	PIF_SensorSwitchColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_SensorSwitchColSig));
-	if (!p_colsig) goto fail;
+	if (!p_colsig) return NULL;
 	p_colsig->p_owner = pstOwner;
 	pstOwner->__p_colsig = p_colsig;
 	p_colsig->state = swInitState;
 #endif
     return pstSensor;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "SS:Add(DC:%u IS:%u) EC:%d", usPifId, swInitState, pif_enError);
-#endif
-    return NULL;
 }
 
 /**
@@ -184,7 +178,7 @@ BOOL pifSensorSwitch_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMetho
 
     if (!ucFilterMethod || ucFilterSize < 3 || ucFilterSize >= 32 || !pstFilter) {
 		pif_enError = E_enInvalidParam;
-		goto fail;
+	    return FALSE;
 	}
 
     pifSensorSwitch_DetachFilter(&pstOwner->stSensor);
@@ -210,12 +204,6 @@ BOOL pifSensorSwitch_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMetho
 	pstOwner->__ucFilterMethod = ucFilterMethod;
 	pstOwner->__pstFilter = pstFilter;
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "SS:AttachFilterState(M:%d S:%u) EC:%d", ucFilterMethod, ucFilterSize, pif_enError);
-#endif
-    return FALSE;
 }
 
 /**

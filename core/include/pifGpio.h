@@ -5,7 +5,7 @@
 #include "pifTask.h"
 
 
-#define PIF_GPIO_MAX_COUNT		8
+#define PIF_GPIO_MAX_COUNT		7
 
 
 typedef enum _PIF_enGpioCsFlag
@@ -82,8 +82,8 @@ void pifGpio_Destroy(PIF_stGpio** pp_owner);
 uint8_t pifGpio_ReadAll(PIF_stGpio *pstOwner);
 SWITCH pifGpio_ReadCell(PIF_stGpio *pstOwner, uint8_t ucIndex);
 
-void pifGpio_WriteAll(PIF_stGpio *pstOwner, uint8_t ucState);
-void pifGpio_WriteCell(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState);
+BOOL pifGpio_WriteAll(PIF_stGpio *pstOwner, uint8_t ucState);
+BOOL pifGpio_WriteCell(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 

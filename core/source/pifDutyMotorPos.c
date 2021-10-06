@@ -199,22 +199,18 @@ PIF_stDutyMotor *pifDutyMotorPos_Create(PIF_usId usPifId, PIF_stPulse* p_timer, 
     }
 
     PIF_stDutyMotor* pstOwner = &p_owner->parent;
-    if (!pifDutyMotor_Init(pstOwner, usPifId, p_timer, usMaxDuty)) goto fail_clear;
+    if (!pifDutyMotor_Init(pstOwner, usPifId, p_timer, usMaxDuty)) goto fail;
 
-    if (!pifDutyMotor_InitControl(pstOwner, usControlPeriod)) goto fail_clear;
+    if (!pifDutyMotor_InitControl(pstOwner, usControlPeriod)) goto fail;
 
     pstOwner->__pstTimerDelay = pifPulse_AddItem(pstOwner->_p_timer, PT_enOnce);
-    if (!pstOwner->__pstTimerDelay) goto fail_clear;
+    if (!pstOwner->__pstTimerDelay) goto fail;
     pifPulse_AttachEvtFinish(pstOwner->__pstTimerDelay, _evtTimerDelayFinish, pstOwner);
 
 	pstOwner->__fnControl = _fnControlPos;
     return pstOwner;
 
 fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DMP:%u(%u) MD:%u P:%u EC:%u", __LINE__, usPifId, usMaxDuty, usControlPeriod, pif_enError);
-#endif
-fail_clear:
 	pifDutyMotorPos_Destroy(&pstOwner);
     return NULL;
 }
@@ -246,7 +242,7 @@ BOOL pifDutyMotorPos_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize, c
     for (int i = 0; i < ucStageSize; i++) {
     	if (pstStages[i].enMode & MM_SC_enMask) {
             pif_enError = E_enInvalidParam;
-            goto fail;
+		    return FALSE;
     	}
     }
 
@@ -254,12 +250,6 @@ BOOL pifDutyMotorPos_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize, c
     pstPos->__ucStageSize = ucStageSize;
     pstPos->__pstStages = pstStages;
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DMP:%u(%u) SS:%u EC:%u", __LINE__, pstOwner->_usPifId, ucStageSize, pif_enError);
-#endif
-    return FALSE;
 }
 
 /**
@@ -278,7 +268,7 @@ BOOL pifDutyMotorPos_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, uint
 
     if (!pstOwner->__actSetDuty || !pstOwner->__actSetDirection) {
     	pif_enError = E_enInvalidParam;
-    	goto fail;
+	    return FALSE;
     }
 
     pstPos->__pstCurrentStage = &pstPos->__pstStages[ucStageIndex];
@@ -306,21 +296,21 @@ BOOL pifDutyMotorPos_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, uint
     		pifLog_Printf(LT_enError, "DMP:%u(%u) S:%u", __LINE__, pstOwner->_usPifId, ucState);
 #endif
         	pif_enError = E_enInvalidState;
-    		goto fail;
+		    return FALSE;
     	}
     }
 
     if ((pstStage->enMode & MM_RT_enMask) == MM_RT_enTime) {
     	if (!unOperatingTime) {
         	pif_enError = E_enInvalidParam;
-    		goto fail;
+		    return FALSE;
     	}
     	else {
-    		if (!pifDutyMotor_SetOperatingTime(pstOwner, unOperatingTime)) goto fail;
+    		if (!pifDutyMotor_SetOperatingTime(pstOwner, unOperatingTime)) return FALSE;
     	}
     }
 
-    if (!pifDutyMotor_StartControl(pstOwner)) goto fail;
+    if (!pifDutyMotor_StartControl(pstOwner)) return FALSE;
 
     pstPos->_ucStageIndex = ucStageIndex;
 
@@ -353,12 +343,6 @@ BOOL pifDutyMotorPos_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, uint
     }
 #endif
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "DMP:%u(%u) S:%u EC:%u", __LINE__, pstOwner->_usPifId, ucStageIndex, pif_enError);
-#endif
-    return FALSE;
 }
 
 /**

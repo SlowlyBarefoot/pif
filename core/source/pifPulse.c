@@ -38,9 +38,6 @@ PIF_stPulse *pifPulse_Create(PIF_usId usPifId, uint32_t unPeriodUs)
 
 fail:
 	if (pstOwner) free(pstOwner);
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Pulse:Init(P:%lu) EC:%d", unPeriodUs, pif_enError);
-#endif
     return NULL;
 }
 
@@ -68,7 +65,7 @@ void pifPulse_Destroy(PIF_stPulse **ppstOwner)
 PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType)
 {
     PIF_stPulseItem *pstItem = (PIF_stPulseItem *)pifDList_AddLast(&pstOwner->__items, sizeof(PIF_stPulseItem));
-    if (!pstItem) goto fail;
+    if (!pstItem) return NULL;
 
     pstItem->_enType = enType;
     pstItem->__evtFinish = NULL;
@@ -76,12 +73,6 @@ PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType)
 
     pstItem->_enStep = PS_enStop;
     return pstItem;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Pulse:AddItem(T:%d) EC:%d", enType, pif_enError);
-#endif
-    return NULL;
 }
 
 /**
@@ -116,7 +107,7 @@ BOOL pifPulse_StartItem(PIF_stPulseItem *pstItem, uint32_t unTarget)
 {
 	if (!unTarget) {
     	pif_enError = E_enInvalidParam;
-    	goto fail;
+	    return FALSE;
     }
 
     if (pstItem->_enStep == PS_enStop) {
@@ -130,12 +121,6 @@ BOOL pifPulse_StartItem(PIF_stPulseItem *pstItem, uint32_t unTarget)
     	pstItem->__unPwmDuty = 0;
     }
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Pulse:StartItem(P:%d) EC:%d", unTarget, pif_enError);
-#endif
-    return FALSE;
 }
 
 /**

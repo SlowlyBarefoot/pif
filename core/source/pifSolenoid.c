@@ -54,11 +54,6 @@ static void _ActionOn(PIF_stSolenoid *pstOwner, uint16_t usDelay, PIF_enSolenoid
 
 static void _evtTimerDelayFinish(void *pvIssuer)
 {
-    if (!pvIssuer) {
-        pif_enError = E_enInvalidParam;
-        return;
-    }
-
     PIF_stSolenoid *pstOwner = (PIF_stSolenoid *)pvIssuer;
 
 	if (pstOwner->_enType != ST_en2Point || pstOwner->__enDir != pstOwner->__enCurrentDir) {
@@ -85,11 +80,6 @@ static void _evtTimerDelayFinish(void *pvIssuer)
 
 static void _evtTimerOnFinish(void *pvIssuer)
 {
-    if (!pvIssuer) {
-        pif_enError = E_enInvalidParam;
-        return;
-    }
-
     PIF_stSolenoid *pstOwner = (PIF_stSolenoid *)pvIssuer;
 
     if (pstOwner->__bState) {
@@ -164,21 +154,21 @@ PIF_stSolenoid *pifSolenoid_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_
 
     if (!pstTimer || !actControl) {
 		pif_enError = E_enInvalidParam;
-		goto fail;
+	    return NULL;
 	}
 
     pstOwner = calloc(sizeof(PIF_stSolenoid), 1);
     if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+	    return NULL;
 	}
 
     pstOwner->__pstTimerOn = pifPulse_AddItem(pstTimer, PT_enOnce);
-    if (!pstOwner->__pstTimerOn) return FALSE;
+    if (!pstOwner->__pstTimerOn) return NULL;
     pifPulse_AttachEvtFinish(pstOwner->__pstTimerOn, _evtTimerOnFinish, pstOwner);
 
     pstOwner->__pstTimerDelay = pifPulse_AddItem(pstTimer, PT_enOnce);
-    if (!pstOwner->__pstTimerDelay) return FALSE;
+    if (!pstOwner->__pstTimerDelay) return NULL;
     pifPulse_AttachEvtFinish(pstOwner->__pstTimerDelay, _evtTimerDelayFinish, pstOwner);
 
     pstOwner->__pstTimer = pstTimer;
@@ -193,17 +183,11 @@ PIF_stSolenoid *pifSolenoid_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_
 #ifdef __PIF_COLLECT_SIGNAL__
 	pifCollectSignal_Attach(CSF_enSolenoid, _AddDeviceInCollectSignal);
 	PIF_SolenoidColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_SolenoidColSig));
-	if (!p_colsig) goto fail;
+	if (!p_colsig) return NULL;
 	p_colsig->p_owner = pstOwner;
 	pstOwner->__p_colsig = p_colsig;
 #endif
     return pstOwner;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Solenoid:Add(D:%u O:%u) EC:%d", usPifId, usOnTime, pif_enError);
-#endif
-    return NULL;
 }
 
 /**
@@ -262,17 +246,11 @@ BOOL pifSolenoid_SetOnTime(PIF_stSolenoid *pstOwner, uint16_t usOnTime)
 {
     if (!usOnTime) {
         pif_enError = E_enInvalidParam;
-        goto fail;
+	    return FALSE;
     }
 
     pstOwner->usOnTime = usOnTime;
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Solenoid:SetOnTime(O:%u) EC:%d", usOnTime, pif_enError);
-#endif
-    return FALSE;
 }
 
 /**

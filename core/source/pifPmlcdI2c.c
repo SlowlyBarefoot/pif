@@ -111,9 +111,6 @@ PIF_stPmlcdI2c *pifPmlcdI2c_Create(PIF_usId usPifId, uint8_t ucAddr)
 
 fail:
 	if (pstOwner) free(pstOwner);
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PMLCD:%u(%u) EC:%d", __LINE__, usPifId, pif_enError);
-#endif
     return NULL;
 }
 

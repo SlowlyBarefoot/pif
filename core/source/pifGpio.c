@@ -60,13 +60,13 @@ PIF_stGpio* pifGpio_Create(PIF_usId usPifId, uint8_t ucCount)
 
     if (!ucCount || ucCount > PIF_GPIO_MAX_COUNT) {
         pif_enError = E_enInvalidParam;
-        goto fail;
+	    return NULL;
     }
 
     pstOwner = calloc(sizeof(PIF_stGpio), 1);
     if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+	    return NULL;
 	}
 
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
@@ -76,17 +76,11 @@ PIF_stGpio* pifGpio_Create(PIF_usId usPifId, uint8_t ucCount)
 #ifdef __PIF_COLLECT_SIGNAL__
 	pifCollectSignal_Attach(CSF_enGpio, _AddDeviceInCollectSignal);
 	PIF_GpioColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_GpioColSig));
-	if (!p_colsig) goto fail;
+	if (!p_colsig) return NULL;
 	p_colsig->p_owner = pstOwner;
 	pstOwner->__p_colsig = p_colsig;
 #endif
     return pstOwner;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "GPIO:%u(%u) C=%u EC:%d", __LINE__, usPifId, ucCount, pif_enError);
-#endif
-    return NULL;
 }
 
 /**
@@ -110,7 +104,10 @@ void pifGpio_Destroy(PIF_stGpio** pp_owner)
  */
 uint8_t pifGpio_ReadAll(PIF_stGpio *pstOwner)
 {
-	if (!pstOwner->__ui.actIn) return 0;
+	if (!pstOwner->__ui.actIn) {
+		pif_enError = E_enCanNotUse;
+		return 0xFF;
+	}
 
 	uint8_t state = pstOwner->__ui.actIn(pstOwner->_usPifId);
 
@@ -132,7 +129,10 @@ uint8_t pifGpio_ReadAll(PIF_stGpio *pstOwner)
  */
 SWITCH pifGpio_ReadCell(PIF_stGpio *pstOwner, uint8_t ucIndex)
 {
-	if (!pstOwner->__ui.actIn) return 0;
+	if (!pstOwner->__ui.actIn) {
+		pif_enError = E_enCanNotUse;
+		return 0xFF;
+	}
 
 	uint8_t state = (pstOwner->__ui.actIn(pstOwner->_usPifId) >> ucIndex) & 1;
 	pstOwner->__read_state = (pstOwner->__read_state & (1 << ucIndex)) | state;
@@ -151,10 +151,14 @@ SWITCH pifGpio_ReadCell(PIF_stGpio *pstOwner, uint8_t ucIndex)
  * @brief
  * @param pstOwner
  * @param ucState
+ * @return
  */
-void pifGpio_WriteAll(PIF_stGpio *pstOwner, uint8_t ucState)
+BOOL pifGpio_WriteAll(PIF_stGpio *pstOwner, uint8_t ucState)
 {
-	if (!pstOwner->__ui.actOut) return;
+	if (!pstOwner->__ui.actOut) {
+		pif_enError = E_enCanNotUse;
+		return FALSE;
+	}
 
 	pstOwner->__write_state = ucState;
 	pstOwner->__ui.actOut(pstOwner->_usPifId, ucState);
@@ -164,6 +168,7 @@ void pifGpio_WriteAll(PIF_stGpio *pstOwner, uint8_t ucState)
 		pifCollectSignal_AddSignal(pstOwner->__p_colsig->p_device[GpCsF_enStateIdx], pstOwner->__write_state);
 	}
 #endif
+	return TRUE;
 }
 
 /**
@@ -172,10 +177,14 @@ void pifGpio_WriteAll(PIF_stGpio *pstOwner, uint8_t ucState)
  * @param pstOwner
  * @param ucIndex
  * @param swState
+ * @return
  */
-void pifGpio_WriteCell(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState)
+BOOL pifGpio_WriteCell(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState)
 {
-	if (!pstOwner->__ui.actOut) return;
+	if (!pstOwner->__ui.actOut) {
+		pif_enError = E_enCanNotUse;
+		return FALSE;
+	}
 
 	if (swState) {
 		pstOwner->__write_state |= 1 << ucIndex;
@@ -190,6 +199,7 @@ void pifGpio_WriteCell(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState)
 		pifCollectSignal_AddSignal(pstOwner->__p_colsig->p_device[GpCsF_enStateIdx], pstOwner->__write_state);
 	}
 #endif
+	return TRUE;
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -324,5 +334,10 @@ void pifGpio_AttachActOut(PIF_stGpio* p_owner, PIF_actGpioOut act_out)
  */
 PIF_stTask *pifGpio_AttachTaskIn(PIF_stGpio *p_owner, PIF_enTaskMode mode, uint16_t period, BOOL start)
 {
+	if (!p_owner->__ui.actIn) {
+		pif_enError = E_enCanNotUse;
+		return NULL;
+	}
+
 	return pifTaskManager_Add(mode, period, _DoTask, p_owner, start);
 }

@@ -8,11 +8,6 @@
 
 static void _evtTimerRxTimeout(void *pvIssuer)
 {
-	if (!pvIssuer) {
-		pif_enError = E_enInvalidParam;
-		return;
-	}
-
 	PIF_stProtocol *pstOwner = (PIF_stProtocol *)pvIssuer;
 
 #ifndef __PIF_NO_LOG__
@@ -33,11 +28,6 @@ static void _evtTimerRxTimeout(void *pvIssuer)
 
 static void _evtTimerTxTimeout(void *pvIssuer)
 {
-	if (!pvIssuer) {
-		pif_enError = E_enInvalidParam;
-		return;
-	}
-
 	PIF_stProtocol *pstOwner = (PIF_stProtocol *)pvIssuer;
 
 	switch (pstOwner->__stTx.enState) {
@@ -506,9 +496,6 @@ PIF_stProtocol *pifProtocol_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_
 
 fail:
 	pifProtocol_Destroy(&pstOwner);
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PTC(%u) Add(T:%d) EC:%d", usPifId, enType, pif_enError);
-#endif
     return NULL;
 }
 
@@ -569,23 +556,17 @@ BOOL pifProtocol_ResizeRxPacket(PIF_stProtocol *pstOwner, uint16_t usRxPacketSiz
 {
     if (!usRxPacketSize) {
     	pif_enError = E_enInvalidParam;
-    	goto fail;
+	    return FALSE;
     }
 
     pstOwner->__stRx.pucPacket = realloc(pstOwner->__stRx.pucPacket, sizeof(uint8_t) * (10 + usRxPacketSize));
     if (!pstOwner->__stRx.pucPacket) {
         pif_enError = E_enOutOfHeap;
-    	goto fail;
+	    return FALSE;
     }
 
     pstOwner->__stRx.usPacketSize = 10 + usRxPacketSize;
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PTC(%u) ResizeRxPacket(S:%u) EC:%d", pstOwner->_usPifId, usRxPacketSize, pif_enError);
-#endif
-    return FALSE;
 }
 
 /**
@@ -599,16 +580,10 @@ BOOL pifProtocol_ResizeTxRequest(PIF_stProtocol *pstOwner, uint16_t usTxRequestS
 {
     if (!usTxRequestSize) {
     	pif_enError = E_enInvalidParam;
-    	goto fail;
+	    return FALSE;
     }
 
     return pifRingBuffer_ResizeHeap(pstOwner->__stTx.pstRequestBuffer, usTxRequestSize);
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PTC(%u) ResizeTxRequest(S:%u) EC:%d", pstOwner->_usPifId, usTxRequestSize, pif_enError);
-#endif
-    return FALSE;
 }
 
 /**
@@ -622,16 +597,10 @@ BOOL pifProtocol_ResizeTxResponse(PIF_stProtocol *pstOwner, uint16_t usTxRespons
 {
     if (usTxResponseSize) {
     	pif_enError = E_enInvalidParam;
-    	goto fail;
+	    return FALSE;
     }
 
     return pifRingBuffer_ResizeHeap(pstOwner->__stTx.pstAnswerBuffer, usTxResponseSize);
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "PTC(%u) ResizeTxResponset(S:%u) EC:%d", pstOwner->_usPifId, usTxResponseSize, pif_enError);
-#endif
-    return FALSE;
 }
 
 /**

@@ -32,9 +32,6 @@ PIF_stI2c *pifI2c_Create(PIF_usId usPifId, uint16_t ucDataSize)
 
 fail:
 	if (pstOwner) free(pstOwner);
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "I2C:%u S:%u EC:%d", __LINE__, ucDataSize, pif_enError);
-#endif
 	return NULL;
 }
 
@@ -66,13 +63,13 @@ BOOL pifI2c_Init(PIF_stI2c *pstOwner, PIF_usId usPifId, uint16_t ucDataSize)
 
 	if (!ucDataSize) {
 		pif_enError = E_enInvalidParam;
-		goto fail;
+		return FALSE;
 	}
 
 	pstOwner->pucData = calloc(sizeof(uint8_t), ucDataSize);
     if (!pstOwner->pucData) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+		return FALSE;
 	}
 
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
@@ -81,12 +78,6 @@ BOOL pifI2c_Init(PIF_stI2c *pstOwner, PIF_usId usPifId, uint16_t ucDataSize)
     pstOwner->_enStateRead = IS_enIdle;
     pstOwner->_enStateWrite = IS_enIdle;
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "I2C:%u S:%u EC:%d", __LINE__, ucDataSize, pif_enError);
-#endif
-	return FALSE;
 }
 
 /**

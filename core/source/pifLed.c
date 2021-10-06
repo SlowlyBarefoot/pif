@@ -8,11 +8,6 @@ static void _evtTimerBlinkFinish(void *pvIssuer)
 {
 	BOOL bBlink = FALSE;
 
-    if (!pvIssuer) {
-        pif_enError = E_enInvalidParam;
-        return;
-    }
-
     PIF_stLed *pstOwner = (PIF_stLed *)pvIssuer;
     pstOwner->__swBlink ^= 1;
     for (uint8_t i = 0; i < pstOwner->ucLedCount; i++) {
@@ -44,13 +39,13 @@ PIF_stLed *pifLed_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucCoun
 
     if (!pstTimer || !ucCount || ucCount > 32 || !actState) {
         pif_enError = E_enInvalidParam;
-        goto fail;
+	    return NULL;
     }
 
     pstOwner = calloc(sizeof(PIF_stLed), 1);
     if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+	    return NULL;
 	}
 
     pstOwner->__pstTimer = pstTimer;
@@ -59,12 +54,6 @@ PIF_stLed *pifLed_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucCoun
     pstOwner->ucLedCount = ucCount;
     pstOwner->__actState = actState;
     return pstOwner;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "LED:%u(%u) C=%u EC:%d", __LINE__, usPifId, ucCount, pif_enError);
-#endif
-    return NULL;
 }
 
 /**
@@ -194,24 +183,18 @@ BOOL pifLed_AttachBlink(PIF_stLed *pstOwner, uint16_t usPeriodMs)
 {
 	if (!usPeriodMs) {
         pif_enError = E_enInvalidParam;
-        goto fail;
+		return FALSE;
     }
 
 	if (!pstOwner->__pstTimerBlink) {
 		pstOwner->__pstTimerBlink = pifPulse_AddItem(pstOwner->__pstTimer, PT_enRepeat);
-		if (!pstOwner->__pstTimerBlink) goto fail;
+		if (!pstOwner->__pstTimerBlink) return FALSE;
 		pifPulse_AttachEvtFinish(pstOwner->__pstTimerBlink, _evtTimerBlinkFinish, pstOwner);
 	}
 
 	pstOwner->__unBlinkFlag = 0L;
     pifPulse_StartItem(pstOwner->__pstTimerBlink, usPeriodMs * 1000L / pstOwner->__pstTimer->_unPeriodUs);
 	return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "LED:%u(%u) P:%u EC:%d", __LINE__, pstOwner->_usPifId, usPeriodMs, pif_enError);
-#endif
-	return FALSE;
 }
 
 /**
@@ -238,22 +221,16 @@ BOOL pifLed_ChangeBlinkPeriod(PIF_stLed *pstOwner, uint16_t usPeriodMs)
 {
 	if (!usPeriodMs) {
         pif_enError = E_enInvalidParam;
-        goto fail;
+		return FALSE;
     }
 
 	if (!pstOwner->__pstTimerBlink || pstOwner->__pstTimerBlink->_enStep == PS_enStop) {
         pif_enError = E_enInvalidState;
-		goto fail;
+		return FALSE;
 	}
 
 	pstOwner->__pstTimerBlink->unTarget = usPeriodMs * 1000L / pstOwner->__pstTimer->_unPeriodUs;
 	return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "LED:%u(%u) P:%u EC:%d", __LINE__, pstOwner->_usPifId, usPeriodMs, pif_enError);
-#endif
-	return FALSE;
 }
 
 /**

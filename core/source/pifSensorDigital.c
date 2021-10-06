@@ -15,11 +15,6 @@ static PIF_DList s_cs_list;
 
 static void _evtTimerPeriodFinish(void *pvIssuer)
 {
-    if (!pvIssuer) {
-        pif_enError = E_enInvalidParam;
-        return;
-    }
-
     PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pvIssuer;
 
     if (pstOwner->__evtPeriod) {
@@ -94,13 +89,13 @@ PIF_stSensor *pifSensorDigital_Create(PIF_usId usPifId, PIF_stPulse *pstTimer)
 
     if (!pstTimer) {
 		pif_enError = E_enInvalidParam;
-		goto fail;
+	    return NULL;
 	}
 
     pstOwner = calloc(sizeof(PIF_stSensorDigital), 1);
     if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+	    return NULL;
 	}
 
     pstOwner->__pstTimer = pstTimer;
@@ -112,17 +107,11 @@ PIF_stSensor *pifSensorDigital_Create(PIF_usId usPifId, PIF_stPulse *pstTimer)
 #ifdef __PIF_COLLECT_SIGNAL__
 	pifCollectSignal_Attach(CSF_enSensorDigital, _AddDeviceInCollectSignal);
 	PIF_SensorDigitalColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_SensorDigitalColSig));
-	if (!p_colsig) goto fail;
+	if (!p_colsig) return NULL;
 	p_colsig->p_owner = pstOwner;
 	pstOwner->__p_colsig = p_colsig;
 #endif
     return &pstOwner->stSensor;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "SensorDigital:Create(DC:%u) EC:%d", usPifId, pif_enError);
-#endif
-    return NULL;
 }
 
 /**
@@ -248,7 +237,7 @@ BOOL pifSensorDigital_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMeth
 
     if (!ucFilterMethod || !ucFilterSize || !pstFilter) {
 		pif_enError = E_enInvalidParam;
-		goto fail;
+	    return FALSE;
 	}
 
     if (bInitFilter) {
@@ -262,7 +251,7 @@ BOOL pifSensorDigital_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMeth
 	pstFilter->apusBuffer = calloc(sizeof(uint16_t), ucFilterSize);
 	if (!pstFilter->apusBuffer) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+	    return FALSE;
 	}
 
 	switch (ucFilterMethod) {
@@ -277,12 +266,6 @@ BOOL pifSensorDigital_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMeth
 	pstOwner->__ucFilterMethod = ucFilterMethod;
 	pstOwner->__pstFilter = pstFilter;
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "SensorDigital:AttachFilter(M:%d S:%u) EC:%d", ucFilterMethod, ucFilterSize, pif_enError);
-#endif
-    return FALSE;
 }
 
 /**

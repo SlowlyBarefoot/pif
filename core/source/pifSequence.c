@@ -25,11 +25,6 @@ static void _SetPhaseNo(PIF_stSequence *pstOwner, uint8_t ucPhaseNo)
 
 static void _evtTimerTimeoutFinish(void *pvIssuer)
 {
-    if (!pvIssuer) {
-        pif_enError = E_enInvalidParam;
-        return;
-    }
-
     PIF_stSequence *pstOwner = (PIF_stSequence *)pvIssuer;
 
 	pif_enError = E_enTimeout;
@@ -85,13 +80,13 @@ PIF_stSequence *pifSequence_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, cons
 
     if (!pif_actTimer1us) {
         pif_enError = E_enCanNotUse;
-        goto fail;
+	    return NULL;
     }
 
     pstOwner = calloc(sizeof(PIF_stSequence), 1);
     if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+	    return NULL;
 	}
 
     pstOwner->__pstTimer = pstTimer;
@@ -105,17 +100,11 @@ PIF_stSequence *pifSequence_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, cons
 #ifdef __PIF_COLLECT_SIGNAL__
 	pifCollectSignal_Attach(CSF_enSequence, _AddDeviceInCollectSignal);
 	PIF_SequenceColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_SequenceColSig));
-	if (!p_colsig) goto fail;
+	if (!p_colsig) return NULL;
 	p_colsig->p_owner = pstOwner;
 	pstOwner->__p_colsig = p_colsig;
 #endif
     return pstOwner;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "SQ:Add() EC:%d", pif_enError);
-#endif
-    return NULL;
 }
 
 /**
@@ -273,9 +262,6 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
 	return 0;
 
 fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "SQ:Error(%d) EC:%d", pstOwner->_ucPhaseNo, pif_enError);
-#endif
 	if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
 	_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
 	return 0;

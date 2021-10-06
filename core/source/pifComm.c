@@ -51,7 +51,7 @@ PIF_stComm *pifComm_Create(PIF_usId usPifId)
     pstOwner = calloc(sizeof(PIF_stComm), 1);
     if (!pstOwner) {
 		pif_enError = E_enOutOfHeap;
-		goto fail;
+	    return NULL;
 	}
 
     if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
@@ -59,12 +59,6 @@ PIF_stComm *pifComm_Create(PIF_usId usPifId)
     pstOwner->_usPifId = usPifId;
     pstOwner->__enState = CTS_enIdle;
     return pstOwner;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Comm:Init(ID:%u) EC:%d", usPifId, pif_enError);
-#endif
-    return NULL;
 }
 
 /**
@@ -94,19 +88,13 @@ BOOL pifComm_AllocRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize)
 {
     if (!usRxSize) {
     	pif_enError = E_enInvalidParam;
-    	goto fail;
+	    return FALSE;
     }
 
     pstOwner->_pstRxBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, usRxSize);
-    if (!pstOwner->_pstRxBuffer) goto fail;
+    if (!pstOwner->_pstRxBuffer) return FALSE;
     pifRingBuffer_SetName(pstOwner->_pstRxBuffer, "RB");
     return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Comm:ResizeRxBuffer(S:%u) EC:%d", usRxSize, pif_enError);
-#endif
-    return FALSE;
 }
 
 /**
@@ -120,19 +108,13 @@ BOOL pifComm_AllocTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize)
 {
 	if (!usTxSize) {
     	pif_enError = E_enInvalidParam;
-    	goto fail;
+		return FALSE;
     }
 
     pstOwner->_pstTxBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, usTxSize);
-    if (!pstOwner->_pstTxBuffer) goto fail;
+    if (!pstOwner->_pstTxBuffer) return FALSE;
     pifRingBuffer_SetName(pstOwner->_pstTxBuffer, "TB");
 	return TRUE;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "Comm:ResizeTxBuffer(S:%u) EC:%d", usTxSize, pif_enError);
-#endif
-	return FALSE;
 }
 
 /**
