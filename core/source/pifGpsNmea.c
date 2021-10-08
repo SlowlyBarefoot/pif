@@ -158,7 +158,6 @@ static BOOL _MakePacket(PIF_stGpsNmea *pstOwner, char *pcData)
 
 fail:
 	pifRingBuffer_RestoreHead(pstOwner->__stTx.pstBuffer);
-	if (!pif_enError) pif_enError = E_enOverflowBuffer;
 	return FALSE;
 }
 

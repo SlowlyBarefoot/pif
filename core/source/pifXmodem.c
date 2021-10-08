@@ -21,7 +21,7 @@ static void _evtTimerRxTimeout(void *pvIssuer)
 	switch (pstOwner->__stTx.ui.enState) {
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enError, "XM ParsingPacket(Timeout) State:%u Cnt:%u",
+		pifLog_Printf(LT_enError, "XM(%u) ParsingPacket(Timeout) State:%u Cnt:%u", pstOwner->_usPifId,
 				pstOwner->__stRx.enState, pstOwner->__stRx.usCount);
 #endif
 		pstOwner->__stTx.ui.enState = XTS_enNAK;
@@ -37,7 +37,8 @@ static void _evtTimerTxTimeout(void *pvIssuer)
 	switch (pstOwner->__stTx.ui.enState) {
 	case XTS_enWaitResponse:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "XM TxTimeout State:%u Count=%u", pstOwner->__stTx.ui.enState, pstOwner->__stRx.usCount);
+		pifLog_Printf(LT_enWarn, "XM(%u) TxTimeout State:%u Count=%u", pstOwner->_usPifId,
+				pstOwner->__stTx.ui.enState, pstOwner->__stRx.usCount);
 #endif
 		pstOwner->__stTx.ui.enState = XTS_enIdle;
 		if (pstOwner->__stTx.evtReceive) {
@@ -47,7 +48,7 @@ static void _evtTimerTxTimeout(void *pvIssuer)
 
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "XM TxTimeout State:%u", pstOwner->__stTx.ui.enState);
+		pifLog_Printf(LT_enWarn, "XM(%u) TxTimeout State:%u", pstOwner->_usPifId, pstOwner->__stTx.ui.enState);
 #endif
 		break;
 	}
@@ -86,7 +87,7 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_actCommReceiveData actRec
 				pstOwner->__stRx.enState = XRS_enGetHeader;
 				if (!pifPulse_StartItem(pstOwner->__stRx.pstTimer, pstOwner->__stRx.usTimeout * 1000L / pstOwner->__pstTimer->_unPeriodUs)) {
 #ifndef __PIF_NO_LOG__
-					pifLog_Printf(LT_enWarn, "XM Not start timer");
+					pifLog_Printf(LT_enWarn, "XM(%u) Not start timer", pstOwner->_usPifId);
 #endif
 				}
 				break;
@@ -114,8 +115,9 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_actCommReceiveData actRec
 				}
 				else {
 #ifndef __PIF_NO_LOG__
-					pifLog_Printf(LT_enError, "XM ParsingPacket(%s) %u!=%u", c_cPktErr[PKT_ERR_INVALID_PACKET_NO],
-							(unsigned int)pstPacket->aucPacketNo[0], (unsigned int)pstPacket->aucPacketNo[1]);
+					pifLog_Printf(LT_enError, "XM(%u) ParsingPacket(%s) %u!=%u", pstOwner->_usPifId,
+							c_cPktErr[PKT_ERR_INVALID_PACKET_NO], (unsigned int)pstPacket->aucPacketNo[0],
+							(unsigned int)pstPacket->aucPacketNo[1]);
 #endif
 					goto fail;
 				}
@@ -144,8 +146,8 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_actCommReceiveData actRec
 				}
 				else {
 #ifndef __PIF_NO_LOG__
-					pifLog_Printf(LT_enError, "XM ParsingPacket(%s) %u!=%u", c_cPktErr[PKT_ERR_WRONG_CRC],
-							(unsigned int)pstOwner->__stRx.usCrc, (unsigned int)crc);
+					pifLog_Printf(LT_enError, "XM(%u) ParsingPacket(%s) %u!=%u", pstOwner->_usPifId,
+							c_cPktErr[PKT_ERR_WRONG_CRC], (unsigned int)pstOwner->__stRx.usCrc, (unsigned int)crc);
 #endif
 					goto fail;
 				}
@@ -167,8 +169,8 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_actCommReceiveData actRec
 					}
 					else {
 #ifndef __PIF_NO_LOG__
-						pifLog_Printf(LT_enError, "XM ParsingPacket(%s) %u!=%u", c_cPktErr[PKT_ERR_WRONG_CRC],
-								(unsigned int)pstOwner->__stRx.usCrc, (unsigned int)crc);
+						pifLog_Printf(LT_enError, "XM(%u) ParsingPacket(%s) %u!=%u", pstOwner->_usPifId,
+								c_cPktErr[PKT_ERR_WRONG_CRC], (unsigned int)pstOwner->__stRx.usCrc, (unsigned int)crc);
 #endif
 						goto fail;
 					}
@@ -518,7 +520,7 @@ BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *puc
 	pstOwner->__stTx.ui.enState = XTS_enSending;
 	if (!pifPulse_StartItem(pstOwner->__stTx.pstTimer, pstOwner->__stTx.usTimeout * 1000L / pstOwner->__pstTimer->_unPeriodUs)) {
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "XM Not start timer");
+		pifLog_Printf(LT_enWarn, "XM(%u) Not start timer", pstOwner->_usPifId);
 #endif
 	}
 	return TRUE;

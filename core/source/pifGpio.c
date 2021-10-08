@@ -29,7 +29,9 @@ static void _AddDeviceInCollectSignal()
 						prefix[f], pstOwner->__write_state);
 			}
 		}
+#ifndef __PIF_NO_LOG__
 		pifLog_Printf(LT_enInfo, "GP_CS:Add(DC:%u CNT:%u)", pstOwner->_usPifId, pstOwner->ucGpioCount);
+#endif
 
 		it = pifDList_Next(it);
 	}

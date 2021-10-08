@@ -381,8 +381,8 @@ BOOL pifStepMotor_SetPps(PIF_stStepMotor *pstOwner, uint16_t usPps)
 
 #ifndef __PIF_NO_LOG__
 	if (pif_stLogFlag.bt.StepMotor) {
-		pifLog_Printf(LT_enInfo, "SM:%u(%u) P/S:%d SP:%uus", __LINE__, pstOwner->_usPifId,
-				pstOwner->_usCurrentPps, pstOwner->__usStepPeriodUs);
+		pifLog_Printf(LT_enInfo, "SM(%u) %s P/S:%d SP:%uus", pstOwner->_usPifId,
+				c_cMotorState[pstOwner->_enState], usPps, pstOwner->__usStepPeriodUs);
 	}
 #endif
 	return TRUE;

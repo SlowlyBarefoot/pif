@@ -47,7 +47,9 @@ static void _AddDeviceInCollectSignal()
 				p_colsig->p_device[f] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enReg, 8, prefix[f], 0xFF);
 			}
 		}
+#ifndef __PIF_NO_LOG__
 		pifLog_Printf(LT_enInfo, "SQ_CS:Add(DC:%u F:%u)", pstOwner->_usPifId, p_colsig->flag);
+#endif
 
 		it = pifDList_Next(it);
 	}

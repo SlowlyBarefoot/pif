@@ -80,6 +80,8 @@ BOOL pifI2c_Init(PIF_stI2c *pstOwner, PIF_usId usPifId, uint16_t ucDataSize)
     return TRUE;
 }
 
+#ifndef __PIF_NO_LOG__
+
 /**
  * @fn pifI2c_ScanAddress
  * @brief
@@ -93,12 +95,12 @@ void pifI2c_ScanAddress(PIF_stI2c *pstOwner)
 	for (i = 0; i < 127; i++) {
 		pstOwner->ucAddr = i;
 		if (pifI2c_Write(pstOwner, 0)) {
-#ifndef __PIF_NO_LOG__
 			pifLog_Printf(LT_enInfo, "I2C:%u Addr:%xh OK", __LINE__, i);
-#endif
 		}
 	}
 }
+
+#endif
 
 /**
  * @fn pifI2c_Read

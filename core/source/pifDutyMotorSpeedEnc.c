@@ -24,7 +24,7 @@ static void _evtTimerDelayFinish(void *pvIssuer)
 
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "DMSE:%u(%u) S:%u", __LINE__, pstOwner->_usPifId, pstOwner->_enState);
+		pifLog_Printf(LT_enWarn, "DMSE(%u) S:%u", pstOwner->_usPifId, pstOwner->_enState);
 #endif
 		break;
 	}
@@ -38,9 +38,7 @@ static void _fnControlSpeedEnc(PIF_stDutyMotor *pstOwner)
 	uint16_t usEncAverage = 0;
     PIF_stDutyMotorSpeedEnc* pstSpeedEnc = (PIF_stDutyMotorSpeedEnc*)pstOwner;
 	const PIF_stDutyMotorSpeedEncStage *pstStage = pstSpeedEnc->__pstCurrentStage;
-#ifndef __PIF_NO_LOG__
-    int nLine = 0;
-#endif
+	PIF_enMotorState enState = pstOwner->_enState;
 
 	usTmpEnc = pstSpeedEnc->__usMeasureEnc;
 	pstSpeedEnc->__usMeasureEnc = 0;
@@ -57,10 +55,6 @@ static void _fnControlSpeedEnc(PIF_stDutyMotor *pstOwner)
             if (!pifPulse_StartItem(pstOwner->__pstTimerDelay, pstStage->usFsStableTimeout)) {
                 pstOwner->__ucError = 1;
             }
-
-#ifndef __PIF_NO_LOG__
-            nLine = __LINE__;
-#endif
 		}
 		else {
 			usTmpDuty += pstStage->usGsCtrlDuty;
@@ -73,20 +67,12 @@ static void _fnControlSpeedEnc(PIF_stDutyMotor *pstOwner)
         if (usEncAverage >= pstSpeedEnc->__usErrLowPPR && usEncAverage <= pstSpeedEnc->__usErrHighPPR) {
             pifPulse_StopItem(pstOwner->__pstTimerDelay);
             pstOwner->_enState = MS_enConst;
-
-#ifndef __PIF_NO_LOG__
-            nLine = __LINE__;
-#endif
         }
     }
 	else if (pstOwner->_enState == MS_enReduce) {
 		if (!pstStage->usRsCtrlDuty) {
 			usTmpDuty = 0;
 			pstOwner->_enState = MS_enBreak;
-
-#ifndef __PIF_NO_LOG__
-            nLine = __LINE__;
-#endif
 		}
 		else if (usTmpDuty > pstStage->usRsCtrlDuty && usTmpDuty > pstStage->usRsLowDuty) {
 			usTmpDuty -= pstStage->usRsCtrlDuty;
@@ -94,10 +80,6 @@ static void _fnControlSpeedEnc(PIF_stDutyMotor *pstOwner)
 		else if (usTmpDuty) {
 			usTmpDuty = 0;
 			pstOwner->_enState = MS_enBreak;
-
-#ifndef __PIF_NO_LOG__
-            nLine = __LINE__;
-#endif
 		}
 	}
 
@@ -137,18 +119,10 @@ static void _fnControlSpeedEnc(PIF_stDutyMotor *pstOwner)
     			pifPulse_StartItem(pstOwner->__pstTimerDelay, pstStage->usRsBreakTime)) {
 			(*pstOwner->__actOperateBreak)(1);
 			pstOwner->_enState = MS_enBreaking;
-
-#ifndef __PIF_NO_LOG__
-            nLine = __LINE__;
-#endif
     	}
     	else {
 			if (pstOwner->__actOperateBreak) (*pstOwner->__actOperateBreak)(1);
     		pstOwner->_enState = MS_enStopping;
-
-#ifndef __PIF_NO_LOG__
-            nLine = __LINE__;
-#endif
     	}
 	}
 
@@ -172,15 +146,12 @@ static void _fnControlSpeedEnc(PIF_stDutyMotor *pstOwner)
 		if (*pstStage->ppstStopSensor) {
 			pifSensor_DetachEvtChange(*pstStage->ppstStopSensor);
 		}
-
-#ifndef __PIF_NO_LOG__
-        nLine = __LINE__;
-#endif
     }
 
 #ifndef __PIF_NO_LOG__
-	if (nLine && pif_stLogFlag.bt.DutyMotor) {
-		pifLog_Printf(LT_enInfo, "DMSE:%u(%u) %s E:%u D:%u", nLine, pstOwner->_usPifId, c_cMotorState[pstOwner->_enState], usTmpEnc, usTmpDuty);
+	if (enState != pstOwner->_enState && pif_stLogFlag.bt.DutyMotor) {
+		pifLog_Printf(LT_enInfo, "DMSE(%u) %s D:%u(%u%%) E:%u", pstOwner->_usPifId,
+				c_cMotorState[pstOwner->_enState], usTmpDuty, (uint16_t)(100 * usTmpDuty / pstOwner->_usMaxDuty), usTmpEnc);
 	}
 #endif
 }
@@ -331,9 +302,6 @@ BOOL pifDutyMotorSpeedEnc_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex,
     		}
     	}
     	if (ucState) {
-#ifndef __PIF_NO_LOG__
-    		pifLog_Printf(LT_enError, "DMSE:%u(%u) S:%u", __LINE__, pstOwner->_usPifId, ucState);
-#endif
         	pif_enError = E_enInvalidState;
 		    return FALSE;
     	}
@@ -383,12 +351,6 @@ BOOL pifDutyMotorSpeedEnc_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex,
     pstOwner->__ucError = 0;
 
     (*pstOwner->__actSetDuty)(pstOwner->_usCurrentDuty);
-
-#ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.bt.DutyMotor) {
-    	pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Start P/R:%d", __LINE__, pstOwner->_usPifId, (int)pstStage->fFsPulsesPerRange);
-    }
-#endif
     return TRUE;
 }
 
@@ -409,12 +371,6 @@ void pifDutyMotorSpeedEnc_Stop(PIF_stDutyMotor *pstOwner)
     else {
         pstOwner->_enState = MS_enReduce;
     }
-
-#ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.bt.DutyMotor) {
-    	pifLog_Printf(LT_enInfo, "DMSE:%u(%u) Stop OT=%u", __LINE__, pstOwner->_usPifId, pstStage->usFsOverTime);
-    }
-#endif
 }
 
 /**

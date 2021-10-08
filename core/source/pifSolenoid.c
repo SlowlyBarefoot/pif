@@ -119,7 +119,9 @@ static void _AddDeviceInCollectSignal()
 		if (p_colsig->flag & 2) {
 			p_colsig->p_device[1] = pifCollectSignal_AddDevice(pstOwner->_usPifId, CSVT_enWire, 2, prefix[1], 0);
 		}
+#ifndef __PIF_NO_LOG__
 		pifLog_Printf(LT_enInfo, "SN_CS:Add(DC:%u F:%u)", pstOwner->_usPifId, p_colsig->flag);
+#endif
 
 		it = pifDList_Next(it);
 	}

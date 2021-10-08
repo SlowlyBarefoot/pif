@@ -53,7 +53,9 @@ void pifI2c_Destroy(PIF_stI2c **ppstOwner);
 
 BOOL pifI2c_Init(PIF_stI2c *pstOwner, PIF_usId usPifId, uint16_t ucDataSize);
 
+#ifndef __PIF_NO_LOG__
 void pifI2c_ScanAddress(PIF_stI2c *pstOwner);
+#endif
 
 BOOL pifI2c_Read(PIF_stI2c *pstOwner, uint8_t ucSize);
 BOOL pifI2c_Write(PIF_stI2c *pstOwner,  uint8_t ucSize);

@@ -398,7 +398,7 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
 				if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner->_usPifId);
 				pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.ui.stInfo.usLength);
 #ifndef __PIF_NO_LOG__
-				pifLog_Printf(LT_enError, "PTC(%u) EventSending EC:%d", pstOwner->_usPifId, pif_enError);
+				pifLog_Printf(LT_enError, "PTC(%u) Transfer failed", pstOwner->_usPifId);
 #endif
 				pstOwner->__stTx.enState = PTS_enIdle;
 			}
@@ -716,7 +716,6 @@ BOOL pifProtocol_MakeRequest(PIF_stProtocol *pstOwner, const PIF_stProtocolReque
 
 fail:
 	pifRingBuffer_RestoreHead(pstOwner->__stTx.pstRequestBuffer);
-	if (!pif_enError) pif_enError = E_enOverflowBuffer;
 	return FALSE;
 }
 
@@ -802,6 +801,5 @@ BOOL pifProtocol_MakeAnswer(PIF_stProtocol *pstOwner, PIF_stProtocolPacket *pstQ
 
 fail:
 	pifRingBuffer_RestoreHead(pstOwner->__stTx.pstAnswerBuffer);
-	if (!pif_enError) pif_enError = E_enOverflowBuffer;
 	return FALSE;
 }

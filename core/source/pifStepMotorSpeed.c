@@ -17,7 +17,7 @@ static void _evtTimerDelayFinish(void *pvIssuer)
 
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "SMS:%u(%u) S:%u", __LINE__, pstOwner->_usPifId, pstOwner->_enState);
+		pifLog_Printf(LT_enWarn, "SMS(%u) S:%u", pstOwner->_usPifId, pstOwner->_enState);
 #endif
 		break;
 	}
@@ -28,9 +28,7 @@ static void _fnControlSpeed(PIF_stStepMotor *pstOwner)
 	uint16_t usTmpPps = 0;
     PIF_stStepMotorSpeed* pstSpeed = (PIF_stStepMotorSpeed*)pstOwner;
     const PIF_stStepMotorSpeedStage *pstStage = pstSpeed->__pstCurrentStage;
-#ifndef __PIF_NO_LOG__
-    int nLine = 0;
-#endif
+    PIF_enMotorState enState = pstOwner->_enState;
 
 	usTmpPps = pstOwner->_usCurrentPps;
 
@@ -39,10 +37,6 @@ static void _fnControlSpeed(PIF_stStepMotor *pstOwner)
 			usTmpPps = pstStage->usFsFixedPps;
 			pstOwner->_enState = MS_enConst;
 			if (pstOwner->evtStable) (*pstOwner->evtStable)(pstOwner);
-
-#ifndef __PIF_NO_LOG__
-			nLine = __LINE__;
-#endif
 		}
 		else {
 			usTmpPps += pstStage->usGsCtrlPps;
@@ -52,10 +46,6 @@ static void _fnControlSpeed(PIF_stStepMotor *pstOwner)
 		if (!pstStage->usRsCtrlPps) {
 			usTmpPps = 0;
 			pstOwner->_enState = MS_enBreak;
-
-#ifndef __PIF_NO_LOG__
-			nLine = __LINE__;
-#endif
 		}
 		else if (usTmpPps > pstStage->usRsCtrlPps && usTmpPps > pstStage->usRsStopPps) {
 			usTmpPps -= pstStage->usRsCtrlPps;
@@ -63,10 +53,6 @@ static void _fnControlSpeed(PIF_stStepMotor *pstOwner)
 		else if (usTmpPps) {
 			usTmpPps = 0;
 			pstOwner->_enState = MS_enBreak;
-
-#ifndef __PIF_NO_LOG__
-			nLine = __LINE__;
-#endif
 		}
 	}
 
@@ -80,17 +66,9 @@ static void _fnControlSpeed(PIF_stStepMotor *pstOwner)
 		if (pstStage->usRsBreakTime &&
 				pifPulse_StartItem(pstOwner->__pstTimerDelay, pstStage->usRsBreakTime)) {
 			pstOwner->_enState = MS_enBreaking;
-
-#ifndef __PIF_NO_LOG__
-			nLine = __LINE__;
-#endif
     	}
     	else {
     		pstOwner->_enState = MS_enStopping;
-
-#ifndef __PIF_NO_LOG__
-			nLine = __LINE__;
-#endif
     	}
 	}
 
@@ -114,15 +92,12 @@ static void _fnControlSpeed(PIF_stStepMotor *pstOwner)
 		if (*pstStage->ppstStopSensor) {
 			pifSensor_DetachEvtChange(*pstStage->ppstStopSensor);
 		}
-
-#ifndef __PIF_NO_LOG__
-		nLine = __LINE__;
-#endif
     }
 
 #ifndef __PIF_NO_LOG__
-	if (nLine && pif_stLogFlag.bt.StepMotor) {
-		pifLog_Printf(LT_enInfo, "SMS:%u(%u) %s P/S:%u", nLine, pstOwner->_usPifId, c_cMotorState[pstOwner->_enState], usTmpPps);
+	if (enState != pstOwner->_enState && pif_stLogFlag.bt.StepMotor) {
+		pifLog_Printf(LT_enInfo, "SMS(%u) %s P/S:%u", pstOwner->_usPifId,
+				c_cMotorState[pstOwner->_enState], usTmpPps);
 	}
 #endif
 }
@@ -273,7 +248,7 @@ BOOL pifStepMotorSpeed_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, ui
     	}
     	if (ucState) {
 #ifndef __PIF_NO_LOG__
-    		pifLog_Printf(LT_enError, "DMS:%u(%u) S:%u", __LINE__, pstOwner->_usPifId, ucState);
+    		pifLog_Printf(LT_enError, "SMS(%u) S:%u", pstOwner->_usPifId, ucState);
 #endif
         	pif_enError = E_enInvalidState;
 		    return FALSE;
@@ -315,12 +290,6 @@ BOOL pifStepMotorSpeed_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, ui
     pstOwner->__ucError = 0;
 
     pifStepMotor_Start(pstOwner, 0);
-
-#ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.bt.StepMotor) {
-    	pifLog_Printf(LT_enInfo, "SMS:%u(%u) Start", __LINE__, pstOwner->_usPifId);
-    }
-#endif
     return TRUE;
 }
 
@@ -341,12 +310,6 @@ void pifStepMotorSpeed_Stop(PIF_stStepMotor *pstOwner)
     else {
         pstOwner->_enState = MS_enReduce;
     }
-
-#ifndef __PIF_NO_LOG__
-    if (pif_stLogFlag.bt.StepMotor) {
-    	pifLog_Printf(LT_enInfo, "SMS:%u(%u) Stop OT=%u", __LINE__, pstOwner->_usPifId, pstStage->usFsOverTime);
-    }
-#endif
 }
 
 /**
