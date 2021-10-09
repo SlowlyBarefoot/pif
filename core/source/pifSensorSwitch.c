@@ -9,7 +9,7 @@
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
-static PIF_DList s_cs_list;
+static PifDList s_cs_list;
 #endif
 
 
@@ -71,7 +71,7 @@ static void _AddDeviceInCollectSignal()
 {
 	const char *prefix[SSCsF_enCount] = { "SSR", "SSF" };
 
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_SensorSwitchColSig* p_colsig = (PIF_SensorSwitchColSig*)it->data;
 		PIF_stSensorSwitch* pstOwner = p_colsig->p_owner;
@@ -237,7 +237,7 @@ void pifSensorSwitch_DetachFilter(PIF_stSensor *pstSensor)
  */
 void pifSensorSwitch_SetCsFlagAll(PIF_enSensorSwitchCsFlag enFlag)
 {
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_SensorSwitchColSig* p_colsig = (PIF_SensorSwitchColSig*)it->data;
 		p_colsig->flag |= enFlag;
@@ -252,7 +252,7 @@ void pifSensorSwitch_SetCsFlagAll(PIF_enSensorSwitchCsFlag enFlag)
  */
 void pifSensorSwitch_ResetCsFlagAll(PIF_enSensorSwitchCsFlag enFlag)
 {
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_SensorSwitchColSig* p_colsig = (PIF_SensorSwitchColSig*)it->data;
 		p_colsig->flag &= ~enFlag;

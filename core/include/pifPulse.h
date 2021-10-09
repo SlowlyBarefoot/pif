@@ -70,7 +70,7 @@ struct _PIF_stPulse
 	uint32_t _unPeriodUs;
 
 	// Private Member Variable
-    PIF_DList __items;
+    PifDList __items;
 };
 
 

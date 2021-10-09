@@ -10,8 +10,8 @@
 #define PIF_TASK_TABLE_MASK		(PIF_TASK_TABLE_SIZE - 1)
 
 
-static PIF_DList s_tasks;
-static PIF_DListIterator s_it_current;
+static PifDList s_tasks;
+static PifDListIterator s_it_current;
 
 static uint32_t s_table_number;
 static uint32_t s_aunTable[PIF_TASK_TABLE_SIZE];
@@ -294,7 +294,7 @@ void pifTaskManager_Loop()
 	static uint8_t ucSec = 0;
 #endif
 
-	PIF_DListIterator it = s_it_current ? s_it_current : pifDList_Begin(&s_tasks);
+	PifDListIterator it = s_it_current ? s_it_current : pifDList_Begin(&s_tasks);
 	while (it) {
 		s_it_current = it;
 		PIF_stTask* p_owner = (PIF_stTask*)it->data;
@@ -395,7 +395,7 @@ void pifTaskManager_YieldUs(uint32_t unTime)
  */
 void pifTaskManager_YieldPeriod(PIF_stTask *pstOwner)
 {
-	PIF_DListIterator it;
+	PifDListIterator it;
 
 	switch (pstOwner->_enMode) {
 	case TM_enRatio:
@@ -430,7 +430,7 @@ void pifTaskManager_YieldPeriod(PIF_stTask *pstOwner)
  */
 void pifTaskManager_Print()
 {
-	PIF_DListIterator it;
+	PifDListIterator it;
 
 	if (!pif_stLogFlag.bt.Task) return;
 

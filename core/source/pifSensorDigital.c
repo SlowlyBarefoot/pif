@@ -9,7 +9,7 @@
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
-static PIF_DList s_cs_list;
+static PifDList s_cs_list;
 #endif
 
 
@@ -48,7 +48,7 @@ static void _AddDeviceInCollectSignal()
 {
 	const char *prefix[SDCsF_enCount] = { "SD" };
 
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_SensorDigitalColSig* p_colsig = (PIF_SensorDigitalColSig*)it->data;
 		PIF_stSensorDigital* pstOwner = p_colsig->p_owner;
@@ -301,7 +301,7 @@ void pifSensorDigital_DetachFilter(PIF_stSensor *pstSensor)
  */
 void pifSensorDigital_SetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag)
 {
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_SensorDigitalColSig* p_colsig = (PIF_SensorDigitalColSig*)it->data;
 		p_colsig->flag |= enFlag;
@@ -316,7 +316,7 @@ void pifSensorDigital_SetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag)
  */
 void pifSensorDigital_ResetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag)
 {
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_SensorDigitalColSig* p_colsig = (PIF_SensorDigitalColSig*)it->data;
 		p_colsig->flag &= ~enFlag;

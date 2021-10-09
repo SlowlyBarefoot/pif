@@ -9,7 +9,7 @@
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
-static PIF_DList s_cs_list;
+static PifDList s_cs_list;
 #endif
 
 
@@ -38,7 +38,7 @@ static void _AddDeviceInCollectSignal()
 {
 	const char *prefix[SqCsF_enCount] = { "SQ" };
 
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_SequenceColSig* p_colsig = (PIF_SequenceColSig*)it->data;
 		PIF_stSequence* pstOwner = p_colsig->p_owner;
@@ -135,7 +135,7 @@ void pifSequence_Destroy(PIF_stSequence** pp_owner)
  */
 void pifSequence_SetCsFlagAll(PIF_enSequenceCsFlag enFlag)
 {
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_SequenceColSig* p_colsig = (PIF_SequenceColSig*)it->data;
 		p_colsig->flag |= enFlag;
@@ -150,7 +150,7 @@ void pifSequence_SetCsFlagAll(PIF_enSequenceCsFlag enFlag)
  */
 void pifSequence_ResetCsFlagAll(PIF_enSequenceCsFlag enFlag)
 {
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_SequenceColSig* p_colsig = (PIF_SequenceColSig*)it->data;
 		p_colsig->flag &= ~enFlag;

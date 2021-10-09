@@ -33,7 +33,7 @@ typedef struct _PIF_stCollectSignal
 	uint8_t ucDeviceCount;
 	uint32_t unTimer1ms;
 	PIF_stRingBuffer *pstBuffer;
-	PIF_DList stDevice;
+	PifDList stDevice;
 	PIF_fnCollectSignalDevice afnDevice[32];
 } PIF_stCollectSignal;
 
@@ -63,7 +63,7 @@ static void _PrintHeader()
 			"wire",
 			"wor"
 	};
-	PIF_DListIterator it;
+	PifDListIterator it;
 
 	pifLog_Printf(LT_enVcd, "\n$date %s %u, %u %2u:%2u:%2u $end\n",
 			kPifMonth3[pif_datetime.month - 1], pif_datetime.day, 2000 + pif_datetime.year,

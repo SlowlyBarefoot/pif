@@ -9,7 +9,7 @@
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
-static PIF_DList s_cs_list;
+static PifDList s_cs_list;
 #endif
 
 
@@ -109,7 +109,7 @@ static void _AddDeviceInCollectSignal()
 {
 	const char *prefix[SnCsF_enCount] = { "SNA", "SND" };
 
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_SolenoidColSig* p_colsig = (PIF_SolenoidColSig*)it->data;
 		PIF_stSolenoid* pstOwner = p_colsig->p_owner;
@@ -326,7 +326,7 @@ void pifSolenoid_ActionOff(PIF_stSolenoid *pstOwner)
  */
 void pifSolenoid_SetCsFlagAll(PIF_enSolenoidCsFlag enFlag)
 {
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_SolenoidColSig* p_colsig = (PIF_SolenoidColSig*)it->data;
 		p_colsig->flag |= enFlag;
@@ -341,7 +341,7 @@ void pifSolenoid_SetCsFlagAll(PIF_enSolenoidCsFlag enFlag)
  */
 void pifSolenoid_ResetCsFlagAll(PIF_enSolenoidCsFlag enFlag)
 {
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_SolenoidColSig* p_colsig = (PIF_SolenoidColSig*)it->data;
 		p_colsig->flag &= ~enFlag;

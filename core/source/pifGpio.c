@@ -9,7 +9,7 @@
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
-static PIF_DList s_cs_list;
+static PifDList s_cs_list;
 #endif
 
 
@@ -19,7 +19,7 @@ static void _AddDeviceInCollectSignal()
 {
 	const char *prefix[GpCsF_enCount] = { "GP" };
 
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_GpioColSig* p_colsig = (PIF_GpioColSig*)it->data;
 		PIF_stGpio* pstOwner = p_colsig->p_owner;
@@ -213,7 +213,7 @@ BOOL pifGpio_WriteCell(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState)
  */
 void pifGpio_SetCsFlagAll(PIF_enGpioCsFlag enFlag)
 {
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_GpioColSig* p_colsig = (PIF_GpioColSig*)it->data;
 		p_colsig->flag |= enFlag;
@@ -228,7 +228,7 @@ void pifGpio_SetCsFlagAll(PIF_enGpioCsFlag enFlag)
  */
 void pifGpio_ResetCsFlagAll(PIF_enGpioCsFlag enFlag)
 {
-	PIF_DListIterator it = pifDList_Begin(&s_cs_list);
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PIF_GpioColSig* p_colsig = (PIF_GpioColSig*)it->data;
 		p_colsig->flag &= ~enFlag;

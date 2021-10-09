@@ -85,7 +85,7 @@ void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstItem)
 {
     if (pstItem->_enStep == PS_enRemove) return;
 
-	PIF_DListIterator it = pifDList_Begin(&pstOwner->__items);
+	PifDListIterator it = pifDList_Begin(&pstOwner->__items);
 	while (it) {
 		if (pstItem == (PIF_stPulseItem *)it->data) {
 			pifDList_Remove(&pstOwner->__items, it);
@@ -184,7 +184,7 @@ void pifPulse_sigTick(PIF_stPulse *pstOwner)
 {
     if (!pstOwner) return;
 
-	PIF_DListIterator it = pifDList_Begin(&pstOwner->__items);
+	PifDListIterator it = pifDList_Begin(&pstOwner->__items);
 	while (it) {
 		PIF_stPulseItem *pstItem = (PIF_stPulseItem *)it->data;
 
@@ -256,7 +256,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
 {
 	PIF_stPulse *pstOwner = pstTask->_pvClient;
 
-	PIF_DListIterator it = pifDList_Begin(&pstOwner->__items);
+	PifDListIterator it = pifDList_Begin(&pstOwner->__items);
 	while (it) {
 		PIF_stPulseItem *pstItem = (PIF_stPulseItem *)it->data;
 

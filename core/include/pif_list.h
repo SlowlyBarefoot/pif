@@ -8,27 +8,27 @@
 // ---------- PIF Singly Linked List ----------
 
 /**
- * @struct _PIF_SListNode
+ * @struct StPifSListNode
  * @brief
  */
-typedef struct _PIF_SListNode
+typedef struct StPifSListNode
 {
-	struct _PIF_SListNode* p_next;
+	struct StPifSListNode* p_next;
 	char data[1];
-} PIF_SListNode;
+} PifSListNode;
 
-typedef PIF_SListNode* PIF_SListIterator;
+typedef PifSListNode* PifSListIterator;
 
 /**
- * @struct _PIF_SList
+ * @struct StPifSList
  * @brief
  */
-typedef struct _PIF_SList
+typedef struct StPifSList
 {
-	PIF_SListIterator p_head;
-	PIF_SListIterator p_tail;
+	PifSListIterator p_head;
+	PifSListIterator p_tail;
     int size;
-} PIF_SList;
+} PifSList;
 
 
 #ifdef __cplusplus
@@ -40,14 +40,14 @@ extern "C" {
  * @brief
  * @return
  */
-PIF_SList* pifSList_Create();
+PifSList* pifSList_Create();
 
 /**
  * @fn pifSList_Destroy
  * @brief
  * @param pp_owner
  */
-void pifSList_Destroy(PIF_SList** pp_owner);
+void pifSList_Destroy(PifSList** pp_owner);
 
 /**
  * @fn pifSList_Init
@@ -55,14 +55,14 @@ void pifSList_Destroy(PIF_SList** pp_owner);
  * @param p_owner
  * @return
  */
-BOOL pifSList_Init(PIF_SList* p_owner);
+BOOL pifSList_Init(PifSList* p_owner);
 
 /**
  * @fn pifSList_Clear
  * @brief
  * @param p_owner
  */
-void pifSList_Clear(PIF_SList* p_owner);
+void pifSList_Clear(PifSList* p_owner);
 
 /**
  * @fn pifSList_AddFirst
@@ -71,7 +71,7 @@ void pifSList_Clear(PIF_SList* p_owner);
  * @param data_size
  * @return
  */
-void* pifSList_AddFirst(PIF_SList* p_owner, int data_size);
+void* pifSList_AddFirst(PifSList* p_owner, int data_size);
 
 /**
  * @fn pifSList_AddLast
@@ -80,14 +80,14 @@ void* pifSList_AddFirst(PIF_SList* p_owner, int data_size);
  * @param data_size
  * @return
  */
-void* pifSList_AddLast(PIF_SList* p_owner, int data_size);
+void* pifSList_AddLast(PifSList* p_owner, int data_size);
 
 /**
  * @fn pifSList_RemoveFirst
  * @brief
  * @param p_owner
  */
-void pifSList_RemoveFirst(PIF_SList* p_owner);
+void pifSList_RemoveFirst(PifSList* p_owner);
 
 /**
  * @fn pifSList_Size
@@ -96,9 +96,9 @@ void pifSList_RemoveFirst(PIF_SList* p_owner);
  * @return
  */
 #ifdef __PIF_NO_USE_INLINE__
-	int pifSList_Size(PIF_SList* p_owner);
+	int pifSList_Size(PifSList* p_owner);
 #else
-	inline int pifSList_Size(PIF_SList* p_owner) { return p_owner->size; }
+	inline int pifSList_Size(PifSList* p_owner) { return p_owner->size; }
 #endif
 
 /**
@@ -108,9 +108,9 @@ void pifSList_RemoveFirst(PIF_SList* p_owner);
  * @return
  */
 #ifdef __PIF_NO_USE_INLINE__
-	PIF_SListIterator pifSList_Begin(PIF_SList* p_owner);
+	PifSListIterator pifSList_Begin(PifSList* p_owner);
 #else
-	inline PIF_SListIterator pifSList_Begin(PIF_SList* p_owner) { return p_owner->p_head; }
+	inline PifSListIterator pifSList_Begin(PifSList* p_owner) { return p_owner->p_head; }
 #endif
 
 /**
@@ -120,9 +120,9 @@ void pifSList_RemoveFirst(PIF_SList* p_owner);
  * @return
  */
 #ifdef __PIF_NO_USE_INLINE__
-	PIF_SListIterator pifSList_End(PIF_SList* p_owner);
+	PifSListIterator pifSList_End(PifSList* p_owner);
 #else
-	inline PIF_SListIterator pifSList_End(PIF_SList* p_owner) {	return p_owner->p_tail; }
+	inline PifSListIterator pifSList_End(PifSList* p_owner) {	return p_owner->p_tail; }
 #endif
 
 /**
@@ -132,9 +132,9 @@ void pifSList_RemoveFirst(PIF_SList* p_owner);
  * @return
  */
 #ifdef __PIF_NO_USE_INLINE__
-	PIF_SListIterator pifSList_Next(PIF_SListIterator it);
+	PifSListIterator pifSList_Next(PifSListIterator it);
 #else
-	inline PIF_SListIterator pifSList_Next(PIF_SListIterator it) { return it ? it->p_next : NULL; }
+	inline PifSListIterator pifSList_Next(PifSListIterator it) { return it ? it->p_next : NULL; }
 #endif
 
 /**
@@ -144,7 +144,7 @@ void pifSList_RemoveFirst(PIF_SList* p_owner);
  * @param index
  * @return
  */
-PIF_SListIterator pifSList_Find(PIF_SList* p_owner, int index);
+PifSListIterator pifSList_Find(PifSList* p_owner, int index);
 
 #ifdef __cplusplus
 }
@@ -154,28 +154,28 @@ PIF_SListIterator pifSList_Find(PIF_SList* p_owner, int index);
 // ---------- PIF Doubly Linked List ----------
 
 /**
- * @struct _PIF_DListNode
+ * @struct StPifDListNode
  * @brief
  */
-typedef struct _PIF_DListNode
+typedef struct StPifDListNode
 {
-    struct _PIF_DListNode* p_prev;
-    struct _PIF_DListNode* p_next;
+    struct StPifDListNode* p_prev;
+    struct StPifDListNode* p_next;
     char data[1];
-} PIF_DListNode;
+} PifDListNode;
 
-typedef PIF_DListNode* PIF_DListIterator;
+typedef PifDListNode* PifDListIterator;
 
 /**
- * @struct _PIF_DList
+ * @struct StPifDList
  * @brief
  */
-typedef struct _PIF_DList
+typedef struct StPifDList
 {
-	PIF_DListIterator p_head;
-	PIF_DListIterator p_tail;
+	PifDListIterator p_head;
+	PifDListIterator p_tail;
 	int size;
-} PIF_DList;
+} PifDList;
 
 
 #ifdef __cplusplus
@@ -187,14 +187,14 @@ extern "C" {
  * @brief
  * @return
  */
-PIF_DList* pifDList_Create();
+PifDList* pifDList_Create();
 
 /**
  * @fn pifDList_Destroy
  * @brief
  * @param pp_owner
  */
-void pifDList_Destroy(PIF_DList** pp_owner);
+void pifDList_Destroy(PifDList** pp_owner);
 
 /**
  * @fn pifDList_Init
@@ -202,14 +202,14 @@ void pifDList_Destroy(PIF_DList** pp_owner);
  * @param p_owner
  * @return
  */
-BOOL pifDList_Init(PIF_DList* p_owner);
+BOOL pifDList_Init(PifDList* p_owner);
 
 /**
  * @fn pifDList_Clear
  * @brief
  * @param p_owner
  */
-void pifDList_Clear(PIF_DList* p_owner);
+void pifDList_Clear(PifDList* p_owner);
 
 /**
  * @fn pifDList_AddFirst
@@ -218,7 +218,7 @@ void pifDList_Clear(PIF_DList* p_owner);
  * @param data_size
  * @return
  */
-void* pifDList_AddFirst(PIF_DList* p_owner, int data_size);
+void* pifDList_AddFirst(PifDList* p_owner, int data_size);
 
 /**
  * @fn pifDList_AddLast
@@ -227,7 +227,7 @@ void* pifDList_AddFirst(PIF_DList* p_owner, int data_size);
  * @param data_size
  * @return
  */
-void* pifDList_AddLast(PIF_DList* p_owner, int data_size);
+void* pifDList_AddLast(PifDList* p_owner, int data_size);
 
 /**
  * @fn pifDList_Add
@@ -237,14 +237,14 @@ void* pifDList_AddLast(PIF_DList* p_owner, int data_size);
  * @param it
  * @return
  */
-void* pifDList_Add(PIF_DList* p_owner, int data_size, PIF_DListIterator it);
+void* pifDList_Add(PifDList* p_owner, int data_size, PifDListIterator it);
 
 /**
  * @fn pifDList_RemoveFirst
  * @brief
  * @param p_owner
  */
-void pifDList_RemoveFirst(PIF_DList* p_owner);
+void pifDList_RemoveFirst(PifDList* p_owner);
 
 /**
  * @fn pifDList_RemoveLast
@@ -253,7 +253,7 @@ void pifDList_RemoveFirst(PIF_DList* p_owner);
  * @param index
  * @return
  */
-void pifDList_RemoveLast(PIF_DList* p_owner);
+void pifDList_RemoveLast(PifDList* p_owner);
 
 /**
  * @fn pifDList_Remove
@@ -261,7 +261,7 @@ void pifDList_RemoveLast(PIF_DList* p_owner);
  * @param p_owner
  * @param it
  */
-void pifDList_Remove(PIF_DList* p_owner, PIF_DListIterator it);
+void pifDList_Remove(PifDList* p_owner, PifDListIterator it);
 
 /**
  * @fn pifDList_Size
@@ -270,9 +270,9 @@ void pifDList_Remove(PIF_DList* p_owner, PIF_DListIterator it);
  * @return
  */
 #ifdef __PIF_NO_USE_INLINE__
-	int pifDList_Size(PIF_DList* p_owner);
+	int pifDList_Size(PifDList* p_owner);
 #else
-	inline int pifDList_Size(PIF_DList* p_owner) { return p_owner->size; }
+	inline int pifDList_Size(PifDList* p_owner) { return p_owner->size; }
 #endif
 
 /**
@@ -282,9 +282,9 @@ void pifDList_Remove(PIF_DList* p_owner, PIF_DListIterator it);
  * @return
  */
 #ifdef __PIF_NO_USE_INLINE__
-	PIF_DListIterator pifDList_Begin(PIF_DList* p_owner);
+	PifDListIterator pifDList_Begin(PifDList* p_owner);
 #else
-	inline PIF_DListIterator pifDList_Begin(PIF_DList* p_owner) { return p_owner->p_head; }
+	inline PifDListIterator pifDList_Begin(PifDList* p_owner) { return p_owner->p_head; }
 #endif
 
 /**
@@ -294,9 +294,9 @@ void pifDList_Remove(PIF_DList* p_owner, PIF_DListIterator it);
  * @return
  */
 #ifdef __PIF_NO_USE_INLINE__
-	PIF_DListIterator pifDList_Next(PIF_DListIterator it);
+	PifDListIterator pifDList_Next(PifDListIterator it);
 #else
-	inline PIF_DListIterator pifDList_Next(PIF_DListIterator it) { return it ? it->p_next : NULL; }
+	inline PifDListIterator pifDList_Next(PifDListIterator it) { return it ? it->p_next : NULL; }
 #endif
 
 /**
@@ -306,9 +306,9 @@ void pifDList_Remove(PIF_DList* p_owner, PIF_DListIterator it);
  * @return
  */
 #ifdef __PIF_NO_USE_INLINE__
-	PIF_DListIterator pifDList_End(PIF_DList* p_owner);
+	PifDListIterator pifDList_End(PifDList* p_owner);
 #else
-	inline PIF_DListIterator pifDList_End(PIF_DList* p_owner) { return p_owner->p_tail; }
+	inline PifDListIterator pifDList_End(PifDList* p_owner) { return p_owner->p_tail; }
 #endif
 
 /**
@@ -318,9 +318,9 @@ void pifDList_Remove(PIF_DList* p_owner, PIF_DListIterator it);
  * @return
  */
 #ifdef __PIF_NO_USE_INLINE__
-	PIF_DListIterator pifDList_Prev(PIF_DListIterator it);
+	PifDListIterator pifDList_Prev(PifDListIterator it);
 #else
-	inline PIF_DListIterator pifDList_Prev(PIF_DListIterator it) { return it ? it->p_prev : NULL; }
+	inline PifDListIterator pifDList_Prev(PifDListIterator it) { return it ? it->p_prev : NULL; }
 #endif
 
 /**
@@ -330,7 +330,7 @@ void pifDList_Remove(PIF_DList* p_owner, PIF_DListIterator it);
  * @param index
  * @return
  */
-PIF_DListIterator pifDList_Find(PIF_DList* p_owner, int index);
+PifDListIterator pifDList_Find(PifDList* p_owner, int index);
 
 #ifdef __cplusplus
 }
