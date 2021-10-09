@@ -78,7 +78,7 @@ struct _PIF_stSolenoid
     PIF_evtSolenoid evtError;
 
     // Read-only Member Variable
-    PIF_usId _usPifId;
+    PifId _usPifId;
     PIF_enSolenoidType _enType;
 
 	// Private Member Variable
@@ -102,7 +102,7 @@ struct _PIF_stSolenoid
 extern "C" {
 #endif
 
-PIF_stSolenoid* pifSolenoid_Create(PIF_usId usPifId, PIF_stPulse* pstTimer, PIF_enSolenoidType enType, uint16_t usOnTime,
+PIF_stSolenoid* pifSolenoid_Create(PifId usPifId, PIF_stPulse* pstTimer, PIF_enSolenoidType enType, uint16_t usOnTime,
 		PIF_actSolenoidControl actControl);
 void pifSolenoid_Destroy(PIF_stSolenoid** pp_owner);
 

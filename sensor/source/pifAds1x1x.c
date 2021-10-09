@@ -65,7 +65,7 @@ static uint32_t _ConversionDelay(PIF_stAds1x1x *pstOwner)
         }
     }
     if (usDataRate) {
-		if (pif_actTimer1us) {
+		if (pif_act_timer1us) {
 			return (1000000UL - 1) / usDataRate + 1;
 		}
 		else {
@@ -82,17 +82,17 @@ static uint32_t _ConversionDelay(PIF_stAds1x1x *pstOwner)
  * @param enType
  * @return
  */
-PIF_stAds1x1x *pifAds1x1x_Create(PIF_usId usPifId, PIF_enAds1x1xType enType)
+PIF_stAds1x1x *pifAds1x1x_Create(PifId usPifId, PIF_enAds1x1xType enType)
 {
     PIF_stAds1x1x *pstOwner = NULL;
 
     pstOwner = calloc(sizeof(PIF_stAds1x1x), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
-		goto fail;
+		pif_error = E_OUT_OF_HEAP;
+		return NULL;
 	}
 
-    if (!pifI2c_Init(&pstOwner->_stI2c, usPifId, 4)) goto fail;
+    if (!pifI2c_Init(&pstOwner->_stI2c, usPifId, 4)) return NULL;
 
     pstOwner->_stI2c.ucAddr = DEFAULT_I2C_ADDR;
     switch (enType) {
@@ -102,7 +102,9 @@ PIF_stAds1x1x *pifAds1x1x_Create(PIF_usId usPifId, PIF_enAds1x1xType enType)
     case AT_en1015: pstOwner->__unResolution = 12; pstOwner->__unChannels = 4; break;
     case AT_en1014: pstOwner->__unResolution = 12; pstOwner->__unChannels = 1; break;
     case AT_en1013: pstOwner->__unResolution = 12; pstOwner->__unChannels = 1; break;
-    default: goto fail;
+    default:
+		pif_error = E_INVALID_PARAM;
+    	return NULL;
     }
     pstOwner->_enType = enType;
     pstOwner->__ucBitOffset = pstOwner->__unResolution == 12 ? 4 : 0;
@@ -110,12 +112,6 @@ PIF_stAds1x1x *pifAds1x1x_Create(PIF_usId usPifId, PIF_enAds1x1xType enType)
     pstOwner->dConvertVoltage = _ConvertVoltage(pstOwner);
     pstOwner->__unConversionDelay = _ConversionDelay(pstOwner);
     return pstOwner;
-
-fail:
-#ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enError, "ADS1x1x:%u(%u) EC:%d", __LINE__, usPifId, pif_enError);
-#endif
-    return NULL;
 }
 
 /**
@@ -179,7 +175,7 @@ int16_t pifAds1x1x_ReadMux(PIF_stAds1x1x *pstOwner, PIF_enAds1x1xConfigMux enMux
 	stConfig.bt.OS_SSCS = 1;
 	if (!_WriteWord(pstOwner, AR_enCONFIG, stConfig.usAll)) return 0;
 	if (pstOwner->__unConversionDelay) {
-		if (pif_actTimer1us) {
+		if (pif_act_timer1us) {
 			pifTaskManager_YieldUs(pstOwner->__unConversionDelay);
 		}
 		else {

@@ -136,133 +136,131 @@
 
 #define PIF_ID_AUTO		0
 
-#define PIF_CHECK_ELAPSE_TIME_1MS(START, ELAPSE)	(pif_unCumulativeTimer1ms - (START) >= (ELAPSE))
-#define PIF_CHECK_ELAPSE_TIME_1US(START, ELAPSE)	((*PIF_actTimer1us)() - (START) >= (ELAPSE))
+#define PIF_CHECK_ELAPSE_TIME_1MS(START, ELAPSE)	(pif_cumulative_timer1ms - (START) >= (ELAPSE))
+#define PIF_CHECK_ELAPSE_TIME_1US(START, ELAPSE)	((*pif_act_timer1us)() - (START) >= (ELAPSE))
 
 
-typedef uint16_t PIF_usId;
+typedef uint16_t PifId;
 
-typedef enum _PIF_enError
+typedef enum EnPifError
 {
-    E_enSuccess         		= 0x00,
+    E_SUCCESS           		= 0x00,
 
-	E_enInvalidParam    		= 0x01,
-    E_enInvalidState    		= 0x02,
-    E_enOutOfHeap       		= 0x03,
-    E_enOverflowBuffer			= 0x04,
-	E_enEmptyInBuffer			= 0x05,
-	E_enWrongData				= 0x06,
-	E_enTimeout					= 0x07,
-	E_enNotSetEvent				= 0x08,
-	E_enCanNotUse				= 0x09,
-	E_enTransferFailed			= 0x0A
-} PIF_enError;
+	E_INVALID_PARAM     		= 0x01,
+    E_INVALID_STATE     		= 0x02,
+    E_OUT_OF_HEAP       		= 0x03,
+    E_OVERFLOW_BUFFER			= 0x04,
+	E_EMPTY_IN_BUFFER			= 0x05,
+	E_WRONG_DATA				= 0x06,
+	E_TIMEOUT					= 0x07,
+	E_NOT_SET_EVENT				= 0x08,
+	E_CANNOT_USE				= 0x09,
+	E_TRANSFER_FAILED			= 0x0A
+} PifError;
 
 
 /**
- * @struct _PIF_stDateTime
+ * @struct StPifDateTime
  * @brief 날짜 시간 정보
  */
-typedef struct _PIF_stDateTime
+typedef struct StPifDateTime
 {
-    uint8_t ucYear;
-    uint8_t ucMonth;
-    uint8_t ucDay;
-    uint8_t ucHour;
-    uint8_t ucMinute;
-    uint8_t ucSecond;
-    uint16_t usMilisecond;
-} PIF_stDateTime;
+    uint8_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
+    uint16_t millisecond;
+} PifDateTime;
 
 /**
- * @struct _PIF_stPidControl
+ * @struct StPifPidControl
  * @brief PID Control을 계산하기 위한 구조체
  */
-typedef struct _PIF_stPidControl
+typedef struct StPifPidControl
 {
-	float  fFsKp;				// Proportional gain
-	float  fFsKi;				// Integral gain
-	float  fFsKd; 		    	// Derivative gain
-    float  fMaxIntegration;		// Maximum Integration
+	float kp;				// Proportional gain
+	float ki;				// Integral gain
+	float kd; 		    	// Derivative gain
+    float max_integration;	// Maximum Integration
 
-    struct {
-		float  fErrSum;			    // Variable: Error Sum
-		float  fErrPrev;	   		// History: Previous error
-    } _stPrivate;
-} PIF_stPidControl;
+	float err_sum;		    // Variable: Error Sum
+	float err_prev;	   		// History: Previous error
+} PifPidControl;
 
-typedef struct _PIF_stPerformance
+typedef struct StPifPerformance
 {
 	// Public Member Variable
 
 	// Read-only Member Variable
-	volatile uint32_t _unCount;
+	volatile uint32_t _count;
 
 	// Private Member Variable
-	BOOL __bState;
+	BOOL __state;
 #ifdef __PIF_DEBUG__
 #ifndef __PIF_NO_LOG__
-	uint32_t __unMaxLoopTimeUs;
+	uint32_t __max_loop_time1us;
 #endif
 #endif
-} PIF_stPerformance;
+} PifPerformance;
 
-typedef uint32_t (*PIF_actTimer1us)();
+typedef uint32_t (*PifActTimer1us)();
 
 
-extern PIF_enError pif_enError;
+extern PifError pif_error;
 
-extern volatile uint16_t pif_usTimer1ms;
-extern volatile uint32_t pif_unTimer1sec;
-extern volatile PIF_stDateTime pif_stDateTime;
+extern volatile uint16_t pif_timer1ms;
+extern volatile uint32_t pif_timer1sec;
+extern volatile PifDateTime pif_datetime;
 
-extern volatile uint32_t pif_unCumulativeTimer1ms;
+extern volatile uint32_t pif_cumulative_timer1ms;
 
-extern PIF_stPerformance pif_stPerformance;
+extern PifPerformance pif_performance;
 
-extern PIF_usId pif_usPifId;
+extern PifId pif_id;
 
-extern PIF_actTimer1us pif_actTimer1us;
+extern PifActTimer1us pif_act_timer1us;
 
-extern const char *pif_pacMonth3[12];
+extern const char* kPifMonth3[12];
 
-extern const char *pif_pcHexUpperChar;
-extern const char *pif_pcHexLowerChar;
+extern const char* kPifHexUpperChar;
+extern const char* kPifHexLowerChar;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void pif_Init(PIF_actTimer1us actTimer1us);
+void pif_Init(PifActTimer1us act_timer1us);
 void pif_Exit();
 
 void pif_Loop();
 void pif_sigTimer1ms();
 
-void pif_Delay1ms(uint16_t usDelay);
-void pif_Delay1us(uint16_t usDelay);
+void pif_Delay1ms(uint16_t delay);
+void pif_Delay1us(uint16_t delay);
 
 void pif_ClearError();
 
-int pif_BinToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt);
-int pif_DecToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt);
-int pif_HexToString(char *pcBuf, uint32_t unVal, uint16_t usStrCnt, BOOL bUpper);
-int pif_FloatToString(char *pcBuf, double dNum, uint16_t usPoint);
-void pif_PrintFormat(char *pcBuffer, va_list *pstData, const char *pcFormat);
-void pif_Printf(char *pcBuffer, const char *pcFormat, ...);
+int pif_BinToString(char* p_buffer, uint32_t value, uint16_t str_cnt);
+int pif_DecToString(char* p_buffer, uint32_t value, uint16_t str_cnt);
+int pif_HexToString(char* p_buffer, uint32_t value, uint16_t str_cnt, BOOL upper);
+int pif_FloatToString(char* p_buffer, double value, uint16_t point);
+void pif_PrintFormat(char* p_buffer, va_list* data, const char* p_format);
+void pif_Printf(char* p_buffer, const char* p_format, ...);
 
 void pifCrc7_Init();
-void pifCrc7_Calcurate(uint8_t ucData);
+void pifCrc7_Calcurate(uint8_t data);
 uint8_t pifCrc7_Result();
 
-uint16_t pifCrc16(uint8_t *pucData, uint16_t usLength);
+uint16_t pifCrc16(uint8_t* p_data, uint16_t length);
 
-uint8_t pifCheckSum(uint8_t *pucData, uint16_t usLength);
-uint8_t pifCheckXor(uint8_t *pucData, uint16_t usLength);
+uint8_t pifCheckSum(uint8_t* p_data, uint16_t length);
+uint8_t pifCheckXor(uint8_t* p_data, uint16_t length);
 
-void pifPidControl_Init(PIF_stPidControl *pstOwner, float fFsKp, float fFsKi, float fFsKd, float fMaxIntegration);
-float pifPidControl_Calcurate(PIF_stPidControl *pstOwner, float fErr);
+void pifPidControl_Init(PifPidControl* p_owner, float kp, float ki, float kd, float max_integration);
+float pifPidControl_Calcurate(PifPidControl* p_owner, float err);
 
 #ifdef __cplusplus
 }

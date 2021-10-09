@@ -85,25 +85,25 @@ void pifSensorDigital_ColSigClear()
  * @param pstTimer
  * @return 
  */
-PIF_stSensor *pifSensorDigital_Create(PIF_usId usPifId, PIF_stPulse *pstTimer)
+PIF_stSensor *pifSensorDigital_Create(PifId usPifId, PIF_stPulse *pstTimer)
 {
     PIF_stSensorDigital *pstOwner = NULL;
 
     if (!pstTimer) {
-		pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 	    return NULL;
 	}
 
     pstOwner = calloc(sizeof(PIF_stSensorDigital), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
     pstOwner->__pstTimer = pstTimer;
 	pstOwner->stSensor._swCurrState = OFF;
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->stSensor._usPifId = usPifId;
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -238,7 +238,7 @@ BOOL pifSensorDigital_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMeth
 	PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pstSensor;
 
     if (!ucFilterMethod || !ucFilterSize || !pstFilter) {
-		pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
@@ -252,7 +252,7 @@ BOOL pifSensorDigital_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMeth
 	pstFilter->ucSize = ucFilterSize;
 	pstFilter->apusBuffer = calloc(sizeof(uint16_t), ucFilterSize);
 	if (!pstFilter->apusBuffer) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 	    return FALSE;
 	}
 

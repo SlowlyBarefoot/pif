@@ -33,23 +33,23 @@ static void _evtTimerBlinkFinish(void *pvIssuer)
  * @param actState
  * @return
  */
-PIF_stLed *pifLed_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState)
+PIF_stLed *pifLed_Create(PifId usPifId, PIF_stPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState)
 {
 	PIF_stLed *pstOwner = NULL;
 
     if (!pstTimer || !ucCount || ucCount > 32 || !actState) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 	    return NULL;
     }
 
     pstOwner = calloc(sizeof(PIF_stLed), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
     pstOwner->__pstTimer = pstTimer;
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->_usPifId = usPifId;
     pstOwner->ucLedCount = ucCount;
     pstOwner->__actState = actState;
@@ -182,7 +182,7 @@ void pifLed_AllToggle(PIF_stLed *pstOwner)
 BOOL pifLed_AttachBlink(PIF_stLed *pstOwner, uint16_t usPeriodMs)
 {
 	if (!usPeriodMs) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
@@ -220,12 +220,12 @@ void pifLed_DetachBlink(PIF_stLed *pstOwner)
 BOOL pifLed_ChangeBlinkPeriod(PIF_stLed *pstOwner, uint16_t usPeriodMs)
 {
 	if (!usPeriodMs) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
 	if (!pstOwner->__pstTimerBlink || pstOwner->__pstTimerBlink->_enStep == PS_enStop) {
-        pif_enError = E_enInvalidState;
+        pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 

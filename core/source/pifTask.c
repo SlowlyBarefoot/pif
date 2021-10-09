@@ -40,7 +40,7 @@ static void _Processing(PIF_stTask *pstOwner, BOOL bRatio)
 		break;
 
 	case TM_enPeriodUs:
-		unTime = (*pif_actTimer1us)();
+		unTime = (*pif_act_timer1us)();
 		unGap = unTime - pstOwner->__unPretime;
 		if (unGap >= pstOwner->_usPeriod) {
 			pstOwner->__bRunning = TRUE;
@@ -51,7 +51,7 @@ static void _Processing(PIF_stTask *pstOwner, BOOL bRatio)
 		break;
 
 	case TM_enPeriodMs:
-		unTime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+		unTime = 1000L * pif_timer1sec + pif_timer1ms;
 		unGap = unTime - pstOwner->__unPretime;
 		if (unGap >= pstOwner->_usPeriod) {
 			pstOwner->__bRunning = TRUE;
@@ -62,7 +62,7 @@ static void _Processing(PIF_stTask *pstOwner, BOOL bRatio)
 		break;
 
 	case TM_enChangeUs:
-		unTime = (*pif_actTimer1us)();
+		unTime = (*pif_act_timer1us)();
 		unGap = unTime - pstOwner->__unPretime;
 		if (unGap >= pstOwner->_usPeriod) {
 			pstOwner->__bRunning = TRUE;
@@ -74,7 +74,7 @@ static void _Processing(PIF_stTask *pstOwner, BOOL bRatio)
 		break;
 
 	case TM_enChangeMs:
-		unTime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+		unTime = 1000L * pif_timer1sec + pif_timer1ms;
 		unGap = unTime - pstOwner->__unPretime;
 		if (unGap >= pstOwner->_usPeriod) {
 			pstOwner->__bRunning = TRUE;
@@ -88,7 +88,7 @@ static void _Processing(PIF_stTask *pstOwner, BOOL bRatio)
 	default:
 		if (bRatio) {
 #ifdef __PIF_DEBUG__
-			unTime = pif_unTimer1sec;
+			unTime = pif_timer1sec;
 			if (unTime != pstOwner->__unPretime) {
 				pstOwner->__fPeriod = 1000000.0 / pstOwner->__unCount;
 				pstOwner->__unCount = 0;
@@ -113,8 +113,8 @@ static void _Processing(PIF_stTask *pstOwner, BOOL bRatio)
  */
 void pifTask_Init(PIF_stTask *pstOwner)
 {
-    pif_usPifId++;
-    pstOwner->_usPifId = pif_usPifId;
+    pif_id++;
+    pstOwner->_usPifId = pif_id;
 }
 
 /**
@@ -179,14 +179,14 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
 	int i, num = -1;
 
 	if (!evtLoop) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 	    return NULL;
 	}
 
 	switch (enMode) {
     case TM_enRatio:
     	if (!usPeriod || usPeriod > 100) {
-    		pif_enError = E_enInvalidParam;
+    		pif_error = E_INVALID_PARAM;
 		    return NULL;
     	}
     	break;
@@ -197,7 +197,7 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
     case TM_enPeriodMs:
     case TM_enChangeMs:
     	if (!usPeriod) {
-            pif_enError = E_enInvalidParam;
+    		pif_error = E_INVALID_PARAM;
 		    return NULL;
     	}
     	break;
@@ -205,12 +205,12 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
     case TM_enPeriodUs:
     case TM_enChangeUs:
     	if (!usPeriod) {
-            pif_enError = E_enInvalidParam;
+    		pif_error = E_INVALID_PARAM;
 		    return NULL;
     	}
 
-    	if (!pif_actTimer1us) {
-            pif_enError = E_enCanNotUse;
+    	if (!pif_act_timer1us) {
+    		pif_error = E_CANNOT_USE;
 		    return NULL;
         }
     	break;
@@ -225,7 +225,7 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
     		}
     	}
     	if (i >= PIF_TASK_TABLE_SIZE) {
-    		pif_enError = E_enOverflowBuffer;
+    		pif_error = E_OVERFLOW_BUFFER;
 		    return NULL;
     	}
     	s_table_number |= 1 << num;
@@ -265,12 +265,12 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
 
     case TM_enPeriodMs:
     case TM_enChangeMs:
-    	pstOwner->__unPretime = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+    	pstOwner->__unPretime = 1000L * pif_timer1sec + pif_timer1ms;
     	break;
 
     case TM_enPeriodUs:
     case TM_enChangeUs:
-    	pstOwner->__unPretime = (*pif_actTimer1us)();
+    	pstOwner->__unPretime = (*pif_act_timer1us)();
     	break;
 
     default:
@@ -306,9 +306,9 @@ void pifTaskManager_Loop()
 	s_it_current = NULL;
 
 #ifdef __PIF_DEBUG__
-    if (ucSec != pif_stDateTime.ucSecond) {
+    if (ucSec != pif_datetime.second) {
     	pifTaskManager_Print();
-    	ucSec = pif_stDateTime.ucSecond;
+    	ucSec = pif_datetime.second;
     }
 #endif
 }
@@ -341,7 +341,7 @@ void pifTaskManager_Yield()
  */
 void pifTaskManager_YieldMs(uint32_t unTime)
 {
-    uint32_t unCurrent = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+    uint32_t unCurrent = 1000L * pif_timer1sec + pif_timer1ms;
     uint32_t unTarget = unCurrent + unTime;
 
 	if (!pifDList_Size(&s_tasks)) return;
@@ -350,12 +350,12 @@ void pifTaskManager_YieldMs(uint32_t unTime)
     if (unTarget < unCurrent) {
     	while (unCurrent <= 0xFFFFFFFF) {
     		pifTaskManager_Yield();
-    		unCurrent = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+    		unCurrent = 1000L * pif_timer1sec + pif_timer1ms;
     	}
     }
 	while (unCurrent < unTarget) {
 		pifTaskManager_Yield();
-		unCurrent = 1000L * pif_unTimer1sec + pif_usTimer1ms;
+		unCurrent = 1000L * pif_timer1sec + pif_timer1ms;
 	}
 }
 
@@ -366,12 +366,12 @@ void pifTaskManager_YieldMs(uint32_t unTime)
  */
 void pifTaskManager_YieldUs(uint32_t unTime)
 {
-    uint32_t unCurrent = (*pif_actTimer1us)();
+    uint32_t unCurrent = (*pif_act_timer1us)();
     uint32_t unTarget = unCurrent + unTime;
 
 	if (!pifDList_Size(&s_tasks)) return;
     if (!unTime) return;
-    if (!pif_actTimer1us) {
+    if (!pif_act_timer1us) {
     	pifTaskManager_YieldMs((unTime + 999) / 1000);
     	return;
     }
@@ -379,12 +379,12 @@ void pifTaskManager_YieldUs(uint32_t unTime)
     if (unTarget < unCurrent) {
     	while (unCurrent <= 0xFFFFFFFF) {
     		pifTaskManager_Yield();
-    		unCurrent = (*pif_actTimer1us)();
+    		unCurrent = (*pif_act_timer1us)();
     	}
     }
 	while (unCurrent < unTarget) {
 		pifTaskManager_Yield();
-		unCurrent = (*pif_actTimer1us)();
+		unCurrent = (*pif_act_timer1us)();
 	}
 }
 

@@ -140,19 +140,19 @@ static void _evtTimerShiftFinish(void *pvIssuer)
  * @param actDisplay
  * @return
  */
-PIF_stDotMatrix *pifDotMatrix_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
+PIF_stDotMatrix *pifDotMatrix_Create(PifId usPifId, PIF_stPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
 		PIF_actDotMatrixDisplay actDisplay)
 {
 	PIF_stDotMatrix *pstOwner = NULL;
 
     if (!pstTimer || !usColSize || !usRowSize || !actDisplay) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
         goto fail;
     }
 
     pstOwner = calloc(sizeof(PIF_stDotMatrix), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
@@ -164,11 +164,11 @@ PIF_stDotMatrix *pifDotMatrix_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, ui
 
     pstOwner->__pucPattern = calloc(sizeof(uint8_t), pstOwner->__usTotalBytes);
     if (!pstOwner->__pucPattern) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->_usPifId = usPifId;
     pstOwner->__usControlPeriodMs = PIF_DM_CONTROL_PERIOD_DEFAULT;
     pstOwner->__actDisplay = actDisplay;
@@ -219,7 +219,7 @@ void pifDotMatrix_Destroy(PIF_stDotMatrix** pp_owner)
 BOOL pifDotMatrix_SetControlPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs)
 {
     if (!usPeriodMs) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
@@ -240,7 +240,7 @@ BOOL pifDotMatrix_SetPatternSize(PIF_stDotMatrix *pstOwner, uint8_t ucSize)
 
 	pstOwner->__pstPattern = calloc(sizeof(PIF_stDotMatrixPattern), ucSize);
     if (!pstOwner->__pstPattern) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 	    return FALSE;
 	}
     pstOwner->__ucPatternSize = ucSize;
@@ -260,12 +260,12 @@ BOOL pifDotMatrix_SetPatternSize(PIF_stDotMatrix *pstOwner, uint8_t ucSize)
 BOOL pifDotMatrix_AddPattern(PIF_stDotMatrix *pstOwner, uint8_t ucColSize, uint8_t ucRowSize, uint8_t *pucPattern)
 {
 	if (pstOwner->__ucPatternCount >= pstOwner->__ucPatternSize) {
-        pif_enError = E_enOverflowBuffer;
+        pif_error = E_OVERFLOW_BUFFER;
 		return FALSE;
     }
 
     if (!ucColSize || !ucRowSize || ucColSize < pstOwner->__usColSize || ucRowSize < pstOwner->__usRowSize || !pucPattern) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
@@ -323,7 +323,7 @@ void pifDotMatrix_Stop(PIF_stDotMatrix *pstOwner)
 BOOL pifDotMatrix_SelectPattern(PIF_stDotMatrix *pstOwner, uint8_t ucPatternIndex)
 {
 	if (ucPatternIndex >= pstOwner->__ucPatternSize) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
@@ -342,7 +342,7 @@ BOOL pifDotMatrix_SelectPattern(PIF_stDotMatrix *pstOwner, uint8_t ucPatternInde
 BOOL pifDotMatrix_BlinkOn(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs)
 {
 	if (!usPeriodMs) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
@@ -394,7 +394,7 @@ BOOL pifDotMatrix_SetPosition(PIF_stDotMatrix *pstOwner, uint16_t usX, uint16_t 
 {
 	if (usX >= pstOwner->__pstPattern[pstOwner->__ucPatternIndex].ucColSize - pstOwner->__usColSize ||
     		usY >= pstOwner->__pstPattern[pstOwner->__ucPatternIndex].ucRowSize - pstOwner->__usRowSize) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
@@ -415,7 +415,7 @@ BOOL pifDotMatrix_SetPosition(PIF_stDotMatrix *pstOwner, uint16_t usX, uint16_t 
 BOOL pifDotMatrix_ShiftOn(PIF_stDotMatrix *pstOwner, PIF_enDotMatrixShift enShift, uint16_t usPeriodMs, uint16_t usCount)
 {
 	if (!usPeriodMs || enShift == DMS_enNone) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
@@ -466,11 +466,11 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
 
 	if (!pstOwner->__bt.Run) return 0;
 
-	if (pif_usTimer1ms > pstOwner->__usPretimeMs) {
-		if (pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
+	if (pif_timer1ms > pstOwner->__usPretimeMs) {
+		if (pif_timer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
 	}
-	else if (pif_usTimer1ms < pstOwner->__usPretimeMs) {
-		if (1000 - pstOwner->__usPretimeMs + pif_usTimer1ms < pstOwner->__usControlPeriodMs) return 0;
+	else if (pif_timer1ms < pstOwner->__usPretimeMs) {
+		if (1000 - pstOwner->__usPretimeMs + pif_timer1ms < pstOwner->__usControlPeriodMs) return 0;
 	}
 	else return 0;
 
@@ -486,7 +486,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
 	pstOwner->__ucRowIndex++;
 	if (pstOwner->__ucRowIndex >= pstOwner->__usRowSize) pstOwner->__ucRowIndex = 0;
 
-	pstOwner->__usPretimeMs = pif_usTimer1ms;
+	pstOwner->__usPretimeMs = pif_timer1ms;
 	return 0;
 }
 

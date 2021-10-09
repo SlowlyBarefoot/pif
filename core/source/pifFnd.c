@@ -44,30 +44,30 @@ void pifFnd_SetUserChar(const uint8_t *pucUserChar, uint8_t ucCount)
  * @param actDisplay
  * @return
  */
-PIF_stFnd *pifFnd_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay)
+PIF_stFnd *pifFnd_Create(PifId usPifId, PIF_stPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay)
 {
     PIF_stFnd *pstOwner = NULL;
 
     if (!pstTimer || !ucDigitSize || !actDisplay) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
         goto fail;
     }
 
     pstOwner = calloc(sizeof(PIF_stFnd), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
     pstOwner->__pcString = calloc(sizeof(uint8_t), ucDigitSize);
     if (!pstOwner->__pcString) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
     for (int i = 0; i < ucDigitSize; i++) pstOwner->__pcString[i] = 0x20;
 
     pstOwner->__pstTimer = pstTimer;
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->_usPifId = usPifId;
     pstOwner->__usControlPeriodMs = PIF_FND_CONTROL_PERIOD_DEFAULT / ucDigitSize;
     pstOwner->_ucDigitSize = ucDigitSize;
@@ -111,7 +111,7 @@ void pifFnd_Destroy(PIF_stFnd** pp_owner)
 BOOL pifFnd_SetControlPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
 {
     if (!usPeriodMs || usPeriodMs < pstOwner->_ucDigitSize) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
@@ -158,7 +158,7 @@ void pifFnd_Stop(PIF_stFnd *pstOwner)
 BOOL pifFnd_BlinkOn(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
 {
 	if (!usPeriodMs) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
@@ -195,12 +195,12 @@ void pifFnd_BlinkOff(PIF_stFnd *pstOwner)
 BOOL pifFnd_ChangeBlinkPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
 {
 	if (!usPeriodMs) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
 	if (!pstOwner->__pstTimerBlink || pstOwner->__pstTimerBlink->_enStep == PS_enStop) {
-        pif_enError = E_enInvalidState;
+        pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
@@ -360,11 +360,11 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
 
 	if (!pstOwner->__bt.Run) return 0;
 
-	if (pif_usTimer1ms > pstOwner->__usPretimeMs) {
-		if (pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
+	if (pif_timer1ms > pstOwner->__usPretimeMs) {
+		if (pif_timer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
 	}
-	else if (pif_usTimer1ms < pstOwner->__usPretimeMs) {
-		if (1000 + pif_usTimer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
+	else if (pif_timer1ms < pstOwner->__usPretimeMs) {
+		if (1000 + pif_timer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
 	}
 	else return 0;
 
@@ -392,7 +392,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
 	pstOwner->__ucDigitIndex++;
 	if (pstOwner->__ucDigitIndex >= pstOwner->_ucDigitSize) pstOwner->__ucDigitIndex = 0;
 
-	pstOwner->__usPretimeMs = pif_usTimer1ms;
+	pstOwner->__usPretimeMs = pif_timer1ms;
 	return 0;
 }
 

@@ -46,13 +46,13 @@ static void _evtTimerBreakFinish(void *pvIssuer)
  * @param usMaxDuty
  * @return 
  */
-PIF_stDutyMotor *pifDutyMotor_Create(PIF_usId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty)
+PIF_stDutyMotor *pifDutyMotor_Create(PifId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty)
 {
     PIF_stDutyMotor *pstOwner = NULL;
 
     pstOwner = calloc(sizeof(PIF_stDutyMotor), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
@@ -78,15 +78,15 @@ void pifDutyMotor_Destroy(PIF_stDutyMotor** pp_owner)
  * @param usMaxDuty
  * @return 
  */
-BOOL pifDutyMotor_Init(PIF_stDutyMotor* pstOwner, PIF_usId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty)
+BOOL pifDutyMotor_Init(PIF_stDutyMotor* pstOwner, PifId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty)
 {
     if (!p_timer) {
-		pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
     pstOwner->_p_timer = p_timer;
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->_usPifId = usPifId;
     pstOwner->_enState = MS_enIdle;
     pstOwner->_usMaxDuty = usMaxDuty;
@@ -187,7 +187,7 @@ BOOL pifDutyMotor_SetOperatingTime(PIF_stDutyMotor *pstOwner, uint32_t unOperati
 BOOL pifDutyMotor_Start(PIF_stDutyMotor *pstOwner, uint16_t usDuty)
 {
     if (!pstOwner->__actSetDuty || !pstOwner->__actSetDirection) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
@@ -251,7 +251,7 @@ BOOL pifDutyMotor_InitControl(PIF_stDutyMotor *pstOwner, uint16_t usControlPerio
 BOOL pifDutyMotor_StartControl(PIF_stDutyMotor *pstOwner)
 {
 	if (pstOwner->_enState != MS_enIdle) {
-        pif_enError = E_enInvalidState;
+        pif_error = E_INVALID_STATE;
 	    return FALSE;
     }
 

@@ -60,7 +60,7 @@ typedef struct _PIF_stDutyMotorSpeedEnc
     const PIF_stDutyMotorSpeedEncStage *__pstStages;
     const PIF_stDutyMotorSpeedEncStage *__pstCurrentStage;
 
-    PIF_stPidControl __stPidControl;
+    PifPidControl __stPidControl;
 
 	uint16_t __usArrivePPR;
 	uint16_t __usErrLowPPR;
@@ -76,12 +76,12 @@ typedef struct _PIF_stDutyMotorSpeedEnc
 extern "C" {
 #endif
 
-PIF_stDutyMotor *pifDutyMotorSpeedEnc_Create(PIF_usId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod);
+PIF_stDutyMotor *pifDutyMotorSpeedEnc_Create(PifId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod);
 void pifDutyMotorSpeedEnc_Destroy(PIF_stDutyMotor** pp_owner);
 
 BOOL pifDutyMotorSpeedEnc_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorSpeedEncStage *pstStages);
 
-PIF_stPidControl *pifDutyMotorSpeedEnc_GetPidControl(PIF_stDutyMotor *pstOwner);
+PifPidControl *pifDutyMotorSpeedEnc_GetPidControl(PIF_stDutyMotor *pstOwner);
 
 BOOL pifDutyMotorSpeedEnc_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime);
 void pifDutyMotorSpeedEnc_Stop(PIF_stDutyMotor *pstOwner);

@@ -34,7 +34,7 @@ struct _PIF_stDutyMotor
     PIF_evtDutyMotorError evtError;
 
     // Read-only Member Variable
-    PIF_usId _usPifId;
+    PifId _usPifId;
     PIF_stPulse* _p_timer;
 	uint16_t _usMaxDuty;
 	uint16_t _usCurrentDuty;
@@ -63,10 +63,10 @@ struct _PIF_stDutyMotor
 extern "C" {
 #endif
 
-PIF_stDutyMotor *pifDutyMotor_Create(PIF_usId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty);
+PIF_stDutyMotor *pifDutyMotor_Create(PifId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty);
 void pifDutyMotor_Destroy(PIF_stDutyMotor** pp_owner);
 
-BOOL pifDutyMotor_Init(PIF_stDutyMotor* pstOwner, PIF_usId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty);
+BOOL pifDutyMotor_Init(PIF_stDutyMotor* pstOwner, PifId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty);
 void pifDutyMotor_Clear(PIF_stDutyMotor* p_owner);
 
 void pifDutyMotor_AttachAction(PIF_stDutyMotor *pstOwner, PIF_actDutyMotorSetDuty actSetDuty, PIF_actDutyMotorSetDirection actSetDirection,

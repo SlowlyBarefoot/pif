@@ -75,7 +75,7 @@ struct _PIF_stComm
     PIF_evtCommSending evtSending;
 
 	// Read-only Member Variable
-    PIF_usId _usPifId;
+    PifId _usPifId;
     PIF_stRingBuffer *_pstTxBuffer;
     PIF_stRingBuffer *_pstRxBuffer;
     PIF_stTask *_pstTask;
@@ -95,7 +95,7 @@ struct _PIF_stComm
 extern "C" {
 #endif
 
-PIF_stComm *pifComm_Create(PIF_usId usPifId);
+PIF_stComm *pifComm_Create(PifId usPifId);
 void pifComm_Destroy(PIF_stComm** pp_owner);
 
 BOOL pifComm_AllocRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize);

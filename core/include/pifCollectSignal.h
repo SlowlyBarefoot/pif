@@ -65,7 +65,7 @@ void pifCollectSignal_ChangeFlag(uint8_t *pucFlag, uint8_t ucIndex, uint8_t ucFl
 BOOL pifCollectSignal_ChangeMethod(PIF_enCollectSignalMethod enMethod);
 
 void pifCollectSignal_Attach(PIF_enCollectSignalFlag enFlag, PIF_fnCollectSignalDevice fnDevice);
-void* pifCollectSignal_AddDevice(PIF_usId usPifId, PIF_enCollectSignalVarType enVarType, uint16_t usSize,
+void* pifCollectSignal_AddDevice(PifId usPifId, PIF_enCollectSignalVarType enVarType, uint16_t usSize,
 		const char* pcReference, uint16_t usInitialValue);
 
 void pifCollectSignal_Start();

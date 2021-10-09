@@ -35,8 +35,8 @@ struct _PIF_stGps
 	// Public Member Variable
 
     // Read-only Member Variable
-    PIF_usId _usPifId;
-    PIF_stDateTime _stDateTime;
+	PifId _usPifId;
+    PifDateTime _stDateTime;
 	PIF_dDeg _dCoordDeg[2];		// latitude, longitude	- unit: degree
 	double _dAltitude;       	// altitude      		- unit: meter
 	double _dSpeedN;          	// speed         		- unit: knots
@@ -56,10 +56,10 @@ struct _PIF_stGps
 extern "C" {
 #endif
 
-PIF_stGps *pifGps_Create(PIF_usId usPifId);
+PIF_stGps *pifGps_Create(PifId usPifId);
 void pifGps_Destroy(PIF_stGps **ppstOwner);
 
-void pifGps_Init(PIF_stGps *pstOwner, PIF_usId usPifId);
+void pifGps_Init(PIF_stGps *pstOwner, PifId usPifId);
 
 void pifGps_AttachEvent(PIF_stGps *pstOwner, PIF_evtGpsReceive evtReceive);
 

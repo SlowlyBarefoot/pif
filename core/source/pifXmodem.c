@@ -261,7 +261,7 @@ static BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
 #ifndef __PIF_NO_LOG__
 			pifLog_Printf(LT_enNone, "C");
 #endif
-			unTimer1ms = pif_unCumulativeTimer1ms;
+			unTimer1ms = pif_cumulative_timer1ms;
 			pstOwner->__stTx.ui.enState = XTS_enDelayC;
 			return TRUE;
 		}
@@ -320,18 +320,18 @@ static BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
  * @param enType
  * @return
  */
-PIF_stXmodem *pifXmodem_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enXmodemType enType)
+PIF_stXmodem *pifXmodem_Create(PifId usPifId, PIF_stPulse *pstTimer, PIF_enXmodemType enType)
 {
     PIF_stXmodem *pstOwner = NULL;
 
     if (!pstTimer) {
-		pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 		goto fail;
 	}
 
     pstOwner = calloc(sizeof(PIF_stXmodem), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
@@ -346,13 +346,13 @@ PIF_stXmodem *pifXmodem_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enXm
     	break;
 
     default:
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
         goto fail;
     }
 
     pstOwner->__pucData = calloc(sizeof(uint8_t), pstOwner->__usPacketSize);
     if (!pstOwner->__pucData) {
-        pif_enError = E_enOutOfHeap;
+        pif_error = E_OUT_OF_HEAP;
         goto fail;
     }
 
@@ -372,7 +372,7 @@ PIF_stXmodem *pifXmodem_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enXm
     pifPulse_AttachEvtFinish(pstOwner->__stRx.pstTimer, _evtTimerRxTimeout, pstOwner);
     pstOwner->__stRx.usTimeout = PIF_XMODEM_RECEIVE_TIMEOUT;
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->_usPifId = usPifId;
     return pstOwner;
 
@@ -477,17 +477,17 @@ BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *puc
 	uint16_t i, p, crc;
 
 	if (!pstOwner->__stTx.evtReceive) {
-		pif_enError = E_enNotSetEvent;
+		pif_error = E_NOT_SET_EVENT;
 		return FALSE;
 	}
 
 	if (!usDataSize || usDataSize > 128) {
-		pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
 	if (pstOwner->__stTx.ui.enState != XTS_enIdle) {
-		pif_enError = E_enInvalidState;
+		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 

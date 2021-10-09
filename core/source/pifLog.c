@@ -269,15 +269,15 @@ static void _PrintTime()
     static char acTmpBuf[20];
 
 	acTmpBuf[nOffset++] = '\n';
-	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucSecond, 2);
+	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_datetime.second, 2);
 	acTmpBuf[nOffset++] = '.';
-	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_usTimer1ms, 3);
+	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_timer1ms, 3);
 	acTmpBuf[nOffset++] = ' ';
 	acTmpBuf[nOffset++] = 'T';
 	acTmpBuf[nOffset++] = ' ';
-	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucHour, 2);
+	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_datetime.hour, 2);
 	acTmpBuf[nOffset++] = ':';
-	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucMinute, 2);
+	nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_datetime.minute, 2);
 	acTmpBuf[nOffset++] = ' ';
 
 	_PrintLog(acTmpBuf, FALSE);
@@ -351,13 +351,13 @@ void pifLog_Clear()
 BOOL pifLog_UseCommand(const PIF_stLogCmdEntry *pstCmdTable, const char *pcPrompt)
 {
     if (!pstCmdTable || !pcPrompt) {
-    	pif_enError = E_enInvalidParam;
+    	pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
     s_stLog.pcRxBuffer = calloc(sizeof(char), PIF_LOG_RX_BUFFER_SIZE);
     if (!s_stLog.pcRxBuffer) {
-        pif_enError = E_enOutOfHeap;
+        pif_error = E_OUT_OF_HEAP;
 		return FALSE;
     }
     s_stLog.ucRxBufferSize = PIF_LOG_RX_BUFFER_SIZE;
@@ -413,15 +413,15 @@ void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...)
     const char cType[] = { 'I', 'W', 'E', 'C' };
 
     if (enType >= LT_enInfo) {
-        if (nMinute != pif_stDateTime.ucMinute) {
+        if (nMinute != pif_datetime.minute) {
         	_PrintTime();
-        	nMinute = pif_stDateTime.ucMinute;
+        	nMinute = pif_datetime.minute;
     	}
 
     	acTmpBuf[nOffset++] = '\n';
-		nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_stDateTime.ucSecond, 2);
+		nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_datetime.second, 2);
     	acTmpBuf[nOffset++] = '.';
-		nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_usTimer1ms, 3);
+		nOffset += pif_DecToString(acTmpBuf + nOffset, (uint32_t)pif_timer1ms, 3);
     	acTmpBuf[nOffset++] = ' ';
     	acTmpBuf[nOffset++] = cType[enType - LT_enInfo];
     	acTmpBuf[nOffset++] = ' ';

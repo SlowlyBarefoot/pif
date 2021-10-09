@@ -102,7 +102,7 @@ static void _fnControlSpeed(PIF_stStepMotor *pstOwner)
 #endif
 }
 
-static void _evtSwitchReduceChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer)
+static void _evtSwitchReduceChange(PifId usPifId, uint16_t usLevel, void *pvIssuer)
 {
 	PIF_stStepMotor *pstOwner = (PIF_stStepMotor *)pvIssuer;
 
@@ -115,7 +115,7 @@ static void _evtSwitchReduceChange(PIF_usId usPifId, uint16_t usLevel, void *pvI
 	}
 }
 
-static void _evtSwitchStopChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer)
+static void _evtSwitchStopChange(PifId usPifId, uint16_t usLevel, void *pvIssuer)
 {
 	PIF_stStepMotor *pstOwner = (PIF_stStepMotor *)pvIssuer;
 
@@ -138,14 +138,14 @@ static void _evtSwitchStopChange(PIF_usId usPifId, uint16_t usLevel, void *pvIss
  * @param usControlPeriodMs
  * @return 
  */
-PIF_stStepMotor *pifStepMotorSpeed_Create(PIF_usId usPifId, PIF_stPulse* p_timer, uint8_t ucResolution,
+PIF_stStepMotor *pifStepMotorSpeed_Create(PifId usPifId, PIF_stPulse* p_timer, uint8_t ucResolution,
 		PIF_enStepMotorOperation enOperation, uint16_t usControlPeriodMs)
 {
 	PIF_stStepMotorSpeed* p_owner = NULL;
 
 	p_owner = calloc(sizeof(PIF_stStepMotorSpeed), 1);
     if (!p_owner) {
-        pif_enError = E_enOutOfHeap;
+        pif_error = E_OUT_OF_HEAP;
         goto fail;
     }
 
@@ -192,11 +192,11 @@ BOOL pifStepMotorSpeed_AddStages(PIF_stStepMotor *pstOwner, uint8_t ucStageSize,
 {
     for (int i = 0; i < ucStageSize; i++) {
     	if (pstStages[i].enMode & MM_SC_enMask) {
-            pif_enError = E_enInvalidParam;
+            pif_error = E_INVALID_PARAM;
 			return FALSE;
     	}
     	if (pstStages[i].enMode & MM_PC_enMask) {
-            pif_enError = E_enInvalidParam;
+            pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
     }
@@ -222,7 +222,7 @@ BOOL pifStepMotorSpeed_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, ui
     uint8_t ucState;
 
     if (!pstOwner->__actSetStep) {
-    	pif_enError = E_enInvalidParam;
+    	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
@@ -250,14 +250,14 @@ BOOL pifStepMotorSpeed_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, ui
 #ifndef __PIF_NO_LOG__
     		pifLog_Printf(LT_enError, "SMS(%u) S:%u", pstOwner->_usPifId, ucState);
 #endif
-        	pif_enError = E_enInvalidState;
+        	pif_error = E_INVALID_STATE;
 		    return FALSE;
     	}
     }
 
     if ((pstStage->enMode & MM_RT_enMask) == MM_RT_enTime) {
     	if (!unOperatingTime) {
-        	pif_enError = E_enInvalidParam;
+        	pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
     	else {

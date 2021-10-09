@@ -12,17 +12,17 @@
  * @param usDataCount
  * @return
  */
-PIF_stRingData *pifRingData_Create(PIF_usId usPifId, uint16_t usDataSize, uint16_t usDataCount)
+PIF_stRingData *pifRingData_Create(PifId usPifId, uint16_t usDataSize, uint16_t usDataCount)
 {
 	PIF_stRingData *pstOwner;
 
 	pstOwner = calloc(sizeof(PIF_stRingData) + usDataSize * usDataCount, 1);
 	if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-	if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+	if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->_usPifId = usPifId;
     pstOwner->_usDataSize = usDataSize;
     pstOwner->_usDataCount = usDataCount;
@@ -142,7 +142,7 @@ void *pifRingData_Add(PIF_stRingData *pstOwner)
 
 	if (next >= pstOwner->_usDataCount) next = 0;
 	if (next == pstOwner->__usTail) {
-		pif_enError = E_enOverflowBuffer;
+		pif_error = E_OVERFLOW_BUFFER;
 		return NULL;
 	}
 
@@ -160,7 +160,7 @@ void *pifRingData_Add(PIF_stRingData *pstOwner)
 void *pifRingData_Remove(PIF_stRingData *pstOwner)
 {
 	if (pstOwner->__usHead == pstOwner->__usTail) {
-		pif_enError = E_enEmptyInBuffer;
+		pif_error = E_EMPTY_IN_BUFFER;
 		return NULL;
 	}
 

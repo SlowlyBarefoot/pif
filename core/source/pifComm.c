@@ -44,17 +44,17 @@ static void _sendData(PIF_stComm *pstOwner)
  * @param usPifId
  * @return 
  */
-PIF_stComm *pifComm_Create(PIF_usId usPifId)
+PIF_stComm *pifComm_Create(PifId usPifId)
 {
     PIF_stComm *pstOwner = NULL;
 
     pstOwner = calloc(sizeof(PIF_stComm), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
 
     pstOwner->_usPifId = usPifId;
     pstOwner->__enState = CTS_enIdle;
@@ -87,7 +87,7 @@ void pifComm_Destroy(PIF_stComm** pp_owner)
 BOOL pifComm_AllocRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize)
 {
     if (!usRxSize) {
-    	pif_enError = E_enInvalidParam;
+    	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
@@ -107,7 +107,7 @@ BOOL pifComm_AllocRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize)
 BOOL pifComm_AllocTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize)
 {
 	if (!usTxSize) {
-    	pif_enError = E_enInvalidParam;
+    	pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 

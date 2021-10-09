@@ -67,7 +67,7 @@ struct _PIF_stSequence
 	PIF_evtSequenceError evtError;
 
 	// Read-only Member Variable
-	PIF_usId _usPifId;
+	PifId _usPifId;
 	uint8_t _ucPhaseNo;
 
 	// Private Member Variable
@@ -85,7 +85,7 @@ struct _PIF_stSequence
 extern "C" {
 #endif
 
-PIF_stSequence* pifSequence_Create(PIF_usId usPifId, PIF_stPulse* pstTimer, const PIF_stSequencePhase* pstPhaseList, void* pvParam);
+PIF_stSequence* pifSequence_Create(PifId usPifId, PIF_stPulse* pstTimer, const PIF_stSequencePhase* pstPhaseList, void* pvParam);
 void pifSequence_Destroy(PIF_stSequence** pp_owner);
 
 #ifdef __PIF_COLLECT_SIGNAL__

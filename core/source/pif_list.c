@@ -7,7 +7,7 @@ PIF_SList* pifSList_Create()
 {
 	PIF_SList* p_owner = calloc(sizeof(PIF_SList), 1);
 	if (p_owner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
 	return p_owner;
@@ -25,7 +25,7 @@ void pifSList_Destroy(PIF_SList** pp_owner)
 BOOL pifSList_Init(PIF_SList* p_owner)
 {
 	if (!p_owner) {
-        pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
         return FALSE;
 	}
 
@@ -52,7 +52,7 @@ void* pifSList_AddFirst(PIF_SList* p_owner, int data_size)
 {
 	PIF_SListNode* p_node = calloc(sizeof(PIF_SListNode) + data_size - 1, 1);
     if (!p_node) {
-		pif_enError = E_enOutOfHeap;
+    	pif_error = E_OUT_OF_HEAP;
     	return NULL;
     }
 
@@ -69,7 +69,7 @@ void* pifSList_AddLast(PIF_SList* p_owner, int data_size)
 {
 	PIF_SListNode* p_node = calloc(sizeof(PIF_SListNode) + data_size - 1, 1);
     if (!p_node) {
-		pif_enError = E_enOutOfHeap;
+    	pif_error = E_OUT_OF_HEAP;
     	return NULL;
     }
 
@@ -143,7 +143,7 @@ PIF_DList* pifDList_Create()
 {
 	PIF_DList* p_owner = calloc(sizeof(PIF_DList), 1);
 	if (p_owner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
 	return p_owner;
@@ -161,7 +161,7 @@ void pifDList_Destroy(PIF_DList** pp_owner)
 BOOL pifDList_Init(PIF_DList* p_owner)
 {
 	if (!p_owner) {
-        pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
         return FALSE;
 	}
 
@@ -188,7 +188,7 @@ void* pifDList_AddFirst(PIF_DList* p_owner, int data_size)
 {
 	PIF_DListNode* p_node = calloc(sizeof(PIF_DListNode) + data_size - 1, 1);
     if (!p_node) {
-		pif_enError = E_enOutOfHeap;
+    	pif_error = E_OUT_OF_HEAP;
     	return NULL;
     }
 
@@ -209,7 +209,7 @@ void* pifDList_AddLast(PIF_DList* p_owner, int data_size)
 {
 	PIF_DListNode* p_node = calloc(sizeof(PIF_DListNode) + data_size - 1, 1);
     if (!p_node) {
-		pif_enError = E_enOutOfHeap;
+    	pif_error = E_OUT_OF_HEAP;
     	return NULL;
     }
 
@@ -236,7 +236,7 @@ void* pifDList_Add(PIF_DList* p_owner, int data_size, PIF_DListIterator it)
 
     PIF_DListNode* p_node = calloc(sizeof(PIF_DListNode) + data_size - 1, 1);
     if (!p_node) {
-		pif_enError = E_enOutOfHeap;
+    	pif_error = E_OUT_OF_HEAP;
     	return NULL;
     }
 

@@ -33,7 +33,7 @@ struct _PIF_stTask
 	BOOL bImmediate;
 
 	// Read-only Member Variable
-	PIF_usId _usPifId;
+	PifId _usPifId;
 	PIF_enTaskMode _enMode;
 	uint16_t _usPeriod;
 	void *_pvClient;

@@ -51,7 +51,7 @@ struct _PIF_stStepMotor
     PIF_evtStepMotorError evtError;
 
 	// Read-only Member Variable
-    PIF_usId _usPifId;
+    PifId _usPifId;
     PIF_stPulse *_p_timer;
     PIF_enStepMotorMethod _enMethod;
     PIF_enStepMotorOperation _enOperation;
@@ -92,10 +92,10 @@ struct _PIF_stStepMotor
 extern "C" {
 #endif
 
-PIF_stStepMotor *pifStepMotor_Create(PIF_usId usPifId, PIF_stPulse* p_timer, uint16_t usResolution, PIF_enStepMotorOperation enOperation);
+PIF_stStepMotor *pifStepMotor_Create(PifId usPifId, PIF_stPulse* p_timer, uint16_t usResolution, PIF_enStepMotorOperation enOperation);
 void pifStepMotor_Destroy(PIF_stStepMotor** pp_owner);
 
-BOOL pifStepMotor_Init(PIF_stStepMotor* p_owner, PIF_usId usPifId, PIF_stPulse* p_timer, uint16_t usResolution, PIF_enStepMotorOperation enOperation);
+BOOL pifStepMotor_Init(PIF_stStepMotor* p_owner, PifId usPifId, PIF_stPulse* p_timer, uint16_t usResolution, PIF_enStepMotorOperation enOperation);
 void pifStepMotor_Clear(PIF_stStepMotor* p_owner);
 
 void pifStepMotor_AttachAction(PIF_stStepMotor *pstOwner, PIF_actStepMotorSetStep actSetStep);

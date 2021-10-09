@@ -19,11 +19,11 @@ static void _Clean(PIF_stI2c *pstOwner)
  * @param ucDataSize
  * @return
  */
-PIF_stI2c *pifI2c_Create(PIF_usId usPifId, uint16_t ucDataSize)
+PIF_stI2c *pifI2c_Create(PifId usPifId, uint16_t ucDataSize)
 {
 	PIF_stI2c *pstOwner = calloc(sizeof(PIF_stI2c), 1);
 	if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
@@ -57,22 +57,22 @@ void pifI2c_Destroy(PIF_stI2c **ppstOwner)
  * @param ucDataSize
  * @return
  */
-BOOL pifI2c_Init(PIF_stI2c *pstOwner, PIF_usId usPifId, uint16_t ucDataSize)
+BOOL pifI2c_Init(PIF_stI2c *pstOwner, PifId usPifId, uint16_t ucDataSize)
 {
 	_Clean(pstOwner);
 
 	if (!ucDataSize) {
-		pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
 	pstOwner->pucData = calloc(sizeof(uint8_t), ucDataSize);
     if (!pstOwner->pucData) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		return FALSE;
 	}
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->_usPifId = usPifId;
     pstOwner->ucDataSize = ucDataSize;
     pstOwner->_enStateRead = IS_enIdle;

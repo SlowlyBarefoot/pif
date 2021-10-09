@@ -149,19 +149,19 @@ void pifSolenoid_ColSigClear()
  * @param actControl
  * @return
  */
-PIF_stSolenoid *pifSolenoid_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enSolenoidType enType, uint16_t usOnTime,
+PIF_stSolenoid *pifSolenoid_Create(PifId usPifId, PIF_stPulse *pstTimer, PIF_enSolenoidType enType, uint16_t usOnTime,
 		PIF_actSolenoidControl actControl)
 {
     PIF_stSolenoid *pstOwner = NULL;
 
     if (!pstTimer || !actControl) {
-		pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 	    return NULL;
 	}
 
     pstOwner = calloc(sizeof(PIF_stSolenoid), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
@@ -177,7 +177,7 @@ PIF_stSolenoid *pifSolenoid_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_
     pstOwner->__actControl = actControl;
     pstOwner->__bState = FALSE;
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->_usPifId = usPifId;
     pstOwner->_enType = enType;
     pstOwner->usOnTime = usOnTime;
@@ -247,7 +247,7 @@ void pifSolenoid_SetInvalidDirection(PIF_stSolenoid *pstOwner)
 BOOL pifSolenoid_SetOnTime(PIF_stSolenoid *pstOwner, uint16_t usOnTime)
 {
     if (!usOnTime) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 

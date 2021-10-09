@@ -36,7 +36,7 @@ typedef struct _PIF_stSensorDigital PIF_stSensorDigital;
 struct _PIF_stSensorDigitalFilter;
 typedef struct _PIF_stSensorDigitalFilter PIF_stSensorDigitalFilter;
 
-typedef void (*PIF_evtSensorDigitalPeriod)(PIF_usId usPifId, uint16_t usLevel);
+typedef void (*PIF_evtSensorDigitalPeriod)(PifId usPifId, uint16_t usLevel);
 typedef uint16_t (*PIF_evtSensorDigitalFilter)(uint16_t usLevel, PIF_stSensorDigitalFilter *pstFilter);
 
 
@@ -107,7 +107,7 @@ struct _PIF_stSensorDigital
 extern "C" {
 #endif
 
-PIF_stSensor* pifSensorDigital_Create(PIF_usId usPifId, PIF_stPulse* pstTimer);
+PIF_stSensor* pifSensorDigital_Create(PifId usPifId, PIF_stPulse* pstTimer);
 void pifSensorDigital_Destroy(PIF_stSensor** pp_sensor);
 
 void pifSensorDigital_InitialState(PIF_stSensor *pstSensor);

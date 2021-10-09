@@ -108,19 +108,19 @@ void pifSensorSwitch_ColSigClear()
  * @param swInitState
  * @return 
  */
-PIF_stSensor *pifSensorSwitch_Create(PIF_usId usPifId, SWITCH swInitState)
+PIF_stSensor *pifSensorSwitch_Create(PifId usPifId, SWITCH swInitState)
 {
     PIF_stSensorSwitch *pstOwner = NULL;
 
     pstOwner = calloc(sizeof(PIF_stSensorSwitch), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
     PIF_stSensor *pstSensor = &pstOwner->stSensor;
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstSensor->_usPifId = usPifId;
 	pstSensor->_swInitState = swInitState;
 	pstSensor->_swCurrState = swInitState;
@@ -179,7 +179,7 @@ BOOL pifSensorSwitch_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMetho
 	PIF_stSensorSwitch *pstOwner = (PIF_stSensorSwitch *)pstSensor;
 
     if (!ucFilterMethod || ucFilterSize < 3 || ucFilterSize >= 32 || !pstFilter) {
-		pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 

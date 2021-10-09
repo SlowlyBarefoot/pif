@@ -14,7 +14,7 @@ static void _CheckKeyState(PIF_stKeypad* p_owner, int idx, BOOL button)
 		if (button == ON) {
 			pstKey->bPressed = FALSE;
 			pstKey->bLongReleased = FALSE;
-			pstKey->unPressedTime = pif_unTimer1sec * 1000 + pif_usTimer1ms;
+			pstKey->unPressedTime = pif_timer1sec * 1000 + pif_timer1ms;
 			if (p_owner->evtDoublePressed) {
 				if (!pstKey->unFirstTime) {
 					pstKey->unFirstTime = pstKey->unPressedTime;
@@ -30,7 +30,7 @@ static void _CheckKeyState(PIF_stKeypad* p_owner, int idx, BOOL button)
 			pstKey->enState = KS_enPressed;
 		}
 		else if (pstKey->bShortClicked) {
-			unTime = pif_unTimer1sec * 1000 + pif_usTimer1ms - pstKey->unPressedTime;
+			unTime = pif_timer1sec * 1000 + pif_timer1ms - pstKey->unPressedTime;
 			if (unTime >= p_owner->_usDoubleTimeMs) {
 				if (p_owner->evtPressed)  {
 					(*p_owner->evtPressed)(p_owner->__pcUserKeymap[idx]);
@@ -53,7 +53,7 @@ static void _CheckKeyState(PIF_stKeypad* p_owner, int idx, BOOL button)
 			else pstKey->enState = KS_enIdle;
 		}
 		else {
-			unTime = pif_unTimer1sec * 1000 + pif_usTimer1ms - pstKey->unPressedTime;
+			unTime = pif_timer1sec * 1000 + pif_timer1ms - pstKey->unPressedTime;
 			if (unTime >= p_owner->_usHoldTimeMs) {
 				pstKey->enState = KS_enHold;
 			}
@@ -62,7 +62,7 @@ static void _CheckKeyState(PIF_stKeypad* p_owner, int idx, BOOL button)
 
 	case KS_enHold:
 		if (!pstKey->bDoublePressed) {
-			unTime = pif_unTimer1sec * 1000 + pif_usTimer1ms - pstKey->unPressedTime;
+			unTime = pif_timer1sec * 1000 + pif_timer1ms - pstKey->unPressedTime;
 			if (unTime >= p_owner->_usLongTimeMs) {
 				if (!pstKey->bLongReleased) {
 					if (p_owner->evtLongReleased)  {
@@ -102,7 +102,7 @@ static void _CheckKeyState(PIF_stKeypad* p_owner, int idx, BOOL button)
 
 	case KS_enReleased:
 		if (!pstKey->bLongReleased && p_owner->evtReleased)  {
-			unTime = pif_unTimer1sec * 1000 + pif_usTimer1ms - pstKey->unPressedTime;
+			unTime = pif_timer1sec * 1000 + pif_timer1ms - pstKey->unPressedTime;
 			(*p_owner->evtReleased)(p_owner->__pcUserKeymap[idx], unTime);
 		}
 		pstKey->enState = KS_enIdle;
@@ -119,29 +119,29 @@ static void _CheckKeyState(PIF_stKeypad* p_owner, int idx, BOOL button)
  * @param pcUserKeymap
  * @return
  */
-PIF_stKeypad *pifKeypad_Create(PIF_usId usPifId, uint8_t ucNumRows, uint8_t ucNumCols, const char *pcUserKeymap)
+PIF_stKeypad *pifKeypad_Create(PifId usPifId, uint8_t ucNumRows, uint8_t ucNumCols, const char *pcUserKeymap)
 {
 	PIF_stKeypad* p_owner;
 
 	p_owner = calloc(sizeof(PIF_stKeypad), 1);
 	if (!p_owner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
 
 	p_owner->__pstKey = calloc(sizeof(PIF_stKey), ucNumRows * ucNumCols);
 	if (!p_owner->__pstKey) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
 
 	p_owner->__pusState = calloc(sizeof(uint16_t), ucNumRows);
 	if (!p_owner->__pusState) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     p_owner->_usPifId = usPifId;
     p_owner->__pcUserKeymap = pcUserKeymap;
     p_owner->__ucNumRows = ucNumRows;
@@ -189,7 +189,7 @@ void pifKeypad_AttachAction(PIF_stKeypad* p_owner, PIF_actKeypadAcquire actAcqui
 BOOL pifKeypad_SetHoldTime(PIF_stKeypad* p_owner, uint16_t usHoldTimeMs)
 {
 	if (usHoldTimeMs >= p_owner->_usDoubleTimeMs) {
-		pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
@@ -207,7 +207,7 @@ BOOL pifKeypad_SetHoldTime(PIF_stKeypad* p_owner, uint16_t usHoldTimeMs)
 BOOL pifKeypad_SetLongTime(PIF_stKeypad* p_owner, uint16_t usLongTimeMs)
 {
 	if (usLongTimeMs <= p_owner->_usDoubleTimeMs) {
-		pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
@@ -225,7 +225,7 @@ BOOL pifKeypad_SetLongTime(PIF_stKeypad* p_owner, uint16_t usLongTimeMs)
 BOOL pifKeypad_SetDoubleTime(PIF_stKeypad* p_owner, uint16_t usDoubleTimeMs)
 {
 	if (usDoubleTimeMs <= p_owner->_usHoldTimeMs || usDoubleTimeMs >= p_owner->_usLongTimeMs) {
-		pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 

@@ -103,11 +103,11 @@ static void _fnControlSpeed(PIF_stDutyMotor *pstOwner)
 #endif
 }
 
-static void _evtSwitchReduceChange(PIF_usId _usPifId, uint16_t usLevel, void *pvIssuer)
+static void _evtSwitchReduceChange(PifId usPifId, uint16_t usLevel, void *pvIssuer)
 {
 	PIF_stDutyMotor *pstOwner = (PIF_stDutyMotor *)pvIssuer;
 
-	(void)_usPifId;
+	(void)usPifId;
 
 	if (pstOwner->_enState >= MS_enReduce) return;
 
@@ -116,11 +116,11 @@ static void _evtSwitchReduceChange(PIF_usId _usPifId, uint16_t usLevel, void *pv
 	}
 }
 
-static void _evtSwitchStopChange(PIF_usId _usPifId, uint16_t usLevel, void *pvIssuer)
+static void _evtSwitchStopChange(PifId usPifId, uint16_t usLevel, void *pvIssuer)
 {
 	PIF_stDutyMotor *pstOwner = (PIF_stDutyMotor *)pvIssuer;
 
-	(void)_usPifId;
+	(void)usPifId;
 
 	if (pstOwner->_enState >= MS_enBreak) return;
 
@@ -133,24 +133,24 @@ static void _evtSwitchStopChange(PIF_usId _usPifId, uint16_t usLevel, void *pvIs
 /**
  * @fn pifDutyMotorSpeed_Create
  * @brief 
- * @param _usPifId
+ * @param usPifId
  * @param p_timer
  * @param usMaxDuty
  * @param usControlPeriod
  * @return 
  */
-PIF_stDutyMotor *pifDutyMotorSpeed_Create(PIF_usId _usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod)
+PIF_stDutyMotor *pifDutyMotorSpeed_Create(PifId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod)
 {
 	PIF_stDutyMotorSpeed* p_owner = NULL;
 
 	p_owner = calloc(sizeof(PIF_stDutyMotorSpeed), 1);
     if (!p_owner) {
-        pif_enError = E_enOutOfHeap;
+        pif_error = E_OUT_OF_HEAP;
         goto fail;
     }
 
     PIF_stDutyMotor *pstOwner = &p_owner->parent;
-    if (!pifDutyMotor_Init(pstOwner, _usPifId, p_timer, usMaxDuty)) goto fail;
+    if (!pifDutyMotor_Init(pstOwner, usPifId, p_timer, usMaxDuty)) goto fail;
 
     if (!pifDutyMotor_InitControl(pstOwner, usControlPeriod)) goto fail;
 
@@ -192,11 +192,11 @@ BOOL pifDutyMotorSpeed_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize,
 {
     for (int i = 0; i < ucStageSize; i++) {
     	if (pstStages[i].enMode & MM_SC_enMask) {
-            pif_enError = E_enInvalidParam;
+            pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
     	if (pstStages[i].enMode & MM_PC_enMask) {
-            pif_enError = E_enInvalidParam;
+            pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
     }
@@ -222,7 +222,7 @@ BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, ui
     uint8_t ucState;
 
     if (!pstOwner->__actSetDuty || !pstOwner->__actSetDirection) {
-    	pif_enError = E_enInvalidParam;
+    	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
@@ -247,14 +247,14 @@ BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, ui
     		}
     	}
     	if (ucState) {
-        	pif_enError = E_enInvalidState;
+        	pif_error = E_INVALID_STATE;
 		    return FALSE;
     	}
     }
 
     if ((pstStage->enMode & MM_RT_enMask) == MM_RT_enTime) {
     	if (!unOperatingTime) {
-        	pif_enError = E_enInvalidParam;
+        	pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
     	else {

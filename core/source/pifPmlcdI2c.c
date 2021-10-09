@@ -88,18 +88,18 @@ static void _Send(PIF_stPmlcdI2c *pstOwner, uint8_t ucValue, uint8_t ucMode)
  * @param ucAddr
  * @return
  */
-PIF_stPmlcdI2c *pifPmlcdI2c_Create(PIF_usId usPifId, uint8_t ucAddr)
+PIF_stPmlcdI2c *pifPmlcdI2c_Create(PifId usPifId, uint8_t ucAddr)
 {
     PIF_stPmlcdI2c *pstOwner = NULL;
 
-    if (!pif_actTimer1us) {
-		pif_enError = E_enInvalidParam;
+    if (!pif_act_timer1us) {
+		pif_error = E_INVALID_PARAM;
 		goto fail;
 	}
 
     pstOwner = calloc(sizeof(PIF_stPmlcdI2c), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 

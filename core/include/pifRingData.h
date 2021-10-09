@@ -14,7 +14,7 @@ typedef struct _PIF_stRingData
 	// Public Member Variable
 
     // Read-only Member Variable
-	PIF_usId _usPifId;
+	PifId _usPifId;
     uint16_t _usDataSize;
     uint16_t _usDataCount;
 
@@ -30,7 +30,7 @@ typedef struct _PIF_stRingData
 extern "C" {
 #endif
 
-PIF_stRingData *pifRingData_Create(PIF_usId usPifId, uint16_t usDataSize, uint16_t usDataCount);
+PIF_stRingData *pifRingData_Create(PifId usPifId, uint16_t usDataSize, uint16_t usDataCount);
 void pifRingData_Destroy(PIF_stRingData** pp_owner);
 
 BOOL pifRingData_IsEmpty(PIF_stRingData *pstOwner);

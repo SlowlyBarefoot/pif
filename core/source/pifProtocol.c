@@ -369,7 +369,7 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
 			}
 			else {
 				if (!pifPulse_StartItem(pstOwner->__stTx.pstTimer, pstOwner->__stTx.ui.stInfo.usTimeout)) {
-					pif_enError = E_enOverflowBuffer;
+					pif_error = E_OVERFLOW_BUFFER;
 					if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner->_usPifId);
 					pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.ui.stInfo.usLength);
 #ifndef __PIF_NO_LOG__
@@ -394,7 +394,7 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
 				pstOwner->__stTx.enState = PTS_enSending;
 			}
 			else {
-				pif_enError = E_enTransferFailed;
+				pif_error = E_TRANSFER_FAILED;
 				if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner->_usPifId);
 				pifRingBuffer_Remove(pstOwner->__stTx.pstRequestBuffer, 5 + pstOwner->__stTx.ui.stInfo.usLength);
 #ifndef __PIF_NO_LOG__
@@ -420,20 +420,20 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
  * @param pstQuestion
  * @return
  */
-PIF_stProtocol *pifProtocol_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enProtocolType enType,
+PIF_stProtocol *pifProtocol_Create(PifId usPifId, PIF_stPulse *pstTimer, PIF_enProtocolType enType,
 		const PIF_stProtocolQuestion *pstQuestions)
 {
     PIF_stProtocol *pstOwner = NULL;
 	const PIF_stProtocolQuestion *pstQuestion = pstQuestions;
 
 	if (!pstTimer) {
-		pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 		goto fail;
 	}
 
 	while (pstQuestion->ucCommand) {
 		if (pstQuestion->ucCommand < 0x20) {
-	        pif_enError = E_enInvalidParam;
+	        pif_error = E_INVALID_PARAM;
 			goto fail;
 		}
 		pstQuestion++;
@@ -441,7 +441,7 @@ PIF_stProtocol *pifProtocol_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_
 
 	pstOwner = calloc(sizeof(PIF_stProtocol), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
@@ -456,13 +456,13 @@ PIF_stProtocol *pifProtocol_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_
 		break;
 
 	default:
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
         goto fail;
 	}
 
     pstOwner->__stRx.pucPacket = calloc(sizeof(uint8_t), 10 + PIF_PROTOCOL_RX_PACKET_SIZE);
     if (!pstOwner->__stRx.pucPacket) {
-        pif_enError = E_enOutOfHeap;
+        pif_error = E_OUT_OF_HEAP;
         goto fail;
     }
 
@@ -472,7 +472,7 @@ PIF_stProtocol *pifProtocol_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_
     pifPulse_AttachEvtFinish(pstOwner->__stRx.pstTimer, _evtTimerRxTimeout, pstOwner);
 #endif
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
 
     pstOwner->__stTx.pstRequestBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_PROTOCOL_TX_REQUEST_SIZE);
     if (!pstOwner->__stTx.pstRequestBuffer) goto fail;
@@ -555,13 +555,13 @@ BOOL pifProtocol_SetFrameSize(PIF_stProtocol *pstOwner, uint8_t ucFrameSize)
 BOOL pifProtocol_ResizeRxPacket(PIF_stProtocol *pstOwner, uint16_t usRxPacketSize)
 {
     if (!usRxPacketSize) {
-    	pif_enError = E_enInvalidParam;
+    	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
     pstOwner->__stRx.pucPacket = realloc(pstOwner->__stRx.pucPacket, sizeof(uint8_t) * (10 + usRxPacketSize));
     if (!pstOwner->__stRx.pucPacket) {
-        pif_enError = E_enOutOfHeap;
+        pif_error = E_OUT_OF_HEAP;
 	    return FALSE;
     }
 
@@ -579,7 +579,7 @@ BOOL pifProtocol_ResizeRxPacket(PIF_stProtocol *pstOwner, uint16_t usRxPacketSiz
 BOOL pifProtocol_ResizeTxRequest(PIF_stProtocol *pstOwner, uint16_t usTxRequestSize)
 {
     if (!usTxRequestSize) {
-    	pif_enError = E_enInvalidParam;
+    	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
@@ -596,7 +596,7 @@ BOOL pifProtocol_ResizeTxRequest(PIF_stProtocol *pstOwner, uint16_t usTxRequestS
 BOOL pifProtocol_ResizeTxResponse(PIF_stProtocol *pstOwner, uint16_t usTxResponseSize)
 {
     if (usTxResponseSize) {
-    	pif_enError = E_enInvalidParam;
+    	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
@@ -635,7 +635,7 @@ BOOL pifProtocol_MakeRequest(PIF_stProtocol *pstOwner, const PIF_stProtocolReque
 	uint8_t ucPacketId = 0, ucData, ucLack;
 
 	if (pstOwner->__stTx.enState != PTS_enIdle) {
-		pif_enError = E_enInvalidState;
+		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 

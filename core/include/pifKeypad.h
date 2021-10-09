@@ -51,7 +51,7 @@ typedef struct _PIF_stKeypad
 	PIF_evtKeypadDoublePressed evtDoublePressed;	// Default: NULL
 
 	// Read-only Member Variable
-	PIF_usId _usPifId;
+	PifId _usPifId;
 	uint16_t _usHoldTimeMs;							// Default: PIF_KEYPAD_DEFAULT_HOLD_TIME
 	uint16_t _usLongTimeMs;							// Default: PIF_KEYPAD_DEFAULT_LONG_TIME
 	uint16_t _usDoubleTimeMs;						// Default: PIF_KEYPAD_DEFAULT_DOUBLE_TIME
@@ -72,7 +72,7 @@ typedef struct _PIF_stKeypad
 extern "C" {
 #endif
 
-PIF_stKeypad *pifKeypad_Create(PIF_usId usPifId, uint8_t ucNumRows, uint8_t ucNumCols, const char *pcUserKeymap);
+PIF_stKeypad *pifKeypad_Create(PifId usPifId, uint8_t ucNumRows, uint8_t ucNumCols, const char *pcUserKeymap);
 void pifKeypad_Destroy(PIF_stKeypad** pp_owner);
 
 void pifKeypad_AttachAction(PIF_stKeypad* p_owner, PIF_actKeypadAcquire actAcquire);

@@ -86,7 +86,7 @@ struct _PIF_stSensorSwitch
 extern "C" {
 #endif
 
-PIF_stSensor* pifSensorSwitch_Create(PIF_usId usPifId, SWITCH swInitState);
+PIF_stSensor* pifSensorSwitch_Create(PifId usPifId, SWITCH swInitState);
 void pifSensorSwitch_Destroy(PIF_stSensor** pp_sensor);
 
 void pifSensorSwitch_InitialState(PIF_stSensor *pstSensor);

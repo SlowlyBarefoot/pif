@@ -84,7 +84,7 @@ typedef struct _PIF_stProtocolPacket
 } PIF_stProtocolPacket;
 
 typedef void (*PIF_evtProtocolFinish)(PIF_stProtocolPacket *pstPacket);
-typedef void (*PIF_evtProtocolError)(PIF_usId usPifId);
+typedef void (*PIF_evtProtocolError)(PifId usPifId);
 
 /**
  * @class _PIF_stProtocolRequest
@@ -159,7 +159,7 @@ typedef struct _PIF_stProtocol
     PIF_evtProtocolError evtError;
 
 	// Read-only Member Variable
-    PIF_usId _usPifId;
+    PifId _usPifId;
     PIF_enProtocolType _enType;
     uint8_t _ucFrameSize;
 
@@ -178,7 +178,7 @@ typedef struct _PIF_stProtocol
 extern "C" {
 #endif
 
-PIF_stProtocol *pifProtocol_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enProtocolType enType,
+PIF_stProtocol *pifProtocol_Create(PifId usPifId, PIF_stPulse *pstTimer, PIF_enProtocolType enType,
 		const PIF_stProtocolQuestion *pstQuestions);
 void pifProtocol_Destroy(PIF_stProtocol** pp_owner);
 

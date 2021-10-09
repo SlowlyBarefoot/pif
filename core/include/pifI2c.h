@@ -32,7 +32,7 @@ struct _PIF_stI2c
 	uint8_t *pucData;
 
 	// Read-only Member Variable
-	PIF_usId _usPifId;
+	PifId _usPifId;
 	volatile PIF_enI2cState _enStateRead;
 	volatile PIF_enI2cState _enStateWrite;
 
@@ -48,10 +48,10 @@ struct _PIF_stI2c
 extern "C" {
 #endif
 
-PIF_stI2c *pifI2c_Create(PIF_usId usPifId, uint16_t ucDataSize);
+PIF_stI2c *pifI2c_Create(PifId usPifId, uint16_t ucDataSize);
 void pifI2c_Destroy(PIF_stI2c **ppstOwner);
 
-BOOL pifI2c_Init(PIF_stI2c *pstOwner, PIF_usId usPifId, uint16_t ucDataSize);
+BOOL pifI2c_Init(PIF_stI2c *pstOwner, PifId usPifId, uint16_t ucDataSize);
 
 #ifndef __PIF_NO_LOG__
 void pifI2c_ScanAddress(PIF_stI2c *pstOwner);

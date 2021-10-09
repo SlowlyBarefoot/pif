@@ -19,7 +19,7 @@ typedef struct _PIF_stRingBuffer
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PIF_usId _usPifId;
+	PifId _usPifId;
 	struct {
 		uint8_t Static	: 1;
 		uint8_t ChopOff	: 2;	// RB_CHOP_OFF_
@@ -43,8 +43,8 @@ typedef struct _PIF_stRingBuffer
 extern "C" {
 #endif
 
-PIF_stRingBuffer *pifRingBuffer_InitHeap(PIF_usId usPifId, uint16_t usSize);
-PIF_stRingBuffer *pifRingBuffer_InitStatic(PIF_usId usPifId, uint16_t usSize, uint8_t *pucBuffer);
+PIF_stRingBuffer *pifRingBuffer_InitHeap(PifId usPifId, uint16_t usSize);
+PIF_stRingBuffer *pifRingBuffer_InitStatic(PifId usPifId, uint16_t usSize, uint8_t *pucBuffer);
 void pifRingBuffer_Exit(PIF_stRingBuffer *pstOwner);
 
 BOOL pifRingBuffer_ResizeHeap(PIF_stRingBuffer *pstOwner, uint16_t usSize);

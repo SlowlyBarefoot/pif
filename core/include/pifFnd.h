@@ -17,7 +17,7 @@ typedef struct _PIF_stFnd
 	uint8_t ucSubNumericDigits;
 
 	// Read-only Member Variable
-	PIF_usId _usPifId;
+	PifId _usPifId;
     uint8_t _ucFndCount;
     uint8_t _ucDigitSize;
 
@@ -44,7 +44,7 @@ typedef struct _PIF_stFnd
 extern "C" {
 #endif
 
-PIF_stFnd *pifFnd_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
+PIF_stFnd *pifFnd_Create(PifId usPifId, PIF_stPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
 void pifFnd_Destroy(PIF_stFnd** pp_owner);
 
 void pifFnd_SetUserChar(const uint8_t *pucUserChar, uint8_t ucCount);

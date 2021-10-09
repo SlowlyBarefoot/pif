@@ -93,7 +93,7 @@ typedef struct _PIF_stXmodem
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PIF_usId _usPifId;
+	PifId _usPifId;
 
 	// Private Member Variable
 	PIF_stPulse *__pstTimer;
@@ -110,7 +110,7 @@ typedef struct _PIF_stXmodem
 extern "C" {
 #endif
 
-PIF_stXmodem *pifXmodem_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, PIF_enXmodemType enType);
+PIF_stXmodem *pifXmodem_Create(PifId usPifId, PIF_stPulse *pstTimer, PIF_enXmodemType enType);
 void pifXmodem_Destroy(PIF_stXmodem** pp_owner);
 
 void pifXmodem_SetResponseTimeout(PIF_stXmodem *pstOwner, uint16_t usResponseTimeout);

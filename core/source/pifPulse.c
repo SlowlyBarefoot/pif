@@ -14,22 +14,22 @@
  * @param unPeriodUs
  * @return Pulse 구조체 포인터를 반환한다.
  */
-PIF_stPulse *pifPulse_Create(PIF_usId usPifId, uint32_t unPeriodUs)
+PIF_stPulse *pifPulse_Create(PifId usPifId, uint32_t unPeriodUs)
 {
 	PIF_stPulse *pstOwner = NULL;
 
     if (!unPeriodUs) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
         goto fail;
     }
 
     pstOwner = calloc(sizeof(PIF_stPulse), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+    	pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->_usPifId = usPifId;
     if (!pifDList_Init(&pstOwner->__items)) goto fail;
 
@@ -106,7 +106,7 @@ void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstItem)
 BOOL pifPulse_StartItem(PIF_stPulseItem *pstItem, uint32_t unTarget)
 {
 	if (!unTarget) {
-    	pif_enError = E_enInvalidParam;
+		pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 

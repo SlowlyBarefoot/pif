@@ -24,8 +24,8 @@ typedef enum _PIF_enGpioCsFlag
 struct _PIF_stGpio;
 typedef struct _PIF_stGpio PIF_stGpio;
 
-typedef uint8_t (*PIF_actGpioIn)(PIF_usId usPifId);
-typedef void (*PIF_actGpioOut)(PIF_usId usPifId, uint8_t ucState);
+typedef uint8_t (*PIF_actGpioIn)(PifId usPifId);
+typedef void (*PIF_actGpioOut)(PifId usPifId, uint8_t ucState);
 
 typedef void (*PIF_evtGpioIn)(uint8_t index, uint8_t state);
 
@@ -54,7 +54,7 @@ struct _PIF_stGpio
 	PIF_evtGpioIn evtIn;
 
 	// Read-only Member Variable
-	PIF_usId _usPifId;
+	PifId _usPifId;
 
 	// Private Member Variable
 	uint8_t __read_state;
@@ -76,7 +76,7 @@ struct _PIF_stGpio
 extern "C" {
 #endif
 
-PIF_stGpio* pifGpio_Create(PIF_usId usPifId, uint8_t ucCount);
+PIF_stGpio* pifGpio_Create(PifId usPifId, uint8_t ucCount);
 void pifGpio_Destroy(PIF_stGpio** pp_owner);
 
 uint8_t pifGpio_ReadAll(PIF_stGpio *pstOwner);

@@ -6,8 +6,8 @@
 #include "pifTask.h"
 
 
-typedef uint16_t (*PIF_actSensorAcquire)(PIF_usId usPifId);
-typedef void (*PIF_evtSensorChange)(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer);
+typedef uint16_t (*PIF_actSensorAcquire)(PifId usPifId);
+typedef void (*PIF_evtSensorChange)(PifId usPifId, uint16_t usLevel, void *pvIssuer);
 
 /**
  * @class _PIF_stSensor
@@ -18,7 +18,7 @@ typedef struct _PIF_stSensor
 	// Public Member Variable
 
 	// Read-only Member Variable
-    PIF_usId _usPifId;
+	PifId _usPifId;
     SWITCH _swInitState;
     SWITCH _swCurrState;						// Default: enInitState
 

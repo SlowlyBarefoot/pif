@@ -94,7 +94,7 @@ typedef struct _PIF_stGpsNmea
 extern "C" {
 #endif
 
-PIF_stGpsNmea *pifGpsNmea_Create(PIF_usId usPifId);
+PIF_stGpsNmea *pifGpsNmea_Create(PifId usPifId);
 void pifGpsNmea_Destroy(PIF_stGpsNmea **ppstOwner);
 
 void pifGpsNmea_AttachComm(PIF_stGpsNmea *pstOwner, PIF_stComm *pstComm);

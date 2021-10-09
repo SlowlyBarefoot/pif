@@ -118,7 +118,7 @@ static void _fnControlPos(PIF_stStepMotor *pstOwner)
 #endif
 }
 
-static void _evtSwitchReduceChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer)
+static void _evtSwitchReduceChange(PifId usPifId, uint16_t usLevel, void *pvIssuer)
 {
 	PIF_stStepMotor *pstOwner = (PIF_stStepMotor *)pvIssuer;
 
@@ -131,7 +131,7 @@ static void _evtSwitchReduceChange(PIF_usId usPifId, uint16_t usLevel, void *pvI
 	}
 }
 
-static void _evtSwitchStopChange(PIF_usId usPifId, uint16_t usLevel, void *pvIssuer)
+static void _evtSwitchStopChange(PifId usPifId, uint16_t usLevel, void *pvIssuer)
 {
 	PIF_stStepMotor *pstOwner = (PIF_stStepMotor *)pvIssuer;
 
@@ -167,14 +167,14 @@ static void _fnStopStep(PIF_stStepMotor *pstOwner)
  * @param usControlPeriodMs
  * @return
  */
-PIF_stStepMotor *pifStepMotorPos_Create(PIF_usId usPifId, PIF_stPulse* p_timer, uint8_t ucResolution,
+PIF_stStepMotor *pifStepMotorPos_Create(PifId usPifId, PIF_stPulse* p_timer, uint8_t ucResolution,
 		PIF_enStepMotorOperation enOperation, uint16_t usControlPeriodMs)
 {
 	PIF_stStepMotorPos* p_owner = NULL;
 
     p_owner = calloc(sizeof(PIF_stStepMotorPos), 1);
     if (!p_owner) {
-        pif_enError = E_enOutOfHeap;
+        pif_error = E_OUT_OF_HEAP;
         goto fail;
     }
 
@@ -222,7 +222,7 @@ BOOL pifStepMotorPos_AddStages(PIF_stStepMotor *pstOwner, uint8_t ucStageSize, c
 {
     for (int i = 0; i < ucStageSize; i++) {
     	if (pstStages[i].enMode & MM_SC_enMask) {
-            pif_enError = E_enInvalidParam;
+            pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
     }
@@ -248,7 +248,7 @@ BOOL pifStepMotorPos_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, uint
     uint8_t ucState;
 
     if (!pstOwner->__actSetStep) {
-    	pif_enError = E_enInvalidParam;
+    	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
@@ -273,14 +273,14 @@ BOOL pifStepMotorPos_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, uint
     		}
     	}
     	if (ucState) {
-        	pif_enError = E_enInvalidState;
+        	pif_error = E_INVALID_STATE;
 		    return FALSE;
     	}
     }
 
     if ((pstStage->enMode & MM_RT_enMask) == MM_RT_enTime) {
     	if (!unOperatingTime) {
-        	pif_enError = E_enInvalidParam;
+        	pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
     	else {

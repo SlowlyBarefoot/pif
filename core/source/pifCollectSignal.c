@@ -17,7 +17,7 @@ typedef enum _PIF_enCollectSignalStep
 
 typedef struct _PIF_stCollectSignalDevice
 {
-	PIF_usId usPifId;
+	PifId usPifId;
 	PIF_enCollectSignalVarType enVarType;
 	uint8_t index;
 	uint16_t usSize;
@@ -66,8 +66,8 @@ static void _PrintHeader()
 	PIF_DListIterator it;
 
 	pifLog_Printf(LT_enVcd, "\n$date %s %u, %u %2u:%2u:%2u $end\n",
-			pif_pacMonth3[pif_stDateTime.ucMonth - 1], pif_stDateTime.ucDay, 2000 + pif_stDateTime.ucYear,
-			pif_stDateTime.ucHour, pif_stDateTime.ucMinute, pif_stDateTime.ucSecond);
+			kPifMonth3[pif_datetime.month - 1], pif_datetime.day, 2000 + pif_datetime.year,
+			pif_datetime.hour, pif_datetime.minute, pif_datetime.second);
 
 	pifLog_Printf(LT_enVcd, "$version %u.%u.%u $end\n", PIF_VERSION_MAJOR, PIF_VERSION_MINOR, PIF_VERSION_PATCH);
 
@@ -225,7 +225,7 @@ void pifCollectSignal_Attach(PIF_enCollectSignalFlag enFlag, PIF_fnCollectSignal
  * @param usInitialValue
  * @return
  */
-void* pifCollectSignal_AddDevice(PIF_usId usPifId, PIF_enCollectSignalVarType enVarType, uint16_t usSize,
+void* pifCollectSignal_AddDevice(PifId usPifId, PIF_enCollectSignalVarType enVarType, uint16_t usSize,
 		const char* pcReference, uint16_t usInitialValue)
 {
 	PIF_stCollectSignalDevice* p_device;
@@ -287,11 +287,11 @@ void pifCollectSignal_Stop()
 
 	switch (s_stCollectSignal.enMethod) {
 	case CSM_enRealTime:
-		pifLog_Printf(LT_enVcd, "#%u\n", pif_unCumulativeTimer1ms);
+		pifLog_Printf(LT_enVcd, "#%u\n", pif_cumulative_timer1ms);
 		break;
 
 	case CSM_enBuffer:
-		pif_Printf(cBuffer, "#%u\n", pif_unCumulativeTimer1ms);
+		pif_Printf(cBuffer, "#%u\n", pif_cumulative_timer1ms);
 		pifRingBuffer_PutString(s_stCollectSignal.pstBuffer, cBuffer);
 		break;
 	}
@@ -315,9 +315,9 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t usState)
 
 	switch (s_stCollectSignal.enMethod) {
 	case CSM_enRealTime:
-		if (s_stCollectSignal.unTimer1ms != pif_unCumulativeTimer1ms) {
-			pifLog_Printf(LT_enVcd, "#%u\n", pif_unCumulativeTimer1ms);
-			s_stCollectSignal.unTimer1ms = pif_unCumulativeTimer1ms;
+		if (s_stCollectSignal.unTimer1ms != pif_cumulative_timer1ms) {
+			pifLog_Printf(LT_enVcd, "#%u\n", pif_cumulative_timer1ms);
+			s_stCollectSignal.unTimer1ms = pif_cumulative_timer1ms;
 		}
 		if (p_device->usSize == 1) {
 			pifLog_Printf(LT_enVcd, "%u%c\n", usState, '!' + p_device->index);
@@ -328,10 +328,10 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t usState)
 		break;
 
 	case CSM_enBuffer:
-		if (s_stCollectSignal.unTimer1ms != pif_unCumulativeTimer1ms) {
-			pif_Printf(cBuffer, "#%u\n", pif_unCumulativeTimer1ms);
+		if (s_stCollectSignal.unTimer1ms != pif_cumulative_timer1ms) {
+			pif_Printf(cBuffer, "#%u\n", pif_cumulative_timer1ms);
 			pifRingBuffer_PutString(s_stCollectSignal.pstBuffer, cBuffer);
-			s_stCollectSignal.unTimer1ms = pif_unCumulativeTimer1ms;
+			s_stCollectSignal.unTimer1ms = pif_cumulative_timer1ms;
 		}
 		if (p_device->usSize == 1) {
 			pif_Printf(cBuffer, "%u%c\n", usState, '!' + p_device->index);

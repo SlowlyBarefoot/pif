@@ -66,7 +66,7 @@ struct _PIF_stPulse
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PIF_usId _usPifId;
+	PifId _usPifId;
 	uint32_t _unPeriodUs;
 
 	// Private Member Variable
@@ -78,7 +78,7 @@ struct _PIF_stPulse
 extern "C" {
 #endif
 
-PIF_stPulse *pifPulse_Create(PIF_usId usPifId, uint32_t unPeriodUs);
+PIF_stPulse *pifPulse_Create(PifId usPifId, uint32_t unPeriodUs);
 void pifPulse_Destroy(PIF_stPulse **PpstOwner);
 
 PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType);

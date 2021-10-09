@@ -59,7 +59,7 @@ typedef struct _PIF_stStepMotorPos
 extern "C" {
 #endif
 
-PIF_stStepMotor *pifStepMotorPos_Create(PIF_usId usPifId, PIF_stPulse* p_timer, uint8_t ucResolution,
+PIF_stStepMotor *pifStepMotorPos_Create(PifId usPifId, PIF_stPulse* p_timer, uint8_t ucResolution,
 		PIF_enStepMotorOperation enOperation, uint16_t usControlPeriodMs);
 void pifStepMotorPos_Destroy(PIF_stStepMotor** pp_parent);
 

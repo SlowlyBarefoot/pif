@@ -5,7 +5,7 @@
 #include "pifPulse.h"
 
 
-typedef void (*PIF_actLedState)(PIF_usId usPifId, uint32_t unState);
+typedef void (*PIF_actLedState)(PifId usPifId, uint32_t unState);
 
 /**
  * @class _PIF_stLed
@@ -17,7 +17,7 @@ typedef struct _PIF_stLed
     uint8_t ucLedCount;
 
 	// Read-only Member Variable
-	PIF_usId _usPifId;
+    PifId _usPifId;
 
 	// Private Member Variable
 	PIF_stPulse *__pstTimer;
@@ -35,7 +35,7 @@ typedef struct _PIF_stLed
 extern "C" {
 #endif
 
-PIF_stLed *pifLed_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState);
+PIF_stLed *pifLed_Create(PifId usPifId, PIF_stPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState);
 void pifLed_Destroy(PIF_stLed** pp_owner);
 
 void pifLed_EachOn(PIF_stLed *pstOwner, uint8_t ucIndex);

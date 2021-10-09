@@ -10,11 +10,11 @@
  * @param usPifId
  * @return
  */
-PIF_stGps *pifGps_Create(PIF_usId usPifId)
+PIF_stGps *pifGps_Create(PifId usPifId)
 {
 	PIF_stGps *pstOwner = calloc(sizeof(PIF_stGps), 1);
 	if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
@@ -41,9 +41,9 @@ void pifGps_Destroy(PIF_stGps **ppstOwner)
  * @param pstOwner
  * @param usPifId
  */
-void pifGps_Init(PIF_stGps *pstOwner, PIF_usId usPifId)
+void pifGps_Init(PIF_stGps *pstOwner, PifId usPifId)
 {
-	if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+	if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
 	pstOwner->_usPifId = usPifId;
 }
 

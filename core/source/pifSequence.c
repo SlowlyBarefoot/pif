@@ -27,7 +27,7 @@ static void _evtTimerTimeoutFinish(void *pvIssuer)
 {
     PIF_stSequence *pstOwner = (PIF_stSequence *)pvIssuer;
 
-	pif_enError = E_enTimeout;
+	pif_error = E_TIMEOUT;
 	if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
 	_SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
 }
@@ -76,25 +76,25 @@ void pifSequence_ColSigClear()
  * @param pvParam
  * @return Sequence 구조체 포인터를 반환한다.
  */
-PIF_stSequence *pifSequence_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, const PIF_stSequencePhase *pstPhaseList, void *pvParam)
+PIF_stSequence *pifSequence_Create(PifId usPifId, PIF_stPulse *pstTimer, const PIF_stSequencePhase *pstPhaseList, void *pvParam)
 {
     PIF_stSequence *pstOwner = NULL;
 
-    if (!pif_actTimer1us) {
-        pif_enError = E_enCanNotUse;
+    if (!pif_act_timer1us) {
+        pif_error = E_CANNOT_USE;
 	    return NULL;
     }
 
     pstOwner = calloc(sizeof(PIF_stSequence), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
     pstOwner->__pstTimer = pstTimer;
     pstOwner->__pstPhaseList = pstPhaseList;
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->_usPifId = usPifId;
     _SetPhaseNo(pstOwner, PIF_SEQUENCE_PHASE_NO_IDLE);
     pstOwner->pvParam = pvParam;
@@ -215,7 +215,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
 	if (pstOwner->_ucPhaseNo == PIF_SEQUENCE_PHASE_NO_IDLE) return 0;
 
 	if (pstOwner->unDelay1us) {
-		if ((*pif_actTimer1us)() >= pstOwner->__unTargetDelay) {
+		if ((*pif_act_timer1us)() >= pstOwner->__unTargetDelay) {
 			pstOwner->unDelay1us = 0;
 		}
 		else return 0;
@@ -224,14 +224,14 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
 	pstPhase = &pstOwner->__pstPhaseList[pstOwner->_ucPhaseNo];
 
 	if (!pstPhase->fnProcess) {
-		pif_enError = E_enWrongData;
+		pif_error = E_WRONG_DATA;
 		goto fail;
 	}
 
 	switch ((*pstPhase->fnProcess)(pstOwner)) {
 	case SR_enContinue:
 		if (pstOwner->unDelay1us) {
-			pstOwner->__unTargetDelay = (*pif_actTimer1us)() + pstOwner->unDelay1us;
+			pstOwner->__unTargetDelay = (*pif_act_timer1us)() + pstOwner->unDelay1us;
 		}
 		break;
 
@@ -245,7 +245,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
 
 		if (ucPhaseNoNext != PIF_SEQUENCE_PHASE_NO_IDLE) {
 			if (pstOwner->unDelay1us) {
-				pstOwner->__unTargetDelay = (*pif_actTimer1us)() + pstOwner->unDelay1us;
+				pstOwner->__unTargetDelay = (*pif_act_timer1us)() + pstOwner->unDelay1us;
 			}
 			pstOwner->ucStep = PIF_SEQUENCE_STEP_INIT;
 			pstOwner->ucPhaseNoNext = PIF_SEQUENCE_PHASE_NO_IDLE;
@@ -258,7 +258,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
 		break;
 
 	default:
-		pif_enError = E_enWrongData;
+		pif_error = E_WRONG_DATA;
 		goto fail;
 	}
 	return 0;

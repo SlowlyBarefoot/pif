@@ -10,26 +10,26 @@
 #define DIGIT_TO_VAL(_x)        (_x - '0')
 
 
-static void _convertString2Date(char *str, PIF_stDateTime *pstDateTime)
+static void _convertString2Date(char *str, PifDateTime *pstDateTime)
 {
-	pstDateTime->ucDay = DIGIT_TO_VAL(str[0]) * 10 + DIGIT_TO_VAL(str[1]);
-	pstDateTime->ucMonth = DIGIT_TO_VAL(str[2]) * 10 + DIGIT_TO_VAL(str[3]);
-	pstDateTime->ucYear = DIGIT_TO_VAL(str[4]) * 10 + DIGIT_TO_VAL(str[5]);
+	pstDateTime->day = DIGIT_TO_VAL(str[0]) * 10 + DIGIT_TO_VAL(str[1]);
+	pstDateTime->month = DIGIT_TO_VAL(str[2]) * 10 + DIGIT_TO_VAL(str[3]);
+	pstDateTime->year = DIGIT_TO_VAL(str[4]) * 10 + DIGIT_TO_VAL(str[5]);
 }
 
-static void _convertString2Time(char *str, PIF_stDateTime *pstDateTime)
+static void _convertString2Time(char *str, PifDateTime *pstDateTime)
 {
 	int i, digit;
 
-	pstDateTime->ucHour = DIGIT_TO_VAL(str[0]) * 10 + DIGIT_TO_VAL(str[1]);
-	pstDateTime->ucMinute = DIGIT_TO_VAL(str[2]) * 10 + DIGIT_TO_VAL(str[3]);
-	pstDateTime->ucSecond = DIGIT_TO_VAL(str[4]) * 10 + DIGIT_TO_VAL(str[5]);
+	pstDateTime->hour = DIGIT_TO_VAL(str[0]) * 10 + DIGIT_TO_VAL(str[1]);
+	pstDateTime->minute = DIGIT_TO_VAL(str[2]) * 10 + DIGIT_TO_VAL(str[3]);
+	pstDateTime->second = DIGIT_TO_VAL(str[4]) * 10 + DIGIT_TO_VAL(str[5]);
 	if (str[6] == '.') {
-		pstDateTime->usMilisecond = 0;
+		pstDateTime->millisecond = 0;
 		digit = 100;
 		for (i = 7; i < 10; i++) {
 			if (!isdigit((int)str[i])) break;
-			pstDateTime->usMilisecond += DIGIT_TO_VAL(str[i]) * digit;
+			pstDateTime->millisecond += DIGIT_TO_VAL(str[i]) * digit;
 			digit /= 10;
 		}
 	}
@@ -139,8 +139,8 @@ static BOOL _MakePacket(PIF_stGpsNmea *pstOwner, char *pcData)
 			i++;
 		}
 	}
-	pcData[i] = pif_pcHexUpperChar[(parity >> 4) & 0x0F]; i++;
-	pcData[i] = pif_pcHexUpperChar[parity & 0x0F]; i++;
+	pcData[i] = kPifHexUpperChar[(parity >> 4) & 0x0F]; i++;
+	pcData[i] = kPifHexUpperChar[parity & 0x0F]; i++;
 	pcData[i] = '\r'; i++;
 	pcData[i] = '\n'; i++;
 	pcData[i] = 0;
@@ -296,9 +296,9 @@ static void _evtParsing(void *pvClient, PIF_actCommReceiveData actReceiveData)
 
 				case NMEA_MESSAGE_ID_ZDA:
 					if (param == 1) _convertString2Time(string, &pstParent->_stDateTime);
-					else if (param == 2) pstParent->_stDateTime.ucDay = _convertString2Interger(string);
-					else if (param == 3) pstParent->_stDateTime.ucMonth = _convertString2Interger(string);
-					else if (param == 4) pstParent->_stDateTime.ucYear = _convertString2Interger(string) - 2000;
+					else if (param == 2) pstParent->_stDateTime.day = _convertString2Interger(string);
+					else if (param == 3) pstParent->_stDateTime.month = _convertString2Interger(string);
+					else if (param == 4) pstParent->_stDateTime.year = _convertString2Interger(string) - 2000;
 					break;
 				}
 			}
@@ -380,11 +380,11 @@ BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
  * @param usPifId
  * @return
  */
-PIF_stGpsNmea *pifGpsNmea_Create(PIF_usId usPifId)
+PIF_stGpsNmea *pifGpsNmea_Create(PifId usPifId)
 {
 	PIF_stGpsNmea *pstOwner = calloc(sizeof(PIF_stGpsNmea), 1);
     if (!pstOwner) {
-        pif_enError = E_enOutOfHeap;
+        pif_error = E_OUT_OF_HEAP;
         goto fail;
     }
 
@@ -469,7 +469,7 @@ BOOL pifGpsNmea_SetProcessMessageId(PIF_stGpsNmea *pstOwner, int nCount, ...)
 		if (arg == NMEA_MESSAGE_ID_TXT && !pstOwner->__pstTxt) {
 			pstOwner->__pstTxt = calloc(PIF_GPS_NMEA_VALUE_SIZE, 1);
 			if (!pstOwner->__pstTxt) {
-				pif_enError = E_enOutOfHeap;
+				pif_error = E_OUT_OF_HEAP;
 				return FALSE;
 			}
 		}
@@ -516,12 +516,12 @@ BOOL pifGpsNmea_PollRequestGBQ(PIF_stGpsNmea *pstOwner, const char *pcMagId)
 	int i;
 
 	if (!pstOwner->__pstComm->__actSendData) {
-		pif_enError = E_enTransferFailed;
+		pif_error = E_TRANSFER_FAILED;
 		return FALSE;
 	}
 
 	if (pstOwner->__stTx.enState != GPTS_enIdle) {
-		pif_enError = E_enInvalidState;
+		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
@@ -548,12 +548,12 @@ BOOL pifGpsNmea_PollRequestGLQ(PIF_stGpsNmea *pstOwner, const char *pcMagId)
 	int i;
 
 	if (!pstOwner->__pstComm->__actSendData) {
-		pif_enError = E_enTransferFailed;
+		pif_error = E_TRANSFER_FAILED;
 		return FALSE;
 	}
 
 	if (pstOwner->__stTx.enState != GPTS_enIdle) {
-		pif_enError = E_enInvalidState;
+		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
@@ -580,12 +580,12 @@ BOOL pifGpsNmea_PollRequestGNQ(PIF_stGpsNmea *pstOwner, const char *pcMagId)
 	int i;
 
 	if (!pstOwner->__pstComm->__actSendData) {
-		pif_enError = E_enTransferFailed;
+		pif_error = E_TRANSFER_FAILED;
 		return FALSE;
 	}
 
 	if (pstOwner->__stTx.enState != GPTS_enIdle) {
-		pif_enError = E_enInvalidState;
+		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
@@ -612,12 +612,12 @@ BOOL pifGpsNmea_PollRequestGPQ(PIF_stGpsNmea *pstOwner, const char *pcMagId)
 	int i;
 
 	if (!pstOwner->__pstComm->__actSendData) {
-		pif_enError = E_enTransferFailed;
+		pif_error = E_TRANSFER_FAILED;
 		return FALSE;
 	}
 
 	if (pstOwner->__stTx.enState != GPTS_enIdle) {
-		pif_enError = E_enInvalidState;
+		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 

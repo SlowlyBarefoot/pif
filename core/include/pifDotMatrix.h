@@ -28,7 +28,7 @@ typedef enum _PIF_enDotMatrixShift
 
 typedef void (*PIF_actDotMatrixDisplay)(uint8_t ucRow, uint8_t *pucData);
 
-typedef void (*PIF_evtDotMatrixShiftFinish)(PIF_usId usPifId);
+typedef void (*PIF_evtDotMatrixShiftFinish)(PifId usPifId);
 
 
 /**
@@ -55,7 +55,7 @@ typedef struct _PIF_stDotMatrix
     PIF_evtDotMatrixShiftFinish evtShiftFinish;
 
 	// Read-only Member Variable
-	PIF_usId _usPifId;
+    PifId _usPifId;
 
 	// Private Member Variable
 	PIF_stPulse *__pstTimer;
@@ -105,7 +105,7 @@ typedef struct _PIF_stDotMatrix
 extern "C" {
 #endif
 
-PIF_stDotMatrix *pifDotMatrix_Create(PIF_usId usPifId, PIF_stPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
+PIF_stDotMatrix *pifDotMatrix_Create(PifId usPifId, PIF_stPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
 		PIF_actDotMatrixDisplay actDisplay);
 void pifDotMatrix_Destroy(PIF_stDotMatrix** pp_owner);
 

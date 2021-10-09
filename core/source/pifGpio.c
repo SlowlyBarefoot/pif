@@ -56,22 +56,22 @@ void pifGpio_ColSigClear()
  * @param ucCount
  * @return
  */
-PIF_stGpio* pifGpio_Create(PIF_usId usPifId, uint8_t ucCount)
+PIF_stGpio* pifGpio_Create(PifId usPifId, uint8_t ucCount)
 {
     PIF_stGpio* pstOwner = NULL;
 
     if (!ucCount || ucCount > PIF_GPIO_MAX_COUNT) {
-        pif_enError = E_enInvalidParam;
+        pif_error = E_INVALID_PARAM;
 	    return NULL;
     }
 
     pstOwner = calloc(sizeof(PIF_stGpio), 1);
     if (!pstOwner) {
-		pif_enError = E_enOutOfHeap;
+		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_usPifId++;
+    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->_usPifId = usPifId;
     pstOwner->ucGpioCount = ucCount;
 
@@ -107,7 +107,7 @@ void pifGpio_Destroy(PIF_stGpio** pp_owner)
 uint8_t pifGpio_ReadAll(PIF_stGpio *pstOwner)
 {
 	if (!pstOwner->__ui.actIn) {
-		pif_enError = E_enCanNotUse;
+		pif_error = E_CANNOT_USE;
 		return 0xFF;
 	}
 
@@ -132,7 +132,7 @@ uint8_t pifGpio_ReadAll(PIF_stGpio *pstOwner)
 SWITCH pifGpio_ReadCell(PIF_stGpio *pstOwner, uint8_t ucIndex)
 {
 	if (!pstOwner->__ui.actIn) {
-		pif_enError = E_enCanNotUse;
+		pif_error = E_CANNOT_USE;
 		return 0xFF;
 	}
 
@@ -158,7 +158,7 @@ SWITCH pifGpio_ReadCell(PIF_stGpio *pstOwner, uint8_t ucIndex)
 BOOL pifGpio_WriteAll(PIF_stGpio *pstOwner, uint8_t ucState)
 {
 	if (!pstOwner->__ui.actOut) {
-		pif_enError = E_enCanNotUse;
+		pif_error = E_CANNOT_USE;
 		return FALSE;
 	}
 
@@ -184,7 +184,7 @@ BOOL pifGpio_WriteAll(PIF_stGpio *pstOwner, uint8_t ucState)
 BOOL pifGpio_WriteCell(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState)
 {
 	if (!pstOwner->__ui.actOut) {
-		pif_enError = E_enCanNotUse;
+		pif_error = E_CANNOT_USE;
 		return FALSE;
 	}
 
@@ -337,7 +337,7 @@ void pifGpio_AttachActOut(PIF_stGpio* p_owner, PIF_actGpioOut act_out)
 PIF_stTask *pifGpio_AttachTaskIn(PIF_stGpio *p_owner, PIF_enTaskMode mode, uint16_t period, BOOL start)
 {
 	if (!p_owner->__ui.actIn) {
-		pif_enError = E_enCanNotUse;
+		pif_error = E_CANNOT_USE;
 		return NULL;
 	}
 
