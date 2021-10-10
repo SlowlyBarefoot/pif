@@ -85,14 +85,14 @@ void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...);
 
 void pifLog_PrintInBuffer();
 
-PIF_stTask *pifLog_GetCommTask();
+PifTask *pifLog_GetCommTask();
 
 // Attach Function
 BOOL pifLog_AttachComm(PIF_stComm *pstComm);
 
 #ifdef __PIF_LOG_COMMAND__
 // Task Function
-PIF_stTask *pifLog_AttachTask(PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask *pifLog_AttachTask(PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
 #endif
 
 #ifdef __cplusplus

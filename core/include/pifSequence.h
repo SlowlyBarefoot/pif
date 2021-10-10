@@ -103,7 +103,7 @@ void pifSequence_Start(PIF_stSequence *pstOwner);
 BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout);
 
 // Task Function
-PIF_stTask *pifSequence_AttachTask(PIF_stSequence *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask *pifSequence_AttachTask(PIF_stSequence *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
 
 #ifdef __cplusplus
 }

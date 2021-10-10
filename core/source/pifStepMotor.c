@@ -472,7 +472,7 @@ BOOL pifStepMotor_Start(PIF_stStepMotor *pstOwner, uint32_t unTargetPulse)
 			return FALSE;
     	}
 		pifTask_SetPeriod(pstOwner->__pstTask, pstOwner->__usStepPeriodUs);
-		pstOwner->__pstTask->bPause = FALSE;
+		pstOwner->__pstTask->pause = FALSE;
     	break;
 	}
     pstOwner->__unTargetPulse = unTargetPulse;
@@ -493,7 +493,7 @@ void pifStepMotor_Break(PIF_stStepMotor *pstOwner)
     	break;
 
     case SMM_enTask:
-        pstOwner->__pstTask->bPause = TRUE;
+        pstOwner->__pstTask->pause = TRUE;
         break;
     }
 }
@@ -570,9 +570,9 @@ BOOL pifStepMotor_StartControl(PIF_stStepMotor *pstOwner)
     return pifPulse_StartItem(pstOwner->__pstTimerControl, pstOwner->__usControlPeriodMs * 1000 / pstOwner->_p_timer->_unPeriodUs);
 }
 
-static uint16_t _DoTask(PIF_stTask *pstTask)
+static uint16_t _DoTask(PifTask *pstTask)
 {
-	PIF_stStepMotor *pstOwner = pstTask->_pvClient;
+	PIF_stStepMotor *pstOwner = pstTask->_p_client;
 	static uint16_t usnStepPeriodUs = 0;
 
 	pstOwner->__pstTask = pstTask;
@@ -581,7 +581,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
 
 	if (pstOwner->__unTargetPulse) {
 		if (pstOwner->_unCurrentPulse >= pstOwner->__unTargetPulse) {
-			pstOwner->__pstTask->bPause = TRUE;
+			pstOwner->__pstTask->pause = TRUE;
 			if (pstOwner->__fnStopStep) (*pstOwner->__fnStopStep)(pstOwner);
 			else if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner);
 		}
@@ -603,7 +603,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
  * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifStepMotor_AttachTask(PIF_stStepMotor *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+PifTask *pifStepMotor_AttachTask(PIF_stStepMotor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart)
 {
 	return pifTaskManager_Add(enMode, usPeriod, _DoTask, pstOwner, bStart);
 }

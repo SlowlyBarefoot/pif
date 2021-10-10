@@ -68,7 +68,7 @@ struct _PIF_stStepMotor
 	uint16_t __usStepPeriodUs;
 	uint16_t __usControlPeriodMs;
 
-	PIF_stTask *__pstTask;
+	PifTask *__pstTask;
 
 	PIF_stPulseItem *__pstTimerStep;
 	PIF_stPulseItem *__pstTimerControl;
@@ -119,7 +119,7 @@ BOOL pifStepMotor_InitControl(PIF_stStepMotor *pstOwner, uint16_t usControlPerio
 BOOL pifStepMotor_StartControl(PIF_stStepMotor *pstOwner);
 
 // Task Function
-PIF_stTask *pifStepMotor_AttachTask(PIF_stStepMotor *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask *pifStepMotor_AttachTask(PIF_stStepMotor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
 
 #ifdef __cplusplus
 }

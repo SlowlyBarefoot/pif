@@ -93,9 +93,9 @@ void pif_Init(PifActTimer1us act_timer1us)
  */
 void pif_Exit()
 {
-	extern void pifTaskManager_Destroy();
+	extern void pifTaskManager_Clear();
 
-	pifTaskManager_Destroy();
+	pifTaskManager_Clear();
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	pifGpio_ColSigClear();

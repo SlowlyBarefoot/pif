@@ -460,7 +460,7 @@ void pifLog_PrintInBuffer()
  * @param pstComm
  * @return
  */
-PIF_stTask *pifLog_GetCommTask()
+PifTask *pifLog_GetCommTask()
 {
 	return s_stLog.pstComm->_pstTask;
 }
@@ -485,7 +485,7 @@ BOOL pifLog_AttachComm(PIF_stComm *pstComm)
 
 #ifdef __PIF_LOG_COMMAND__
 
-static uint16_t _DoTask(PIF_stTask *pstTask)
+static uint16_t _DoTask(PifTask *pstTask)
 {
     int nStatus = PIF_LOG_CMD_NO_ERROR;
 
@@ -541,7 +541,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
  * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifLog_AttachTask(PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+PifTask *pifLog_AttachTask(PifTaskMode enMode, uint16_t usPeriod, BOOL bStart)
 {
 	return pifTaskManager_Add(enMode, usPeriod, _DoTask, &s_stLog, bStart);
 }

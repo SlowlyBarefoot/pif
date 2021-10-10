@@ -206,9 +206,9 @@ BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout)
 	return TRUE;
 }
 
-static uint16_t _DoTask(PIF_stTask *pstTask)
+static uint16_t _DoTask(PifTask *pstTask)
 {
-	PIF_stSequence *pstOwner = pstTask->_pvClient;
+	PIF_stSequence *pstOwner = pstTask->_p_client;
 	const PIF_stSequencePhase *pstPhase;
 	uint8_t ucPhaseNoNext;
 	
@@ -278,7 +278,7 @@ fail:
  * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifSequence_AttachTask(PIF_stSequence *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+PifTask *pifSequence_AttachTask(PIF_stSequence *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart)
 {
 	return pifTaskManager_Add(enMode, usPeriod, _DoTask, pstOwner, bStart);
 }

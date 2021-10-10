@@ -103,7 +103,7 @@ void pifGpio_AttachActIn(PIF_stGpio* p_owner, PIF_actGpioIn act_in);
 void pifGpio_AttachActOut(PIF_stGpio* p_owner, PIF_actGpioOut act_out);
 
 // Task Function
-PIF_stTask *pifGpio_AttachTaskIn(PIF_stGpio *p_owner, PIF_enTaskMode mode, uint16_t period, BOOL start);
+PifTask *pifGpio_AttachTaskIn(PIF_stGpio *p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }

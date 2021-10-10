@@ -233,11 +233,11 @@ BOOL pifKeypad_SetDoubleTime(PIF_stKeypad* p_owner, uint16_t usDoubleTimeMs)
 	return TRUE;
 }
 
-static uint16_t _DoTask(PIF_stTask *pstTask)
+static uint16_t _DoTask(PifTask *pstTask)
 {
 	int idx, r, c;
 
-	PIF_stKeypad* p_owner = pstTask->_pvClient;
+	PIF_stKeypad* p_owner = pstTask->_p_client;
 
 	if (!p_owner->__pstKey || !p_owner->__actAcquire) return 0;
 
@@ -260,7 +260,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
  * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifKeypad_AttachTask(PIF_stKeypad* p_owner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+PifTask *pifKeypad_AttachTask(PIF_stKeypad* p_owner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart)
 {
 	return pifTaskManager_Add(enMode, usPeriod, _DoTask, p_owner, bStart);
 }

@@ -369,9 +369,9 @@ void pifSensorDigital_sigData(PIF_stSensor *pstSensor, uint16_t usLevel)
     }
 }
 
-static uint16_t _DoTask(PIF_stTask *pstTask)
+static uint16_t _DoTask(PifTask *pstTask)
 {
-	PIF_stSensorDigital *pstOwner = pstTask->_pvClient;
+	PIF_stSensorDigital *pstOwner = pstTask->_p_client;
 	PIF_stSensor *pstParent = &pstOwner->stSensor;
 	SWITCH swState;
 
@@ -423,7 +423,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
  * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifSensorDigital_AttachTask(PIF_stSensor *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+PifTask *pifSensorDigital_AttachTask(PIF_stSensor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart)
 {
 	return pifTaskManager_Add(enMode, usPeriod, _DoTask, pstOwner, bStart);
 }

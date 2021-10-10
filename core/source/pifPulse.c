@@ -252,9 +252,9 @@ void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstItem, PIF_evtPulseFinish evtFi
 	pstItem->__pvFinishIssuer = pvIssuer;
 }
 
-static uint16_t _DoTask(PIF_stTask *pstTask)
+static uint16_t _DoTask(PifTask *pstTask)
 {
-	PIF_stPulse *pstOwner = pstTask->_pvClient;
+	PIF_stPulse *pstOwner = pstTask->_p_client;
 
 	PifDListIterator it = pifDList_Begin(&pstOwner->__items);
 	while (it) {
@@ -282,7 +282,7 @@ static uint16_t _DoTask(PIF_stTask *pstTask)
  * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifPulse_AttachTask(PIF_stPulse *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+PifTask *pifPulse_AttachTask(PIF_stPulse *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart)
 {
 	return pifTaskManager_Add(enMode, usPeriod, _DoTask, pstOwner, bStart);
 }

@@ -14,92 +14,92 @@ static PifDList s_tasks;
 static PifDListIterator s_it_current;
 
 static uint32_t s_table_number;
-static uint32_t s_aunTable[PIF_TASK_TABLE_SIZE];
-static uint8_t s_ucNumber = 0;
+static uint32_t s_table[PIF_TASK_TABLE_SIZE];
+static uint8_t s_number = 0;
 
 
-static void _Processing(PIF_stTask *pstOwner, BOOL bRatio)
+static void _Processing(PifTask* p_owner, BOOL ratio)
 {
-	uint16_t usPeriod;
-	uint32_t unTime, unGap;
+	uint16_t period;
+	uint32_t time, gap;
 
-	if (pstOwner->bPause) return;
-	else if (pstOwner->bImmediate) {
-		pstOwner->__bRunning = TRUE;
-		(*pstOwner->__evtLoop)(pstOwner);
-		pstOwner->__bRunning = FALSE;
-		pstOwner->bImmediate = FALSE;
+	if (p_owner->pause) return;
+	else if (p_owner->immediate) {
+		p_owner->__running = TRUE;
+		(*p_owner->__evt_loop)(p_owner);
+		p_owner->__running = FALSE;
+		p_owner->immediate = FALSE;
 		return;
 	}
 
-	switch (pstOwner->_enMode) {
-	case TM_enAlways:
-		pstOwner->__bRunning = TRUE;
-		(*pstOwner->__evtLoop)(pstOwner);
-		pstOwner->__bRunning = FALSE;
+	switch (p_owner->_mode) {
+	case TM_ALWAYS:
+		p_owner->__running = TRUE;
+		(*p_owner->__evt_loop)(p_owner);
+		p_owner->__running = FALSE;
 		break;
 
-	case TM_enPeriodUs:
-		unTime = (*pif_act_timer1us)();
-		unGap = unTime - pstOwner->__unPretime;
-		if (unGap >= pstOwner->_usPeriod) {
-			pstOwner->__bRunning = TRUE;
-			(*pstOwner->__evtLoop)(pstOwner);
-			pstOwner->__bRunning = FALSE;
-			pstOwner->__unPretime = unTime;
+	case TM_PERIOD_US:
+		time = (*pif_act_timer1us)();
+		gap = time - p_owner->__pretime;
+		if (gap >= p_owner->_period) {
+			p_owner->__running = TRUE;
+			(*p_owner->__evt_loop)(p_owner);
+			p_owner->__running = FALSE;
+			p_owner->__pretime = time;
 		}
 		break;
 
-	case TM_enPeriodMs:
-		unTime = 1000L * pif_timer1sec + pif_timer1ms;
-		unGap = unTime - pstOwner->__unPretime;
-		if (unGap >= pstOwner->_usPeriod) {
-			pstOwner->__bRunning = TRUE;
-			(*pstOwner->__evtLoop)(pstOwner);
-			pstOwner->__bRunning = FALSE;
-			pstOwner->__unPretime = unTime;
+	case TM_PERIOD_MS:
+		time = 1000L * pif_timer1sec + pif_timer1ms;
+		gap = time - p_owner->__pretime;
+		if (gap >= p_owner->_period) {
+			p_owner->__running = TRUE;
+			(*p_owner->__evt_loop)(p_owner);
+			p_owner->__running = FALSE;
+			p_owner->__pretime = time;
 		}
 		break;
 
-	case TM_enChangeUs:
-		unTime = (*pif_act_timer1us)();
-		unGap = unTime - pstOwner->__unPretime;
-		if (unGap >= pstOwner->_usPeriod) {
-			pstOwner->__bRunning = TRUE;
-			usPeriod = (*pstOwner->__evtLoop)(pstOwner);
-			pstOwner->__bRunning = FALSE;
-			if (usPeriod > 0) pstOwner->_usPeriod = usPeriod;
-			pstOwner->__unPretime = unTime;
+	case TM_CHANGE_US:
+		time = (*pif_act_timer1us)();
+		gap = time - p_owner->__pretime;
+		if (gap >= p_owner->_period) {
+			p_owner->__running = TRUE;
+			period = (*p_owner->__evt_loop)(p_owner);
+			p_owner->__running = FALSE;
+			if (period > 0) p_owner->_period = period;
+			p_owner->__pretime = time;
 		}
 		break;
 
-	case TM_enChangeMs:
-		unTime = 1000L * pif_timer1sec + pif_timer1ms;
-		unGap = unTime - pstOwner->__unPretime;
-		if (unGap >= pstOwner->_usPeriod) {
-			pstOwner->__bRunning = TRUE;
-			usPeriod = (*pstOwner->__evtLoop)(pstOwner);
-			pstOwner->__bRunning = FALSE;
-			if (usPeriod > 0) pstOwner->_usPeriod = usPeriod;
-			pstOwner->__unPretime = unTime;
+	case TM_CHANGE_MS:
+		time = 1000L * pif_timer1sec + pif_timer1ms;
+		gap = time - p_owner->__pretime;
+		if (gap >= p_owner->_period) {
+			p_owner->__running = TRUE;
+			period = (*p_owner->__evt_loop)(p_owner);
+			p_owner->__running = FALSE;
+			if (period > 0) p_owner->_period = period;
+			p_owner->__pretime = time;
 		}
 		break;
 
 	default:
-		if (bRatio) {
+		if (ratio) {
 #ifdef __PIF_DEBUG__
-			unTime = pif_timer1sec;
-			if (unTime != pstOwner->__unPretime) {
-				pstOwner->__fPeriod = 1000000.0 / pstOwner->__unCount;
-				pstOwner->__unCount = 0;
-				pstOwner->__unPretime = unTime;
+			time = pif_timer1sec;
+			if (time != p_owner->__pretime) {
+				p_owner->__period = 1000000.0 / p_owner->__count;
+				p_owner->__count = 0;
+				p_owner->__pretime = time;
 			}
 #endif
-			pstOwner->__bRunning = TRUE;
-			(*pstOwner->__evtLoop)(pstOwner);
-			pstOwner->__bRunning = FALSE;
+			p_owner->__running = TRUE;
+			(*p_owner->__evt_loop)(p_owner);
+			p_owner->__running = FALSE;
 #ifdef __PIF_DEBUG__
-			pstOwner->__unCount++;
+			p_owner->__count++;
 #endif
 		}
 		break;
@@ -109,31 +109,31 @@ static void _Processing(PIF_stTask *pstOwner, BOOL bRatio)
 /**
  * @fn pifTask_Init
  * @brief
- * @param pstOwner
+ * @param p_owner
  */
-void pifTask_Init(PIF_stTask *pstOwner)
+void pifTask_Init(PifTask* p_owner)
 {
     pif_id++;
-    pstOwner->_usPifId = pif_id;
+    p_owner->_id = pif_id;
 }
 
 /**
  * @fn pifTask_SetPeriod
  * @brief Task의 주기를 설정한다.
- * @param pstOwner Task 자신
- * @param usPeriod Task 주기 (ms, us)
+ * @param p_owner Task 자신
+ * @param period Task 주기 (ms, us)
  */
-void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod)
+void pifTask_SetPeriod(PifTask* p_owner, uint16_t period)
 {
-	switch (pstOwner->_enMode) {
-	case TM_enPeriodMs:
-	case TM_enPeriodUs:
-		pstOwner->_usPeriod = usPeriod;
+	switch (p_owner->_mode) {
+	case TM_PERIOD_MS:
+	case TM_PERIOD_US:
+		p_owner->_period = period;
 		break;
 
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "Task:ChangePeriod(P:%u)", usPeriod);
+		pifLog_Printf(LT_enWarn, "Task:ChangePeriod(P:%u)", period);
 #endif
 		break;
 	}
@@ -150,14 +150,14 @@ void pifTaskManager_Init()
 	s_it_current = NULL;
 
 	s_table_number = 0L;
-	memset(s_aunTable, 0, sizeof(s_aunTable));
+	memset(s_table, 0, sizeof(s_table));
 }
 
 /**
- * @fn pifTaskManager_Destroy
+ * @fn pifTaskManager_Clear
  * @brief Task용 메모리를 반환한다.
  */
-void pifTaskManager_Destroy()
+void pifTaskManager_Clear()
 {
 	pifDList_Clear(&s_tasks);
 }
@@ -165,46 +165,46 @@ void pifTaskManager_Destroy()
 /**
  * @fn pifTaskManager_Add
  * @brief Task를 추가한다.
- * @param enMode Task의 Mode를 설정한다.
- * @param usPeriod Mode에 따라 주기의 단위가 변경된다.
- * @param evtLoop Task 함수
- * @param pvClient 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
- * @param bStart 즉시 시작할지를 지정한다.
+ * @param mode Task의 Mode를 설정한다.
+ * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @param evt_loop Task 함수
+ * @param p_client 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
+ * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evtTaskLoop evtLoop, void *pvClient, BOOL bStart)
+PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start)
 {
 	uint32_t count, gap, index;
 	static int base = 0;
 	int i, num = -1;
 
-	if (!evtLoop) {
+	if (!evt_loop) {
         pif_error = E_INVALID_PARAM;
 	    return NULL;
 	}
 
-	switch (enMode) {
-    case TM_enRatio:
-    	if (!usPeriod || usPeriod > 100) {
+	switch (mode) {
+    case TM_RATIO:
+    	if (!period || period > 100) {
     		pif_error = E_INVALID_PARAM;
 		    return NULL;
     	}
     	break;
 
-    case TM_enAlways:
+    case TM_ALWAYS:
     	break;
 
-    case TM_enPeriodMs:
-    case TM_enChangeMs:
-    	if (!usPeriod) {
+    case TM_PERIOD_MS:
+    case TM_CHANGE_MS:
+    	if (!period) {
     		pif_error = E_INVALID_PARAM;
 		    return NULL;
     	}
     	break;
 
-    case TM_enPeriodUs:
-    case TM_enChangeUs:
-    	if (!usPeriod) {
+    case TM_PERIOD_US:
+    case TM_CHANGE_US:
+    	if (!period) {
     		pif_error = E_INVALID_PARAM;
 		    return NULL;
     	}
@@ -216,8 +216,8 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
     	break;
     }
 
-    switch (enMode) {
-    case TM_enRatio:
+    switch (mode) {
+    case TM_RATIO:
     	for (i = 0; i < PIF_TASK_TABLE_SIZE; i++) {
     		if (!(s_table_number & (1 << i))) {
     			num = i;
@@ -230,58 +230,58 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
     	}
     	s_table_number |= 1 << num;
 
-		count = (PIF_TASK_TABLE_SIZE - 1) * usPeriod + 100;
+		count = (PIF_TASK_TABLE_SIZE - 1) * period + 100;
 		gap = 10000L * PIF_TASK_TABLE_SIZE / count;
 		if (gap > 100) {
 			index = 100 * base;
 			for (uint16_t i = 0; i < count / 100; i++) {
-				s_aunTable[(index / 100) & PIF_TASK_TABLE_MASK] |= 1 << num;
+				s_table[(index / 100) & PIF_TASK_TABLE_MASK] |= 1 << num;
 				index += gap;
 			}
 			base++;
 		}
 		else {
-			enMode = TM_enAlways;
-			usPeriod = 100;
+			mode = TM_ALWAYS;
+			period = 100;
 		}
     	break;
 
-    case TM_enAlways:
-    	enMode = TM_enAlways;
-    	usPeriod = 100;
+    case TM_ALWAYS:
+    	mode = TM_ALWAYS;
+    	period = 100;
     	break;
 
     default:
     	break;
     }
 
-	PIF_stTask *pstOwner = (PIF_stTask *)pifDList_AddLast(&s_tasks, sizeof(PIF_stTask));
-	if (!pstOwner) return NULL;
+	PifTask* p_owner = (PifTask*)pifDList_AddLast(&s_tasks, sizeof(PifTask));
+	if (!p_owner) return NULL;
 
-    switch (enMode) {
-    case TM_enRatio:
-    	pstOwner->__table_number = num;
+    switch (mode) {
+    case TM_RATIO:
+    	p_owner->__table_number = num;
     	break;
 
-    case TM_enPeriodMs:
-    case TM_enChangeMs:
-    	pstOwner->__unPretime = 1000L * pif_timer1sec + pif_timer1ms;
+    case TM_PERIOD_MS:
+    case TM_CHANGE_MS:
+    	p_owner->__pretime = 1000L * pif_timer1sec + pif_timer1ms;
     	break;
 
-    case TM_enPeriodUs:
-    case TM_enChangeUs:
-    	pstOwner->__unPretime = (*pif_act_timer1us)();
+    case TM_PERIOD_US:
+    case TM_CHANGE_US:
+    	p_owner->__pretime = (*pif_act_timer1us)();
     	break;
 
     default:
     	break;
     }
-    pstOwner->_enMode = enMode;
-    pstOwner->_usPeriod = usPeriod;
-    pstOwner->__evtLoop = evtLoop;
-    pstOwner->_pvClient = pvClient;
-    pstOwner->bPause = !bStart;
-    return pstOwner;
+    p_owner->_mode = mode;
+    p_owner->_period = period;
+    p_owner->__evt_loop = evt_loop;
+    p_owner->_p_client = p_client;
+    p_owner->pause = !start;
+    return p_owner;
 }
 
 /**
@@ -291,24 +291,24 @@ PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evt
 void pifTaskManager_Loop()
 {
 #ifdef __PIF_DEBUG__
-	static uint8_t ucSec = 0;
+	static uint8_t sec = 0;
 #endif
 
 	PifDListIterator it = s_it_current ? s_it_current : pifDList_Begin(&s_tasks);
 	while (it) {
 		s_it_current = it;
-		PIF_stTask* p_owner = (PIF_stTask*)it->data;
-		_Processing(p_owner, s_aunTable[s_ucNumber] & (1 << p_owner->__table_number));
+		PifTask* p_owner = (PifTask*)it->data;
+		_Processing(p_owner, s_table[s_number] & (1 << p_owner->__table_number));
 		it = pifDList_Next(it);
 	}
 
-	s_ucNumber = (s_ucNumber + 1) & PIF_TASK_TABLE_MASK;
+	s_number = (s_number + 1) & PIF_TASK_TABLE_MASK;
 	s_it_current = NULL;
 
 #ifdef __PIF_DEBUG__
-    if (ucSec != pif_datetime.second) {
+    if (sec != pif_datetime.second) {
     	pifTaskManager_Print();
-    	ucSec = pif_datetime.second;
+    	sec = pif_datetime.second;
     }
 #endif
 }
@@ -319,18 +319,17 @@ void pifTaskManager_Loop()
  */
 void pifTaskManager_Yield()
 {
-	PIF_stTask *pstOwner;
-
 	if (!pifDList_Size(&s_tasks)) return;
 
 	s_it_current = pifDList_Next(s_it_current);
 	if (!s_it_current) {
-		s_ucNumber = (s_ucNumber + 1) & PIF_TASK_TABLE_MASK;
+		s_number = (s_number + 1) & PIF_TASK_TABLE_MASK;
 		s_it_current = pifDList_Begin(&s_tasks);
 	}
-	pstOwner = (PIF_stTask*)s_it_current->data;
-	if (!pstOwner->__bRunning) {
-		_Processing(pstOwner, s_aunTable[s_ucNumber] & (1 << pstOwner->__table_number));
+
+	PifTask* p_owner = (PifTask*)s_it_current->data;
+	if (!p_owner->__running) {
+		_Processing(p_owner, s_table[s_number] & (1 << p_owner->__table_number));
 	}
 }
 
@@ -391,15 +390,15 @@ void pifTaskManager_YieldUs(uint32_t unTime)
 /**
  * @fn pifTaskManager_YieldPeriod
  * @brief loop내에서 지정된 주기동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
- * @param pstOwner
+ * @param p_owner
  */
-void pifTaskManager_YieldPeriod(PIF_stTask *pstOwner)
+void pifTaskManager_YieldPeriod(PifTask *p_owner)
 {
 	PifDListIterator it;
 
-	switch (pstOwner->_enMode) {
-	case TM_enRatio:
-	case TM_enAlways:
+	switch (p_owner->_mode) {
+	case TM_RATIO:
+	case TM_ALWAYS:
 		it = pifDList_Begin(&s_tasks);
 		while (it) {
 			pifTaskManager_Yield();
@@ -407,14 +406,14 @@ void pifTaskManager_YieldPeriod(PIF_stTask *pstOwner)
 		}
 		break;
 
-	case TM_enPeriodMs:
-	case TM_enChangeMs:
-		pifTaskManager_YieldMs(pstOwner->_usPeriod);
+	case TM_PERIOD_MS:
+	case TM_CHANGE_MS:
+		pifTaskManager_YieldMs(p_owner->_period);
 		break;
 
-	case TM_enPeriodUs:
-	case TM_enChangeUs:
-		pifTaskManager_YieldUs(pstOwner->_usPeriod);
+	case TM_PERIOD_US:
+	case TM_CHANGE_US:
+		pifTaskManager_YieldUs(p_owner->_period);
 		break;
 
 	default:
@@ -436,11 +435,11 @@ void pifTaskManager_Print()
 
 	it = pifDList_Begin(&s_tasks);
 	while (it) {
-		PIF_stTask* pstOwner = (PIF_stTask*)it->data;
-		if (pstOwner->_enMode == TM_enRatio) {
+		PifTask* p_owner = (PifTask*)it->data;
+		if (p_owner->_mode == TM_RATIO) {
 #ifndef __PIF_NO_LOG__
 			pifLog_Printf(LT_enInfo, "Task Id=%d Ratio=%d%% Period=%2fus",
-					pstOwner->_usPifId, pstOwner->_usPeriod, pstOwner->__fPeriod);
+					p_owner->_id, p_owner->_period, p_owner->__period);
 #endif
 		}
 		it = pifDList_Next(it);

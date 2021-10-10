@@ -78,7 +78,7 @@ struct _PIF_stComm
     PifId _usPifId;
     PIF_stRingBuffer *_pstTxBuffer;
     PIF_stRingBuffer *_pstRxBuffer;
-    PIF_stTask *_pstTask;
+    PifTask *_pstTask;
 
 	// Private Member Variable
     void *__pvClient;
@@ -119,7 +119,7 @@ void pifComm_FinishTransfer(PIF_stComm *pstOwner);
 void pifComm_ForceSendData(PIF_stComm *pstOwner);
 
 // Task Function
-PIF_stTask *pifComm_AttachTask(PIF_stComm *pstOwner, PIF_enTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask *pifComm_AttachTask(PIF_stComm *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
 
 #ifdef __cplusplus
 }

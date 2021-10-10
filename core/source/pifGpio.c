@@ -260,9 +260,9 @@ void pifGpio_ResetCsFlagEach(PIF_stGpio *pstOwner, PIF_enGpioCsFlag enFlag)
 
 #endif
 
-static uint16_t _DoTask(PIF_stTask *pstTask)
+static uint16_t _DoTask(PifTask *pstTask)
 {
-	PIF_stGpio *p_owner = pstTask->_pvClient;
+	PIF_stGpio *p_owner = pstTask->_p_client;
 	uint8_t state, bit;
 #ifdef __PIF_COLLECT_SIGNAL__
 	BOOL change = FALSE;
@@ -334,7 +334,7 @@ void pifGpio_AttachActOut(PIF_stGpio* p_owner, PIF_actGpioOut act_out)
  * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PIF_stTask *pifGpio_AttachTaskIn(PIF_stGpio *p_owner, PIF_enTaskMode mode, uint16_t period, BOOL start)
+PifTask *pifGpio_AttachTaskIn(PIF_stGpio *p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
 	if (!p_owner->__ui.actIn) {
 		pif_error = E_CANNOT_USE;

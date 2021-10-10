@@ -5,50 +5,50 @@
 #include "pif.h"
 
 
-typedef enum _PIF_enTaskMode
+typedef enum EnPifTaskMode
 {
-	TM_enRatio		= 0,
-	TM_enAlways		= 1,
-	TM_enPeriodMs	= 2,
-	TM_enPeriodUs	= 3,
-	TM_enChangeMs	= 4,
-	TM_enChangeUs	= 5
-} PIF_enTaskMode;
+	TM_RATIO		= 0,
+	TM_ALWAYS		= 1,
+	TM_PERIOD_MS	= 2,
+	TM_PERIOD_US	= 3,
+	TM_CHANGE_MS	= 4,
+	TM_CHANGE_US	= 5
+} PifTaskMode;
 
 
-struct _PIF_stTask;
-typedef struct _PIF_stTask PIF_stTask;
+struct StPifTask;
+typedef struct StPifTask PifTask;
 
-typedef uint16_t (*PIF_evtTaskLoop)(PIF_stTask *pstTask);
+typedef uint16_t (*PifEvtTaskLoop)(PifTask* p_task);
 
 
 /**
- * @struct _PIF_stTask
+ * @struct StPifTask
  * @brief Task를 관리하는 구조체
  */
-struct _PIF_stTask
+struct StPifTask
 {
 	// Public Member Variable
-	BOOL bPause;
-	BOOL bImmediate;
+	BOOL pause;
+	BOOL immediate;
 
 	// Read-only Member Variable
-	PifId _usPifId;
-	PIF_enTaskMode _enMode;
-	uint16_t _usPeriod;
-	void *_pvClient;
+	PifId _id;
+	PifTaskMode _mode;
+	uint16_t _period;
+	void *_p_client;
 
 	// Private Member Variable
 	int __table_number;
-	BOOL __bRunning;
-	uint32_t __unPretime;
+	BOOL __running;
+	uint32_t __pretime;
 #ifdef __PIF_DEBUG__
-	uint32_t __unCount;
-	float __fPeriod;
+	uint32_t __count;
+	float __period;
 #endif
 
 	// Private Event Function
-	PIF_evtTaskLoop __evtLoop;
+	PifEvtTaskLoop __evt_loop;
 };
 
 
@@ -56,21 +56,21 @@ struct _PIF_stTask
 extern "C" {
 #endif
 
-void pifTask_Init(PIF_stTask *pstOwner);
+void pifTask_Init(PifTask* p_owner);
 
-void pifTask_SetPeriod(PIF_stTask *pstOwner, uint16_t usPeriod);
+void pifTask_SetPeriod(PifTask* p_owner, uint16_t period);
 
 
 void pifTaskManager_Init();
-void pifTaskManager_Destroy();
+void pifTaskManager_Clear();
 
-PIF_stTask *pifTaskManager_Add(PIF_enTaskMode enMode, uint16_t usPeriod, PIF_evtTaskLoop evtLoop, void *pvClient, BOOL bStart);
+PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start);
 
 void pifTaskManager_Loop();
 void pifTaskManager_Yield();
-void pifTaskManager_YieldMs(uint32_t unTime);
-void pifTaskManager_YieldUs(uint32_t unTime);
-void pifTaskManager_YieldPeriod(PIF_stTask *pstOwner);
+void pifTaskManager_YieldMs(uint32_t time);
+void pifTaskManager_YieldUs(uint32_t time);
+void pifTaskManager_YieldPeriod(PifTask* p_owner);
 
 #ifdef __PIF_DEBUG__
 
