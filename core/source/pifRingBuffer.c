@@ -6,40 +6,40 @@
 #include "pifRingBuffer.h"
 
 
-static BOOL _ChopOff(PIF_stRingBuffer *pstOwner, uint16_t usAlloc)
+static BOOL _ChopOff(PifRingBuffer* p_owner, uint16_t count)
 {
-	uint16_t usLength = pifRingBuffer_GetFillSize(pstOwner);
-	uint16_t usSize, usTail;
+	uint16_t length = pifRingBuffer_GetFillSize(p_owner);
+	uint16_t size, tail;
 
-	switch (pstOwner->_bt.ChopOff) {
+	switch (p_owner->_bt.chop_off) {
 	case RB_CHOP_OFF_CHAR:
-		usSize = 0;
-		usTail = pstOwner->__usTail;
-		while (usTail != pstOwner->__usHead) {
-			if (pstOwner->__pucBuffer[usTail] == pstOwner->__ui.cChopOffChar) {
-				if (usSize > usAlloc) {
-					pstOwner->__usTail = usTail;
+		size = 0;
+		tail = p_owner->__tail;
+		while (tail != p_owner->__head) {
+			if (p_owner->__p_buffer[tail] == p_owner->__ui.chop_off_char) {
+				if (size > count) {
+					p_owner->__tail = tail;
 					return TRUE;
 				}
 			}
-			usTail++;
-			if (usTail >= pstOwner->_usSize) usTail -= pstOwner->_usSize;
-			usSize++;
+			tail++;
+			if (tail >= p_owner->_size) tail -= p_owner->_size;
+			size++;
 		}
 		break;
 
 	case RB_CHOP_OFF_LENGTH:
-		usSize = pstOwner->__ui.usChopOffLength;
-		while (usAlloc > usSize) {
-			usSize += pstOwner->__ui.usChopOffLength;
+		size = p_owner->__ui.chop_off_length;
+		while (count > size) {
+			size += p_owner->__ui.chop_off_length;
 		}
-		if (usSize < usLength) {
-			pstOwner->__usTail += usSize;
-			if (pstOwner->__usTail >= pstOwner->_usSize) pstOwner->__usTail -= pstOwner->_usSize;
+		if (size < length) {
+			p_owner->__tail += size;
+			if (p_owner->__tail >= p_owner->_size) p_owner->__tail -= p_owner->_size;
 			return TRUE;
 		}
-		else if (usAlloc <= usLength) {
-			pstOwner->__usTail = pstOwner->__usHead;
+		else if (count <= length) {
+			p_owner->__tail = p_owner->__head;
 			return TRUE;
 		}
 		break;
@@ -50,44 +50,44 @@ static BOOL _ChopOff(PIF_stRingBuffer *pstOwner, uint16_t usAlloc)
 /**
  * @fn pifRingBuffer_InitHeap
  * @brief
- * @param usPifId
- * @param usSize
+ * @param id
+ * @param size
  * @return 
  */
-PIF_stRingBuffer *pifRingBuffer_InitHeap(PifId usPifId, uint16_t usSize)
+PifRingBuffer* pifRingBuffer_InitHeap(PifId id, uint16_t size)
 {
-	PIF_stRingBuffer *pstOwner = NULL;
+	PifRingBuffer* p_owner = NULL;
 
-    if (!usSize) {
+    if (!size) {
 		pif_error = E_INVALID_PARAM;
 		goto fail;
 	}
 
-    pstOwner = calloc(sizeof(PIF_stRingBuffer), 1);
-	if (!pstOwner) {
+    p_owner = calloc(sizeof(PifRingBuffer), 1);
+	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
-	pstOwner->__pucBuffer = calloc(sizeof(uint8_t), usSize);
-	if (!pstOwner->__pucBuffer) {
+	p_owner->__p_buffer = calloc(sizeof(uint8_t), size);
+	if (!p_owner->__p_buffer) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
-	if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
-	pstOwner->_usPifId = usPifId;
-	pstOwner->__psName = NULL;
-    pstOwner->_bt.Static = FALSE;
-    pstOwner->_usSize = usSize;
-    pstOwner->__usHead = 0;
-    pstOwner->__usTail = 0;
-    return pstOwner;
+	if (id == PIF_ID_AUTO) id = pif_id++;
+	p_owner->_id = id;
+	p_owner->__p_name = NULL;
+    p_owner->_bt.is_static = FALSE;
+    p_owner->_size = size;
+    p_owner->__head = 0;
+    p_owner->__tail = 0;
+    return p_owner;
 
 fail:
-	if (pstOwner) {
-		if (pstOwner->__pucBuffer) free(pstOwner->__pucBuffer);
-		free(pstOwner);
+	if (p_owner) {
+		if (p_owner->__p_buffer) free(p_owner->__p_buffer);
+		free(p_owner);
 	}
     return NULL;
 }
@@ -95,176 +95,177 @@ fail:
 /**
  * @fn pifRingBuffer_InitStatic
  * @brief
- * @param usPifId
- * @param usSize
- * @param pcBuffer
+ * @param id
+ * @param size
+ * @param p_buffer
+ * @return
  */
-PIF_stRingBuffer *pifRingBuffer_InitStatic(PifId usPifId, uint16_t usSize, uint8_t *pucBuffer)
+PifRingBuffer* pifRingBuffer_InitStatic(PifId id, uint16_t size, uint8_t* p_buffer)
 {
-	PIF_stRingBuffer *pstOwner = NULL;
+	PifRingBuffer* p_owner = NULL;
 
-    if (!usSize) {
+    if (!size) {
 		pif_error = E_INVALID_PARAM;
 		goto fail;
 	}
 
-    pstOwner = calloc(sizeof(PIF_stRingBuffer), 1);
-	if (!pstOwner) {
+    p_owner = calloc(sizeof(PifRingBuffer), 1);
+	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
-	pstOwner->__pucBuffer = pucBuffer;
+	p_owner->__p_buffer = p_buffer;
 
-	if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
-	pstOwner->_usPifId = usPifId;
-	pstOwner->__psName = NULL;
-    pstOwner->_bt.Static = TRUE;
-    pstOwner->_usSize = usSize;
-    pstOwner->__usHead = 0;
-    pstOwner->__usTail = 0;
-    return pstOwner;
+	if (id == PIF_ID_AUTO) id = pif_id++;
+	p_owner->_id = id;
+	p_owner->__p_name = NULL;
+    p_owner->_bt.is_static = TRUE;
+    p_owner->_size = size;
+    p_owner->__head = 0;
+    p_owner->__tail = 0;
+    return p_owner;
 
 fail:
-	if (pstOwner) free(pstOwner);
+	if (p_owner) free(p_owner);
     return NULL;
 }
 
 /**
  * @fn pifRingBuffer_Exit
  * @brief 
- * @param pstOwner
+ * @param p_owner
  */
-void pifRingBuffer_Exit(PIF_stRingBuffer *pstOwner)
+void pifRingBuffer_Exit(PifRingBuffer* p_owner)
 {
-	if (pstOwner->_bt.Static == FALSE && pstOwner->__pucBuffer) {
-        free(pstOwner->__pucBuffer);
-        pstOwner->__pucBuffer = NULL;
+	if (p_owner->_bt.is_static == FALSE && p_owner->__p_buffer) {
+        free(p_owner->__p_buffer);
+        p_owner->__p_buffer = NULL;
     }
 }
 
 /**
  * @fn pifRingBuffer_ResizeHeap
  * @brief
- * @param pstOwner
- * @param usSize
+ * @param p_owner
+ * @param size
  * @return
  */
-BOOL pifRingBuffer_ResizeHeap(PIF_stRingBuffer *pstOwner, uint16_t usSize)
+BOOL pifRingBuffer_ResizeHeap(PifRingBuffer* p_owner, uint16_t size)
 {
-    if (pstOwner->_bt.Static) {
+    if (p_owner->_bt.is_static) {
 		pif_error = E_INVALID_STATE;
     	return FALSE;
     }
 
-    if (pstOwner->__pucBuffer) {
-    	free(pstOwner->__pucBuffer);
-    	pstOwner->__pucBuffer = NULL;
+    if (p_owner->__p_buffer) {
+    	free(p_owner->__p_buffer);
+    	p_owner->__p_buffer = NULL;
     }
 
-	pstOwner->__pucBuffer = calloc(sizeof(uint8_t), usSize);
-	if (!pstOwner->__pucBuffer) {
+	p_owner->__p_buffer = calloc(sizeof(uint8_t), size);
+	if (!p_owner->__p_buffer) {
 		pif_error = E_OUT_OF_HEAP;
 		return FALSE;
 	}
-    pstOwner->_usSize = usSize;
+    p_owner->_size = size;
 	return TRUE;
 }
 
 /**
  * @fn pifRingBuffer_SetName
  * @brief
- * @param pstOwner
- * @param psName
+ * @param p_owner
+ * @param p_name
  */
-void pifRingBuffer_SetName(PIF_stRingBuffer *pstOwner, const char *psName)
+void pifRingBuffer_SetName(PifRingBuffer* p_owner, const char* p_name)
 {
-	pstOwner->__psName = psName;
+	p_owner->__p_name = p_name;
 }
 
 /**
  * @fn pifRingBuffer_GetTailPointer
  * @brief
- * @param pstOwner
- * @param usPos
+ * @param p_owner
+ * @param pos
  * @return
  */
-uint8_t *pifRingBuffer_GetTailPointer(PIF_stRingBuffer *pstOwner, uint16_t usPos)
+uint8_t *pifRingBuffer_GetTailPointer(PifRingBuffer* p_owner, uint16_t pos)
 {
-	return &pstOwner->__pucBuffer[(pstOwner->__usTail + usPos) % pstOwner->_usSize];
+	return &p_owner->__p_buffer[(p_owner->__tail + pos) % p_owner->_size];
 }
 
 /**
  * @fn pifRingBuffer_ChopsOffNone
  * @brief
- * @param pstOwner
+ * @param p_owner
  */
-void pifRingBuffer_ChopsOffNone(PIF_stRingBuffer *pstOwner)
+void pifRingBuffer_ChopsOffNone(PifRingBuffer* p_owner)
 {
-	pstOwner->_bt.ChopOff = RB_CHOP_OFF_NONE;
+	p_owner->_bt.chop_off = RB_CHOP_OFF_NONE;
 }
 
 /**
  * @fn pifRingBuffer_ChopsOffChar
  * @brief
- * @param pstOwner
- * @param cChar
+ * @param p_owner
+ * @param ch
  */
-void pifRingBuffer_ChopsOffChar(PIF_stRingBuffer *pstOwner, char cChar)
+void pifRingBuffer_ChopsOffChar(PifRingBuffer* p_owner, char ch)
 {
-	pstOwner->_bt.ChopOff = RB_CHOP_OFF_CHAR;
-	pstOwner->__ui.cChopOffChar = cChar;
+	p_owner->_bt.chop_off = RB_CHOP_OFF_CHAR;
+	p_owner->__ui.chop_off_char = ch;
 }
 
 /**
  * @fn pifRingBuffer_ChopsOffLength
  * @brief
- * @param pstOwner
- * @param usLength
+ * @param p_owner
+ * @param length
  */
-void pifRingBuffer_ChopsOffLength(PIF_stRingBuffer *pstOwner, uint16_t usLength)
+void pifRingBuffer_ChopsOffLength(PifRingBuffer* p_owner, uint16_t length)
 {
-	pstOwner->_bt.ChopOff = RB_CHOP_OFF_LENGTH;
-	pstOwner->__ui.usChopOffLength = usLength;
+	p_owner->_bt.chop_off = RB_CHOP_OFF_LENGTH;
+	p_owner->__ui.chop_off_length = length;
 }
 
 /**
  * @fn pifRingBuffer_IsBuffer
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-BOOL pifRingBuffer_IsBuffer(PIF_stRingBuffer *pstOwner)
+BOOL pifRingBuffer_IsBuffer(PifRingBuffer* p_owner)
 {
-	return pstOwner->__pucBuffer != NULL;
+	return p_owner->__p_buffer != NULL;
 }
 
 /**
  * @fn pifRingBuffer_IsEmpty
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-BOOL pifRingBuffer_IsEmpty(PIF_stRingBuffer *pstOwner)
+BOOL pifRingBuffer_IsEmpty(PifRingBuffer* p_owner)
 {
-	return pstOwner->__usHead == pstOwner->__usTail;
+	return p_owner->__head == p_owner->__tail;
 }
 
 /**
  * @fn pifRingBuffer_GetFillSize
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-uint16_t pifRingBuffer_GetFillSize(PIF_stRingBuffer *pstOwner)
+uint16_t pifRingBuffer_GetFillSize(PifRingBuffer* p_owner)
 {
 	uint16_t usFill;
 
-    if (pstOwner->__usHead >= pstOwner->__usTail) {
-    	usFill = pstOwner->__usHead - pstOwner->__usTail;
+    if (p_owner->__head >= p_owner->__tail) {
+    	usFill = p_owner->__head - p_owner->__tail;
     }
     else {
-    	usFill = pstOwner->_usSize - pstOwner->__usTail + pstOwner->__usHead;
+    	usFill = p_owner->_size - p_owner->__tail + p_owner->__head;
     }
     return usFill;
 }
@@ -272,109 +273,109 @@ uint16_t pifRingBuffer_GetFillSize(PIF_stRingBuffer *pstOwner)
 /**
  * @fn pifRingBuffer_GetLinerSize
  * @brief
- * @param pstOwner
- * @param usPos
+ * @param p_owner
+ * @param pos
  * @return
  */
-uint16_t pifRingBuffer_GetLinerSize(PIF_stRingBuffer *pstOwner, uint16_t usPos)
+uint16_t pifRingBuffer_GetLinerSize(PifRingBuffer* p_owner, uint16_t pos)
 {
-	uint16_t usTail = (pstOwner->__usTail + usPos) % pstOwner->_usSize;
+	uint16_t tail = (p_owner->__tail + pos) % p_owner->_size;
 
-    if (pstOwner->__usHead >= usTail) {
-    	return pstOwner->__usHead - usTail;
+    if (p_owner->__head >= tail) {
+    	return p_owner->__head - tail;
     }
     else {
-    	return pstOwner->_usSize - usTail;
+    	return p_owner->_size - tail;
     }
 }
 
 /**
  * @fn pifRingBuffer_GetRemainSize
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-uint16_t pifRingBuffer_GetRemainSize(PIF_stRingBuffer *pstOwner)
+uint16_t pifRingBuffer_GetRemainSize(PifRingBuffer* p_owner)
 {
-	uint16_t usRemain;
+	uint16_t remain;
 
-    if (pstOwner->__usHead < pstOwner->__usTail) {
-    	usRemain = pstOwner->__usTail - pstOwner->__usHead;
+    if (p_owner->__head < p_owner->__tail) {
+    	remain = p_owner->__tail - p_owner->__head;
     }
     else {
-    	usRemain = pstOwner->_usSize - pstOwner->__usHead + pstOwner->__usTail;
+    	remain = p_owner->_size - p_owner->__head + p_owner->__tail;
     }
-    return usRemain - 1;
+    return remain - 1;
 }
 
 /**
  * @fn pifRingBuffer_BackupHead
  * @brief
- * @param pstOwner
+ * @param p_owner
  */
-void pifRingBuffer_BackupHead(PIF_stRingBuffer *pstOwner)
+void pifRingBuffer_BackupHead(PifRingBuffer* p_owner)
 {
-	pstOwner->__usBackupHead = pstOwner->__usHead;
+	p_owner->__backup_head = p_owner->__head;
 }
 
 /**
  * @fn pifRingBuffer_RestoreHead
  * @brief
- * @param pstOwner
+ * @param p_owner
  */
-void pifRingBuffer_RestoreHead(PIF_stRingBuffer *pstOwner)
+void pifRingBuffer_RestoreHead(PifRingBuffer* p_owner)
 {
-	pstOwner->__usHead = pstOwner->__usBackupHead;
+	p_owner->__head = p_owner->__backup_head;
 }
 
 /**
  * @fn pifRingBuffer_PutByte
  * @brief
- * @param pstOwner
- * @param ucData
+ * @param p_owner
+ * @param data
  * @return
  */
-BOOL pifRingBuffer_PutByte(PIF_stRingBuffer *pstOwner, uint8_t ucData)
+BOOL pifRingBuffer_PutByte(PifRingBuffer* p_owner, uint8_t data)
 {
-    uint16_t usNext;
+    uint16_t next;
 
-    usNext = pstOwner->__usHead + 1;
-	if (usNext >= pstOwner->_usSize) usNext = 0;
-    if (usNext == pstOwner->__usTail) {
-    	if (!_ChopOff(pstOwner, 1)) {
+    next = p_owner->__head + 1;
+	if (next >= p_owner->_size) next = 0;
+    if (next == p_owner->__tail) {
+    	if (!_ChopOff(p_owner, 1)) {
     		pif_error = E_OVERFLOW_BUFFER;
     		return FALSE;
     	}
     }
 
-    pstOwner->__pucBuffer[pstOwner->__usHead] = ucData;
-    pstOwner->__usHead = usNext;
+    p_owner->__p_buffer[p_owner->__head] = data;
+    p_owner->__head = next;
     return TRUE;
 }
 
 /**
  * @fn pifRingBuffer_PutData
  * @brief
- * @param pstOwner
- * @param pucData
- * @param usLength
+ * @param p_owner
+ * @param p_data
+ * @param length
  * @return
  */
-BOOL pifRingBuffer_PutData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16_t usLength)
+BOOL pifRingBuffer_PutData(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t length)
 {
-	uint16_t usRemain = pifRingBuffer_GetRemainSize(pstOwner);
+	uint16_t remain = pifRingBuffer_GetRemainSize(p_owner);
 
-    if (usLength > usRemain) {
-    	if (!_ChopOff(pstOwner, usLength - usRemain)) {
+    if (length > remain) {
+    	if (!_ChopOff(p_owner, length - remain)) {
     		pif_error = E_OVERFLOW_BUFFER;
     		return FALSE;
     	}
     }
 
-    for (uint16_t i = 0; i < usLength; i++) {
-    	pstOwner->__pucBuffer[pstOwner->__usHead] = pucData[i];
-    	pstOwner->__usHead++;
-    	if (pstOwner->__usHead >= pstOwner->_usSize) pstOwner->__usHead = 0;
+    for (uint16_t i = 0; i < length; i++) {
+    	p_owner->__p_buffer[p_owner->__head] = p_data[i];
+    	p_owner->__head++;
+    	if (p_owner->__head >= p_owner->_size) p_owner->__head = 0;
     }
     return TRUE;
 }
@@ -382,26 +383,26 @@ BOOL pifRingBuffer_PutData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16_
 /**
  * @fn pifRingBuffer_PutString
  * @brief
- * @param pstOwner
- * @param pcString
+ * @param p_owner
+ * @param p_string
  * @return
  */
-BOOL pifRingBuffer_PutString(PIF_stRingBuffer *pstOwner, char *pcString)
+BOOL pifRingBuffer_PutString(PifRingBuffer* p_owner, char* p_string)
 {
-	uint16_t usRemain = pifRingBuffer_GetRemainSize(pstOwner);
-	uint16_t usLength = strlen(pcString);
+	uint16_t remain = pifRingBuffer_GetRemainSize(p_owner);
+	uint16_t length = strlen(p_string);
 
-    if (usLength > usRemain) {
-    	if (!_ChopOff(pstOwner, usLength - usRemain)) {
+    if (length > remain) {
+    	if (!_ChopOff(p_owner, length - remain)) {
     		pif_error = E_OVERFLOW_BUFFER;
     		return FALSE;
     	}
     }
 
-    for (uint16_t i = 0; i < usLength; i++) {
-    	pstOwner->__pucBuffer[pstOwner->__usHead] = pcString[i];
-    	pstOwner->__usHead++;
-    	if (pstOwner->__usHead >= pstOwner->_usSize) pstOwner->__usHead = 0;
+    for (uint16_t i = 0; i < length; i++) {
+    	p_owner->__p_buffer[p_owner->__head] = p_string[i];
+    	p_owner->__head++;
+    	if (p_owner->__head >= p_owner->_size) p_owner->__head = 0;
     }
     return TRUE;
 }
@@ -409,94 +410,94 @@ BOOL pifRingBuffer_PutString(PIF_stRingBuffer *pstOwner, char *pcString)
 /**
  * @fn pifRingBuffer_GetByte
  * @brief
- * @param pstOwner
- * @param pucData
+ * @param p_owner
+ * @param p_data
  * @return
  */
-BOOL pifRingBuffer_GetByte(PIF_stRingBuffer *pstOwner, uint8_t *pucData)
+BOOL pifRingBuffer_GetByte(PifRingBuffer* p_owner, uint8_t* p_data)
 {
-	if (pstOwner->__usTail == pstOwner->__usHead) return FALSE;
+	if (p_owner->__tail == p_owner->__head) return FALSE;
 
-	*pucData = pstOwner->__pucBuffer[pstOwner->__usTail];
-	pstOwner->__usTail++;
-	if (pstOwner->__usTail >= pstOwner->_usSize) pstOwner->__usTail = 0;
+	*p_data = p_owner->__p_buffer[p_owner->__tail];
+	p_owner->__tail++;
+	if (p_owner->__tail >= p_owner->_size) p_owner->__tail = 0;
 	return TRUE;
 }
 
 /**
  * @fn pifRingBuffer_CopyToArray
  * @brief
- * @param pucDst
- * @param usCount
- * @param pstSrc
- * @param usPos
+ * @param p_dst
+ * @param count
+ * @param p_src
+ * @param pos
  * @return
  */
-uint16_t pifRingBuffer_CopyToArray(uint8_t *pucDst, uint16_t usCount, PIF_stRingBuffer *pstSrc, uint16_t usPos)
+uint16_t pifRingBuffer_CopyToArray(uint8_t* p_dst, uint16_t count, PifRingBuffer* p_src, uint16_t pos)
 {
-	uint16_t usTail = pstSrc->__usTail + usPos;
-	if (usTail >= pstSrc->_usSize) usTail -= pstSrc->_usSize;
+	uint16_t tail = p_src->__tail + pos;
+	if (tail >= p_src->_size) tail -= p_src->_size;
 
-	for (uint16_t i = 0; i < usCount; i++) {
-		pucDst[i] = pstSrc->__pucBuffer[usTail];
-		usTail++;
-		if (usTail >= pstSrc->_usSize) usTail = 0;
-		if (usTail == pstSrc->__usHead) return i + 1;
+	for (uint16_t i = 0; i < count; i++) {
+		p_dst[i] = p_src->__p_buffer[tail];
+		tail++;
+		if (tail >= p_src->_size) tail = 0;
+		if (tail == p_src->__head) return i + 1;
 	}
-	return usCount;
+	return count;
 }
 
 /**
  * @fn pifRingBuffer_CopyAll
  * @brief
- * @param pstDst
- * @param pstSrc
- * @param usPos
+ * @param p_dst
+ * @param p_src
+ * @param pos
  * @return
  */
-uint16_t pifRingBuffer_CopyAll(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc, uint16_t usPos)
+uint16_t pifRingBuffer_CopyAll(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16_t pos)
 {
-	uint16_t usFill = pifRingBuffer_GetFillSize(pstSrc) - usPos;
-	uint16_t usRemain = pifRingBuffer_GetRemainSize(pstDst);
-	uint16_t usLength = usRemain < usFill ? usRemain : usFill;
+	uint16_t fill = pifRingBuffer_GetFillSize(p_src) - pos;
+	uint16_t remain = pifRingBuffer_GetRemainSize(p_dst);
+	uint16_t length = remain < fill ? remain : fill;
 
-	uint16_t usTail = pstSrc->__usTail + usPos;
-	if (usTail >= pstSrc->_usSize) usTail -= pstSrc->_usSize;
-	for (uint16_t i = 0; i < usLength; i++) {
-		pifRingBuffer_PutByte(pstDst, pstSrc->__pucBuffer[usTail]);
+	uint16_t usTail = p_src->__tail + pos;
+	if (usTail >= p_src->_size) usTail -= p_src->_size;
+	for (uint16_t i = 0; i < length; i++) {
+		pifRingBuffer_PutByte(p_dst, p_src->__p_buffer[usTail]);
 		usTail++;
-		if (usTail >= pstSrc->_usSize) usTail = 0;
+		if (usTail >= p_src->_size) usTail = 0;
 	}
-	return usLength;
+	return length;
 }
 
 /**
  * @fn pifRingBuffer_CopyLength
  * @brief
- * @param pstDst
- * @param pstSrc
- * @param usPos
- * @param usLength
+ * @param p_dst
+ * @param p_src
+ * @param pos
+ * @param length
  * @return
  */
-BOOL pifRingBuffer_CopyLength(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc, uint16_t usPos, uint16_t usLength)
+BOOL pifRingBuffer_CopyLength(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16_t pos, uint16_t length)
 {
-	uint16_t usFill = pifRingBuffer_GetFillSize(pstSrc);
+	uint16_t fill = pifRingBuffer_GetFillSize(p_src);
 
-	if (usPos + usLength > usFill) {
+	if (pos + length > fill) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
-	if (pifRingBuffer_GetRemainSize(pstDst) < usLength) {
+	if (pifRingBuffer_GetRemainSize(p_dst) < length) {
 		pif_error = E_OVERFLOW_BUFFER;
 		return FALSE;
 	}
 
-	uint16_t usTail = (pstSrc->__usTail + usPos) % pstSrc->_usSize;
-	while (usTail != pstSrc->__usHead) {
-		pifRingBuffer_PutByte(pstDst, pstSrc->__pucBuffer[usTail]);
+	uint16_t usTail = (p_src->__tail + pos) % p_src->_size;
+	while (usTail != p_src->__head) {
+		pifRingBuffer_PutByte(p_dst, p_src->__p_buffer[usTail]);
 		usTail++;
-		if (usTail >= pstSrc->_usSize) usTail = 0;
+		if (usTail >= p_src->_size) usTail = 0;
 	}
 	return TRUE;
 }
@@ -504,18 +505,17 @@ BOOL pifRingBuffer_CopyLength(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc
 /**
  * @fn pifRingBuffer_Remove
  * @brief
- * @param pstOwner
- * @param usSize
- * @return
+ * @param p_owner
+ * @param size
  */
-void pifRingBuffer_Remove(PIF_stRingBuffer *pstOwner, uint16_t usSize)
+void pifRingBuffer_Remove(PifRingBuffer* p_owner, uint16_t size)
 {
-	uint16_t usFill = pifRingBuffer_GetFillSize(pstOwner);
+	uint16_t fill = pifRingBuffer_GetFillSize(p_owner);
 
-	if (usSize >= usFill) {
-		pstOwner->__usTail = pstOwner->__usHead;
+	if (size >= fill) {
+		p_owner->__tail = p_owner->__head;
 	}
 	else {
-		pstOwner->__usTail = (pstOwner->__usTail + usSize) % pstOwner->_usSize;
+		p_owner->__tail = (p_owner->__tail + size) % p_owner->_size;
 	}
 }

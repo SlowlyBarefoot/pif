@@ -32,7 +32,7 @@ typedef struct _PIF_stCollectSignal
 	PIF_enCollectSignalStep enStep;
 	uint8_t ucDeviceCount;
 	uint32_t unTimer1ms;
-	PIF_stRingBuffer *pstBuffer;
+	PifRingBuffer *pstBuffer;
 	PifDList stDevice;
 	PIF_fnCollectSignalDevice afnDevice[32];
 } PIF_stCollectSignal;

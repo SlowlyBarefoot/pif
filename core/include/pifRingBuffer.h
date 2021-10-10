@@ -11,72 +11,72 @@
 
 
 /**
- * @class _PIF_stRingBuffer
+ * @class StPifRingBuffer
  * @brief 환형 버퍼용 구조체
  */
-typedef struct _PIF_stRingBuffer
+typedef struct StPifRingBuffer
 {
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PifId _usPifId;
+	PifId _id;
 	struct {
-		uint8_t Static	: 1;
-		uint8_t ChopOff	: 2;	// RB_CHOP_OFF_
+		uint8_t is_static	: 1;
+		uint8_t chop_off	: 2;	// RB_CHOP_OFF_
 	} _bt;
-    uint16_t _usSize;
+    uint16_t _size;
 
 	// Private Member Variable
-	const char *__psName;
-    uint8_t *__pucBuffer;
-    uint16_t __usHead;
-    uint16_t __usTail;
-    uint16_t __usBackupHead;
+	const char* __p_name;
+    uint8_t* __p_buffer;
+    uint16_t __head;
+    uint16_t __tail;
+    uint16_t __backup_head;
     union {
-		char cChopOffChar;
-		uint16_t usChopOffLength;
+		char chop_off_char;
+		uint16_t chop_off_length;
     } __ui;
-} PIF_stRingBuffer;
+} PifRingBuffer;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PIF_stRingBuffer *pifRingBuffer_InitHeap(PifId usPifId, uint16_t usSize);
-PIF_stRingBuffer *pifRingBuffer_InitStatic(PifId usPifId, uint16_t usSize, uint8_t *pucBuffer);
-void pifRingBuffer_Exit(PIF_stRingBuffer *pstOwner);
+PifRingBuffer* pifRingBuffer_InitHeap(PifId id, uint16_t size);
+PifRingBuffer* pifRingBuffer_InitStatic(PifId id, uint16_t size, uint8_t* p_buffer);
+void pifRingBuffer_Exit(PifRingBuffer* p_owner);
 
-BOOL pifRingBuffer_ResizeHeap(PIF_stRingBuffer *pstOwner, uint16_t usSize);
+BOOL pifRingBuffer_ResizeHeap(PifRingBuffer* p_owner, uint16_t size);
 
-void pifRingBuffer_SetName(PIF_stRingBuffer *pstOwner, const char *psName);
+void pifRingBuffer_SetName(PifRingBuffer* p_owner, const char* p_name);
 
-uint8_t *pifRingBuffer_GetTailPointer(PIF_stRingBuffer *pstOwner, uint16_t usPos);
+uint8_t* pifRingBuffer_GetTailPointer(PifRingBuffer* p_owner, uint16_t pos);
 
-void pifRingBuffer_ChopsOffNone(PIF_stRingBuffer *pstOwner);
-void pifRingBuffer_ChopsOffChar(PIF_stRingBuffer *pstOwner, char cChar);
-void pifRingBuffer_ChopsOffLength(PIF_stRingBuffer *pstOwner, uint16_t usLength);
+void pifRingBuffer_ChopsOffNone(PifRingBuffer* p_owner);
+void pifRingBuffer_ChopsOffChar(PifRingBuffer* p_owner, char ch);
+void pifRingBuffer_ChopsOffLength(PifRingBuffer* p_owner, uint16_t length);
 
-BOOL pifRingBuffer_IsBuffer(PIF_stRingBuffer *pstOwner);
-BOOL pifRingBuffer_IsEmpty(PIF_stRingBuffer *pstOwner);
+BOOL pifRingBuffer_IsBuffer(PifRingBuffer* p_owner);
+BOOL pifRingBuffer_IsEmpty(PifRingBuffer* p_owner);
 
-uint16_t pifRingBuffer_GetFillSize(PIF_stRingBuffer *pstOwner);
-uint16_t pifRingBuffer_GetLinerSize(PIF_stRingBuffer *pstOwner, uint16_t usPos);
-uint16_t pifRingBuffer_GetRemainSize(PIF_stRingBuffer *pstOwner);
+uint16_t pifRingBuffer_GetFillSize(PifRingBuffer* p_owner);
+uint16_t pifRingBuffer_GetLinerSize(PifRingBuffer* p_owner, uint16_t pos);
+uint16_t pifRingBuffer_GetRemainSize(PifRingBuffer* p_owner);
 
-void pifRingBuffer_BackupHead(PIF_stRingBuffer *pstOwner);
-void pifRingBuffer_RestoreHead(PIF_stRingBuffer *pstOwner);
+void pifRingBuffer_BackupHead(PifRingBuffer* p_owner);
+void pifRingBuffer_RestoreHead(PifRingBuffer* p_owner);
 
-BOOL pifRingBuffer_PutByte(PIF_stRingBuffer *pstOwner, uint8_t ucData);
-BOOL pifRingBuffer_PutData(PIF_stRingBuffer *pstOwner, uint8_t *pucData, uint16_t usLength);
-BOOL pifRingBuffer_PutString(PIF_stRingBuffer *pstOwner, char *pcString);
-BOOL pifRingBuffer_GetByte(PIF_stRingBuffer *pstOwner, uint8_t *pucData);
+BOOL pifRingBuffer_PutByte(PifRingBuffer* p_owner, uint8_t data);
+BOOL pifRingBuffer_PutData(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t length);
+BOOL pifRingBuffer_PutString(PifRingBuffer* p_owner, char* p_string);
+BOOL pifRingBuffer_GetByte(PifRingBuffer* p_owner, uint8_t* p_data);
 
-uint16_t pifRingBuffer_CopyToArray(uint8_t *pucDst, uint16_t usCount, PIF_stRingBuffer *pstSrc, uint16_t usPos);
-uint16_t pifRingBuffer_CopyAll(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc, uint16_t usPos);
-BOOL pifRingBuffer_CopyLength(PIF_stRingBuffer *pstDst, PIF_stRingBuffer *pstSrc, uint16_t usPos, uint16_t usLength);
+uint16_t pifRingBuffer_CopyToArray(uint8_t* p_dst, uint16_t count, PifRingBuffer* p_src, uint16_t pos);
+uint16_t pifRingBuffer_CopyAll(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16_t pos);
+BOOL pifRingBuffer_CopyLength(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16_t pos, uint16_t length);
 
-void pifRingBuffer_Remove(PIF_stRingBuffer *pstOwner, uint16_t usSize);
+void pifRingBuffer_Remove(PifRingBuffer* p_owner, uint16_t size);
 
 #ifdef __cplusplus
 }

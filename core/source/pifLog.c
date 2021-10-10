@@ -10,9 +10,9 @@
 typedef struct _PIF_stLog
 {
 	BOOL bEnable;
-	PIF_stRingBuffer *pstBuffer;
+	PifRingBuffer *pstBuffer;
 	PifComm *pstComm;
-    PIF_stRingBuffer *pstTxBuffer;
+    PifRingBuffer *pstTxBuffer;
 
 #ifdef __PIF_LOG_COMMAND__
     char cLastChar;

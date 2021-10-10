@@ -77,8 +77,8 @@ struct StPifComm
 
 	// Read-only Member Variable
     PifId _id;
-    PIF_stRingBuffer* _p_tx_buffer;
-    PIF_stRingBuffer* _p_rx_buffer;
+    PifRingBuffer* _p_tx_buffer;
+    PifRingBuffer* _p_rx_buffer;
     PifTask* _p_task;
 
 	// Private Member Variable

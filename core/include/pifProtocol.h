@@ -125,8 +125,8 @@ typedef struct _PIF_stProtocolRx
 
 typedef struct _PIF_stProtocolTx
 {
-    PIF_stRingBuffer *pstRequestBuffer;
-    PIF_stRingBuffer *pstAnswerBuffer;
+    PifRingBuffer *pstRequestBuffer;
+    PifRingBuffer *pstAnswerBuffer;
 	const PIF_stProtocolRequest *pstRequest;
 	uint8_t *pucData;
 	uint16_t usDataSize;
