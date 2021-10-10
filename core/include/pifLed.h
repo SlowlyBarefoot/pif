@@ -5,55 +5,55 @@
 #include "pifPulse.h"
 
 
-typedef void (*PIF_actLedState)(PifId usPifId, uint32_t unState);
+typedef void (*PifActLedState)(PifId id, uint32_t state);
 
 /**
- * @class _PIF_stLed
+ * @class StPifLed
  * @brief
  */
-typedef struct _PIF_stLed
+typedef struct StPifLed
 {
 	// Public Member Variable
-    uint8_t ucLedCount;
+    uint8_t count;
 
 	// Read-only Member Variable
-    PifId _usPifId;
+    PifId _id;
 
 	// Private Member Variable
-	PifPulse *__pstTimer;
-	uint32_t __unState;
-	SWITCH __swBlink;
-	uint32_t __unBlinkFlag;
-	PifPulseItem *__pstTimerBlink;
+	PifPulse*__p_timer;
+	uint32_t __state;
+	SWITCH __blink;
+	uint32_t __blink_flag;
+	PifPulseItem* __p_timer_blink;
 
 	// Private Action Function
-	PIF_actLedState __actState;
-} PIF_stLed;
+	PifActLedState __act_state;
+} PifLed;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PIF_stLed *pifLed_Create(PifId usPifId, PifPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState);
-void pifLed_Destroy(PIF_stLed** pp_owner);
+PifLed* pifLed_Create(PifId id, PifPulse* p_timer, uint8_t count, PifActLedState act_state);
+void pifLed_Destroy(PifLed** pp_owner);
 
-void pifLed_EachOn(PIF_stLed *pstOwner, uint8_t ucIndex);
-void pifLed_EachOff(PIF_stLed *pstOwner, uint8_t ucIndex);
-void pifLed_EachChange(PIF_stLed *pstOwner, uint8_t ucIndex, SWITCH swState);
-void pifLed_EachToggle(PIF_stLed *pstOwner, uint8_t ucIndex);
+void pifLed_EachOn(PifLed* p_owner, uint8_t index);
+void pifLed_EachOff(PifLed* p_owner, uint8_t index);
+void pifLed_EachChange(PifLed* p_owner, uint8_t index, SWITCH state);
+void pifLed_EachToggle(PifLed* p_owner, uint8_t index);
 
-void pifLed_AllOn(PIF_stLed *pstOwner);
-void pifLed_AllOff(PIF_stLed *pstOwner);
-void pifLed_AllChange(PIF_stLed *pstOwner, uint32_t unState);
-void pifLed_AllToggle(PIF_stLed *pstOwner);
+void pifLed_AllOn(PifLed* p_owner);
+void pifLed_AllOff(PifLed* p_owner);
+void pifLed_AllChange(PifLed* p_owner, uint32_t state);
+void pifLed_AllToggle(PifLed* p_owner);
 
-BOOL pifLed_AttachBlink(PIF_stLed *pstOwner, uint16_t usPeriodMs);
-void pifLed_DetachBlink(PIF_stLed *pstOwner);
-BOOL pifLed_ChangeBlinkPeriod(PIF_stLed *pstOwner, uint16_t usPeriodMs);
+BOOL pifLed_AttachBlink(PifLed* p_owner, uint16_t period1ms);
+void pifLed_DetachBlink(PifLed* p_owner);
+BOOL pifLed_ChangeBlinkPeriod(PifLed* p_owner, uint16_t period1ms);
 
-void pifLed_BlinkOn(PIF_stLed *pstOwner, uint8_t ucIndex);
-void pifLed_BlinkOff(PIF_stLed *pstOwner, uint8_t ucIndex);
+void pifLed_BlinkOn(PifLed* p_owner, uint8_t index);
+void pifLed_BlinkOff(PifLed* p_owner, uint8_t index);
 
 #ifdef __cplusplus
 }

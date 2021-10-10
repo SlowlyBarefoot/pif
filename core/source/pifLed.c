@@ -4,56 +4,56 @@
 #endif
 
 
-static void _evtTimerBlinkFinish(void *pvIssuer)
+static void _evtTimerBlinkFinish(void* p_issuer)
 {
 	BOOL bBlink = FALSE;
 
-    PIF_stLed *pstOwner = (PIF_stLed *)pvIssuer;
-    pstOwner->__swBlink ^= 1;
-    for (uint8_t i = 0; i < pstOwner->ucLedCount; i++) {
-    	if (pstOwner->__unBlinkFlag & (1 << i)) {
-    		if (pstOwner->__swBlink) {
-    			pstOwner->__unState |= 1 << i;
+    PifLed* p_owner = (PifLed*)p_issuer;
+    p_owner->__blink ^= 1;
+    for (uint8_t i = 0; i < p_owner->count; i++) {
+    	if (p_owner->__blink_flag & (1 << i)) {
+    		if (p_owner->__blink) {
+    			p_owner->__state |= 1 << i;
     		}
     		else {
-    			pstOwner->__unState &= ~(1 << i);
+    			p_owner->__state &= ~(1 << i);
     		}
     		bBlink = TRUE;
     	}
     }
-    if (bBlink) (*pstOwner->__actState)(pstOwner->_usPifId, pstOwner->__unState);
+    if (bBlink) (*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
 /**
  * @fn pifLed_Create
  * @brief
- * @param usPifId
- * @param pstTimer
- * @param ucCount
- * @param actState
+ * @param id
+ * @param p_timer
+ * @param count
+ * @param act_state
  * @return
  */
-PIF_stLed *pifLed_Create(PifId usPifId, PifPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState)
+PifLed* pifLed_Create(PifId id, PifPulse* p_timer, uint8_t count, PifActLedState act_state)
 {
-	PIF_stLed *pstOwner = NULL;
+	PifLed* p_owner = NULL;
 
-    if (!pstTimer || !ucCount || ucCount > 32 || !actState) {
+    if (!p_timer || !count || count > 32 || !act_state) {
         pif_error = E_INVALID_PARAM;
 	    return NULL;
     }
 
-    pstOwner = calloc(sizeof(PIF_stLed), 1);
-    if (!pstOwner) {
+    p_owner = calloc(sizeof(PifLed), 1);
+    if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-    pstOwner->__pstTimer = pstTimer;
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
-    pstOwner->_usPifId = usPifId;
-    pstOwner->ucLedCount = ucCount;
-    pstOwner->__actState = actState;
-    return pstOwner;
+    p_owner->__p_timer = p_timer;
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+    p_owner->count = count;
+    p_owner->__act_state = act_state;
+    return p_owner;
 }
 
 /**
@@ -61,12 +61,12 @@ PIF_stLed *pifLed_Create(PifId usPifId, PifPulse *pstTimer, uint8_t ucCount, PIF
  * @brief
  * @param pp_owner
  */
-void pifLed_Destroy(PIF_stLed** pp_owner)
+void pifLed_Destroy(PifLed** pp_owner)
 {
 	if (*pp_owner) {
-		PIF_stLed* pstOwner = *pp_owner;
-		if (pstOwner->__pstTimerBlink) {
-			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__pstTimerBlink);
+		PifLed* p_owner = *pp_owner;
+		if (p_owner->__p_timer_blink) {
+			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__p_timer_blink);
 		}
 		free(*pp_owner);
 		*pp_owner = NULL;
@@ -76,182 +76,182 @@ void pifLed_Destroy(PIF_stLed** pp_owner)
 /**
  * @fn pifLed_EachOn
  * @brief
- * @param pstOwner
- * @param ucIndex
+ * @param p_owner
+ * @param index
  */
-void pifLed_EachOn(PIF_stLed *pstOwner, uint8_t ucIndex)
+void pifLed_EachOn(PifLed* p_owner, uint8_t index)
 {
-	pstOwner->__unState |= 1 << ucIndex;
-	(*pstOwner->__actState)(pstOwner->_usPifId, pstOwner->__unState);
+	p_owner->__state |= 1 << index;
+	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
 /**
  * @fn pifLed_EachOff
  * @brief
- * @param pstOwner
- * @param ucIndex
+ * @param p_owner
+ * @param index
  */
-void pifLed_EachOff(PIF_stLed *pstOwner, uint8_t ucIndex)
+void pifLed_EachOff(PifLed* p_owner, uint8_t index)
 {
-	pstOwner->__unState &= ~(1 << ucIndex);
-	(*pstOwner->__actState)(pstOwner->_usPifId, pstOwner->__unState);
+	p_owner->__state &= ~(1 << index);
+	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
 /**
  * @fn pifLed_EachChange
  * @brief
- * @param pstOwner
- * @param ucIndex
- * @param swState
+ * @param p_owner
+ * @param index
+ * @param state
  */
-void pifLed_EachChange(PIF_stLed *pstOwner, uint8_t ucIndex, SWITCH swState)
+void pifLed_EachChange(PifLed* p_owner, uint8_t index, SWITCH state)
 {
-	if (swState) {
-		pstOwner->__unState |= 1 << ucIndex;
+	if (state) {
+		p_owner->__state |= 1 << index;
 	}
 	else {
-		pstOwner->__unState &= ~(1 << ucIndex);
+		p_owner->__state &= ~(1 << index);
 	}
-	(*pstOwner->__actState)(pstOwner->_usPifId, pstOwner->__unState);
+	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
 /**
  * @fn pifLed_EachToggle
  * @brief
- * @param pstOwner
- * @param ucIndex
+ * @param p_owner
+ * @param index
  */
-void pifLed_EachToggle(PIF_stLed *pstOwner, uint8_t ucIndex)
+void pifLed_EachToggle(PifLed* p_owner, uint8_t index)
 {
-	pstOwner->__unState ^= 1 << ucIndex;
-	(*pstOwner->__actState)(pstOwner->_usPifId, pstOwner->__unState);
+	p_owner->__state ^= 1 << index;
+	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
 /**
  * @fn pifLed_AllOn
  * @brief
- * @param pstOwner
+ * @param p_owner
  */
-void pifLed_AllOn(PIF_stLed *pstOwner)
+void pifLed_AllOn(PifLed* p_owner)
 {
-	pstOwner->__unState = (1 << pstOwner->ucLedCount) - 1;
-	(*pstOwner->__actState)(pstOwner->_usPifId, pstOwner->__unState);
+	p_owner->__state = (1 << p_owner->count) - 1;
+	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
 /**
  * @fn pifLed_AllOff
  * @brief
- * @param pstOwner
+ * @param p_owner
  */
-void pifLed_AllOff(PIF_stLed *pstOwner)
+void pifLed_AllOff(PifLed* p_owner)
 {
-	pstOwner->__unState = 0;
-	(*pstOwner->__actState)(pstOwner->_usPifId, pstOwner->__unState);
+	p_owner->__state = 0;
+	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
 /**
  * @fn pifLed_AllChange
  * @brief
- * @param pstOwner
- * @param unState
+ * @param p_owner
+ * @param state
  */
-void pifLed_AllChange(PIF_stLed *pstOwner, uint32_t unState)
+void pifLed_AllChange(PifLed* p_owner, uint32_t state)
 {
-	pstOwner->__unState = unState;
-	(*pstOwner->__actState)(pstOwner->_usPifId, pstOwner->__unState);
+	p_owner->__state = state;
+	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
 /**
  * @fn pifLed_AllToggle
  * @brief
- * @param pstOwner
+ * @param p_owner
  */
-void pifLed_AllToggle(PIF_stLed *pstOwner)
+void pifLed_AllToggle(PifLed* p_owner)
 {
-	pstOwner->__unState ^= (1 << pstOwner->ucLedCount) - 1;
-	(*pstOwner->__actState)(pstOwner->_usPifId, pstOwner->__unState);
+	p_owner->__state ^= (1 << p_owner->count) - 1;
+	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
 /**
  * @fn pifLed_AttachBlink
  * @brief
- * @param pstOwner
- * @param usPeriodMs
+ * @param p_owner
+ * @param period1ms
  * @return
  */
-BOOL pifLed_AttachBlink(PIF_stLed *pstOwner, uint16_t usPeriodMs)
+BOOL pifLed_AttachBlink(PifLed* p_owner, uint16_t period1ms)
 {
-	if (!usPeriodMs) {
+	if (!period1ms) {
         pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
-	if (!pstOwner->__pstTimerBlink) {
-		pstOwner->__pstTimerBlink = pifPulse_AddItem(pstOwner->__pstTimer, PT_REPEAT);
-		if (!pstOwner->__pstTimerBlink) return FALSE;
-		pifPulse_AttachEvtFinish(pstOwner->__pstTimerBlink, _evtTimerBlinkFinish, pstOwner);
+	if (!p_owner->__p_timer_blink) {
+		p_owner->__p_timer_blink = pifPulse_AddItem(p_owner->__p_timer, PT_REPEAT);
+		if (!p_owner->__p_timer_blink) return FALSE;
+		pifPulse_AttachEvtFinish(p_owner->__p_timer_blink, _evtTimerBlinkFinish, p_owner);
 	}
 
-	pstOwner->__unBlinkFlag = 0L;
-    pifPulse_StartItem(pstOwner->__pstTimerBlink, usPeriodMs * 1000L / pstOwner->__pstTimer->_period1us);
+	p_owner->__blink_flag = 0L;
+    pifPulse_StartItem(p_owner->__p_timer_blink, period1ms * 1000L / p_owner->__p_timer->_period1us);
 	return TRUE;
 }
 
 /**
  * @fn pifLed_DetachBlink
  * @brief
- * @param pstOwner
+ * @param p_owner
  */
-void pifLed_DetachBlink(PIF_stLed *pstOwner)
+void pifLed_DetachBlink(PifLed* p_owner)
 {
-	if (pstOwner->__pstTimerBlink) {
-		pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__pstTimerBlink);
-		pstOwner->__pstTimerBlink = NULL;
+	if (p_owner->__p_timer_blink) {
+		pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__p_timer_blink);
+		p_owner->__p_timer_blink = NULL;
 	}
 }
 
 /**
  * @fn pifLed_ChangeBlinkPeriod
  * @brief
- * @param pstOwner
- * @param usPeriodMs
+ * @param p_owner
+ * @param period1ms
  * @return
  */
-BOOL pifLed_ChangeBlinkPeriod(PIF_stLed *pstOwner, uint16_t usPeriodMs)
+BOOL pifLed_ChangeBlinkPeriod(PifLed* p_owner, uint16_t period1ms)
 {
-	if (!usPeriodMs) {
+	if (!period1ms) {
         pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
-	if (!pstOwner->__pstTimerBlink || pstOwner->__pstTimerBlink->_step == PS_STOP) {
+	if (!p_owner->__p_timer_blink || p_owner->__p_timer_blink->_step == PS_STOP) {
         pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
-	pstOwner->__pstTimerBlink->target = usPeriodMs * 1000L / pstOwner->__pstTimer->_period1us;
+	p_owner->__p_timer_blink->target = period1ms * 1000L / p_owner->__p_timer->_period1us;
 	return TRUE;
 }
 
 /**
  * @fn pifLed_BlinkOn
  * @brief
- * @param pstOwner
- * @param ucIndex
+ * @param p_owner
+ * @param index
  */
-void pifLed_BlinkOn(PIF_stLed *pstOwner, uint8_t ucIndex)
+void pifLed_BlinkOn(PifLed* p_owner, uint8_t index)
 {
-    pstOwner->__unBlinkFlag |= 1 << ucIndex;
+    p_owner->__blink_flag |= 1 << index;
 }
 
 /**
  * @fn pifLed_BlinkOff
  * @brief
- * @param pstOwner
- * @param ucIndex
+ * @param p_owner
+ * @param index
  */
-void pifLed_BlinkOff(PIF_stLed *pstOwner, uint8_t ucIndex)
+void pifLed_BlinkOff(PifLed* p_owner, uint8_t index)
 {
-	pstOwner->__unBlinkFlag &= ~(1 << ucIndex);
-	pifLed_EachOff(pstOwner, ucIndex);
+	p_owner->__blink_flag &= ~(1 << index);
+	pifLed_EachOff(p_owner, index);
 }
