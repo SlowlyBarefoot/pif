@@ -18,11 +18,11 @@ static void _Action(PifSolenoid* p_owner, BOOL state, PifSolenoidDir dir)
 	(*p_owner->__act_control)(state, dir);
 #ifdef __PIF_COLLECT_SIGNAL__
 	PifSolenoidColSig* p_colsig = p_owner->__p_colsig;
-	if (p_colsig->flag & SCSF_ACTION_BIT) {
-		pifCollectSignal_AddSignal(p_colsig->p_device[SCSF_ACTION_IDX], state);
+	if (p_colsig->flag & SN_CSF_ACTION_BIT) {
+		pifCollectSignal_AddSignal(p_colsig->p_device[SN_CSF_ACTION_IDX], state);
 	}
-	if (p_colsig->flag & SCSF_DIR_BIT) {
-		pifCollectSignal_AddSignal(p_colsig->p_device[SCSF_DIR_IDX], dir);
+	if (p_colsig->flag & SN_CSF_DIR_BIT) {
+		pifCollectSignal_AddSignal(p_colsig->p_device[SN_CSF_DIR_IDX], dir);
 	}
 #endif
 }
@@ -107,7 +107,7 @@ static int32_t _CalcurateTime(PifSolenoid* p_owner)
 
 static void _AddDeviceInCollectSignal()
 {
-	const char *prefix[SCSF_COUNT] = { "SNA", "SND" };
+	const char *prefix[SN_CSF_COUNT] = { "SNA", "SND" };
 
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {

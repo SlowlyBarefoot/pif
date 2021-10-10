@@ -22,16 +22,16 @@ typedef enum EnPifSolenoidDir
 
 typedef enum EnPifSolenoidCsFlag
 {
-    SCSF_OFF			= 0,
+    SN_CSF_OFF			= 0,
 
-    SCSF_ACTION_IDX		= 0,
-    SCSF_DIR_IDX		= 1,
+    SN_CSF_ACTION_IDX	= 0,
+    SN_CSF_DIR_IDX		= 1,
 
-	SCSF_ACTION_BIT		= 1,
-	SCSF_DIR_BIT		= 2,
-	SCSF_ALL_BIT		= 3,
+	SN_CSF_ACTION_BIT	= 1,
+	SN_CSF_DIR_BIT		= 2,
+	SN_CSF_ALL_BIT		= 3,
 
-    SCSF_COUNT			= 2
+    SN_CSF_COUNT		= 2
 } PifSolenoidCsFlag;
 
 
@@ -59,7 +59,7 @@ typedef struct StPifSolenoidColSig
 {
 	PifSolenoid* p_owner;
 	uint8_t flag;
-    void* p_device[SCSF_COUNT];
+    void* p_device[SN_CSF_COUNT];
 } PifSolenoidColSig;
 
 #endif

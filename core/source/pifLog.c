@@ -47,7 +47,7 @@ const struct {
 static int _cmdPrintVersion(int argc, char* argv[]);
 static int _cmdSetStatus(int argc, char* argv[]);
 
-const PifLogCmdEntry p_cmd_table[] = {
+const PifLogCmdEntry c_cmd_table[] = {
 	{ "ver", _cmdPrintVersion, "\nPrint Version" },
 	{ "status", _cmdSetStatus, "\nSet Status" },
 

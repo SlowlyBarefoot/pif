@@ -8,53 +8,53 @@
 #define PIF_GPIO_MAX_COUNT		7
 
 
-typedef enum _PIF_enGpioCsFlag
+typedef enum EnPifGpioCsFlag
 {
-    GpCsF_enOff			= 0,
+    GP_CSF_OFF			= 0,
 
-	GpCsF_enStateIdx	= 0,
+	GP_CSF_STATE_IDX	= 0,
 
-	GpCsF_enStateBit	= 1,
-	GpCsF_enAllBit		= 1,
+	GP_CSF_STATE_BIT	= 1,
+	GP_CSF_ALL_BIT		= 1,
 
-	GpCsF_enCount		= 1
-} PIF_enGpioCsFlag;
+	GP_CSF_COUNT		= 1
+} PifGpioCsFlag;
 
 
-struct _PIF_stGpio;
-typedef struct _PIF_stGpio PIF_stGpio;
+struct StPifGpio;
+typedef struct StPifGpio PifGpio;
 
-typedef uint8_t (*PIF_actGpioIn)(PifId usPifId);
-typedef void (*PIF_actGpioOut)(PifId usPifId, uint8_t ucState);
+typedef uint8_t (*PifActGpioIn)(PifId id);
+typedef void (*PifActGpioOut)(PifId id, uint8_t state);
 
-typedef void (*PIF_evtGpioIn)(uint8_t index, uint8_t state);
+typedef void (*PifEvtGpioIn)(uint8_t index, uint8_t state);
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
 typedef struct
 {
-	PIF_stGpio* p_owner;
+	PifGpio* p_owner;
     uint8_t flag;
-    void* p_device[GpCsF_enCount];
+    void* p_device[GP_CSF_COUNT];
 } PIF_GpioColSig;
 
 #endif
 
 /**
- * @class _PIF_stGpio
+ * @class StPifGpio
  * @brief
  */
-struct _PIF_stGpio
+struct StPifGpio
 {
 	// Public Member Variable
-    uint8_t ucGpioCount;
+    uint8_t count;
 
 	// Public Event Function
-	PIF_evtGpioIn evtIn;
+	PifEvtGpioIn evt_in;
 
 	// Read-only Member Variable
-	PifId _usPifId;
+	PifId _id;
 
 	// Private Member Variable
 	uint8_t __read_state;
@@ -66,8 +66,8 @@ struct _PIF_stGpio
 
 	// Private Action Function
 	union {
-		PIF_actGpioIn actIn;
-		PIF_actGpioOut actOut;
+		PifActGpioIn act_in;
+		PifActGpioOut act_out;
 	} __ui;
 };
 
@@ -76,34 +76,34 @@ struct _PIF_stGpio
 extern "C" {
 #endif
 
-PIF_stGpio* pifGpio_Create(PifId usPifId, uint8_t ucCount);
-void pifGpio_Destroy(PIF_stGpio** pp_owner);
+PifGpio* pifGpio_Create(PifId id, uint8_t count);
+void pifGpio_Destroy(PifGpio** pp_owner);
 
-uint8_t pifGpio_ReadAll(PIF_stGpio *pstOwner);
-SWITCH pifGpio_ReadCell(PIF_stGpio *pstOwner, uint8_t ucIndex);
+uint8_t pifGpio_ReadAll(PifGpio* p_owner);
+SWITCH pifGpio_ReadCell(PifGpio* p_owner, uint8_t index);
 
-BOOL pifGpio_WriteAll(PIF_stGpio *pstOwner, uint8_t ucState);
-BOOL pifGpio_WriteCell(PIF_stGpio *pstOwner, uint8_t ucIndex, SWITCH swState);
+BOOL pifGpio_WriteAll(PifGpio* p_owner, uint8_t state);
+BOOL pifGpio_WriteCell(PifGpio* p_owner, uint8_t index, SWITCH state);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-void pifGpio_SetCsFlagAll(PIF_enGpioCsFlag enFlag);
-void pifGpio_ResetCsFlagAll(PIF_enGpioCsFlag enFlag);
+void pifGpio_SetCsFlagAll(PifGpioCsFlag flag);
+void pifGpio_ResetCsFlagAll(PifGpioCsFlag flag);
 
-void pifGpio_SetCsFlagEach(PIF_stGpio *pstOwner, PIF_enGpioCsFlag enFlag);
-void pifGpio_ResetCsFlagEach(PIF_stGpio *pstOwner, PIF_enGpioCsFlag enFlag);
+void pifGpio_SetCsFlagEach(PifGpio* p_owner, PifGpioCsFlag flag);
+void pifGpio_ResetCsFlagEach(PifGpio* p_owner, PifGpioCsFlag flag);
 
 #endif
 
 // Signal Function
-void pifGpio_sigData(PIF_stGpio *p_owner, uint8_t index, SWITCH state);
+void pifGpio_sigData(PifGpio* p_owner, uint8_t index, SWITCH state);
 
 // Attach Action Function
-void pifGpio_AttachActIn(PIF_stGpio* p_owner, PIF_actGpioIn act_in);
-void pifGpio_AttachActOut(PIF_stGpio* p_owner, PIF_actGpioOut act_out);
+void pifGpio_AttachActIn(PifGpio* p_owner, PifActGpioIn act_in);
+void pifGpio_AttachActOut(PifGpio* p_owner, PifActGpioOut act_out);
 
 // Task Function
-PifTask *pifGpio_AttachTaskIn(PIF_stGpio *p_owner, PifTaskMode mode, uint16_t period, BOOL start);
+PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }
