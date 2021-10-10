@@ -138,7 +138,7 @@ static void _evtSwitchStopChange(PifId usPifId, uint16_t usLevel, void *pvIssuer
  * @param usControlPeriodMs
  * @return 
  */
-PIF_stStepMotor *pifStepMotorSpeed_Create(PifId usPifId, PIF_stPulse* p_timer, uint8_t ucResolution,
+PIF_stStepMotor *pifStepMotorSpeed_Create(PifId usPifId, PifPulse* p_timer, uint8_t ucResolution,
 		PIF_enStepMotorOperation enOperation, uint16_t usControlPeriodMs)
 {
 	PIF_stStepMotorSpeed* p_owner = NULL;
@@ -154,7 +154,7 @@ PIF_stStepMotor *pifStepMotorSpeed_Create(PifId usPifId, PIF_stPulse* p_timer, u
 
     if (!pifStepMotor_InitControl(pstOwner, usControlPeriodMs)) goto fail;
 
-    pstOwner->__pstTimerDelay = pifPulse_AddItem(pstOwner->_p_timer, PT_enOnce);
+    pstOwner->__pstTimerDelay = pifPulse_AddItem(pstOwner->_p_timer, PT_ONCE);
     if (!pstOwner->__pstTimerDelay) goto fail;
     pifPulse_AttachEvtFinish(pstOwner->__pstTimerDelay, _evtTimerDelayFinish, pstOwner);
 

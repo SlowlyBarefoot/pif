@@ -60,7 +60,7 @@ typedef struct _PIF_stDutyMotorPos
 extern "C" {
 #endif
 
-PIF_stDutyMotor *pifDutyMotorPos_Create(PifId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod);
+PIF_stDutyMotor *pifDutyMotorPos_Create(PifId usPifId, PifPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod);
 void pifDutyMotorPos_Destroy(PIF_stDutyMotor** pp_parent);
 
 BOOL pifDutyMotorPos_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorPosStage *pstStages);

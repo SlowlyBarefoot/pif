@@ -71,9 +71,9 @@ struct _PIF_stSequence
 	uint8_t _ucPhaseNo;
 
 	// Private Member Variable
-	PIF_stPulse* __pstTimer;
+	PifPulse* __pstTimer;
 	const PIF_stSequencePhase *__pstPhaseList;
-	PIF_stPulseItem *__pstTimerTimeout;
+	PifPulseItem *__pstTimerTimeout;
 	uint32_t __unTargetDelay;
 #ifdef __PIF_COLLECT_SIGNAL__
 	PIF_SequenceColSig* __p_colsig;
@@ -85,7 +85,7 @@ struct _PIF_stSequence
 extern "C" {
 #endif
 
-PIF_stSequence* pifSequence_Create(PifId usPifId, PIF_stPulse* pstTimer, const PIF_stSequencePhase* pstPhaseList, void* pvParam);
+PIF_stSequence* pifSequence_Create(PifId usPifId, PifPulse* pstTimer, const PIF_stSequencePhase* pstPhaseList, void* pvParam);
 void pifSequence_Destroy(PIF_stSequence** pp_owner);
 
 #ifdef __PIF_COLLECT_SIGNAL__

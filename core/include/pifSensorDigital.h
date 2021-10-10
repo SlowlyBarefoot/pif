@@ -75,12 +75,12 @@ struct _PIF_stSensorDigital
 	PIF_stSensor stSensor;
 
 	// Private Member Variable
-	PIF_stPulse* __pstTimer;
+	PifPulse* __pstTimer;
     PIF_enSensorDigitalEventType __enEventType;
     union {
     	struct {
     		uint16_t usPeriod;
-    	    PIF_stPulseItem *pstTimerPeriod;
+    	    PifPulseItem *pstTimerPeriod;
     	} stP;
 		uint16_t usThreshold;
     	struct {
@@ -107,7 +107,7 @@ struct _PIF_stSensorDigital
 extern "C" {
 #endif
 
-PIF_stSensor* pifSensorDigital_Create(PifId usPifId, PIF_stPulse* pstTimer);
+PIF_stSensor* pifSensorDigital_Create(PifId usPifId, PifPulse* pstTimer);
 void pifSensorDigital_Destroy(PIF_stSensor** pp_sensor);
 
 void pifSensorDigital_InitialState(PIF_stSensor *pstSensor);

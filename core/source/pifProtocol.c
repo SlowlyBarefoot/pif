@@ -420,7 +420,7 @@ static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
  * @param pstQuestion
  * @return
  */
-PIF_stProtocol *pifProtocol_Create(PifId usPifId, PIF_stPulse *pstTimer, PIF_enProtocolType enType,
+PIF_stProtocol *pifProtocol_Create(PifId usPifId, PifPulse *pstTimer, PIF_enProtocolType enType,
 		const PIF_stProtocolQuestion *pstQuestions)
 {
     PIF_stProtocol *pstOwner = NULL;
@@ -467,7 +467,7 @@ PIF_stProtocol *pifProtocol_Create(PifId usPifId, PIF_stPulse *pstTimer, PIF_enP
     }
 
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
-    pstOwner->__stRx.pstTimer = pifPulse_AddItem(pstTimer, PT_enOnce);
+    pstOwner->__stRx.pstTimer = pifPulse_AddItem(pstTimer, PT_ONCE);
     if (!pstOwner->__stRx.pstTimer) goto fail;
     pifPulse_AttachEvtFinish(pstOwner->__stRx.pstTimer, _evtTimerRxTimeout, pstOwner);
 #endif
@@ -482,7 +482,7 @@ PIF_stProtocol *pifProtocol_Create(PifId usPifId, PIF_stPulse *pstTimer, PIF_enP
     if (!pstOwner->__stTx.pstAnswerBuffer) goto fail;
     pifRingBuffer_SetName(pstOwner->__stTx.pstAnswerBuffer, "RSB");
 
-    pstOwner->__stTx.pstTimer = pifPulse_AddItem(pstTimer, PT_enOnce);
+    pstOwner->__stTx.pstTimer = pifPulse_AddItem(pstTimer, PT_ONCE);
     if (!pstOwner->__stTx.pstTimer) goto fail;
     pifPulse_AttachEvtFinish(pstOwner->__stTx.pstTimer, _evtTimerTxTimeout, pstOwner);
 

@@ -167,7 +167,7 @@ static void _fnStopStep(PIF_stStepMotor *pstOwner)
  * @param usControlPeriodMs
  * @return
  */
-PIF_stStepMotor *pifStepMotorPos_Create(PifId usPifId, PIF_stPulse* p_timer, uint8_t ucResolution,
+PIF_stStepMotor *pifStepMotorPos_Create(PifId usPifId, PifPulse* p_timer, uint8_t ucResolution,
 		PIF_enStepMotorOperation enOperation, uint16_t usControlPeriodMs)
 {
 	PIF_stStepMotorPos* p_owner = NULL;
@@ -183,7 +183,7 @@ PIF_stStepMotor *pifStepMotorPos_Create(PifId usPifId, PIF_stPulse* p_timer, uin
 
     if (!pifStepMotor_InitControl(pstOwner, usControlPeriodMs)) goto fail;
 
-    pstOwner->__pstTimerDelay = pifPulse_AddItem(pstOwner->_p_timer, PT_enOnce);
+    pstOwner->__pstTimerDelay = pifPulse_AddItem(pstOwner->_p_timer, PT_ONCE);
     if (!pstOwner->__pstTimerDelay) goto fail;
     pifPulse_AttachEvtFinish(pstOwner->__pstTimerDelay, _evtTimerDelayFinish, pstOwner);
 

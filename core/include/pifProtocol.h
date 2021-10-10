@@ -119,7 +119,7 @@ typedef struct _PIF_stProtocolRx
 	BOOL bDataLinkEscape;
 	PIF_stProtocolPacket stPacket;
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
-	PIF_stPulseItem *pstTimer;
+	PifPulseItem *pstTimer;
 #endif
 } PIF_stProtocolRx;
 
@@ -144,7 +144,7 @@ typedef struct _PIF_stProtocolTx
 		} stInfo;
 	} ui;
 	uint16_t usPos;
-	PIF_stPulseItem *pstTimer;
+	PifPulseItem *pstTimer;
 } PIF_stProtocolTx;
 
 /**
@@ -164,7 +164,7 @@ typedef struct _PIF_stProtocol
     uint8_t _ucFrameSize;
 
 	// Private Member Variable
-    PIF_stPulse *__pstTimer;
+    PifPulse *__pstTimer;
 	PIF_stComm *__pstComm;
     const PIF_stProtocolQuestion *__pstQuestions;
     PIF_stProtocolRx __stRx;
@@ -178,7 +178,7 @@ typedef struct _PIF_stProtocol
 extern "C" {
 #endif
 
-PIF_stProtocol *pifProtocol_Create(PifId usPifId, PIF_stPulse *pstTimer, PIF_enProtocolType enType,
+PIF_stProtocol *pifProtocol_Create(PifId usPifId, PifPulse *pstTimer, PIF_enProtocolType enType,
 		const PIF_stProtocolQuestion *pstQuestions);
 void pifProtocol_Destroy(PIF_stProtocol** pp_owner);
 

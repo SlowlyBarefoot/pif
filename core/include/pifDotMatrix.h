@@ -58,7 +58,7 @@ typedef struct _PIF_stDotMatrix
     PifId _usPifId;
 
 	// Private Member Variable
-	PIF_stPulse *__pstTimer;
+	PifPulse *__pstTimer;
     uint16_t __usColSize;
     uint16_t __usRowSize;
 
@@ -93,8 +93,8 @@ typedef struct _PIF_stDotMatrix
     uint16_t __usControlPeriodMs;
 	uint16_t __usPretimeMs;
 
-	PIF_stPulseItem *__pstTimerBlink;
-	PIF_stPulseItem *__pstTimerShift;
+	PifPulseItem *__pstTimerBlink;
+	PifPulseItem *__pstTimerShift;
 
 	// Private Action Function
    	PIF_actDotMatrixDisplay __actDisplay;
@@ -105,7 +105,7 @@ typedef struct _PIF_stDotMatrix
 extern "C" {
 #endif
 
-PIF_stDotMatrix *pifDotMatrix_Create(PifId usPifId, PIF_stPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
+PIF_stDotMatrix *pifDotMatrix_Create(PifId usPifId, PifPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
 		PIF_actDotMatrixDisplay actDisplay);
 void pifDotMatrix_Destroy(PIF_stDotMatrix** pp_owner);
 

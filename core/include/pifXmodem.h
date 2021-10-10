@@ -65,7 +65,7 @@ typedef struct _PIF_stXmodemTx
 	} ui;
 	uint16_t usDataPos;
 	uint16_t usTimeout;
-	PIF_stPulseItem *pstTimer;
+	PifPulseItem *pstTimer;
 	PIF_evtXmodemTxReceive evtReceive;
 } PIF_stXmodemTx;
 
@@ -80,7 +80,7 @@ typedef struct _PIF_stXmodemRx
 	uint16_t usCount;
 	uint16_t usCrc;
 	uint16_t usTimeout;
-	PIF_stPulseItem *pstTimer;
+	PifPulseItem *pstTimer;
 	PIF_evtXmodemRxReceive evtReceive;
 } PIF_stXmodemRx;
 
@@ -96,7 +96,7 @@ typedef struct _PIF_stXmodem
 	PifId _usPifId;
 
 	// Private Member Variable
-	PIF_stPulse *__pstTimer;
+	PifPulse *__pstTimer;
 	PIF_stComm *__pstComm;
 	PIF_enXmodemType __enType;
 	uint16_t __usPacketSize;
@@ -110,7 +110,7 @@ typedef struct _PIF_stXmodem
 extern "C" {
 #endif
 
-PIF_stXmodem *pifXmodem_Create(PifId usPifId, PIF_stPulse *pstTimer, PIF_enXmodemType enType);
+PIF_stXmodem *pifXmodem_Create(PifId usPifId, PifPulse *pstTimer, PIF_enXmodemType enType);
 void pifXmodem_Destroy(PIF_stXmodem** pp_owner);
 
 void pifXmodem_SetResponseTimeout(PIF_stXmodem *pstOwner, uint16_t usResponseTimeout);

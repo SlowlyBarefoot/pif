@@ -22,7 +22,7 @@ typedef struct _PIF_stFnd
     uint8_t _ucDigitSize;
 
 	// Private Member Variable
-    PIF_stPulse *__pstTimer;
+    PifPulse *__pstTimer;
 	struct {
 		uint8_t Run			: 1;
 		uint8_t Blink		: 1;
@@ -33,7 +33,7 @@ typedef struct _PIF_stFnd
 	uint8_t __ucDigitIndex;
 	uint8_t __ucStringSize;
     char *__pcString;
-	PIF_stPulseItem *__pstTimerBlink;
+	PifPulseItem *__pstTimerBlink;
 
 	// Private Action Function
    	PIF_actFndDisplay __actDisplay;
@@ -44,7 +44,7 @@ typedef struct _PIF_stFnd
 extern "C" {
 #endif
 
-PIF_stFnd *pifFnd_Create(PifId usPifId, PIF_stPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
+PIF_stFnd *pifFnd_Create(PifId usPifId, PifPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
 void pifFnd_Destroy(PIF_stFnd** pp_owner);
 
 void pifFnd_SetUserChar(const uint8_t *pucUserChar, uint8_t ucCount);

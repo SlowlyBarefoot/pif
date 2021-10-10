@@ -76,7 +76,7 @@ void pifSequence_ColSigClear()
  * @param pvParam
  * @return Sequence 구조체 포인터를 반환한다.
  */
-PIF_stSequence *pifSequence_Create(PifId usPifId, PIF_stPulse *pstTimer, const PIF_stSequencePhase *pstPhaseList, void *pvParam)
+PIF_stSequence *pifSequence_Create(PifId usPifId, PifPulse *pstTimer, const PIF_stSequencePhase *pstPhaseList, void *pvParam)
 {
     PIF_stSequence *pstOwner = NULL;
 
@@ -198,7 +198,7 @@ void pifSequence_Start(PIF_stSequence *pstOwner)
 BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout)
 {
 	if (!pstOwner->__pstTimerTimeout) {
-		pstOwner->__pstTimerTimeout = pifPulse_AddItem(pstOwner->__pstTimer, PT_enOnce);
+		pstOwner->__pstTimerTimeout = pifPulse_AddItem(pstOwner->__pstTimer, PT_ONCE);
 		if (!pstOwner->__pstTimerTimeout) return FALSE;
 		pifPulse_AttachEvtFinish(pstOwner->__pstTimerTimeout, _evtTimerTimeoutFinish, pstOwner);
 	}

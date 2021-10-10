@@ -85,7 +85,7 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_actCommReceiveData actRec
 
 				pstOwner->__stRx.usCount = 1;
 				pstOwner->__stRx.enState = XRS_enGetHeader;
-				if (!pifPulse_StartItem(pstOwner->__stRx.pstTimer, pstOwner->__stRx.usTimeout * 1000L / pstOwner->__pstTimer->_unPeriodUs)) {
+				if (!pifPulse_StartItem(pstOwner->__stRx.pstTimer, pstOwner->__stRx.usTimeout * 1000L / pstOwner->__pstTimer->_period1us)) {
 #ifndef __PIF_NO_LOG__
 					pifLog_Printf(LT_enWarn, "XM(%u) Not start timer", pstOwner->_usPifId);
 #endif
@@ -320,7 +320,7 @@ static BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
  * @param enType
  * @return
  */
-PIF_stXmodem *pifXmodem_Create(PifId usPifId, PIF_stPulse *pstTimer, PIF_enXmodemType enType)
+PIF_stXmodem *pifXmodem_Create(PifId usPifId, PifPulse *pstTimer, PIF_enXmodemType enType)
 {
     PIF_stXmodem *pstOwner = NULL;
 
@@ -356,10 +356,10 @@ PIF_stXmodem *pifXmodem_Create(PifId usPifId, PIF_stPulse *pstTimer, PIF_enXmode
         goto fail;
     }
 
-    pstOwner->__stTx.pstTimer = pifPulse_AddItem(pstTimer, PT_enOnce);
+    pstOwner->__stTx.pstTimer = pifPulse_AddItem(pstTimer, PT_ONCE);
     if (!pstOwner->__stTx.pstTimer) goto fail;
 
-    pstOwner->__stRx.pstTimer = pifPulse_AddItem(pstTimer, PT_enOnce);
+    pstOwner->__stRx.pstTimer = pifPulse_AddItem(pstTimer, PT_ONCE);
     if (!pstOwner->__stRx.pstTimer) goto fail;
 
     pstOwner->__enType = enType;
@@ -518,7 +518,7 @@ BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *puc
 
 	pstOwner->__stTx.usDataPos = 0;
 	pstOwner->__stTx.ui.enState = XTS_enSending;
-	if (!pifPulse_StartItem(pstOwner->__stTx.pstTimer, pstOwner->__stTx.usTimeout * 1000L / pstOwner->__pstTimer->_unPeriodUs)) {
+	if (!pifPulse_StartItem(pstOwner->__stTx.pstTimer, pstOwner->__stTx.usTimeout * 1000L / pstOwner->__pstTimer->_period1us)) {
 #ifndef __PIF_NO_LOG__
 		pifLog_Printf(LT_enWarn, "XM(%u) Not start timer", pstOwner->_usPifId);
 #endif

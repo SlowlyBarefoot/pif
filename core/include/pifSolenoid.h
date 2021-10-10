@@ -82,11 +82,11 @@ struct _PIF_stSolenoid
     PIF_enSolenoidType _enType;
 
 	// Private Member Variable
-    PIF_stPulse* __pstTimer;
+    PifPulse* __pstTimer;
     BOOL __bState;
     PIF_enSolenoidDir __enCurrentDir;
-    PIF_stPulseItem *__pstTimerOn;
-	PIF_stPulseItem *__pstTimerDelay;
+    PifPulseItem *__pstTimerOn;
+	PifPulseItem *__pstTimerDelay;
     PIF_enSolenoidDir __enDir;
 	PIF_stRingData *__pstBuffer;
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -102,7 +102,7 @@ struct _PIF_stSolenoid
 extern "C" {
 #endif
 
-PIF_stSolenoid* pifSolenoid_Create(PifId usPifId, PIF_stPulse* pstTimer, PIF_enSolenoidType enType, uint16_t usOnTime,
+PIF_stSolenoid* pifSolenoid_Create(PifId usPifId, PifPulse* pstTimer, PIF_enSolenoidType enType, uint16_t usOnTime,
 		PIF_actSolenoidControl actControl);
 void pifSolenoid_Destroy(PIF_stSolenoid** pp_owner);
 

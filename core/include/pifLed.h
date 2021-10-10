@@ -20,11 +20,11 @@ typedef struct _PIF_stLed
     PifId _usPifId;
 
 	// Private Member Variable
-	PIF_stPulse *__pstTimer;
+	PifPulse *__pstTimer;
 	uint32_t __unState;
 	SWITCH __swBlink;
 	uint32_t __unBlinkFlag;
-	PIF_stPulseItem *__pstTimerBlink;
+	PifPulseItem *__pstTimerBlink;
 
 	// Private Action Function
 	PIF_actLedState __actState;
@@ -35,7 +35,7 @@ typedef struct _PIF_stLed
 extern "C" {
 #endif
 
-PIF_stLed *pifLed_Create(PifId usPifId, PIF_stPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState);
+PIF_stLed *pifLed_Create(PifId usPifId, PifPulse *pstTimer, uint8_t ucCount, PIF_actLedState actState);
 void pifLed_Destroy(PIF_stLed** pp_owner);
 
 void pifLed_EachOn(PIF_stLed *pstOwner, uint8_t ucIndex);

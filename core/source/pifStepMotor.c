@@ -119,7 +119,7 @@ static void _evtTimerBreakFinish(void *pvIssuer)
  * @param enOperation
  * @return 
  */
-PIF_stStepMotor *pifStepMotor_Create(PifId usPifId, PIF_stPulse* p_timer, uint16_t usResolution, PIF_enStepMotorOperation enOperation)
+PIF_stStepMotor *pifStepMotor_Create(PifId usPifId, PifPulse* p_timer, uint16_t usResolution, PIF_enStepMotorOperation enOperation)
 {
     PIF_stStepMotor* p_owner = NULL;
 
@@ -166,10 +166,10 @@ void pifStepMotor_Destroy(PIF_stStepMotor** pp_owner)
  * @param enOperation
  * @return 
  */
-BOOL pifStepMotor_Init(PIF_stStepMotor* pstOwner, PifId usPifId, PIF_stPulse* p_timer, uint16_t usResolution, PIF_enStepMotorOperation enOperation)
+BOOL pifStepMotor_Init(PIF_stStepMotor* pstOwner, PifId usPifId, PifPulse* p_timer, uint16_t usResolution, PIF_enStepMotorOperation enOperation)
 {
     pstOwner->_p_timer = p_timer;
-	pstOwner->__pstTimerStep = pifPulse_AddItem(p_timer, PT_enRepeat);
+	pstOwner->__pstTimerStep = pifPulse_AddItem(p_timer, PT_REPEAT);
     if (!pstOwner->__pstTimerStep) return FALSE;
     pifPulse_AttachEvtFinish(pstOwner->__pstTimerStep, _evtTimerStepFinish, pstOwner);
 
@@ -257,7 +257,7 @@ BOOL pifStepMotor_SetMethod(PIF_stStepMotor *pstOwner, PIF_enStepMotorMethod enM
 	    }
 	}
 	if (enMethod == SMM_enTimer) {
-		pstOwner->__pstTimerStep = pifPulse_AddItem(pstOwner->_p_timer, PT_enRepeat);
+		pstOwner->__pstTimerStep = pifPulse_AddItem(pstOwner->_p_timer, PT_REPEAT);
 	    if (!pstOwner->__pstTimerStep) return FALSE;
 	    pifPulse_AttachEvtFinish(pstOwner->__pstTimerStep, _evtTimerStepFinish, pstOwner);
 	}
@@ -276,7 +276,7 @@ BOOL pifStepMotor_SetMethod(PIF_stStepMotor *pstOwner, PIF_enStepMotorMethod enM
 BOOL pifStepMotor_SetOperatingTime(PIF_stStepMotor *pstOwner, uint32_t unOperatingTime)
 {
 	if (!pstOwner->__pstTimerBreak) {
-		pstOwner->__pstTimerBreak = pifPulse_AddItem(pstOwner->_p_timer, PT_enOnce);
+		pstOwner->__pstTimerBreak = pifPulse_AddItem(pstOwner->_p_timer, PT_ONCE);
 	}
 	if (pstOwner->__pstTimerBreak) {
 		pifPulse_AttachEvtFinish(pstOwner->__pstTimerBreak, _evtTimerBreakFinish, pstOwner);
@@ -297,7 +297,7 @@ BOOL pifStepMotor_SetOperatingTime(PIF_stStepMotor *pstOwner, uint32_t unOperati
 BOOL pifStepMotor_SetOperation(PIF_stStepMotor *pstOwner, PIF_enStepMotorOperation enOperation)
 {
     if (pstOwner->_enMethod == SMM_enTimer) {
-		if (pstOwner->__pstTimerStep->_enStep != PS_enStop) {
+		if (pstOwner->__pstTimerStep->_step != PS_STOP) {
 			pif_error = E_INVALID_STATE;
 			return FALSE;
 		}
@@ -360,11 +360,11 @@ BOOL pifStepMotor_SetPps(PIF_stStepMotor *pstOwner, uint16_t usPps)
 
 	switch (pstOwner->_enMethod) {
 	case SMM_enTimer:
-	    if (period < 2 * pstOwner->_p_timer->_unPeriodUs) {
+	    if (period < 2 * pstOwner->_p_timer->_period1us) {
 	        pif_error = E_WRONG_DATA;
 			return FALSE;
 	    }
-		pstOwner->__pstTimerStep->unTarget = period / pstOwner->_p_timer->_unPeriodUs;
+		pstOwner->__pstTimerStep->target = period / pstOwner->_p_timer->_period1us;
 		break;
 
 	case SMM_enTask:
@@ -459,11 +459,11 @@ BOOL pifStepMotor_Start(PIF_stStepMotor *pstOwner, uint32_t unTargetPulse)
 {
     switch (pstOwner->_enMethod) {
     case SMM_enTimer:
-        if (pstOwner->__usStepPeriodUs < 2 * pstOwner->_p_timer->_unPeriodUs) {
+        if (pstOwner->__usStepPeriodUs < 2 * pstOwner->_p_timer->_period1us) {
             pif_error = E_INVALID_PARAM;
 			return FALSE;
         }
-    	if (!pifPulse_StartItem(pstOwner->__pstTimerStep, pstOwner->__usStepPeriodUs / pstOwner->_p_timer->_unPeriodUs)) return FALSE;
+    	if (!pifPulse_StartItem(pstOwner->__pstTimerStep, pstOwner->__usStepPeriodUs / pstOwner->_p_timer->_period1us)) return FALSE;
     	break;
 
     case SMM_enTask:
@@ -520,7 +520,7 @@ void pifStepMotor_BreakRelease(PIF_stStepMotor *pstOwner, uint16_t usBreakTime)
 
 	if (usBreakTime) {
 	    if (!pstOwner->__pstTimerBreak) {
-	    	pstOwner->__pstTimerBreak = pifPulse_AddItem(pstOwner->_p_timer, PT_enOnce);
+	    	pstOwner->__pstTimerBreak = pifPulse_AddItem(pstOwner->_p_timer, PT_ONCE);
 	    }
 	    if (pstOwner->__pstTimerBreak) {
 	    	pifPulse_AttachEvtFinish(pstOwner->__pstTimerBreak, _evtTimerBreakFinish, pstOwner);
@@ -540,7 +540,7 @@ void pifStepMotor_BreakRelease(PIF_stStepMotor *pstOwner, uint16_t usBreakTime)
  */
 BOOL pifStepMotor_InitControl(PIF_stStepMotor *pstOwner, uint16_t usControlPeriodMs)
 {
-	pstOwner->__pstTimerControl = pifPulse_AddItem(pstOwner->_p_timer, PT_enRepeat);
+	pstOwner->__pstTimerControl = pifPulse_AddItem(pstOwner->_p_timer, PT_REPEAT);
     if (!pstOwner->__pstTimerControl) return FALSE;
 
     pstOwner->__usControlPeriodMs = usControlPeriodMs;
@@ -567,7 +567,7 @@ BOOL pifStepMotor_StartControl(PIF_stStepMotor *pstOwner)
 	    return FALSE;
     }
 
-    return pifPulse_StartItem(pstOwner->__pstTimerControl, pstOwner->__usControlPeriodMs * 1000 / pstOwner->_p_timer->_unPeriodUs);
+    return pifPulse_StartItem(pstOwner->__pstTimerControl, pstOwner->__usControlPeriodMs * 1000 / pstOwner->_p_timer->_period1us);
 }
 
 static uint16_t _DoTask(PifTask *pstTask)

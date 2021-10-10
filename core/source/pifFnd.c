@@ -44,7 +44,7 @@ void pifFnd_SetUserChar(const uint8_t *pucUserChar, uint8_t ucCount)
  * @param actDisplay
  * @return
  */
-PIF_stFnd *pifFnd_Create(PifId usPifId, PIF_stPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay)
+PIF_stFnd *pifFnd_Create(PifId usPifId, PifPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay)
 {
     PIF_stFnd *pstOwner = NULL;
 
@@ -163,11 +163,11 @@ BOOL pifFnd_BlinkOn(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
     }
 
 	if (!pstOwner->__pstTimerBlink) {
-		pstOwner->__pstTimerBlink = pifPulse_AddItem(pstOwner->__pstTimer, PT_enRepeat);
+		pstOwner->__pstTimerBlink = pifPulse_AddItem(pstOwner->__pstTimer, PT_REPEAT);
         if (!pstOwner->__pstTimerBlink) return FALSE;
         pifPulse_AttachEvtFinish(pstOwner->__pstTimerBlink, _evtTimerBlinkFinish, pstOwner);
     }
-    if (!pifPulse_StartItem(pstOwner->__pstTimerBlink, usPeriodMs * 1000L / pstOwner->__pstTimer->_unPeriodUs)) return FALSE;
+    if (!pifPulse_StartItem(pstOwner->__pstTimerBlink, usPeriodMs * 1000L / pstOwner->__pstTimer->_period1us)) return FALSE;
     return TRUE;
 }
 
@@ -199,12 +199,12 @@ BOOL pifFnd_ChangeBlinkPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
 		return FALSE;
     }
 
-	if (!pstOwner->__pstTimerBlink || pstOwner->__pstTimerBlink->_enStep == PS_enStop) {
+	if (!pstOwner->__pstTimerBlink || pstOwner->__pstTimerBlink->_step == PS_STOP) {
         pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
-	pstOwner->__pstTimerBlink->unTarget = usPeriodMs * 1000 / pstOwner->__pstTimer->_unPeriodUs;
+	pstOwner->__pstTimerBlink->target = usPeriodMs * 1000 / pstOwner->__pstTimer->_period1us;
 	return TRUE;
 }
 

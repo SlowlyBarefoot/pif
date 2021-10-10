@@ -85,7 +85,7 @@ void pifSensorDigital_ColSigClear()
  * @param pstTimer
  * @return 
  */
-PIF_stSensor *pifSensorDigital_Create(PifId usPifId, PIF_stPulse *pstTimer)
+PIF_stSensor *pifSensorDigital_Create(PifId usPifId, PifPulse *pstTimer)
 {
     PIF_stSensorDigital *pstOwner = NULL;
 
@@ -163,7 +163,7 @@ BOOL pifSensorDigital_AttachEvtPeriod(PIF_stSensor *pstSensor, PIF_evtSensorDigi
 {
 	PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pstSensor;
 
-	pstOwner->__ui.stP.pstTimerPeriod = pifPulse_AddItem(pstOwner->__pstTimer, PT_enRepeat);
+	pstOwner->__ui.stP.pstTimerPeriod = pifPulse_AddItem(pstOwner->__pstTimer, PT_REPEAT);
     if (!pstOwner->__ui.stP.pstTimerPeriod) return FALSE;
     pifPulse_AttachEvtFinish(pstOwner->__ui.stP.pstTimerPeriod, _evtTimerPeriodFinish, pstOwner);
     pstOwner->__enEventType = SDET_enPeriod;

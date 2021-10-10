@@ -46,7 +46,7 @@ static void _evtTimerBreakFinish(void *pvIssuer)
  * @param usMaxDuty
  * @return 
  */
-PIF_stDutyMotor *pifDutyMotor_Create(PifId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty)
+PIF_stDutyMotor *pifDutyMotor_Create(PifId usPifId, PifPulse* p_timer, uint16_t usMaxDuty)
 {
     PIF_stDutyMotor *pstOwner = NULL;
 
@@ -78,7 +78,7 @@ void pifDutyMotor_Destroy(PIF_stDutyMotor** pp_owner)
  * @param usMaxDuty
  * @return 
  */
-BOOL pifDutyMotor_Init(PIF_stDutyMotor* pstOwner, PifId usPifId, PIF_stPulse* p_timer, uint16_t usMaxDuty)
+BOOL pifDutyMotor_Init(PIF_stDutyMotor* pstOwner, PifId usPifId, PifPulse* p_timer, uint16_t usMaxDuty)
 {
     if (!p_timer) {
 		pif_error = E_INVALID_PARAM;
@@ -166,7 +166,7 @@ void pifDutyMotor_SetDuty(PIF_stDutyMotor *pstOwner, uint16_t usDuty)
 BOOL pifDutyMotor_SetOperatingTime(PIF_stDutyMotor *pstOwner, uint32_t unOperatingTime)
 {
 	if (!pstOwner->__pstTimerBreak) {
-		pstOwner->__pstTimerBreak = pifPulse_AddItem(pstOwner->_p_timer, PT_enOnce);
+		pstOwner->__pstTimerBreak = pifPulse_AddItem(pstOwner->_p_timer, PT_ONCE);
 	}
 	if (pstOwner->__pstTimerBreak) {
 		pifPulse_AttachEvtFinish(pstOwner->__pstTimerBreak, _evtTimerBreakFinish, pstOwner);
@@ -213,7 +213,7 @@ void pifDutyMotor_BreakRelease(PIF_stDutyMotor *pstOwner, uint16_t usBreakTime)
 
     if (usBreakTime && pstOwner->__actOperateBreak) {
 	    if (!pstOwner->__pstTimerBreak) {
-	    	pstOwner->__pstTimerBreak = pifPulse_AddItem(pstOwner->_p_timer, PT_enOnce);
+	    	pstOwner->__pstTimerBreak = pifPulse_AddItem(pstOwner->_p_timer, PT_ONCE);
 	    }
 	    if (pstOwner->__pstTimerBreak) {
 	    	pifPulse_AttachEvtFinish(pstOwner->__pstTimerBreak, _evtTimerBreakFinish, pstOwner);
@@ -233,7 +233,7 @@ void pifDutyMotor_BreakRelease(PIF_stDutyMotor *pstOwner, uint16_t usBreakTime)
  */
 BOOL pifDutyMotor_InitControl(PIF_stDutyMotor *pstOwner, uint16_t usControlPeriod)
 {
-	pstOwner->__pstTimerControl = pifPulse_AddItem(pstOwner->_p_timer, PT_enRepeat);
+	pstOwner->__pstTimerControl = pifPulse_AddItem(pstOwner->_p_timer, PT_REPEAT);
     if (!pstOwner->__pstTimerControl) return FALSE;
 
     pstOwner->__usControlPeriod = usControlPeriod;

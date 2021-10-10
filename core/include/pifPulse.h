@@ -6,68 +6,68 @@
 #include "pifTask.h"
 
 
-typedef void (*PIF_actPulsePwm)(SWITCH swValue);
+typedef void (*PifActPulsePwm)(SWITCH swValue);
 
-typedef void (*PIF_evtPulseFinish)(void *pvIssuer);
+typedef void (*PifEvtPulseFinish)(void* pvIssuer);
 
 
-typedef enum _PIF_enPulseType
+typedef enum EnPifPulseType
 {
-    PT_enOnce       = 0,
-    PT_enRepeat		= 1,
-	PT_enPwm		= 2
-} PIF_enPulseType;
+    PT_ONCE			= 0,
+    PT_REPEAT		= 1,
+	PT_PWM			= 2
+} PifPulseType;
 
-typedef enum _PIF_enPulseStep
+typedef enum EnPifPulseStep
 {
-    PS_enStop		= 0,
-    PS_enRunning	= 1,
-    PS_enRemove		= 2
-} PIF_enPulseStep;
+    PS_STOP			= 0,
+    PS_RUNNING		= 1,
+    PS_REMOVE		= 2
+} PifPulseStep;
 
 
-struct _PIF_stPulse;
-typedef struct _PIF_stPulse PIF_stPulse;
+struct StPifPulse;
+typedef struct StPifPulse PifPulse;
 
 
 /**
- * @struct _PIF_stPulseItem
+ * @struct StPifPulseItem
  * @brief 한 Pulse내에 항목을 관리하는 구조체
  */
-typedef struct _PIF_stPulseItem
+typedef struct StPifPulseItem
 {
 	// Public Member Variable
-    uint32_t unTarget;
+    uint32_t target;
 
 	// Read-only Member Variable
-    PIF_enPulseType _enType;
-    PIF_enPulseStep _enStep;
+    PifPulseType _type;
+    PifPulseStep _step;
 
 	// Private Member Variable
-	PIF_stPulse *__pstOwner;
-    uint32_t __unCurrent;
-    void *__pvFinishIssuer;
-    uint32_t __unPwmDuty;
-	BOOL __bEvent;
+	PifPulse* __p_owner;
+    uint32_t __current;
+    void* __p_finish_issuer;
+    uint32_t __pwm_duty;
+	BOOL __event;
 
     // Private Action Function
-    PIF_actPulsePwm __actPwm;
+    PifActPulsePwm __act_pwm;
 
     // Private Event Function
-    PIF_evtPulseFinish __evtFinish;
-} PIF_stPulseItem;
+    PifEvtPulseFinish __evt_finish;
+} PifPulseItem;
 
 /**
  * @struct _PIF_Pulse
  * @brief Pulse를 관리하기 위한 구조체
  */
-struct _PIF_stPulse
+struct StPifPulse
 {
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PifId _usPifId;
-	uint32_t _unPeriodUs;
+	PifId _id;
+	uint32_t _period1us;
 
 	// Private Member Variable
     PifDList __items;
@@ -78,31 +78,31 @@ struct _PIF_stPulse
 extern "C" {
 #endif
 
-PIF_stPulse *pifPulse_Create(PifId usPifId, uint32_t unPeriodUs);
-void pifPulse_Destroy(PIF_stPulse **PpstOwner);
+PifPulse* pifPulse_Create(PifId id, uint32_t period1us);
+void pifPulse_Destroy(PifPulse** pp_owner);
 
-PIF_stPulseItem *pifPulse_AddItem(PIF_stPulse *pstOwner, PIF_enPulseType enType);
-void pifPulse_RemoveItem(PIF_stPulse *pstOwner, PIF_stPulseItem *pstItem);
+PifPulseItem* pifPulse_AddItem(PifPulse* p_owner, PifPulseType type);
+void pifPulse_RemoveItem(PifPulse* p_owner, PifPulseItem* p_item);
 
-BOOL pifPulse_StartItem(PIF_stPulseItem *pstItem, uint32_t unPulse);
-void pifPulse_StopItem(PIF_stPulseItem *pstItem);
+BOOL pifPulse_StartItem(PifPulseItem* p_item, uint32_t pulse);
+void pifPulse_StopItem(PifPulseItem* p_item);
 
-void pifPulse_SetPwmDuty(PIF_stPulseItem *pstItem, uint16_t usDuty);
+void pifPulse_SetPwmDuty(PifPulseItem* p_item, uint16_t duty);
 
-uint32_t pifPulse_RemainItem(PIF_stPulseItem *pstItem);
-uint32_t pifPulse_ElapsedItem(PIF_stPulseItem *pstItem);
+uint32_t pifPulse_RemainItem(PifPulseItem* p_item);
+uint32_t pifPulse_ElapsedItem(PifPulseItem* p_item);
 
 // Signal Function
-void pifPulse_sigTick(PIF_stPulse *pstOwner);
+void pifPulse_sigTick(PifPulse* p_owner);
 
 // Attach Action Function
-void pifPulse_AttachAction(PIF_stPulseItem *pstItem, PIF_actPulsePwm actPwm);
+void pifPulse_AttachAction(PifPulseItem* p_item, PifActPulsePwm act_pwm);
 
 // Attach Event Function
-void pifPulse_AttachEvtFinish(PIF_stPulseItem *pstItem, PIF_evtPulseFinish evtFinish, void *pvIssuer);
+void pifPulse_AttachEvtFinish(PifPulseItem* p_item, PifEvtPulseFinish evt_finish, void* p_issuer);
 
 // Task Function
-PifTask *pifPulse_AttachTask(PIF_stPulse *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask* pifPulse_AttachTask(PifPulse* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }

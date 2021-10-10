@@ -140,7 +140,7 @@ static void _evtTimerShiftFinish(void *pvIssuer)
  * @param actDisplay
  * @return
  */
-PIF_stDotMatrix *pifDotMatrix_Create(PifId usPifId, PIF_stPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
+PIF_stDotMatrix *pifDotMatrix_Create(PifId usPifId, PifPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
 		PIF_actDotMatrixDisplay actDisplay)
 {
 	PIF_stDotMatrix *pstOwner = NULL;
@@ -347,11 +347,11 @@ BOOL pifDotMatrix_BlinkOn(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs)
     }
 
 	if (!pstOwner->__pstTimerBlink) {
-		pstOwner->__pstTimerBlink = pifPulse_AddItem(pstOwner->__pstTimer, PT_enRepeat);
+		pstOwner->__pstTimerBlink = pifPulse_AddItem(pstOwner->__pstTimer, PT_REPEAT);
 		if (!pstOwner->__pstTimerBlink) return FALSE;
 		pifPulse_AttachEvtFinish(pstOwner->__pstTimerBlink, _evtTimerBlinkFinish, pstOwner);
 	}
-	if (!pifPulse_StartItem(pstOwner->__pstTimerBlink, usPeriodMs * 1000L / pstOwner->__pstTimer->_unPeriodUs)) return FALSE;
+	if (!pifPulse_StartItem(pstOwner->__pstTimerBlink, usPeriodMs * 1000L / pstOwner->__pstTimer->_period1us)) return FALSE;
     return TRUE;
 }
 
@@ -378,7 +378,7 @@ void pifDotMatrix_BlinkOff(PIF_stDotMatrix *pstOwner)
 void pifDotMatrix_ChangeBlinkPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs)
 {
 	if (pstOwner->__pstTimerBlink) {
-		pstOwner->__pstTimerBlink->unTarget = usPeriodMs * 1000 / pstOwner->__pstTimer->_unPeriodUs;
+		pstOwner->__pstTimerBlink->target = usPeriodMs * 1000 / pstOwner->__pstTimer->_period1us;
 	}
 }
 
@@ -420,11 +420,11 @@ BOOL pifDotMatrix_ShiftOn(PIF_stDotMatrix *pstOwner, PIF_enDotMatrixShift enShif
     }
 
 	if (!pstOwner->__pstTimerShift) {
-		pstOwner->__pstTimerShift = pifPulse_AddItem(pstOwner->__pstTimer, PT_enRepeat);
+		pstOwner->__pstTimerShift = pifPulse_AddItem(pstOwner->__pstTimer, PT_REPEAT);
 		if (!pstOwner->__pstTimerShift) return FALSE;
 		pifPulse_AttachEvtFinish(pstOwner->__pstTimerShift, _evtTimerShiftFinish, pstOwner);
 	}
-	if(!pifPulse_StartItem(pstOwner->__pstTimerShift, usPeriodMs * 1000L / pstOwner->__pstTimer->_unPeriodUs)) return FALSE;
+	if(!pifPulse_StartItem(pstOwner->__pstTimerShift, usPeriodMs * 1000L / pstOwner->__pstTimer->_period1us)) return FALSE;
 	pstOwner->__ui.enShift = enShift;
 	pstOwner->__usShiftCount = usCount;
 	return TRUE;
@@ -454,7 +454,7 @@ void pifDotMatrix_ShiftOff(PIF_stDotMatrix *pstOwner)
 void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs)
 {
 	if (pstOwner->__pstTimerShift) {
-		pstOwner->__pstTimerShift->unTarget = usPeriodMs * 1000 / pstOwner->__pstTimer->_unPeriodUs;
+		pstOwner->__pstTimerShift->target = usPeriodMs * 1000 / pstOwner->__pstTimer->_period1us;
 	}
 }
 
