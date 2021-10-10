@@ -6,95 +6,95 @@
 #include "pifRingData.h"
 
 
-typedef enum _PIF_enSolenoidType
+typedef enum EnPifSolenoidType
 {
-	ST_en1Point		= 0,
-	ST_en2Point		= 1,
-	ST_en3Point		= 2
-} PIF_enSolenoidType;
+	ST_1POINT		= 0,
+	ST_2POINT		= 1,
+	ST_3POINT		= 2
+} PifSolenoidType;
 
-typedef enum _PIF_enSolenoidDir
+typedef enum EnPifSolenoidDir
 {
-    SD_enInvalid	= 0,
-    SD_enLeft		= 1,
-    SD_enRight	    = 2
-} PIF_enSolenoidDir;
+    SD_INVALID		= 0,
+    SD_LEFT			= 1,
+    SD_RIGHT	    = 2
+} PifSolenoidDir;
 
-typedef enum _PIF_enSolenoidCsFlag
+typedef enum EnPifSolenoidCsFlag
 {
-    SnCsF_enOff			= 0,
+    SCSF_OFF			= 0,
 
-    SnCsF_enActionIdx	= 0,
-    SnCsF_enDirIdx		= 1,
+    SCSF_ACTION_IDX		= 0,
+    SCSF_DIR_IDX		= 1,
 
-	SnCsF_enActionBit	= 1,
-	SnCsF_enDirBit		= 2,
-	SnCsF_enAllBit		= 3,
+	SCSF_ACTION_BIT		= 1,
+	SCSF_DIR_BIT		= 2,
+	SCSF_ALL_BIT		= 3,
 
-    SnCsF_enCount		= 2
-} PIF_enSolenoidCsFlag;
+    SCSF_COUNT			= 2
+} PifSolenoidCsFlag;
 
 
-struct _PIF_stSolenoid;
-typedef struct _PIF_stSolenoid PIF_stSolenoid;
+struct StPifSolenoid;
+typedef struct StPifSolenoid PifSolenoid;
 
-typedef void (*PIF_actSolenoidControl)(SWITCH swAction, PIF_enSolenoidDir enDir);
+typedef void (*PifActSolenoidControl)(SWITCH action, PifSolenoidDir dir);
 
-typedef void (*PIF_evtSolenoid)(PIF_stSolenoid *pstOwner);
+typedef void (*PifEvtSolenoid)(PifSolenoid* p_owner);
 
 
 /**
- * @class _PIF_stSolenoidContent
+ * @class StPifSolenoidContent
  * @brief
  */
-typedef struct _PIF_stSolenoidContent
+typedef struct StPifSolenoidContent
 {
-	uint16_t usDelay;
-	PIF_enSolenoidDir enDir;
-} PIF_stSolenoidContent;
+	uint16_t delay;
+	PifSolenoidDir dir;
+} PifSolenoidContent;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-typedef struct
+typedef struct StPifSolenoidColSig
 {
-	PIF_stSolenoid* p_owner;
+	PifSolenoid* p_owner;
 	uint8_t flag;
-    void* p_device[SnCsF_enCount];
-} PIF_SolenoidColSig;
+    void* p_device[SCSF_COUNT];
+} PifSolenoidColSig;
 
 #endif
 
 /**
- * @class _PIF_stSolenoid
+ * @class StPifSolenoid
  * @brief 
  */
-struct _PIF_stSolenoid
+struct StPifSolenoid
 {
 	// Public Member Variable
-    uint16_t usOnTime;
+    uint16_t on_time;
 
 	// Public Event Function
-    PIF_evtSolenoid evtOff;
-    PIF_evtSolenoid evtError;
+    PifEvtSolenoid evt_off;
+    PifEvtSolenoid evt_error;
 
     // Read-only Member Variable
-    PifId _usPifId;
-    PIF_enSolenoidType _enType;
+    PifId _id;
+    PifSolenoidType _type;
 
 	// Private Member Variable
-    PifPulse* __pstTimer;
-    BOOL __bState;
-    PIF_enSolenoidDir __enCurrentDir;
-    PifPulseItem *__pstTimerOn;
-	PifPulseItem *__pstTimerDelay;
-    PIF_enSolenoidDir __enDir;
-	PIF_stRingData *__pstBuffer;
+    PifPulse* __p_timer;
+    BOOL __state;
+    PifSolenoidDir __current_dir;
+    PifPulseItem* __p_timer_on;
+	PifPulseItem* __p_timer_delay;
+    PifSolenoidDir __dir;
+	PIF_stRingData* __p_buffer;
 #ifdef __PIF_COLLECT_SIGNAL__
-	PIF_SolenoidColSig* __p_colsig;
+	PifSolenoidColSig* __p_colsig;
 #endif
 
     // Private Action Function
-    PIF_actSolenoidControl __actControl;
+    PifActSolenoidControl __act_control;
 };
 
 
@@ -102,25 +102,25 @@ struct _PIF_stSolenoid
 extern "C" {
 #endif
 
-PIF_stSolenoid* pifSolenoid_Create(PifId usPifId, PifPulse* pstTimer, PIF_enSolenoidType enType, uint16_t usOnTime,
-		PIF_actSolenoidControl actControl);
-void pifSolenoid_Destroy(PIF_stSolenoid** pp_owner);
+PifSolenoid* pifSolenoid_Create(PifId id, PifPulse* p_timer, PifSolenoidType type, uint16_t on_time,
+		PifActSolenoidControl act_control);
+void pifSolenoid_Destroy(PifSolenoid** pp_owner);
 
-BOOL pifSolenoid_SetBuffer(PIF_stSolenoid *pstOwner, uint16_t usSize);
-void pifSolenoid_SetInvalidDirection(PIF_stSolenoid *pstOwner);
-BOOL pifSolenoid_SetOnTime(PIF_stSolenoid *pstOwner, uint16_t usOnTime);
+BOOL pifSolenoid_SetBuffer(PifSolenoid* p_owner, uint16_t size);
+void pifSolenoid_SetInvalidDirection(PifSolenoid* p_owner);
+BOOL pifSolenoid_SetOnTime(PifSolenoid* p_owner, uint16_t on_time);
 
-void pifSolenoid_ActionOn(PIF_stSolenoid *pstOwner, uint16_t usDelay);
-void pifSolenoid_ActionOnDir(PIF_stSolenoid *pstOwner, uint16_t usDelay, PIF_enSolenoidDir enDir);
-void pifSolenoid_ActionOff(PIF_stSolenoid *pstOwner);
+void pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay);
+void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDir dir);
+void pifSolenoid_ActionOff(PifSolenoid* p_owner);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-void pifSolenoid_SetCsFlagAll(PIF_enSolenoidCsFlag enFlag);
-void pifSolenoid_ResetCsFlagAll(PIF_enSolenoidCsFlag enFlag);
+void pifSolenoid_SetCsFlagAll(PifSolenoidCsFlag flag);
+void pifSolenoid_ResetCsFlagAll(PifSolenoidCsFlag flag);
 
-void pifSolenoid_SetCsFlagEach(PIF_stSolenoid *pstOwner, PIF_enSolenoidCsFlag enFlag);
-void pifSolenoid_ResetCsFlagEach(PIF_stSolenoid *pstOwner, PIF_enSolenoidCsFlag enFlag);
+void pifSolenoid_SetCsFlagEach(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
+void pifSolenoid_ResetCsFlagEach(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
 
 #endif
 
