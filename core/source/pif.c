@@ -72,10 +72,6 @@ void pif_Init(PifActTimer1us act_timer1us)
 	pif_datetime.month = 1;
 	pif_datetime.day = 1;
 
-#ifndef __PIF_NO_LOG__
-    memset(&pif_stLogFlag, 0, sizeof(pif_stLogFlag));
-#endif
-
     pifTaskManager_Init();
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -121,11 +117,11 @@ void pif_Loop()
 	uint32_t gap;
 #endif
 
-    if (pif_stLogFlag.bt.Performance) {
+    if (pif_log_flag.bt.performance) {
 		pif_performance._count++;
 		if (pif_performance.__state) {
         	uint32_t value = 1000000L / pif_performance._count;
-        	pifLog_Printf(LT_enInfo, "Performance: %lur/s, %uns", pif_performance._count, value);
+        	pifLog_Printf(LT_INFO, "Performance: %lur/s, %uns", pif_performance._count, value);
         	pif_performance._count = 0;
     		pif_performance.__state = FALSE;
         }
@@ -137,7 +133,7 @@ void pif_Loop()
     			gap = (*pif_act_timer1us)() - pretime;
     			if (gap > pif_performance.__max_loop_time1us) {
     				pif_performance.__max_loop_time1us = gap;
-    				pifLog_Printf(LT_enNone, "\nMLT: %luus", pif_performance.__max_loop_time1us);
+    				pifLog_Printf(LT_NONE, "\nMLT: %luus", pif_performance.__max_loop_time1us);
     			}
     		}
     		else {
@@ -163,7 +159,7 @@ void pif_sigTimer1ms()
 #ifndef __PIF_NO_LOG__
 	static uint16_t usTimerPerform = 0;
 
-    if (pif_stLogFlag.bt.Performance) {
+    if (pif_log_flag.bt.performance) {
 		usTimerPerform++;
 		if (usTimerPerform >= 1000) {
 			usTimerPerform = 0;

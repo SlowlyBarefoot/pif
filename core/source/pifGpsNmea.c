@@ -144,7 +144,7 @@ static BOOL _MakePacket(PIF_stGpsNmea *pstOwner, char *pcData)
 	pcData[i] = '\r'; i++;
 	pcData[i] = '\n'; i++;
 	pcData[i] = 0;
-	pifLog_Printf(LT_enNone, pcData);
+	pifLog_Printf(LT_NONE, pcData);
 
 	pifRingBuffer_BackupHead(pstOwner->__stTx.pstBuffer);
 
@@ -322,7 +322,7 @@ static void _evtParsing(void *pvClient, PifActCommReceiveData actReceiveData)
 				}
 #ifndef __PIF_NO_LOG__
 				else {
-					pifLog_Printf(LT_enError, "GN(%u): MagId=%u checksum=%x:%x", __LINE__, usMessageId, checksum, parity);
+					pifLog_Printf(LT_ERROR, "GN(%u): MagId=%u checksum=%x:%x", __LINE__, usMessageId, checksum, parity);
 				}
 #endif
 			}

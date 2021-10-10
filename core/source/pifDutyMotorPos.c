@@ -13,7 +13,7 @@ static void _evtTimerDelayFinish(void *pvIssuer)
 
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "DMP(%u) S:%u", pstOwner->_usPifId, pstOwner->_enState);
+		pifLog_Printf(LT_WARN, "DMP(%u) S:%u", pstOwner->_usPifId, pstOwner->_enState);
 #endif
 		break;
 	}
@@ -112,8 +112,8 @@ static void _fnControlPos(PIF_stDutyMotor *pstOwner)
     }
 
 #ifndef __PIF_NO_LOG__
-	if (enState != pstOwner->_enState && pif_stLogFlag.bt.DutyMotor) {
-		pifLog_Printf(LT_enInfo, "DMP(%u) %s D:%u(%u%%) CP:%u", pstOwner->_usPifId,
+	if (enState != pstOwner->_enState && pif_log_flag.bt.duty_motor) {
+		pifLog_Printf(LT_INFO, "DMP(%u) %s D:%u(%u%%) CP:%u", pstOwner->_usPifId,
 				c_cMotorState[pstOwner->_enState], usTmpDuty, (uint16_t)(100 * usTmpDuty / pstOwner->_usMaxDuty),
 				pstPos->_unCurrentPulse);
 	}

@@ -17,7 +17,7 @@ static void _evtTimerDelayFinish(void *pvIssuer)
 
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "SMS(%u) S:%u", pstOwner->_usPifId, pstOwner->_enState);
+		pifLog_Printf(LT_WARN, "SMS(%u) S:%u", pstOwner->_usPifId, pstOwner->_enState);
 #endif
 		break;
 	}
@@ -95,8 +95,8 @@ static void _fnControlSpeed(PIF_stStepMotor *pstOwner)
     }
 
 #ifndef __PIF_NO_LOG__
-	if (enState != pstOwner->_enState && pif_stLogFlag.bt.StepMotor) {
-		pifLog_Printf(LT_enInfo, "SMS(%u) %s P/S:%u", pstOwner->_usPifId,
+	if (enState != pstOwner->_enState && pif_log_flag.bt.step_motor) {
+		pifLog_Printf(LT_INFO, "SMS(%u) %s P/S:%u", pstOwner->_usPifId,
 				c_cMotorState[pstOwner->_enState], usTmpPps);
 	}
 #endif
@@ -248,7 +248,7 @@ BOOL pifStepMotorSpeed_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, ui
     	}
     	if (ucState) {
 #ifndef __PIF_NO_LOG__
-    		pifLog_Printf(LT_enError, "SMS(%u) S:%u", pstOwner->_usPifId, ucState);
+    		pifLog_Printf(LT_ERROR, "SMS(%u) S:%u", pstOwner->_usPifId, ucState);
 #endif
         	pif_error = E_INVALID_STATE;
 		    return FALSE;

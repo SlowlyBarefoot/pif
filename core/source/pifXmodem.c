@@ -21,7 +21,7 @@ static void _evtTimerRxTimeout(void *pvIssuer)
 	switch (pstOwner->__stTx.ui.enState) {
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enError, "XM(%u) ParsingPacket(Timeout) State:%u Cnt:%u", pstOwner->_usPifId,
+		pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(Timeout) State:%u Cnt:%u", pstOwner->_usPifId,
 				pstOwner->__stRx.enState, pstOwner->__stRx.usCount);
 #endif
 		pstOwner->__stTx.ui.enState = XTS_enNAK;
@@ -37,7 +37,7 @@ static void _evtTimerTxTimeout(void *pvIssuer)
 	switch (pstOwner->__stTx.ui.enState) {
 	case XTS_enWaitResponse:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "XM(%u) TxTimeout State:%u Count=%u", pstOwner->_usPifId,
+		pifLog_Printf(LT_WARN, "XM(%u) TxTimeout State:%u Count=%u", pstOwner->_usPifId,
 				pstOwner->__stTx.ui.enState, pstOwner->__stRx.usCount);
 #endif
 		pstOwner->__stTx.ui.enState = XTS_enIdle;
@@ -48,7 +48,7 @@ static void _evtTimerTxTimeout(void *pvIssuer)
 
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "XM(%u) TxTimeout State:%u", pstOwner->_usPifId, pstOwner->__stTx.ui.enState);
+		pifLog_Printf(LT_WARN, "XM(%u) TxTimeout State:%u", pstOwner->_usPifId, pstOwner->__stTx.ui.enState);
 #endif
 		break;
 	}
@@ -87,7 +87,7 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PifActCommReceiveData actRece
 				pstOwner->__stRx.enState = XRS_enGetHeader;
 				if (!pifPulse_StartItem(pstOwner->__stRx.pstTimer, pstOwner->__stRx.usTimeout * 1000L / pstOwner->__pstTimer->_period1us)) {
 #ifndef __PIF_NO_LOG__
-					pifLog_Printf(LT_enWarn, "XM(%u) Not start timer", pstOwner->_usPifId);
+					pifLog_Printf(LT_WARN, "XM(%u) Not start timer", pstOwner->_usPifId);
 #endif
 				}
 				break;
@@ -115,7 +115,7 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PifActCommReceiveData actRece
 				}
 				else {
 #ifndef __PIF_NO_LOG__
-					pifLog_Printf(LT_enError, "XM(%u) ParsingPacket(%s) %u!=%u", pstOwner->_usPifId,
+					pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(%s) %u!=%u", pstOwner->_usPifId,
 							c_cPktErr[PKT_ERR_INVALID_PACKET_NO], (unsigned int)pstPacket->aucPacketNo[0],
 							(unsigned int)pstPacket->aucPacketNo[1]);
 #endif
@@ -146,7 +146,7 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PifActCommReceiveData actRece
 				}
 				else {
 #ifndef __PIF_NO_LOG__
-					pifLog_Printf(LT_enError, "XM(%u) ParsingPacket(%s) %u!=%u", pstOwner->_usPifId,
+					pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(%s) %u!=%u", pstOwner->_usPifId,
 							c_cPktErr[PKT_ERR_WRONG_CRC], (unsigned int)pstOwner->__stRx.usCrc, (unsigned int)crc);
 #endif
 					goto fail;
@@ -169,7 +169,7 @@ static void _ParsingPacket(PIF_stXmodem *pstOwner, PifActCommReceiveData actRece
 					}
 					else {
 #ifndef __PIF_NO_LOG__
-						pifLog_Printf(LT_enError, "XM(%u) ParsingPacket(%s) %u!=%u", pstOwner->_usPifId,
+						pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(%s) %u!=%u", pstOwner->_usPifId,
 								c_cPktErr[PKT_ERR_WRONG_CRC], (unsigned int)pstOwner->__stRx.usCrc, (unsigned int)crc);
 #endif
 						goto fail;
@@ -222,7 +222,7 @@ static void _evtParsing(void *pvOwner, PifActCommReceiveData actReceiveData)
 			}
 			pstOwner->__stRx.enState = XRS_enIdle;
 #ifndef __PIF_NO_LOG__
-			pifLog_Printf(LT_enNone, "C");
+			pifLog_Printf(LT_NONE, "C");
 #endif
 			break;
 
@@ -259,7 +259,7 @@ static BOOL _evtSending(void *pvClient, PifActCommSendData actSendData)
 		ucData = 'C';
 		if ((*actSendData)(pstOwner->__pstComm, &ucData, 1)) {
 #ifndef __PIF_NO_LOG__
-			pifLog_Printf(LT_enNone, "C");
+			pifLog_Printf(LT_NONE, "C");
 #endif
 			unTimer1ms = pif_cumulative_timer1ms;
 			pstOwner->__stTx.ui.enState = XTS_enDelayC;
@@ -520,7 +520,7 @@ BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *puc
 	pstOwner->__stTx.ui.enState = XTS_enSending;
 	if (!pifPulse_StartItem(pstOwner->__stTx.pstTimer, pstOwner->__stTx.usTimeout * 1000L / pstOwner->__pstTimer->_period1us)) {
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "XM(%u) Not start timer", pstOwner->_usPifId);
+		pifLog_Printf(LT_WARN, "XM(%u) Not start timer", pstOwner->_usPifId);
 #endif
 	}
 	return TRUE;

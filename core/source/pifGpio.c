@@ -30,7 +30,7 @@ static void _AddDeviceInCollectSignal()
 			}
 		}
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enInfo, "GP_CS:Add(DC:%u CNT:%u)", pstOwner->_usPifId, pstOwner->ucGpioCount);
+		pifLog_Printf(LT_INFO, "GP_CS:Add(DC:%u CNT:%u)", pstOwner->_usPifId, pstOwner->ucGpioCount);
 #endif
 
 		it = pifDList_Next(it);

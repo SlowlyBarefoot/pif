@@ -133,7 +133,7 @@ void pifTask_SetPeriod(PifTask* p_owner, uint16_t period)
 
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enWarn, "Task:ChangePeriod(P:%u)", period);
+		pifLog_Printf(LT_WARN, "Task:ChangePeriod(P:%u)", period);
 #endif
 		break;
 	}
@@ -431,14 +431,14 @@ void pifTaskManager_Print()
 {
 	PifDListIterator it;
 
-	if (!pif_stLogFlag.bt.Task) return;
+	if (!pif_log_flag.bt.task) return;
 
 	it = pifDList_Begin(&s_tasks);
 	while (it) {
 		PifTask* p_owner = (PifTask*)it->data;
 		if (p_owner->_mode == TM_RATIO) {
 #ifndef __PIF_NO_LOG__
-			pifLog_Printf(LT_enInfo, "Task Id=%d Ratio=%d%% Period=%2fus",
+			pifLog_Printf(LT_INFO, "Task Id=%d Ratio=%d%% Period=%2fus",
 					p_owner->_id, p_owner->_period, p_owner->__period);
 #endif
 		}

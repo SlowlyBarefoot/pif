@@ -120,7 +120,7 @@ static void _AddDeviceInCollectSignal()
 			p_colsig->p_device[1] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_enWire, 2, prefix[1], 0);
 		}
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enInfo, "SN_CS:Add(DC:%u F:%u)", p_owner->_id, p_colsig->flag);
+		pifLog_Printf(LT_INFO, "SN_CS:Add(DC:%u F:%u)", p_owner->_id, p_colsig->flag);
 #endif
 
 		it = pifDList_Next(it);

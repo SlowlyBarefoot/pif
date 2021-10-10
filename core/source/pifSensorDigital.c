@@ -59,7 +59,7 @@ static void _AddDeviceInCollectSignal()
 			}
 		}
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enInfo, "SD_CS:Add(DC:%u F:%u)", pstOwner->stSensor._usPifId, p_colsig->flag);
+		pifLog_Printf(LT_INFO, "SD_CS:Add(DC:%u F:%u)", pstOwner->stSensor._usPifId, p_colsig->flag);
 #endif
 
 		it = pifDList_Next(it);

@@ -65,45 +65,45 @@ static void _PrintHeader()
 	};
 	PifDListIterator it;
 
-	pifLog_Printf(LT_enVcd, "\n$date %s %u, %u %2u:%2u:%2u $end\n",
+	pifLog_Printf(LT_VCD, "\n$date %s %u, %u %2u:%2u:%2u $end\n",
 			kPifMonth3[pif_datetime.month - 1], pif_datetime.day, 2000 + pif_datetime.year,
 			pif_datetime.hour, pif_datetime.minute, pif_datetime.second);
 
-	pifLog_Printf(LT_enVcd, "$version %u.%u.%u $end\n", PIF_VERSION_MAJOR, PIF_VERSION_MINOR, PIF_VERSION_PATCH);
+	pifLog_Printf(LT_VCD, "$version %u.%u.%u $end\n", PIF_VERSION_MAJOR, PIF_VERSION_MINOR, PIF_VERSION_PATCH);
 
-	pifLog_Printf(LT_enVcd, "$timescale 1ms $end\n");
+	pifLog_Printf(LT_VCD, "$timescale 1ms $end\n");
 
-	pifLog_Printf(LT_enVcd, "$scope module %s $end\n", s_stCollectSignal.c_pcModuleName);
+	pifLog_Printf(LT_VCD, "$scope module %s $end\n", s_stCollectSignal.c_pcModuleName);
 	it = pifDList_Begin(&s_stCollectSignal.stDevice);
 	while (it) {
 		PIF_stCollectSignalDevice* p_device = (PIF_stCollectSignalDevice*)it->data;
 		if (p_device->usSize == 1) {
-			pifLog_Printf(LT_enVcd, "$var %s 1 %c %s $end\n", c_pacVarType[p_device->enVarType], '!' + p_device->index, p_device->pcReference);
+			pifLog_Printf(LT_VCD, "$var %s 1 %c %s $end\n", c_pacVarType[p_device->enVarType], '!' + p_device->index, p_device->pcReference);
 		}
 		else {
-			pifLog_Printf(LT_enVcd, "$var %s %u %c %s[%u:0] $end\n", c_pacVarType[p_device->enVarType],
+			pifLog_Printf(LT_VCD, "$var %s %u %c %s[%u:0] $end\n", c_pacVarType[p_device->enVarType],
 					p_device->usSize, '!' + p_device->index, p_device->pcReference, p_device->usSize - 1);
 		}
 
 		it = pifDList_Next(it);
 	}
-	pifLog_Printf(LT_enVcd, "$upscope $end\n");
-	pifLog_Printf(LT_enVcd, "$enddefinitions $end\n");
+	pifLog_Printf(LT_VCD, "$upscope $end\n");
+	pifLog_Printf(LT_VCD, "$enddefinitions $end\n");
 
-	pifLog_Printf(LT_enVcd, "$dumpvars\n");
+	pifLog_Printf(LT_VCD, "$dumpvars\n");
 	it = pifDList_Begin(&s_stCollectSignal.stDevice);
 	while (it) {
 		PIF_stCollectSignalDevice* p_device = (PIF_stCollectSignalDevice*)it->data;
 		if (p_device->usSize == 1) {
-			pifLog_Printf(LT_enVcd, "%u%c\n", p_device->usInitialValue, '!' + p_device->index);
+			pifLog_Printf(LT_VCD, "%u%c\n", p_device->usInitialValue, '!' + p_device->index);
 		}
 		else {
-			pifLog_Printf(LT_enVcd, "b%b %c\n", p_device->usInitialValue, '!' + p_device->index);
+			pifLog_Printf(LT_VCD, "b%b %c\n", p_device->usInitialValue, '!' + p_device->index);
 		}
 
 		it = pifDList_Next(it);
 	}
-	pifLog_Printf(LT_enVcd, "$end\n");
+	pifLog_Printf(LT_VCD, "$end\n");
 }
 
 /**
@@ -241,7 +241,7 @@ void* pifCollectSignal_AddDevice(PifId usPifId, PIF_enCollectSignalVarType enVar
 	p_device->usInitialValue = usInitialValue;
 	s_stCollectSignal.ucDeviceCount++;
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_enInfo, "CS:Add(ID:%u VT:%u SZ:%u) DC:%d", usPifId, enVarType, usSize, p_device->usSize);
+	pifLog_Printf(LT_INFO, "CS:Add(ID:%u VT:%u SZ:%u) DC:%d", usPifId, enVarType, usSize, p_device->usSize);
 #endif
 	return p_device;
 }
@@ -263,7 +263,7 @@ void pifCollectSignal_Start()
 	case CSM_enRealTime:
 		_PrintHeader();
 
-		pifLog_Printf(LT_enVcd, "#0\n");
+		pifLog_Printf(LT_VCD, "#0\n");
 		break;
 
 	case CSM_enBuffer:
@@ -287,7 +287,7 @@ void pifCollectSignal_Stop()
 
 	switch (s_stCollectSignal.enMethod) {
 	case CSM_enRealTime:
-		pifLog_Printf(LT_enVcd, "#%u\n", pif_cumulative_timer1ms);
+		pifLog_Printf(LT_VCD, "#%u\n", pif_cumulative_timer1ms);
 		break;
 
 	case CSM_enBuffer:
@@ -316,14 +316,14 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t usState)
 	switch (s_stCollectSignal.enMethod) {
 	case CSM_enRealTime:
 		if (s_stCollectSignal.unTimer1ms != pif_cumulative_timer1ms) {
-			pifLog_Printf(LT_enVcd, "#%u\n", pif_cumulative_timer1ms);
+			pifLog_Printf(LT_VCD, "#%u\n", pif_cumulative_timer1ms);
 			s_stCollectSignal.unTimer1ms = pif_cumulative_timer1ms;
 		}
 		if (p_device->usSize == 1) {
-			pifLog_Printf(LT_enVcd, "%u%c\n", usState, '!' + p_device->index);
+			pifLog_Printf(LT_VCD, "%u%c\n", usState, '!' + p_device->index);
 		}
 		else {
-			pifLog_Printf(LT_enVcd, "b%b %c\n", usState, '!' + p_device->index);
+			pifLog_Printf(LT_VCD, "b%b %c\n", usState, '!' + p_device->index);
 		}
 		break;
 
@@ -378,13 +378,13 @@ static uint16_t _DoTask(PifTask *pstTask)
 				}
 			}
 			pifRingBuffer_Remove(s_stCollectSignal.pstBuffer, usLength);
-			pifLog_Printf(LT_enVcd, (char *)acTmpBuf);
+			pifLog_Printf(LT_VCD, (char *)acTmpBuf);
 		}
 		else {
 			pifRingBuffer_CopyToArray(acTmpBuf, usSize, s_stCollectSignal.pstBuffer, 0);
 			acTmpBuf[usSize] = 0;
 			pifRingBuffer_Remove(s_stCollectSignal.pstBuffer, usSize);
-			pifLog_Printf(LT_enVcd, (char *)acTmpBuf);
+			pifLog_Printf(LT_VCD, (char *)acTmpBuf);
 			s_stCollectSignal.enStep = CSS_enIdle;
 			pifLog_Enable();
 		}

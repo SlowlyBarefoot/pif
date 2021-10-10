@@ -48,7 +48,7 @@ static void _AddDeviceInCollectSignal()
 			}
 		}
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_enInfo, "SQ_CS:Add(DC:%u F:%u)", pstOwner->_usPifId, p_colsig->flag);
+		pifLog_Printf(LT_INFO, "SQ_CS:Add(DC:%u F:%u)", pstOwner->_usPifId, p_colsig->flag);
 #endif
 
 		it = pifDList_Next(it);

@@ -15,52 +15,52 @@
 #define PIF_LOG_CMD_INVALID_ARG		(-4)
 
 
-typedef enum _PIF_enLogType
+typedef enum EnPifLogType
 {
-	LT_enNone	= 0,
-	LT_enVcd	= 1,			// Collect Signal : VCD file
-	LT_enInfo	= 2,
-	LT_enWarn	= 3,
-	LT_enError	= 4,
-	LT_enComm	= 5
-} PIF_enLogType;
+	LT_NONE		= 0,
+	LT_VCD		= 1,			// Collect Signal : VCD file
+	LT_INFO		= 2,
+	LT_WARN		= 3,
+	LT_ERROR	= 4,
+	LT_COMM		= 5
+} PifLogType;
 
-typedef int (*PIF_fnLogCmd)(int argc, char *argv[]);
+typedef int (*PifLogCmd)(int argc, char* argv[]);
 
 /**
- * @class _PIF_stLogCmdEntry
+ * @class StPifLogCmdEntry
  * @brief
  */
-typedef struct _PIF_stLogCmdEntry
+typedef struct StPifLogCmdEntry
 {
     //! A pointer to a string containing the name of the command.
-    const char *pcName;
+    const char* p_name;
 
     //! A function pointer to the implementation of the command.
-    PIF_fnLogCmd fnProcessor;
+    PifLogCmd processor;
 
     //! A pointer to a string of brief help text for the command.
-    const char *pcHelp;
-} PIF_stLogCmdEntry;
+    const char* p_help;
+} PifLogCmdEntry;
 
 /**
- * @struct _PIF_stLogFlag
+ * @struct StPifLogFlag
  * @brief 항목별 Log 출력 여부
  */
-typedef union _PIF_stLogFlag
+typedef union StPifLogFlag
 {
-	uint32_t unAll;
+	uint32_t all;
 	struct {
-		uint32_t Performance		: 1;
-		uint32_t Task				: 1;
-		uint32_t CollectSignal		: 1;
-		uint32_t DutyMotor			: 1;
-		uint32_t StepMotor			: 1;
+		uint32_t performance		: 1;
+		uint32_t task				: 1;
+		uint32_t collect_signal		: 1;
+		uint32_t duty_motor			: 1;
+		uint32_t step_motor			: 1;
 	} bt;
-} PIF_stLogFlag;
+} PifLogFlag;
 
 
-extern PIF_stLogFlag pif_stLogFlag;
+extern PifLogFlag pif_log_flag;
 
 
 #ifdef __cplusplus
@@ -68,12 +68,12 @@ extern "C" {
 #endif
 
 void pifLog_Init();
-BOOL pifLog_InitHeap(uint16_t usSize);
-BOOL pifLog_InitStatic(uint16_t usSize, uint8_t *pucBuffer);
+BOOL pifLog_InitHeap(uint16_t size);
+BOOL pifLog_InitStatic(uint16_t size, uint8_t* p_buffer);
 void pifLog_Clear();
 
 #ifdef __PIF_LOG_COMMAND__
-BOOL pifLog_UseCommand(const PIF_stLogCmdEntry *pstCmdTable, const char *pcPrompt);
+BOOL pifLog_UseCommand(const PifLogCmdEntry* p_cmd_table, const char* p_prompt);
 #endif
 
 void pifLog_Enable();
@@ -81,18 +81,18 @@ void pifLog_Disable();
 
 BOOL pifLog_IsEmpty();
 
-void pifLog_Printf(PIF_enLogType enType, const char *pcFormat, ...);
+void pifLog_Printf(PifLogType type, const char* p_format, ...);
 
 void pifLog_PrintInBuffer();
 
-PifTask *pifLog_GetCommTask();
+PifTask* pifLog_GetCommTask();
 
 // Attach Function
-BOOL pifLog_AttachComm(PifComm *pstComm);
+BOOL pifLog_AttachComm(PifComm* p_comm);
 
 #ifdef __PIF_LOG_COMMAND__
 // Task Function
-PifTask *pifLog_AttachTask(PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask* pifLog_AttachTask(PifTaskMode mode, uint16_t period, BOOL start);
 #endif
 
 #ifdef __cplusplus

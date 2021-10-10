@@ -94,7 +94,7 @@ void pifI2c_ScanAddress(PifI2c* p_owner)
 	for (i = 0; i < 127; i++) {
 		p_owner->addr = i;
 		if (pifI2c_Write(p_owner, 0)) {
-			pifLog_Printf(LT_enInfo, "I2C:%u Addr:%xh OK", __LINE__, i);
+			pifLog_Printf(LT_INFO, "I2C:%u Addr:%xh OK", __LINE__, i);
 		}
 	}
 }
