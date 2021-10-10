@@ -65,7 +65,7 @@ static const char *c_cPktErr[5] = {
 		"Wrong ETX"
 };
 
-static void _ParsingPacket(PIF_stProtocol *pstOwner, PIF_actCommReceiveData actReceiveData)
+static void _ParsingPacket(PIF_stProtocol *pstOwner, PifActCommReceiveData actReceiveData)
 {
 	PIF_stProtocolPacket *pstPacket = &pstOwner->__stRx.stPacket;
 	uint8_t data;
@@ -233,7 +233,7 @@ fail:
 	pstOwner->__stRx.enState = PRS_enIdle;
 }
 
-static void _evtParsing(void *pvOwner, PIF_actCommReceiveData actReceiveData)
+static void _evtParsing(void *pvOwner, PifActCommReceiveData actReceiveData)
 {
 	PIF_stProtocol *pstOwner = (PIF_stProtocol *)pvOwner;
 	PIF_stProtocolPacket *pstPacket;
@@ -310,7 +310,7 @@ static void _evtParsing(void *pvOwner, PIF_actCommReceiveData actReceiveData)
     }
 }
 
-static BOOL _evtSending(void *pvOwner, PIF_actCommSendData actSendData)
+static BOOL _evtSending(void *pvOwner, PifActCommSendData actSendData)
 {
 	PIF_stProtocol *pstOwner = (PIF_stProtocol *)pvOwner;
 	uint16_t usLength;
@@ -609,12 +609,12 @@ BOOL pifProtocol_ResizeTxResponse(PIF_stProtocol *pstOwner, uint16_t usTxRespons
  * @param pstOwner
  * @param pstComm
  */
-void pifProtocol_AttachComm(PIF_stProtocol *pstOwner, PIF_stComm *pstComm)
+void pifProtocol_AttachComm(PIF_stProtocol *pstOwner, PifComm *pstComm)
 {
 	pstOwner->__pstComm = pstComm;
 	pifComm_AttachClient(pstComm, pstOwner);
-	pstComm->evtParsing = _evtParsing;
-	pstComm->evtSending = _evtSending;
+	pstComm->evt_parsing = _evtParsing;
+	pstComm->evt_sending = _evtSending;
 }
 
 /**

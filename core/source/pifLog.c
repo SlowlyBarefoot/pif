@@ -11,7 +11,7 @@ typedef struct _PIF_stLog
 {
 	BOOL bEnable;
 	PIF_stRingBuffer *pstBuffer;
-	PIF_stComm *pstComm;
+	PifComm *pstComm;
     PIF_stRingBuffer *pstTxBuffer;
 
 #ifdef __PIF_LOG_COMMAND__
@@ -108,7 +108,7 @@ static int _CmdSetStatus(int argc, char *argv[])
 	return PIF_LOG_CMD_TOO_FEW_ARGS;
 }
 
-static BOOL _GetDebugString(PIF_stLog *pstOwner, PIF_actCommReceiveData actReceiveData)
+static BOOL _GetDebugString(PIF_stLog *pstOwner, PifActCommReceiveData actReceiveData)
 {
     BOOL bRes;
     char cTmpChar;
@@ -213,7 +213,7 @@ static int _ProcessDebugCmd(PIF_stLog *pstOwner)
     return PIF_LOG_CMD_NO_ERROR;
 }
 
-static void _evtParsing(void *pvClient, PIF_actCommReceiveData actReceiveData)
+static void _evtParsing(void *pvClient, PifActCommReceiveData actReceiveData)
 {
 	PIF_stLog *pstOwner = (PIF_stLog *)pvClient;
 
@@ -226,7 +226,7 @@ static void _evtParsing(void *pvClient, PIF_actCommReceiveData actReceiveData)
 
 #else
 
-static void _evtParsing(void *pvClient, PIF_actCommReceiveData actReceiveData)
+static void _evtParsing(void *pvClient, PifActCommReceiveData actReceiveData)
 {
     (void)pvClient;
     (void)actReceiveData;
@@ -234,7 +234,7 @@ static void _evtParsing(void *pvClient, PIF_actCommReceiveData actReceiveData)
 
 #endif
 
-static BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
+static BOOL _evtSending(void *pvClient, PifActCommSendData actSendData)
 {
 	PIF_stLog *pstOwner = (PIF_stLog *)pvClient;
 	uint16_t usLength;
@@ -256,7 +256,7 @@ static void _PrintLog(char *pcString, BOOL bVcd)
 
 	if (s_stLog.bEnable || bVcd) {
         if (!pifRingBuffer_PutString(s_stLog.pstTxBuffer, pcString)) {
-        	pifTaskManager_YieldPeriod(s_stLog.pstComm->_pstTask);
+        	pifTaskManager_YieldPeriod(s_stLog.pstComm->_p_task);
             pifRingBuffer_PutString(s_stLog.pstTxBuffer, pcString);
         }
         pifComm_ForceSendData(s_stLog.pstComm);
@@ -442,11 +442,11 @@ void pifLog_PrintInBuffer()
 {
 	uint16_t usLength;
 
-	if (!s_stLog.pstComm->_pstTask || !pifRingBuffer_IsBuffer(s_stLog.pstBuffer)) return;
+	if (!s_stLog.pstComm->_p_task || !pifRingBuffer_IsBuffer(s_stLog.pstBuffer)) return;
 
 	while (!pifRingBuffer_IsEmpty(s_stLog.pstBuffer)) {
 		while (!pifRingBuffer_IsEmpty(s_stLog.pstTxBuffer)) {
-			pifTaskManager_YieldPeriod(s_stLog.pstComm->_pstTask);
+			pifTaskManager_YieldPeriod(s_stLog.pstComm->_p_task);
 		}
 		usLength = pifRingBuffer_CopyAll(s_stLog.pstTxBuffer, s_stLog.pstBuffer, 0);
 		pifRingBuffer_Remove(s_stLog.pstBuffer, usLength);
@@ -462,7 +462,7 @@ void pifLog_PrintInBuffer()
  */
 PifTask *pifLog_GetCommTask()
 {
-	return s_stLog.pstComm->_pstTask;
+	return s_stLog.pstComm->_p_task;
 }
 
 /**
@@ -471,15 +471,15 @@ PifTask *pifLog_GetCommTask()
  * @param pstComm
  * @return
  */
-BOOL pifLog_AttachComm(PIF_stComm *pstComm)
+BOOL pifLog_AttachComm(PifComm *pstComm)
 {
     s_stLog.pstTxBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_LOG_TX_BUFFER_SIZE);
     if (!s_stLog.pstTxBuffer) return FALSE;
 
 	s_stLog.pstComm = pstComm;
 	pifComm_AttachClient(pstComm, &s_stLog);
-	pstComm->evtParsing = _evtParsing;
-	pstComm->evtSending = _evtSending;
+	pstComm->evt_parsing = _evtParsing;
+	pstComm->evt_sending = _evtSending;
     return TRUE;
 }
 

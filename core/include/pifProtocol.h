@@ -165,7 +165,7 @@ typedef struct _PIF_stProtocol
 
 	// Private Member Variable
     PifPulse *__pstTimer;
-	PIF_stComm *__pstComm;
+	PifComm *__pstComm;
     const PIF_stProtocolQuestion *__pstQuestions;
     PIF_stProtocolRx __stRx;
     PIF_stProtocolTx __stTx;
@@ -188,7 +188,7 @@ BOOL pifProtocol_ResizeRxPacket(PIF_stProtocol *pstOwner, uint16_t usRxPacketSiz
 BOOL pifProtocol_ResizeTxRequest(PIF_stProtocol *pstOwner, uint16_t usTxRequestSize);
 BOOL pifProtocol_ResizeTxResponse(PIF_stProtocol *pstOwner, uint16_t usTxResponseSize);
 
-void pifProtocol_AttachComm(PIF_stProtocol *pstOwner, PIF_stComm *pstComm);
+void pifProtocol_AttachComm(PIF_stProtocol *pstOwner, PifComm *pstComm);
 
 BOOL pifProtocol_MakeRequest(PIF_stProtocol *pstOwner, const PIF_stProtocolRequest *pstRequest, uint8_t *pucData, uint16_t usDataSize);
 BOOL pifProtocol_MakeAnswer(PIF_stProtocol *pstOwner, PIF_stProtocolPacket *pstQuestion, uint8_t enFlags,

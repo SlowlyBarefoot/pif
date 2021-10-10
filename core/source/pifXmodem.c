@@ -66,7 +66,7 @@ static const char *c_cPktErr[] = {
 
 #endif
 
-static void _ParsingPacket(PIF_stXmodem *pstOwner, PIF_actCommReceiveData actReceiveData)
+static void _ParsingPacket(PIF_stXmodem *pstOwner, PifActCommReceiveData actReceiveData)
 {
 	PIF_stXmodemPacket *pstPacket = &pstOwner->__stRx.stPacket;
 	uint8_t data;
@@ -192,7 +192,7 @@ fail:
 	pstOwner->__stTx.ui.enState = XTS_enNAK;
 }
 
-static void _evtParsing(void *pvOwner, PIF_actCommReceiveData actReceiveData)
+static void _evtParsing(void *pvOwner, PifActCommReceiveData actReceiveData)
 {
 	PIF_stXmodem *pstOwner = (PIF_stXmodem *)pvOwner;
 	uint8_t data;
@@ -247,7 +247,7 @@ static void _evtParsing(void *pvOwner, PIF_actCommReceiveData actReceiveData)
 	}
 }
 
-static BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
+static BOOL _evtSending(void *pvClient, PifActCommSendData actSendData)
 {
 	PIF_stXmodem *pstOwner = (PIF_stXmodem *)pvClient;
 	uint16_t usLength;
@@ -433,12 +433,12 @@ void pifXmodem_SetReceiveTimeout(PIF_stXmodem *pstOwner, uint16_t usReceiveTimeo
  * @param pstOwner
  * @param pstComm
  */
-void pifXmodem_AttachComm(PIF_stXmodem *pstOwner, PIF_stComm *pstComm)
+void pifXmodem_AttachComm(PIF_stXmodem *pstOwner, PifComm *pstComm)
 {
 	pstOwner->__pstComm = pstComm;
 	pifComm_AttachClient(pstComm, pstOwner);
-	pstComm->evtParsing = _evtParsing;
-	pstComm->evtSending = _evtSending;
+	pstComm->evt_parsing = _evtParsing;
+	pstComm->evt_sending = _evtSending;
 }
 
 /**

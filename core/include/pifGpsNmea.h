@@ -79,7 +79,7 @@ typedef struct _PIF_stGpsNmea
     PIF_stGps _stGps;
 
 	// Private Member Variable
-	PIF_stComm *__pstComm;
+	PifComm *__pstComm;
     PIF_stGpsNmeaTx __stTx;
     uint32_t __unProcessMessageId;
     PIF_ucGpsNmeaMessageId __ucEventMessageId;
@@ -97,7 +97,7 @@ extern "C" {
 PIF_stGpsNmea *pifGpsNmea_Create(PifId usPifId);
 void pifGpsNmea_Destroy(PIF_stGpsNmea **ppstOwner);
 
-void pifGpsNmea_AttachComm(PIF_stGpsNmea *pstOwner, PIF_stComm *pstComm);
+void pifGpsNmea_AttachComm(PIF_stGpsNmea *pstOwner, PifComm *pstComm);
 void pifGpsNmea_AttachEvtText(PIF_stGpsNmea *pstOwner, PIF_evtGpsNmeaText evtText);
 
 BOOL pifGpsNmea_SetProcessMessageId(PIF_stGpsNmea *pstOwner, int nCount, ...);

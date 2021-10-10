@@ -97,7 +97,7 @@ typedef struct _PIF_stXmodem
 
 	// Private Member Variable
 	PifPulse *__pstTimer;
-	PIF_stComm *__pstComm;
+	PifComm *__pstComm;
 	PIF_enXmodemType __enType;
 	uint16_t __usPacketSize;
 	PIF_stXmodemTx __stTx;
@@ -116,7 +116,7 @@ void pifXmodem_Destroy(PIF_stXmodem** pp_owner);
 void pifXmodem_SetResponseTimeout(PIF_stXmodem *pstOwner, uint16_t usResponseTimeout);
 void pifXmodem_SetReceiveTimeout(PIF_stXmodem *pstOwner, uint16_t usReceiveTimeout);
 
-void pifXmodem_AttachComm(PIF_stXmodem *pstOwner, PIF_stComm *pstComm);
+void pifXmodem_AttachComm(PIF_stXmodem *pstOwner, PifComm *pstComm);
 void pifXmodem_AttachEvtTxReceive(PIF_stXmodem *pstOwner, PIF_evtXmodemTxReceive evtTxReceive);
 void pifXmodem_AttachEvtRxReceive(PIF_stXmodem *pstOwner, PIF_evtXmodemRxReceive evtRxReceive);
 

@@ -173,7 +173,7 @@ fail:
      - GPS speed
 */
 
-static void _evtParsing(void *pvClient, PIF_actCommReceiveData actReceiveData)
+static void _evtParsing(void *pvClient, PifActCommReceiveData actReceiveData)
 {
 	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pvClient;
 	PIF_stGps *pstParent = &pstOwner->_stGps;
@@ -338,7 +338,7 @@ static void _evtParsing(void *pvClient, PIF_actCommReceiveData actReceiveData)
 	}
 }
 
-BOOL _evtSending(void *pvClient, PIF_actCommSendData actSendData)
+BOOL _evtSending(void *pvClient, PifActCommSendData actSendData)
 {
 	PIF_stGpsNmea *pstOwner = (PIF_stGpsNmea *)pvClient;
 	uint16_t usLength;
@@ -427,12 +427,12 @@ void pifGpsNmea_Destroy(PIF_stGpsNmea **ppstOwner)
  * @param pstOwner
  * @param pstComm
  */
-void pifGpsNmea_AttachComm(PIF_stGpsNmea *pstOwner, PIF_stComm *pstComm)
+void pifGpsNmea_AttachComm(PIF_stGpsNmea *pstOwner, PifComm *pstComm)
 {
 	pstOwner->__pstComm = pstComm;
 	pifComm_AttachClient(pstComm, pstOwner);
-	pstComm->evtParsing = _evtParsing;
-	pstComm->evtSending = _evtSending;
+	pstComm->evt_parsing = _evtParsing;
+	pstComm->evt_sending = _evtSending;
 }
 
 /**
@@ -515,7 +515,7 @@ BOOL pifGpsNmea_PollRequestGBQ(PIF_stGpsNmea *pstOwner, const char *pcMagId)
 	char data[16] = "$GBGBQ,";
 	int i;
 
-	if (!pstOwner->__pstComm->__actSendData) {
+	if (!pstOwner->__pstComm->__act_send_data) {
 		pif_error = E_TRANSFER_FAILED;
 		return FALSE;
 	}
@@ -547,7 +547,7 @@ BOOL pifGpsNmea_PollRequestGLQ(PIF_stGpsNmea *pstOwner, const char *pcMagId)
 	char data[16] = "$GLGLQ,";
 	int i;
 
-	if (!pstOwner->__pstComm->__actSendData) {
+	if (!pstOwner->__pstComm->__act_send_data) {
 		pif_error = E_TRANSFER_FAILED;
 		return FALSE;
 	}
@@ -579,7 +579,7 @@ BOOL pifGpsNmea_PollRequestGNQ(PIF_stGpsNmea *pstOwner, const char *pcMagId)
 	char data[16] = "$GNGNQ,";
 	int i;
 
-	if (!pstOwner->__pstComm->__actSendData) {
+	if (!pstOwner->__pstComm->__act_send_data) {
 		pif_error = E_TRANSFER_FAILED;
 		return FALSE;
 	}
@@ -611,7 +611,7 @@ BOOL pifGpsNmea_PollRequestGPQ(PIF_stGpsNmea *pstOwner, const char *pcMagId)
 	char data[16] = "$GPGPQ,";
 	int i;
 
-	if (!pstOwner->__pstComm->__actSendData) {
+	if (!pstOwner->__pstComm->__act_send_data) {
 		pif_error = E_TRANSFER_FAILED;
 		return FALSE;
 	}

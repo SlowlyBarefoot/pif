@@ -88,7 +88,7 @@ void pifLog_PrintInBuffer();
 PifTask *pifLog_GetCommTask();
 
 // Attach Function
-BOOL pifLog_AttachComm(PIF_stComm *pstComm);
+BOOL pifLog_AttachComm(PifComm *pstComm);
 
 #ifdef __PIF_LOG_COMMAND__
 // Task Function

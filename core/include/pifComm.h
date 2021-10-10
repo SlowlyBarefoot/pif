@@ -46,48 +46,49 @@
 #define PIF_COMM_SEND_DATA_STATE_EMPTY		2
 
 
-typedef struct _PIF_stComm PIF_stComm;
+struct StPifComm;
+typedef struct StPifComm PifComm;
 
-typedef BOOL (*PIF_actCommReceiveData)(PIF_stComm *pstComm, uint8_t *pucData);
-typedef uint16_t (*PIF_actCommSendData)(PIF_stComm *pstComm, uint8_t *pucBuffer, uint16_t usSize);
+typedef BOOL (*PifActCommReceiveData)(PifComm* p_comm, uint8_t* p_data);
+typedef uint16_t (*PifActCommSendData)(PifComm* p_comm, uint8_t* p_buffer, uint16_t size);
 
-typedef void (*PIF_evtCommParsing)(void *pvClient, PIF_actCommReceiveData actReceiveData);
-typedef BOOL (*PIF_evtCommSending)(void *pvClient, PIF_actCommSendData actSendData);
+typedef void (*PifEvtCommParsing)(void* p_client, PifActCommReceiveData act_receive_data);
+typedef BOOL (*PifEvtCommSending)(void* p_client, PifActCommSendData act_send_data);
 
-typedef BOOL (*PIF_actCommStartTransfer)();
+typedef BOOL (*PifActCommStartTransfer)();
 
-typedef enum _PIF_enCommTxState
+typedef enum EnPifCommTxState
 {
-	CTS_enIdle		= 0,
-	CTS_enSending	= 1
-} PIF_enCommTxState;
+	CTS_IDLE		= 0,
+	CTS_SENDING		= 1
+} PifCommTxState;
 
 /**
- * @class _PIF_stComm
+ * @class StPifComm
  * @brief
  */
-struct _PIF_stComm
+struct StPifComm
 {
 	// Public Member Variable
 
     // Public Event Function
-    PIF_evtCommParsing evtParsing;
-    PIF_evtCommSending evtSending;
+    PifEvtCommParsing evt_parsing;
+    PifEvtCommSending evt_sending;
 
 	// Read-only Member Variable
-    PifId _usPifId;
-    PIF_stRingBuffer *_pstTxBuffer;
-    PIF_stRingBuffer *_pstRxBuffer;
-    PifTask *_pstTask;
+    PifId _id;
+    PIF_stRingBuffer* _p_tx_buffer;
+    PIF_stRingBuffer* _p_rx_buffer;
+    PifTask* _p_task;
 
 	// Private Member Variable
-    void *__pvClient;
-    PIF_enCommTxState __enState;
+    void* __p_client;
+    PifCommTxState __state;
 
 	// Private Action Function
-	PIF_actCommReceiveData __actReceiveData;
-    PIF_actCommSendData __actSendData;
-    PIF_actCommStartTransfer __actStartTransfer;
+	PifActCommReceiveData __act_receive_data;
+    PifActCommSendData __act_send_data;
+    PifActCommStartTransfer __act_start_transfer;
 };
 
 
@@ -95,31 +96,31 @@ struct _PIF_stComm
 extern "C" {
 #endif
 
-PIF_stComm *pifComm_Create(PifId usPifId);
-void pifComm_Destroy(PIF_stComm** pp_owner);
+PifComm* pifComm_Create(PifId id);
+void pifComm_Destroy(PifComm** pp_owner);
 
-BOOL pifComm_AllocRxBuffer(PIF_stComm *pstOwner, uint16_t usRxSize);
-BOOL pifComm_AllocTxBuffer(PIF_stComm *pstOwner, uint16_t usTxSize);
+BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_size);
+BOOL pifComm_AllocTxBuffer(PifComm* p_owner, uint16_t tx_size);
 
-void pifComm_AttachClient(PIF_stComm *pstOwner, void *pvClient);
-void pifComm_AttachActReceiveData(PIF_stComm *pstOwner, PIF_actCommReceiveData actReceiveData);
-void pifComm_AttachActSendData(PIF_stComm *pstOwner, PIF_actCommSendData actSendData);
-void pifComm_AttachActStartTransfer(PIF_stComm *pstOwner, PIF_actCommStartTransfer actStartTransfer);
+void pifComm_AttachClient(PifComm* p_owner, void* p_client);
+void pifComm_AttachActReceiveData(PifComm* p_owner, PifActCommReceiveData act_receive_data);
+void pifComm_AttachActSendData(PifComm* p_owner, PifActCommSendData act_send_data);
+void pifComm_AttachActStartTransfer(PifComm* p_owner, PifActCommStartTransfer act_start_transfer);
 
-uint16_t pifComm_GetRemainSizeOfRxBuffer(PIF_stComm *pstOwner);
-uint16_t pifComm_GetFillSizeOfTxBuffer(PIF_stComm *pstOwner);
+uint16_t pifComm_GetRemainSizeOfRxBuffer(PifComm* p_owner);
+uint16_t pifComm_GetFillSizeOfTxBuffer(PifComm* p_owner);
 
-BOOL pifComm_ReceiveData(PIF_stComm *pstOwner, uint8_t ucData);
-BOOL pifComm_ReceiveDatas(PIF_stComm *pstOwner, uint8_t *pucData, uint16_t usLength);
-uint8_t pifComm_SendData(PIF_stComm *pstOwner, uint8_t *pucData);
-uint8_t pifComm_StartSendDatas(PIF_stComm *pstOwner, uint8_t **ppucData, uint16_t *pusLength);
-uint8_t pifComm_EndSendDatas(PIF_stComm *pstOwner, uint16_t usLength);
-void pifComm_FinishTransfer(PIF_stComm *pstOwner);
+BOOL pifComm_ReceiveData(PifComm* p_owner, uint8_t data);
+BOOL pifComm_ReceiveDatas(PifComm* p_owner, uint8_t* p_data, uint16_t length);
+uint8_t pifComm_SendData(PifComm* p_owner, uint8_t* p_data);
+uint8_t pifComm_StartSendDatas(PifComm* p_owner, uint8_t** pp_data, uint16_t *p_length);
+uint8_t pifComm_EndSendDatas(PifComm* p_owner, uint16_t length);
+void pifComm_FinishTransfer(PifComm* p_owner);
 
-void pifComm_ForceSendData(PIF_stComm *pstOwner);
+void pifComm_ForceSendData(PifComm* p_owner);
 
 // Task Function
-PifTask *pifComm_AttachTask(PIF_stComm *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }
