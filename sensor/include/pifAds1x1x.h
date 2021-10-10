@@ -126,7 +126,7 @@ typedef struct _PIF_stAds1x1x
 
 	// Read-only Member Variable
 	PIF_enAds1x1xType _enType;
-	PIF_stI2c _stI2c;
+	PifI2c _stI2c;
 
 	// Private Member Variable
     uint8_t __unResolution;

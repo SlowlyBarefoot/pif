@@ -9,18 +9,18 @@
 
 static BOOL _ReadWord(PIF_stAds1x1x *pstOwner, const PIF_enAds1x1xReg enReg, uint16_t *pusData)
 {
-	pstOwner->_stI2c.pucData[0] = enReg;
+	pstOwner->_stI2c.p_data[0] = enReg;
 	if (!pifI2c_Write(&pstOwner->_stI2c, 1)) return FALSE;
 	if (!pifI2c_Read(&pstOwner->_stI2c, 2)) return FALSE;
-	*pusData = (pstOwner->_stI2c.pucData[0] << 8) + pstOwner->_stI2c.pucData[1];
+	*pusData = (pstOwner->_stI2c.p_data[0] << 8) + pstOwner->_stI2c.p_data[1];
 	return TRUE;
 }
 
 static BOOL _WriteWord(PIF_stAds1x1x *pstOwner, const PIF_enAds1x1xReg enReg, uint16_t usData)
 {
-	pstOwner->_stI2c.pucData[0] = enReg;
-	pstOwner->_stI2c.pucData[1] = usData >> 8;
-	pstOwner->_stI2c.pucData[2] = usData & 0xFF;
+	pstOwner->_stI2c.p_data[0] = enReg;
+	pstOwner->_stI2c.p_data[1] = usData >> 8;
+	pstOwner->_stI2c.p_data[2] = usData & 0xFF;
 	return pifI2c_Write(&pstOwner->_stI2c, 3);
 }
 
@@ -94,7 +94,7 @@ PIF_stAds1x1x *pifAds1x1x_Create(PifId usPifId, PIF_enAds1x1xType enType)
 
     if (!pifI2c_Init(&pstOwner->_stI2c, usPifId, 4)) return NULL;
 
-    pstOwner->_stI2c.ucAddr = DEFAULT_I2C_ADDR;
+    pstOwner->_stI2c.addr = DEFAULT_I2C_ADDR;
     switch (enType) {
     case AT_en1115: pstOwner->__unResolution = 16; pstOwner->__unChannels = 4; break;
     case AT_en1114: pstOwner->__unResolution = 16; pstOwner->__unChannels = 1; break;
@@ -122,9 +122,9 @@ PIF_stAds1x1x *pifAds1x1x_Create(PifId usPifId, PIF_enAds1x1xType enType)
 void pifAds1x1x_Destroy(PIF_stAds1x1x **ppstOwner)
 {
     if (*ppstOwner) {
-    	if ((*ppstOwner)->_stI2c.pucData) {
-        	free((*ppstOwner)->_stI2c.pucData);
-        	(*ppstOwner)->_stI2c.pucData = NULL;
+    	if ((*ppstOwner)->_stI2c.p_data) {
+        	free((*ppstOwner)->_stI2c.p_data);
+        	(*ppstOwner)->_stI2c.p_data = NULL;
     	}
     	free(*ppstOwner);
     	*ppstOwner = NULL;
@@ -139,7 +139,7 @@ void pifAds1x1x_Destroy(PIF_stAds1x1x **ppstOwner)
  */
 void pifAds1x1x_SetAddress(PIF_stAds1x1x *pstOwner, uint8_t ucAddr)
 {
-	pstOwner->_stI2c.ucAddr = ucAddr;
+	pstOwner->_stI2c.addr = ucAddr;
 }
 
 /**

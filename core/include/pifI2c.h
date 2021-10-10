@@ -5,42 +5,42 @@
 #include "pif.h"
 
 
-typedef enum _PIF_enI2cState
+typedef enum EnPifI2cState
 {
-	IS_enIdle,
-	IS_enRun,
-	IS_enComplete,
-	IS_enError
-} PIF_enI2cState;
+	IS_IDLE,
+	IS_RUN,
+	IS_COMPLETE,
+	IS_ERROR
+} PifI2cState;
 
 
-struct _PIF_stI2c;
-typedef struct _PIF_stI2c PIF_stI2c;
+struct StPifI2c;
+typedef struct StPifI2c PifI2c;
 
-typedef BOOL (*PIF_actI2cRead)(PIF_stI2c *pstOwner, uint16_t usSize);
-typedef BOOL (*PIF_actI2cWrite)(PIF_stI2c *pstOwner, uint16_t usSize);
+typedef BOOL (*PifActI2cRead)(PifI2c* p_owner, uint16_t size);
+typedef BOOL (*PifActI2cWrite)(PifI2c* p_owner, uint16_t size);
 
 /**
- * @class _PIF_stI2c
+ * @class StPifI2c
  * @brief
  */
-struct _PIF_stI2c
+struct StPifI2c
 {
 	// Public Member Variable
-    uint8_t ucAddr;
-	uint8_t ucDataSize;
-	uint8_t *pucData;
+    uint8_t addr;
+	uint8_t data_size;
+	uint8_t* p_data;
 
 	// Read-only Member Variable
-	PifId _usPifId;
-	volatile PIF_enI2cState _enStateRead;
-	volatile PIF_enI2cState _enStateWrite;
+	PifId _id;
+	volatile PifI2cState _state_read;
+	volatile PifI2cState _state_write;
 
 	// Private Member Variable
 
 	// Private Action Function
-	PIF_actI2cRead __actRead;
-	PIF_actI2cWrite __actWrite;
+	PifActI2cRead __act_read;
+	PifActI2cWrite __act_write;
 };
 
 
@@ -48,22 +48,22 @@ struct _PIF_stI2c
 extern "C" {
 #endif
 
-PIF_stI2c *pifI2c_Create(PifId usPifId, uint16_t ucDataSize);
-void pifI2c_Destroy(PIF_stI2c **ppstOwner);
+PifI2c* pifI2c_Create(PifId id, uint16_t data_size);
+void pifI2c_Destroy(PifI2c** pp_owner);
 
-BOOL pifI2c_Init(PIF_stI2c *pstOwner, PifId usPifId, uint16_t ucDataSize);
+BOOL pifI2c_Init(PifI2c* p_owner, PifId id, uint16_t data_size);
 
 #ifndef __PIF_NO_LOG__
-void pifI2c_ScanAddress(PIF_stI2c *pstOwner);
+void pifI2c_ScanAddress(PifI2c* p_owner);
 #endif
 
-BOOL pifI2c_Read(PIF_stI2c *pstOwner, uint8_t ucSize);
-BOOL pifI2c_Write(PIF_stI2c *pstOwner,  uint8_t ucSize);
+BOOL pifI2c_Read(PifI2c* p_owner, uint8_t size);
+BOOL pifI2c_Write(PifI2c* p_owner,  uint8_t size);
 
-void pifI2c_sigEndRead(PIF_stI2c *pstOwner, BOOL bResult);
-void pifI2c_sigEndWrite(PIF_stI2c *pstOwner, BOOL bResult);
+void pifI2c_sigEndRead(PifI2c* p_owner, BOOL result);
+void pifI2c_sigEndWrite(PifI2c* p_owner, BOOL result);
 
-void pifI2c_AttachAction(PIF_stI2c *pstOwner, PIF_actI2cRead actRead, PIF_actI2cWrite actWrite);
+void pifI2c_AttachAction(PifI2c* p_owner, PifActI2cRead act_read, PifActI2cWrite act_write);
 
 #ifdef __cplusplus
 }

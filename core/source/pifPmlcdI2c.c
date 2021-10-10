@@ -55,7 +55,7 @@
 
 static BOOL _ExpanderWrite(PIF_stPmlcdI2c *pstOwner, uint8_t ucData)
 {
-	pstOwner->_stI2c.pucData[0] = ucData | pstOwner->__ucBacklightVal;
+	pstOwner->_stI2c.p_data[0] = ucData | pstOwner->__ucBacklightVal;
 	return pifI2c_Write(&pstOwner->_stI2c, 1);
 }
 
@@ -104,7 +104,7 @@ PIF_stPmlcdI2c *pifPmlcdI2c_Create(PifId usPifId, uint8_t ucAddr)
 	}
 
     if (!pifI2c_Init(&pstOwner->_stI2c, usPifId, 2)) goto fail;
-    pstOwner->_stI2c.ucAddr = ucAddr;
+    pstOwner->_stI2c.addr = ucAddr;
     pstOwner->__ucBacklightVal = LCD_NO_BACK_LIGHT;
     pstOwner->__ucDisplayFunction = LCD_4BIT_MODE | LCD_1LINE | LCD_5x8_DOTS;
     return pstOwner;
@@ -122,9 +122,9 @@ fail:
 void pifPmlcdI2c_Destroy(PIF_stPmlcdI2c **ppstOwner)
 {
     if (*ppstOwner) {
-    	if ((*ppstOwner)->_stI2c.pucData) {
-        	free((*ppstOwner)->_stI2c.pucData);
-            (*ppstOwner)->_stI2c.pucData = NULL;
+    	if ((*ppstOwner)->_stI2c.p_data) {
+        	free((*ppstOwner)->_stI2c.p_data);
+            (*ppstOwner)->_stI2c.p_data = NULL;
     	}
     	free(*ppstOwner);
     	*ppstOwner = NULL;

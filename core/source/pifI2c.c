@@ -4,79 +4,79 @@
 #endif
 
 
-static void _Clean(PIF_stI2c *pstOwner)
+static void _Clean(PifI2c* p_owner)
 {
-	if (pstOwner->pucData) {
-		free(pstOwner->pucData);
-		pstOwner->pucData = NULL;
+	if (p_owner->p_data) {
+		free(p_owner->p_data);
+		p_owner->p_data = NULL;
 	}
 }
 
 /**
  * @fn pifI2c_Create
  * @brief
- * @param usPifId
- * @param ucDataSize
+ * @param id
+ * @param data_size
  * @return
  */
-PIF_stI2c *pifI2c_Create(PifId usPifId, uint16_t ucDataSize)
+PifI2c* pifI2c_Create(PifId id, uint16_t data_size)
 {
-	PIF_stI2c *pstOwner = calloc(sizeof(PIF_stI2c), 1);
-	if (!pstOwner) {
+	PifI2c *p_owner = calloc(sizeof(PifI2c), 1);
+	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
-	if (!pifI2c_Init(pstOwner, usPifId, ucDataSize)) goto fail;
-    return pstOwner;
+	if (!pifI2c_Init(p_owner, id, data_size)) goto fail;
+    return p_owner;
 
 fail:
-	if (pstOwner) free(pstOwner);
+	if (p_owner) free(p_owner);
 	return NULL;
 }
 
 /**
  * @fn pifI2c_Destroy
  * @brief
- * @param pstOwner
+ * @param pp_owner
  */
-void pifI2c_Destroy(PIF_stI2c **ppstOwner)
+void pifI2c_Destroy(PifI2c** pp_owner)
 {
-	if (*ppstOwner) {
-		_Clean(*ppstOwner);
-		free(*ppstOwner);
-		*ppstOwner = NULL;
+	if (*pp_owner) {
+		_Clean(*pp_owner);
+		free(*pp_owner);
+		*pp_owner = NULL;
 	}
 }
 
 /**
  * @fn pifI2c_Init
  * @brief
- * @param pstOwner
- * @param usPifId
- * @param ucDataSize
+ * @param p_owner
+ * @param id
+ * @param data_size
  * @return
  */
-BOOL pifI2c_Init(PIF_stI2c *pstOwner, PifId usPifId, uint16_t ucDataSize)
+BOOL pifI2c_Init(PifI2c* p_owner, PifId id, uint16_t data_size)
 {
-	_Clean(pstOwner);
+	_Clean(p_owner);
 
-	if (!ucDataSize) {
+	if (!data_size) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
-	pstOwner->pucData = calloc(sizeof(uint8_t), ucDataSize);
-    if (!pstOwner->pucData) {
+	p_owner->p_data = calloc(sizeof(uint8_t), data_size);
+    if (!p_owner->p_data) {
 		pif_error = E_OUT_OF_HEAP;
 		return FALSE;
 	}
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
-    pstOwner->_usPifId = usPifId;
-    pstOwner->ucDataSize = ucDataSize;
-    pstOwner->_enStateRead = IS_enIdle;
-    pstOwner->_enStateWrite = IS_enIdle;
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+    p_owner->data_size = data_size;
+    p_owner->_state_read = IS_IDLE;
+    p_owner->_state_write = IS_IDLE;
     return TRUE;
 }
 
@@ -85,16 +85,15 @@ BOOL pifI2c_Init(PIF_stI2c *pstOwner, PifId usPifId, uint16_t ucDataSize)
 /**
  * @fn pifI2c_ScanAddress
  * @brief
- * @param pstOwner
- * @return
+ * @param p_owner
  */
-void pifI2c_ScanAddress(PIF_stI2c *pstOwner)
+void pifI2c_ScanAddress(PifI2c* p_owner)
 {
 	int i;
 
 	for (i = 0; i < 127; i++) {
-		pstOwner->ucAddr = i;
-		if (pifI2c_Write(pstOwner, 0)) {
+		p_owner->addr = i;
+		if (pifI2c_Write(p_owner, 0)) {
 			pifLog_Printf(LT_enInfo, "I2C:%u Addr:%xh OK", __LINE__, i);
 		}
 	}
@@ -105,80 +104,80 @@ void pifI2c_ScanAddress(PIF_stI2c *pstOwner)
 /**
  * @fn pifI2c_Read
  * @brief
- * @param pstOwner
- * @param ucSize
+ * @param p_owner
+ * @param size
  * @return
  */
-BOOL pifI2c_Read(PIF_stI2c *pstOwner, uint8_t ucSize)
+BOOL pifI2c_Read(PifI2c* p_owner, uint8_t size)
 {
-	if (!pstOwner->__actRead) return FALSE;
+	if (!p_owner->__act_read) return FALSE;
 
-	pstOwner->_enStateRead = IS_enRun;
-	if (!(*pstOwner->__actRead)(pstOwner, ucSize)) {
-		pstOwner->_enStateRead = IS_enError;
+	p_owner->_state_read = IS_RUN;
+	if (!(*p_owner->__act_read)(p_owner, size)) {
+		p_owner->_state_read = IS_ERROR;
 		return FALSE;
 	}
 
-	while (pstOwner->_enStateRead == IS_enRun) {
+	while (p_owner->_state_read == IS_RUN) {
 		pifTaskManager_Yield();
 	}
-	return pstOwner->_enStateRead == IS_enComplete;
+	return p_owner->_state_read == IS_COMPLETE;
 }
 
 /**
  * @fn pifI2c_Write
  * @brief
- * @param pstOwner
- * @param ucSize
+ * @param p_owner
+ * @param size
  * @return
  */
-BOOL pifI2c_Write(PIF_stI2c *pstOwner, uint8_t ucSize)
+BOOL pifI2c_Write(PifI2c* p_owner, uint8_t size)
 {
-	if (!pstOwner->__actWrite) return FALSE;
+	if (!p_owner->__act_write) return FALSE;
 
-	pstOwner->_enStateWrite = IS_enRun;
-	if (!(*pstOwner->__actWrite)(pstOwner, ucSize)) {
-		pstOwner->_enStateWrite = IS_enError;
+	p_owner->_state_write = IS_RUN;
+	if (!(*p_owner->__act_write)(p_owner, size)) {
+		p_owner->_state_write = IS_ERROR;
 		return FALSE;
 	}
 
-	while (pstOwner->_enStateWrite == IS_enRun) {
+	while (p_owner->_state_write == IS_RUN) {
 		pifTaskManager_Yield();
 	}
-	return pstOwner->_enStateWrite == IS_enComplete;
+	return p_owner->_state_write == IS_COMPLETE;
 }
 
 /**
  * @fn pifI2c_sigEndRead
  * @brief
- * @param pstOwner
- * @param bResult
+ * @param p_owner
+ * @param result
  */
-void pifI2c_sigEndRead(PIF_stI2c *pstOwner, BOOL bResult)
+void pifI2c_sigEndRead(PifI2c* p_owner, BOOL result)
 {
-	pstOwner->_enStateRead = bResult ? IS_enComplete : IS_enError;
+	p_owner->_state_read = result ? IS_COMPLETE : IS_ERROR;
 }
 
 /**
  * @fn pifI2c_sigEndWrite
  * @brief
- * @param pstOwner
- * @param bResult
+ * @param p_owner
+ * @param result
  */
-void pifI2c_sigEndWrite(PIF_stI2c *pstOwner, BOOL bResult)
+void pifI2c_sigEndWrite(PifI2c* p_owner, BOOL result)
 {
-	pstOwner->_enStateWrite = bResult ? IS_enComplete : IS_enError;
+	p_owner->_state_write = result ? IS_COMPLETE : IS_ERROR;
 }
 
 /**
  * @fn pifI2c_AttachAction
  * @brief
- * @param pstOwner
- * @param actRead
- * @param actWrite
+ * @param p_owner
+ * @param act_read
+ * @param act_write
  */
-void pifI2c_AttachAction(PIF_stI2c *pstOwner, PIF_actI2cRead actRead, PIF_actI2cWrite actWrite)
+void pifI2c_AttachAction(PifI2c* p_owner, PifActI2cRead act_read, PifActI2cWrite act_write)
 {
-	pstOwner->__actRead = actRead;
-	pstOwner->__actWrite = actWrite;
+	p_owner->__act_read = act_read;
+	p_owner->__act_write = act_write;
 }
