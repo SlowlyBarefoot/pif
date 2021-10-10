@@ -88,7 +88,7 @@ struct StPifSolenoid
     PifPulseItem* __p_timer_on;
 	PifPulseItem* __p_timer_delay;
     PifSolenoidDir __dir;
-	PIF_stRingData* __p_buffer;
+	PifRingData* __p_buffer;
 #ifdef __PIF_COLLECT_SIGNAL__
 	PifSolenoidColSig* __p_colsig;
 #endif

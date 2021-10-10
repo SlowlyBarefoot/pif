@@ -7,29 +7,29 @@
 /**
  * @fn pifRingData_Create
  * @brief
- * @param usPifId
- * @param usDataSize
- * @param usDataCount
+ * @param id
+ * @param data_size
+ * @param data_count
  * @return
  */
-PIF_stRingData *pifRingData_Create(PifId usPifId, uint16_t usDataSize, uint16_t usDataCount)
+PifRingData* pifRingData_Create(PifId id, uint16_t data_size, uint16_t data_count)
 {
-	PIF_stRingData *pstOwner;
+	PifRingData* p_owner;
 
-	pstOwner = calloc(sizeof(PIF_stRingData) + usDataSize * usDataCount, 1);
-	if (!pstOwner) {
+	p_owner = calloc(sizeof(PifRingData) + data_size * data_count, 1);
+	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-	if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
-    pstOwner->_usPifId = usPifId;
-    pstOwner->_usDataSize = usDataSize;
-    pstOwner->_usDataCount = usDataCount;
-    pstOwner->__usHead = 0;
-    pstOwner->__usTail = 0;
-    pstOwner->__pvData = (void *)pstOwner + sizeof(PIF_stRingData);
-    return pstOwner;
+	if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+    p_owner->_data_size = data_size;
+    p_owner->_data_count = data_count;
+    p_owner->__head = 0;
+    p_owner->__tail = 0;
+    p_owner->__p_data = (uint8_t*)p_owner + sizeof(PifRingData);
+    return p_owner;
 }
 
 /**
@@ -37,7 +37,7 @@ PIF_stRingData *pifRingData_Create(PifId usPifId, uint16_t usDataSize, uint16_t 
  * @brief
  * @param pp_owner
  */
-void pifRingData_Destroy(PIF_stRingData** pp_owner)
+void pifRingData_Destroy(PifRingData** pp_owner)
 {
 	if (*pp_owner) {
         free(*pp_owner);
@@ -48,84 +48,84 @@ void pifRingData_Destroy(PIF_stRingData** pp_owner)
 /**
  * @fn pifRingData_IsEmpty
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-BOOL pifRingData_IsEmpty(PIF_stRingData *pstOwner)
+BOOL pifRingData_IsEmpty(PifRingData* p_owner)
 {
-	return pstOwner->__usHead == pstOwner->__usTail;
+	return p_owner->__head == p_owner->__tail;
 }
 
 /**
  * @fn pifRingData_GetData
  * @brief
- * @param pstOwner
- * @param usIndex
+ * @param p_owner
+ * @param index
  * @return
  */
-void *pifRingData_GetData(PIF_stRingData *pstOwner, uint16_t usIndex)
+void* pifRingData_GetData(PifRingData* p_owner, uint16_t index)
 {
-	return pstOwner->__pvData + (usIndex * pstOwner->_usDataSize);
+	return p_owner->__p_data + (index * p_owner->_data_size);
 }
 
 /**
  * @fn pifRingData_GetFirstData
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-void *pifRingData_GetFirstData(PIF_stRingData *pstOwner)
+void* pifRingData_GetFirstData(PifRingData* p_owner)
 {
-	if (pstOwner->__usHead == pstOwner->__usTail) return NULL;
-	pstOwner->__usIndex = pstOwner->__usTail;
-	return pstOwner->__pvData + (pstOwner->__usIndex * pstOwner->_usDataSize);
+	if (p_owner->__head == p_owner->__tail) return NULL;
+	p_owner->__index = p_owner->__tail;
+	return p_owner->__p_data + (p_owner->__index * p_owner->_data_size);
 }
 
 /**
  * @fn pifRingData_GetNextData
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-void *pifRingData_GetNextData(PIF_stRingData *pstOwner)
+void* pifRingData_GetNextData(PifRingData* p_owner)
 {
-	pstOwner->__usIndex++;
-	if (pstOwner->__usIndex >= pstOwner->_usDataCount) pstOwner->__usIndex = 0;
-	if (pstOwner->__usIndex == pstOwner->__usHead) return NULL;
-	return pstOwner->__pvData + (pstOwner->__usIndex * pstOwner->_usDataSize);
+	p_owner->__index++;
+	if (p_owner->__index >= p_owner->_data_count) p_owner->__index = 0;
+	if (p_owner->__index == p_owner->__head) return NULL;
+	return p_owner->__p_data + (p_owner->__index * p_owner->_data_size);
 }
 
 /**
  * @fn pifRingData_GetFillSize
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-uint16_t pifRingData_GetFillSize(PIF_stRingData *pstOwner)
+uint16_t pifRingData_GetFillSize(PifRingData* p_owner)
 {
-	if (pstOwner->__usHead > pstOwner->__usTail) {
-    	return pstOwner->__usHead - pstOwner->__usTail;
+	if (p_owner->__head > p_owner->__tail) {
+    	return p_owner->__head - p_owner->__tail;
     }
     else {
-    	return pstOwner->_usDataCount - pstOwner->__usTail + pstOwner->__usHead;
+    	return p_owner->_data_count - p_owner->__tail + p_owner->__head;
     }
 }
 
 /**
  * @fn pifRingData_GetRemainSize
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-uint16_t pifRingData_GetRemainSize(PIF_stRingData *pstOwner)
+uint16_t pifRingData_GetRemainSize(PifRingData* p_owner)
 {
 	uint16_t usRemain;
 
-    if (pstOwner->__usHead < pstOwner->__usTail) {
-    	usRemain = pstOwner->__usTail - pstOwner->__usHead;
+    if (p_owner->__head < p_owner->__tail) {
+    	usRemain = p_owner->__tail - p_owner->__head;
     }
     else {
-    	usRemain = pstOwner->_usDataCount - pstOwner->__usHead + pstOwner->__usTail;
+    	usRemain = p_owner->_data_count - p_owner->__head + p_owner->__tail;
     }
     return usRemain - 1;
 }
@@ -133,39 +133,39 @@ uint16_t pifRingData_GetRemainSize(PIF_stRingData *pstOwner)
 /**
  * @fn pifRingData_Add
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-void *pifRingData_Add(PIF_stRingData *pstOwner)
+void* pifRingData_Add(PifRingData* p_owner)
 {
-	uint16_t next =	pstOwner->__usHead + 1;
+	uint16_t next =	p_owner->__head + 1;
 
-	if (next >= pstOwner->_usDataCount) next = 0;
-	if (next == pstOwner->__usTail) {
+	if (next >= p_owner->_data_count) next = 0;
+	if (next == p_owner->__tail) {
 		pif_error = E_OVERFLOW_BUFFER;
 		return NULL;
 	}
 
-	void *pvData = pstOwner->__pvData + (pstOwner->__usHead * pstOwner->_usDataSize);
-	pstOwner->__usHead = next;
-	return pvData;
+	uint8_t* p_data = p_owner->__p_data + (p_owner->__head * p_owner->_data_size);
+	p_owner->__head = next;
+	return p_data;
 }
 
 /**
  * @fn pifRingData_Remove
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-void *pifRingData_Remove(PIF_stRingData *pstOwner)
+void* pifRingData_Remove(PifRingData* p_owner)
 {
-	if (pstOwner->__usHead == pstOwner->__usTail) {
+	if (p_owner->__head == p_owner->__tail) {
 		pif_error = E_EMPTY_IN_BUFFER;
 		return NULL;
 	}
 
-	void *pvData = pstOwner->__pvData + (pstOwner->__usTail * pstOwner->_usDataSize);
-	pstOwner->__usTail++;
-	if (pstOwner->__usTail >= pstOwner->_usDataCount) pstOwner->__usTail = 0;
-	return pvData;
+	uint8_t* p_data = p_owner->__p_data + (p_owner->__tail * p_owner->_data_size);
+	p_owner->__tail++;
+	if (p_owner->__tail >= p_owner->_data_count) p_owner->__tail = 0;
+	return p_data;
 }
