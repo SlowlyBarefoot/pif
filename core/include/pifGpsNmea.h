@@ -32,81 +32,81 @@
 #define NMEA_MESSAGE_ID_GPQ		24		// Poll Request
 
 
-typedef uint8_t PIF_ucGpsNmeaMessageId;
+typedef uint8_t PifGpsNmeaMessageId;
 
-typedef enum _PIF_enGpsNmeaTxState
+typedef enum EnPifGpsNmeaTxState
 {
-	GPTS_enIdle			= 0,
-	GPTS_enSending		= 1,
-	GPTS_enWaitSended	= 2,
-	GPTS_enWaitResponse	= 3
-} PIF_enGpsNmeaTxState;
+	GPTS_IDLE			= 0,
+	GPTS_SENDING		= 1,
+	GPTS_WAIT_SENDED	= 2,
+	GPTS_WAIT_RESPONSE	= 3
+} PifGpsNmeaTxState;
 
-typedef struct _PIF_stGpsNmeaTx
+typedef struct StPifGpsNmeaTx
 {
-    PifRingBuffer *pstBuffer;
-	PIF_enGpsNmeaTxState enState;
+    PifRingBuffer* p_buffer;
+	PifGpsNmeaTxState state;
 	union {
-		uint8_t ucInfo[4];
+		uint8_t info[4];
 		struct {
-			uint8_t ucLength;
-			uint8_t ucResponse;
-			uint16_t usCommand;
-		} stInfo;
+			uint8_t length;
+			uint8_t response;
+			uint16_t command;
+		} st;
 	} ui;
-	uint8_t ucPos;
-} PIF_stGpsNmeaTx;
+	uint8_t pos;
+} PifGpsNmeaTx;
 
-typedef struct _PIF_stGpsNmeaTxt
+typedef struct StPifGpsNmeaTxt
 {
-	uint8_t ucTotal;
-	uint8_t ucNum;
-	uint8_t ucType;
-	char acText[PIF_GPS_NMEA_VALUE_SIZE];
-} PIF_stGpsNmeaTxt;
+	uint8_t total;
+	uint8_t num;
+	uint8_t type;
+	char text[PIF_GPS_NMEA_VALUE_SIZE];
+} PifGpsNmeaTxt;
 
-typedef void (*PIF_evtGpsNmeaText)(PIF_stGpsNmeaTxt *pstTxt);
+typedef void (*PifEvtGpsNmeaText)(PifGpsNmeaTxt* p_txt);
 
 /**
- * @class _PIF_stGpsNmea
+ * @class StPifGpsNmea
  * @brief
  */
-typedef struct _PIF_stGpsNmea
+typedef struct StPifGpsNmea
 {
 	// Public Member Variable
 
 	// Read-only Member Variable
-    PIF_stGps _stGps;
+    PifGps _gps;
 
 	// Private Member Variable
-	PifComm *__pstComm;
-    PIF_stGpsNmeaTx __stTx;
-    uint32_t __unProcessMessageId;
-    PIF_ucGpsNmeaMessageId __ucEventMessageId;
-    PIF_stGpsNmeaTxt *__pstTxt;
+	PifComm* __p_comm;
+    PifGpsNmeaTx __tx;
+    uint32_t __process_message_id;
+    PifGpsNmeaMessageId __event_message_id;
+    PifGpsNmeaTxt* __p_txt;
 
 	// Private Member Variable
-    PIF_evtGpsNmeaText __evtText;
-} PIF_stGpsNmea;
+    PifEvtGpsNmeaText __evt_text;
+} PifGpsNmea;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PIF_stGpsNmea *pifGpsNmea_Create(PifId usPifId);
-void pifGpsNmea_Destroy(PIF_stGpsNmea **ppstOwner);
+PifGpsNmea* pifGpsNmea_Create(PifId usPifId);
+void pifGpsNmea_Destroy(PifGpsNmea** pp_owner);
 
-void pifGpsNmea_AttachComm(PIF_stGpsNmea *pstOwner, PifComm *pstComm);
-void pifGpsNmea_AttachEvtText(PIF_stGpsNmea *pstOwner, PIF_evtGpsNmeaText evtText);
+void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* pstComm);
+void pifGpsNmea_AttachEvtText(PifGpsNmea* p_owner, PifEvtGpsNmeaText evt_text);
 
-BOOL pifGpsNmea_SetProcessMessageId(PIF_stGpsNmea *pstOwner, int nCount, ...);
-void pifGpsNmea_SetEventMessageId(PIF_stGpsNmea *pstOwner, PIF_ucGpsNmeaMessageId ucMessageId);
+BOOL pifGpsNmea_SetProcessMessageId(PifGpsNmea* p_owner, int count, ...);
+void pifGpsNmea_SetEventMessageId(PifGpsNmea* p_owner, PifGpsNmeaMessageId message_id);
 
-BOOL pifGpsNmea_PollRequestGBQ(PIF_stGpsNmea *pstOwner, const char *pcMagId);
-BOOL pifGpsNmea_PollRequestGLQ(PIF_stGpsNmea *pstOwner, const char *pcMagId);
-BOOL pifGpsNmea_PollRequestGNQ(PIF_stGpsNmea *pstOwner, const char *pcMagId);
-BOOL pifGpsNmea_PollRequestGPQ(PIF_stGpsNmea *pstOwner, const char *pcMagId);
+BOOL pifGpsNmea_PollRequestGBQ(PifGpsNmea* p_owner, const char* p_mag_id);
+BOOL pifGpsNmea_PollRequestGLQ(PifGpsNmea* p_owner, const char* p_mag_id);
+BOOL pifGpsNmea_PollRequestGNQ(PifGpsNmea* p_owner, const char* p_mag_id);
+BOOL pifGpsNmea_PollRequestGPQ(PifGpsNmea* p_owner, const char* p_mag_id);
 
 #ifdef __cplusplus
 }

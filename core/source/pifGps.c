@@ -7,132 +7,132 @@
 /**
  * @fn pifGps_Create
  * @brief
- * @param usPifId
+ * @param id
  * @return
  */
-PIF_stGps *pifGps_Create(PifId usPifId)
+PifGps* pifGps_Create(PifId id)
 {
-	PIF_stGps *pstOwner = calloc(sizeof(PIF_stGps), 1);
-	if (!pstOwner) {
+	PifGps *p_owner = calloc(sizeof(PifGps), 1);
+	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-	pifGps_Init(pstOwner, usPifId);
-    return pstOwner;
+	pifGps_Init(p_owner, id);
+    return p_owner;
 }
 
 /**
  * @fn pifGps_Destroy
  * @brief
- * @param ppstOwner
+ * @param pp_owner
  */
-void pifGps_Destroy(PIF_stGps **ppstOwner)
+void pifGps_Destroy(PifGps** pp_owner)
 {
-	if (*ppstOwner) {
-		free(*ppstOwner);
-		*ppstOwner = NULL;
+	if (*pp_owner) {
+		free(*pp_owner);
+		*pp_owner = NULL;
 	}
 }
 
 /**
  * @fn pifGps_Init
  * @brief
- * @param pstOwner
- * @param usPifId
+ * @param p_owner
+ * @param id
  */
-void pifGps_Init(PIF_stGps *pstOwner, PifId usPifId)
+void pifGps_Init(PifGps* p_owner, PifId id)
 {
-	if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
-	pstOwner->_usPifId = usPifId;
+	if (id == PIF_ID_AUTO) id = pif_id++;
+	p_owner->_id = id;
 }
 
 /**
  * @fn pifGps_AttachEvent
  * @brief
- * @param pstOwner
- * @param evtReceive
+ * @param p_owner
+ * @param evt_receive
  */
-void pifGps_AttachEvent(PIF_stGps *pstOwner, PIF_evtGpsReceive evtReceive)
+void pifGps_AttachEvent(PifGps* p_owner, PifEvtGpsReceive evt_receive)
 {
-	pstOwner->__evtReceive = evtReceive;
+	p_owner->__evt_receive = evt_receive;
 }
 
 /**
  * @fn pifGps_ConvertLatitude2DegMin
  * @brief
- * @param pstOwner
- * @param pstDegMin
+ * @param p_owner
+ * @param p_deg_min
  */
-void pifGps_ConvertLatitude2DegMin(PIF_stGps *pstOwner, PIF_stDegMin *pstDegMin)
+void pifGps_ConvertLatitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min)
 {
 	double degree, minute;
 
-	degree = pstOwner->_dCoordDeg[GPS_LAT];
-	pstDegMin->usDegree = degree;
-	minute = (degree - pstDegMin->usDegree) * 60;
-	pstDegMin->dMinute = minute;
+	degree = p_owner->_coord_deg[GPS_LAT];
+	p_deg_min->degree = degree;
+	minute = (degree - p_deg_min->degree) * 60;
+	p_deg_min->minute = minute;
 }
 
 /**
  * @fn pifGps_ConvertLongitude2DegMin
  * @brief
- * @param pstOwner
- * @param pstDegMin
+ * @param p_owner
+ * @param p_deg_min
  */
-void pifGps_ConvertLongitude2DegMin(PIF_stGps *pstOwner, PIF_stDegMin *pstDegMin)
+void pifGps_ConvertLongitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min)
 {
 	double degree, minute;
 
-	degree = pstOwner->_dCoordDeg[GPS_LON];
-	pstDegMin->usDegree = degree;
-	minute = (degree - pstDegMin->usDegree) * 60;
-	pstDegMin->dMinute = minute;
+	degree = p_owner->_coord_deg[GPS_LON];
+	p_deg_min->degree = degree;
+	minute = (degree - p_deg_min->degree) * 60;
+	p_deg_min->minute = minute;
 }
 
 /**
  * @fn pifGps_ConvertLatitude2DegMinSec
  * @brief
- * @param pstOwner
- * @param pstDegMinSec
+ * @param p_owner
+ * @param p_deg_min_sec
  */
-void pifGps_ConvertLatitude2DegMinSec(PIF_stGps *pstOwner, PIF_stDegMinSec *pstDegMinSec)
+void pifGps_ConvertLatitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_sec)
 {
 	double degree, minute, second;
 
-	degree = pstOwner->_dCoordDeg[GPS_LAT];
-	pstDegMinSec->usDegree = degree;
-	minute = (degree - pstDegMinSec->usDegree) * 60;
-	pstDegMinSec->usMinute = minute;
-	second = (minute - pstDegMinSec->usMinute) * 60;
-	pstDegMinSec->dSecond = second;
+	degree = p_owner->_coord_deg[GPS_LAT];
+	p_deg_min_sec->degree = degree;
+	minute = (degree - p_deg_min_sec->degree) * 60;
+	p_deg_min_sec->minute = minute;
+	second = (minute - p_deg_min_sec->minute) * 60;
+	p_deg_min_sec->second = second;
 }
 
 /**
  * @fn pifGps_ConvertLongitude2DegMinSec
  * @brief
- * @param pstOwner
- * @param pstDegMinSec
+ * @param p_owner
+ * @param p_deg_min_sec
  */
-void pifGps_ConvertLongitude2DegMinSec(PIF_stGps *pstOwner, PIF_stDegMinSec *pstDegMinSec)
+void pifGps_ConvertLongitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_sec)
 {
 	double degree, minute, second;
 
-	degree = pstOwner->_dCoordDeg[GPS_LON];
-	pstDegMinSec->usDegree = degree;
-	minute = (degree - pstDegMinSec->usDegree) * 60;
-	pstDegMinSec->usMinute = minute;
-	second = (minute - pstDegMinSec->usMinute) * 60;
-	pstDegMinSec->dSecond = second;
+	degree = p_owner->_coord_deg[GPS_LON];
+	p_deg_min_sec->degree = degree;
+	minute = (degree - p_deg_min_sec->degree) * 60;
+	p_deg_min_sec->minute = minute;
+	second = (minute - p_deg_min_sec->minute) * 60;
+	p_deg_min_sec->second = second;
 }
 
 /**
  * @fn pifGps_ConvertKnots2MpS
  * @brief
- * @param dKnots
+ * @param knots
  * @return
  */
-double pifGps_ConvertKnots2MpS(double dKnots)
+double pifGps_ConvertKnots2MpS(double knots)
 {
-	return dKnots * 0.514444;		// m/s = 1 knots * 0.514444
+	return knots * 0.514444;		// m/s = 1 knots * 0.514444
 }
