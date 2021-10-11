@@ -5,66 +5,66 @@
 #include "pifPulse.h"
 
 
-typedef void (*PIF_actFndDisplay)(uint8_t ucSegment, uint8_t ucDigit);
+typedef void (*PifActFndDisplay)(uint8_t segment, uint8_t digit);
 
 /**
- * @class _PIF_stFnd
+ * @class StPifFnd
  * @brief
  */
-typedef struct _PIF_stFnd
+typedef struct StPifFnd
 {
 	// Public Member Variable
-	uint8_t ucSubNumericDigits;
+	uint8_t sub_numeric_digits;
 
 	// Read-only Member Variable
-	PifId _usPifId;
-    uint8_t _ucFndCount;
-    uint8_t _ucDigitSize;
+	PifId _id;
+    uint8_t _count;
+    uint8_t _digit_size;
 
 	// Private Member Variable
-    PifPulse *__pstTimer;
+    PifPulse* __p_timer;
 	struct {
-		uint8_t Run			: 1;
-		uint8_t Blink		: 1;
-		uint8_t FillZero	: 1;
+		uint8_t run			: 1;
+		uint8_t blink		: 1;
+		uint8_t fill_zero	: 1;
 	} __bt;
-    uint16_t __usControlPeriodMs;
-	uint16_t __usPretimeMs;
-	uint8_t __ucDigitIndex;
-	uint8_t __ucStringSize;
-    char *__pcString;
-	PifPulseItem *__pstTimerBlink;
+    uint16_t __control_period1ms;
+	uint16_t __pretime1ms;
+	uint8_t __digit_index;
+	uint8_t __string_size;
+    char* __p_string;
+	PifPulseItem* __p_timer_blink;
 
 	// Private Action Function
-   	PIF_actFndDisplay __actDisplay;
-} PIF_stFnd;
+   	PifActFndDisplay __act_display;
+} PifFnd;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PIF_stFnd *pifFnd_Create(PifId usPifId, PifPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay);
-void pifFnd_Destroy(PIF_stFnd** pp_owner);
+PifFnd* pifFnd_Create(PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFndDisplay act_display);
+void pifFnd_Destroy(PifFnd** pp_owner);
 
-void pifFnd_SetUserChar(const uint8_t *pucUserChar, uint8_t ucCount);
+void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count);
 
-BOOL pifFnd_SetControlPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs);
+BOOL pifFnd_SetControlPeriod(PifFnd* p_owner, uint16_t period1ms);
 
-void pifFnd_Start(PIF_stFnd *pstOwner);
-void pifFnd_Stop(PIF_stFnd *pstOwner);
+void pifFnd_Start(PifFnd* p_owner);
+void pifFnd_Stop(PifFnd* p_owner);
 
-BOOL pifFnd_BlinkOn(PIF_stFnd *pstOwner, uint16_t usPeriodMs);
-void pifFnd_BlinkOff(PIF_stFnd *pstOwner);
-BOOL pifFnd_ChangeBlinkPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs);
+BOOL pifFnd_BlinkOn(PifFnd* p_owner, uint16_t period1ms);
+void pifFnd_BlinkOff(PifFnd* p_owner);
+BOOL pifFnd_ChangeBlinkPeriod(PifFnd* p_owner, uint16_t period1ms);
 
-void pifFnd_SetFillZero(PIF_stFnd *pstOwner, BOOL bFillZero);
-void pifFnd_SetFloat(PIF_stFnd *pstOwner, double dValue);
-void pifFnd_SetInterger(PIF_stFnd *pstOwner, int32_t nValue);
-void pifFnd_SetString(PIF_stFnd *pstOwner, char *pcString);
+void pifFnd_SetFillZero(PifFnd* p_owner, BOOL fill_zero);
+void pifFnd_SetFloat(PifFnd* p_owner, double value);
+void pifFnd_SetInterger(PifFnd* p_owner, int32_t value);
+void pifFnd_SetString(PifFnd* p_owner, char* p_string);
 
 // Task Function
-PifTask *pifFnd_AttachTask(PIF_stFnd *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask* pifFnd_AttachTask(PifFnd* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }

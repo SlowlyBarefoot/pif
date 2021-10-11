@@ -7,76 +7,76 @@
 #define PIF_FND_CONTROL_PERIOD_DEFAULT		25
 
 
-const uint8_t c_aucFndNumber[] = {
+const uint8_t kFndNumber[] = {
 		0x3F, /*  0  */	0x06, /*  1  */	0x5B, /*  2  */ 0x4F, /*  3  */ 	// 0x30
 		0x66, /*  4  */ 0x6D, /*  5  */ 0x7D, /*  6  */ 0x07, /*  7  */		// 0x34
 		0x7F, /*  8  */ 0x6F  /*  9  */ 									// 0x38
 };
 
-const uint8_t *c_pucFndUserChar;
-static uint8_t s_ucFndUserCharCount = 0;
+const uint8_t *c_user_char;
+static uint8_t s_user_char_count = 0;
 
 
-static void _evtTimerBlinkFinish(void *pvIssuer)
+static void _evtTimerBlinkFinish(void* p_issuer)
 {
-    PIF_stFnd *pstOwner = (PIF_stFnd *)pvIssuer;
-    pstOwner->__bt.Blink ^= 1;
+    PifFnd* p_owner = (PifFnd*)p_issuer;
+    p_owner->__bt.blink ^= 1;
 }
 
 /**
  * @fn pifFnd_SetUserChar
  * @brief
- * @param pucUserChar
- * @param ucCount
+ * @param p_user_char
+ * @param count
  */
-void pifFnd_SetUserChar(const uint8_t *pucUserChar, uint8_t ucCount)
+void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count)
 {
-	c_pucFndUserChar = pucUserChar;
-	s_ucFndUserCharCount = ucCount;
+	c_user_char = p_user_char;
+	s_user_char_count = count;
 }
 
 /**
  * @fn pifFnd_Create
  * @brief
- * @param usPifId
- * @param pstTimer
- * @param ucDigitSize
- * @param actDisplay
+ * @param id
+ * @param p_timer
+ * @param digit_size
+ * @param act_display
  * @return
  */
-PIF_stFnd *pifFnd_Create(PifId usPifId, PifPulse *pstTimer, uint8_t ucDigitSize, PIF_actFndDisplay actDisplay)
+PifFnd* pifFnd_Create(PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFndDisplay act_display)
 {
-    PIF_stFnd *pstOwner = NULL;
+    PifFnd *p_owner = NULL;
 
-    if (!pstTimer || !ucDigitSize || !actDisplay) {
+    if (!p_timer || !digit_size || !act_display) {
         pif_error = E_INVALID_PARAM;
         goto fail;
     }
 
-    pstOwner = calloc(sizeof(PIF_stFnd), 1);
-    if (!pstOwner) {
+    p_owner = calloc(sizeof(PifFnd), 1);
+    if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
-    pstOwner->__pcString = calloc(sizeof(uint8_t), ucDigitSize);
-    if (!pstOwner->__pcString) {
+    p_owner->__p_string = calloc(sizeof(uint8_t), digit_size);
+    if (!p_owner->__p_string) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
-    for (int i = 0; i < ucDigitSize; i++) pstOwner->__pcString[i] = 0x20;
+    for (int i = 0; i < digit_size; i++) p_owner->__p_string[i] = 0x20;
 
-    pstOwner->__pstTimer = pstTimer;
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
-    pstOwner->_usPifId = usPifId;
-    pstOwner->__usControlPeriodMs = PIF_FND_CONTROL_PERIOD_DEFAULT / ucDigitSize;
-    pstOwner->_ucDigitSize = ucDigitSize;
-    pstOwner->__actDisplay = actDisplay;
-    pstOwner->__pstTimerBlink = NULL;
-    return pstOwner;
+    p_owner->__p_timer = p_timer;
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+    p_owner->__control_period1ms = PIF_FND_CONTROL_PERIOD_DEFAULT / digit_size;
+    p_owner->_digit_size = digit_size;
+    p_owner->__act_display = act_display;
+    p_owner->__p_timer_blink = NULL;
+    return p_owner;
 
 fail:
-	if (pstOwner) free(pstOwner);
+	if (p_owner) free(p_owner);
     return NULL;
 }
 
@@ -85,16 +85,16 @@ fail:
  * @brief
  * @param pp_owner
  */
-void pifFnd_Destroy(PIF_stFnd** pp_owner)
+void pifFnd_Destroy(PifFnd** pp_owner)
 {
 	if (*pp_owner) {
-		PIF_stFnd* pstOwner = *pp_owner;
-		if (pstOwner->__pcString) {
-			free(pstOwner->__pcString);
-			pstOwner->__pcString = NULL;
+		PifFnd* p_owner = *pp_owner;
+		if (p_owner->__p_string) {
+			free(p_owner->__p_string);
+			p_owner->__p_string = NULL;
 		}
-		if (pstOwner->__pstTimerBlink) {
-			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__pstTimerBlink);
+		if (p_owner->__p_timer_blink) {
+			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__p_timer_blink);
 		}
 		free(*pp_owner);
 		*pp_owner = NULL;
@@ -104,227 +104,227 @@ void pifFnd_Destroy(PIF_stFnd** pp_owner)
 /**
  * @fn pifFnd_SetControlPeriod
  * @brief
- * @param pstOwner
- * @param usPeriodMs
+ * @param p_owner
+ * @param period1ms
  * @return
  */
-BOOL pifFnd_SetControlPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
+BOOL pifFnd_SetControlPeriod(PifFnd* p_owner, uint16_t period1ms)
 {
-    if (!usPeriodMs || usPeriodMs < pstOwner->_ucDigitSize) {
+    if (!period1ms || period1ms < p_owner->_digit_size) {
         pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
-    pstOwner->__usControlPeriodMs = usPeriodMs / pstOwner->_ucDigitSize;
+    p_owner->__control_period1ms = period1ms / p_owner->_digit_size;
     return TRUE;
 }
 
 /**
  * @fn pifFnd_Start
  * @brief
- * @param pstOwner
+ * @param p_owner
  */
-void pifFnd_Start(PIF_stFnd *pstOwner)
+void pifFnd_Start(PifFnd* p_owner)
 {
-	pstOwner->__bt.Run = TRUE;
+	p_owner->__bt.run = TRUE;
 }
 
 /**
  * @fn pifFnd_Stop
  * @brief
- * @param pstOwner
+ * @param p_owner
  */
-void pifFnd_Stop(PIF_stFnd *pstOwner)
+void pifFnd_Stop(PifFnd* p_owner)
 {
 	int i;
 
-	for (i = 0; i < pstOwner->_ucDigitSize; i++) {
-		(*pstOwner->__actDisplay)(0, 1 << i);
+	for (i = 0; i < p_owner->_digit_size; i++) {
+		(*p_owner->__act_display)(0, 1 << i);
 	}
-	pstOwner->__bt.Run = FALSE;
-    if (pstOwner->__bt.Blink) {
-		pifPulse_StopItem(pstOwner->__pstTimerBlink);
-		pstOwner->__bt.Blink = FALSE;
+	p_owner->__bt.run = FALSE;
+    if (p_owner->__bt.blink) {
+		pifPulse_StopItem(p_owner->__p_timer_blink);
+		p_owner->__bt.blink = FALSE;
     }
 }
 
 /**
  * @fn pifFnd_BlinkOn
  * @brief
- * @param pstOwner
- * @param usPeriodMs
+ * @param p_owner
+ * @param period1ms
  * @return
  */
-BOOL pifFnd_BlinkOn(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
+BOOL pifFnd_BlinkOn(PifFnd* p_owner, uint16_t period1ms)
 {
-	if (!usPeriodMs) {
+	if (!period1ms) {
         pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
-	if (!pstOwner->__pstTimerBlink) {
-		pstOwner->__pstTimerBlink = pifPulse_AddItem(pstOwner->__pstTimer, PT_REPEAT);
-        if (!pstOwner->__pstTimerBlink) return FALSE;
-        pifPulse_AttachEvtFinish(pstOwner->__pstTimerBlink, _evtTimerBlinkFinish, pstOwner);
+	if (!p_owner->__p_timer_blink) {
+		p_owner->__p_timer_blink = pifPulse_AddItem(p_owner->__p_timer, PT_REPEAT);
+        if (!p_owner->__p_timer_blink) return FALSE;
+        pifPulse_AttachEvtFinish(p_owner->__p_timer_blink, _evtTimerBlinkFinish, p_owner);
     }
-    if (!pifPulse_StartItem(pstOwner->__pstTimerBlink, usPeriodMs * 1000L / pstOwner->__pstTimer->_period1us)) return FALSE;
+    if (!pifPulse_StartItem(p_owner->__p_timer_blink, period1ms * 1000L / p_owner->__p_timer->_period1us)) return FALSE;
     return TRUE;
 }
 
 /**
  * @fn pifFnd_BlinkOff
  * @brief
- * @param pstOwner
+ * @param p_owner
  */
-void pifFnd_BlinkOff(PIF_stFnd *pstOwner)
+void pifFnd_BlinkOff(PifFnd* p_owner)
 {
-	pstOwner->__bt.Blink = FALSE;
-	if (pstOwner->__pstTimerBlink) {
-		pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__pstTimerBlink);
-		pstOwner->__pstTimerBlink = NULL;
+	p_owner->__bt.blink = FALSE;
+	if (p_owner->__p_timer_blink) {
+		pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__p_timer_blink);
+		p_owner->__p_timer_blink = NULL;
 	}
 }
 
 /**
  * @fn pifFnd_ChangeBlinkPeriod
  * @brief
- * @param pstOwner
- * @param usPeriodMs
+ * @param p_owner
+ * @param period1ms
  * @return
  */
-BOOL pifFnd_ChangeBlinkPeriod(PIF_stFnd *pstOwner, uint16_t usPeriodMs)
+BOOL pifFnd_ChangeBlinkPeriod(PifFnd* p_owner, uint16_t period1ms)
 {
-	if (!usPeriodMs) {
+	if (!period1ms) {
         pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
-	if (!pstOwner->__pstTimerBlink || pstOwner->__pstTimerBlink->_step == PS_STOP) {
+	if (!p_owner->__p_timer_blink || p_owner->__p_timer_blink->_step == PS_STOP) {
         pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
-	pstOwner->__pstTimerBlink->target = usPeriodMs * 1000 / pstOwner->__pstTimer->_period1us;
+	p_owner->__p_timer_blink->target = period1ms * 1000 / p_owner->__p_timer->_period1us;
 	return TRUE;
 }
 
 /**
  * @fn pifFnd_SetFillZero
  * @brief
- * @param pstOwner
- * @param bFillZero
+ * @param p_owner
+ * @param fill_zero
  */
-void pifFnd_SetFillZero(PIF_stFnd *pstOwner, BOOL bFillZero)
+void pifFnd_SetFillZero(PifFnd* p_owner, BOOL fill_zero)
 {
-    pstOwner->__bt.FillZero = bFillZero;
+    p_owner->__bt.fill_zero = fill_zero;
 }
 
 /**
  * @fn pifFnd_SetFloat
  * @brief
- * @param pstOwner
- * @param dValue
+ * @param p_owner
+ * @param value
  */
-void pifFnd_SetFloat(PIF_stFnd *pstOwner, double dValue)
+void pifFnd_SetFloat(PifFnd* p_owner, double value)
 {
     BOOL minus = FALSE;
 
-    if (dValue < 0.0) {
+    if (value < 0.0) {
     	minus = TRUE;
-    	dValue *= -1.0;
+    	value *= -1.0;
     }
-    uint32_t nValue = (uint32_t)dValue;
-    int sp = pstOwner->_ucDigitSize;
-    if (pstOwner->ucSubNumericDigits) {
-    	dValue -= nValue;
-    	for (int p = sp - pstOwner->ucSubNumericDigits; p < sp; p++) {
-    		dValue *= 10;
-    		uint32_t sd = (uint32_t)dValue;
-    		pstOwner->__pcString[p] = '0' + sd;
-    		dValue -= sd;
+    uint32_t num = (uint32_t)value;
+    int sp = p_owner->_digit_size;
+    if (p_owner->sub_numeric_digits) {
+    	value -= num;
+    	for (int p = sp - p_owner->sub_numeric_digits; p < sp; p++) {
+    		value *= 10;
+    		uint32_t sd = (uint32_t)value;
+    		p_owner->__p_string[p] = '0' + sd;
+    		value -= sd;
     	}
-    	sp -= pstOwner->ucSubNumericDigits;
+    	sp -= p_owner->sub_numeric_digits;
     }
     sp--;
 	BOOL first = TRUE;
 	for (int p = sp; p >= 0; p--) {
-		if (!first && !nValue) {
+		if (!first && !num) {
 			if (minus) {
-				pstOwner->__pcString[p] = '-';
+				p_owner->__p_string[p] = '-';
 				minus = FALSE;
 			}
 			else {
-				pstOwner->__pcString[p] = 0x20;
+				p_owner->__p_string[p] = 0x20;
 			}
 		}
 		else {
-			uint8_t digit = nValue % 10;
-			pstOwner->__pcString[p] = '0' + digit;
+			uint8_t digit = num % 10;
+			p_owner->__p_string[p] = '0' + digit;
 			if (digit) first = FALSE;
 		}
-		nValue = nValue / 10;
+		num = num / 10;
 	}
-	pstOwner->__pcString[pstOwner->_ucDigitSize - 1 - pstOwner->ucSubNumericDigits] |= 0x80;
-	if (nValue || minus) {
-		pstOwner->__pcString[pstOwner->_ucDigitSize - 1] = '_';
+	p_owner->__p_string[p_owner->_digit_size - 1 - p_owner->sub_numeric_digits] |= 0x80;
+	if (num || minus) {
+		p_owner->__p_string[p_owner->_digit_size - 1] = '_';
 	}
 }
 
 /**
  * @fn pifFnd_SetInterger
  * @brief
- * @param pstOwner
- * @param nValue
+ * @param p_owner
+ * @param value
  */
-void pifFnd_SetInterger(PIF_stFnd *pstOwner, int32_t nValue)
+void pifFnd_SetInterger(PifFnd* p_owner, int32_t value)
 {
     BOOL minus = FALSE;
 
-    if (nValue < 0) {
+    if (value < 0) {
     	minus = TRUE;
-    	nValue *= -1;
+    	value *= -1;
     }
-    int sp = pstOwner->_ucDigitSize - 1;
-    if (pstOwner->ucSubNumericDigits) {
-    	for (int p = sp; p >= sp - pstOwner->ucSubNumericDigits; p--) {
-    		pstOwner->__pcString[p] = '0';
+    int sp = p_owner->_digit_size - 1;
+    if (p_owner->sub_numeric_digits) {
+    	for (int p = sp; p >= sp - p_owner->sub_numeric_digits; p--) {
+    		p_owner->__p_string[p] = '0';
     	}
-    	sp -= pstOwner->ucSubNumericDigits;
+    	sp -= p_owner->sub_numeric_digits;
     }
-    if (pstOwner->__bt.FillZero) {
+    if (p_owner->__bt.fill_zero) {
         for (int p = sp; p >= minus; p--) {
-			uint8_t digit = nValue % 10;
-			pstOwner->__pcString[p] = '0' + digit;
-        	nValue = nValue / 10;
+			uint8_t digit = value % 10;
+			p_owner->__p_string[p] = '0' + digit;
+			value = value / 10;
         }
         if (minus) {
-        	pstOwner->__pcString[0] = '-';
+        	p_owner->__p_string[0] = '-';
         }
-        if (nValue) {
-        	pstOwner->__pcString[pstOwner->_ucDigitSize - 1] = '_';
+        if (value) {
+        	p_owner->__p_string[p_owner->_digit_size - 1] = '_';
         }
     }
     else {
         BOOL first = TRUE;
         for (int p = sp; p >= 0; p--) {
-        	if (!first && !nValue) {
+        	if (!first && !value) {
         		if (minus) {
-        			pstOwner->__pcString[p] = '-';
+        			p_owner->__p_string[p] = '-';
             		minus = FALSE;
         		}
         		else {
-        			pstOwner->__pcString[p] = 0x20;
+        			p_owner->__p_string[p] = 0x20;
         		}
         	}
         	else {
-            	uint8_t digit = nValue % 10;
-            	pstOwner->__pcString[p] = '0' + digit;
+            	uint8_t digit = value % 10;
+            	p_owner->__p_string[p] = '0' + digit;
             	if (digit) first = FALSE;
         	}
-        	nValue = nValue / 10;
+        	value = value / 10;
         }
-        if (nValue || minus) {
-        	pstOwner->__pcString[pstOwner->_ucDigitSize - 1] = '_';
+        if (value || minus) {
+        	p_owner->__p_string[p_owner->_digit_size - 1] = '_';
         }
     }
 }
@@ -332,80 +332,80 @@ void pifFnd_SetInterger(PIF_stFnd *pstOwner, int32_t nValue)
 /**
  * @fn pifFnd_SetString
  * @brief
- * @param pstOwner
- * @param pcString
+ * @param p_owner
+ * @param p_string
  */
-void pifFnd_SetString(PIF_stFnd *pstOwner, char *pcString)
+void pifFnd_SetString(PifFnd* p_owner, char* p_string)
 {
     int src = 0;
     BOOL last = FALSE;
 
-    for (int p = 0; p < pstOwner->_ucDigitSize; p++) {
-    	if (!last && pcString[src]) {
-    		pstOwner->__pcString[p] = pcString[src];
+    for (int p = 0; p < p_owner->_digit_size; p++) {
+    	if (!last && p_string[src]) {
+    		p_owner->__p_string[p] = p_string[src];
     	}
     	else {
-    		pstOwner->__pcString[p] = 0x20;
+    		p_owner->__p_string[p] = 0x20;
     		last = TRUE;
     	}
     	src++;
     }
 }
 
-static uint16_t _DoTask(PifTask *pstTask)
+static uint16_t _doTask(PifTask* p_task)
 {
-	PIF_stFnd *pstOwner = pstTask->_p_client;
+	PifFnd *p_owner = p_task->_p_client;
 	uint8_t ch, seg = 0;
-	BOOL bPoint = FALSE;
+	BOOL point = FALSE;
 
-	if (!pstOwner->__bt.Run) return 0;
+	if (!p_owner->__bt.run) return 0;
 
-	if (pif_timer1ms > pstOwner->__usPretimeMs) {
-		if (pif_timer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
+	if (pif_timer1ms > p_owner->__pretime1ms) {
+		if (pif_timer1ms - p_owner->__pretime1ms < p_owner->__control_period1ms) return 0;
 	}
-	else if (pif_timer1ms < pstOwner->__usPretimeMs) {
-		if (1000 + pif_timer1ms - pstOwner->__usPretimeMs < pstOwner->__usControlPeriodMs) return 0;
+	else if (pif_timer1ms < p_owner->__pretime1ms) {
+		if (1000 + pif_timer1ms - p_owner->__pretime1ms < p_owner->__control_period1ms) return 0;
 	}
 	else return 0;
 
-	if (!pstOwner->__bt.Blink) {
-		ch = pstOwner->__pcString[pstOwner->__ucDigitIndex];
+	if (!p_owner->__bt.blink) {
+		ch = p_owner->__p_string[p_owner->__digit_index];
 		if (ch & 0x80) {
-			bPoint = TRUE;
+			point = TRUE;
 			ch &= 0x7F;
 		}
 		if (ch >= '0' && ch <= '9') {
-			seg = c_aucFndNumber[ch - '0'];
+			seg = kFndNumber[ch - '0'];
 		}
 		else if (ch == '-') {
 			seg = 0x40;
 		}
-		else if (s_ucFndUserCharCount && ch >= 'A' && ch < 'A' + s_ucFndUserCharCount) {
-			seg = c_pucFndUserChar[ch - 'A'];
+		else if (s_user_char_count && ch >= 'A' && ch < 'A' + s_user_char_count) {
+			seg = c_user_char[ch - 'A'];
 		}
-		if (bPoint) seg |= 0x80;
-		(*pstOwner->__actDisplay)(seg, pstOwner->__ucDigitIndex);
+		if (point) seg |= 0x80;
+		(*p_owner->__act_display)(seg, p_owner->__digit_index);
 	}
 	else {
-		(*pstOwner->__actDisplay)(0, pstOwner->__ucDigitIndex);
+		(*p_owner->__act_display)(0, p_owner->__digit_index);
 	}
-	pstOwner->__ucDigitIndex++;
-	if (pstOwner->__ucDigitIndex >= pstOwner->_ucDigitSize) pstOwner->__ucDigitIndex = 0;
+	p_owner->__digit_index++;
+	if (p_owner->__digit_index >= p_owner->_digit_size) p_owner->__digit_index = 0;
 
-	pstOwner->__usPretimeMs = pif_timer1ms;
+	p_owner->__pretime1ms = pif_timer1ms;
 	return 0;
 }
 
 /**
  * @fn pifFnd_AttachTask
  * @brief Task를 추가한다.
- * @param pstOwner
- * @param enMode Task의 Mode를 설정한다.
- * @param usPeriod Mode에 따라 주기의 단위가 변경된다.
- * @param bStart 즉시 시작할지를 지정한다.
+ * @param p_owner
+ * @param mode Task의 Mode를 설정한다.
+ * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask *pifFnd_AttachTask(PIF_stFnd *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+PifTask* pifFnd_AttachTask(PifFnd* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
-	return pifTaskManager_Add(enMode, usPeriod, _DoTask, pstOwner, bStart);
+	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
 }
