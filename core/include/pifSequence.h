@@ -11,70 +11,70 @@
 #define PIF_SEQUENCE_STEP_INIT		0
 
 
-typedef enum _PIF_enSequenceCsFlag
+typedef enum EnPifSequenceCsFlag
 {
-    SqCsF_enOff			= 0,
+    SQ_CSF_OFF			= 0,
 
-    SqCsF_enPhaseIdx	= 0,
+    SQ_CSF_PHASE_IDX	= 0,
 
-	SqCsF_enPhaseBit	= 1,
-	SqCsF_enAllBit		= 1,
+	SQ_CSF_PHASE_BIT	= 1,
+	SQ_CSF_ALL_BIT		= 1,
 
-    SqCsF_enCount		= 1
-} PIF_enSequenceCsFlag;
+    SQ_CSF_COUNT		= 1
+} PifSequenceCsFlag;
 
-typedef enum _PIF_enSequenceResult
+typedef enum EnPifSequenceResult
 {
-    SR_enContinue	= 1,
-    SR_enNext		= 2,
-    SR_enFinish		= 3
-} PIF_enSequenceResult;
+    SR_CONTINUE			= 1,
+    SR_NEXT				= 2,
+    SR_FINISH			= 3
+} PifSequenceResult;
 
 
-struct _PIF_stSequence;
-typedef struct _PIF_stSequence PIF_stSequence;
+struct StPifSequence;
+typedef struct StPifSequence PifSequence;
 
-typedef PIF_enSequenceResult (*PIF_fnSequence)(PIF_stSequence *pstOwner);
-typedef void (*PIF_evtSequenceError)(PIF_stSequence *pstOwner);
+typedef PifSequenceResult (*PifSequenceProcess)(PifSequence* p_owner);
+typedef void (*PifEvtSequenceError)(PifSequence* p_owner);
 
 
-typedef struct _PIF_stSequencePhase
+typedef struct StPifSequencePhase
 {
-	PIF_fnSequence fnProcess;
-	uint8_t ucPhaseNoNext;
-} PIF_stSequencePhase;
+	PifSequenceProcess process;
+	uint8_t phase_no_next;
+} PifSequencePhase;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-typedef struct
+typedef struct StPifSequenceColSig
 {
-	PIF_stSequence* p_owner;
+	PifSequence* p_owner;
 	uint8_t flag;
-    void* p_device[SqCsF_enCount];
+    void* p_device[SQ_CSF_COUNT];
 } PIF_SequenceColSig;
 
 #endif
 
-struct _PIF_stSequence
+struct StPifSequence
 {
 	// Public Member Variable
-	uint8_t ucStep;
-	uint8_t ucPhaseNoNext;
-	uint32_t unDelay1us;
-	void *pvParam;
+	uint8_t step;
+	uint8_t phase_no_next;
+	uint32_t delay1us;
+	void* p_param;
 
     // Public Event Function
-	PIF_evtSequenceError evtError;
+	PifEvtSequenceError evt_error;
 
 	// Read-only Member Variable
-	PifId _usPifId;
-	uint8_t _ucPhaseNo;
+	PifId _id;
+	uint8_t _phase_no;
 
 	// Private Member Variable
-	PifPulse* __pstTimer;
-	const PIF_stSequencePhase *__pstPhaseList;
-	PifPulseItem *__pstTimerTimeout;
-	uint32_t __unTargetDelay;
+	PifPulse* __p_timer;
+	const PifSequencePhase* __p_phase_list;
+	PifPulseItem* __p_timer_timeout;
+	uint32_t __target_delay;
 #ifdef __PIF_COLLECT_SIGNAL__
 	PIF_SequenceColSig* __p_colsig;
 #endif
@@ -85,25 +85,25 @@ struct _PIF_stSequence
 extern "C" {
 #endif
 
-PIF_stSequence* pifSequence_Create(PifId usPifId, PifPulse* pstTimer, const PIF_stSequencePhase* pstPhaseList, void* pvParam);
-void pifSequence_Destroy(PIF_stSequence** pp_owner);
+PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, const PifSequencePhase* p_phase_list, void* p_param);
+void pifSequence_Destroy(PifSequence** pp_owner);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-void pifSequence_SetCsFlagAll(PIF_enSequenceCsFlag enFlag);
-void pifSequence_ResetCsFlagAll(PIF_enSequenceCsFlag enFlag);
+void pifSequence_SetCsFlagAll(PifSequenceCsFlag flag);
+void pifSequence_ResetCsFlagAll(PifSequenceCsFlag flag);
 
-void pifSequence_SetCsFlagEach(PIF_stSequence *pstOwner, PIF_enSequenceCsFlag enFlag);
-void pifSequence_ResetCsFlagEach(PIF_stSequence *pstOwner, PIF_enSequenceCsFlag enFlag);
+void pifSequence_SetCsFlagEach(PifSequence* p_owner, PifSequenceCsFlag flag);
+void pifSequence_ResetCsFlagEach(PifSequence* p_owner, PifSequenceCsFlag flag);
 
 #endif
 
-void pifSequence_Start(PIF_stSequence *pstOwner);
+void pifSequence_Start(PifSequence* p_owner);
 
-BOOL pifSequence_SetTimeout(PIF_stSequence *pstOwner, uint16_t usTimeout);
+BOOL pifSequence_SetTimeout(PifSequence* p_owner, uint16_t timeout);
 
 // Task Function
-PifTask *pifSequence_AttachTask(PIF_stSequence *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask* pifSequence_AttachTask(PifSequence* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }
