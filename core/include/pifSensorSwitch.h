@@ -68,7 +68,7 @@ typedef struct StPifSensorSwitchColSig
  */
 struct StPifSensorSwitch
 {
-	PifSensor stSensor;
+	PifSensor parent;
 
 	// Private Member Variable
     SWITCH __state;

@@ -13,53 +13,53 @@ static PifDList s_cs_list;
 #endif
 
 
-static void _evtTimerPeriodFinish(void *pvIssuer)
+static void _evtTimerPeriodFinish(void* p_issuer)
 {
-    PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pvIssuer;
+    PifSensorDigital* p_owner = (PifSensorDigital*)p_issuer;
 
-    if (pstOwner->__evtPeriod) {
-        (*pstOwner->__evtPeriod)(pstOwner->stSensor._id, pstOwner->__usCurrLevel);
+    if (p_owner->__evt_period) {
+        (*p_owner->__evt_period)(p_owner->parent._id, p_owner->__curr_level);
     }
 }
 
-static uint16_t _evtFilterAverage(uint16_t usLevel, PIF_stSensorDigitalFilter *pstFilter)
+static uint16_t _evtFilterAverage(uint16_t level, PifSensorDigitalFilter* p_filter)
 {
     uint8_t pos;
 
-    pos = pstFilter->ucPos + 1;
-    if (pos >= pstFilter->ucSize) pos = 0;
+    pos = p_filter->pos + 1;
+    if (pos >= p_filter->size) pos = 0;
 
-    if (pstFilter->unSum < pstFilter->apusBuffer[pos]) {
-    	pstFilter->unSum = 0L;
+    if (p_filter->sum < p_filter->p_buffer[pos]) {
+    	p_filter->sum = 0L;
     }
     else {
-    	pstFilter->unSum -= pstFilter->apusBuffer[pos];
+    	p_filter->sum -= p_filter->p_buffer[pos];
     }
-    pstFilter->unSum += usLevel;
-    pstFilter->apusBuffer[pos] = usLevel;
-    pstFilter->ucPos = pos;
+    p_filter->sum += level;
+    p_filter->p_buffer[pos] = level;
+    p_filter->pos = pos;
 
-    return pstFilter->unSum / pstFilter->ucSize;
+    return p_filter->sum / p_filter->size;
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
 static void _AddDeviceInCollectSignal()
 {
-	const char *prefix[SDCsF_enCount] = { "SD" };
+	const char* prefix[SD_CSF_COUNT] = { "SD" };
 
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
-		PIF_SensorDigitalColSig* p_colsig = (PIF_SensorDigitalColSig*)it->data;
-		PIF_stSensorDigital* pstOwner = p_colsig->p_owner;
-		for (int f = 0; f < SDCsF_enCount; f++) {
+		PifSensorDigitalColSig* p_colsig = (PifSensorDigitalColSig*)it->data;
+		PifSensorDigital* p_owner = p_colsig->p_owner;
+		for (int f = 0; f < SD_CSF_COUNT; f++) {
 			if (p_colsig->flag & (1 << f)) {
-				p_colsig->p_device[f] = pifCollectSignal_AddDevice(pstOwner->stSensor._id, CSVT_enWire, 1,
-						prefix[f], pstOwner->stSensor._curr_state);
+				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->parent._id, CSVT_enWire, 1,
+						prefix[f], p_owner->parent._curr_state);
 			}
 		}
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_INFO, "SD_CS:Add(DC:%u F:%u)", pstOwner->stSensor._id, p_colsig->flag);
+		pifLog_Printf(LT_INFO, "SD_CS:Add(DC:%u F:%u)", p_owner->parent._id, p_colsig->flag);
 #endif
 
 		it = pifDList_Next(it);
@@ -81,215 +81,216 @@ void pifSensorDigital_ColSigClear()
 /**
  * @fn pifSensorDigital_Create
  * @brief 
- * @param usPifId
- * @param pstTimer
+ * @param id
+ * @param p_timer
  * @return 
  */
-PifSensor *pifSensorDigital_Create(PifId usPifId, PifPulse *pstTimer)
+PifSensor* pifSensorDigital_Create(PifId id, PifPulse *p_timer)
 {
-    PIF_stSensorDigital *pstOwner = NULL;
+    PifSensorDigital* p_owner = NULL;
 
-    if (!pstTimer) {
+    if (!p_timer) {
 		pif_error = E_INVALID_PARAM;
 	    return NULL;
 	}
 
-    pstOwner = calloc(sizeof(PIF_stSensorDigital), 1);
-    if (!pstOwner) {
+    p_owner = calloc(sizeof(PifSensorDigital), 1);
+    if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-    pstOwner->__pstTimer = pstTimer;
-	pstOwner->stSensor._curr_state = OFF;
+    p_owner->__p_timer = p_timer;
+	p_owner->parent._curr_state = OFF;
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
-    pstOwner->stSensor._id = usPifId;
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->parent._id = id;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	pifCollectSignal_Attach(CSF_enSensorDigital, _AddDeviceInCollectSignal);
-	PIF_SensorDigitalColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_SensorDigitalColSig));
+	PifSensorDigitalColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSensorDigitalColSig));
 	if (!p_colsig) return NULL;
-	p_colsig->p_owner = pstOwner;
-	pstOwner->__p_colsig = p_colsig;
+	p_colsig->p_owner = p_owner;
+	p_owner->__p_colsig = p_colsig;
 #endif
-    return &pstOwner->stSensor;
+    return &p_owner->parent;
 }
 
 /**
  * @fn pifSensorDigital_Desoroy
  * @brief 
- * @param pp_sensor
+ * @param pp_parent
  */
-void pifSensorDigital_Desoroy(PifSensor** pp_sensor)
+void pifSensorDigital_Desoroy(PifSensor** pp_parent)
 {
-   if (*pp_sensor) {
-    	PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)*pp_sensor;
-		if (pstOwner->__ucFilterMethod) {
-			PIF_stSensorDigitalFilter *pstFilter = pstOwner->__pstFilter;
-			if (pstFilter->apusBuffer) {
-				free(pstFilter->apusBuffer);
-				pstFilter->apusBuffer = NULL;
+   if (*pp_parent) {
+    	PifSensorDigital* p_owner = (PifSensorDigital*)*pp_parent;
+		if (p_owner->__filter_method) {
+			PifSensorDigitalFilter* p_filter = p_owner->__p_filter;
+			if (p_filter->p_buffer) {
+				free(p_filter->p_buffer);
+				p_filter->p_buffer = NULL;
 			}
 		}
-		if (pstOwner->__ui.stP.pstTimerPeriod) {
-			pifPulse_RemoveItem(pstOwner->__pstTimer, pstOwner->__ui.stP.pstTimerPeriod);
+		if (p_owner->__ui.period.p_timer) {
+			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__ui.period.p_timer);
 		}
 
-		free(*pp_sensor);
-        *pp_sensor = NULL;
+		free(*pp_parent);
+        *pp_parent = NULL;
     }
 }
 
 /**
  * @fn pifSensorDigital_InitialState
  * @brief
- * @param pstSensor
+ * @param p_parent
  */
-void pifSensorDigital_InitialState(PifSensor *pstSensor)
+void pifSensorDigital_InitialState(PifSensor* p_parent)
 {
-	pstSensor->_curr_state = pstSensor->_init_state;
-	((PIF_stSensorDigital *)pstSensor)->__usCurrLevel = pstSensor->_init_state ? 0xFFFF : 0;
+	p_parent->_curr_state = p_parent->_init_state;
+	((PifSensorDigital*)p_parent)->__curr_level = p_parent->_init_state ? 0xFFFF : 0;
 }
 
 /**
  * @fn pifSensorDigital_AttachEvtPeriod
  * @brief
- * @param pstSensor
- * @param evtPeriod
+ * @param p_parent
+ * @param evt_period
  * @return
  */
-BOOL pifSensorDigital_AttachEvtPeriod(PifSensor *pstSensor, PIF_evtSensorDigitalPeriod evtPeriod)
+BOOL pifSensorDigital_AttachEvtPeriod(PifSensor* p_parent, PifEvtSensorDigitalPeriod evt_period)
 {
-	PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pstSensor;
+	PifSensorDigital* p_owner = (PifSensorDigital*)p_parent;
 
-	pstOwner->__ui.stP.pstTimerPeriod = pifPulse_AddItem(pstOwner->__pstTimer, PT_REPEAT);
-    if (!pstOwner->__ui.stP.pstTimerPeriod) return FALSE;
-    pifPulse_AttachEvtFinish(pstOwner->__ui.stP.pstTimerPeriod, _evtTimerPeriodFinish, pstOwner);
-    pstOwner->__enEventType = SDET_enPeriod;
-    pstOwner->__evtPeriod = evtPeriod;
+	p_owner->__ui.period.p_timer = pifPulse_AddItem(p_owner->__p_timer, PT_REPEAT);
+    if (!p_owner->__ui.period.p_timer) return FALSE;
+    pifPulse_AttachEvtFinish(p_owner->__ui.period.p_timer, _evtTimerPeriodFinish, p_owner);
+    p_owner->__event_type = SDET_PERIOD;
+    p_owner->__evt_period = evt_period;
 	return TRUE;
 }
 
 /**
  * @fn pifSensorDigital_StartPeriod
  * @brief
- * @param pstSensor
- * @param usPeriod
+ * @param p_parent
+ * @param period
  * @return
  */
-BOOL pifSensorDigital_StartPeriod(PifSensor *pstSensor, uint16_t usPeriod)
+BOOL pifSensorDigital_StartPeriod(PifSensor* p_parent, uint16_t period)
 {
-	return pifPulse_StartItem(((PIF_stSensorDigital *)pstSensor)->__ui.stP.pstTimerPeriod, usPeriod);
+	return pifPulse_StartItem(((PifSensorDigital*)p_parent)->__ui.period.p_timer, period);
 }
 
 /**
  * @fn pifSensorDigital_StopPeriod
  * @brief
- * @param pstSensor
+ * @param p_parent
  */
-void pifSensorDigital_StopPeriod(PifSensor *pstSensor)
+void pifSensorDigital_StopPeriod(PifSensor* p_parent)
 {
-	pifPulse_StopItem(((PIF_stSensorDigital *)pstSensor)->__ui.stP.pstTimerPeriod);
+	pifPulse_StopItem(((PifSensorDigital*)p_parent)->__ui.period.p_timer);
 }
 
 /**
  * @fn pifSensorDigital_SetEventThreshold1P
  * @brief
- * @param pstSensor
- * @param usThreshold
+ * @param p_parent
+ * @param threshold
  */
-void pifSensorDigital_SetEventThreshold1P(PifSensor *pstSensor, uint16_t usThreshold)
+void pifSensorDigital_SetEventThreshold1P(PifSensor* p_parent, uint16_t threshold)
 {
-	PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pstSensor;
+	PifSensorDigital* p_owner = (PifSensorDigital*)p_parent;
 
-	pstOwner->__enEventType = SDET_enThreshold1P;
-	pstOwner->__ui.usThreshold = usThreshold;
+	p_owner->__event_type = SDET_THRESHOLD_1P;
+	p_owner->__ui.threshold1p = threshold;
 }
 
 /**
  * @fn pifSensorDigital_SetEventThreshold2P
  * @brief
- * @param pstSensor
- * @param usThresholdLow
- * @param usThresholdHigh
+ * @param p_parent
+ * @param threshold_low
+ * @param threshold_high
  */
-void pifSensorDigital_SetEventThreshold2P(PifSensor *pstSensor, uint16_t usThresholdLow, uint16_t usThresholdHigh)
+void pifSensorDigital_SetEventThreshold2P(PifSensor* p_parent, uint16_t threshold_low, uint16_t threshold_high)
 {
-	PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pstSensor;
+	PifSensorDigital* p_owner = (PifSensorDigital*)p_parent;
 
-	pstOwner->__enEventType = SDET_enThreshold2P;
-    pstOwner->__ui.stT.usThresholdLow = usThresholdLow;
-    pstOwner->__ui.stT.usThresholdHigh = usThresholdHigh;
+	p_owner->__event_type = SDET_THRESHOLD_2P;
+    p_owner->__ui.threshold2p.low = threshold_low;
+    p_owner->__ui.threshold2p.high = threshold_high;
 }
 
 /**
  * @fn pifSensorDigital_AttachFilter
  * @brief 
- * @param pstSensor
- * @param enFilterMethod
- * @param ucFilterSize
- * @param pstFilter
- * @param bInitFilter
+ * @param p_parent
+ * @param filter_method
+ * @param filter_size
+ * @param p_filter
+ * @param init_filter
  * @return 
  */
-BOOL pifSensorDigital_AttachFilter(PifSensor *pstSensor, uint8_t ucFilterMethod, uint8_t ucFilterSize, PIF_stSensorDigitalFilter *pstFilter, BOOL bInitFilter)
+BOOL pifSensorDigital_AttachFilter(PifSensor* p_parent, uint8_t filter_method, uint8_t filter_size,
+		PifSensorDigitalFilter* p_filter, BOOL init_filter)
 {
-	PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pstSensor;
+	PifSensorDigital* p_owner = (PifSensorDigital*)p_parent;
 
-    if (!ucFilterMethod || !ucFilterSize || !pstFilter) {
+    if (!filter_method || !filter_size || !p_filter) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
-    if (bInitFilter) {
-		pstFilter->apusBuffer = NULL;
+    if (init_filter) {
+    	p_filter->p_buffer = NULL;
     }
     else {
-        pifSensorDigital_DetachFilter(&pstOwner->stSensor);
+        pifSensorDigital_DetachFilter(&p_owner->parent);
     }
 
-	pstFilter->ucSize = ucFilterSize;
-	pstFilter->apusBuffer = calloc(sizeof(uint16_t), ucFilterSize);
-	if (!pstFilter->apusBuffer) {
+    p_filter->size = filter_size;
+    p_filter->p_buffer = calloc(sizeof(uint16_t), filter_size);
+	if (!p_filter->p_buffer) {
 		pif_error = E_OUT_OF_HEAP;
 	    return FALSE;
 	}
 
-	switch (ucFilterMethod) {
+	switch (filter_method) {
     case PIF_SENSOR_DIGITAL_FILTER_AVERAGE:
-    	pstFilter->evtFilter = _evtFilterAverage;
+    	p_filter->evt_filter = _evtFilterAverage;
         break;
 
     default:
         break;
     }
 
-	pstOwner->__ucFilterMethod = ucFilterMethod;
-	pstOwner->__pstFilter = pstFilter;
+	p_owner->__filter_method = filter_method;
+	p_owner->__p_filter = p_filter;
     return TRUE;
 }
 
 /**
  * @fn pifSensorDigital_DetachFilter
  * @brief
- * @param pstSensor
+ * @param p_parent
  */
-void pifSensorDigital_DetachFilter(PifSensor *pstSensor)
+void pifSensorDigital_DetachFilter(PifSensor* p_parent)
 {
-	PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pstSensor;
-	PIF_stSensorDigitalFilter *pstFilter;
+	PifSensorDigital* p_owner = (PifSensorDigital*)p_parent;
+	PifSensorDigitalFilter* p_filter;
 
-	pstFilter = pstOwner->__pstFilter;
-	if (pstFilter->apusBuffer) {
-		free(pstFilter->apusBuffer);
-		pstFilter->apusBuffer = NULL;
+	p_filter = p_owner->__p_filter;
+	if (p_filter->p_buffer) {
+		free(p_filter->p_buffer);
+		p_filter->p_buffer = NULL;
 	}
-	pstFilter->ucSize = 0;
-	pstFilter->evtFilter = NULL;
+	p_filter->size = 0;
+	p_filter->evt_filter = NULL;
 
-	pstOwner->__ucFilterMethod = PIF_SENSOR_DIGITAL_FILTER_NONE;
-	pstOwner->__pstFilter = NULL;
+	p_owner->__filter_method = PIF_SENSOR_DIGITAL_FILTER_NONE;
+	p_owner->__p_filter = NULL;
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -297,14 +298,14 @@ void pifSensorDigital_DetachFilter(PifSensor *pstSensor)
 /**
  * @fn pifSensorDigital_SetCsFlagAll
  * @brief
- * @param enFlag
+ * @param flag
  */
-void pifSensorDigital_SetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag)
+void pifSensorDigital_SetCsFlagAll(PifSensorDigitalCsFlag flag)
 {
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
-		PIF_SensorDigitalColSig* p_colsig = (PIF_SensorDigitalColSig*)it->data;
-		p_colsig->flag |= enFlag;
+		PifSensorDigitalColSig* p_colsig = (PifSensorDigitalColSig*)it->data;
+		p_colsig->flag |= flag;
 		it = pifDList_Next(it);
 	}
 }
@@ -312,14 +313,14 @@ void pifSensorDigital_SetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag)
 /**
  * @fn pifSensorDigital_ResetCsFlagAll
  * @brief
- * @param enFlag
+ * @param flag
  */
-void pifSensorDigital_ResetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag)
+void pifSensorDigital_ResetCsFlagAll(PifSensorDigitalCsFlag flag)
 {
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
-		PIF_SensorDigitalColSig* p_colsig = (PIF_SensorDigitalColSig*)it->data;
-		p_colsig->flag &= ~enFlag;
+		PifSensorDigitalColSig* p_colsig = (PifSensorDigitalColSig*)it->data;
+		p_colsig->flag &= ~flag;
 		it = pifDList_Next(it);
 	}
 }
@@ -327,23 +328,23 @@ void pifSensorDigital_ResetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag)
 /**
  * @fn pifSensorDigital_SetCsFlagEach
  * @brief
- * @param pstSensor
- * @param enFlag
+ * @param p_parent
+ * @param flag
  */
-void pifSensorDigital_SetCsFlagEach(PifSensor *pstSensor, PIF_enSensorDigitalCsFlag enFlag)
+void pifSensorDigital_SetCsFlagEach(PifSensor* p_parent, PifSensorDigitalCsFlag flag)
 {
-	((PIF_stSensorDigital*)pstSensor)->__p_colsig->flag |= enFlag;
+	((PifSensorDigital*)p_parent)->__p_colsig->flag |= flag;
 }
 
 /**
  * @fn pifSensorDigital_ResetCsFlagEach
  * @brief
- * @param pstSensor
- * @param enFlag
+ * @param p_parent
+ * @param flag
  */
-void pifSensorDigital_ResetCsFlagEach(PifSensor *pstSensor, PIF_enSensorDigitalCsFlag enFlag)
+void pifSensorDigital_ResetCsFlagEach(PifSensor* p_parent, PifSensorDigitalCsFlag flag)
 {
-	((PIF_stSensorDigital*)pstSensor)->__p_colsig->flag &= ~enFlag;
+	((PifSensorDigital*)p_parent)->__p_colsig->flag &= ~flag;
 }
 
 #endif
@@ -351,48 +352,48 @@ void pifSensorDigital_ResetCsFlagEach(PifSensor *pstSensor, PIF_enSensorDigitalC
 /**
  * @fn pifSensorDigital_sigData
  * @brief 
- * @param pstSensor
- * @param usLevel
+ * @param p_parent
+ * @param level
  */
-void pifSensorDigital_sigData(PifSensor *pstSensor, uint16_t usLevel)
+void pifSensorDigital_sigData(PifSensor* p_parent, uint16_t level)
 {
-	PIF_stSensorDigital *pstOwner = (PIF_stSensorDigital *)pstSensor;
+	PifSensorDigital* p_owner = (PifSensorDigital*)p_parent;
 
-	pstOwner->__usPrevLevel = pstOwner->__usCurrLevel;
+	p_owner->__prev_level = p_owner->__curr_level;
 
-	if (pstOwner->__ucFilterMethod) {
-    	PIF_stSensorDigitalFilter *pstFilter = pstOwner->__pstFilter;
-    	pstOwner->__usCurrLevel = (*pstFilter->evtFilter)(usLevel, pstFilter);
+	if (p_owner->__filter_method) {
+    	PifSensorDigitalFilter *p_filter = p_owner->__p_filter;
+    	p_owner->__curr_level = (*p_filter->evt_filter)(level, p_filter);
     }
     else {
-    	pstOwner->__usCurrLevel = usLevel;
+    	p_owner->__curr_level = level;
     }
 }
 
-static uint16_t _DoTask(PifTask *pstTask)
+static uint16_t _doTask(PifTask* p_task)
 {
-	PIF_stSensorDigital *pstOwner = pstTask->_p_client;
-	PifSensor *pstParent = &pstOwner->stSensor;
-	SWITCH swState;
+	PifSensorDigital* p_owner = p_task->_p_client;
+	PifSensor* p_parent = &p_owner->parent;
+	SWITCH state;
 
-	if (pstParent->__act_acquire) {
-		pifSensorDigital_sigData(pstParent, (*pstParent->__act_acquire)(pstParent->_id));
+	if (p_parent->__act_acquire) {
+		pifSensorDigital_sigData(p_parent, (*p_parent->__act_acquire)(p_parent->_id));
 	}
 
-   	switch (pstOwner->__enEventType) {
-   	case SDET_enThreshold1P:
-   		swState = pstOwner->__usCurrLevel >= pstOwner->__ui.usThreshold;
+   	switch (p_owner->__event_type) {
+   	case SDET_THRESHOLD_1P:
+   		state = p_owner->__curr_level >= p_owner->__ui.threshold1p;
    		break;
 
-   	case SDET_enThreshold2P:
-   		if (pstOwner->__usCurrLevel <= pstOwner->__ui.stT.usThresholdLow) {
-   			swState = OFF;
+   	case SDET_THRESHOLD_2P:
+   		if (p_owner->__curr_level <= p_owner->__ui.threshold2p.low) {
+   			state = OFF;
    		}
-   		else if (pstOwner->__usCurrLevel >= pstOwner->__ui.stT.usThresholdHigh) {
-   			swState = ON;
+   		else if (p_owner->__curr_level >= p_owner->__ui.threshold2p.high) {
+   			state = ON;
    		}
    		else {
-   			swState = pstParent->_curr_state;
+   			state = p_parent->_curr_state;
    		}
    		break;
 
@@ -400,16 +401,16 @@ static uint16_t _DoTask(PifTask *pstTask)
    		return 0;
    	}
 
-	if (swState != pstParent->_curr_state) {
-		if (pstParent->__evt_change) {
-			(*pstParent->__evt_change)(pstParent->_id, swState, pstParent->__p_change_issuer);
+	if (state != p_parent->_curr_state) {
+		if (p_parent->__evt_change) {
+			(*p_parent->__evt_change)(p_parent->_id, state, p_parent->__p_change_issuer);
 #ifdef __PIF_COLLECT_SIGNAL__
-			if (pstOwner->__p_colsig->flag & SDCsF_enStateBit) {
-				pifCollectSignal_AddSignal(pstOwner->__p_colsig->p_device[SDCsF_enStateIdx], swState);
+			if (p_owner->__p_colsig->flag & SD_CSF_STATE_BIT) {
+				pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SD_CSF_STATE_IDX], state);
 			}
 #endif
 		}
-		pstParent->_curr_state = swState;
+		p_parent->_curr_state = state;
 	}
     return 0;
 }
@@ -417,13 +418,13 @@ static uint16_t _DoTask(PifTask *pstTask)
 /**
  * @fn pifSensorDigital_AttachTask
  * @brief Task를 추가한다.
- * @param pstOwner
- * @param enMode Task의 Mode를 설정한다.
- * @param usPeriod Mode에 따라 주기의 단위가 변경된다.
- * @param bStart 즉시 시작할지를 지정한다.
+ * @param p_parent
+ * @param mode Task의 Mode를 설정한다.
+ * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask *pifSensorDigital_AttachTask(PifSensor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+PifTask* pifSensorDigital_AttachTask(PifSensor* p_parent, PifTaskMode mode, uint16_t period, BOOL start)
 {
-	return pifTaskManager_Add(enMode, usPeriod, _DoTask, pstOwner, bStart);
+	return pifTaskManager_Add(mode, period, _doTask, p_parent, start);
 }

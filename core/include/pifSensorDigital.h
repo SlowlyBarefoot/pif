@@ -9,97 +9,97 @@
 #define PIF_SENSOR_DIGITAL_FILTER_AVERAGE	1
 
 
-typedef enum _PIF_enSensorDigitalEventType
+typedef enum EnPifSensorDigitalEventType
 {
-	SDET_enNone			= 0,
-	SDET_enPeriod		= 1,
-	SDET_enThreshold1P	= 2,
-	SDET_enThreshold2P	= 3
-} PIF_enSensorDigitalEventType;
+	SDET_NONE			= 0,
+	SDET_PERIOD			= 1,
+	SDET_THRESHOLD_1P	= 2,
+	SDET_THRESHOLD_2P	= 3
+} PifSensorDigitalEventType;
 
-typedef enum _PIF_enSensorDigitalCsFlag
+typedef enum EnPifSensorDigitalCsFlag
 {
-    SDCsF_enOff			= 0,
+    SD_CSF_OFF			= 0,
 
-    SDCsF_enStateIdx	= 0,
+    SD_CSF_STATE_IDX	= 0,
 
-	SDCsF_enStateBit	= 1,
-    SDCsF_enAllBit		= 1,
+	SD_CSF_STATE_BIT	= 1,
+    SD_CSF_ALL_BIT		= 1,
 
-    SDCsF_enCount		= 1
-} PIF_enSensorDigitalCsFlag;
+    SD_CSF_COUNT		= 1
+} PifSensorDigitalCsFlag;
 
 
-struct _PIF_stSensorDigital;
-typedef struct _PIF_stSensorDigital PIF_stSensorDigital;
+struct StPifSensorDigital;
+typedef struct StPifSensorDigital PifSensorDigital;
 
-struct _PIF_stSensorDigitalFilter;
-typedef struct _PIF_stSensorDigitalFilter PIF_stSensorDigitalFilter;
+struct StPifSensorDigitalFilter;
+typedef struct StPifSensorDigitalFilter PifSensorDigitalFilter;
 
-typedef void (*PIF_evtSensorDigitalPeriod)(PifId usPifId, uint16_t usLevel);
-typedef uint16_t (*PIF_evtSensorDigitalFilter)(uint16_t usLevel, PIF_stSensorDigitalFilter *pstFilter);
+typedef void (*PifEvtSensorDigitalPeriod)(PifId id, uint16_t level);
+typedef uint16_t (*PifEvtSensorDigitalFilter)(uint16_t level, PifSensorDigitalFilter* p_filter);
 
 
 /**
- * @class _PIF_stSensorDigitalFilter
+ * @class StPifSensorDigitalFilter
  * @brief 
  */
-struct _PIF_stSensorDigitalFilter
+struct StPifSensorDigitalFilter
 {
-    uint8_t ucSize;
-    uint8_t ucPos;
-    uint16_t *apusBuffer;
-    uint32_t unSum;
-    void *pvParam;
+    uint8_t size;
+    uint8_t pos;
+    uint16_t* p_buffer;
+    uint32_t sum;
+    void* p_param;
 
-	PIF_evtSensorDigitalFilter evtFilter;
+	PifEvtSensorDigitalFilter evt_filter;
 };
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-typedef struct
+typedef struct StPifSensorDigitalColSig
 {
-	PIF_stSensorDigital* p_owner;
+	PifSensorDigital* p_owner;
     uint8_t flag;
-    void* p_device[SDCsF_enCount];
-} PIF_SensorDigitalColSig;
+    void* p_device[SD_CSF_COUNT];
+} PifSensorDigitalColSig;
 
 #endif
 
 /**
- * @class _PIF_stSensorDigital
+ * @class StPifSensorDigital
  * @brief
  */
-struct _PIF_stSensorDigital
+struct StPifSensorDigital
 {
-	PifSensor stSensor;
+	PifSensor parent;
 
 	// Private Member Variable
-	PifPulse* __pstTimer;
-    PIF_enSensorDigitalEventType __enEventType;
+	PifPulse* __p_timer;
+    PifSensorDigitalEventType __event_type;
     union {
     	struct {
-    		uint16_t usPeriod;
-    	    PifPulseItem *pstTimerPeriod;
-    	} stP;
-		uint16_t usThreshold;
+    		uint16_t time;
+    	    PifPulseItem* p_timer;
+    	} period;
+		uint16_t threshold1p;
     	struct {
-			uint16_t usThresholdLow;
-			uint16_t usThresholdHigh;
-    	} stT;
+			uint16_t low;
+			uint16_t high;
+    	} threshold2p;
     } __ui;
-    uint16_t __usCurrLevel;
-    uint16_t __usPrevLevel;
+    uint16_t __curr_level;
+    uint16_t __prev_level;
 
-    uint8_t __ucFilterMethod;					// Default: PIF_SENSOR_DIGITAL_FILTER_NONE
-    PIF_stSensorDigitalFilter *__pstFilter;		// Default: NULL
+    uint8_t __filter_method;					// Default: PIF_SENSOR_DIGITAL_FILTER_NONE
+    PifSensorDigitalFilter* __p_filter;			// Default: NULL
 
 #ifdef __PIF_COLLECT_SIGNAL__
-    PIF_SensorDigitalColSig* __p_colsig;
+    PifSensorDigitalColSig* __p_colsig;
 #endif
 
 	// Private Event Function
-    PIF_evtSensorDigitalPeriod __evtPeriod;		// Default: NULL
+    PifEvtSensorDigitalPeriod __evt_period;		// Default: NULL
 };
 
 
@@ -107,36 +107,37 @@ struct _PIF_stSensorDigital
 extern "C" {
 #endif
 
-PifSensor* pifSensorDigital_Create(PifId usPifId, PifPulse* pstTimer);
-void pifSensorDigital_Destroy(PifSensor** pp_sensor);
+PifSensor* pifSensorDigital_Create(PifId id, PifPulse* p_timer);
+void pifSensorDigital_Destroy(PifSensor** pp_parent);
 
-void pifSensorDigital_InitialState(PifSensor *pstSensor);
+void pifSensorDigital_InitialState(PifSensor* p_parent);
 
-BOOL pifSensorDigital_AttachEvtPeriod(PifSensor *pstSensor, PIF_evtSensorDigitalPeriod evtPeriod);
-BOOL pifSensorDigital_StartPeriod(PifSensor *pstSensor, uint16_t usPeriod);
-void pifSensorDigital_StopPeriod(PifSensor *pstSensor);
+BOOL pifSensorDigital_AttachEvtPeriod(PifSensor* p_parent, PifEvtSensorDigitalPeriod evt_period);
+BOOL pifSensorDigital_StartPeriod(PifSensor* p_parent, uint16_t period);
+void pifSensorDigital_StopPeriod(PifSensor* p_parent);
 
-void pifSensorDigital_SetEventThreshold1P(PifSensor *pstSensor, uint16_t usThreshold);
-void pifSensorDigital_SetEventThreshold2P(PifSensor *pstSensor, uint16_t usThresholdLow, uint16_t usThresholdHigh);
+void pifSensorDigital_SetEventThreshold1P(PifSensor* p_parent, uint16_t threshold);
+void pifSensorDigital_SetEventThreshold2P(PifSensor* p_parent, uint16_t threshold_low, uint16_t threshold_high);
 
-BOOL pifSensorDigital_AttachFilter(PifSensor *pstSensor, uint8_t ucFilterMethod, uint8_t ucFilterSize, PIF_stSensorDigitalFilter *pstFilter, BOOL bInitFilter);
-void pifSensorDigital_DetachFilter(PifSensor *pstSensor);
+BOOL pifSensorDigital_AttachFilter(PifSensor* p_parent, uint8_t filter_method, uint8_t filter_size,
+		PifSensorDigitalFilter* p_filter, BOOL init_filter);
+void pifSensorDigital_DetachFilter(PifSensor* p_parent);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-void pifSensorDigital_SetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag);
-void pifSensorDigital_ResetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag);
+void pifSensorDigital_SetCsFlagAll(PifSensorDigitalCsFlag flag);
+void pifSensorDigital_ResetCsFlagAll(PifSensorDigitalCsFlag flag);
 
-void pifSensorDigital_SetCsFlagEach(PifSensor *pstSensor, PIF_enSensorDigitalCsFlag enFlag);
-void pifSensorDigital_ResetCsFlagEach(PifSensor *pstSensor, PIF_enSensorDigitalCsFlag enFlag);
+void pifSensorDigital_SetCsFlagEach(PifSensor* p_parent, PifSensorDigitalCsFlag flag);
+void pifSensorDigital_ResetCsFlagEach(PifSensor* p_parent, PifSensorDigitalCsFlag flag);
 
 #endif
 
 // Signal Function
-void pifSensorDigital_sigData(PifSensor *pstSensor, uint16_t usLevel);
+void pifSensorDigital_sigData(PifSensor* p_parent, uint16_t level);
 
 // Task Function
-PifTask *pifSensorDigital_AttachTask(PifSensor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask* pifSensorDigital_AttachTask(PifSensor* p_parent, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }

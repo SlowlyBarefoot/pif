@@ -77,12 +77,12 @@ static void _addDeviceInCollectSignal()
 		PifSensorSwitch* p_owner = p_colsig->p_owner;
 		for (int f = 0; f < SS_CSF_COUNT; f++) {
 			if (p_colsig->flag & (1 << f)) {
-				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->stSensor._id, CSVT_enWire, 1,
-						prefix[f], p_owner->stSensor._curr_state);
+				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->parent._id, CSVT_enWire, 1,
+						prefix[f], p_owner->parent._curr_state);
 			}
 		}
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_INFO, "SS_CS:Add(DC:%u F:%u)", p_owner->stSensor._id, p_colsig->flag);
+		pifLog_Printf(LT_INFO, "SS_CS:Add(DC:%u F:%u)", p_owner->parent._id, p_colsig->flag);
 #endif
 
 		it = pifDList_Next(it);
@@ -118,7 +118,7 @@ PifSensor* pifSensorSwitch_Create(PifId id, SWITCH init_state)
 	    return NULL;
 	}
 
-    PifSensor *p_parent = &p_owner->stSensor;
+    PifSensor *p_parent = &p_owner->parent;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_parent->_id = id;
@@ -183,7 +183,7 @@ BOOL pifSensorSwitch_AttachFilter(PifSensor* p_parent, uint8_t filter_method, ui
 	    return FALSE;
 	}
 
-    pifSensorSwitch_DetachFilter(&p_owner->stSensor);
+    pifSensorSwitch_DetachFilter(&p_owner->parent);
 
     p_filter->size = filter_size;
     p_filter->half = filter_size / 2;
@@ -315,7 +315,7 @@ void pifSensorSwitch_sigData(PifSensor* p_parent, SWITCH state)
 static uint16_t _doTask(PifTask* p_task)
 {
 	PifSensorSwitch* p_owner = p_task->_p_client;
-	PifSensor* p_parent = &p_owner->stSensor;
+	PifSensor* p_parent = &p_owner->parent;
 
 	if (p_parent->__act_acquire) {
 		pifSensorSwitch_sigData(p_parent, (*p_parent->__act_acquire)(p_parent->_id));
