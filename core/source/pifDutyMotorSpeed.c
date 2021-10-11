@@ -81,7 +81,7 @@ static void _fnControlSpeed(PIF_stDutyMotor *pstOwner)
 
 		if (pstStage->enMode & MM_CFPS_enMask) {
 	    	if (*pstStage->ppstStopSensor) {
-	    		if ((*pstStage->ppstStopSensor)->_swCurrState == OFF) {
+	    		if ((*pstStage->ppstStopSensor)->_curr_state == OFF) {
 	    			pstOwner->__ucError = 1;
 	    		}
 	    	}
@@ -232,17 +232,17 @@ BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, ui
     if (pstStage->enMode & MM_CIAS_enMask) {
     	ucState = 0;
     	if (*pstStage->ppstStartSensor) {
-    		if ((*pstStage->ppstStartSensor)->_swCurrState != ON) {
+    		if ((*pstStage->ppstStartSensor)->_curr_state != ON) {
     			ucState |= 1;
     		}
     	}
     	if (*pstStage->ppstReduceSensor) {
-    		if ((*pstStage->ppstReduceSensor)->_swCurrState != OFF) {
+    		if ((*pstStage->ppstReduceSensor)->_curr_state != OFF) {
     			ucState |= 2;
     		}
     	}
     	if (*pstStage->ppstStopSensor) {
-    		if ((*pstStage->ppstStopSensor)->_swCurrState != OFF) {
+    		if ((*pstStage->ppstStopSensor)->_curr_state != OFF) {
     			ucState |= 4;
     		}
     	}

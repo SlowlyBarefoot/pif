@@ -15,9 +15,9 @@ typedef struct _PIF_stStepMotorPosStage
 	uint8_t enMode;				// PIF_enMotorMode
 
     // Sensor
-    PIF_stSensor **ppstStartSensor;
-    PIF_stSensor **ppstReduceSensor;
-    PIF_stSensor **ppstStopSensor;
+    PifSensor **ppstStartSensor;
+    PifSensor **ppstReduceSensor;
+    PifSensor **ppstStopSensor;
 
 	// 가속 구간 (Gained speed range)
 	uint16_t usGsStartPps;		// 초기 기동 P/S 설정

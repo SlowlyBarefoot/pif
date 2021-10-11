@@ -77,12 +77,12 @@ static void _AddDeviceInCollectSignal()
 		PIF_stSensorSwitch* pstOwner = p_colsig->p_owner;
 		for (int f = 0; f < SSCsF_enCount; f++) {
 			if (p_colsig->flag & (1 << f)) {
-				p_colsig->p_device[f] = pifCollectSignal_AddDevice(pstOwner->stSensor._usPifId, CSVT_enWire, 1,
-						prefix[f], pstOwner->stSensor._swCurrState);
+				p_colsig->p_device[f] = pifCollectSignal_AddDevice(pstOwner->stSensor._id, CSVT_enWire, 1,
+						prefix[f], pstOwner->stSensor._curr_state);
 			}
 		}
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_INFO, "SS_CS:Add(DC:%u F:%u)", pstOwner->stSensor._usPifId, p_colsig->flag);
+		pifLog_Printf(LT_INFO, "SS_CS:Add(DC:%u F:%u)", pstOwner->stSensor._id, p_colsig->flag);
 #endif
 
 		it = pifDList_Next(it);
@@ -108,7 +108,7 @@ void pifSensorSwitch_ColSigClear()
  * @param swInitState
  * @return 
  */
-PIF_stSensor *pifSensorSwitch_Create(PifId usPifId, SWITCH swInitState)
+PifSensor *pifSensorSwitch_Create(PifId usPifId, SWITCH swInitState)
 {
     PIF_stSensorSwitch *pstOwner = NULL;
 
@@ -118,12 +118,12 @@ PIF_stSensor *pifSensorSwitch_Create(PifId usPifId, SWITCH swInitState)
 	    return NULL;
 	}
 
-    PIF_stSensor *pstSensor = &pstOwner->stSensor;
+    PifSensor *pstSensor = &pstOwner->stSensor;
 
     if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
-    pstSensor->_usPifId = usPifId;
-	pstSensor->_swInitState = swInitState;
-	pstSensor->_swCurrState = swInitState;
+    pstSensor->_id = usPifId;
+	pstSensor->_init_state = swInitState;
+	pstSensor->_curr_state = swInitState;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	pifCollectSignal_Attach(CSF_enSensorSwitch, _AddDeviceInCollectSignal);
@@ -141,7 +141,7 @@ PIF_stSensor *pifSensorSwitch_Create(PifId usPifId, SWITCH swInitState)
  * @brief
  * @param pp_sensor
  */
-void pifSensorSwitch_Destroy(PIF_stSensor** pp_sensor)
+void pifSensorSwitch_Destroy(PifSensor** pp_sensor)
 {
     if (*pp_sensor) {
         free(*pp_sensor);
@@ -154,15 +154,15 @@ void pifSensorSwitch_Destroy(PIF_stSensor** pp_sensor)
  * @brief
  * @param pstSensor
  */
-void pifSensorSwitch_InitialState(PIF_stSensor *pstSensor)
+void pifSensorSwitch_InitialState(PifSensor *pstSensor)
 {
 	PIF_stSensorSwitch *pstOwner = (PIF_stSensorSwitch *)pstSensor;
 
-	pstSensor->_swCurrState = pstSensor->_swInitState;
+	pstSensor->_curr_state = pstSensor->_init_state;
 #ifdef __PIF_COLLECT_SIGNAL__
-	pstOwner->__p_colsig->state = pstSensor->_swInitState;
+	pstOwner->__p_colsig->state = pstSensor->_init_state;
 #endif
-	pstOwner->__swState = pstSensor->_swInitState;
+	pstOwner->__swState = pstSensor->_init_state;
 }
 
 /**
@@ -174,7 +174,7 @@ void pifSensorSwitch_InitialState(PIF_stSensor *pstSensor)
  * @param pstFilter
  * @return
  */
-BOOL pifSensorSwitch_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMethod, uint8_t ucFilterSize, PIF_stSensorSwitchFilter *pstFilter)
+BOOL pifSensorSwitch_AttachFilter(PifSensor *pstSensor, uint8_t ucFilterMethod, uint8_t ucFilterSize, PIF_stSensorSwitchFilter *pstFilter)
 {
 	PIF_stSensorSwitch *pstOwner = (PIF_stSensorSwitch *)pstSensor;
 
@@ -213,7 +213,7 @@ BOOL pifSensorSwitch_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMetho
  * @brief
  * @param pstSensor
  */
-void pifSensorSwitch_DetachFilter(PIF_stSensor *pstSensor)
+void pifSensorSwitch_DetachFilter(PifSensor *pstSensor)
 {
 	PIF_stSensorSwitch *pstOwner = (PIF_stSensorSwitch *)pstSensor;
 	PIF_stSensorSwitchFilter *pstState;
@@ -266,7 +266,7 @@ void pifSensorSwitch_ResetCsFlagAll(PIF_enSensorSwitchCsFlag enFlag)
  * @param pstSensor
  * @param enFlag
  */
-void pifSensorSwitch_SetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorSwitchCsFlag enFlag)
+void pifSensorSwitch_SetCsFlagEach(PifSensor *pstSensor, PIF_enSensorSwitchCsFlag enFlag)
 {
 	((PIF_stSensorSwitch*)pstSensor)->__p_colsig->flag |= enFlag;
 }
@@ -277,7 +277,7 @@ void pifSensorSwitch_SetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorSwitchCs
  * @param pstSensor
  * @param enFlag
  */
-void pifSensorSwitch_ResetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorSwitchCsFlag enFlag)
+void pifSensorSwitch_ResetCsFlagEach(PifSensor *pstSensor, PIF_enSensorSwitchCsFlag enFlag)
 {
 	((PIF_stSensorSwitch*)pstSensor)->__p_colsig->flag &= ~enFlag;
 }
@@ -290,7 +290,7 @@ void pifSensorSwitch_ResetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorSwitch
  * @param pstSensor
  * @param swState
  */
-void pifSensorSwitch_sigData(PIF_stSensor *pstSensor, SWITCH swState)
+void pifSensorSwitch_sigData(PifSensor *pstSensor, SWITCH swState)
 {
 	PIF_stSensorSwitch *pstOwner = (PIF_stSensorSwitch *)pstSensor;
 
@@ -315,22 +315,22 @@ void pifSensorSwitch_sigData(PIF_stSensor *pstSensor, SWITCH swState)
 static uint16_t _DoTask(PifTask *pstTask)
 {
 	PIF_stSensorSwitch *pstOwner = pstTask->_p_client;
-	PIF_stSensor *pstParent = &pstOwner->stSensor;
+	PifSensor *pstParent = &pstOwner->stSensor;
 
-	if (pstParent->__actAcquire) {
-		pifSensorSwitch_sigData(pstParent, (*pstParent->__actAcquire)(pstParent->_usPifId));
+	if (pstParent->__act_acquire) {
+		pifSensorSwitch_sigData(pstParent, (*pstParent->__act_acquire)(pstParent->_id));
 	}
 
-	if (pstOwner->__swState != pstParent->_swCurrState) {
-		if (pstParent->__evtChange) {
-			(*pstParent->__evtChange)(pstParent->_usPifId, pstOwner->__swState, pstParent->__pvChangeIssuer);
+	if (pstOwner->__swState != pstParent->_curr_state) {
+		if (pstParent->__evt_change) {
+			(*pstParent->__evt_change)(pstParent->_id, pstOwner->__swState, pstParent->__p_change_issuer);
 #ifdef __PIF_COLLECT_SIGNAL__
 			if (pstOwner->__p_colsig->flag & SSCsF_enFilterBit) {
 				pifCollectSignal_AddSignal(pstOwner->__p_colsig->p_device[SSCsF_enFilterIdx], pstOwner->__swState);
 			}
 #endif
 		}
-		pstParent->_swCurrState = pstOwner->__swState;
+		pstParent->_curr_state = pstOwner->__swState;
 	}
     return 0;
 }
@@ -344,7 +344,7 @@ static uint16_t _DoTask(PifTask *pstTask)
  * @param bStart 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask *pifSensorSwitch_AttachTask(PIF_stSensor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+PifTask *pifSensorSwitch_AttachTask(PifSensor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart)
 {
 	return pifTaskManager_Add(enMode, usPeriod, _DoTask, pstOwner, bStart);
 }

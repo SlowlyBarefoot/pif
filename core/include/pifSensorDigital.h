@@ -72,7 +72,7 @@ typedef struct
  */
 struct _PIF_stSensorDigital
 {
-	PIF_stSensor stSensor;
+	PifSensor stSensor;
 
 	// Private Member Variable
 	PifPulse* __pstTimer;
@@ -107,36 +107,36 @@ struct _PIF_stSensorDigital
 extern "C" {
 #endif
 
-PIF_stSensor* pifSensorDigital_Create(PifId usPifId, PifPulse* pstTimer);
-void pifSensorDigital_Destroy(PIF_stSensor** pp_sensor);
+PifSensor* pifSensorDigital_Create(PifId usPifId, PifPulse* pstTimer);
+void pifSensorDigital_Destroy(PifSensor** pp_sensor);
 
-void pifSensorDigital_InitialState(PIF_stSensor *pstSensor);
+void pifSensorDigital_InitialState(PifSensor *pstSensor);
 
-BOOL pifSensorDigital_AttachEvtPeriod(PIF_stSensor *pstSensor, PIF_evtSensorDigitalPeriod evtPeriod);
-BOOL pifSensorDigital_StartPeriod(PIF_stSensor *pstSensor, uint16_t usPeriod);
-void pifSensorDigital_StopPeriod(PIF_stSensor *pstSensor);
+BOOL pifSensorDigital_AttachEvtPeriod(PifSensor *pstSensor, PIF_evtSensorDigitalPeriod evtPeriod);
+BOOL pifSensorDigital_StartPeriod(PifSensor *pstSensor, uint16_t usPeriod);
+void pifSensorDigital_StopPeriod(PifSensor *pstSensor);
 
-void pifSensorDigital_SetEventThreshold1P(PIF_stSensor *pstSensor, uint16_t usThreshold);
-void pifSensorDigital_SetEventThreshold2P(PIF_stSensor *pstSensor, uint16_t usThresholdLow, uint16_t usThresholdHigh);
+void pifSensorDigital_SetEventThreshold1P(PifSensor *pstSensor, uint16_t usThreshold);
+void pifSensorDigital_SetEventThreshold2P(PifSensor *pstSensor, uint16_t usThresholdLow, uint16_t usThresholdHigh);
 
-BOOL pifSensorDigital_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMethod, uint8_t ucFilterSize, PIF_stSensorDigitalFilter *pstFilter, BOOL bInitFilter);
-void pifSensorDigital_DetachFilter(PIF_stSensor *pstSensor);
+BOOL pifSensorDigital_AttachFilter(PifSensor *pstSensor, uint8_t ucFilterMethod, uint8_t ucFilterSize, PIF_stSensorDigitalFilter *pstFilter, BOOL bInitFilter);
+void pifSensorDigital_DetachFilter(PifSensor *pstSensor);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
 void pifSensorDigital_SetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag);
 void pifSensorDigital_ResetCsFlagAll(PIF_enSensorDigitalCsFlag enFlag);
 
-void pifSensorDigital_SetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorDigitalCsFlag enFlag);
-void pifSensorDigital_ResetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorDigitalCsFlag enFlag);
+void pifSensorDigital_SetCsFlagEach(PifSensor *pstSensor, PIF_enSensorDigitalCsFlag enFlag);
+void pifSensorDigital_ResetCsFlagEach(PifSensor *pstSensor, PIF_enSensorDigitalCsFlag enFlag);
 
 #endif
 
 // Signal Function
-void pifSensorDigital_sigData(PIF_stSensor *pstSensor, uint16_t usLevel);
+void pifSensorDigital_sigData(PifSensor *pstSensor, uint16_t usLevel);
 
 // Task Function
-PifTask *pifSensorDigital_AttachTask(PIF_stSensor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask *pifSensorDigital_AttachTask(PifSensor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
 
 #ifdef __cplusplus
 }

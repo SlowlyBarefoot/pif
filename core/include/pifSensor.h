@@ -6,41 +6,41 @@
 #include "pifTask.h"
 
 
-typedef uint16_t (*PIF_actSensorAcquire)(PifId usPifId);
-typedef void (*PIF_evtSensorChange)(PifId usPifId, uint16_t usLevel, void *pvIssuer);
+typedef uint16_t (*PifActSensorAcquire)(PifId id);
+typedef void (*PifEvtSensorChange)(PifId id, uint16_t level, void* p_issuer);
 
 /**
- * @class _PIF_stSensor
+ * @class StPifSensor
  * @brief
  */
-typedef struct _PIF_stSensor
+typedef struct StPifSensor
 {
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PifId _usPifId;
-    SWITCH _swInitState;
-    SWITCH _swCurrState;						// Default: enInitState
+	PifId _id;
+    SWITCH _init_state;
+    SWITCH _curr_state;						// Default: enInitState
 
 	// Private Member Variable
-    void *__pvChangeIssuer;
+    void* __p_change_issuer;
 
 	// Private Action Function
-	PIF_actSensorAcquire __actAcquire;			// Default: NULL
+	PifActSensorAcquire __act_acquire;			// Default: NULL
 
 	// Private Event Function
-   	PIF_evtSensorChange __evtChange;			// Default: NULL
-} PIF_stSensor;
+   	PifEvtSensorChange __evt_change;			// Default: NULL
+} PifSensor;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void pifSensor_AttachAction(PIF_stSensor *pstOwner, PIF_actSensorAcquire actAcquire);
+void pifSensor_AttachAction(PifSensor* p_owner, PifActSensorAcquire act_acquire);
 
-void pifSensor_AttachEvtChange(PIF_stSensor *pstOwner, PIF_evtSensorChange evtChange, void *pvIssuer);
-void pifSensor_DetachEvtChange(PIF_stSensor *pstOwner);
+void pifSensor_AttachEvtChange(PifSensor* p_owner, PifEvtSensorChange evt_change, void* p_issuer);
+void pifSensor_DetachEvtChange(PifSensor* p_owner);
 
 #ifdef __cplusplus
 }

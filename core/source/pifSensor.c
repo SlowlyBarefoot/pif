@@ -7,34 +7,34 @@
 /**
  * @fn pifSensor_AttachAction
  * @brief
- * @param pstOwner
- * @param actAcquire
+ * @param p_owner
+ * @param act_acquire
  */
-void pifSensor_AttachAction(PIF_stSensor *pstOwner, PIF_actSensorAcquire actAcquire)
+void pifSensor_AttachAction(PifSensor* p_owner, PifActSensorAcquire act_acquire)
 {
-	pstOwner->__actAcquire = actAcquire;
+	p_owner->__act_acquire = act_acquire;
 }
 
 /**
  * @fn pifSensor_AttachEvtChange
  * @brief
- * @param pstOwner
- * @param evtChange
- * @param pvIssuer
+ * @param p_owner
+ * @param evt_change
+ * @param p_issuer
  */
-void pifSensor_AttachEvtChange(PIF_stSensor *pstOwner, PIF_evtSensorChange evtChange, void *pvIssuer)
+void pifSensor_AttachEvtChange(PifSensor* p_owner, PifEvtSensorChange evt_change, void* p_issuer)
 {
-	pstOwner->__evtChange = evtChange;
-	pstOwner->__pvChangeIssuer = pvIssuer;
+	p_owner->__evt_change = evt_change;
+	p_owner->__p_change_issuer = p_issuer;
 }
 
 /**
  * @fn pifSensor_DetachEvtChange
  * @brief
- * @param pstOwner
+ * @param p_owner
  */
-void pifSensor_DetachEvtChange(PIF_stSensor *pstOwner)
+void pifSensor_DetachEvtChange(PifSensor* p_owner)
 {
-	pstOwner->__evtChange = NULL;
-	pstOwner->__pvChangeIssuer = NULL;
+	p_owner->__evt_change = NULL;
+	p_owner->__p_change_issuer = NULL;
 }

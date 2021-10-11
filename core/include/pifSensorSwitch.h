@@ -68,7 +68,7 @@ typedef struct
  */
 struct _PIF_stSensorSwitch
 {
-	PIF_stSensor stSensor;
+	PifSensor stSensor;
 
 	// Private Member Variable
     SWITCH __swState;
@@ -86,29 +86,29 @@ struct _PIF_stSensorSwitch
 extern "C" {
 #endif
 
-PIF_stSensor* pifSensorSwitch_Create(PifId usPifId, SWITCH swInitState);
-void pifSensorSwitch_Destroy(PIF_stSensor** pp_sensor);
+PifSensor* pifSensorSwitch_Create(PifId usPifId, SWITCH swInitState);
+void pifSensorSwitch_Destroy(PifSensor** pp_sensor);
 
-void pifSensorSwitch_InitialState(PIF_stSensor *pstSensor);
+void pifSensorSwitch_InitialState(PifSensor *pstSensor);
 
-BOOL pifSensorSwitch_AttachFilter(PIF_stSensor *pstSensor, uint8_t ucFilterMethod, uint8_t ucFilterSize, PIF_stSensorSwitchFilter *pstFilter);
-void pifSensorSwitch_DetachFilter(PIF_stSensor *pstSensor);
+BOOL pifSensorSwitch_AttachFilter(PifSensor *pstSensor, uint8_t ucFilterMethod, uint8_t ucFilterSize, PIF_stSensorSwitchFilter *pstFilter);
+void pifSensorSwitch_DetachFilter(PifSensor *pstSensor);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
 void pifSensorSwitch_SetCsFlagAll(PIF_enSensorSwitchCsFlag enFlag);
 void pifSensorSwitch_ResetCsFlagAll(PIF_enSensorSwitchCsFlag enFlag);
 
-void pifSensorSwitch_SetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorSwitchCsFlag enFlag);
-void pifSensorSwitch_ResetCsFlagEach(PIF_stSensor *pstSensor, PIF_enSensorSwitchCsFlag enFlag);
+void pifSensorSwitch_SetCsFlagEach(PifSensor *pstSensor, PIF_enSensorSwitchCsFlag enFlag);
+void pifSensorSwitch_ResetCsFlagEach(PifSensor *pstSensor, PIF_enSensorSwitchCsFlag enFlag);
 
 #endif
 
 // Signal Function
-void pifSensorSwitch_sigData(PIF_stSensor *pstSensor, SWITCH swState);
+void pifSensorSwitch_sigData(PifSensor *pstSensor, SWITCH swState);
 
 // Task Function
-PifTask *pifSensorSwitch_AttachTask(PIF_stSensor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask *pifSensorSwitch_AttachTask(PifSensor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
 
 #ifdef __cplusplus
 }
