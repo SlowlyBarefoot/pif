@@ -4,108 +4,108 @@
 #endif
 
 
-static void _CheckKeyState(PIF_stKeypad* p_owner, int idx, BOOL button)
+static void _CheckKeyState(PifKeypad* p_owner, int idx, BOOL button)
 {
-	uint32_t unTime;
-	PIF_stKey *pstKey = &p_owner->__pstKey[idx];
+	uint32_t time;
+	PifKey* p_key = &p_owner->__p_key[idx];
 
-	switch (pstKey->enState) {
-	case KS_enIdle:
+	switch (p_key->state) {
+	case KS_IDLE:
 		if (button == ON) {
-			pstKey->bPressed = FALSE;
-			pstKey->bLongReleased = FALSE;
-			pstKey->unPressedTime = pif_timer1sec * 1000 + pif_timer1ms;
-			if (p_owner->evtDoublePressed) {
-				if (!pstKey->unFirstTime) {
-					pstKey->unFirstTime = pstKey->unPressedTime;
-					pstKey->bDoublePressed = FALSE;
+			p_key->pressed = FALSE;
+			p_key->long_released = FALSE;
+			p_key->pressed_time = pif_timer1sec * 1000 + pif_timer1ms;
+			if (p_owner->evt_double_pressed) {
+				if (!p_key->first_time) {
+					p_key->first_time = p_key->pressed_time;
+					p_key->double_pressed = FALSE;
 				}
 				else {
-					if (pstKey->unPressedTime - pstKey->unFirstTime < p_owner->_usDoubleTimeMs) {
-						(*p_owner->evtDoublePressed)(p_owner->__pcUserKeymap[idx]);
-						pstKey->bDoublePressed = TRUE;
+					if (p_key->pressed_time - p_key->first_time < p_owner->_double_time1ms) {
+						(*p_owner->evt_double_pressed)(p_owner->__p_user_keymap[idx]);
+						p_key->double_pressed = TRUE;
 					}
 				}
 			}
-			pstKey->enState = KS_enPressed;
+			p_key->state = KS_PRESSED;
 		}
-		else if (pstKey->bShortClicked) {
-			unTime = pif_timer1sec * 1000 + pif_timer1ms - pstKey->unPressedTime;
-			if (unTime >= p_owner->_usDoubleTimeMs) {
-				if (p_owner->evtPressed)  {
-					(*p_owner->evtPressed)(p_owner->__pcUserKeymap[idx]);
+		else if (p_key->short_clicked) {
+			time = pif_timer1sec * 1000 + pif_timer1ms - p_key->pressed_time;
+			if (time >= p_owner->_double_time1ms) {
+				if (p_owner->evt_pressed)  {
+					(*p_owner->evt_pressed)(p_owner->__p_user_keymap[idx]);
 				}
-				if (p_owner->evtReleased)  {
-					(*p_owner->evtReleased)(p_owner->__pcUserKeymap[idx], unTime);
+				if (p_owner->evt_released)  {
+					(*p_owner->evt_released)(p_owner->__p_user_keymap[idx], time);
 				}
-				pstKey->bShortClicked = FALSE;
-				pstKey->unFirstTime = 0L;
+				p_key->short_clicked = FALSE;
+				p_key->first_time = 0L;
 			}
 		}
 		break;
 
-	case KS_enPressed:
+	case KS_PRESSED:
 		if (button == OFF) {
-			if (pstKey->bDoublePressed)	{
-				pstKey->unFirstTime = 0L;
-				pstKey->enState = KS_enReleased;
+			if (p_key->double_pressed)	{
+				p_key->first_time = 0L;
+				p_key->state = KS_RELEASED;
 			}
-			else pstKey->enState = KS_enIdle;
+			else p_key->state = KS_IDLE;
 		}
 		else {
-			unTime = pif_timer1sec * 1000 + pif_timer1ms - pstKey->unPressedTime;
-			if (unTime >= p_owner->_usHoldTimeMs) {
-				pstKey->enState = KS_enHold;
+			time = pif_timer1sec * 1000 + pif_timer1ms - p_key->pressed_time;
+			if (time >= p_owner->_hold_time1ms) {
+				p_key->state = KS_HOLD;
 			}
 		}
 		break;
 
-	case KS_enHold:
-		if (!pstKey->bDoublePressed) {
-			unTime = pif_timer1sec * 1000 + pif_timer1ms - pstKey->unPressedTime;
-			if (unTime >= p_owner->_usLongTimeMs) {
-				if (!pstKey->bLongReleased) {
-					if (p_owner->evtLongReleased)  {
-						(*p_owner->evtLongReleased)(p_owner->__pcUserKeymap[idx], unTime);
+	case KS_HOLD:
+		if (!p_key->double_pressed) {
+			time = pif_timer1sec * 1000 + pif_timer1ms - p_key->pressed_time;
+			if (time >= p_owner->_long_time1ms) {
+				if (!p_key->long_released) {
+					if (p_owner->evt_long_released)  {
+						(*p_owner->evt_long_released)(p_owner->__p_user_keymap[idx], time);
 					}
-					pstKey->bLongReleased = TRUE;
+					p_key->long_released = TRUE;
 				}
 			}
-			else if (unTime >= p_owner->_usDoubleTimeMs) {
-				if (!pstKey->bPressed) {
-					if (p_owner->evtPressed)  {
-						(*p_owner->evtPressed)(p_owner->__pcUserKeymap[idx]);
+			else if (time >= p_owner->_double_time1ms) {
+				if (!p_key->pressed) {
+					if (p_owner->evt_pressed)  {
+						(*p_owner->evt_pressed)(p_owner->__p_user_keymap[idx]);
 					}
-					pstKey->bPressed = TRUE;
+					p_key->pressed = TRUE;
 				}
 			}
 			if (button == OFF) {
-				if (!pstKey->bPressed) {
-					pstKey->bShortClicked = TRUE;
-					pstKey->enState = KS_enIdle;
+				if (!p_key->pressed) {
+					p_key->short_clicked = TRUE;
+					p_key->state = KS_IDLE;
 				}
 				else {
-					pstKey->enState = KS_enReleased;
+					p_key->state = KS_RELEASED;
 				}
 			}
 		}
 		else {
 			if (button == OFF) {
-				if (pstKey->bDoublePressed) {
-					pstKey->bShortClicked = FALSE;
-					pstKey->unFirstTime = 0L;
+				if (p_key->double_pressed) {
+					p_key->short_clicked = FALSE;
+					p_key->first_time = 0L;
 				}
-				pstKey->enState = KS_enReleased;
+				p_key->state = KS_RELEASED;
 			}
 		}
 		break;
 
-	case KS_enReleased:
-		if (!pstKey->bLongReleased && p_owner->evtReleased)  {
-			unTime = pif_timer1sec * 1000 + pif_timer1ms - pstKey->unPressedTime;
-			(*p_owner->evtReleased)(p_owner->__pcUserKeymap[idx], unTime);
+	case KS_RELEASED:
+		if (!p_key->long_released && p_owner->evt_released)  {
+			time = pif_timer1sec * 1000 + pif_timer1ms - p_key->pressed_time;
+			(*p_owner->evt_released)(p_owner->__p_user_keymap[idx], time);
 		}
-		pstKey->enState = KS_enIdle;
+		p_key->state = KS_IDLE;
 		break;
 	}
 }
@@ -113,42 +113,42 @@ static void _CheckKeyState(PIF_stKeypad* p_owner, int idx, BOOL button)
 /**
  * @fn pifKeypad_Create
  * @brief
- * @param usPifId
- * @param ucNumRows
- * @param ucNumCols
- * @param pcUserKeymap
+ * @param id
+ * @param num_rows
+ * @param num_cols
+ * @param p_user_keymap
  * @return
  */
-PIF_stKeypad *pifKeypad_Create(PifId usPifId, uint8_t ucNumRows, uint8_t ucNumCols, const char *pcUserKeymap)
+PifKeypad* pifKeypad_Create(PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap)
 {
-	PIF_stKeypad* p_owner;
+	PifKeypad* p_owner;
 
-	p_owner = calloc(sizeof(PIF_stKeypad), 1);
+	p_owner = calloc(sizeof(PifKeypad), 1);
 	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
 
-	p_owner->__pstKey = calloc(sizeof(PIF_stKey), ucNumRows * ucNumCols);
-	if (!p_owner->__pstKey) {
+	p_owner->__p_key = calloc(sizeof(PifKey), num_rows * num_cols);
+	if (!p_owner->__p_key) {
 		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
 
-	p_owner->__pusState = calloc(sizeof(uint16_t), ucNumRows);
-	if (!p_owner->__pusState) {
+	p_owner->__p_state = calloc(sizeof(uint16_t), num_rows);
+	if (!p_owner->__p_state) {
 		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
 
-    if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
-    p_owner->_usPifId = usPifId;
-    p_owner->__pcUserKeymap = pcUserKeymap;
-    p_owner->__ucNumRows = ucNumRows;
-    p_owner->__ucNumCols = ucNumCols;
-    p_owner->_usHoldTimeMs = PIF_KEYPAD_DEFAULT_HOLD_TIME;
-    p_owner->_usLongTimeMs = PIF_KEYPAD_DEFAULT_LONG_TIME;
-    p_owner->_usDoubleTimeMs = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+    p_owner->__p_user_keymap = p_user_keymap;
+    p_owner->__num_rows = num_rows;
+    p_owner->__num_cols = num_cols;
+    p_owner->_hold_time1ms = PIF_KEYPAD_DEFAULT_HOLD_TIME;
+    p_owner->_long_time1ms = PIF_KEYPAD_DEFAULT_LONG_TIME;
+    p_owner->_double_time1ms = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
     return p_owner;
 }
 
@@ -157,12 +157,12 @@ PIF_stKeypad *pifKeypad_Create(PifId usPifId, uint8_t ucNumRows, uint8_t ucNumCo
  * @brief
  * @param pp_owner
  */
-void pifKeypad_Destroy(PIF_stKeypad** pp_owner)
+void pifKeypad_Destroy(PifKeypad** pp_owner)
 {
 	if (*pp_owner) {
-		PIF_stKeypad* p_owner = *pp_owner;
-		if (p_owner->__pusState) free(p_owner->__pusState);
-		if (p_owner->__pstKey) free(p_owner->__pstKey);
+		PifKeypad* p_owner = *pp_owner;
+		if (p_owner->__p_state) free(p_owner->__p_state);
+		if (p_owner->__p_key) free(p_owner->__p_key);
 		free(*pp_owner);
 		*pp_owner = NULL;
 	}
@@ -172,28 +172,28 @@ void pifKeypad_Destroy(PIF_stKeypad** pp_owner)
  * @fn pifKeypad_AttachAction
  * @brief
  * @param p_owner
- * @param actAcquire
+ * @param act_acquire
  */
-void pifKeypad_AttachAction(PIF_stKeypad* p_owner, PIF_actKeypadAcquire actAcquire)
+void pifKeypad_AttachAction(PifKeypad* p_owner, PifActKeypadAcquire act_acquire)
 {
-	p_owner->__actAcquire = actAcquire;
+	p_owner->__act_acquire = act_acquire;
 }
 
 /**
  * @fn pifKeypad_SetHoldTime
  * @brief
  * @param p_owner
- * @param usHoldTimeMs
+ * @param hold_time1ms
  * @return
  */
-BOOL pifKeypad_SetHoldTime(PIF_stKeypad* p_owner, uint16_t usHoldTimeMs)
+BOOL pifKeypad_SetHoldTime(PifKeypad* p_owner, uint16_t hold_time1ms)
 {
-	if (usHoldTimeMs >= p_owner->_usDoubleTimeMs) {
+	if (hold_time1ms >= p_owner->_double_time1ms) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
-	p_owner->_usHoldTimeMs = usHoldTimeMs;
+	p_owner->_hold_time1ms = hold_time1ms;
 	return TRUE;
 }
 
@@ -201,17 +201,17 @@ BOOL pifKeypad_SetHoldTime(PIF_stKeypad* p_owner, uint16_t usHoldTimeMs)
  * @fn pifKeypad_SetLongTime
  * @brief
  * @param p_owner
- * @param usLongTimeMs
+ * @param long_time1ms
  * @return
  */
-BOOL pifKeypad_SetLongTime(PIF_stKeypad* p_owner, uint16_t usLongTimeMs)
+BOOL pifKeypad_SetLongTime(PifKeypad* p_owner, uint16_t long_time1ms)
 {
-	if (usLongTimeMs <= p_owner->_usDoubleTimeMs) {
+	if (long_time1ms <= p_owner->_double_time1ms) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
-	p_owner->_usLongTimeMs = usLongTimeMs;
+	p_owner->_long_time1ms = long_time1ms;
 	return TRUE;
 }
 
@@ -219,33 +219,33 @@ BOOL pifKeypad_SetLongTime(PIF_stKeypad* p_owner, uint16_t usLongTimeMs)
  * @fn pifKeypad_SetDoubleTime
  * @brief
  * @param p_owner
- * @param usDoubleTimeMs
+ * @param double_time1ms
  * @return
  */
-BOOL pifKeypad_SetDoubleTime(PIF_stKeypad* p_owner, uint16_t usDoubleTimeMs)
+BOOL pifKeypad_SetDoubleTime(PifKeypad* p_owner, uint16_t double_time1ms)
 {
-	if (usDoubleTimeMs <= p_owner->_usHoldTimeMs || usDoubleTimeMs >= p_owner->_usLongTimeMs) {
+	if (double_time1ms <= p_owner->_hold_time1ms || double_time1ms >= p_owner->_long_time1ms) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
-	p_owner->_usDoubleTimeMs = usDoubleTimeMs;
+	p_owner->_double_time1ms = double_time1ms;
 	return TRUE;
 }
 
-static uint16_t _DoTask(PifTask *pstTask)
+static uint16_t _doTask(PifTask* p_task)
 {
 	int idx, r, c;
 
-	PIF_stKeypad* p_owner = pstTask->_p_client;
+	PifKeypad* p_owner = p_task->_p_client;
 
-	if (!p_owner->__pstKey || !p_owner->__actAcquire) return 0;
+	if (!p_owner->__p_key || !p_owner->__act_acquire) return 0;
 
-	(*p_owner->__actAcquire)(p_owner->__pusState);
+	(*p_owner->__act_acquire)(p_owner->__p_state);
 
-	for (idx = 0, r = 0; r < p_owner->__ucNumRows; r++) {
-		for (c = 0; c < p_owner->__ucNumCols; c++, idx++) {
-			_CheckKeyState(p_owner, idx, (p_owner->__pusState[r] >> c) & 1);
+	for (idx = 0, r = 0; r < p_owner->__num_rows; r++) {
+		for (c = 0; c < p_owner->__num_cols; c++, idx++) {
+			_CheckKeyState(p_owner, idx, (p_owner->__p_state[r] >> c) & 1);
 		}
 	}
 	return 0;
@@ -255,12 +255,12 @@ static uint16_t _DoTask(PifTask *pstTask)
  * @fn pifKeypad_AttachTask
  * @brief Task를 추가한다.
  * @param p_owner
- * @param enMode Task의 Mode를 설정한다.
- * @param usPeriod Mode에 따라 주기의 단위가 변경된다.
- * @param bStart 즉시 시작할지를 지정한다.
+ * @param mode Task의 Mode를 설정한다.
+ * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask *pifKeypad_AttachTask(PIF_stKeypad* p_owner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+PifTask* pifKeypad_AttachTask(PifKeypad* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
-	return pifTaskManager_Add(enMode, usPeriod, _DoTask, p_owner, bStart);
+	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
 }

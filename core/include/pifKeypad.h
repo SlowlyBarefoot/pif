@@ -5,84 +5,85 @@
 #include "pifTask.h"
 
 
-typedef enum _PIF_enKeyState
+typedef enum EnPifKeyState
 {
-	KS_enIdle,
-	KS_enPressed,
-	KS_enHold,
-	KS_enReleased
-} PIF_enKeyState;
+	KS_IDLE,
+	KS_PRESSED,
+	KS_HOLD,
+	KS_RELEASED
+} PifKeyState;
 
 
-typedef void (*PIF_actKeypadAcquire)(uint16_t *pusState);
-typedef void (*PIF_evtKeypadPressed)(char cChar);
-typedef void (*PIF_evtKeypadDoublePressed)(char cChar);
-typedef void (*PIF_evtKeypadReleased)(char cChar, uint32_t unOnTime);
-typedef void (*PIF_evtKeypadLongReleased)(char cChar, uint32_t unOnTime);
+typedef void (*PifActKeypadAcquire)(uint16_t* p_state);
+
+typedef void (*PifEvtKeypadPressed)(char ch);
+typedef void (*PifEvtKeypadDoublePressed)(char ch);
+typedef void (*PifEvtKeypadReleased)(char ch, uint32_t on_time);
+typedef void (*PifEvtKeypadLongReleased)(char ch, uint32_t on_time);
 
 
 /**
- * @class _PIF_stKey
+ * @class StPifKey
  * @brief
  */
-typedef struct _PIF_stKey
+typedef struct StPifKey
 {
-	PIF_enKeyState enState;
-	BOOL bPressed;
-	BOOL bShortClicked;
-	BOOL bDoublePressed;
-	BOOL bLongReleased;
-	uint32_t unPressedTime;
-	uint32_t unFirstTime;
-} PIF_stKey;
+	PifKeyState state;
+	BOOL pressed;
+	BOOL short_clicked;
+	BOOL double_pressed;
+	BOOL long_released;
+	uint32_t pressed_time;
+	uint32_t first_time;
+} PifKey;
 
 /**
- * @class _PIF_stKeypad
+ * @class StPifKeypad
  * @brief Keypad 관리용 구조체
  */
-typedef struct _PIF_stKeypad
+typedef struct StPifKeypad
 {
 	// Public Member Variable
 
 	// Public Event Function
-	PIF_evtKeypadPressed evtPressed;				// Default: NULL
-	PIF_evtKeypadReleased evtReleased;				// Default: NULL
-	PIF_evtKeypadLongReleased evtLongReleased;		// Default: NULL
-	PIF_evtKeypadDoublePressed evtDoublePressed;	// Default: NULL
+	PifEvtKeypadPressed evt_pressed;				// Default: NULL
+	PifEvtKeypadReleased evt_released;				// Default: NULL
+	PifEvtKeypadLongReleased evt_long_released;		// Default: NULL
+	PifEvtKeypadDoublePressed evt_double_pressed;	// Default: NULL
 
 	// Read-only Member Variable
-	PifId _usPifId;
-	uint16_t _usHoldTimeMs;							// Default: PIF_KEYPAD_DEFAULT_HOLD_TIME
-	uint16_t _usLongTimeMs;							// Default: PIF_KEYPAD_DEFAULT_LONG_TIME
-	uint16_t _usDoubleTimeMs;						// Default: PIF_KEYPAD_DEFAULT_DOUBLE_TIME
+	PifId _id;
+	uint16_t _hold_time1ms;							// Default: PIF_KEYPAD_DEFAULT_HOLD_TIME
+	uint16_t _long_time1ms;							// Default: PIF_KEYPAD_DEFAULT_LONG_TIME
+	uint16_t _double_time1ms;						// Default: PIF_KEYPAD_DEFAULT_DOUBLE_TIME
 
 	// Private Member Variable
-	const char *__pcUserKeymap;
-	uint8_t __ucNumRows;
-	uint8_t __ucNumCols;
-	uint16_t *__pusState;
-	PIF_stKey *__pstKey;
+	const char* __p_user_keymap;
+	uint8_t __num_rows;
+	uint8_t __num_cols;
+	uint16_t* __p_state;
+	PifKey* __p_key;
 
 	// Private Action Function
-	PIF_actKeypadAcquire __actAcquire;				// Default: NULL
-} PIF_stKeypad;
+	PifActKeypadAcquire __act_acquire;				// Default: NULL
+} PifKeypad;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PIF_stKeypad *pifKeypad_Create(PifId usPifId, uint8_t ucNumRows, uint8_t ucNumCols, const char *pcUserKeymap);
-void pifKeypad_Destroy(PIF_stKeypad** pp_owner);
+PifKeypad* pifKeypad_Create(PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap);
+void pifKeypad_Destroy(PifKeypad** pp_owner);
 
-void pifKeypad_AttachAction(PIF_stKeypad* p_owner, PIF_actKeypadAcquire actAcquire);
+void pifKeypad_AttachAction(PifKeypad* p_owner, PifActKeypadAcquire act_acquire);
 
-BOOL pifKeypad_SetHoldTime(PIF_stKeypad* p_owner, uint16_t usHoldTimeMs);
-BOOL pifKeypad_SetLongTime(PIF_stKeypad* p_owner, uint16_t usLongTimeMs);
-BOOL pifKeypad_SetDoubleTime(PIF_stKeypad* p_owner, uint16_t usDoubleTimeMs);
+BOOL pifKeypad_SetHoldTime(PifKeypad* p_owner, uint16_t hold_time1ms);
+BOOL pifKeypad_SetLongTime(PifKeypad* p_owner, uint16_t long_time1ms);
+BOOL pifKeypad_SetDoubleTime(PifKeypad* p_owner, uint16_t double_time1ms);
 
 // Task Function
-PifTask *pifKeypad_AttachTask(PIF_stKeypad* p_owner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask* pifKeypad_AttachTask(PifKeypad* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }
