@@ -54,7 +54,7 @@ static void _AddDeviceInCollectSignal()
 		PifSensorDigital* p_owner = p_colsig->p_owner;
 		for (int f = 0; f < SD_CSF_COUNT; f++) {
 			if (p_colsig->flag & (1 << f)) {
-				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->parent._id, CSVT_enWire, 1,
+				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->parent._id, CSVT_WIRE, 1,
 						prefix[f], p_owner->parent._curr_state);
 			}
 		}
@@ -107,7 +107,7 @@ PifSensor* pifSensorDigital_Create(PifId id, PifPulse *p_timer)
     p_owner->parent._id = id;
 
 #ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_enSensorDigital, _AddDeviceInCollectSignal);
+	pifCollectSignal_Attach(CSF_SENSOR_DIGITAL, _AddDeviceInCollectSignal);
 	PifSensorDigitalColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSensorDigitalColSig));
 	if (!p_colsig) return NULL;
 	p_colsig->p_owner = p_owner;

@@ -25,7 +25,7 @@ static void _AddDeviceInCollectSignal()
 		PifGpio* p_owner = p_colsig->p_owner;
 		for (int f = 0; f < GP_CSF_COUNT; f++) {
 			if (p_colsig->flag & (1 << f)) {
-				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_enReg, p_owner->count,
+				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_REG, p_owner->count,
 						prefix[f], p_owner->__write_state);
 			}
 		}
@@ -76,7 +76,7 @@ PifGpio* pifGpio_Create(PifId id, uint8_t count)
     p_owner->count = count;
 
 #ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_enGpio, _AddDeviceInCollectSignal);
+	pifCollectSignal_Attach(CSF_GPIO, _AddDeviceInCollectSignal);
 	PIF_GpioColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_GpioColSig));
 	if (!p_colsig) return NULL;
 	p_colsig->p_owner = p_owner;

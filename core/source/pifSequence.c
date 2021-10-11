@@ -44,7 +44,7 @@ static void _addDeviceInCollectSignal()
 		PifSequence* p_owner = p_colsig->p_owner;
 		for (int f = 0; f < SQ_CSF_COUNT; f++) {
 			if (p_colsig->flag & (1 << f)) {
-				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_enReg, 8, prefix[f], 0xFF);
+				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_REG, 8, prefix[f], 0xFF);
 			}
 		}
 #ifndef __PIF_NO_LOG__
@@ -100,7 +100,7 @@ PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, const PifSequencePh
     p_owner->p_param = p_param;
 
 #ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_enSequence, _addDeviceInCollectSignal);
+	pifCollectSignal_Attach(CSF_SEQUENCE, _addDeviceInCollectSignal);
 	PIF_SequenceColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_SequenceColSig));
 	if (!p_colsig) return NULL;
 	p_colsig->p_owner = p_owner;

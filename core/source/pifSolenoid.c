@@ -114,10 +114,10 @@ static void _AddDeviceInCollectSignal()
 		PifSolenoidColSig* p_colsig = (PifSolenoidColSig*)it->data;
 		PifSolenoid* p_owner = p_colsig->p_owner;
 		if (p_colsig->flag & 1) {
-			p_colsig->p_device[0] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_enWire, 1, prefix[0], 0);
+			p_colsig->p_device[0] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_WIRE, 1, prefix[0], 0);
 		}
 		if (p_colsig->flag & 2) {
-			p_colsig->p_device[1] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_enWire, 2, prefix[1], 0);
+			p_colsig->p_device[1] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_WIRE, 2, prefix[1], 0);
 		}
 #ifndef __PIF_NO_LOG__
 		pifLog_Printf(LT_INFO, "SN_CS:Add(DC:%u F:%u)", p_owner->_id, p_colsig->flag);
@@ -183,7 +183,7 @@ PifSolenoid* pifSolenoid_Create(PifId id, PifPulse* p_timer, PifSolenoidType typ
     p_owner->on_time = on_time;
 
 #ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_enSolenoid, _AddDeviceInCollectSignal);
+	pifCollectSignal_Attach(CSF_SOLENOID, _AddDeviceInCollectSignal);
 	PifSolenoidColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSolenoidColSig));
 	if (!p_colsig) return NULL;
 	p_colsig->p_owner = p_owner;

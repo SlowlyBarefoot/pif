@@ -77,7 +77,7 @@ static void _addDeviceInCollectSignal()
 		PifSensorSwitch* p_owner = p_colsig->p_owner;
 		for (int f = 0; f < SS_CSF_COUNT; f++) {
 			if (p_colsig->flag & (1 << f)) {
-				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->parent._id, CSVT_enWire, 1,
+				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->parent._id, CSVT_WIRE, 1,
 						prefix[f], p_owner->parent._curr_state);
 			}
 		}
@@ -126,7 +126,7 @@ PifSensor* pifSensorSwitch_Create(PifId id, SWITCH init_state)
     p_parent->_curr_state = init_state;
 
 #ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_enSensorSwitch, _addDeviceInCollectSignal);
+	pifCollectSignal_Attach(CSF_SENSOR_SWITCH, _addDeviceInCollectSignal);
 	PifSensorSwitchColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSensorSwitchColSig));
 	if (!p_colsig) return NULL;
 	p_colsig->p_owner = p_owner;

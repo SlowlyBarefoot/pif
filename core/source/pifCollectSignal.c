@@ -7,43 +7,43 @@
 #include "pifLog.h"
 
 
-typedef enum _PIF_enCollectSignalStep
+typedef enum EnPifCollectSignalStep
 {
-	CSS_enIdle		= 0,
-	CSS_enCollect	= 1,
-	CSS_enSendLog	= 2
-} PIF_enCollectSignalStep;
+	CSS_IDLE		= 0,
+	CSS_COLLECT		= 1,
+	CSS_SEND_LOG	= 2
+} PifCollectSignalStep;
 
 
-typedef struct _PIF_stCollectSignalDevice
+typedef struct StPifCollectSignalDevice
 {
-	PifId usPifId;
-	PIF_enCollectSignalVarType enVarType;
+	PifId id;
+	PifCollectSignalVarType var_type;
 	uint8_t index;
-	uint16_t usSize;
-	uint16_t usInitialValue;
-	char pcReference[10];
-} PIF_stCollectSignalDevice;
+	uint16_t size;
+	uint16_t initial_value;
+	char p_reference[10];
+} PifCollectSignalDevice;
 
-typedef struct _PIF_stCollectSignal
+typedef struct StPifCollectSignal
 {
-	const char *c_pcModuleName;
-	PIF_enCollectSignalMethod enMethod;
-	PIF_enCollectSignalStep enStep;
-	uint8_t ucDeviceCount;
-	uint32_t unTimer1ms;
-	PifRingBuffer *pstBuffer;
-	PifDList stDevice;
-	PIF_fnCollectSignalDevice afnDevice[32];
-} PIF_stCollectSignal;
+	const char* p_module_name;
+	PifCollectSignalMethod method;
+	PifCollectSignalStep step;
+	uint8_t device_count;
+	uint32_t timer1ms;
+	PifRingBuffer* p_buffer;
+	PifDList device;
+	PifAddCollectSignalDevice add_device[32];
+} PifCollectSignal;
 
 
-static PIF_stCollectSignal s_stCollectSignal;
+static PifCollectSignal s_collect_signal;
 
 
 static void _PrintHeader()
 {
-	const char *c_pacVarType[] =
+	const char *kVarType[] =
 	{
 			"event",
 			"integer",
@@ -73,16 +73,16 @@ static void _PrintHeader()
 
 	pifLog_Printf(LT_VCD, "$timescale 1ms $end\n");
 
-	pifLog_Printf(LT_VCD, "$scope module %s $end\n", s_stCollectSignal.c_pcModuleName);
-	it = pifDList_Begin(&s_stCollectSignal.stDevice);
+	pifLog_Printf(LT_VCD, "$scope module %s $end\n", s_collect_signal.p_module_name);
+	it = pifDList_Begin(&s_collect_signal.device);
 	while (it) {
-		PIF_stCollectSignalDevice* p_device = (PIF_stCollectSignalDevice*)it->data;
-		if (p_device->usSize == 1) {
-			pifLog_Printf(LT_VCD, "$var %s 1 %c %s $end\n", c_pacVarType[p_device->enVarType], '!' + p_device->index, p_device->pcReference);
+		PifCollectSignalDevice* p_device = (PifCollectSignalDevice*)it->data;
+		if (p_device->size == 1) {
+			pifLog_Printf(LT_VCD, "$var %s 1 %c %s $end\n", kVarType[p_device->var_type], '!' + p_device->index, p_device->p_reference);
 		}
 		else {
-			pifLog_Printf(LT_VCD, "$var %s %u %c %s[%u:0] $end\n", c_pacVarType[p_device->enVarType],
-					p_device->usSize, '!' + p_device->index, p_device->pcReference, p_device->usSize - 1);
+			pifLog_Printf(LT_VCD, "$var %s %u %c %s[%u:0] $end\n", kVarType[p_device->var_type],
+					p_device->size, '!' + p_device->index, p_device->p_reference, p_device->size - 1);
 		}
 
 		it = pifDList_Next(it);
@@ -91,14 +91,14 @@ static void _PrintHeader()
 	pifLog_Printf(LT_VCD, "$enddefinitions $end\n");
 
 	pifLog_Printf(LT_VCD, "$dumpvars\n");
-	it = pifDList_Begin(&s_stCollectSignal.stDevice);
+	it = pifDList_Begin(&s_collect_signal.device);
 	while (it) {
-		PIF_stCollectSignalDevice* p_device = (PIF_stCollectSignalDevice*)it->data;
-		if (p_device->usSize == 1) {
-			pifLog_Printf(LT_VCD, "%u%c\n", p_device->usInitialValue, '!' + p_device->index);
+		PifCollectSignalDevice* p_device = (PifCollectSignalDevice*)it->data;
+		if (p_device->size == 1) {
+			pifLog_Printf(LT_VCD, "%u%c\n", p_device->initial_value, '!' + p_device->index);
 		}
 		else {
-			pifLog_Printf(LT_VCD, "b%b %c\n", p_device->usInitialValue, '!' + p_device->index);
+			pifLog_Printf(LT_VCD, "b%b %c\n", p_device->initial_value, '!' + p_device->index);
 		}
 
 		it = pifDList_Next(it);
@@ -109,53 +109,53 @@ static void _PrintHeader()
 /**
  * @fn pifCollectSignal_Init
  * @brief CollectSignal 구조체 초기화한다.
- * @param c_pcModuleName
+ * @param p_module_name
  */
-void pifCollectSignal_Init(const char *c_pcModuleName)
+void pifCollectSignal_Init(const char* p_module_name)
 {
-	s_stCollectSignal.c_pcModuleName = c_pcModuleName;
-	s_stCollectSignal.enMethod = CSM_enRealTime;
-	s_stCollectSignal.enStep = CSS_enIdle;
-	s_stCollectSignal.pstBuffer = NULL;
-	s_stCollectSignal.ucDeviceCount = 0;
-	pifDList_Init(&s_stCollectSignal.stDevice);
-	memset(s_stCollectSignal.afnDevice, 0, sizeof(s_stCollectSignal.afnDevice));
+	s_collect_signal.p_module_name = p_module_name;
+	s_collect_signal.method = CSM_REALTIME;
+	s_collect_signal.step = CSS_IDLE;
+	s_collect_signal.p_buffer = NULL;
+	s_collect_signal.device_count = 0;
+	pifDList_Init(&s_collect_signal.device);
+	memset(s_collect_signal.add_device, 0, sizeof(s_collect_signal.add_device));
 }
 
 /**
  * @fn pifCollectSignal_InitHeap
  * @brief CollectSignal 구조체 초기화한다.
- * @param c_pcModuleName
- * @param usSize
+ * @param p_module_name
+ * @param size
  * @return
  */
-BOOL pifCollectSignal_InitHeap(const char *c_pcModuleName, uint16_t usSize)
+BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size)
 {
-	pifCollectSignal_Init(c_pcModuleName);
+	pifCollectSignal_Init(p_module_name);
 
-	s_stCollectSignal.pstBuffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, usSize);
-	if (!s_stCollectSignal.pstBuffer) return FALSE;
-	pifRingBuffer_ChopsOffChar(s_stCollectSignal.pstBuffer, '#');
-	s_stCollectSignal.enMethod = CSM_enBuffer;
+	s_collect_signal.p_buffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, size);
+	if (!s_collect_signal.p_buffer) return FALSE;
+	pifRingBuffer_ChopsOffChar(s_collect_signal.p_buffer, '#');
+	s_collect_signal.method = CSM_BUFFER;
 	return TRUE;
 }
 
 /**
  * @fn pifCollectSignal_InitStatic
  * @brief CollectSignal 구조체 초기화한다.
- * @param c_pcModuleName
- * @param usSize
- * @param pcBuffer
+ * @param p_module_name
+ * @param size
+ * @param p_buffer
  * @return
  */
-BOOL pifCollectSignal_InitStatic(const char *c_pcModuleName, uint16_t usSize, uint8_t *pucBuffer)
+BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8_t* p_buffer)
 {
-	pifCollectSignal_Init(c_pcModuleName);
+	pifCollectSignal_Init(p_module_name);
 
-	s_stCollectSignal.pstBuffer = pifRingBuffer_InitStatic(PIF_ID_AUTO, usSize, pucBuffer);
-	if (!s_stCollectSignal.pstBuffer) return FALSE;
-	pifRingBuffer_ChopsOffChar(s_stCollectSignal.pstBuffer, '#');
-	s_stCollectSignal.enMethod = CSM_enBuffer;
+	s_collect_signal.p_buffer = pifRingBuffer_InitStatic(PIF_ID_AUTO, size, p_buffer);
+	if (!s_collect_signal.p_buffer) return FALSE;
+	pifRingBuffer_ChopsOffChar(s_collect_signal.p_buffer, '#');
+	s_collect_signal.method = CSM_BUFFER;
 	return TRUE;
 }
 
@@ -165,83 +165,83 @@ BOOL pifCollectSignal_InitStatic(const char *c_pcModuleName, uint16_t usSize, ui
  */
 void pifCollectSignal_Clear()
 {
-	if (s_stCollectSignal.pstBuffer) {
-		pifRingBuffer_Exit(s_stCollectSignal.pstBuffer);
-		s_stCollectSignal.pstBuffer = NULL;
+	if (s_collect_signal.p_buffer) {
+		pifRingBuffer_Exit(s_collect_signal.p_buffer);
+		s_collect_signal.p_buffer = NULL;
 	}
 }
 
 /**
  * @fn pifCollectSignal_ChangeFlag
  * @brief
- * @param pucFlag
- * @param ucIndex
- * @param ucFlag
+ * @param p_flag
+ * @param index
+ * @param flag
  */
-void pifCollectSignal_ChangeFlag(uint8_t *pucFlag, uint8_t ucIndex, uint8_t ucFlag)
+void pifCollectSignal_ChangeFlag(uint8_t* p_flag, uint8_t index, uint8_t flag)
 {
-	if (ucIndex & 1) {
-		pucFlag[ucIndex / 2] &= 0x0F;
-		if (ucFlag) pucFlag[ucIndex / 2] |= ucFlag << 4;
+	if (index & 1) {
+		p_flag[index / 2] &= 0x0F;
+		if (flag) p_flag[index / 2] |= flag << 4;
 	}
 	else {
-		pucFlag[ucIndex / 2] &= 0xF0;
-		if (ucFlag) pucFlag[ucIndex / 2] |= ucFlag;
+		p_flag[index / 2] &= 0xF0;
+		if (flag) p_flag[index / 2] |= flag;
 	}
 }
 
 /**
  * @fn pifCollectSignal_ChangeMethod
  * @brief
- * @param enMethod
+ * @param method
  * @return
  */
-BOOL pifCollectSignal_ChangeMethod(PIF_enCollectSignalMethod enMethod)
+BOOL pifCollectSignal_ChangeMethod(PifCollectSignalMethod method)
 {
-	if (s_stCollectSignal.enStep != CSS_enIdle) return FALSE;
+	if (s_collect_signal.step != CSS_IDLE) return FALSE;
 
-	s_stCollectSignal.enMethod = enMethod;
+	s_collect_signal.method = method;
 	return TRUE;
 }
 
 /**
  * @fn pifCollectSignal_Attach
  * @brief
- * @param enFlag
- * @param fnDevice
+ * @param flag
+ * @param add_device
  */
-void pifCollectSignal_Attach(PIF_enCollectSignalFlag enFlag, PIF_fnCollectSignalDevice fnDevice)
+void pifCollectSignal_Attach(PifCollectSignalFlag flag, PifAddCollectSignalDevice add_device)
 {
-	s_stCollectSignal.afnDevice[enFlag] = fnDevice;
+	s_collect_signal.add_device[flag] = add_device;
 }
 
 /**
  * @fn pifCollectSignal_AddDevice
  * @brief
- * @param usPifId
- * @param enVarType
- * @param usSize
- * @param pcReference
- * @param usInitialValue
+ * @param id
+ * @param var_type
+ * @param size
+ * @param p_reference
+ * @param initial_value
  * @return
  */
-void* pifCollectSignal_AddDevice(PifId usPifId, PIF_enCollectSignalVarType enVarType, uint16_t usSize,
-		const char* pcReference, uint16_t usInitialValue)
+void* pifCollectSignal_AddDevice(PifId id, PifCollectSignalVarType var_type, uint16_t size,
+		const char* p_reference, uint16_t initial_value)
 {
-	PIF_stCollectSignalDevice* p_device;
+	PifCollectSignalDevice* p_device;
 
-	p_device = pifDList_AddLast(&s_stCollectSignal.stDevice, sizeof(PIF_stCollectSignalDevice));
+	p_device = pifDList_AddLast(&s_collect_signal.device, sizeof(PifCollectSignalDevice));
 	if (!p_device) return NULL;
 
-	p_device->usPifId = usPifId;
-	p_device->enVarType = enVarType;
-	p_device->index = s_stCollectSignal.ucDeviceCount;
-	p_device->usSize = usSize;
-	pif_Printf(p_device->pcReference, "%s_%x", pcReference, usPifId);
-	p_device->usInitialValue = usInitialValue;
-	s_stCollectSignal.ucDeviceCount++;
+	p_device->id = id;
+	p_device->var_type = var_type;
+	p_device->index = s_collect_signal.device_count;
+	p_device->size = size;
+	pif_Printf(p_device->p_reference, "%s_%x", p_reference, id);
+	p_device->initial_value = initial_value;
+	s_collect_signal.device_count++;
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_INFO, "CS:Add(ID:%u VT:%u SZ:%u) DC:%d", usPifId, enVarType, usSize, p_device->usSize);
+	pifLog_Printf(LT_INFO, "CS:Add(ID:%u VT:%u SZ:%u) DC:%d", id, var_type, size, p_device->size);
 #endif
 	return p_device;
 }
@@ -255,24 +255,24 @@ void pifCollectSignal_Start()
 	char cBuffer[4];
 
 	for (int i = 0; i < 32; i++) {
-		if (s_stCollectSignal.afnDevice[i]) (*s_stCollectSignal.afnDevice[i])();
+		if (s_collect_signal.add_device[i]) (*s_collect_signal.add_device[i])();
 	}
-	s_stCollectSignal.unTimer1ms = 0L;
+	s_collect_signal.timer1ms = 0L;
 
-	switch (s_stCollectSignal.enMethod) {
-	case CSM_enRealTime:
+	switch (s_collect_signal.method) {
+	case CSM_REALTIME:
 		_PrintHeader();
 
 		pifLog_Printf(LT_VCD, "#0\n");
 		break;
 
-	case CSM_enBuffer:
+	case CSM_BUFFER:
 		pif_Printf(cBuffer, "#0\n");
-		pifRingBuffer_PutString(s_stCollectSignal.pstBuffer, cBuffer);
+		pifRingBuffer_PutString(s_collect_signal.p_buffer, cBuffer);
 		break;
 	}
 
-	s_stCollectSignal.enStep = CSS_enCollect;
+	s_collect_signal.step = CSS_COLLECT;
 }
 
 /**
@@ -281,65 +281,65 @@ void pifCollectSignal_Start()
  */
 void pifCollectSignal_Stop()
 {
-	char cBuffer[12];
+	char buffer[12];
 
-	s_stCollectSignal.enStep = CSS_enIdle;
+	s_collect_signal.step = CSS_IDLE;
 
-	switch (s_stCollectSignal.enMethod) {
-	case CSM_enRealTime:
+	switch (s_collect_signal.method) {
+	case CSM_REALTIME:
 		pifLog_Printf(LT_VCD, "#%u\n", pif_cumulative_timer1ms);
 		break;
 
-	case CSM_enBuffer:
-		pif_Printf(cBuffer, "#%u\n", pif_cumulative_timer1ms);
-		pifRingBuffer_PutString(s_stCollectSignal.pstBuffer, cBuffer);
+	case CSM_BUFFER:
+		pif_Printf(buffer, "#%u\n", pif_cumulative_timer1ms);
+		pifRingBuffer_PutString(s_collect_signal.p_buffer, buffer);
 		break;
 	}
 
-	pifDList_Clear(&s_stCollectSignal.stDevice);
-	s_stCollectSignal.ucDeviceCount = 0;
+	pifDList_Clear(&s_collect_signal.device);
+	s_collect_signal.device_count = 0;
 }
 
 /**
  * @fn pifCollectSignal_AddSignal
  * @brief
  * @param p_dev
- * @param usState
+ * @param state
  */
-void pifCollectSignal_AddSignal(void* p_dev, uint16_t usState)
+void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
 {
-	PIF_stCollectSignalDevice* p_device = (PIF_stCollectSignalDevice*)p_dev;
-	char cBuffer[24];
+	PifCollectSignalDevice* p_device = (PifCollectSignalDevice*)p_dev;
+	char buffer[24];
 
-	if (s_stCollectSignal.enStep != CSS_enCollect) return;
+	if (s_collect_signal.step != CSS_COLLECT) return;
 
-	switch (s_stCollectSignal.enMethod) {
-	case CSM_enRealTime:
-		if (s_stCollectSignal.unTimer1ms != pif_cumulative_timer1ms) {
+	switch (s_collect_signal.method) {
+	case CSM_REALTIME:
+		if (s_collect_signal.timer1ms != pif_cumulative_timer1ms) {
 			pifLog_Printf(LT_VCD, "#%u\n", pif_cumulative_timer1ms);
-			s_stCollectSignal.unTimer1ms = pif_cumulative_timer1ms;
+			s_collect_signal.timer1ms = pif_cumulative_timer1ms;
 		}
-		if (p_device->usSize == 1) {
-			pifLog_Printf(LT_VCD, "%u%c\n", usState, '!' + p_device->index);
+		if (p_device->size == 1) {
+			pifLog_Printf(LT_VCD, "%u%c\n", state, '!' + p_device->index);
 		}
 		else {
-			pifLog_Printf(LT_VCD, "b%b %c\n", usState, '!' + p_device->index);
+			pifLog_Printf(LT_VCD, "b%b %c\n", state, '!' + p_device->index);
 		}
 		break;
 
-	case CSM_enBuffer:
-		if (s_stCollectSignal.unTimer1ms != pif_cumulative_timer1ms) {
-			pif_Printf(cBuffer, "#%u\n", pif_cumulative_timer1ms);
-			pifRingBuffer_PutString(s_stCollectSignal.pstBuffer, cBuffer);
-			s_stCollectSignal.unTimer1ms = pif_cumulative_timer1ms;
+	case CSM_BUFFER:
+		if (s_collect_signal.timer1ms != pif_cumulative_timer1ms) {
+			pif_Printf(buffer, "#%u\n", pif_cumulative_timer1ms);
+			pifRingBuffer_PutString(s_collect_signal.p_buffer, buffer);
+			s_collect_signal.timer1ms = pif_cumulative_timer1ms;
 		}
-		if (p_device->usSize == 1) {
-			pif_Printf(cBuffer, "%u%c\n", usState, '!' + p_device->index);
+		if (p_device->size == 1) {
+			pif_Printf(buffer, "%u%c\n", state, '!' + p_device->index);
 		}
 		else {
-			pif_Printf(cBuffer, "b%b %c\n", usState, '!' + p_device->index);
+			pif_Printf(buffer, "b%b %c\n", state, '!' + p_device->index);
 		}
-		pifRingBuffer_PutString(s_stCollectSignal.pstBuffer, cBuffer);
+		pifRingBuffer_PutString(s_collect_signal.p_buffer, buffer);
 		break;
 	}
 }
@@ -353,39 +353,39 @@ void pifCollectSignal_PrintLog()
 	_PrintHeader();
 
 	pifLog_Disable();
-	s_stCollectSignal.enStep = CSS_enSendLog;
+	s_collect_signal.step = CSS_SEND_LOG;
 }
 
-static uint16_t _DoTask(PifTask *pstTask)
+static uint16_t _doTask(PifTask* p_task)
 {
-	uint16_t usSize, usLength;
-	static uint8_t acTmpBuf[PIF_LOG_LINE_SIZE + 1];
+	uint16_t size, length;
+	static uint8_t tmp_buf[PIF_LOG_LINE_SIZE + 1];
 
-	(void)pstTask;
+	(void)p_task;
 
-	if (s_stCollectSignal.enStep == CSS_enSendLog) {
-		usSize = pifRingBuffer_GetFillSize(s_stCollectSignal.pstBuffer);
-		usLength = PIF_LOG_LINE_SIZE;
-		if (usSize > usLength) {
-			pifRingBuffer_CopyToArray(acTmpBuf, usLength, s_stCollectSignal.pstBuffer, 0);
-			while (usLength) {
-				if (acTmpBuf[usLength - 1] == '\n') {
-					acTmpBuf[usLength] = 0;
+	if (s_collect_signal.step == CSS_SEND_LOG) {
+		size = pifRingBuffer_GetFillSize(s_collect_signal.p_buffer);
+		length = PIF_LOG_LINE_SIZE;
+		if (size > length) {
+			pifRingBuffer_CopyToArray(tmp_buf, length, s_collect_signal.p_buffer, 0);
+			while (length) {
+				if (tmp_buf[length - 1] == '\n') {
+					tmp_buf[length] = 0;
 					break;
 				}
 				else {
-					usLength--;
+					length--;
 				}
 			}
-			pifRingBuffer_Remove(s_stCollectSignal.pstBuffer, usLength);
-			pifLog_Printf(LT_VCD, (char *)acTmpBuf);
+			pifRingBuffer_Remove(s_collect_signal.p_buffer, length);
+			pifLog_Printf(LT_VCD, (char *)tmp_buf);
 		}
 		else {
-			pifRingBuffer_CopyToArray(acTmpBuf, usSize, s_stCollectSignal.pstBuffer, 0);
-			acTmpBuf[usSize] = 0;
-			pifRingBuffer_Remove(s_stCollectSignal.pstBuffer, usSize);
-			pifLog_Printf(LT_VCD, (char *)acTmpBuf);
-			s_stCollectSignal.enStep = CSS_enIdle;
+			pifRingBuffer_CopyToArray(tmp_buf, size, s_collect_signal.p_buffer, 0);
+			tmp_buf[size] = 0;
+			pifRingBuffer_Remove(s_collect_signal.p_buffer, size);
+			pifLog_Printf(LT_VCD, (char *)tmp_buf);
+			s_collect_signal.step = CSS_IDLE;
 			pifLog_Enable();
 		}
 	}
@@ -395,14 +395,14 @@ static uint16_t _DoTask(PifTask *pstTask)
 /**
  * @fn pifCollectSignal_AttachTask
  * @brief Task를 추가한다.
- * @param enMode Task의 Mode를 설정한다.
- * @param usPeriod Mode에 따라 주기의 단위가 변경된다.
- * @param bStart 즉시 시작할지를 지정한다.
+ * @param mode Task의 Mode를 설정한다.
+ * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask *pifCollectSignal_AttachTask(PifTaskMode enMode, uint16_t usPeriod, BOOL bStart)
+PifTask* pifCollectSignal_AttachTask(PifTaskMode mode, uint16_t period, BOOL start)
 {
-	return pifTaskManager_Add(enMode, usPeriod, _DoTask, &s_stCollectSignal, bStart);
+	return pifTaskManager_Add(mode, period, _doTask, &s_collect_signal, start);
 }
 
 #endif	// __PIF_COLLECT_SIGNAL__
