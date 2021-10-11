@@ -10,74 +10,74 @@
 #define PIF_SENSOR_SWITCH_FILTER_CONTINUE	2
 
 
-typedef enum _PIF_enSensorSwitchCsFlag
+typedef enum EnPifSensorSwitchCsFlag
 {
-    SSCsF_enOff			= 0,
+    SS_CSF_OFF			= 0,
 
-    SSCsF_enRawIdx		= 0,
-	SSCsF_enFilterIdx	= 1,
+    SS_CSF_RAW_IDX		= 0,
+	SS_CSF_FILTER_IDX	= 1,
 
-	SSCsF_enRawBit		= 1,
-    SSCsF_enFilterBit	= 2,
-    SSCsF_enAllBit		= 3,
+	SS_CSF_RAW_BIT		= 1,
+    SS_CSF_FILTER_BIT	= 2,
+    SS_CSF_ALL_BIT		= 3,
 
-    SSCsF_enCount		= 2
-} PIF_enSensorSwitchCsFlag;
+    SS_CSF_COUNT		= 2
+} PifSensorSwitchCsFlag;
 
 
-struct _PIF_stSensorSwitch;
-typedef struct _PIF_stSensorSwitch PIF_stSensorSwitch;
+struct StPifSensorSwitch;
+typedef struct StPifSensorSwitch PifSensorSwitch;
 
-struct _PIF_stSensorSwitchFilter;
-typedef struct _PIF_stSensorSwitchFilter PIF_stSensorSwitchFilter;
+struct StPifSensorSwitchFilter;
+typedef struct StPifSensorSwitchFilter PifSensorSwitchFilter;
 
-typedef SWITCH (*PIF_evtSensorSwitchFilter)(SWITCH swState, PIF_stSensorSwitchFilter *pstOwner);
+typedef SWITCH (*PifEvtSensorSwitchFilter)(SWITCH state, PifSensorSwitchFilter* p_owner);
 
 
 /**
- * @class _PIF_stSensorSwitchFilter
+ * @class StPifSensorSwitchFilter
  * @brief 
  */
-struct _PIF_stSensorSwitchFilter
+struct StPifSensorSwitchFilter
 {
-    uint8_t ucSize;
-    uint8_t ucHalf;
-    uint8_t ucCount;
-    uint32_t unMsb;
-    uint32_t unList;
-    void *pvParam;
+    uint8_t size;
+    uint8_t half;
+    uint8_t count;
+    uint32_t msb;
+    uint32_t list;
+    void* p_param;
 
-	PIF_evtSensorSwitchFilter evtFilter;
+	PifEvtSensorSwitchFilter evt_filter;
 };
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-typedef struct
+typedef struct StPifSensorSwitchColSig
 {
-	PIF_stSensorSwitch* p_owner;
+	PifSensorSwitch* p_owner;
     uint8_t flag;
-    void* p_device[SSCsF_enCount];
+    void* p_device[SS_CSF_COUNT];
     SWITCH state;
-} PIF_SensorSwitchColSig;
+} PifSensorSwitchColSig;
 
 #endif
 
 /**
- * @class _PIF_stSensorSwitch
+ * @class StPifSensorSwitch
  * @brief
  */
-struct _PIF_stSensorSwitch
+struct StPifSensorSwitch
 {
 	PifSensor stSensor;
 
 	// Private Member Variable
-    SWITCH __swState;
+    SWITCH __state;
 
-    uint8_t __ucFilterMethod;					// Default: PIF_SENSOR_SWITCH_FILTER_NONE
-    PIF_stSensorSwitchFilter *__pstFilter;		// Default: NULL
+    uint8_t __filter_method;				// Default: PIF_SENSOR_SWITCH_FILTER_NONE
+    PifSensorSwitchFilter* __p_filter;		// Default: NULL
 
 #ifdef __PIF_COLLECT_SIGNAL__
-    PIF_SensorSwitchColSig* __p_colsig;
+    PifSensorSwitchColSig* __p_colsig;
 #endif
 };
 
@@ -86,29 +86,29 @@ struct _PIF_stSensorSwitch
 extern "C" {
 #endif
 
-PifSensor* pifSensorSwitch_Create(PifId usPifId, SWITCH swInitState);
+PifSensor* pifSensorSwitch_Create(PifId id, SWITCH init_state);
 void pifSensorSwitch_Destroy(PifSensor** pp_sensor);
 
-void pifSensorSwitch_InitialState(PifSensor *pstSensor);
+void pifSensorSwitch_InitialState(PifSensor* p_parent);
 
-BOOL pifSensorSwitch_AttachFilter(PifSensor *pstSensor, uint8_t ucFilterMethod, uint8_t ucFilterSize, PIF_stSensorSwitchFilter *pstFilter);
-void pifSensorSwitch_DetachFilter(PifSensor *pstSensor);
+BOOL pifSensorSwitch_AttachFilter(PifSensor* p_parent, uint8_t filter_method, uint8_t filter_size, PifSensorSwitchFilter* p_filter);
+void pifSensorSwitch_DetachFilter(PifSensor* p_parent);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-void pifSensorSwitch_SetCsFlagAll(PIF_enSensorSwitchCsFlag enFlag);
-void pifSensorSwitch_ResetCsFlagAll(PIF_enSensorSwitchCsFlag enFlag);
+void pifSensorSwitch_SetCsFlagAll(PifSensorSwitchCsFlag flag);
+void pifSensorSwitch_ResetCsFlagAll(PifSensorSwitchCsFlag flag);
 
-void pifSensorSwitch_SetCsFlagEach(PifSensor *pstSensor, PIF_enSensorSwitchCsFlag enFlag);
-void pifSensorSwitch_ResetCsFlagEach(PifSensor *pstSensor, PIF_enSensorSwitchCsFlag enFlag);
+void pifSensorSwitch_SetCsFlagEach(PifSensor* p_parent, PifSensorSwitchCsFlag flag);
+void pifSensorSwitch_ResetCsFlagEach(PifSensor* p_parent, PifSensorSwitchCsFlag flag);
 
 #endif
 
 // Signal Function
-void pifSensorSwitch_sigData(PifSensor *pstSensor, SWITCH swState);
+void pifSensorSwitch_sigData(PifSensor* p_parent, SWITCH state);
 
 // Task Function
-PifTask *pifSensorSwitch_AttachTask(PifSensor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask *pifSensorSwitch_AttachTask(PifSensor* p_parent, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }
