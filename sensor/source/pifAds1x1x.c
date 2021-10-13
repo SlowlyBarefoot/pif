@@ -7,69 +7,69 @@
 #define DEFAULT_I2C_ADDR	0x48
 
 
-static BOOL _ReadWord(PIF_stAds1x1x *pstOwner, const PIF_enAds1x1xReg enReg, uint16_t *pusData)
+static BOOL _readWord(PifAds1x1x* p_owner, const PifAds1x1xReg reg, uint16_t* p_data)
 {
-	pstOwner->_stI2c.p_data[0] = enReg;
-	if (!pifI2c_Write(&pstOwner->_stI2c, 1)) return FALSE;
-	if (!pifI2c_Read(&pstOwner->_stI2c, 2)) return FALSE;
-	*pusData = (pstOwner->_stI2c.p_data[0] << 8) + pstOwner->_stI2c.p_data[1];
+	p_owner->_i2c.p_data[0] = reg;
+	if (!pifI2c_Write(&p_owner->_i2c, 1)) return FALSE;
+	if (!pifI2c_Read(&p_owner->_i2c, 2)) return FALSE;
+	*p_data = (p_owner->_i2c.p_data[0] << 8) + p_owner->_i2c.p_data[1];
 	return TRUE;
 }
 
-static BOOL _WriteWord(PIF_stAds1x1x *pstOwner, const PIF_enAds1x1xReg enReg, uint16_t usData)
+static BOOL _writeWord(PifAds1x1x* p_owner, const PifAds1x1xReg reg, uint16_t data)
 {
-	pstOwner->_stI2c.p_data[0] = enReg;
-	pstOwner->_stI2c.p_data[1] = usData >> 8;
-	pstOwner->_stI2c.p_data[2] = usData & 0xFF;
-	return pifI2c_Write(&pstOwner->_stI2c, 3);
+	p_owner->_i2c.p_data[0] = reg;
+	p_owner->_i2c.p_data[1] = data >> 8;
+	p_owner->_i2c.p_data[2] = data & 0xFF;
+	return pifI2c_Write(&p_owner->_i2c, 3);
 }
 
-static double _ConvertVoltage(PIF_stAds1x1x *pstOwner)
+static double _convertVoltage(PifAds1x1x* p_owner)
 {
-    switch (pstOwner->__stConfig.bt.PGA) {
-        case ACP_enFSR_6_144V: return 6.144 / (0x7FFF >> pstOwner->__ucBitOffset);
-        case ACP_enFSR_4_096V: return 4.096 / (0x7FFF >> pstOwner->__ucBitOffset);
-        case ACP_enFSR_2_048V: return 2.048 / (0x7FFF >> pstOwner->__ucBitOffset);
-        case ACP_enFSR_1_024V: return 1.024 / (0x7FFF >> pstOwner->__ucBitOffset);
-        case ACP_enFSR_0_512V: return 0.512 / (0x7FFF >> pstOwner->__ucBitOffset);
-        case ACP_enFSR_0_256V: return 0.256 / (0x7FFF >> pstOwner->__ucBitOffset);
+    switch (p_owner->__config.bt.pga) {
+        case ACP_FSR_6_144V: return 6.144 / (0x7FFF >> p_owner->__bit_offset);
+        case ACP_FSR_4_096V: return 4.096 / (0x7FFF >> p_owner->__bit_offset);
+        case ACP_FSR_2_048V: return 2.048 / (0x7FFF >> p_owner->__bit_offset);
+        case ACP_FSR_1_024V: return 1.024 / (0x7FFF >> p_owner->__bit_offset);
+        case ACP_FSR_0_512V: return 0.512 / (0x7FFF >> p_owner->__bit_offset);
+        case ACP_FSR_0_256V: return 0.256 / (0x7FFF >> p_owner->__bit_offset);
     }
-    return 2.048 / (0x7FFF >> pstOwner->__ucBitOffset);
+    return 2.048 / (0x7FFF >> p_owner->__bit_offset);
 }
 
-static uint32_t _ConversionDelay(PIF_stAds1x1x *pstOwner)
+static uint32_t _conversionDelay(PifAds1x1x* p_owner)
 {
-	uint16_t usDataRate = 0;
+	uint16_t data_rate = 0;
 
-    if (pstOwner->__unResolution == 12) {
-        switch (pstOwner->__stConfig.bt.DR) {
-            case ACD_enDR_12B_0128_SPS: usDataRate = 128; break;
-            case ACD_enDR_12B_0250_SPS: usDataRate = 250; break;
-            case ACD_enDR_12B_0490_SPS: usDataRate = 490; break;
-            case ACD_enDR_12B_0920_SPS: usDataRate = 920; break;
-            case ACD_enDR_12B_1600_SPS: usDataRate = 1600; break;
-            case ACD_enDR_12B_2400_SPS: usDataRate = 2400; break;
-            case ACD_enDR_12B_3300_SPS: usDataRate = 3300; break;
+    if (p_owner->__resolution == 12) {
+        switch (p_owner->__config.bt.dr) {
+            case ACD_DR_12B_0128_SPS: data_rate = 128; break;
+            case ACD_DR_12B_0250_SPS: data_rate = 250; break;
+            case ACD_DR_12B_0490_SPS: data_rate = 490; break;
+            case ACD_DR_12B_0920_SPS: data_rate = 920; break;
+            case ACD_DR_12B_1600_SPS: data_rate = 1600; break;
+            case ACD_DR_12B_2400_SPS: data_rate = 2400; break;
+            case ACD_DR_12B_3300_SPS: data_rate = 3300; break;
         }
     }
     else {
-        switch (pstOwner->__stConfig.bt.DR) {
-            case ACD_enDR_16B_0008_SPS: usDataRate = 8; break;
-            case ACD_enDR_16B_0016_SPS: usDataRate = 16; break;
-            case ACD_enDR_16B_0032_SPS: usDataRate = 32; break;
-            case ACD_enDR_16B_0064_SPS: usDataRate = 64; break;
-            case ACD_enDR_16B_0128_SPS: usDataRate = 128; break;
-            case ACD_enDR_16B_0250_SPS: usDataRate = 250; break;
-            case ACD_enDR_16B_0475_SPS: usDataRate = 475; break;
-            case ACD_enDR_16B_0860_SPS: usDataRate = 860; break;
+        switch (p_owner->__config.bt.dr) {
+            case ACD_DR_16B_0008_SPS: data_rate = 8; break;
+            case ACD_DR_16B_0016_SPS: data_rate = 16; break;
+            case ACD_DR_16B_0032_SPS: data_rate = 32; break;
+            case ACD_DR_16B_0064_SPS: data_rate = 64; break;
+            case ACD_DR_16B_0128_SPS: data_rate = 128; break;
+            case ACD_DR_16B_0250_SPS: data_rate = 250; break;
+            case ACD_DR_16B_0475_SPS: data_rate = 475; break;
+            case ACD_DR_16B_0860_SPS: data_rate = 860; break;
         }
     }
-    if (usDataRate) {
+    if (data_rate) {
 		if (pif_act_timer1us) {
-			return (1000000UL - 1) / usDataRate + 1;
+			return (1000000UL - 1) / data_rate + 1;
 		}
 		else {
-			return (1000UL - 1) / usDataRate + 1;
+			return (1000UL - 1) / data_rate + 1;
 		}
     }
     return 0;
@@ -78,475 +78,475 @@ static uint32_t _ConversionDelay(PIF_stAds1x1x *pstOwner)
 /**
  * @fn pifAds1x1x_Create
  * @brief
- * @param usPifId
- * @param enType
+ * @param id
+ * @param type
  * @return
  */
-PIF_stAds1x1x *pifAds1x1x_Create(PifId usPifId, PIF_enAds1x1xType enType)
+PifAds1x1x* pifAds1x1x_Create(PifId id, PifAds1x1xType type)
 {
-    PIF_stAds1x1x *pstOwner = NULL;
+    PifAds1x1x *p_owner = NULL;
 
-    pstOwner = calloc(sizeof(PIF_stAds1x1x), 1);
-    if (!pstOwner) {
+    p_owner = calloc(sizeof(PifAds1x1x), 1);
+    if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
 
-    if (!pifI2c_Init(&pstOwner->_stI2c, usPifId, 4)) return NULL;
+    if (!pifI2c_Init(&p_owner->_i2c, id, 4)) return NULL;
 
-    pstOwner->_stI2c.addr = DEFAULT_I2C_ADDR;
-    switch (enType) {
-    case AT_en1115: pstOwner->__unResolution = 16; pstOwner->__unChannels = 4; break;
-    case AT_en1114: pstOwner->__unResolution = 16; pstOwner->__unChannels = 1; break;
-    case AT_en1113: pstOwner->__unResolution = 16; pstOwner->__unChannels = 1; break;
-    case AT_en1015: pstOwner->__unResolution = 12; pstOwner->__unChannels = 4; break;
-    case AT_en1014: pstOwner->__unResolution = 12; pstOwner->__unChannels = 1; break;
-    case AT_en1013: pstOwner->__unResolution = 12; pstOwner->__unChannels = 1; break;
+    p_owner->_i2c.addr = DEFAULT_I2C_ADDR;
+    switch (type) {
+    case AT_1115: p_owner->__resolution = 16; p_owner->__channels = 4; break;
+    case AT_1114: p_owner->__resolution = 16; p_owner->__channels = 1; break;
+    case AT_1113: p_owner->__resolution = 16; p_owner->__channels = 1; break;
+    case AT_1015: p_owner->__resolution = 12; p_owner->__channels = 4; break;
+    case AT_1014: p_owner->__resolution = 12; p_owner->__channels = 1; break;
+    case AT_1013: p_owner->__resolution = 12; p_owner->__channels = 1; break;
     default:
 		pif_error = E_INVALID_PARAM;
     	return NULL;
     }
-    pstOwner->_enType = enType;
-    pstOwner->__ucBitOffset = pstOwner->__unResolution == 12 ? 4 : 0;
-    _ReadWord(pstOwner, AR_enCONFIG, &pstOwner->__stConfig.usAll);
-    pstOwner->dConvertVoltage = _ConvertVoltage(pstOwner);
-    pstOwner->__unConversionDelay = _ConversionDelay(pstOwner);
-    return pstOwner;
+    p_owner->_type = type;
+    p_owner->__bit_offset = p_owner->__resolution == 12 ? 4 : 0;
+    _readWord(p_owner, AR_CONFIG, &p_owner->__config.all);
+    p_owner->convert_voltage = _convertVoltage(p_owner);
+    p_owner->__conversion_delay = _conversionDelay(p_owner);
+    return p_owner;
 }
 
 /**
  * @fn pifAds1x1x_Destroy
  * @brief
- * @param ppstOwner
+ * @param pp_owner
  */
-void pifAds1x1x_Destroy(PIF_stAds1x1x **ppstOwner)
+void pifAds1x1x_Destroy(PifAds1x1x** pp_owner)
 {
-    if (*ppstOwner) {
-    	if ((*ppstOwner)->_stI2c.p_data) {
-        	free((*ppstOwner)->_stI2c.p_data);
-        	(*ppstOwner)->_stI2c.p_data = NULL;
+    if (*pp_owner) {
+    	if ((*pp_owner)->_i2c.p_data) {
+        	free((*pp_owner)->_i2c.p_data);
+        	(*pp_owner)->_i2c.p_data = NULL;
     	}
-    	free(*ppstOwner);
-    	*ppstOwner = NULL;
+    	free(*pp_owner);
+    	*pp_owner = NULL;
     }
 }
 
 /**
  * @fn pifAds1x1x_SetAddress
  * @brief
- * @param pstOwner
- * @param ucAddr
+ * @param p_owner
+ * @param addr
  */
-void pifAds1x1x_SetAddress(PIF_stAds1x1x *pstOwner, uint8_t ucAddr)
+void pifAds1x1x_SetAddress(PifAds1x1x* p_owner, uint8_t addr)
 {
-	pstOwner->_stI2c.addr = ucAddr;
+	p_owner->_i2c.addr = addr;
 }
 
 /**
  * @fn pifAds1x1x_Read
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-int16_t pifAds1x1x_Read(PIF_stAds1x1x *pstOwner)
+int16_t pifAds1x1x_Read(PifAds1x1x* p_owner)
 {
-	uint16_t usData;
+	uint16_t data;
 
-	if (!_ReadWord(pstOwner, AR_enCONVERSION, &usData)) return 0;
-	return usData >> pstOwner->__ucBitOffset;
+	if (!_readWord(p_owner, AR_CONVERSION, &data)) return 0;
+	return data >> p_owner->__bit_offset;
 }
 
 /**
  * @fn pifAds1x1x_ReadMux
  * @brief
- * @param pstOwner
- * @param enMux
+ * @param p_owner
+ * @param mux
  * @return
  */
-int16_t pifAds1x1x_ReadMux(PIF_stAds1x1x *pstOwner, PIF_enAds1x1xConfigMux enMux)
+int16_t pifAds1x1x_ReadMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux)
 {
-	uint16_t usData;
-	PIF_stAds1x1xConfig stConfig;
+	uint16_t data;
+	PifAds1x1xConfig config;
 
-	if (pstOwner->__unChannels == 1 || pstOwner->__stConfig.bt.MODE == ACM_enCONTINUOUS) return 0;
+	if (p_owner->__channels == 1 || p_owner->__config.bt.mode == ACM_CONTINUOUS) return 0;
 
-	pstOwner->__stConfig.bt.MUX = enMux;
-	stConfig.usAll = pstOwner->__stConfig.usAll;
-	stConfig.bt.OS_SSCS = 1;
-	if (!_WriteWord(pstOwner, AR_enCONFIG, stConfig.usAll)) return 0;
-	if (pstOwner->__unConversionDelay) {
+	p_owner->__config.bt.mux = mux;
+	config.all = p_owner->__config.all;
+	config.bt.os_sscs = 1;
+	if (!_writeWord(p_owner, AR_CONFIG, config.all)) return 0;
+	if (p_owner->__conversion_delay) {
 		if (pif_act_timer1us) {
-			pifTaskManager_YieldUs(pstOwner->__unConversionDelay);
+			pifTaskManager_YieldUs(p_owner->__conversion_delay);
 		}
 		else {
-			pifTaskManager_YieldMs(pstOwner->__unConversionDelay);
+			pifTaskManager_YieldMs(p_owner->__conversion_delay);
 		}
 	}
-	if (!_ReadWord(pstOwner, AR_enCONVERSION, &usData)) return 0;
-	return usData >> pstOwner->__ucBitOffset;
+	if (!_readWord(p_owner, AR_CONVERSION, &data)) return 0;
+	return data >> p_owner->__bit_offset;
 }
 
 /**
  * @fn pifAds1x1x_Voltage
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-double pifAds1x1x_Voltage(PIF_stAds1x1x *pstOwner)
+double pifAds1x1x_Voltage(PifAds1x1x* p_owner)
 {
-    return (double)pifAds1x1x_Read(pstOwner) * pstOwner->dConvertVoltage;
+    return (double)pifAds1x1x_Read(p_owner) * p_owner->convert_voltage;
 }
 
 /**
  * @fn pifAds1x1x_VoltageMux
  * @brief
- * @param pstOwner
- * @param enMux
+ * @param p_owner
+ * @param mux
  * @return
  */
-double pifAds1x1x_VoltageMux(PIF_stAds1x1x *pstOwner, PIF_enAds1x1xConfigMux enMux)
+double pifAds1x1x_VoltageMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux)
 {
-    return (double)pifAds1x1x_ReadMux(pstOwner, enMux) * pstOwner->dConvertVoltage;
+    return (double)pifAds1x1x_ReadMux(p_owner, mux) * p_owner->convert_voltage;
 }
 
 /**
  * @fn pifAds1x1x_SetConfig
  * @brief
- * @param pstOwner
- * @param pstConfig
+ * @param p_owner
+ * @param p_config
  * @return
  */
-BOOL pifAds1x1x_SetConfig(PIF_stAds1x1x *pstOwner, PIF_stAds1x1xConfig *pstConfig)
+BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, PifAds1x1xConfig* p_config)
 {
-	pstOwner->__stConfig.usAll = pstConfig->usAll;
-	return _WriteWord(pstOwner, AR_enCONFIG, pstOwner->__stConfig.usAll);
+	p_owner->__config.all = p_config->all;
+	return _writeWord(p_owner, AR_CONFIG, p_owner->__config.all);
 }
 
 /**
  * @fn pifAds1x1x_GetConfig
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-PIF_stAds1x1xConfig pifAds1x1x_GetConfig(PIF_stAds1x1x *pstOwner)
+PifAds1x1xConfig pifAds1x1x_GetConfig(PifAds1x1x* p_owner)
 {
-	return pstOwner->__stConfig;
+	return p_owner->__config;
 }
 
 /**
  * @fn pifAds1x1x_SingleShotConvert
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-BOOL pifAds1x1x_SingleShotConvert(PIF_stAds1x1x *pstOwner)
+BOOL pifAds1x1x_SingleShotConvert(PifAds1x1x* p_owner)
 {
-	pstOwner->__stConfig.bt.OS_SSCS = 1;
-	return _WriteWord(pstOwner, AR_enCONFIG, pstOwner->__stConfig.usAll);
+	p_owner->__config.bt.os_sscs = 1;
+	return _writeWord(p_owner, AR_CONFIG, p_owner->__config.all);
 }
 
 /**
  * @fn pifAds1x1x_SetMux
  * @brief
- * @param pstOwner
- * @param enMux
+ * @param p_owner
+ * @param mux
  * @return
  */
-BOOL pifAds1x1x_SetMux(PIF_stAds1x1x *pstOwner, PIF_enAds1x1xConfigMux enMux)
+BOOL pifAds1x1x_SetMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux)
 {
-	if (pstOwner->__unChannels == 1) return FALSE;
+	if (p_owner->__channels == 1) return FALSE;
 
-	pstOwner->__stConfig.bt.MUX = enMux;
-	return _WriteWord(pstOwner, AR_enCONFIG, pstOwner->__stConfig.usAll);
+	p_owner->__config.bt.mux = mux;
+	return _writeWord(p_owner, AR_CONFIG, p_owner->__config.all);
 }
 
 /**
  * @fn pifAds1x1x_GetMux
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-PIF_enAds1x1xConfigMux pifAds1x1x_GetMux(PIF_stAds1x1x *pstOwner)
+PifAds1x1xConfigMux pifAds1x1x_GetMux(PifAds1x1x* p_owner)
 {
-    return pstOwner->__stConfig.bt.MUX;
+    return p_owner->__config.bt.mux;
 }
 
 /**
  * @fn pifAds1x1x_SetGain
  * @brief
- * @param pstOwner
- * @param enPGA
+ * @param p_owner
+ * @param pga
  * @return
  */
-BOOL pifAds1x1x_SetGain(PIF_stAds1x1x *pstOwner, PIF_enAds1x1xConfigPGA enPGA)
+BOOL pifAds1x1x_SetGain(PifAds1x1x* p_owner, PifAds1x1xConfigPGA pga)
 {
-	if (pstOwner->_enType == AT_en1013 || pstOwner->_enType == AT_en1113) return FALSE;
+	if (p_owner->_type == AT_1013 || p_owner->_type == AT_1113) return FALSE;
 
-	pstOwner->__stConfig.bt.PGA = enPGA;
-    pstOwner->dConvertVoltage = _ConvertVoltage(pstOwner);
-	return _WriteWord(pstOwner, AR_enCONFIG, pstOwner->__stConfig.usAll);
+	p_owner->__config.bt.pga = pga;
+    p_owner->convert_voltage = _convertVoltage(p_owner);
+	return _writeWord(p_owner, AR_CONFIG, p_owner->__config.all);
 }
 
 /**
  * @fn pifAds1x1x_GetGain
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-PIF_enAds1x1xConfigPGA pifAds1x1x_GetGain(PIF_stAds1x1x *pstOwner)
+PifAds1x1xConfigPGA pifAds1x1x_GetGain(PifAds1x1x* p_owner)
 {
-	return pstOwner->__stConfig.bt.PGA;
+	return p_owner->__config.bt.pga;
 }
 
 /**
  * @fn pifAds1x1x_SetMode
  * @brief
- * @param pstOwner
- * @param enMode
+ * @param p_owner
+ * @param mode
  * @return
  */
-BOOL pifAds1x1x_SetMode(PIF_stAds1x1x *pstOwner, PIF_enAds1x1xConfigMode enMode)
+BOOL pifAds1x1x_SetMode(PifAds1x1x* p_owner, PifAds1x1xConfigMode mode)
 {
-	pstOwner->__stConfig.bt.MODE = enMode;
-	return _WriteWord(pstOwner, AR_enCONFIG, pstOwner->__stConfig.usAll);
+	p_owner->__config.bt.mode = mode;
+	return _writeWord(p_owner, AR_CONFIG, p_owner->__config.all);
 }
 
 /**
  * @fn pifAds1x1x_GetMode
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-PIF_enAds1x1xConfigMode pifAds1x1x_GetMode(PIF_stAds1x1x *pstOwner)
+PifAds1x1xConfigMode pifAds1x1x_GetMode(PifAds1x1x* p_owner)
 {
-	return pstOwner->__stConfig.bt.MODE;
+	return p_owner->__config.bt.mode;
 }
 
 /**
  * @fn pifAds1x1x_SetDataRate
  * @brief
- * @param pstOwner
- * @param enDR
+ * @param p_owner
+ * @param dr
  * @return
  */
-BOOL pifAds1x1x_SetDataRate(PIF_stAds1x1x *pstOwner, PIF_enAds1x1xConfigDR enDR)
+BOOL pifAds1x1x_SetDataRate(PifAds1x1x* p_owner, PifAds1x1xConfigDR dr)
 {
-	pstOwner->__stConfig.bt.DR = enDR;
-    pstOwner->__unConversionDelay = _ConversionDelay(pstOwner);
-	return _WriteWord(pstOwner, AR_enCONFIG, pstOwner->__stConfig.usAll);
+	p_owner->__config.bt.dr = dr;
+    p_owner->__conversion_delay = _conversionDelay(p_owner);
+	return _writeWord(p_owner, AR_CONFIG, p_owner->__config.all);
 }
 
 /**
  * @fn pifAds1x1x_GetDataRate
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-PIF_enAds1x1xConfigDR pifAds1x1x_GetDataRate(PIF_stAds1x1x *pstOwner)
+PifAds1x1xConfigDR pifAds1x1x_GetDataRate(PifAds1x1x* p_owner)
 {
-	return pstOwner->__stConfig.bt.DR;
+	return p_owner->__config.bt.dr;
 }
 
 /**
  * @fn pifAds1x1x_SetCompMode
  * @brief
- * @param pstOwner
- * @param enCompMode
+ * @param p_owner
+ * @param comp_mode
  * @return
  */
-BOOL pifAds1x1x_SetCompMode(PIF_stAds1x1x *pstOwner, PIF_enAds1x1xConfigCompMode enCompMode)
+BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xConfigCompMode comp_mode)
 {
-	if (pstOwner->_enType == AT_en1013 || pstOwner->_enType == AT_en1113) return FALSE;
+	if (p_owner->_type == AT_1013 || p_owner->_type == AT_1113) return FALSE;
 
-	pstOwner->__stConfig.bt.COMP_MODE = enCompMode;
-	return _WriteWord(pstOwner, AR_enCONFIG, pstOwner->__stConfig.usAll);
+	p_owner->__config.bt.comp_mode = comp_mode;
+	return _writeWord(p_owner, AR_CONFIG, p_owner->__config.all);
 }
 
 /**
  * @fn pifAds1x1x_GetCompMode
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-PIF_enAds1x1xConfigCompMode pifAds1x1x_GetCompMode(PIF_stAds1x1x *pstOwner)
+PifAds1x1xConfigCompMode pifAds1x1x_GetCompMode(PifAds1x1x* p_owner)
 {
-	return pstOwner->__stConfig.bt.COMP_MODE;
+	return p_owner->__config.bt.comp_mode;
 }
 
 /**
  * @fn pifAds1x1x_SetCompPol
  * @brief
- * @param pstOwner
- * @param enCompPol
+ * @param p_owner
+ * @param comp_pol
  * @return
  */
-BOOL pifAds1x1x_SetCompPol(PIF_stAds1x1x *pstOwner, PIF_enAds1x1xConfigCompPol enCompPol)
+BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xConfigCompPol comp_pol)
 {
-	if (pstOwner->_enType == AT_en1013 || pstOwner->_enType == AT_en1113) return FALSE;
+	if (p_owner->_type == AT_1013 || p_owner->_type == AT_1113) return FALSE;
 
-	pstOwner->__stConfig.bt.COMP_POL = enCompPol;
-	return _WriteWord(pstOwner, AR_enCONFIG, pstOwner->__stConfig.usAll);
+	p_owner->__config.bt.comp_pol = comp_pol;
+	return _writeWord(p_owner, AR_CONFIG, p_owner->__config.all);
 }
 
 /**
  * @fn pifAds1x1x_GetCompPol
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-PIF_enAds1x1xConfigCompPol pifAds1x1x_GetCompPol(PIF_stAds1x1x *pstOwner)
+PifAds1x1xConfigCompPol pifAds1x1x_GetCompPol(PifAds1x1x* p_owner)
 {
-	return pstOwner->__stConfig.bt.COMP_POL;
+	return p_owner->__config.bt.comp_pol;
 }
 
 /**
  * @fn pifAds1x1x_SetCompLat
  * @brief
- * @param pstOwner
- * @param enCompLat
+ * @param p_owner
+ * @param comp_lat
  * @return
  */
-BOOL pifAds1x1x_SetCompLat(PIF_stAds1x1x *pstOwner, PIF_enAds1x1xConfigCompLat enCompLat)
+BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xConfigCompLat comp_lat)
 {
-	if (pstOwner->_enType == AT_en1013 || pstOwner->_enType == AT_en1113) return FALSE;
+	if (p_owner->_type == AT_1013 || p_owner->_type == AT_1113) return FALSE;
 
-	pstOwner->__stConfig.bt.COMP_LAT = enCompLat;
-	return _WriteWord(pstOwner, AR_enCONFIG, pstOwner->__stConfig.usAll);
+	p_owner->__config.bt.comp_lat = comp_lat;
+	return _writeWord(p_owner, AR_CONFIG, p_owner->__config.all);
 }
 
 /**
  * @fn pifAds1x1x_GetCompLat
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-PIF_enAds1x1xConfigCompLat pifAds1x1x_GetCompLat(PIF_stAds1x1x *pstOwner)
+PifAds1x1xConfigCompLat pifAds1x1x_GetCompLat(PifAds1x1x* p_owner)
 {
-	return pstOwner->__stConfig.bt.COMP_LAT;
+	return p_owner->__config.bt.comp_lat;
 }
 
 /**
  * @fn pifAds1x1x_SetCompQue
  * @brief
- * @param pstOwner
- * @param enCompQue
+ * @param p_owner
+ * @param comp_que
  * @return
  */
-BOOL pifAds1x1x_SetCompQue(PIF_stAds1x1x *pstOwner, PIF_enAds1x1xConfigCompQue enCompQue)
+BOOL pifAds1x1x_SetCompQue(PifAds1x1x* p_owner, PifAds1x1xConfigCompQue comp_que)
 {
-	if (pstOwner->_enType == AT_en1013 || pstOwner->_enType == AT_en1113) return FALSE;
+	if (p_owner->_type == AT_1013 || p_owner->_type == AT_1113) return FALSE;
 
-	pstOwner->__stConfig.bt.COMP_QUE = enCompQue;
-	return _WriteWord(pstOwner, AR_enCONFIG, pstOwner->__stConfig.usAll);
+	p_owner->__config.bt.comp_que = comp_que;
+	return _writeWord(p_owner, AR_CONFIG, p_owner->__config.all);
 }
 
 /**
  * @fn pifAds1x1x_GetCompQue
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-PIF_enAds1x1xConfigCompQue pifAds1x1x_GetCompQue(PIF_stAds1x1x *pstOwner)
+PifAds1x1xConfigCompQue pifAds1x1x_GetCompQue(PifAds1x1x* p_owner)
 {
-	return pstOwner->__stConfig.bt.COMP_QUE;
+	return p_owner->__config.bt.comp_que;
 }
 
 /**
  * @fn pifAds1x1x_SetLoThresh
  * @brief
- * @param pstOwner
- * @param sThreshold
+ * @param p_owner
+ * @param threshold
  * @return
  */
-BOOL pifAds1x1x_SetLoThresh(PIF_stAds1x1x *pstOwner, int16_t sThreshold)
+BOOL pifAds1x1x_SetLoThresh(PifAds1x1x* p_owner, int16_t threshold)
 {
-    int16_t v = (sThreshold & ((1 << pstOwner->__unResolution) - 1)) << pstOwner->__ucBitOffset;
-    return _WriteWord(pstOwner, AR_enLO_THRESH, v);
+    int16_t v = (threshold & ((1 << p_owner->__resolution) - 1)) << p_owner->__bit_offset;
+    return _writeWord(p_owner, AR_LO_THRESH, v);
 }
 
 /**
  * @fn pifAds1x1x_GetLoThresh
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-int16_t pifAds1x1x_GetLoThresh(PIF_stAds1x1x *pstOwner)
+int16_t pifAds1x1x_GetLoThresh(PifAds1x1x* p_owner)
 {
-	uint16_t usData;
+	uint16_t data;
 
-    _ReadWord(pstOwner, AR_enLO_THRESH, &usData);
-    return usData >> pstOwner->__ucBitOffset;
+    _readWord(p_owner, AR_LO_THRESH, &data);
+    return data >> p_owner->__bit_offset;
 }
 
 /**
  * @fn pifAds1x1x_SetLoThreshVoltage
  * @brief
- * @param pstOwner
- * @param sThreshold
+ * @param p_owner
+ * @param threshold
  * @return
  */
-BOOL pifAds1x1x_SetLoThreshVoltage(PIF_stAds1x1x *pstOwner, double sThreshold)
+BOOL pifAds1x1x_SetLoThreshVoltage(PifAds1x1x* p_owner, double threshold)
 {
-    return pifAds1x1x_SetLoThresh(pstOwner, (int16_t)(sThreshold / pstOwner->dConvertVoltage));
+    return pifAds1x1x_SetLoThresh(p_owner, (int16_t)(threshold / p_owner->convert_voltage));
 }
 
 /**
  * @fn pifAds1x1x_GetLoThreshVoltage
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-double pifAds1x1x_GetLoThreshVoltage(PIF_stAds1x1x *pstOwner)
+double pifAds1x1x_GetLoThreshVoltage(PifAds1x1x* p_owner)
 {
-    return pifAds1x1x_GetLoThresh(pstOwner) * pstOwner->dConvertVoltage;
+    return pifAds1x1x_GetLoThresh(p_owner) * p_owner->convert_voltage;
 }
 
 /**
  * @fn pifAds1x1x_SetHiThresh
  * @brief
- * @param pstOwner
- * @param sThreshold
+ * @param p_owner
+ * @param threshold
  * @return
  */
-BOOL pifAds1x1x_SetHiThresh(PIF_stAds1x1x *pstOwner, int16_t sThreshold)
+BOOL pifAds1x1x_SetHiThresh(PifAds1x1x* p_owner, int16_t threshold)
 {
-    int16_t v = (sThreshold & ((1 << pstOwner->__unResolution) - 1)) << pstOwner->__ucBitOffset;
-    return _WriteWord(pstOwner, AR_enHI_THRESH, v);
+    int16_t v = (threshold & ((1 << p_owner->__resolution) - 1)) << p_owner->__bit_offset;
+    return _writeWord(p_owner, AR_HI_THRESH, v);
 }
 
 /**
  * @fn pifAds1x1x_GetHiThresh
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-int16_t pifAds1x1x_GetHiThresh(PIF_stAds1x1x *pstOwner)
+int16_t pifAds1x1x_GetHiThresh(PifAds1x1x* p_owner)
 {
-	uint16_t usData;
+	uint16_t data;
 
-    _ReadWord(pstOwner, AR_enHI_THRESH, &usData);
-    return usData >> pstOwner->__ucBitOffset;
+    _readWord(p_owner, AR_HI_THRESH, &data);
+    return data >> p_owner->__bit_offset;
 }
 
 /**
  * @fn pifAds1x1x_SetHiThreshVoltage
  * @brief
- * @param pstOwner
- * @param sThreshold
+ * @param p_owner
+ * @param threshold
  * @return
  */
-BOOL pifAds1x1x_SetHiThreshVoltage(PIF_stAds1x1x *pstOwner, double sThreshold)
+BOOL pifAds1x1x_SetHiThreshVoltage(PifAds1x1x* p_owner, double threshold)
 {
-    return pifAds1x1x_SetHiThresh(pstOwner, (int16_t)(sThreshold / pstOwner->dConvertVoltage));
+    return pifAds1x1x_SetHiThresh(p_owner, (int16_t)(threshold / p_owner->convert_voltage));
 }
 
 /**
  * @fn pifAds1x1x_GetHiThreshVoltage
  * @brief
- * @param pstOwner
+ * @param p_owner
  * @return
  */
-double pifAds1x1x_GetHiThreshVoltage(PIF_stAds1x1x *pstOwner)
+double pifAds1x1x_GetHiThreshVoltage(PifAds1x1x* p_owner)
 {
-    return pifAds1x1x_GetHiThresh(pstOwner) * pstOwner->dConvertVoltage;
+    return pifAds1x1x_GetHiThresh(p_owner) * p_owner->convert_voltage;
 }
