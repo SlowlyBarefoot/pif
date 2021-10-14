@@ -10,65 +10,65 @@
 
 
 /**
- * @class _PIF_stPmlcdI2c
+ * @class StPifPmlcdI2c
  * @brief
  */
-typedef struct _PIF_stPmlcdI2c
+typedef struct StPifPmlcdI2c
 {
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PifI2c _stI2c;
+	PifI2c _i2c;
 
 	// Private Member Variable
-	uint8_t __ucDisplayFunction;
-	uint8_t __ucDisplayControl;
-	uint8_t __ucDisplayMode;
-	uint8_t __ucNumLines;
-	uint8_t __ucBacklightVal;
-} PIF_stPmlcdI2c;
+	uint8_t __display_function;
+	uint8_t __display_control;
+	uint8_t __display_mode;
+	uint8_t __num_lines;
+	uint8_t __backlight_val;
+} PifPmlcdI2c;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PIF_stPmlcdI2c *pifPmlcdI2c_Create(PifId usPifId, uint8_t ucAddr);
-void pifPmlcdI2c_Destroy(PIF_stPmlcdI2c **ppstOwner);
+PifPmlcdI2c* pifPmlcdI2c_Create(PifId id, uint8_t addr);
+void pifPmlcdI2c_Destroy(PifPmlcdI2c** pp_owner);
 
-void pifPmlcdI2c_Begin(PIF_stPmlcdI2c *pstOwner, uint8_t ucLines, uint8_t ucDotSize);
+void pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size);
 
-void pifPmlcdI2c_Print(PIF_stPmlcdI2c *pstOwner, const char *pcString);
-void pifPmlcdI2c_Printf(PIF_stPmlcdI2c *pstOwner, const char *pcFormat, ...);
+void pifPmlcdI2c_Print(PifPmlcdI2c* p_owner, const char* p_string);
+void pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...);
 
-void pifPmlcdI2c_Clear(PIF_stPmlcdI2c *pstOwner);
+void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner);
 
-void pifPmlcdI2c_Home(PIF_stPmlcdI2c *pstOwner);
+void pifPmlcdI2c_Home(PifPmlcdI2c* p_owner);
 
-void pifPmlcdI2c_SetCursor(PIF_stPmlcdI2c *pstOwner, uint8_t ucCol, uint8_t ucRow);
+void pifPmlcdI2c_SetCursor(PifPmlcdI2c* p_owner, uint8_t col, uint8_t row);
 
-void pifPmlcdI2c_Display(PIF_stPmlcdI2c *pstOwner);
-void pifPmlcdI2c_NoDisplay(PIF_stPmlcdI2c *pstOwner);
+void pifPmlcdI2c_Display(PifPmlcdI2c* p_owner);
+void pifPmlcdI2c_NoDisplay(PifPmlcdI2c* p_owner);
 
-void pifPmlcdI2c_Cursor(PIF_stPmlcdI2c *pstOwner);
-void pifPmlcdI2c_NoCursor(PIF_stPmlcdI2c *pstOwner);
+void pifPmlcdI2c_Cursor(PifPmlcdI2c* p_owner);
+void pifPmlcdI2c_NoCursor(PifPmlcdI2c* p_owner);
 
-void pifPmlcdI2c_Blink(PIF_stPmlcdI2c *pstOwner);
-void pifPmlcdI2c_NoBlink(PIF_stPmlcdI2c *pstOwner);
+void pifPmlcdI2c_Blink(PifPmlcdI2c* p_owner);
+void pifPmlcdI2c_NoBlink(PifPmlcdI2c* p_owner);
 
-void pifPmlcdI2c_ScrollDisplayLeft(PIF_stPmlcdI2c *pstOwner);
-void pifPmlcdI2c_ScrollDisplayRight(PIF_stPmlcdI2c *pstOwner);
+void pifPmlcdI2c_ScrollDisplayLeft(PifPmlcdI2c* p_owner);
+void pifPmlcdI2c_ScrollDisplayRight(PifPmlcdI2c* p_owner);
 
-void pifPmlcdI2c_LeftToRight(PIF_stPmlcdI2c *pstOwner);
-void pifPmlcdI2c_RightToLeft(PIF_stPmlcdI2c *pstOwner);
+void pifPmlcdI2c_LeftToRight(PifPmlcdI2c* p_owner);
+void pifPmlcdI2c_RightToLeft(PifPmlcdI2c* p_owner);
 
-void pifPmlcdI2c_AutoScroll(PIF_stPmlcdI2c *pstOwner);
-void pifPmlcdI2c_NoAutoScroll(PIF_stPmlcdI2c *pstOwner);
+void pifPmlcdI2c_AutoScroll(PifPmlcdI2c* p_owner);
+void pifPmlcdI2c_NoAutoScroll(PifPmlcdI2c* p_owner);
 
-void pifPmlcdI2c_CreateChar(PIF_stPmlcdI2c *pstOwner,uint8_t ucLocation, uint8_t ucCharMap[]);
+void pifPmlcdI2c_CreateChar(PifPmlcdI2c* p_owner, uint8_t location, uint8_t char_map[]);
 
-void pifPmlcdI2c_Backlight(PIF_stPmlcdI2c *pstOwner);
-void pifPmlcdI2c_NoBacklight(PIF_stPmlcdI2c *pstOwner);
+void pifPmlcdI2c_Backlight(PifPmlcdI2c* p_owner);
+void pifPmlcdI2c_NoBacklight(PifPmlcdI2c* p_owner);
 
 #ifdef __cplusplus
 }
