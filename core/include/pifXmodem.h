@@ -6,125 +6,122 @@
 #include "pifPulse.h"
 
 
-typedef enum _PIF_enXmodemType
+typedef enum EnPifXmodemType
 {
-	XT_enOriginal	= 1,
-	XT_enCRC		= 2
-} PIF_enXmodemType;
+	XT_ORIGINAL			= 1,
+	XT_CRC				= 2
+} PifXmodemType;
 
-typedef enum _PIF_enXmodemRxState
+typedef enum EnPifXmodemRxState
 {
-	XRS_enIdle			= 0,
-	XRS_enC				= 'C',
-	XRS_enGetHeader		= 10,
-	XRS_enGetData		= 11,
-	XRS_enGetCrc		= 12,
-	XRS_enSOH			= ASCII_SOH,	// 1
-	XRS_enEOT			= ASCII_EOT,	// 4
-	XRS_enCAN			= ASCII_CAN		// 24
-} PIF_enXmodemRxState;
+	XRS_IDLE			= 0,
+	XRS_C				= 'C',
+	XRS_GET_HEADER		= 10,
+	XRS_GET_DATA		= 11,
+	XRS_GET_CRC			= 12,
+	XRS_SOH				= ASCII_SOH,	// 1
+	XRS_EOT				= ASCII_EOT,	// 4
+	XRS_CAN				= ASCII_CAN		// 24
+} PifXmodemRxState;
 
-typedef enum _PIF_enXmodemTxState
+typedef enum EnPifXmodemTxState
 {
-	XTS_enIdle			= 0,
-	XTS_enSendC			= 10,
-	XTS_enDelayC		= 11,
-	XTS_enSending		= 12,
-	XTS_enWaitResponse	= 13,
-	XTS_enEOT			= ASCII_EOT,	// 4
-	XTS_enACK			= ASCII_ACK,	// 6
-	XTS_enNAK			= ASCII_NAK,	// 21
-	XTS_enCAN			= ASCII_CAN		// 24
-} PIF_enXmodemTxState;
+	XTS_IDLE			= 0,
+	XTS_SEND_C			= 10,
+	XTS_DELAY_C			= 11,
+	XTS_SENDING			= 12,
+	XTS_WAIT_RESPONSE	= 13,
+	XTS_EOT				= ASCII_EOT,	// 4
+	XTS_ACK				= ASCII_ACK,	// 6
+	XTS_NAK				= ASCII_NAK,	// 21
+	XTS_CAN				= ASCII_CAN		// 24
+} PifXmodemTxState;
 
 
 /**
- * @class _PIF_stXmodemPacket
+ * @class StPifXmodemPacket
  * @brief
  */
-typedef struct _PIF_stXmodemPacket
+typedef struct StPifXmodemPacket
 {
-	uint8_t aucPacketNo[2];
-	uint8_t *pucData;
-} PIF_stXmodemPacket;
+	uint8_t packet_no[2];
+	uint8_t* p_data;
+} PifXmodemPacket;
 
 
-typedef void (*PIF_evtXmodemTxReceive)(uint8_t ucCode, uint8_t ucPacketNo);
-typedef void (*PIF_evtXmodemRxReceive)(uint8_t ucCode, PIF_stXmodemPacket *pstPacket);
+typedef void (*PifEvtXmodemTxReceive)(uint8_t code, uint8_t packet_no);
+typedef void (*PifEvtXmodemRxReceive)(uint8_t code, PifXmodemPacket* p_packet);
 
 
 /**
- * @class _PIF_stXmodemTx
+ * @class StPifXmodemTx
  * @brief
  */
-typedef struct _PIF_stXmodemTx
+typedef struct StPifXmodemTx
 {
-	union {
-		uint8_t ucState;
-		PIF_enXmodemTxState enState;
-	} ui;
-	uint16_t usDataPos;
-	uint16_t usTimeout;
-	PifPulseItem *pstTimer;
-	PIF_evtXmodemTxReceive evtReceive;
-} PIF_stXmodemTx;
+	PifXmodemTxState state;
+	uint16_t data_pos;
+	uint16_t timeout;
+	PifPulseItem* p_timer;
+	PifEvtXmodemTxReceive evt_receive;
+} PifXmodemTx;
 
 /**
- * @class _PIF_stXmodemRx
+ * @class StPifXmodemRx
  * @brief
  */
-typedef struct _PIF_stXmodemRx
+typedef struct StPifXmodemRx
 {
-	PIF_enXmodemRxState enState;
-	PIF_stXmodemPacket stPacket;
-	uint16_t usCount;
-	uint16_t usCrc;
-	uint16_t usTimeout;
-	PifPulseItem *pstTimer;
-	PIF_evtXmodemRxReceive evtReceive;
-} PIF_stXmodemRx;
+	PifXmodemRxState state;
+	PifXmodemPacket packet;
+	uint16_t count;
+	uint16_t crc;
+	uint16_t timeout;
+	PifPulseItem* p_timer;
+	PifEvtXmodemRxReceive evt_receive;
+} PifXmodemRx;
 
 /**
- * @class _PIF_stXmodem
+ * @class StPifXmodem
  * @brief
  */
-typedef struct _PIF_stXmodem
+typedef struct StPifXmodem
 {
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PifId _usPifId;
+	PifId _id;
 
 	// Private Member Variable
-	PifPulse *__pstTimer;
-	PifComm *__pstComm;
-	PIF_enXmodemType __enType;
-	uint16_t __usPacketSize;
-	PIF_stXmodemTx __stTx;
-	PIF_stXmodemRx __stRx;
-    uint8_t *__pucData;
-} PIF_stXmodem;
+	PifPulse* __p_timer;
+	PifComm* __p_comm;
+	PifXmodemType __type;
+	uint16_t __packet_size;
+	PifXmodemTx __tx;
+	PifXmodemRx __rx;
+    uint8_t* __p_data;
+} PifXmodem;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PIF_stXmodem *pifXmodem_Create(PifId usPifId, PifPulse *pstTimer, PIF_enXmodemType enType);
-void pifXmodem_Destroy(PIF_stXmodem** pp_owner);
+PifXmodem* pifXmodem_Create(PifId id, PifPulse* p_timer, PifXmodemType type);
+void pifXmodem_Destroy(PifXmodem** pp_owner);
 
-void pifXmodem_SetResponseTimeout(PIF_stXmodem *pstOwner, uint16_t usResponseTimeout);
-void pifXmodem_SetReceiveTimeout(PIF_stXmodem *pstOwner, uint16_t usReceiveTimeout);
+void pifXmodem_SetResponseTimeout(PifXmodem* p_owner, uint16_t response_timeout);
+void pifXmodem_SetReceiveTimeout(PifXmodem* p_owner, uint16_t receive_timeout);
 
-void pifXmodem_AttachComm(PIF_stXmodem *pstOwner, PifComm *pstComm);
-void pifXmodem_AttachEvtTxReceive(PIF_stXmodem *pstOwner, PIF_evtXmodemTxReceive evtTxReceive);
-void pifXmodem_AttachEvtRxReceive(PIF_stXmodem *pstOwner, PIF_evtXmodemRxReceive evtRxReceive);
+void pifXmodem_AttachComm(PifXmodem* p_owner, PifComm* p_comm);
+void pifXmodem_AttachEvtTxReceive(PifXmodem* p_owner, PifEvtXmodemTxReceive evt_tx_receive);
+void pifXmodem_AttachEvtRxReceive(PifXmodem* p_owner, PifEvtXmodemRxReceive evt_rx_receive);
 
-BOOL pifXmodem_SendData(PIF_stXmodem *pstOwner, uint8_t ucPacketNo, uint8_t *pucData, uint16_t usDataSize);
-void pifXmodem_SendEot(PIF_stXmodem *pstOwner);
-void pifXmodem_SendCancel(PIF_stXmodem *pstOwner);
+BOOL pifXmodem_SendData(PifXmodem* p_owner, uint8_t packet_no, uint8_t* p_data, uint16_t data_size);
+void pifXmodem_SendEot(PifXmodem* p_owner);
+void pifXmodem_SendCancel(PifXmodem* p_owner);
 
-void pifXmodem_ReadyReceive(PIF_stXmodem *pstOwner);
+void pifXmodem_ReadyReceive(PifXmodem* p_owner);
 
 #ifdef __cplusplus
 }
