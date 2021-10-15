@@ -7,192 +7,200 @@
 #include "pifRingBuffer.h"
 
 
-//#define __DEBUG_PACKET__
+#define __DEBUG_PACKET__
 
 
-typedef enum _PIF_enProtocolType
+typedef enum EnPifProtocolType
 {
-    PT_enSmall			= 1,
-    PT_enMedium			= 2,
-} PIF_enProtocolType;
+    PT_SMALL			= 1,
+    PT_MEDIUM			= 2,
+} PifProtocolType;
 
-typedef enum _PIF_enProtocolFlags
+typedef enum EnPifProtocolFlags
 {
-	PF_enDefault			= 0x00,
+	PF_DEFAULT			= 0x00,
 
 	// 명령의 종류
-	PF_enType_Mask			= 0x01,
-	PF_enType_Request		= 0x00,	// Default
-	PF_enType_Response		= 0x01,
-	PF_enType_Question		= 0x00,	// Default
-	PF_enType_Answer		= 0x01,
+	PF_TYPE_MASK		= 0x01,
+	PF_TYPE_REQUEST		= 0x00,	// Default
+	PF_TYPE_RESPONSE	= 0x01,
+	PF_TYPE_QUESTION	= 0x00,	// Default
+	PF_TYPE_ANSWER		= 0x01,
 
 	// 요청 명령에 응답 요구 선택 여부
-	PF_enResponse_Mask		= 0x02,
-	PF_enResponse_Yes		= 0x00,	// Default
-	PF_enResponse_No		= 0x02,
+	PF_RESPONSE_MASK	= 0x02,
+	PF_RESPONSE_YES		= 0x00,	// Default
+	PF_RESPONSE_NO		= 0x02,
 
 	// 질문 명령에 답변 요구 선택 여부
-	PF_enAnswer_Mask		= 0x02,
-	PF_enAnswer_Yes			= 0x00,	// Default
-	PF_enAnswer_No			= 0x02,
+	PF_ANSWER_MASK		= 0x02,
+	PF_ANSWER_YES		= 0x00,	// Default
+	PF_ANSWER_NO		= 0x02,
 
 	// 명령 송수신시 로그 출력 사용 여부
-	PF_enLogPrint_Mask		= 0x08,
-	PF_enLogPrint_No		= 0x00,	// Default
-	PF_enLogPrint_Yes		= 0x08,
+	PF_LOG_PRINT_MASK	= 0x08,
+	PF_LOG_PRINT_NO		= 0x00,	// Default
+	PF_LOG_PRINT_YES	= 0x08,
 
-	PF_enAlways				= 0x80
-} PIF_enProtocolFlags;
+	PF_ALWAYS			= 0x80
+} PifProtocolFlags;
 
-typedef enum _PIF_enProtocolRxState
+typedef enum EnPifProtocolRxState
 {
-	PRS_enIdle			= 0,
-	PRS_enGetHeader		= 1,
-	PRS_enGetData		= 2,
-	PRS_enGetCrc		= 3,
-	PRS_enGetTailer		= 4,
-	PRS_enDone			= 5,
-	PRS_enAck			= 6,
-	PRS_enError			= 7
-} PIF_enProtocolRxState;
+	PRS_IDLE			= 0,
+	PRS_GET_HEADER		= 1,
+	PRS_GET_DATA		= 2,
+	PRS_GET_CRC			= 3,
+	PRS_GET_TAILER		= 4,
+	PRS_DONE			= 5,
+	PRS_ACK				= 6,
+	PRS_ERROR			= 7
+} PifProtocolRxState;
 
-typedef enum _PIF_enProtocolTxState
+typedef enum EnPifProtocolTxState
 {
-	PTS_enIdle			= 0,
-	PTS_enSending		= 1,
-	PTS_enWaitSended	= 2,
-	PTS_enWaitResponse	= 3,
-	PTS_enRetryDelay	= 4,
-	PTS_enRetry			= 5
-} PIF_enProtocolTxState;
+	PTS_IDLE			= 0,
+	PTS_SENDING			= 1,
+	PTS_WAIT_SENDED		= 2,
+	PTS_WAIT_RESPONSE	= 3,
+	PTS_RETRY_DELAY		= 4,
+	PTS_RETRY			= 5
+} PifProtocolTxState;
 
 
 /**
- * @class _PIF_stProtocolPacket
+ * @class StPifProtocolPacket
  * @brief
  */
-typedef struct _PIF_stProtocolPacket
+typedef struct StPifProtocolPacket
 {
-	PIF_enProtocolFlags enFlags;
-	uint8_t ucCommand;
-	uint16_t usLength;
-	uint8_t ucCrc;
-	uint8_t ucPacketId;		// PT_Medium
-	uint8_t *pucData;
-	uint16_t usDataCount;
-} PIF_stProtocolPacket;
+	PifProtocolFlags flags;
+	uint8_t command;
+	uint16_t length;
+	uint8_t crc;
+	uint8_t packet_id;		// PT_Medium
+	uint8_t* p_data;
+	uint16_t data_count;
+} PifProtocolPacket;
 
-typedef void (*PIF_evtProtocolFinish)(PIF_stProtocolPacket *pstPacket);
-typedef void (*PIF_evtProtocolError)(PifId usPifId);
+typedef void (*PifEvtProtocolFinish)(PifProtocolPacket* p_packet);
+typedef void (*PifEvtProtocolError)(PifId id);
 
 /**
- * @class _PIF_stProtocolRequest
+ * @class StPifProtocolRequest
  * @brief
  */
-typedef struct _PIF_stProtocolRequest
+typedef struct StPifProtocolRequest
 {
-    uint8_t ucCommand;
-    uint8_t enFlags;					// PIF_enProtocolFlags
-    PIF_evtProtocolFinish evtResponse;
-    uint8_t ucRetry;
-    uint16_t usTimeout;
-} PIF_stProtocolRequest;
+    uint8_t command;
+    uint8_t flags;					// PIF_enProtocolFlags
+    PifEvtProtocolFinish evt_response;
+    uint8_t retry;
+    uint16_t timeout;
+} PifProtocolRequest;
 
 /**
- * @class _PIF_stProtocolQuestion
+ * @class StPifProtocolQuestion
  * @brief
  */
-typedef struct _PIF_stProtocolQuestion
+typedef struct StPifProtocolQuestion
 {
-    uint8_t ucCommand;
-    uint8_t enFlags;					// PIF_enProtocolFlags
-    PIF_evtProtocolFinish evtAnswer;
-} PIF_stProtocolQuestion;
+    uint8_t command;
+    uint8_t flags;					// PIF_enProtocolFlags
+    PifEvtProtocolFinish evt_answer;
+} PifProtocolQuestion;
 
-typedef struct _PIF_stProtocolRx
+/**
+ * @class StPifProtocolRx
+ * @brief
+ */
+typedef struct StPifProtocolRx
 {
-	PIF_enProtocolRxState enState;
-	uint8_t *pucPacket;
-	uint16_t usPacketSize;
-	uint8_t ucHeaderCount;
-	BOOL bDataLinkEscape;
-	PIF_stProtocolPacket stPacket;
+	PifProtocolRxState state;
+	uint8_t* p_packet;
+	uint16_t packet_size;
+	uint8_t header_count;
+	BOOL data_link_escape;
+	PifProtocolPacket packet;
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
-	PifPulseItem *pstTimer;
+	PifPulseItem* p_timer;
 #endif
-} PIF_stProtocolRx;
-
-typedef struct _PIF_stProtocolTx
-{
-    PifRingBuffer *pstRequestBuffer;
-    PifRingBuffer *pstAnswerBuffer;
-	const PIF_stProtocolRequest *pstRequest;
-	uint8_t *pucData;
-	uint16_t usDataSize;
-	PIF_enProtocolTxState enState;
-	union {
-		uint8_t ucInfo[9];
-		struct {
-			uint16_t usLength;
-			uint16_t usTimeout;
-			uint8_t ucRetry;
-			uint8_t ucStx;
-			uint8_t ucFlags;
-			uint8_t ucCommand;
-			uint8_t ucPacketId;
-		} stInfo;
-	} ui;
-	uint16_t usPos;
-	PifPulseItem *pstTimer;
-} PIF_stProtocolTx;
+} PifProtocolRx;
 
 /**
- * @class _PIF_stProtocol
+ * @class StPifProtocolTx
  * @brief
  */
-typedef struct _PIF_stProtocol
+typedef struct StPifProtocolTx
+{
+    PifRingBuffer* p_request_buffer;
+    PifRingBuffer* p_answer_buffer;
+	const PifProtocolRequest* p_request;
+	uint8_t* p_data;
+	uint16_t data_size;
+	PifProtocolTxState state;
+	union {
+		uint8_t info[9];
+		struct {
+			uint16_t length;
+			uint16_t timeout;
+			uint8_t retry;
+			uint8_t stx;
+			uint8_t flags;
+			uint8_t command;
+			uint8_t packet_id;
+		} st;
+	} ui;
+	uint16_t pos;
+	PifPulseItem* p_timer;
+} PifProtocolTx;
+
+/**
+ * @class StPifProtocol
+ * @brief
+ */
+typedef struct StPifProtocol
 {
 	// Public Member Variable
 
 	// Public Event Function
-    PIF_evtProtocolError evtError;
+    PifEvtProtocolError evt_error;
 
 	// Read-only Member Variable
-    PifId _usPifId;
-    PIF_enProtocolType _enType;
-    uint8_t _ucFrameSize;
+    PifId _id;
+    PifProtocolType _type;
+    uint8_t _frame_size;
 
 	// Private Member Variable
-    PifPulse *__pstTimer;
-	PifComm *__pstComm;
-    const PIF_stProtocolQuestion *__pstQuestions;
-    PIF_stProtocolRx __stRx;
-    PIF_stProtocolTx __stTx;
-	uint8_t __ucHeaderSize;
-	uint8_t __ucPacketId;
-} PIF_stProtocol;
+    PifPulse* __p_timer;
+	PifComm* __p_comm;
+    const PifProtocolQuestion* __p_questions;
+    PifProtocolRx __rx;
+    PifProtocolTx __tx;
+	uint8_t __header_size;
+	uint8_t __packet_id;
+} PifProtocol;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PIF_stProtocol *pifProtocol_Create(PifId usPifId, PifPulse *pstTimer, PIF_enProtocolType enType,
-		const PIF_stProtocolQuestion *pstQuestions);
-void pifProtocol_Destroy(PIF_stProtocol** pp_owner);
+PifProtocol* pifProtocol_Create(PifId id, PifPulse* p_timer, PifProtocolType type,
+		const PifProtocolQuestion* p_questions);
+void pifProtocol_Destroy(PifProtocol** pp_owner);
 
-BOOL pifProtocol_SetFrameSize(PIF_stProtocol *pstOwner, uint8_t ucFrameSize);
+BOOL pifProtocol_SetFrameSize(PifProtocol* p_owner, uint8_t frame_size);
 
-BOOL pifProtocol_ResizeRxPacket(PIF_stProtocol *pstOwner, uint16_t usRxPacketSize);
-BOOL pifProtocol_ResizeTxRequest(PIF_stProtocol *pstOwner, uint16_t usTxRequestSize);
-BOOL pifProtocol_ResizeTxResponse(PIF_stProtocol *pstOwner, uint16_t usTxResponseSize);
+BOOL pifProtocol_ResizeRxPacket(PifProtocol* p_owner, uint16_t rx_packet_size);
+BOOL pifProtocol_ResizeTxRequest(PifProtocol* p_owner, uint16_t tx_request_size);
+BOOL pifProtocol_ResizeTxResponse(PifProtocol* p_owner, uint16_t tx_response_size);
 
-void pifProtocol_AttachComm(PIF_stProtocol *pstOwner, PifComm *pstComm);
+void pifProtocol_AttachComm(PifProtocol* p_owner, PifComm* p_comm);
 
-BOOL pifProtocol_MakeRequest(PIF_stProtocol *pstOwner, const PIF_stProtocolRequest *pstRequest, uint8_t *pucData, uint16_t usDataSize);
-BOOL pifProtocol_MakeAnswer(PIF_stProtocol *pstOwner, PIF_stProtocolPacket *pstQuestion, uint8_t enFlags,
-		uint8_t *pucData, uint16_t usDataSize);
+BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_request, uint8_t* p_data, uint16_t data_size);
+BOOL pifProtocol_MakeAnswer(PifProtocol* p_owner, PifProtocolPacket* p_question, uint8_t flags,
+		uint8_t *p_data, uint16_t data_size);
 
 #ifdef __cplusplus
 }
