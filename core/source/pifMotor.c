@@ -1,7 +1,7 @@
 #include "pifMotor.h"
 
 
-const char *c_cMotorState[MS_enCount] =
+const char* kMotorState[MS_COUNT] =
 {
 	    "Idle",
 	    "Gained",

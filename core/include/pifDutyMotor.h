@@ -39,7 +39,7 @@ struct _PIF_stDutyMotor
 	uint16_t _usMaxDuty;
 	uint16_t _usCurrentDuty;
 	uint8_t _ucDirection;
-    PIF_enMotorState _enState;
+    PifMotorState _enState;
 
 	// Private Member Variable
     uint8_t __ucError;

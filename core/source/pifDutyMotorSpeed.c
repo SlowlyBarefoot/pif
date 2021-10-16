@@ -7,12 +7,12 @@ static void _evtTimerDelayFinish(void *pvIssuer)
     PIF_stDutyMotor *pstOwner = (PIF_stDutyMotor *)pvIssuer;
 
 	switch (pstOwner->_enState) {
-	case MS_enOverRun:
-        pstOwner->_enState = MS_enReduce;
+	case MS_OVER_RUN:
+        pstOwner->_enState = MS_REDUCE;
         break;
 
-	case MS_enBreaking:
-        pstOwner->_enState = MS_enStopping;
+	case MS_BREAKING:
+        pstOwner->_enState = MS_STOPPING;
 		break;
 
 	default:
@@ -28,31 +28,31 @@ static void _fnControlSpeed(PIF_stDutyMotor *pstOwner)
 	uint16_t usTmpDuty = 0;
     PIF_stDutyMotorSpeed* pstSpeed = (PIF_stDutyMotorSpeed*)pstOwner;
     const PIF_stDutyMotorSpeedStage *pstStage = pstSpeed->__pstCurrentStage;
-    PIF_enMotorState enState = pstOwner->_enState;
+    PifMotorState enState = pstOwner->_enState;
 
 	usTmpDuty = pstOwner->_usCurrentDuty;
 
-	if (pstOwner->_enState == MS_enGained) {
+	if (pstOwner->_enState == MS_GAINED) {
 		if (usTmpDuty >= pstStage->usFsHighDuty) {
 			usTmpDuty = pstStage->usFsHighDuty;
-			pstOwner->_enState = MS_enConst;
+			pstOwner->_enState = MS_CONST;
 			if (pstOwner->evtStable) (*pstOwner->evtStable)(pstOwner);
 		}
 		else {
 			usTmpDuty += pstStage->usGsCtrlDuty;
 		}
 	}
-	else if (pstOwner->_enState == MS_enReduce) {
+	else if (pstOwner->_enState == MS_REDUCE) {
 		if (!pstStage->usRsCtrlDuty) {
 			usTmpDuty = 0;
-			pstOwner->_enState = MS_enBreak;
+			pstOwner->_enState = MS_BREAK;
 		}
 		else if (usTmpDuty > pstStage->usRsCtrlDuty && usTmpDuty > pstStage->usRsLowDuty) {
 			usTmpDuty -= pstStage->usRsCtrlDuty;
 		}
 		else if (usTmpDuty) {
 			usTmpDuty = 0;
-			pstOwner->_enState = MS_enBreak;
+			pstOwner->_enState = MS_BREAK;
 		}
 	}
 
@@ -61,25 +61,25 @@ static void _fnControlSpeed(PIF_stDutyMotor *pstOwner)
 		pstOwner->_usCurrentDuty = usTmpDuty;
 	}
 
-    if (pstOwner->_enState == MS_enBreak) {
+    if (pstOwner->_enState == MS_BREAK) {
     	if (pstOwner->__actOperateBreak && pstStage->usRsBreakTime &&
     			pifPulse_StartItem(pstOwner->__pstTimerDelay, pstStage->usRsBreakTime)) {
 			(*pstOwner->__actOperateBreak)(1);
-			pstOwner->_enState = MS_enBreaking;
+			pstOwner->_enState = MS_BREAKING;
     	}
     	else {
 			if (pstOwner->__actOperateBreak) (*pstOwner->__actOperateBreak)(1);
-    		pstOwner->_enState = MS_enStopping;
+    		pstOwner->_enState = MS_STOPPING;
     	}
 	}
 
-    if (pstOwner->_enState == MS_enStopping) {
-		if (!(pstStage->enMode & MM_NR_enMask)) {
+    if (pstOwner->_enState == MS_STOPPING) {
+		if (!(pstStage->enMode & MM_NR_MASK)) {
 			if (pstOwner->__actOperateBreak) (*pstOwner->__actOperateBreak)(0);
 		}
-		pstOwner->_enState = MS_enStop;
+		pstOwner->_enState = MS_STOP;
 
-		if (pstStage->enMode & MM_CFPS_enMask) {
+		if (pstStage->enMode & MM_CFPS_MASK) {
 	    	if (*pstStage->ppstStopSensor) {
 	    		if ((*pstStage->ppstStopSensor)->_curr_state == OFF) {
 	    			pstOwner->__ucError = 1;
@@ -98,7 +98,7 @@ static void _fnControlSpeed(PIF_stDutyMotor *pstOwner)
 #ifndef __PIF_NO_LOG__
 	if (enState != pstOwner->_enState && pif_log_flag.bt.duty_motor) {
 		pifLog_Printf(LT_INFO, "DMS(%u) %s D:%u(%u%%)", pstOwner->_usPifId,
-				c_cMotorState[pstOwner->_enState], usTmpDuty, (uint16_t)(100 * usTmpDuty / pstOwner->_usMaxDuty));
+				kMotorState[pstOwner->_enState], usTmpDuty, (uint16_t)(100 * usTmpDuty / pstOwner->_usMaxDuty));
 	}
 #endif
 }
@@ -109,7 +109,7 @@ static void _evtSwitchReduceChange(PifId usPifId, uint16_t usLevel, void *pvIssu
 
 	(void)usPifId;
 
-	if (pstOwner->_enState >= MS_enReduce) return;
+	if (pstOwner->_enState >= MS_REDUCE) return;
 
 	if (usLevel) {
 		pifDutyMotorSpeed_Stop(pstOwner);
@@ -122,11 +122,11 @@ static void _evtSwitchStopChange(PifId usPifId, uint16_t usLevel, void *pvIssuer
 
 	(void)usPifId;
 
-	if (pstOwner->_enState >= MS_enBreak) return;
+	if (pstOwner->_enState >= MS_BREAK) return;
 
 	if (usLevel) {
 		pstOwner->_usCurrentDuty = 0;
-		pstOwner->_enState = MS_enBreak;
+		pstOwner->_enState = MS_BREAK;
 	}
 }
 
@@ -191,11 +191,11 @@ void pifDutyMotorSpeed_Destroy(PIF_stDutyMotor** pp_owner)
 BOOL pifDutyMotorSpeed_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorSpeedStage *pstStages)
 {
     for (int i = 0; i < ucStageSize; i++) {
-    	if (pstStages[i].enMode & MM_SC_enMask) {
+    	if (pstStages[i].enMode & MM_SC_MASK) {
             pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
-    	if (pstStages[i].enMode & MM_PC_enMask) {
+    	if (pstStages[i].enMode & MM_PC_MASK) {
             pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
@@ -229,7 +229,7 @@ BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, ui
     pstSpeed->__pstCurrentStage = &pstSpeed->__pstStages[ucStageIndex];
     pstStage = pstSpeed->__pstCurrentStage;
 
-    if (pstStage->enMode & MM_CIAS_enMask) {
+    if (pstStage->enMode & MM_CIAS_MASK) {
     	ucState = 0;
     	if (*pstStage->ppstStartSensor) {
     		if ((*pstStage->ppstStartSensor)->_curr_state != ON) {
@@ -252,7 +252,7 @@ BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, ui
     	}
     }
 
-    if ((pstStage->enMode & MM_RT_enMask) == MM_RT_enTime) {
+    if ((pstStage->enMode & MM_RT_MASK) == MM_RT_TIME) {
     	if (!unOperatingTime) {
         	pif_error = E_INVALID_PARAM;
 		    return FALSE;
@@ -274,15 +274,15 @@ BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, ui
         pifSensor_AttachEvtChange(*pstStage->ppstStopSensor, _evtSwitchStopChange, pstOwner);
     }
 
-    if (pstOwner->__actSetDirection) (*pstOwner->__actSetDirection)((pstStage->enMode & MM_D_enMask) >> MM_D_enShift);
+    if (pstOwner->__actSetDirection) (*pstOwner->__actSetDirection)((pstStage->enMode & MM_D_MASK) >> MM_D_SHIFT);
 
     if (pstStage->usGsCtrlDuty) {
     	pstOwner->_usCurrentDuty = pstStage->usGsStartDuty;
-        pstOwner->_enState = MS_enGained;
+        pstOwner->_enState = MS_GAINED;
     }
     else {
     	pstOwner->_usCurrentDuty = pstStage->usFsHighDuty;
-        pstOwner->_enState = MS_enConst;
+        pstOwner->_enState = MS_CONST;
     }
     pstOwner->__ucError = 0;
 
@@ -299,13 +299,13 @@ void pifDutyMotorSpeed_Stop(PIF_stDutyMotor *pstOwner)
 {
     const PIF_stDutyMotorSpeedStage* pstStage = ((PIF_stDutyMotorSpeed*)pstOwner)->__pstCurrentStage;
 
-    if (pstOwner->_enState == MS_enIdle) return;
+    if (pstOwner->_enState == MS_IDLE) return;
 
     if (pstStage->usFsOverTime && pifPulse_StartItem(pstOwner->__pstTimerDelay, pstStage->usFsOverTime)) {
-        pstOwner->_enState = MS_enOverRun;
+        pstOwner->_enState = MS_OVER_RUN;
     }
     else {
-        pstOwner->_enState = MS_enReduce;
+        pstOwner->_enState = MS_REDUCE;
     }
 }
 
@@ -317,5 +317,5 @@ void pifDutyMotorSpeed_Stop(PIF_stDutyMotor *pstOwner)
 void pifDutyMotorSpeed_Emergency(PIF_stDutyMotor *pstOwner)
 {
     pstOwner->_usCurrentDuty = 0;
-    pstOwner->_enState = MS_enBreak;
+    pstOwner->_enState = MS_BREAK;
 }

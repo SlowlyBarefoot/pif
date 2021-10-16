@@ -9,19 +9,19 @@ static void _evtTimerControlFinish(void *pvIssuer)
     if (pstOwner->__fnControl) (*pstOwner->__fnControl)(pstOwner);
 
     if (pstOwner->__ucError) {
-        if (pstOwner->_enState < MS_enBreak) {
+        if (pstOwner->_enState < MS_BREAK) {
 			(*pstOwner->__actSetDuty)(0);
 			pstOwner->_usCurrentDuty = 0;
 
-			pstOwner->_enState = MS_enBreak;
+			pstOwner->_enState = MS_BREAK;
         }
 
         if (pstOwner->evtError) (*pstOwner->evtError)(pstOwner);
     }
 
-	if (pstOwner->_enState == MS_enStop) {
+	if (pstOwner->_enState == MS_STOP) {
 		pifPulse_StopItem(pstOwner->__pstTimerControl);
-		pstOwner->_enState = MS_enIdle;
+		pstOwner->_enState = MS_IDLE;
 		if (pstOwner->evtStop) (*pstOwner->evtStop)(pstOwner);
 	}
 }
@@ -30,8 +30,8 @@ static void _evtTimerBreakFinish(void *pvIssuer)
 {
     PIF_stDutyMotor *pstOwner = (PIF_stDutyMotor *)pvIssuer;
 
-    if (pstOwner->_enState > MS_enIdle && pstOwner->_enState < MS_enReduce) {
-    	pstOwner->_enState = MS_enReduce;
+    if (pstOwner->_enState > MS_IDLE && pstOwner->_enState < MS_REDUCE) {
+    	pstOwner->_enState = MS_REDUCE;
     }
     else {
     	(*pstOwner->__actOperateBreak)(0);
@@ -88,7 +88,7 @@ BOOL pifDutyMotor_Init(PIF_stDutyMotor* pstOwner, PifId usPifId, PifPulse* p_tim
     pstOwner->_p_timer = p_timer;
     if (usPifId == PIF_ID_AUTO) usPifId = pif_id++;
     pstOwner->_usPifId = usPifId;
-    pstOwner->_enState = MS_enIdle;
+    pstOwner->_enState = MS_IDLE;
     pstOwner->_usMaxDuty = usMaxDuty;
     return TRUE;
 }
@@ -250,7 +250,7 @@ BOOL pifDutyMotor_InitControl(PIF_stDutyMotor *pstOwner, uint16_t usControlPerio
  */
 BOOL pifDutyMotor_StartControl(PIF_stDutyMotor *pstOwner)
 {
-	if (pstOwner->_enState != MS_enIdle) {
+	if (pstOwner->_enState != MS_IDLE) {
         pif_error = E_INVALID_STATE;
 	    return FALSE;
     }

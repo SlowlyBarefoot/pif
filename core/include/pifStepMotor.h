@@ -59,7 +59,7 @@ struct _PIF_stStepMotor
 	uint16_t _usCurrentPps;
     uint8_t _ucReductionGearRatio;
     uint8_t _ucDirection;
-    PIF_enMotorState _enState;
+    PifMotorState _enState;
     uint32_t _unCurrentPulse;
 
 	// Private Member Variable
