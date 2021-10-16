@@ -39,7 +39,7 @@ typedef struct _PIF_stDutyMotorSpeedStage
  */
 typedef struct _PIF_stDutyMotorSpeed
 {
-	PIF_stDutyMotor parent;
+	PifDutyMotor parent;
 
 	// Public Member Variable
 
@@ -57,14 +57,14 @@ typedef struct _PIF_stDutyMotorSpeed
 extern "C" {
 #endif
 
-PIF_stDutyMotor *pifDutyMotorSpeed_Create(PifId usPifId, PifPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod);
-void pifDutyMotorSpeed_Destroy(PIF_stDutyMotor** pp_owner);
+PifDutyMotor *pifDutyMotorSpeed_Create(PifId usPifId, PifPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod);
+void pifDutyMotorSpeed_Destroy(PifDutyMotor** pp_owner);
 
-BOOL pifDutyMotorSpeed_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorSpeedStage *pstStages);
+BOOL pifDutyMotorSpeed_AddStages(PifDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorSpeedStage *pstStages);
 
-BOOL pifDutyMotorSpeed_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime);
-void pifDutyMotorSpeed_Stop(PIF_stDutyMotor *pstOwner);
-void pifDutyMotorSpeed_Emergency(PIF_stDutyMotor *pstOwner);
+BOOL pifDutyMotorSpeed_Start(PifDutyMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime);
+void pifDutyMotorSpeed_Stop(PifDutyMotor *pstOwner);
+void pifDutyMotorSpeed_Emergency(PifDutyMotor *pstOwner);
 
 #ifdef __cplusplus
 }

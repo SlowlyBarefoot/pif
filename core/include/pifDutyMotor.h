@@ -6,56 +6,56 @@
 #include "pifMotor.h"
 
 
-struct _PIF_stDutyMotor;
-typedef struct _PIF_stDutyMotor PIF_stDutyMotor;
+struct StPifDutyMotor;
+typedef struct StPifDutyMotor PifDutyMotor;
 
-typedef void (*PIF_actDutyMotorSetDuty)(uint16_t usDuty);
-typedef void (*PIF_actDutyMotorSetDirection)(uint8_t ucDir);
-typedef void (*PIF_actDutyMotorOperateBreak)(uint8_t ucState);
+typedef void (*PifActDutyMotorSetDuty)(uint16_t duty);
+typedef void (*PifActDutyMotorSetDirection)(uint8_t dir);
+typedef void (*PifActDutyMotorOperateBreak)(uint8_t state);
 
-typedef void (*PIF_evtDutyMotorStable)(PIF_stDutyMotor *pstOwner);
-typedef void (*PIF_evtDutyMotorStop)(PIF_stDutyMotor *pstOwner);
-typedef void (*PIF_evtDutyMotorError)(PIF_stDutyMotor *pstOwner);
+typedef void (*PifEvtDutyMotorStable)(PifDutyMotor* p_owner);
+typedef void (*PifEvtDutyMotorStop)(PifDutyMotor* p_owner);
+typedef void (*PifEvtDutyMotorError)(PifDutyMotor* p_owner);
 
-typedef void (*PIF_fnDutyMotorControl)(PIF_stDutyMotor *pstOwner);
+typedef void (*PifDutyMotorControl)(PifDutyMotor* p_owner);
 
 
 /**
- * @class _PIF_stDutyMotor
+ * @class StPifDutyMotor
  * @brief
  */
-struct _PIF_stDutyMotor
+struct StPifDutyMotor
 {
 	// Public Member Variable
 
     // Public Event Function
-    PIF_evtDutyMotorStable evtStable;
-    PIF_evtDutyMotorStop evtStop;
-    PIF_evtDutyMotorError evtError;
+    PifEvtDutyMotorStable evt_stable;
+    PifEvtDutyMotorStop evt_stop;
+    PifEvtDutyMotorError evt_error;
 
     // Read-only Member Variable
-    PifId _usPifId;
+    PifId _id;
     PifPulse* _p_timer;
-	uint16_t _usMaxDuty;
-	uint16_t _usCurrentDuty;
-	uint8_t _ucDirection;
-    PifMotorState _enState;
+	uint16_t _max_duty;
+	uint16_t _current_duty;
+	uint8_t _direction;
+    PifMotorState _state;
 
 	// Private Member Variable
-    uint8_t __ucError;
-	uint16_t __usControlPeriod;
+    uint8_t __error;
+	uint16_t __control_period;
 
-	PifPulseItem *__pstTimerControl;
-	PifPulseItem *__pstTimerDelay;
-	PifPulseItem *__pstTimerBreak;
+	PifPulseItem* __p_timer_control;
+	PifPulseItem* __p_timer_delay;
+	PifPulseItem* __p_timer_break;
 
     // Private Action Function
-    PIF_actDutyMotorSetDuty __actSetDuty;
-    PIF_actDutyMotorSetDirection __actSetDirection;
-    PIF_actDutyMotorOperateBreak __actOperateBreak;
+    PifActDutyMotorSetDuty __act_set_duty;
+    PifActDutyMotorSetDirection __act_set_direction;
+    PifActDutyMotorOperateBreak __act_operate_break;
 
 	// Private Member Function
-    PIF_fnDutyMotorControl __fnControl;
+    PifDutyMotorControl __control;
 };
 
 
@@ -63,24 +63,24 @@ struct _PIF_stDutyMotor
 extern "C" {
 #endif
 
-PIF_stDutyMotor *pifDutyMotor_Create(PifId usPifId, PifPulse* p_timer, uint16_t usMaxDuty);
-void pifDutyMotor_Destroy(PIF_stDutyMotor** pp_owner);
+PifDutyMotor* pifDutyMotor_Create(PifId id, PifPulse* p_timer, uint16_t max_duty);
+void pifDutyMotor_Destroy(PifDutyMotor** pp_owner);
 
-BOOL pifDutyMotor_Init(PIF_stDutyMotor* pstOwner, PifId usPifId, PifPulse* p_timer, uint16_t usMaxDuty);
-void pifDutyMotor_Clear(PIF_stDutyMotor* p_owner);
+BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint16_t max_duty);
+void pifDutyMotor_Clear(PifDutyMotor* p_owner);
 
-void pifDutyMotor_AttachAction(PIF_stDutyMotor *pstOwner, PIF_actDutyMotorSetDuty actSetDuty, PIF_actDutyMotorSetDirection actSetDirection,
-		PIF_actDutyMotorOperateBreak actOperateBreak);
+void pifDutyMotor_AttachAction(PifDutyMotor* p_owner, PifActDutyMotorSetDuty act_set_duty,
+		PifActDutyMotorSetDirection act_set_direction, PifActDutyMotorOperateBreak act_operate_break);
 
-void pifDutyMotor_SetDirection(PIF_stDutyMotor *pstOwner, uint8_t ucDirection);
-void pifDutyMotor_SetDuty(PIF_stDutyMotor *pstOwner, uint16_t usDuty);
-BOOL pifDutyMotor_SetOperatingTime(PIF_stDutyMotor *pstOwner, uint32_t unOperatingTime);
+void pifDutyMotor_SetDirection(PifDutyMotor* p_owner, uint8_t direction);
+void pifDutyMotor_SetDuty(PifDutyMotor* p_owner, uint16_t duty);
+BOOL pifDutyMotor_SetOperatingTime(PifDutyMotor* p_owner, uint32_t operating_time);
 
-BOOL pifDutyMotor_Start(PIF_stDutyMotor *pstOwner, uint16_t usDuty);
-void pifDutyMotor_BreakRelease(PIF_stDutyMotor *pstOwner, uint16_t usBreakTime);
+BOOL pifDutyMotor_Start(PifDutyMotor* p_owner, uint16_t duty);
+void pifDutyMotor_BreakRelease(PifDutyMotor* p_owner, uint16_t break_time);
 
-BOOL pifDutyMotor_InitControl(PIF_stDutyMotor *pstOwner, uint16_t usControlPeriod);
-BOOL pifDutyMotor_StartControl(PIF_stDutyMotor *pstOwner);
+BOOL pifDutyMotor_InitControl(PifDutyMotor* p_owner, uint16_t control_period);
+BOOL pifDutyMotor_StartControl(PifDutyMotor* p_owner);
 
 #ifdef __cplusplus
 }

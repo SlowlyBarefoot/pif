@@ -41,7 +41,7 @@ typedef struct _PIF_stDutyMotorPosStage
  */
 typedef struct _PIF_stDutyMotorPos
 {
-	PIF_stDutyMotor parent;
+	PifDutyMotor parent;
 
 	// Public Member Variable
 
@@ -60,17 +60,17 @@ typedef struct _PIF_stDutyMotorPos
 extern "C" {
 #endif
 
-PIF_stDutyMotor *pifDutyMotorPos_Create(PifId usPifId, PifPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod);
-void pifDutyMotorPos_Destroy(PIF_stDutyMotor** pp_parent);
+PifDutyMotor *pifDutyMotorPos_Create(PifId usPifId, PifPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod);
+void pifDutyMotorPos_Destroy(PifDutyMotor** pp_parent);
 
-BOOL pifDutyMotorPos_AddStages(PIF_stDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorPosStage *pstStages);
+BOOL pifDutyMotorPos_AddStages(PifDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorPosStage *pstStages);
 
-BOOL pifDutyMotorPos_Start(PIF_stDutyMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime);
-void pifDutyMotorPos_Stop(PIF_stDutyMotor *pstOwner);
-void pifDutyMotorPos_Emergency(PIF_stDutyMotor *pstOwner);
+BOOL pifDutyMotorPos_Start(PifDutyMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime);
+void pifDutyMotorPos_Stop(PifDutyMotor *pstOwner);
+void pifDutyMotorPos_Emergency(PifDutyMotor *pstOwner);
 
 // Signal Function
-void pifDutyMotorPos_sigEncoder(PIF_stDutyMotor *pstOwner);
+void pifDutyMotorPos_sigEncoder(PifDutyMotor *pstOwner);
 
 #ifdef __cplusplus
 }
