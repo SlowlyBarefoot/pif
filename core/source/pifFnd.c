@@ -4,9 +4,6 @@
 #endif
 
 
-#define PIF_FND_CONTROL_PERIOD_DEFAULT		25
-
-
 const uint8_t kFndNumber[] = {
 		0x3F, /*  0  */	0x06, /*  1  */	0x5B, /*  2  */ 0x4F, /*  3  */ 	// 0x30
 		0x66, /*  4  */ 0x6D, /*  5  */ 0x7D, /*  6  */ 0x07, /*  7  */		// 0x34
@@ -20,7 +17,8 @@ static uint8_t s_user_char_count = 0;
 static void _evtTimerBlinkFinish(void* p_issuer)
 {
     PifFnd* p_owner = (PifFnd*)p_issuer;
-    p_owner->__bt.blink ^= 1;
+
+    if (p_owner->__bt.blink) p_owner->__bt.led ^= 1;
 }
 
 /**
@@ -69,7 +67,7 @@ PifFnd* pifFnd_Create(PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFnd
     p_owner->__p_timer = p_timer;
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-    p_owner->__control_period1ms = PIF_FND_CONTROL_PERIOD_DEFAULT / digit_size;
+    p_owner->__bt.led = ON;
     p_owner->_digit_size = digit_size;
     p_owner->__act_display = act_display;
     p_owner->__p_timer_blink = NULL;
@@ -99,24 +97,6 @@ void pifFnd_Destroy(PifFnd** pp_owner)
 		free(*pp_owner);
 		*pp_owner = NULL;
 	}
-}
-
-/**
- * @fn pifFnd_SetControlPeriod
- * @brief
- * @param p_owner
- * @param period1ms
- * @return
- */
-BOOL pifFnd_SetControlPeriod(PifFnd* p_owner, uint16_t period1ms)
-{
-    if (!period1ms || period1ms < p_owner->_digit_size) {
-        pif_error = E_INVALID_PARAM;
-	    return FALSE;
-    }
-
-    p_owner->__control_period1ms = period1ms / p_owner->_digit_size;
-    return TRUE;
 }
 
 /**
@@ -178,6 +158,7 @@ BOOL pifFnd_BlinkOn(PifFnd* p_owner, uint16_t period1ms)
  */
 void pifFnd_BlinkOff(PifFnd* p_owner)
 {
+	p_owner->__bt.led = ON;
 	p_owner->__bt.blink = FALSE;
 	if (p_owner->__p_timer_blink) {
 		pifPulse_RemoveItem(p_owner->__p_timer_blink);
@@ -360,15 +341,7 @@ static uint16_t _doTask(PifTask* p_task)
 
 	if (!p_owner->__bt.run) return 0;
 
-	if (pif_timer1ms > p_owner->__pretime1ms) {
-		if (pif_timer1ms - p_owner->__pretime1ms < p_owner->__control_period1ms) return 0;
-	}
-	else if (pif_timer1ms < p_owner->__pretime1ms) {
-		if (1000 + pif_timer1ms - p_owner->__pretime1ms < p_owner->__control_period1ms) return 0;
-	}
-	else return 0;
-
-	if (!p_owner->__bt.blink) {
+	if (p_owner->__bt.led) {
 		ch = p_owner->__p_string[p_owner->__digit_index];
 		if (ch & 0x80) {
 			point = TRUE;
@@ -391,8 +364,6 @@ static uint16_t _doTask(PifTask* p_task)
 	}
 	p_owner->__digit_index++;
 	if (p_owner->__digit_index >= p_owner->_digit_size) p_owner->__digit_index = 0;
-
-	p_owner->__pretime1ms = pif_timer1ms;
 	return 0;
 }
 

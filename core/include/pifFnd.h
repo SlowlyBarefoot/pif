@@ -27,9 +27,8 @@ typedef struct StPifFnd
 		uint8_t run			: 1;
 		uint8_t blink		: 1;
 		uint8_t fill_zero	: 1;
+		uint8_t led			: 1;
 	} __bt;
-    uint16_t __control_period1ms;
-	uint16_t __pretime1ms;
 	uint8_t __digit_index;
 	uint8_t __string_size;
     char* __p_string;
@@ -48,8 +47,6 @@ PifFnd* pifFnd_Create(PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFnd
 void pifFnd_Destroy(PifFnd** pp_owner);
 
 void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count);
-
-BOOL pifFnd_SetControlPeriod(PifFnd* p_owner, uint16_t period1ms);
 
 void pifFnd_Start(PifFnd* p_owner);
 void pifFnd_Stop(PifFnd* p_owner);
