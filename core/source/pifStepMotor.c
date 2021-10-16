@@ -193,19 +193,19 @@ BOOL pifStepMotor_Init(PIF_stStepMotor* pstOwner, PifId usPifId, PifPulse* p_tim
 void pifStepMotor_Clear(PIF_stStepMotor* p_owner)
 {
 	if (p_owner->__pstTimerStep) {
-		pifPulse_RemoveItem(p_owner->_p_timer, p_owner->__pstTimerStep);
+		pifPulse_RemoveItem(p_owner->__pstTimerStep);
 		p_owner->__pstTimerStep = NULL;
 	}
 	if (p_owner->__pstTimerControl) {
-		pifPulse_RemoveItem(p_owner->_p_timer, p_owner->__pstTimerControl);
+		pifPulse_RemoveItem(p_owner->__pstTimerControl);
 		p_owner->__pstTimerControl = NULL;
 	}
 	if (p_owner->__pstTimerBreak) {
-		pifPulse_RemoveItem(p_owner->_p_timer, p_owner->__pstTimerBreak);
+		pifPulse_RemoveItem(p_owner->__pstTimerBreak);
 		p_owner->__pstTimerBreak = NULL;
 	}
 	if (p_owner->__pstTimerDelay) {
-		pifPulse_RemoveItem(p_owner->_p_timer, p_owner->__pstTimerDelay);
+		pifPulse_RemoveItem(p_owner->__pstTimerDelay);
 		p_owner->__pstTimerDelay = NULL;
 	}
 }
@@ -252,7 +252,7 @@ BOOL pifStepMotor_SetMethod(PIF_stStepMotor *pstOwner, PIF_enStepMotorMethod enM
 
 	if (pstOwner->_enMethod == SMM_enTimer) {
 	    if (pstOwner->__pstTimerStep) {
-	    	pifPulse_RemoveItem(pstOwner->_p_timer, pstOwner->__pstTimerStep);
+	    	pifPulse_RemoveItem(pstOwner->__pstTimerStep);
 	    	pstOwner->__pstTimerStep = NULL;
 	    }
 	}

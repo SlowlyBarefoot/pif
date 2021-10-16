@@ -94,7 +94,7 @@ void pifFnd_Destroy(PifFnd** pp_owner)
 			p_owner->__p_string = NULL;
 		}
 		if (p_owner->__p_timer_blink) {
-			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__p_timer_blink);
+			pifPulse_RemoveItem(p_owner->__p_timer_blink);
 		}
 		free(*pp_owner);
 		*pp_owner = NULL;
@@ -180,7 +180,7 @@ void pifFnd_BlinkOff(PifFnd* p_owner)
 {
 	p_owner->__bt.blink = FALSE;
 	if (p_owner->__p_timer_blink) {
-		pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__p_timer_blink);
+		pifPulse_RemoveItem(p_owner->__p_timer_blink);
 		p_owner->__p_timer_blink = NULL;
 	}
 }

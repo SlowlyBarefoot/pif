@@ -395,10 +395,10 @@ void pifXmodem_Destroy(PifXmodem** pp_owner)
 			p_owner->__p_data = NULL;
 		}
 		if (p_owner->__rx.p_timer) {
-			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__rx.p_timer);
+			pifPulse_RemoveItem(p_owner->__rx.p_timer);
 		}
 		if (p_owner->__tx.p_timer) {
-			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__tx.p_timer);
+			pifPulse_RemoveItem(p_owner->__tx.p_timer);
 		}
     	free(*pp_owner);
     	*pp_owner = NULL;

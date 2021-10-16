@@ -202,10 +202,10 @@ void pifSolenoid_Destroy(PifSolenoid** pp_owner)
     if (*pp_owner) {
 		PifSolenoid* p_owner = *pp_owner;
 		if (p_owner->__p_timer_on) {
-			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__p_timer_on);
+			pifPulse_RemoveItem(p_owner->__p_timer_on);
 		}
 		if (p_owner->__p_timer_delay) {
-			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__p_timer_delay);
+			pifPulse_RemoveItem(p_owner->__p_timer_delay);
 		}
 		pifRingData_Destroy(&p_owner->__p_buffer);
     	free(*pp_owner);

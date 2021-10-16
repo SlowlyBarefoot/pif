@@ -78,10 +78,9 @@ PifPulseItem* pifPulse_AddItem(PifPulse* p_owner, PifPulseType type)
 /**
  * @fn pifPulse_RemoveItem
  * @brief Pulse 항목을 삭제한다.
- * @param p_owner Pulse 자신
  * @param p_item Pulse 항목 포인터
  */
-void pifPulse_RemoveItem(PifPulse* p_owner, PifPulseItem* p_item)
+void pifPulse_RemoveItem(PifPulseItem* p_item)
 {
     p_item->_step = PS_REMOVE;
 }

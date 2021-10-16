@@ -133,7 +133,7 @@ void pifSensorDigital_Desoroy(PifSensor** pp_parent)
 			}
 		}
 		if (p_owner->__ui.period.p_timer) {
-			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__ui.period.p_timer);
+			pifPulse_RemoveItem(p_owner->__ui.period.p_timer);
 		}
 
 		free(*pp_parent);

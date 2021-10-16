@@ -119,7 +119,7 @@ void pifSequence_Destroy(PifSequence** pp_owner)
 	if (*pp_owner) {
 		PifSequence *p_owner = *pp_owner;
 		if (p_owner->__p_timer_timeout) {
-			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__p_timer_timeout);
+			pifPulse_RemoveItem(p_owner->__p_timer_timeout);
 		}
         free(*pp_owner);
         *pp_owner = NULL;

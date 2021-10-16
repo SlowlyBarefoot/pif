@@ -519,10 +519,10 @@ void pifProtocol_Destroy(PifProtocol** pp_owner)
 		pifRingBuffer_Exit(p_owner->__tx.p_request_buffer);
 		pifRingBuffer_Exit(p_owner->__tx.p_answer_buffer);
 		if (p_owner->__rx.p_timer) {
-			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__rx.p_timer);
+			pifPulse_RemoveItem(p_owner->__rx.p_timer);
 		}
 		if (p_owner->__tx.p_timer) {
-			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__tx.p_timer);
+			pifPulse_RemoveItem(p_owner->__tx.p_timer);
 		}
     	free(*pp_owner);
     	*pp_owner = NULL;

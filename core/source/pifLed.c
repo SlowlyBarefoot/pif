@@ -66,7 +66,7 @@ void pifLed_Destroy(PifLed** pp_owner)
 	if (*pp_owner) {
 		PifLed* p_owner = *pp_owner;
 		if (p_owner->__p_timer_blink) {
-			pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__p_timer_blink);
+			pifPulse_RemoveItem(p_owner->__p_timer_blink);
 		}
 		free(*pp_owner);
 		*pp_owner = NULL;
@@ -205,7 +205,7 @@ BOOL pifLed_AttachBlink(PifLed* p_owner, uint16_t period1ms)
 void pifLed_DetachBlink(PifLed* p_owner)
 {
 	if (p_owner->__p_timer_blink) {
-		pifPulse_RemoveItem(p_owner->__p_timer, p_owner->__p_timer_blink);
+		pifPulse_RemoveItem(p_owner->__p_timer_blink);
 		p_owner->__p_timer_blink = NULL;
 	}
 }

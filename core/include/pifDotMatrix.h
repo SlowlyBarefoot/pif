@@ -5,131 +5,121 @@
 #include "pifPulse.h"
 
 
-typedef enum _PIF_enDotMatrixShift
+typedef enum EnPifDotMatrixShiftDir
 {
-	DMS_enNone			= 0x00,
+	DMSD_NONE			= 0,
+	DMSD_LEFT			= 2,
+	DMSD_RIGHT			= 3,
+	DMSD_UP				= 4,
+	DMSD_DOWN			= 5,
+} PifDotMatrixShiftDir;
 
-	DMS_enLeft			= 0x02,
-	DMS_enRight			= 0x03,
-	DMS_enUp			= 0x04,
-	DMS_enDown			= 0x05,
-
-	DMS_enRepeatHor		= 0x20,
-	DMS_enRepeatVer		= 0x30,
-	DMS_enPingPongHor	= 0x40,
-	DMS_enPingPongVer	= 0x50,
-
-	DMS_btRepeatHor		= 0x02,
-	DMS_btRepeatVer		= 0x03,
-	DMS_btPingPongHor	= 0x04,
-	DMS_btPingPongVer	= 0x05
-} PIF_enDotMatrixShift;
+typedef enum EnPifDotMatrixShiftMethod
+{
+	DMSM_ONCE			= 0,
+	DMSM_REPEAT_HOR		= 2,
+	DMSM_REPEAT_VER		= 3,
+	DMSM_PING_PONG_HOR	= 4,
+	DMSM_PING_PONG_VER	= 5
+} PifDotMatrixShiftMethod;
 
 
-typedef void (*PIF_actDotMatrixDisplay)(uint8_t ucRow, uint8_t *pucData);
+typedef void (*PifActDotMatrixDisplay)(uint8_t row, uint8_t* p_data);
 
-typedef void (*PIF_evtDotMatrixShiftFinish)(PifId usPifId);
+typedef void (*PifEvtDotMatrixShiftFinish)(PifId id);
 
 
 /**
- * @class _PIF_stDotMatrixPattern
+ * @class StPifDotMatrixPattern
  * @brief
  */
-typedef struct _PIF_stDotMatrixPattern
+typedef struct StPifDotMatrixPattern
 {
-	uint8_t ucColSize;
-	uint8_t ucColBytes;
-	uint8_t ucRowSize;
-	uint8_t *pucPattern;
-} PIF_stDotMatrixPattern;
+	uint8_t col_size;
+	uint8_t col_bytes;
+	uint8_t row_size;
+	uint8_t* p_pattern;
+} PifDotMatrixPattern;
 
 /**
- * @class _PIF_stDotMatrix
+ * @class StPifDotMatrix
  * @brief
  */
-typedef struct _PIF_stDotMatrix
+typedef struct StPifDotMatrix
 {
 	// Public Member Variable
 
 	// Public Event Function
-    PIF_evtDotMatrixShiftFinish evtShiftFinish;
+    PifEvtDotMatrixShiftFinish evt_shift_finish;
 
 	// Read-only Member Variable
-    PifId _usPifId;
+    PifId _id;
 
 	// Private Member Variable
-	PifPulse *__pstTimer;
-    uint16_t __usColSize;
-    uint16_t __usRowSize;
+	PifPulse* __p_timer;
+    uint16_t __col_size;
+    uint16_t __row_size;
 
-	uint8_t __ucPatternIndex;
+	uint8_t __pattern_index;
 
 	struct {
-		uint8_t Run			: 1;
-		uint8_t Blink		: 1;
+		uint8_t run			: 1;
+		uint8_t blink		: 1;
+		uint8_t led			: 1;
 	} __bt;
 
-	union {
-		PIF_enDotMatrixShift enShift;
-		struct {
-			uint8_t Direction	: 4;	// 2 : Left, 3 : Right, 4 : Up, 5 : Down
-			uint8_t Method		: 4;	// 0 : Off, 2 : Repeat Hor, 3 : Repeat Ver, 4 : PingPong Hor, 5 : PingPong Ver
-		} btShift;
-	} __ui;
+	PifDotMatrixShiftDir __shift_direction;
+	PifDotMatrixShiftMethod __shift_method;
 
-    uint16_t __usColBytes;
-    uint16_t __usTotalBytes;
+    uint16_t __col_bytes;
+    uint16_t __total_bytes;
 
-    uint8_t __ucPatternSize;
-    uint8_t __ucPatternCount;
-    PIF_stDotMatrixPattern *__pstPattern;
-    uint8_t *__pucPattern;
+    uint8_t __pattern_size;
+    uint8_t __pattern_count;
+    PifDotMatrixPattern* __p_pattern;
+    uint8_t* __p_paper;
 
-	uint8_t __ucRowIndex;
-	uint16_t __usPositionX;
-	uint16_t __usPositionY;
-	uint16_t __usShiftCount;
+	uint8_t __row_index;
+	uint16_t __position_x;
+	uint16_t __position_y;
+	uint16_t __shift_count;
 
-    uint16_t __usControlPeriodMs;
-	uint16_t __usPretimeMs;
-
-	PifPulseItem *__pstTimerBlink;
-	PifPulseItem *__pstTimerShift;
+	PifPulseItem* __p_timer_blink;
+	PifPulseItem* __p_timer_shift;
 
 	// Private Action Function
-   	PIF_actDotMatrixDisplay __actDisplay;
-} PIF_stDotMatrix;
+   	PifActDotMatrixDisplay __act_display;
+} PifDotMatrix;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PIF_stDotMatrix *pifDotMatrix_Create(PifId usPifId, PifPulse *pstTimer, uint16_t usColSize, uint16_t usRowSize,
-		PIF_actDotMatrixDisplay actDisplay);
-void pifDotMatrix_Destroy(PIF_stDotMatrix** pp_owner);
+PifDotMatrix* pifDotMatrix_Create(PifId id, PifPulse* p_timer, uint16_t col_size, uint16_t row_size,
+		PifActDotMatrixDisplay act_display);
+void pifDotMatrix_Destroy(PifDotMatrix** pp_owner);
 
-BOOL pifDotMatrix_SetControlPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
+BOOL pifDotMatrix_SetPatternSize(PifDotMatrix* p_owner, uint8_t size);
+BOOL pifDotMatrix_AddPattern(PifDotMatrix* p_owner, uint8_t col_size, uint8_t row_size, uint8_t* p_pattern);
 
-BOOL pifDotMatrix_SetPatternSize(PIF_stDotMatrix *pstOwner, uint8_t ucSize);
-BOOL pifDotMatrix_AddPattern(PIF_stDotMatrix *pstOwner, uint8_t ucColSize, uint8_t ucRowSize, uint8_t *pucPattern);
+void pifDotMatrix_Start(PifDotMatrix* p_owner);
+void pifDotMatrix_Stop(PifDotMatrix* p_owner);
 
-void pifDotMatrix_Start(PIF_stDotMatrix *pstOwner);
-void pifDotMatrix_Stop(PIF_stDotMatrix *pstOwner);
+BOOL pifDotMatrix_SelectPattern(PifDotMatrix* p_owner, uint8_t pattern_index);
 
-BOOL pifDotMatrix_SelectPattern(PIF_stDotMatrix *pstOwner, uint8_t ucPatternIndex);
+BOOL pifDotMatrix_BlinkOn(PifDotMatrix* p_owner, uint16_t period1ms);
+void pifDotMatrix_BlinkOff(PifDotMatrix* p_owner);
+void pifDotMatrix_ChangeBlinkPeriod(PifDotMatrix* p_owner, uint16_t period1ms);
 
-BOOL pifDotMatrix_BlinkOn(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
-void pifDotMatrix_BlinkOff(PIF_stDotMatrix *pstOwner);
-void pifDotMatrix_ChangeBlinkPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
-
-BOOL pifDotMatrix_SetPosition(PIF_stDotMatrix *pstOwner, uint16_t usX, uint16_t usY);
-BOOL pifDotMatrix_ShiftOn(PIF_stDotMatrix *pstOwner, PIF_enDotMatrixShift enShift, uint16_t usPeriodMs, uint16_t usCount);
-void pifDotMatrix_ShiftOff(PIF_stDotMatrix *pstOwner);
-void pifDotMatrix_ChangeShiftPeriod(PIF_stDotMatrix *pstOwner, uint16_t usPeriodMs);
+BOOL pifDotMatrix_SetPosition(PifDotMatrix* p_owner, uint16_t pos_x, uint16_t pos_y);
+BOOL pifDotMatrix_ShiftOn(PifDotMatrix* p_owner, PifDotMatrixShiftDir shift_direction,
+		PifDotMatrixShiftMethod shift_method, uint16_t period1ms, uint16_t count);
+void pifDotMatrix_ShiftOff(PifDotMatrix* p_owner);
+void pifDotMatrix_ChangeShiftPeriod(PifDotMatrix* p_owner, uint16_t period1ms);
 
 // Task Function
-PifTask *pifDotMatrix_AttachTask(PIF_stDotMatrix *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask* pifDotMatrix_AttachTask(PifDotMatrix* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }

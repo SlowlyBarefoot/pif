@@ -101,15 +101,15 @@ BOOL pifDutyMotor_Init(PIF_stDutyMotor* pstOwner, PifId usPifId, PifPulse* p_tim
 void pifDutyMotor_Clear(PIF_stDutyMotor* pstOwner)
 {
 	if (pstOwner->__pstTimerControl) {
-		pifPulse_RemoveItem(pstOwner->_p_timer, pstOwner->__pstTimerControl);
+		pifPulse_RemoveItem(pstOwner->__pstTimerControl);
 		pstOwner->__pstTimerControl = NULL;
 	}
 	if (pstOwner->__pstTimerDelay) {
-		pifPulse_RemoveItem(pstOwner->_p_timer, pstOwner->__pstTimerDelay);
+		pifPulse_RemoveItem(pstOwner->__pstTimerDelay);
 		pstOwner->__pstTimerDelay = NULL;
 	}
 	if (pstOwner->__pstTimerBreak) {
-		pifPulse_RemoveItem(pstOwner->_p_timer, pstOwner->__pstTimerBreak);
+		pifPulse_RemoveItem(pstOwner->__pstTimerBreak);
 		pstOwner->__pstTimerBreak = NULL;
 	}
 }
