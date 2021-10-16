@@ -18,7 +18,7 @@ static uint32_t s_table[PIF_TASK_TABLE_SIZE];
 static uint8_t s_number = 0;
 
 
-static void _Processing(PifTask* p_owner, BOOL ratio)
+static void _processing(PifTask* p_owner, BOOL ratio)
 {
 	uint16_t period;
 	uint32_t time, gap;
@@ -298,7 +298,7 @@ void pifTaskManager_Loop()
 	while (it) {
 		s_it_current = it;
 		PifTask* p_owner = (PifTask*)it->data;
-		_Processing(p_owner, s_table[s_number] & (1 << p_owner->__table_number));
+		_processing(p_owner, s_table[s_number] & (1 << p_owner->__table_number));
 		it = pifDList_Next(it);
 	}
 
@@ -329,7 +329,7 @@ void pifTaskManager_Yield()
 
 	PifTask* p_owner = (PifTask*)s_it_current->data;
 	if (!p_owner->__running) {
-		_Processing(p_owner, s_table[s_number] & (1 << p_owner->__table_number));
+		_processing(p_owner, s_table[s_number] & (1 << p_owner->__table_number));
 	}
 }
 

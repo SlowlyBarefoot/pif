@@ -41,7 +41,7 @@ typedef struct StPifCollectSignal
 static PifCollectSignal s_collect_signal;
 
 
-static void _PrintHeader()
+static void _printHeader()
 {
 	const char *kVarType[] =
 	{
@@ -261,7 +261,7 @@ void pifCollectSignal_Start()
 
 	switch (s_collect_signal.method) {
 	case CSM_REALTIME:
-		_PrintHeader();
+		_printHeader();
 
 		pifLog_Printf(LT_VCD, "#0\n");
 		break;
@@ -350,7 +350,7 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
  */
 void pifCollectSignal_PrintLog()
 {
-	_PrintHeader();
+	_printHeader();
 
 	pifLog_Disable();
 	s_collect_signal.step = CSS_SEND_LOG;

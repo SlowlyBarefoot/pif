@@ -44,7 +44,7 @@ static uint16_t _evtFilterAverage(uint16_t level, PifSensorDigitalFilter* p_filt
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-static void _AddDeviceInCollectSignal()
+static void _addDeviceInCollectSignal()
 {
 	const char* prefix[SD_CSF_COUNT] = { "SD" };
 
@@ -107,7 +107,7 @@ PifSensor* pifSensorDigital_Create(PifId id, PifPulse *p_timer)
     p_owner->parent._id = id;
 
 #ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_SENSOR_DIGITAL, _AddDeviceInCollectSignal);
+	pifCollectSignal_Attach(CSF_SENSOR_DIGITAL, _addDeviceInCollectSignal);
 	PifSensorDigitalColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSensorDigitalColSig));
 	if (!p_colsig) return NULL;
 	p_colsig->p_owner = p_owner;

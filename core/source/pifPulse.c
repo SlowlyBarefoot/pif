@@ -252,7 +252,7 @@ void pifPulse_AttachEvtFinish(PifPulseItem* p_item, PifEvtPulseFinish evt_finish
 	p_item->__p_finish_issuer = p_issuer;
 }
 
-static uint16_t _DoTask(PifTask* p_task)
+static uint16_t _doTask(PifTask* p_task)
 {
 	PifPulse* p_owner = p_task->_p_client;
 
@@ -284,5 +284,5 @@ static uint16_t _DoTask(PifTask* p_task)
  */
 PifTask* pifPulse_AttachTask(PifPulse* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
-	return pifTaskManager_Add(mode, period, _DoTask, p_owner, start);
+	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
 }

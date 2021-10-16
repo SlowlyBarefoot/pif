@@ -290,7 +290,7 @@ void pifComm_ForceSendData(PifComm* p_owner)
 	if (p_owner->evt_sending) _sendData(p_owner);
 }
 
-static uint16_t _DoTask(PifTask* p_task)
+static uint16_t _doTask(PifTask* p_task)
 {
 	PifComm *p_owner = p_task->_p_client;
 
@@ -320,6 +320,6 @@ static uint16_t _DoTask(PifTask* p_task)
  */
 PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
-	return pifTaskManager_Add(mode, period, _DoTask, p_owner, start);
+	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
 }
 

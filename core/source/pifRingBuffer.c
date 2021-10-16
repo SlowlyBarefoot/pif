@@ -6,7 +6,7 @@
 #include "pifRingBuffer.h"
 
 
-static BOOL _ChopOff(PifRingBuffer* p_owner, uint16_t count)
+static BOOL _chopOff(PifRingBuffer* p_owner, uint16_t count)
 {
 	uint16_t length = pifRingBuffer_GetFillSize(p_owner);
 	uint16_t size, tail;
@@ -342,7 +342,7 @@ BOOL pifRingBuffer_PutByte(PifRingBuffer* p_owner, uint8_t data)
     next = p_owner->__head + 1;
 	if (next >= p_owner->_size) next = 0;
     if (next == p_owner->__tail) {
-    	if (!_ChopOff(p_owner, 1)) {
+    	if (!_chopOff(p_owner, 1)) {
     		pif_error = E_OVERFLOW_BUFFER;
     		return FALSE;
     	}
@@ -366,7 +366,7 @@ BOOL pifRingBuffer_PutData(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t len
 	uint16_t remain = pifRingBuffer_GetRemainSize(p_owner);
 
     if (length > remain) {
-    	if (!_ChopOff(p_owner, length - remain)) {
+    	if (!_chopOff(p_owner, length - remain)) {
     		pif_error = E_OVERFLOW_BUFFER;
     		return FALSE;
     	}
@@ -393,7 +393,7 @@ BOOL pifRingBuffer_PutString(PifRingBuffer* p_owner, char* p_string)
 	uint16_t length = strlen(p_string);
 
     if (length > remain) {
-    	if (!_ChopOff(p_owner, length - remain)) {
+    	if (!_chopOff(p_owner, length - remain)) {
     		pif_error = E_OVERFLOW_BUFFER;
     		return FALSE;
     	}

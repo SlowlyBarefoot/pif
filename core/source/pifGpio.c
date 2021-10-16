@@ -15,7 +15,7 @@ static PifDList s_cs_list;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-static void _AddDeviceInCollectSignal()
+static void _addDeviceInCollectSignal()
 {
 	const char* prefix[GP_CSF_COUNT] = { "GP" };
 
@@ -76,7 +76,7 @@ PifGpio* pifGpio_Create(PifId id, uint8_t count)
     p_owner->count = count;
 
 #ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_GPIO, _AddDeviceInCollectSignal);
+	pifCollectSignal_Attach(CSF_GPIO, _addDeviceInCollectSignal);
 	PIF_GpioColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_GpioColSig));
 	if (!p_colsig) return NULL;
 	p_colsig->p_owner = p_owner;
@@ -260,7 +260,7 @@ void pifGpio_ResetCsFlagEach(PifGpio* p_owner, PifGpioCsFlag flag)
 
 #endif
 
-static uint16_t _DoTask(PifTask* p_task)
+static uint16_t _doTask(PifTask* p_task)
 {
 	PifGpio* p_owner = p_task->_p_client;
 	uint8_t state, bit;
@@ -341,5 +341,5 @@ PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifTaskMode mode, uint16_t perio
 		return NULL;
 	}
 
-	return pifTaskManager_Add(mode, period, _DoTask, p_owner, start);
+	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
 }

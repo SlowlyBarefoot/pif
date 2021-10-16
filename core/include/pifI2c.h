@@ -52,6 +52,7 @@ PifI2c* pifI2c_Create(PifId id, uint16_t data_size);
 void pifI2c_Destroy(PifI2c** pp_owner);
 
 BOOL pifI2c_Init(PifI2c* p_owner, PifId id, uint16_t data_size);
+void pifI2c_Clear(PifI2c* p_owner);
 
 #ifndef __PIF_NO_LOG__
 void pifI2c_ScanAddress(PifI2c* p_owner);

@@ -4,14 +4,6 @@
 #endif
 
 
-static void _Clean(PifI2c* p_owner)
-{
-	if (p_owner->p_data) {
-		free(p_owner->p_data);
-		p_owner->p_data = NULL;
-	}
-}
-
 /**
  * @fn pifI2c_Create
  * @brief
@@ -43,7 +35,7 @@ fail:
 void pifI2c_Destroy(PifI2c** pp_owner)
 {
 	if (*pp_owner) {
-		_Clean(*pp_owner);
+		pifI2c_Clear(*pp_owner);
 		free(*pp_owner);
 		*pp_owner = NULL;
 	}
@@ -59,7 +51,7 @@ void pifI2c_Destroy(PifI2c** pp_owner)
  */
 BOOL pifI2c_Init(PifI2c* p_owner, PifId id, uint16_t data_size)
 {
-	_Clean(p_owner);
+	pifI2c_Clear(p_owner);
 
 	if (!data_size) {
 		pif_error = E_INVALID_PARAM;
@@ -78,6 +70,19 @@ BOOL pifI2c_Init(PifI2c* p_owner, PifId id, uint16_t data_size)
     p_owner->_state_read = IS_IDLE;
     p_owner->_state_write = IS_IDLE;
     return TRUE;
+}
+
+/**
+ * @fn pifI2c_Clear
+ * @brief
+ * @param p_owner
+ */
+void pifI2c_Clear(PifI2c* p_owner)
+{
+	if (p_owner->p_data) {
+		free(p_owner->p_data);
+		p_owner->p_data = NULL;
+	}
 }
 
 #ifndef __PIF_NO_LOG__

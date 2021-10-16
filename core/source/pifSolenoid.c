@@ -13,7 +13,7 @@ static PifDList s_cs_list;
 #endif
 
 
-static void _Action(PifSolenoid* p_owner, BOOL state, PifSolenoidDir dir)
+static void _action(PifSolenoid* p_owner, BOOL state, PifSolenoidDir dir)
 {
 	(*p_owner->__act_control)(state, dir);
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -27,17 +27,17 @@ static void _Action(PifSolenoid* p_owner, BOOL state, PifSolenoidDir dir)
 #endif
 }
 
-static void _ActionOn(PifSolenoid *p_owner, uint16_t delay, PifSolenoidDir dir)
+static void _actionOn(PifSolenoid *p_owner, uint16_t delay, PifSolenoidDir dir)
 {
 	if (!delay) {
 		if (p_owner->_type != ST_2POINT || dir != p_owner->__current_dir) {
 			p_owner->__current_dir = dir;
-			_Action(p_owner, ON, dir);
+			_action(p_owner, ON, dir);
 			p_owner->__state = TRUE;
 			if (p_owner->on_time) {
 				if (!pifPulse_StartItem(p_owner->__p_timer_on, p_owner->on_time)) {
 					p_owner->__current_dir = SD_INVALID;
-					_Action(p_owner, OFF, SD_INVALID);
+					_action(p_owner, OFF, SD_INVALID);
 					p_owner->__state = FALSE;
 					if (p_owner->evt_error) (*p_owner->evt_error)(p_owner);
 				}
@@ -58,12 +58,12 @@ static void _evtTimerDelayFinish(void* p_issuer)
 
 	if (p_owner->_type != ST_2POINT || p_owner->__dir != p_owner->__current_dir) {
 		p_owner->__current_dir = p_owner->__dir;
-		_Action(p_owner, ON, p_owner->__dir);
+		_action(p_owner, ON, p_owner->__dir);
 		p_owner->__state = TRUE;
 		if (p_owner->on_time) {
 			if (!pifPulse_StartItem(p_owner->__p_timer_on, p_owner->on_time)) {
 				p_owner->__current_dir = SD_INVALID;
-				_Action(p_owner, OFF, SD_INVALID);
+				_action(p_owner, OFF, SD_INVALID);
 				p_owner->__state = FALSE;
 				if (p_owner->evt_error) (*p_owner->evt_error)(p_owner);
 			}
@@ -73,7 +73,7 @@ static void _evtTimerDelayFinish(void* p_issuer)
 	if (p_owner->__p_buffer) {
 		PifSolenoidContent *pstContent = pifRingData_Remove(p_owner->__p_buffer);
 		if (pstContent) {
-			_ActionOn(p_owner, pstContent->delay, pstContent->dir);
+			_actionOn(p_owner, pstContent->delay, pstContent->dir);
 		}
 	}
 }
@@ -83,13 +83,13 @@ static void _evtTimerOnFinish(void* p_issuer)
     PifSolenoid* p_owner = (PifSolenoid*)p_issuer;
 
     if (p_owner->__state) {
-        _Action(p_owner, OFF, SD_INVALID);
+        _action(p_owner, OFF, SD_INVALID);
         if (p_owner->evt_off) (*p_owner->evt_off)(p_owner);
         p_owner->__state = FALSE;
     }
 }
 
-static int32_t _CalcurateTime(PifSolenoid* p_owner)
+static int32_t _calcurateTime(PifSolenoid* p_owner)
 {
 	PifSolenoidContent* p_content;
 	int32_t time;
@@ -105,7 +105,7 @@ static int32_t _CalcurateTime(PifSolenoid* p_owner)
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-static void _AddDeviceInCollectSignal()
+static void _addDeviceInCollectSignal()
 {
 	const char *prefix[SN_CSF_COUNT] = { "SNA", "SND" };
 
@@ -183,7 +183,7 @@ PifSolenoid* pifSolenoid_Create(PifId id, PifPulse* p_timer, PifSolenoidType typ
     p_owner->on_time = on_time;
 
 #ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_SOLENOID, _AddDeviceInCollectSignal);
+	pifCollectSignal_Attach(CSF_SOLENOID, _addDeviceInCollectSignal);
 	PifSolenoidColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSolenoidColSig));
 	if (!p_colsig) return NULL;
 	p_colsig->p_owner = p_owner;
@@ -268,14 +268,14 @@ void pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay)
 
 	if (p_owner->__p_buffer) {
 		if (p_owner->__p_timer_delay->_step == PS_RUNNING) {
-			time = _CalcurateTime(p_owner);
+			time = _calcurateTime(p_owner);
 			pstContent = pifRingData_Add(p_owner->__p_buffer);
 			pstContent->delay = delay > time ? delay - time : 0;
 			return;
 		}
 	}
 
-	_ActionOn(p_owner, delay, SD_INVALID);
+	_actionOn(p_owner, delay, SD_INVALID);
 }
 
 /**
@@ -292,7 +292,7 @@ void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDi
 
 	if (p_owner->__p_buffer) {
 		if (p_owner->__p_timer_delay->_step == PS_RUNNING) {
-			time = _CalcurateTime(p_owner);
+			time = _calcurateTime(p_owner);
 			pstContent = pifRingData_Add(p_owner->__p_buffer);
 			pstContent->delay = delay >= time ? delay - time : 0;
 			pstContent->dir = dir;
@@ -300,7 +300,7 @@ void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDi
 		}
 	}
 
-    _ActionOn(p_owner, delay, dir);
+    _actionOn(p_owner, delay, dir);
 }
 
 /**
@@ -312,7 +312,7 @@ void pifSolenoid_ActionOff(PifSolenoid* p_owner)
 {
 	if (p_owner->__state) {
 		pifPulse_StopItem(p_owner->__p_timer_on);
-		_Action(p_owner, OFF, SD_INVALID);
+		_action(p_owner, OFF, SD_INVALID);
 		p_owner->__state = FALSE;
     }
 }

@@ -4,7 +4,7 @@
 #endif
 
 
-static void _CheckKeyState(PifKeypad* p_owner, int idx, BOOL button)
+static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 {
 	uint32_t time;
 	PifKey* p_key = &p_owner->__p_key[idx];
@@ -245,7 +245,7 @@ static uint16_t _doTask(PifTask* p_task)
 
 	for (idx = 0, r = 0; r < p_owner->__num_rows; r++) {
 		for (c = 0; c < p_owner->__num_cols; c++, idx++) {
-			_CheckKeyState(p_owner, idx, (p_owner->__p_state[r] >> c) & 1);
+			_checkKeyState(p_owner, idx, (p_owner->__p_state[r] >> c) & 1);
 		}
 	}
 	return 0;

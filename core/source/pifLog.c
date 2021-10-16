@@ -108,7 +108,7 @@ static int _cmdSetStatus(int argc, char* argv[])
 	return PIF_LOG_CMD_TOO_FEW_ARGS;
 }
 
-static BOOL _GetDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_data)
+static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_data)
 {
     BOOL res;
     char tmp_char;
@@ -164,7 +164,7 @@ static BOOL _GetDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_d
     return str_get_done_flag;
 }
 
-static int _ProcessDebugCmd(PifLog* p_owner)
+static int _processDebugCmd(PifLog* p_owner)
 {
     char* p_tmp_cmd;
     BOOL find_arg;
@@ -218,7 +218,7 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 	PifLog* p_owner = (PifLog*)p_client;
 
     if (p_owner->cmd_done == FALSE) {
-        if (_GetDebugString(p_owner, act_receive_data)) {
+        if (_getDebugString(p_owner, act_receive_data)) {
         	p_owner->cmd_done = TRUE;
         }
     }
@@ -248,7 +248,7 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 	return FALSE;
 }
 
-static void _PrintLog(char* p_string, BOOL vcd)
+static void _printLog(char* p_string, BOOL vcd)
 {
 	if (!vcd && s_log.p_buffer && pifRingBuffer_IsBuffer(s_log.p_buffer)) {
 		pifRingBuffer_PutString(s_log.p_buffer, p_string);
@@ -263,7 +263,7 @@ static void _PrintLog(char* p_string, BOOL vcd)
 	}
 }
 
-static void _PrintTime()
+static void _printTime()
 {
 	int offset = 0;
     static char tmp_buf[20];
@@ -280,7 +280,7 @@ static void _PrintTime()
 	offset += pif_DecToString(tmp_buf + offset, (uint32_t)pif_datetime.minute, 2);
 	tmp_buf[offset++] = ' ';
 
-	_PrintLog(tmp_buf, FALSE);
+	_printLog(tmp_buf, FALSE);
 }
 
 /**
@@ -423,7 +423,7 @@ void pifLog_Printf(PifLogType type, const char* p_format, ...)
 
     if (type >= LT_INFO) {
         if (minute != pif_datetime.minute) {
-        	_PrintTime();
+        	_printTime();
         	minute = pif_datetime.minute;
     	}
 
@@ -440,7 +440,7 @@ void pifLog_Printf(PifLogType type, const char* p_format, ...)
 	pif_PrintFormat(tmp_buf + offset, &data, p_format);
 	va_end(data);
 
-	_PrintLog(tmp_buf, type == LT_VCD);
+	_printLog(tmp_buf, type == LT_VCD);
 }
 
 /**
@@ -493,14 +493,14 @@ BOOL pifLog_AttachComm(PifComm* p_comm)
 
 #ifdef __PIF_LOG_COMMAND__
 
-static uint16_t _DoTask(PifTask* p_task)
+static uint16_t _doTask(PifTask* p_task)
 {
     int status = PIF_LOG_CMD_NO_ERROR;
 
     (void)p_task;
 
 	if (s_log.cmd_done == TRUE) {
-		status = _ProcessDebugCmd(&s_log);
+		status = _processDebugCmd(&s_log);
 
 	    while (s_log.char_idx) {
 	    	s_log.p_rx_buffer[s_log.char_idx] = 0;
@@ -551,7 +551,7 @@ static uint16_t _DoTask(PifTask* p_task)
  */
 PifTask* pifLog_AttachTask(PifTaskMode mode, uint16_t period, BOOL start)
 {
-	return pifTaskManager_Add(mode, period, _DoTask, &s_log, start);
+	return pifTaskManager_Add(mode, period, _doTask, &s_log, start);
 }
 
 #endif
