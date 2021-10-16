@@ -300,6 +300,9 @@ void pifDList_Remove(PifDList* p_owner, PifDListIterator it)
     if (it_prev) {
         it_prev->p_next = it_next;
     }
+    else {
+    	p_owner->p_head = it_next;
+    }
     if (it_next) {
         it_next->p_prev = it_prev;
     }

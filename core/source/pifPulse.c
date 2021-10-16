@@ -83,17 +83,7 @@ PifPulseItem* pifPulse_AddItem(PifPulse* p_owner, PifPulseType type)
  */
 void pifPulse_RemoveItem(PifPulse* p_owner, PifPulseItem* p_item)
 {
-    if (p_item->_step == PS_REMOVE) return;
-
-	PifDListIterator it = pifDList_Begin(&p_owner->__items);
-	while (it) {
-		if (p_item == (PifPulseItem*)it->data) {
-			pifDList_Remove(&p_owner->__items, it);
-			break;
-		}
-
-		it = pifDList_Next(it);
-	}
+    p_item->_step = PS_REMOVE;
 }
 
 /**
@@ -182,13 +172,18 @@ uint32_t pifPulse_ElapsedItem(PifPulseItem* p_item)
  */
 void pifPulse_sigTick(PifPulse* p_owner)
 {
+	PifDListIterator it_remove = NULL;
+
     if (!p_owner) return;
 
 	PifDListIterator it = pifDList_Begin(&p_owner->__items);
 	while (it) {
 		PifPulseItem* p_item = (PifPulseItem*)it->data;
 
-		if (p_item->__current) {
+		if (p_item->_step == PS_REMOVE) {
+			if (!it_remove) it_remove = it;
+		}
+		else if (p_item->__current) {
 			p_item->__current--;
 			switch (p_item->_type) {
 			case PT_ONCE:
@@ -226,6 +221,8 @@ void pifPulse_sigTick(PifPulse* p_owner)
 
 		it = pifDList_Next(it);
 	}
+
+	if (it_remove) pifDList_Remove(&p_owner->__items, it_remove);
 }
 
 /**
