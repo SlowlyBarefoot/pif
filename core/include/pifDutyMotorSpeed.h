@@ -25,7 +25,7 @@ typedef struct StPifDutyMotorSpeedStage
 
 	// 정속 구간 (Fixed speed range)
 	uint16_t fs_high_duty;		// 정해진 duty
-    uint16_t fs_over_time;		// 정지 신호를 받은 후 감속할 때까지의 시간
+    uint16_t fs_overtime;		// 정지 신호를 받은 후 감속할 때까지의 시간
 
 	// 감속 구간 (Reduce speed range)
     uint16_t rs_low_duty;		// 브레이크 잡을 duty
@@ -57,7 +57,7 @@ typedef struct StPifDutyMotorSpeed
 extern "C" {
 #endif
 
-PifDutyMotor* pifDutyMotorSpeed_Create(PifId id, PifPulse* p_timer, uint16_t max_duty, uint16_t control_period);
+PifDutyMotor* pifDutyMotorSpeed_Create(PifId id, PifPulse* p_timer, uint16_t max_duty);
 void pifDutyMotorSpeed_Destroy(PifDutyMotor** pp_parent);
 
 BOOL pifDutyMotorSpeed_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorSpeedStage* p_stages);

@@ -6,12 +6,6 @@
 #include "pifMotor.h"
 
 
-typedef enum EnPifStepMotorMethod
-{
-	SMM_TIMER		= 0,
-	SMM_TASK		= 1
-} PifStepMotorMethod;
-
 typedef enum EnPifStepMotorOperation
 {
 	SMO_2P_2W			= 1,	// 2-Phase 2-Wire
@@ -53,7 +47,6 @@ struct StPifStepMotor
 	// Read-only Member Variable
     PifId _id;
     PifPulse* _p_timer;
-    PifStepMotorMethod _method;
     PifStepMotorOperation _operation;
     uint16_t _resolution;
 	uint16_t _current_pps;
@@ -66,12 +59,10 @@ struct StPifStepMotor
     uint8_t __error;
 	uint8_t __step_size;
 	uint16_t __step_period1us;
-	uint16_t __control_period1ms;
 
 	PifTask* __p_task;
 
 	PifPulseItem* __p_timer_step;
-	PifPulseItem* __p_timer_control;
 	PifPulseItem* __p_timer_delay;
 	PifPulseItem* __p_timer_break;
 
@@ -101,7 +92,6 @@ void pifStepMotor_Clear(PifStepMotor* p_owner);
 void pifStepMotor_AttachAction(PifStepMotor* p_owner, PifActStepMotorSetStep act_set_step);
 
 BOOL pifStepMotor_SetDirection(PifStepMotor* p_owner, uint8_t direction);
-BOOL pifStepMotor_SetMethod(PifStepMotor* p_owner, PifStepMotorMethod method);
 BOOL pifStepMotor_SetOperatingTime(PifStepMotor* p_owner, uint32_t operating_time);
 BOOL pifStepMotor_SetOperation(PifStepMotor* p_owner, PifStepMotorOperation operation);
 BOOL pifStepMotor_SetPps(PifStepMotor* p_owner, uint16_t pps);
@@ -115,11 +105,11 @@ void pifStepMotor_Break(PifStepMotor* p_owner);
 void pifStepMotor_Release(PifStepMotor* p_owner);
 void pifStepMotor_BreakRelease(PifStepMotor* p_owner, uint16_t break_time);
 
-BOOL pifStepMotor_InitControl(PifStepMotor* p_owner, uint16_t control_period1ms);
 BOOL pifStepMotor_StartControl(PifStepMotor* p_owner);
+BOOL pifStepMotor_StopControl(PifStepMotor* p_owner);
 
 // Task Function
-PifTask* pifStepMotor_AttachTask(PifStepMotor* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
+PifTask* pifStepMotor_AttachTask(PifStepMotor* p_owner, PifTaskMode mode, uint16_t period);
 
 #ifdef __cplusplus
 }

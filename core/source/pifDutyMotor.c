@@ -2,9 +2,9 @@
 #include "pifDutyMotor.h"
 
 
-static void _evtTimerControlFinish(void* p_issuer)
+static uint16_t _doTask(PifTask* p_task)
 {
-	PifDutyMotor* p_owner = (PifDutyMotor*)p_issuer;
+	PifDutyMotor* p_owner = p_task->_p_client;
 
     if (p_owner->__control) (*p_owner->__control)(p_owner);
 
@@ -20,10 +20,11 @@ static void _evtTimerControlFinish(void* p_issuer)
     }
 
 	if (p_owner->_state == MS_STOP) {
-		pifPulse_StopItem(p_owner->__p_timer_control);
+		p_task->pause = TRUE;
 		p_owner->_state = MS_IDLE;
 		if (p_owner->evt_stop) (*p_owner->evt_stop)(p_owner);
 	}
+	return 0;
 }
 
 static void _evtTimerBreakFinish(void* p_issuer)
@@ -105,10 +106,6 @@ BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint1
  */
 void pifDutyMotor_Clear(PifDutyMotor* p_owner)
 {
-	if (p_owner->__p_timer_control) {
-		pifPulse_RemoveItem(p_owner->__p_timer_control);
-		p_owner->__p_timer_control = NULL;
-	}
 	if (p_owner->__p_timer_delay) {
 		pifPulse_RemoveItem(p_owner->__p_timer_delay);
 		p_owner->__p_timer_delay = NULL;
@@ -230,24 +227,6 @@ void pifDutyMotor_BreakRelease(PifDutyMotor* p_owner, uint16_t break_time)
 }
 
 /**
- * @fn pifDutyMotor_InitControl
- * @brief
- * @param p_owner
- * @param control_period
- * @return
- */
-BOOL pifDutyMotor_InitControl(PifDutyMotor* p_owner, uint16_t control_period)
-{
-	p_owner->__p_timer_control = pifPulse_AddItem(p_owner->_p_timer, PT_REPEAT);
-    if (!p_owner->__p_timer_control) return FALSE;
-
-    p_owner->__control_period = control_period;
-
-	pifPulse_AttachEvtFinish(p_owner->__p_timer_control, _evtTimerControlFinish, p_owner);
-	return TRUE;
-}
-
-/**
  * @fn pifDutyMotor_StartControl
  * @brief 
  * @param p_owner
@@ -255,10 +234,42 @@ BOOL pifDutyMotor_InitControl(PifDutyMotor* p_owner, uint16_t control_period)
  */
 BOOL pifDutyMotor_StartControl(PifDutyMotor* p_owner)
 {
-	if (p_owner->_state != MS_IDLE) {
-        pif_error = E_INVALID_STATE;
+	if (!p_owner->__p_task) {
+        pif_error = E_NOT_SET_TASK;
 	    return FALSE;
     }
 
-    return pifPulse_StartItem(p_owner->__p_timer_control, p_owner->__control_period);
+    p_owner->__p_task->pause = FALSE;
+    return TRUE;
+}
+
+/**
+ * @fn pifDutyMotor_StopControl
+ * @brief
+ * @param p_owner
+ * @return
+ */
+BOOL pifDutyMotor_StopControl(PifDutyMotor* p_owner)
+{
+	if (!p_owner->__p_task) {
+        pif_error = E_NOT_SET_TASK;
+	    return FALSE;
+    }
+
+    p_owner->__p_task->pause = TRUE;
+    return TRUE;
+}
+
+/**
+ * @fn pifComm_AttachTask
+ * @brief Task를 추가한다.
+ * @param p_owner
+ * @param mode Task의 Mode를 설정한다.
+ * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @return Task 구조체 포인터를 반환한다.
+ */
+PifTask* pifDutyMotor_AttachTask(PifDutyMotor* p_owner, PifTaskMode mode, uint16_t period)
+{
+	p_owner->__p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, FALSE);
+	return p_owner->__p_task;
 }

@@ -43,11 +43,11 @@ struct StPifDutyMotor
 
 	// Private Member Variable
     uint8_t __error;
-	uint16_t __control_period;
 
-	PifPulseItem* __p_timer_control;
 	PifPulseItem* __p_timer_delay;
 	PifPulseItem* __p_timer_break;
+
+    PifTask* __p_task;
 
     // Private Action Function
     PifActDutyMotorSetDuty __act_set_duty;
@@ -79,8 +79,11 @@ BOOL pifDutyMotor_SetOperatingTime(PifDutyMotor* p_owner, uint32_t operating_tim
 BOOL pifDutyMotor_Start(PifDutyMotor* p_owner, uint16_t duty);
 void pifDutyMotor_BreakRelease(PifDutyMotor* p_owner, uint16_t break_time);
 
-BOOL pifDutyMotor_InitControl(PifDutyMotor* p_owner, uint16_t control_period);
 BOOL pifDutyMotor_StartControl(PifDutyMotor* p_owner);
+BOOL pifDutyMotor_StopControl(PifDutyMotor* p_owner);
+
+// Task Function
+PifTask* pifDutyMotor_AttachTask(PifDutyMotor* p_owner, PifTaskMode mode, uint16_t period);
 
 #ifdef __cplusplus
 }

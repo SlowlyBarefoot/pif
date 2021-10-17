@@ -76,7 +76,7 @@ typedef struct StPifDutyMotorSpeedEnc
 extern "C" {
 #endif
 
-PifDutyMotor* pifDutyMotorSpeedEnc_Create(PifId id, PifPulse* p_timer, uint16_t max_duty, uint16_t control_period);
+PifDutyMotor* pifDutyMotorSpeedEnc_Create(PifId id, PifPulse* p_timer, uint16_t max_duty);
 void pifDutyMotorSpeedEnc_Destroy(PifDutyMotor** pp_parent);
 
 BOOL pifDutyMotorSpeedEnc_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorSpeedEncStage* p_stages);

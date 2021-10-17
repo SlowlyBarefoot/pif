@@ -155,7 +155,8 @@ typedef enum EnPifError
 	E_TIMEOUT					= 0x07,
 	E_NOT_SET_EVENT				= 0x08,
 	E_CANNOT_USE				= 0x09,
-	E_TRANSFER_FAILED			= 0x0A
+	E_TRANSFER_FAILED			= 0x0A,
+	E_NOT_SET_TASK				= 0x0B
 } PifError;
 
 

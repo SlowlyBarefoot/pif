@@ -136,10 +136,9 @@ static void _evtSwitchStopChange(PifId id, uint16_t level, void *p_issuer)
  * @param id
  * @param p_timer
  * @param max_duty
- * @param control_period
  * @return 
  */
-PifDutyMotor *pifDutyMotorSpeed_Create(PifId id, PifPulse* p_timer, uint16_t max_duty, uint16_t control_period)
+PifDutyMotor *pifDutyMotorSpeed_Create(PifId id, PifPulse* p_timer, uint16_t max_duty)
 {
 	PifDutyMotorSpeed* p_owner = NULL;
 
@@ -151,8 +150,6 @@ PifDutyMotor *pifDutyMotorSpeed_Create(PifId id, PifPulse* p_timer, uint16_t max
 
     PifDutyMotor *p_parent = &p_owner->parent;
     if (!pifDutyMotor_Init(p_parent, id, p_timer, max_duty)) goto fail;
-
-    if (!pifDutyMotor_InitControl(p_parent, control_period)) goto fail;
 
     p_parent->__p_timer_delay = pifPulse_AddItem(p_parent->_p_timer, PT_ONCE);
     if (!p_parent->__p_timer_delay) goto fail;
@@ -301,7 +298,7 @@ void pifDutyMotorSpeed_Stop(PifDutyMotor* p_parent)
 
     if (p_parent->_state == MS_IDLE) return;
 
-    if (p_stage->fs_over_time && pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->fs_over_time)) {
+    if (p_stage->fs_overtime && pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->fs_overtime)) {
         p_parent->_state = MS_OVER_RUN;
     }
     else {

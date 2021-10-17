@@ -294,8 +294,6 @@ static uint16_t _doTask(PifTask* p_task)
 {
 	PifComm *p_owner = p_task->_p_client;
 
-	p_owner->_p_task = p_task;
-
 	if (p_owner->evt_parsing) {
 		if (p_owner->__act_receive_data) {
 			(*p_owner->evt_parsing)(p_owner->__p_client, p_owner->__act_receive_data);
@@ -320,6 +318,7 @@ static uint16_t _doTask(PifTask* p_task)
  */
 PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
-	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
+	p_owner->_p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, start);
+	return p_owner->_p_task;
 }
 

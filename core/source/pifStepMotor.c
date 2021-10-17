@@ -50,7 +50,7 @@ const uint16_t kOperation_5P_PG[] = {
 #endif
 
 
-static void _SetStep(PifStepMotor* p_owner)
+static void _setStep(PifStepMotor* p_owner)
 {
     if (p_owner->_direction == 0) {
 		p_owner->__current_step++;
@@ -74,7 +74,7 @@ static void _evtTimerStepFinish(void* p_issuer)
 {
     PifStepMotor* p_owner = (PifStepMotor*)p_issuer;
 
-    _SetStep(p_owner);
+    _setStep(p_owner);
 
 	if (p_owner->__target_pulse) {
 		if (p_owner->_current_pulse >= p_owner->__target_pulse) {
@@ -85,17 +85,18 @@ static void _evtTimerStepFinish(void* p_issuer)
 	}
 }
 
-static void _evtTimerControlFinish(void* p_issuer)
+static uint16_t _doTask(PifTask* p_task)
 {
-    PifStepMotor* p_owner = (PifStepMotor*)p_issuer;
+	PifStepMotor *p_owner = p_task->_p_client;
 
 	(*p_owner->__control)(p_owner);
 
 	if (p_owner->_state == MS_STOP) {
-		pifPulse_StopItem(p_owner->__p_timer_control);
+		p_task->pause = TRUE;
 		p_owner->_state = MS_IDLE;
 		if (p_owner->evt_stop) (*p_owner->evt_stop)(p_owner);
 	}
+	return 0;
 }
 
 static void _evtTimerBreakFinish(void *p_issuer)
@@ -180,7 +181,6 @@ BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifPulse* p_timer, uint1
     p_owner->_resolution = resolution;
     p_owner->_reduction_gear_ratio = 1;
     p_owner->__step_period1us = 1000;
-    p_owner->__p_timer_control = NULL;
     p_owner->_state = MS_IDLE;
     return TRUE;
 }
@@ -195,10 +195,6 @@ void pifStepMotor_Clear(PifStepMotor* p_owner)
 	if (p_owner->__p_timer_step) {
 		pifPulse_RemoveItem(p_owner->__p_timer_step);
 		p_owner->__p_timer_step = NULL;
-	}
-	if (p_owner->__p_timer_control) {
-		pifPulse_RemoveItem(p_owner->__p_timer_control);
-		p_owner->__p_timer_control = NULL;
 	}
 	if (p_owner->__p_timer_break) {
 		pifPulse_RemoveItem(p_owner->__p_timer_break);
@@ -240,33 +236,6 @@ BOOL pifStepMotor_SetDirection(PifStepMotor* p_owner, uint8_t direction)
 }
 
 /**
- * @fn pifStepMotor_SetMethod
- * @brief
- * @param p_owner
- * @param method
- * @return
- */
-BOOL pifStepMotor_SetMethod(PifStepMotor* p_owner, PifStepMotorMethod method)
-{
-	if (p_owner->_method == method) return TRUE;
-
-	if (p_owner->_method == SMM_TIMER) {
-	    if (p_owner->__p_timer_step) {
-	    	pifPulse_RemoveItem(p_owner->__p_timer_step);
-	    	p_owner->__p_timer_step = NULL;
-	    }
-	}
-	if (method == SMM_TIMER) {
-		p_owner->__p_timer_step = pifPulse_AddItem(p_owner->_p_timer, PT_REPEAT);
-	    if (!p_owner->__p_timer_step) return FALSE;
-	    pifPulse_AttachEvtFinish(p_owner->__p_timer_step, _evtTimerStepFinish, p_owner);
-	}
-
-	p_owner->_method = method;
-	return TRUE;
-}
-
-/**
  * @fn pifStepMotor_SetOperatingTime
  * @brief
  * @param p_owner
@@ -296,12 +265,10 @@ BOOL pifStepMotor_SetOperatingTime(PifStepMotor* p_owner, uint32_t operating_tim
  */
 BOOL pifStepMotor_SetOperation(PifStepMotor* p_owner, PifStepMotorOperation operation)
 {
-    if (p_owner->_method == SMM_TIMER) {
-		if (p_owner->__p_timer_step->_step != PS_STOP) {
-			pif_error = E_INVALID_STATE;
-			return FALSE;
-		}
-    }
+	if (p_owner->__p_timer_step->_step != PS_STOP) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
 
 	switch (operation) {
 	case SMO_2P_2W:
@@ -358,23 +325,11 @@ BOOL pifStepMotor_SetPps(PifStepMotor* p_owner, uint16_t pps)
 		period /= 2;
 	}
 
-	switch (p_owner->_method) {
-	case SMM_TIMER:
-	    if (period < 2 * p_owner->_p_timer->_period1us) {
-	        pif_error = E_WRONG_DATA;
-			return FALSE;
-	    }
-		p_owner->__p_timer_step->target = period / p_owner->_p_timer->_period1us;
-		break;
-
-	case SMM_TASK:
-	    if (!period) {
-	        pif_error = E_WRONG_DATA;
-			return FALSE;
-	    }
-		pifTask_SetPeriod(p_owner->__p_task, period);
-		break;
+	if (period < 2 * p_owner->_p_timer->_period1us) {
+		pif_error = E_WRONG_DATA;
+		return FALSE;
 	}
+	p_owner->__p_timer_step->target = period / p_owner->_p_timer->_period1us;
 
 	p_owner->_current_pps = pps;
 	p_owner->__step_period1us = period;
@@ -457,24 +412,11 @@ BOOL pifStepMotor_SetTargetPulse(PifStepMotor* p_owner, uint32_t target_pulse)
  */
 BOOL pifStepMotor_Start(PifStepMotor* p_owner, uint32_t target_pulse)
 {
-    switch (p_owner->_method) {
-    case SMM_TIMER:
-        if (p_owner->__step_period1us < 2 * p_owner->_p_timer->_period1us) {
-            pif_error = E_INVALID_PARAM;
-			return FALSE;
-        }
-    	if (!pifPulse_StartItem(p_owner->__p_timer_step, p_owner->__step_period1us / p_owner->_p_timer->_period1us)) return FALSE;
-    	break;
-
-    case SMM_TASK:
-    	if (!p_owner->__step_period1us || !p_owner->__p_task) {
-            pif_error = E_INVALID_PARAM;
-			return FALSE;
-    	}
-		pifTask_SetPeriod(p_owner->__p_task, p_owner->__step_period1us);
-		p_owner->__p_task->pause = FALSE;
-    	break;
+	if (p_owner->__step_period1us < 2 * p_owner->_p_timer->_period1us) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
 	}
+	if (!pifPulse_StartItem(p_owner->__p_timer_step, p_owner->__step_period1us / p_owner->_p_timer->_period1us)) return FALSE;
     p_owner->__target_pulse = target_pulse;
     p_owner->_current_pulse = 0;
 	return TRUE;
@@ -487,15 +429,7 @@ BOOL pifStepMotor_Start(PifStepMotor* p_owner, uint32_t target_pulse)
  */
 void pifStepMotor_Break(PifStepMotor* p_owner)
 {
-    switch (p_owner->_method) {
-    case SMM_TIMER:
-    	pifPulse_StopItem(p_owner->__p_timer_step);
-    	break;
-
-    case SMM_TASK:
-        p_owner->__p_task->pause = TRUE;
-        break;
-    }
+   	pifPulse_StopItem(p_owner->__p_timer_step);
 }
 
 /**
@@ -532,24 +466,6 @@ void pifStepMotor_BreakRelease(PifStepMotor* p_owner, uint16_t break_time)
 }
 
 /**
- * @fn pifStepMotor_InitControl
- * @brief
- * @param p_owner
- * @param control_period1ms
- * @return
- */
-BOOL pifStepMotor_InitControl(PifStepMotor* p_owner, uint16_t control_period1ms)
-{
-	p_owner->__p_timer_control = pifPulse_AddItem(p_owner->_p_timer, PT_REPEAT);
-    if (!p_owner->__p_timer_control) return FALSE;
-
-    p_owner->__control_period1ms = control_period1ms;
-
-	pifPulse_AttachEvtFinish(p_owner->__p_timer_control, _evtTimerControlFinish, p_owner);
-	return TRUE;
-}
-
-/**
  * @fn pifStepMotor_StartControl
  * @brief 
  * @param p_owner
@@ -557,41 +473,30 @@ BOOL pifStepMotor_InitControl(PifStepMotor* p_owner, uint16_t control_period1ms)
  */
 BOOL pifStepMotor_StartControl(PifStepMotor* p_owner)
 {
-	if (!p_owner->__step_period1us || !p_owner->__control) {
-        pif_error = E_INVALID_PARAM;
+	if (!p_owner->__p_task) {
+        pif_error = E_NOT_SET_TASK;
 	    return FALSE;
     }
 
-	if (p_owner->_state != MS_IDLE) {
-        pif_error = E_INVALID_STATE;
-	    return FALSE;
-    }
-
-    return pifPulse_StartItem(p_owner->__p_timer_control, p_owner->__control_period1ms * 1000 / p_owner->_p_timer->_period1us);
+    p_owner->__p_task->pause = FALSE;
+    return TRUE;
 }
 
-static uint16_t _doTask(PifTask* p_task)
+/**
+ * @fn pifStepMotor_StopControl
+ * @brief
+ * @param p_owner
+ * @return
+ */
+BOOL pifStepMotor_StopControl(PifStepMotor* p_owner)
 {
-	PifStepMotor *p_owner = p_task->_p_client;
-	static uint16_t step_period1us = 0;
+	if (!p_owner->__p_task) {
+        pif_error = E_NOT_SET_TASK;
+	    return FALSE;
+    }
 
-	p_owner->__p_task = p_task;
-
-	_SetStep(p_owner);
-
-	if (p_owner->__target_pulse) {
-		if (p_owner->_current_pulse >= p_owner->__target_pulse) {
-			p_owner->__p_task->pause = TRUE;
-			if (p_owner->__stop_step) (*p_owner->__stop_step)(p_owner);
-			else if (p_owner->evt_stop) (*p_owner->evt_stop)(p_owner);
-		}
-	}
-
-	if (step_period1us != p_owner->__step_period1us) {
-		pifTask_SetPeriod(p_task, p_owner->__step_period1us);
-		step_period1us = p_owner->__step_period1us;
-	}
-	return 0;
+    p_owner->__p_task->pause = TRUE;
+    return TRUE;
 }
 
 /**
@@ -600,10 +505,10 @@ static uint16_t _doTask(PifTask* p_task)
  * @param p_owner
  * @param mode Task의 Mode를 설정한다.
  * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifStepMotor_AttachTask(PifStepMotor* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
+PifTask* pifStepMotor_AttachTask(PifStepMotor* p_owner, PifTaskMode mode, uint16_t period)
 {
-	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
+	p_owner->__p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, FALSE);
+	return p_owner->__p_task;
 }

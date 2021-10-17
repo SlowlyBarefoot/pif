@@ -164,11 +164,9 @@ static void _fnStopStep(PifStepMotor* p_parent)
  * @param p_timer
  * @param resolution
  * @param operation
- * @param control_period1ms
  * @return
  */
-PifStepMotor* pifStepMotorPos_Create(PifId id, PifPulse* p_timer, uint8_t resolution,
-		PifStepMotorOperation operation, uint16_t control_period1ms)
+PifStepMotor* pifStepMotorPos_Create(PifId id, PifPulse* p_timer, uint8_t resolution, PifStepMotorOperation operation)
 {
 	PifStepMotorPos* p_owner = NULL;
 
@@ -180,8 +178,6 @@ PifStepMotor* pifStepMotorPos_Create(PifId id, PifPulse* p_timer, uint8_t resolu
 
     PifStepMotor* p_parent = &p_owner->parent;
     if (!pifStepMotor_Init(p_parent, id, p_timer, resolution, operation)) goto fail;
-
-    if (!pifStepMotor_InitControl(p_parent, control_period1ms)) goto fail;
 
     p_parent->__p_timer_delay = pifPulse_AddItem(p_parent->_p_timer, PT_ONCE);
     if (!p_parent->__p_timer_delay) goto fail;

@@ -153,10 +153,9 @@ static void _evtSwitchStopChange(PifId id, uint16_t level, void* p_issuer)
  * @param id
  * @param p_timer
  * @param max_duty
- * @param control_period
  * @return 
  */
-PifDutyMotor* pifDutyMotorPos_Create(PifId id, PifPulse* p_timer, uint16_t max_duty, uint16_t control_period)
+PifDutyMotor* pifDutyMotorPos_Create(PifId id, PifPulse* p_timer, uint16_t max_duty)
 {
     PifDutyMotorPos* p_owner = NULL;
 
@@ -168,8 +167,6 @@ PifDutyMotor* pifDutyMotorPos_Create(PifId id, PifPulse* p_timer, uint16_t max_d
 
     PifDutyMotor* p_parent = &p_owner->parent;
     if (!pifDutyMotor_Init(p_parent, id, p_timer, max_duty)) goto fail;
-
-    if (!pifDutyMotor_InitControl(p_parent, control_period)) goto fail;
 
     p_parent->__p_timer_delay = pifPulse_AddItem(p_parent->_p_timer, PT_ONCE);
     if (!p_parent->__p_timer_delay) goto fail;

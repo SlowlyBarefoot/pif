@@ -6,9 +6,9 @@
 #include "pifTask.h"
 
 
-typedef void (*PifActPulsePwm)(SWITCH swValue);
+typedef void (*PifActPulsePwm)(SWITCH value);
 
-typedef void (*PifEvtPulseFinish)(void* pvIssuer);
+typedef void (*PifEvtPulseFinish)(void* p_issuer);
 
 
 typedef enum EnPifPulseType
