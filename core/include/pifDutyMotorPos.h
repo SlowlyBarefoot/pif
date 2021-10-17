@@ -12,7 +12,7 @@
  */
 typedef struct StPifDutyMotorPosStage
 {
-	uint8_t mode;				// PIF_enMotorMode
+	uint8_t mode;				// PifMotorMode
 
     // Sensor
     PifSensor** pp_start_sensor;

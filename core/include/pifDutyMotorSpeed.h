@@ -7,64 +7,64 @@
 
 
 /**
- * @class _PIF_stDutyMotorSpeedStage
+ * @class StPifDutyMotorSpeedStage
  * @brief 
  */
-typedef struct _PIF_stDutyMotorSpeedStage
+typedef struct StPifDutyMotorSpeedStage
 {
-	uint8_t enMode;				// PIF_enMotorMode
+	uint8_t mode;				// PifMotorMode
 
     // Sensor
-    PifSensor **ppstStartSensor;
-    PifSensor **ppstReduceSensor;
-    PifSensor **ppstStopSensor;
+    PifSensor** pp_start_sensor;
+    PifSensor** pp_reduce_sensor;
+    PifSensor** pp_stop_sensor;
 
 	// 가속 구간 (Gained speed range)
-	uint16_t usGsStartDuty;		// 초기 기동 duty 설정
-	uint16_t usGsCtrlDuty;		// 가속 duty 설정. 이 값이 0인 경우 가속 구간을 생략함.
+	uint16_t gs_start_duty;		// 초기 기동 duty 설정
+	uint16_t gs_ctrl_duty;		// 가속 duty 설정. 이 값이 0인 경우 가속 구간을 생략함.
 
 	// 정속 구간 (Fixed speed range)
-	uint16_t usFsHighDuty;		// 정해진 duty
-    uint16_t usFsOverTime;		// 정지 신호를 받은 후 감속할 때까지의 시간
+	uint16_t fs_high_duty;		// 정해진 duty
+    uint16_t fs_over_time;		// 정지 신호를 받은 후 감속할 때까지의 시간
 
 	// 감속 구간 (Reduce speed range)
-    uint16_t usRsLowDuty;		// 브레이크 잡을 duty
-	uint16_t usRsCtrlDuty;		// 감속 duty 설정. 이 값이 0인 경우 감속 구간을 생략함.
-    uint16_t usRsBreakTime;		// 전자식 또는 기계식 브레이크 사용시 브레이크 잡는 시간 설정.
-} PIF_stDutyMotorSpeedStage;
+    uint16_t rs_low_duty;		// 브레이크 잡을 duty
+	uint16_t rs_ctrl_duty;		// 감속 duty 설정. 이 값이 0인 경우 감속 구간을 생략함.
+    uint16_t rs_break_time;		// 전자식 또는 기계식 브레이크 사용시 브레이크 잡는 시간 설정.
+} PifDutyMotorSpeedStage;
 
 /**
- * @class _PIF_stDutyMotorSpeed
+ * @class StPifDutyMotorSpeed
  * @brief 
  */
-typedef struct _PIF_stDutyMotorSpeed
+typedef struct StPifDutyMotorSpeed
 {
 	PifDutyMotor parent;
 
 	// Public Member Variable
 
 	// Read-only Member Variable
-    uint8_t _ucStageIndex;
+    uint8_t _stage_index;
 
 	// Private Member Variable
-    uint8_t __ucStageSize;
-    const PIF_stDutyMotorSpeedStage *__pstStages;
-    const PIF_stDutyMotorSpeedStage *__pstCurrentStage;
-} PIF_stDutyMotorSpeed;
+    uint8_t __stage_size;
+    const PifDutyMotorSpeedStage* __p_stages;
+    const PifDutyMotorSpeedStage* __p_current_stage;
+} PifDutyMotorSpeed;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PifDutyMotor *pifDutyMotorSpeed_Create(PifId usPifId, PifPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod);
-void pifDutyMotorSpeed_Destroy(PifDutyMotor** pp_owner);
+PifDutyMotor* pifDutyMotorSpeed_Create(PifId id, PifPulse* p_timer, uint16_t max_duty, uint16_t control_period);
+void pifDutyMotorSpeed_Destroy(PifDutyMotor** pp_parent);
 
-BOOL pifDutyMotorSpeed_AddStages(PifDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorSpeedStage *pstStages);
+BOOL pifDutyMotorSpeed_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorSpeedStage* p_stages);
 
-BOOL pifDutyMotorSpeed_Start(PifDutyMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime);
-void pifDutyMotorSpeed_Stop(PifDutyMotor *pstOwner);
-void pifDutyMotorSpeed_Emergency(PifDutyMotor *pstOwner);
+BOOL pifDutyMotorSpeed_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32_t operating_time);
+void pifDutyMotorSpeed_Stop(PifDutyMotor* p_parent);
+void pifDutyMotorSpeed_Emergency(PifDutyMotor* p_parent);
 
 #ifdef __cplusplus
 }
