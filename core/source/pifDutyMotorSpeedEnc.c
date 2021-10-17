@@ -4,392 +4,397 @@
 #include "pifDutyMotorSpeedEnc.h"
 
 
-static void _evtTimerDelayFinish(void *pvIssuer)
+static void _evtTimerDelayFinish(void* p_issuer)
 {
-	PifDutyMotor *pstOwner = (PifDutyMotor *)pvIssuer;
+	PifDutyMotor* p_parent = (PifDutyMotor*)p_issuer;
 
-	switch (pstOwner->_state) {
+	switch (p_parent->_state) {
     case MS_GAINED:
     case MS_STABLE:
-        pstOwner->__error = 1;
+        p_parent->__error = 1;
         break;
 
 	case MS_OVER_RUN:
-        pstOwner->_state = MS_REDUCE;
+        p_parent->_state = MS_REDUCE;
         break;
 
 	case MS_BREAKING:
-        pstOwner->_state = MS_STOPPING;
+        p_parent->_state = MS_STOPPING;
 		break;
 
 	default:
 #ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_WARN, "DMSE(%u) S:%u", pstOwner->_id, pstOwner->_state);
+		pifLog_Printf(LT_WARN, "DMSE(%u) S:%u", p_parent->_id, p_parent->_state);
 #endif
 		break;
 	}
 }
 
-static void _fnControlSpeedEnc(PifDutyMotor *pstOwner)
+static void _fnControlSpeedEnc(PifDutyMotor* p_parent)
 {
-	float fCtrlDuty = 0;
-	uint16_t usTmpEnc = 0;
-	uint16_t usTmpDuty = 0;
-	uint16_t usEncAverage = 0;
-    PIF_stDutyMotorSpeedEnc* pstSpeedEnc = (PIF_stDutyMotorSpeedEnc*)pstOwner;
-	const PIF_stDutyMotorSpeedEncStage *pstStage = pstSpeedEnc->__pstCurrentStage;
-	PifMotorState enState = pstOwner->_state;
+	float ctrl_duty = 0;
+	uint16_t tmp_enc = 0;
+	uint16_t tmp_duty = 0;
+	uint16_t enc_average = 0;
+    PifDutyMotorSpeedEnc* p_owner = (PifDutyMotorSpeedEnc*)p_parent;
+	const PifDutyMotorSpeedEncStage* p_stage = p_owner->__p_current_stage;
+	PifMotorState state = p_parent->_state;
 
-	usTmpEnc = pstSpeedEnc->__usMeasureEnc;
-	pstSpeedEnc->__usMeasureEnc = 0;
-	usTmpDuty = pstOwner->_current_duty;
+	tmp_enc = p_owner->__measure_enc;
+	p_owner->__measure_enc = 0;
+	tmp_duty = p_parent->_current_duty;
 
-	pstSpeedEnc->__unEncSampleSum -= pstSpeedEnc->__ausEncSample[pstSpeedEnc->__ucEncSampleIdx];
-	pstSpeedEnc->__unEncSampleSum += usTmpEnc;
-	pstSpeedEnc->__ausEncSample[pstSpeedEnc->__ucEncSampleIdx] = usTmpEnc;
-	pstSpeedEnc->__ucEncSampleIdx = (pstSpeedEnc->__ucEncSampleIdx + 1) % MAX_STABLE_CNT;
+	p_owner->__enc_sample_sum -= p_owner->__enc_sample[p_owner->__enc_sample_idx];
+	p_owner->__enc_sample_sum += tmp_enc;
+	p_owner->__enc_sample[p_owner->__enc_sample_idx] = tmp_enc;
+	p_owner->__enc_sample_idx = (p_owner->__enc_sample_idx + 1) % MAX_STABLE_CNT;
 
-	if (pstOwner->_state == MS_GAINED) {
-		if (usTmpEnc >= pstSpeedEnc->__usArrivePPR) {
-			pstOwner->_state = MS_STABLE;
-            if (!pifPulse_StartItem(pstOwner->__p_timer_delay, pstStage->usFsStableTimeout)) {
-                pstOwner->__error = 1;
+	if (p_parent->_state == MS_GAINED) {
+		if (tmp_enc >= p_owner->__arrive_ppr) {
+			p_parent->_state = MS_STABLE;
+            if (!pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->fs_stable_timeout)) {
+                p_parent->__error = 1;
             }
 		}
 		else {
-			usTmpDuty += pstStage->usGsCtrlDuty;
-			if (usTmpDuty >= pstStage->usFsHighDuty) usTmpDuty = pstStage->usFsHighDuty;
+			tmp_duty += p_stage->gs_ctrl_duty;
+			if (tmp_duty >= p_stage->fs_high_duty) tmp_duty = p_stage->fs_high_duty;
 		}
 	}
-	else if (pstOwner->_state == MS_STABLE) {
-		usEncAverage = pstSpeedEnc->__unEncSampleSum / MAX_STABLE_CNT;
+	else if (p_parent->_state == MS_STABLE) {
+		enc_average = p_owner->__enc_sample_sum / MAX_STABLE_CNT;
 
-        if (usEncAverage >= pstSpeedEnc->__usErrLowPPR && usEncAverage <= pstSpeedEnc->__usErrHighPPR) {
-            pifPulse_StopItem(pstOwner->__p_timer_delay);
-            pstOwner->_state = MS_CONST;
+        if (enc_average >= p_owner->__err_low_ppr && enc_average <= p_owner->__err_high_ppr) {
+            pifPulse_StopItem(p_parent->__p_timer_delay);
+            p_parent->_state = MS_CONST;
         }
     }
-	else if (pstOwner->_state == MS_REDUCE) {
-		if (!pstStage->usRsCtrlDuty) {
-			usTmpDuty = 0;
-			pstOwner->_state = MS_BREAK;
+	else if (p_parent->_state == MS_REDUCE) {
+		if (!p_stage->rs_ctrl_duty) {
+			tmp_duty = 0;
+			p_parent->_state = MS_BREAK;
 		}
-		else if (usTmpDuty > pstStage->usRsCtrlDuty && usTmpDuty > pstStage->usRsLowDuty) {
-			usTmpDuty -= pstStage->usRsCtrlDuty;
+		else if (tmp_duty > p_stage->rs_ctrl_duty && tmp_duty > p_stage->rs_low_duty) {
+			tmp_duty -= p_stage->rs_ctrl_duty;
 		}
-		else if (usTmpDuty) {
-			usTmpDuty = 0;
-			pstOwner->_state = MS_BREAK;
+		else if (tmp_duty) {
+			tmp_duty = 0;
+			p_parent->_state = MS_BREAK;
 		}
 	}
 
-	if (pstStage->enMode & MM_SC_MASK) {
-		if ((pstOwner->_state == MS_STABLE) || (pstOwner->_state == MS_CONST)) {
-			fCtrlDuty = pifPidControl_Calcurate(&pstSpeedEnc->__stPidControl, pstStage->fFsPulsesPerRange - usTmpEnc);
+	if (p_stage->mode & MM_SC_MASK) {
+		if ((p_parent->_state == MS_STABLE) || (p_parent->_state == MS_CONST)) {
+			ctrl_duty = pifPidControl_Calcurate(&p_owner->__pid_control, p_stage->fs_pulses_per_range - tmp_enc);
 
-			if (fCtrlDuty > 0) {
-				if (usTmpDuty + fCtrlDuty < pstStage->usFsHighDuty) {
-					usTmpDuty += fCtrlDuty;
+			if (ctrl_duty > 0) {
+				if (tmp_duty + ctrl_duty < p_stage->fs_high_duty) {
+					tmp_duty += ctrl_duty;
 				}
 				else {
-					usTmpDuty += (pstStage->usFsHighDuty - usTmpDuty) / 2;
-					if (usTmpDuty > pstStage->usFsHighDuty) {
-						usTmpDuty = pstStage->usFsHighDuty;
+					tmp_duty += (p_stage->fs_high_duty - tmp_duty) / 2;
+					if (tmp_duty > p_stage->fs_high_duty) {
+						tmp_duty = p_stage->fs_high_duty;
 					}
 				}
 			}
-			else if (fCtrlDuty < 0) {
-				if (usTmpDuty + fCtrlDuty >= 0) {
-					usTmpDuty += fCtrlDuty;
+			else if (ctrl_duty < 0) {
+				if (tmp_duty + ctrl_duty >= 0) {
+					tmp_duty += ctrl_duty;
 				}
 				else {
-					usTmpDuty /= 2;
+					tmp_duty /= 2;
 				}
 			}
 		}
 	}
 
-	if (usTmpDuty != pstOwner->_current_duty) {
-		(*pstOwner->__act_set_duty)(usTmpDuty);
-		pstOwner->_current_duty = usTmpDuty;
+	if (tmp_duty != p_parent->_current_duty) {
+		(*p_parent->__act_set_duty)(tmp_duty);
+		p_parent->_current_duty = tmp_duty;
 	}
 
-    if (pstOwner->_state == MS_BREAK) {
-    	if (pstOwner->__act_operate_break && pstStage->usRsBreakTime &&
-    			pifPulse_StartItem(pstOwner->__p_timer_delay, pstStage->usRsBreakTime)) {
-			(*pstOwner->__act_operate_break)(1);
-			pstOwner->_state = MS_BREAKING;
+    if (p_parent->_state == MS_BREAK) {
+    	if (p_parent->__act_operate_break && p_stage->rs_break_time &&
+    			pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
+			(*p_parent->__act_operate_break)(1);
+			p_parent->_state = MS_BREAKING;
     	}
     	else {
-			if (pstOwner->__act_operate_break) (*pstOwner->__act_operate_break)(1);
-    		pstOwner->_state = MS_STOPPING;
+			if (p_parent->__act_operate_break) (*p_parent->__act_operate_break)(1);
+    		p_parent->_state = MS_STOPPING;
     	}
 	}
 
-    if (pstOwner->_state == MS_STOPPING) {
-		if (!(pstStage->enMode & MM_NR_MASK)) {
-			if (pstOwner->__act_operate_break) (*pstOwner->__act_operate_break)(0);
+    if (p_parent->_state == MS_STOPPING) {
+		if (!(p_stage->mode & MM_NR_MASK)) {
+			if (p_parent->__act_operate_break) (*p_parent->__act_operate_break)(0);
 		}
-		pstOwner->_state = MS_STOP;
+		p_parent->_state = MS_STOP;
 
-		if (pstStage->enMode & MM_CFPS_MASK) {
-	    	if (*pstStage->ppstStopSensor) {
-	    		if ((*pstStage->ppstStopSensor)->_curr_state == OFF) {
-	    			pstOwner->__error = 1;
+		if (p_stage->mode & MM_CFPS_MASK) {
+	    	if (*p_stage->pp_stop_sensor) {
+	    		if ((*p_stage->pp_stop_sensor)->_curr_state == OFF) {
+	    			p_parent->__error = 1;
 	    		}
 	    	}
 	    }
 
-		if (*pstStage->ppstReduceSensor) {
-			pifSensor_DetachEvtChange(*pstStage->ppstReduceSensor);
+		if (*p_stage->pp_reduce_sensor) {
+			pifSensor_DetachEvtChange(*p_stage->pp_reduce_sensor);
 		}
-		if (*pstStage->ppstStopSensor) {
-			pifSensor_DetachEvtChange(*pstStage->ppstStopSensor);
+		if (*p_stage->pp_stop_sensor) {
+			pifSensor_DetachEvtChange(*p_stage->pp_stop_sensor);
 		}
     }
 
 #ifndef __PIF_NO_LOG__
-	if (enState != pstOwner->_state && pif_log_flag.bt.duty_motor) {
-		pifLog_Printf(LT_INFO, "DMSE(%u) %s D:%u(%u%%) E:%u", pstOwner->_id,
-				kMotorState[pstOwner->_state], usTmpDuty, (uint16_t)(100 * usTmpDuty / pstOwner->_max_duty), usTmpEnc);
+	if (state != p_parent->_state && pif_log_flag.bt.duty_motor) {
+		pifLog_Printf(LT_INFO, "DMSE(%u) %s D:%u(%u%%) E:%u", p_parent->_id,
+				kMotorState[p_parent->_state], tmp_duty, (uint16_t)(100 * tmp_duty / p_parent->_max_duty), tmp_enc);
 	}
 #endif
 }
 
-static void _evtSwitchReduceChange(PifId usPifId, uint16_t usLevel, void *pvIssuer)
+static void _evtSwitchReduceChange(PifId id, uint16_t level, void* p_issuer)
 {
-	PifDutyMotor *pstOwner = (PifDutyMotor *)pvIssuer;
+	PifDutyMotor* p_parent = (PifDutyMotor*)p_issuer;
 
-	(void)usPifId;
+	(void)id;
 
-	if (pstOwner->_state >= MS_REDUCE) return;
+	if (p_parent->_state >= MS_REDUCE) return;
 
-	if (usLevel) {
-		pifDutyMotorSpeedEnc_Stop(pstOwner);
+	if (level) {
+		pifDutyMotorSpeedEnc_Stop(p_parent);
 	}
 }
 
-static void _evtSwitchStopChange(PifId usPifId, uint16_t usLevel, void *pvIssuer)
+static void _evtSwitchStopChange(PifId id, uint16_t level, void* p_issuer)
 {
-	PifDutyMotor *pstOwner = (PifDutyMotor *)pvIssuer;
+	PifDutyMotor* p_parent = (PifDutyMotor*)p_issuer;
 
-	(void)usPifId;
+	(void)id;
 
-	if (pstOwner->_state >= MS_BREAK) return;
+	if (p_parent->_state >= MS_BREAK) return;
 
-	if (usLevel) {
-		pstOwner->_current_duty = 0;
-		pstOwner->_state = MS_BREAK;
+	if (level) {
+		p_parent->_current_duty = 0;
+		p_parent->_state = MS_BREAK;
 	}
 }
 
 /**
  * @fn pifDutyMotorSpeedEnc_Create
  * @brief 
- * @param usPifId
+ * @param id
  * @param p_timer
- * @param usMaxDuty
- * @param usControlPeriod
+ * @param max_duty
+ * @param control_period
  * @return 
  */
-PifDutyMotor *pifDutyMotorSpeedEnc_Create(PifId usPifId, PifPulse* p_timer, uint16_t usMaxDuty, uint16_t usControlPeriod)
+PifDutyMotor* pifDutyMotorSpeedEnc_Create(PifId id, PifPulse* p_timer, uint16_t max_duty, uint16_t control_period)
 {
-	PIF_stDutyMotorSpeedEnc* p_owner = NULL;
+	PifDutyMotorSpeedEnc* p_owner = NULL;
 
-	p_owner = calloc(sizeof(PIF_stDutyMotorSpeedEnc), 1);
+	p_owner = calloc(sizeof(PifDutyMotorSpeedEnc), 1);
     if (!p_owner) {
         pif_error = E_OUT_OF_HEAP;
         goto fail;
     }
 
-    PifDutyMotor *pstOwner = &p_owner->parent;
-    if (!pifDutyMotor_Init(pstOwner, usPifId, p_timer, usMaxDuty)) goto fail;
+    PifDutyMotor *p_parent = &p_owner->parent;
+    if (!pifDutyMotor_Init(p_parent, id, p_timer, max_duty)) goto fail;
 
-    if (!pifDutyMotor_InitControl(pstOwner, usControlPeriod)) goto fail;
+    if (!pifDutyMotor_InitControl(p_parent, control_period)) goto fail;
 
-    pstOwner->__p_timer_delay = pifPulse_AddItem(pstOwner->_p_timer, PT_ONCE);
-    if (!pstOwner->__p_timer_delay) goto fail;
-    pifPulse_AttachEvtFinish(pstOwner->__p_timer_delay, _evtTimerDelayFinish, pstOwner);
+    p_parent->__p_timer_delay = pifPulse_AddItem(p_parent->_p_timer, PT_ONCE);
+    if (!p_parent->__p_timer_delay) goto fail;
+    pifPulse_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent);
 
-	pstOwner->__control = _fnControlSpeedEnc;
-    return pstOwner;
+	p_parent->__control = _fnControlSpeedEnc;
+    return p_parent;
 
 fail:
-	pifDutyMotorSpeedEnc_Destroy(&pstOwner);
+	pifDutyMotorSpeedEnc_Destroy((PifDutyMotor**)&p_owner);
     return NULL;
 }
 
-void pifDutyMotorSpeedEnc_Destroy(PifDutyMotor** pp_owner)
+/**
+ * @fn pifDutyMotorSpeedEnc_Destroy
+ * @brief
+ * @param pp_parent
+ */
+void pifDutyMotorSpeedEnc_Destroy(PifDutyMotor** pp_parent)
 {
-    if (*pp_owner) {
-    	pifDutyMotor_Clear(*pp_owner);
-        free(*pp_owner);
-        *pp_owner = NULL;
+    if (*pp_parent) {
+    	pifDutyMotor_Clear(*pp_parent);
+        free(*pp_parent);
+        *pp_parent = NULL;
     }
 }
 
 /**
  * @fn pifDutyMotorSpeedEnc_AddStages
  * @brief 
- * @param pstOwner
- * @param ucStageSize
- * @param pstStages
+ * @param p_parent
+ * @param stage_size
+ * @param p_stages
  * @return 
  */
-BOOL pifDutyMotorSpeedEnc_AddStages(PifDutyMotor *pstOwner, uint8_t ucStageSize, const PIF_stDutyMotorSpeedEncStage *pstStages)
+BOOL pifDutyMotorSpeedEnc_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorSpeedEncStage* p_stages)
 {
-    for (int i = 0; i < ucStageSize; i++) {
-    	if (pstStages[i].enMode & MM_PC_MASK) {
+    for (int i = 0; i < stage_size; i++) {
+    	if (p_stages[i].mode & MM_PC_MASK) {
             pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
     }
 
-    PIF_stDutyMotorSpeedEnc* pstSpeedEnc = (PIF_stDutyMotorSpeedEnc*)pstOwner;
-    pstSpeedEnc->__ucStageSize = ucStageSize;
-    pstSpeedEnc->__pstStages = pstStages;
+    PifDutyMotorSpeedEnc* pstSpeedEnc = (PifDutyMotorSpeedEnc*)p_parent;
+    pstSpeedEnc->__stage_size = stage_size;
+    pstSpeedEnc->__p_stages = p_stages;
     return TRUE;
 }
 
 /**
  * @fn pifDutyMotorSpeedEnc_GetPidControl
  * @brief
- * @param pstOwner
+ * @param p_parent
  * @return
  */
-PifPidControl *pifDutyMotorSpeedEnc_GetPidControl(PifDutyMotor *pstOwner)
+PifPidControl *pifDutyMotorSpeedEnc_GetPidControl(PifDutyMotor* p_parent)
 {
-	return &((PIF_stDutyMotorSpeedEnc*)pstOwner)->__stPidControl;
+	return &((PifDutyMotorSpeedEnc*)p_parent)->__pid_control;
 }
 
 /**
  * @fn pifDutyMotorSpeedEnc_Start
  * @brief 
- * @param pstOwner
- * @param ucStageIndex
- * @param unOperatingTime
+ * @param p_parent
+ * @param stage_index
+ * @param operating_time
  * @return 
  */
-BOOL pifDutyMotorSpeedEnc_Start(PifDutyMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime)
+BOOL pifDutyMotorSpeedEnc_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32_t operating_time)
 {
-    PIF_stDutyMotorSpeedEnc* pstSpeedEnc = (PIF_stDutyMotorSpeedEnc*)pstOwner;
-    const PIF_stDutyMotorSpeedEncStage *pstStage;
-    uint8_t ucState;
+    PifDutyMotorSpeedEnc* p_owner = (PifDutyMotorSpeedEnc*)p_parent;
+    const PifDutyMotorSpeedEncStage* p_stage;
+    uint8_t state;
 
-    if (!pstOwner->__act_set_duty || !pstOwner->__act_set_direction) {
+    if (!p_parent->__act_set_duty || !p_parent->__act_set_direction) {
     	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
-    pstSpeedEnc->__pstCurrentStage = &pstSpeedEnc->__pstStages[ucStageIndex];
-    pstStage = pstSpeedEnc->__pstCurrentStage;
+    p_owner->__p_current_stage = &p_owner->__p_stages[stage_index];
+    p_stage = p_owner->__p_current_stage;
 
-    if (pstStage->enMode & MM_CIAS_MASK) {
-    	ucState = 0;
-    	if (*pstStage->ppstStartSensor) {
-    		if ((*pstStage->ppstStartSensor)->_curr_state != ON) {
-    			ucState |= 1;
+    if (p_stage->mode & MM_CIAS_MASK) {
+    	state = 0;
+    	if (*p_stage->pp_start_sensor) {
+    		if ((*p_stage->pp_start_sensor)->_curr_state != ON) {
+    			state |= 1;
     		}
     	}
-    	if (*pstStage->ppstReduceSensor) {
-    		if ((*pstStage->ppstReduceSensor)->_curr_state != OFF) {
-    			ucState |= 2;
+    	if (*p_stage->pp_reduce_sensor) {
+    		if ((*p_stage->pp_reduce_sensor)->_curr_state != OFF) {
+    			state |= 2;
     		}
     	}
-    	if (*pstStage->ppstStopSensor) {
-    		if ((*pstStage->ppstStopSensor)->_curr_state != OFF) {
-    			ucState |= 4;
+    	if (*p_stage->pp_stop_sensor) {
+    		if ((*p_stage->pp_stop_sensor)->_curr_state != OFF) {
+    			state |= 4;
     		}
     	}
-    	if (ucState) {
+    	if (state) {
         	pif_error = E_INVALID_STATE;
 		    return FALSE;
     	}
     }
 
-    if ((pstStage->enMode & MM_RT_MASK) == MM_RT_TIME) {
-    	if (!unOperatingTime) {
+    if ((p_stage->mode & MM_RT_MASK) == MM_RT_TIME) {
+    	if (!operating_time) {
         	pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
     	else {
-    		if (!pifDutyMotor_SetOperatingTime(pstOwner, unOperatingTime)) return FALSE;
+    		if (!pifDutyMotor_SetOperatingTime(p_parent, operating_time)) return FALSE;
     	}
     }
 
-    if (!pifDutyMotor_StartControl(pstOwner)) return FALSE;
+    if (!pifDutyMotor_StartControl(p_parent)) return FALSE;
 
-    pstSpeedEnc->_ucStageIndex = ucStageIndex;
+    p_owner->_stage_index = stage_index;
 
-    if (*pstStage->ppstReduceSensor) {
-        pifSensor_AttachEvtChange(*pstStage->ppstReduceSensor, _evtSwitchReduceChange, pstOwner);
+    if (*p_stage->pp_reduce_sensor) {
+        pifSensor_AttachEvtChange(*p_stage->pp_reduce_sensor, _evtSwitchReduceChange, p_parent);
     }
 
-    if (*pstStage->ppstStopSensor) {
-        pifSensor_AttachEvtChange(*pstStage->ppstStopSensor, _evtSwitchStopChange, pstOwner);
+    if (*p_stage->pp_stop_sensor) {
+        pifSensor_AttachEvtChange(*p_stage->pp_stop_sensor, _evtSwitchStopChange, p_parent);
     }
 
-    if (pstOwner->__act_set_direction) (*pstOwner->__act_set_direction)((pstStage->enMode & MM_D_MASK) >> MM_D_SHIFT);
+    if (p_parent->__act_set_direction) (*p_parent->__act_set_direction)((p_stage->mode & MM_D_MASK) >> MM_D_SHIFT);
 
-    if (pstStage->usGsCtrlDuty) {
-		if (!pifPulse_StartItem(pstOwner->__p_timer_delay, pstStage->usGsArriveTimeout)) return FALSE;
+    if (p_stage->gs_ctrl_duty) {
+		if (!pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->gs_arrive_timeout)) return FALSE;
 
-		pstSpeedEnc->__usArrivePPR = pstStage->fFsPulsesPerRange * pstStage->ucGsArriveRatio / 100;
-		pstOwner->_current_duty = pstStage->usGsStartDuty;
-		pstOwner->_state = MS_GAINED;
+		p_owner->__arrive_ppr = p_stage->fs_pulses_per_range * p_stage->gs_arrive_ratio / 100;
+		p_parent->_current_duty = p_stage->gs_start_duty;
+		p_parent->_state = MS_GAINED;
     }
     else {
-    	pstOwner->_current_duty = pstStage->usFsHighDuty;
-        pstOwner->_state = MS_CONST;
+    	p_parent->_current_duty = p_stage->fs_high_duty;
+        p_parent->_state = MS_CONST;
     }
-    pstSpeedEnc->__usErrLowPPR = pstStage->fFsPulsesPerRange * pstStage->ucFsStableErrLow / 100;
-    pstSpeedEnc->__usErrHighPPR = pstStage->fFsPulsesPerRange * pstStage->ucFsStableErrHigh / 100;
-    pstSpeedEnc->__ucEncSampleIdx = 0;
-    memset(pstSpeedEnc->__ausEncSample, 0, sizeof(pstSpeedEnc->__ausEncSample));
-    pstSpeedEnc->__unEncSampleSum = 0;
-    pstSpeedEnc->__usMeasureEnc = 0;
-    pstOwner->__error = 0;
+    p_owner->__err_low_ppr = p_stage->fs_pulses_per_range * p_stage->fs_stable_err_low / 100;
+    p_owner->__err_high_ppr = p_stage->fs_pulses_per_range * p_stage->fs_stable_err_high / 100;
+    p_owner->__enc_sample_idx = 0;
+    memset(p_owner->__enc_sample, 0, sizeof(p_owner->__enc_sample));
+    p_owner->__enc_sample_sum = 0;
+    p_owner->__measure_enc = 0;
+    p_parent->__error = 0;
 
-    (*pstOwner->__act_set_duty)(pstOwner->_current_duty);
+    (*p_parent->__act_set_duty)(p_parent->_current_duty);
     return TRUE;
 }
 
 /**
  * @fn pifDutyMotorSpeedEnc_Stop
  * @brief 
- * @param pstOwner
+ * @param p_parent
  */
-void pifDutyMotorSpeedEnc_Stop(PifDutyMotor *pstOwner)
+void pifDutyMotorSpeedEnc_Stop(PifDutyMotor* p_parent)
 {
-    const PIF_stDutyMotorSpeedEncStage* pstStage = ((PIF_stDutyMotorSpeedEnc*)pstOwner)->__pstCurrentStage;
+    const PifDutyMotorSpeedEncStage* p_stage = ((PifDutyMotorSpeedEnc*)p_parent)->__p_current_stage;
 
-    if (pstOwner->_state == MS_IDLE) return;
+    if (p_parent->_state == MS_IDLE) return;
 
-    if (pstStage->usFsOverTime && pifPulse_StartItem(pstOwner->__p_timer_delay, pstStage->usFsOverTime)) {
-        pstOwner->_state = MS_OVER_RUN;
+    if (p_stage->fs_overtime && pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->fs_overtime)) {
+        p_parent->_state = MS_OVER_RUN;
     }
     else {
-        pstOwner->_state = MS_REDUCE;
+        p_parent->_state = MS_REDUCE;
     }
 }
 
 /**
  * @fn pifDutyMotorSpeedEnc_Emergency
  * @brief
- * @param pstOwner
+ * @param p_parent
  */
-void pifDutyMotorSpeedEnc_Emergency(PifDutyMotor *pstOwner)
+void pifDutyMotorSpeedEnc_Emergency(PifDutyMotor* p_parent)
 {
-    pstOwner->_current_duty = 0;
-    pstOwner->_state = MS_BREAK;
+    p_parent->_current_duty = 0;
+    p_parent->_state = MS_BREAK;
 }
 
 /**
  * @fn pifDutyMotorSpeedEnc_sigEncoder
  * @brief Interrupt Function에서 호출할 것
- * @param pstOwner
+ * @param p_parent
  */
-void pifDutyMotorSpeedEnc_sigEncoder(PifDutyMotor *pstOwner)
+void pifDutyMotorSpeedEnc_sigEncoder(PifDutyMotor* p_parent)
 {
-    ((PIF_stDutyMotorSpeedEnc*)pstOwner)->__usMeasureEnc++;
+    ((PifDutyMotorSpeedEnc*)p_parent)->__measure_enc++;
 }
