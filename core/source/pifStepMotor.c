@@ -169,6 +169,15 @@ void pifStepMotor_Destroy(PifStepMotor** pp_owner)
  */
 BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifPulse* p_timer, uint16_t resolution, PifStepMotorOperation operation)
 {
+    if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_owner->__p_timer_step = NULL;
+	p_owner->__p_timer_break = NULL;
+	p_owner->__p_timer_delay = NULL;
+
     p_owner->_p_timer = p_timer;
 	p_owner->__p_timer_step = pifPulse_AddItem(p_timer, PT_REPEAT);
     if (!p_owner->__p_timer_step) return FALSE;

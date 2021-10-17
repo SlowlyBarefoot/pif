@@ -86,6 +86,14 @@ void pifDutyMotor_Destroy(PifDutyMotor** pp_owner)
  */
 BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint16_t max_duty)
 {
+    if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+	    return FALSE;
+	}
+
+	p_owner->__p_timer_delay = NULL;
+	p_owner->__p_timer_break = NULL;
+
     if (!p_timer) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;

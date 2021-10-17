@@ -61,7 +61,7 @@ extern "C" {
 PifGps* pifGps_Create(PifId id);
 void pifGps_Destroy(PifGps** pp_owner);
 
-void pifGps_Init(PifGps* p_owner, PifId id);
+BOOL pifGps_Init(PifGps* p_owner, PifId id);
 
 void pifGps_AttachEvent(PifGps* p_owner, PifEvtGpsReceive evt_receive);
 

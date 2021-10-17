@@ -50,7 +50,7 @@ void pifSList_Clear(PifSList* p_owner)
 
 void* pifSList_AddFirst(PifSList* p_owner, int data_size)
 {
-	PifSListNode* p_node = calloc(sizeof(PifSListNode) + data_size - 1, 1);
+	PifSListNode* p_node = calloc(sizeof(PifSListNode) + data_size, 1);
     if (!p_node) {
     	pif_error = E_OUT_OF_HEAP;
     	return NULL;
@@ -67,7 +67,7 @@ void* pifSList_AddFirst(PifSList* p_owner, int data_size)
 
 void* pifSList_AddLast(PifSList* p_owner, int data_size)
 {
-	PifSListNode* p_node = calloc(sizeof(PifSListNode) + data_size - 1, 1);
+	PifSListNode* p_node = calloc(sizeof(PifSListNode) + data_size, 1);
     if (!p_node) {
     	pif_error = E_OUT_OF_HEAP;
     	return NULL;
@@ -186,7 +186,7 @@ void pifDList_Clear(PifDList* p_owner)
 
 void* pifDList_AddFirst(PifDList* p_owner, int data_size)
 {
-	PifDListNode* p_node = calloc(sizeof(PifDListNode) + data_size - 1, 1);
+	PifDListNode* p_node = calloc(sizeof(PifDListNode) + data_size, 1);
     if (!p_node) {
     	pif_error = E_OUT_OF_HEAP;
     	return NULL;
@@ -207,7 +207,7 @@ void* pifDList_AddFirst(PifDList* p_owner, int data_size)
 
 void* pifDList_AddLast(PifDList* p_owner, int data_size)
 {
-	PifDListNode* p_node = calloc(sizeof(PifDListNode) + data_size - 1, 1);
+	PifDListNode* p_node = calloc(sizeof(PifDListNode) + data_size, 1);
     if (!p_node) {
     	pif_error = E_OUT_OF_HEAP;
     	return NULL;
@@ -234,7 +234,7 @@ void* pifDList_Add(PifDList* p_owner, int data_size, PifDListIterator it)
         return pifDList_AddLast(p_owner, data_size);
     }
 
-    PifDListNode* p_node = calloc(sizeof(PifDListNode) + data_size - 1, 1);
+    PifDListNode* p_node = calloc(sizeof(PifDListNode) + data_size, 1);
     if (!p_node) {
     	pif_error = E_OUT_OF_HEAP;
     	return NULL;

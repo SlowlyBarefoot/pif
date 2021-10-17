@@ -41,10 +41,16 @@ void pifGps_Destroy(PifGps** pp_owner)
  * @param p_owner
  * @param id
  */
-void pifGps_Init(PifGps* p_owner, PifId id)
+BOOL pifGps_Init(PifGps* p_owner, PifId id)
 {
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+	    return FALSE;
+	}
+
 	if (id == PIF_ID_AUTO) id = pif_id++;
 	p_owner->_id = id;
+	return TRUE;
 }
 
 /**
