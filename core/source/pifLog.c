@@ -10,7 +10,7 @@
 typedef struct StPifLog
 {
 	BOOL enable;
-	PifRingBuffer* p_buffer;
+	PifRingBuffer buffer;
 	PifComm* p_comm;
     PifRingBuffer* p_tx_buffer;
 
@@ -250,8 +250,8 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 
 static void _printLog(char* p_string, BOOL vcd)
 {
-	if (!vcd && s_log.p_buffer && pifRingBuffer_IsBuffer(s_log.p_buffer)) {
-		pifRingBuffer_PutString(s_log.p_buffer, p_string);
+	if (!vcd && pifRingBuffer_IsBuffer(&s_log.buffer)) {
+		pifRingBuffer_PutString(&s_log.buffer, p_string);
 	}
 
 	if (s_log.enable || vcd) {
@@ -290,7 +290,6 @@ static void _printTime()
 void pifLog_Init()
 {
 	s_log.enable = TRUE;
-	s_log.p_buffer = NULL;
 	s_log.p_tx_buffer = NULL;
 #ifdef __PIF_LOG_COMMAND__
 	s_log.p_rx_buffer = NULL;
@@ -306,8 +305,7 @@ void pifLog_Init()
 BOOL pifLog_InitHeap(uint16_t size)
 {
 	s_log.enable = TRUE;
-	s_log.p_buffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, size);
-	if (!s_log.p_buffer) return FALSE;
+	if (!pifRingBuffer_InitHeap(&s_log.buffer, PIF_ID_AUTO, size)) return FALSE;
 	return TRUE;
 }
 
@@ -321,8 +319,7 @@ BOOL pifLog_InitHeap(uint16_t size)
 BOOL pifLog_InitStatic(uint16_t size, uint8_t* p_buffer)
 {
 	s_log.enable = TRUE;
-	s_log.p_buffer = pifRingBuffer_InitStatic(PIF_ID_AUTO, size, p_buffer);
-	if (!s_log.p_buffer) return FALSE;
+	if (!pifRingBuffer_InitStatic(&s_log.buffer, PIF_ID_AUTO, size, p_buffer)) return FALSE;
 	return TRUE;
 }
 
@@ -332,14 +329,8 @@ BOOL pifLog_InitStatic(uint16_t size, uint8_t* p_buffer)
  */
 void pifLog_Clear()
 {
-	if (s_log.p_buffer) {
-		pifRingBuffer_Exit(s_log.p_buffer);
-		s_log.p_buffer = NULL;
-	}
-	if (s_log.p_tx_buffer) {
-		pifRingBuffer_Exit(s_log.p_tx_buffer);
-		s_log.p_tx_buffer = NULL;
-	}
+	pifRingBuffer_Clear(&s_log.buffer);
+	if (s_log.p_tx_buffer) pifRingBuffer_Destroy(&s_log.p_tx_buffer);
 #ifdef __PIF_LOG_COMMAND__
 	if (s_log.p_rx_buffer) {
 		free(s_log.p_rx_buffer);
@@ -404,7 +395,7 @@ void pifLog_Disable()
  */
 BOOL pifLog_IsEmpty()
 {
-	return pifRingBuffer_IsEmpty(s_log.p_buffer);
+	return pifRingBuffer_IsEmpty(&s_log.buffer);
 }
 
 /**
@@ -451,14 +442,14 @@ void pifLog_PrintInBuffer()
 {
 	uint16_t length;
 
-	if (!s_log.p_comm->_p_task || !pifRingBuffer_IsBuffer(s_log.p_buffer)) return;
+	if (!s_log.p_comm->_p_task || !pifRingBuffer_IsBuffer(&s_log.buffer)) return;
 
-	while (!pifRingBuffer_IsEmpty(s_log.p_buffer)) {
+	while (!pifRingBuffer_IsEmpty(&s_log.buffer)) {
 		while (!pifRingBuffer_IsEmpty(s_log.p_tx_buffer)) {
 			pifTaskManager_YieldPeriod(s_log.p_comm->_p_task);
 		}
-		length = pifRingBuffer_CopyAll(s_log.p_tx_buffer, s_log.p_buffer, 0);
-		pifRingBuffer_Remove(s_log.p_buffer, length);
+		length = pifRingBuffer_CopyAll(s_log.p_tx_buffer, &s_log.buffer, 0);
+		pifRingBuffer_Remove(&s_log.buffer, length);
 		pifComm_ForceSendData(s_log.p_comm);
 	}
 }
@@ -481,7 +472,7 @@ PifTask* pifLog_GetCommTask()
  */
 BOOL pifLog_AttachComm(PifComm* p_comm)
 {
-    s_log.p_tx_buffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_LOG_TX_BUFFER_SIZE);
+    s_log.p_tx_buffer = pifRingBuffer_CreateHeap(PIF_ID_AUTO, PIF_LOG_TX_BUFFER_SIZE);
     if (!s_log.p_tx_buffer) return FALSE;
 
 	s_log.p_comm = p_comm;

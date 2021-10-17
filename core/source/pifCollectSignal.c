@@ -32,7 +32,7 @@ typedef struct StPifCollectSignal
 	PifCollectSignalStep step;
 	uint8_t device_count;
 	uint32_t timer1ms;
-	PifRingBuffer* p_buffer;
+	PifRingBuffer buffer;
 	PifDList device;
 	PifAddCollectSignalDevice add_device[32];
 } PifCollectSignal;
@@ -116,7 +116,6 @@ void pifCollectSignal_Init(const char* p_module_name)
 	s_collect_signal.p_module_name = p_module_name;
 	s_collect_signal.method = CSM_REALTIME;
 	s_collect_signal.step = CSS_IDLE;
-	s_collect_signal.p_buffer = NULL;
 	s_collect_signal.device_count = 0;
 	pifDList_Init(&s_collect_signal.device);
 	memset(s_collect_signal.add_device, 0, sizeof(s_collect_signal.add_device));
@@ -133,9 +132,8 @@ BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size)
 {
 	pifCollectSignal_Init(p_module_name);
 
-	s_collect_signal.p_buffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, size);
-	if (!s_collect_signal.p_buffer) return FALSE;
-	pifRingBuffer_ChopsOffChar(s_collect_signal.p_buffer, '#');
+	if (!pifRingBuffer_InitHeap(&s_collect_signal.buffer, PIF_ID_AUTO, size)) return FALSE;
+	pifRingBuffer_ChopsOffChar(&s_collect_signal.buffer, '#');
 	s_collect_signal.method = CSM_BUFFER;
 	return TRUE;
 }
@@ -152,9 +150,8 @@ BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8
 {
 	pifCollectSignal_Init(p_module_name);
 
-	s_collect_signal.p_buffer = pifRingBuffer_InitStatic(PIF_ID_AUTO, size, p_buffer);
-	if (!s_collect_signal.p_buffer) return FALSE;
-	pifRingBuffer_ChopsOffChar(s_collect_signal.p_buffer, '#');
+	if (!pifRingBuffer_InitStatic(&s_collect_signal.buffer, PIF_ID_AUTO, size, p_buffer)) return FALSE;
+	pifRingBuffer_ChopsOffChar(&s_collect_signal.buffer, '#');
 	s_collect_signal.method = CSM_BUFFER;
 	return TRUE;
 }
@@ -165,10 +162,7 @@ BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8
  */
 void pifCollectSignal_Clear()
 {
-	if (s_collect_signal.p_buffer) {
-		pifRingBuffer_Exit(s_collect_signal.p_buffer);
-		s_collect_signal.p_buffer = NULL;
-	}
+	pifRingBuffer_Clear(&s_collect_signal.buffer);
 }
 
 /**
@@ -268,7 +262,7 @@ void pifCollectSignal_Start()
 
 	case CSM_BUFFER:
 		pif_Printf(cBuffer, "#0\n");
-		pifRingBuffer_PutString(s_collect_signal.p_buffer, cBuffer);
+		pifRingBuffer_PutString(&s_collect_signal.buffer, cBuffer);
 		break;
 	}
 
@@ -292,7 +286,7 @@ void pifCollectSignal_Stop()
 
 	case CSM_BUFFER:
 		pif_Printf(buffer, "#%u\n", pif_cumulative_timer1ms);
-		pifRingBuffer_PutString(s_collect_signal.p_buffer, buffer);
+		pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
 		break;
 	}
 
@@ -330,7 +324,7 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
 	case CSM_BUFFER:
 		if (s_collect_signal.timer1ms != pif_cumulative_timer1ms) {
 			pif_Printf(buffer, "#%u\n", pif_cumulative_timer1ms);
-			pifRingBuffer_PutString(s_collect_signal.p_buffer, buffer);
+			pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
 			s_collect_signal.timer1ms = pif_cumulative_timer1ms;
 		}
 		if (p_device->size == 1) {
@@ -339,7 +333,7 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
 		else {
 			pif_Printf(buffer, "b%b %c\n", state, '!' + p_device->index);
 		}
-		pifRingBuffer_PutString(s_collect_signal.p_buffer, buffer);
+		pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
 		break;
 	}
 }
@@ -364,10 +358,10 @@ static uint16_t _doTask(PifTask* p_task)
 	(void)p_task;
 
 	if (s_collect_signal.step == CSS_SEND_LOG) {
-		size = pifRingBuffer_GetFillSize(s_collect_signal.p_buffer);
+		size = pifRingBuffer_GetFillSize(&s_collect_signal.buffer);
 		length = PIF_LOG_LINE_SIZE;
 		if (size > length) {
-			pifRingBuffer_CopyToArray(tmp_buf, length, s_collect_signal.p_buffer, 0);
+			pifRingBuffer_CopyToArray(tmp_buf, length, &s_collect_signal.buffer, 0);
 			while (length) {
 				if (tmp_buf[length - 1] == '\n') {
 					tmp_buf[length] = 0;
@@ -377,13 +371,13 @@ static uint16_t _doTask(PifTask* p_task)
 					length--;
 				}
 			}
-			pifRingBuffer_Remove(s_collect_signal.p_buffer, length);
+			pifRingBuffer_Remove(&s_collect_signal.buffer, length);
 			pifLog_Printf(LT_VCD, (char *)tmp_buf);
 		}
 		else {
-			pifRingBuffer_CopyToArray(tmp_buf, size, s_collect_signal.p_buffer, 0);
+			pifRingBuffer_CopyToArray(tmp_buf, size, &s_collect_signal.buffer, 0);
 			tmp_buf[size] = 0;
-			pifRingBuffer_Remove(s_collect_signal.p_buffer, size);
+			pifRingBuffer_Remove(&s_collect_signal.buffer, size);
 			pifLog_Printf(LT_VCD, (char *)tmp_buf);
 			s_collect_signal.step = CSS_IDLE;
 			pifLog_Enable();

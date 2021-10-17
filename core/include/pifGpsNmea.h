@@ -44,7 +44,7 @@ typedef enum EnPifGpsNmeaTxState
 
 typedef struct StPifGpsNmeaTx
 {
-    PifRingBuffer* p_buffer;
+    PifRingBuffer buffer;
 	PifGpsNmeaTxState state;
 	union {
 		uint8_t info[4];

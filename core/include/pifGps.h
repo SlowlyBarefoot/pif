@@ -15,12 +15,14 @@ typedef void (*PifEvtGpsReceive)(PifGps* p_owner);
 
 typedef double PifDeg;
 
-typedef struct StPifDegMin {
+typedef struct StPifDegMin
+{
 	uint16_t degree;
 	double minute;
 } PifDegMin;
 
-typedef struct StPifDegMinSec {
+typedef struct StPifDegMinSec
+{
 	uint16_t degree;
 	uint16_t minute;
 	double second;

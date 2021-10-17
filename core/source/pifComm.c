@@ -70,8 +70,8 @@ void pifComm_Destroy(PifComm** pp_owner)
 {
 	if (*pp_owner) {
 		PifComm* p_owner = *pp_owner;
-		if (p_owner->_p_rx_buffer)	pifRingBuffer_Exit(p_owner->_p_rx_buffer);
-		if (p_owner->_p_tx_buffer)	pifRingBuffer_Exit(p_owner->_p_tx_buffer);
+		if (p_owner->_p_rx_buffer) pifRingBuffer_Destroy(&p_owner->_p_rx_buffer);
+		if (p_owner->_p_tx_buffer) pifRingBuffer_Destroy(&p_owner->_p_tx_buffer);
 		free(*pp_owner);
 		*pp_owner = NULL;
 	}
@@ -91,7 +91,7 @@ BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_Size)
 	    return FALSE;
     }
 
-    p_owner->_p_rx_buffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, rx_Size);
+    p_owner->_p_rx_buffer = pifRingBuffer_CreateHeap(PIF_ID_AUTO, rx_Size);
     if (!p_owner->_p_rx_buffer) return FALSE;
     pifRingBuffer_SetName(p_owner->_p_rx_buffer, "RB");
     return TRUE;
@@ -111,7 +111,7 @@ BOOL pifComm_AllocTxBuffer(PifComm* p_owner, uint16_t tx_size)
 		return FALSE;
     }
 
-    p_owner->_p_tx_buffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, tx_size);
+    p_owner->_p_tx_buffer = pifRingBuffer_CreateHeap(PIF_ID_AUTO, tx_size);
     if (!p_owner->_p_tx_buffer) return FALSE;
     pifRingBuffer_SetName(p_owner->_p_tx_buffer, "TB");
 	return TRUE;

@@ -48,13 +48,13 @@ static BOOL _chopOff(PifRingBuffer* p_owner, uint16_t count)
 }
 
 /**
- * @fn pifRingBuffer_InitHeap
+ * @fn pifRingBuffer_CreateHeap
  * @brief
  * @param id
  * @param size
  * @return 
  */
-PifRingBuffer* pifRingBuffer_InitHeap(PifId id, uint16_t size)
+PifRingBuffer* pifRingBuffer_CreateHeap(PifId id, uint16_t size)
 {
 	PifRingBuffer* p_owner = NULL;
 
@@ -66,6 +66,81 @@ PifRingBuffer* pifRingBuffer_InitHeap(PifId id, uint16_t size)
     p_owner = calloc(sizeof(PifRingBuffer), 1);
 	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
+		goto fail;
+	}
+
+	if (!pifRingBuffer_InitHeap(p_owner, id, size)) goto fail;
+    return p_owner;
+
+fail:
+	pifRingBuffer_Destroy(&p_owner);
+    return NULL;
+}
+
+/**
+ * @fn pifRingBuffer_CreateStatic
+ * @brief
+ * @param id
+ * @param size
+ * @param p_buffer
+ * @return
+ */
+PifRingBuffer* pifRingBuffer_CreateStatic(PifId id, uint16_t size, uint8_t* p_buffer)
+{
+	PifRingBuffer* p_owner = NULL;
+
+    if (!size) {
+		pif_error = E_INVALID_PARAM;
+		goto fail;
+	}
+
+    p_owner = calloc(sizeof(PifRingBuffer), 1);
+	if (!p_owner) {
+		pif_error = E_OUT_OF_HEAP;
+		goto fail;
+	}
+
+	if (!pifRingBuffer_InitStatic(p_owner, id, size, p_buffer)) goto fail;
+    return p_owner;
+
+fail:
+	pifRingBuffer_Destroy(&p_owner);
+    return NULL;
+}
+
+/**
+ * @fn pifRingBuffer_Destroy
+ * @brief
+ * @param pp_owner
+ */
+void pifRingBuffer_Destroy(PifRingBuffer** pp_owner)
+{
+	if (pp_owner) {
+		pifRingBuffer_Clear(*pp_owner);
+		free(*pp_owner);
+		*pp_owner = NULL;
+	}
+}
+
+/**
+ * @fn pifRingBuffer_InitHeap
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param size
+ * @return
+ */
+BOOL pifRingBuffer_InitHeap(PifRingBuffer* p_owner, PifId id, uint16_t size)
+{
+    if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_owner->__p_buffer = NULL;
+
+    if (!size) {
+		pif_error = E_INVALID_PARAM;
 		goto fail;
 	}
 
@@ -82,36 +157,33 @@ PifRingBuffer* pifRingBuffer_InitHeap(PifId id, uint16_t size)
     p_owner->_size = size;
     p_owner->__head = 0;
     p_owner->__tail = 0;
-    return p_owner;
+    return TRUE;
 
 fail:
-	if (p_owner) {
-		if (p_owner->__p_buffer) free(p_owner->__p_buffer);
-		free(p_owner);
-	}
-    return NULL;
+	pifRingBuffer_Clear(p_owner);
+    return FALSE;
 }
 
 /**
  * @fn pifRingBuffer_InitStatic
  * @brief
+ * @param p_owner
  * @param id
  * @param size
  * @param p_buffer
  * @return
  */
-PifRingBuffer* pifRingBuffer_InitStatic(PifId id, uint16_t size, uint8_t* p_buffer)
+BOOL pifRingBuffer_InitStatic(PifRingBuffer* p_owner, PifId id, uint16_t size, uint8_t* p_buffer)
 {
-	PifRingBuffer* p_owner = NULL;
+    if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_owner->__p_buffer = NULL;
 
     if (!size) {
 		pif_error = E_INVALID_PARAM;
-		goto fail;
-	}
-
-    p_owner = calloc(sizeof(PifRingBuffer), 1);
-	if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
@@ -124,22 +196,24 @@ PifRingBuffer* pifRingBuffer_InitStatic(PifId id, uint16_t size, uint8_t* p_buff
     p_owner->_size = size;
     p_owner->__head = 0;
     p_owner->__tail = 0;
-    return p_owner;
+    return TRUE;
 
 fail:
-	if (p_owner) free(p_owner);
-    return NULL;
+	pifRingBuffer_Clear(p_owner);
+    return FALSE;
 }
 
 /**
- * @fn pifRingBuffer_Exit
+ * @fn pifRingBuffer_Clear
  * @brief 
  * @param p_owner
  */
-void pifRingBuffer_Exit(PifRingBuffer* p_owner)
+void pifRingBuffer_Clear(PifRingBuffer* p_owner)
 {
-	if (p_owner->_bt.is_static == FALSE && p_owner->__p_buffer) {
-        free(p_owner->__p_buffer);
+	if (p_owner) {
+		if (p_owner->_bt.is_static == FALSE && p_owner->__p_buffer) {
+	        free(p_owner->__p_buffer);
+	    }
         p_owner->__p_buffer = NULL;
     }
 }

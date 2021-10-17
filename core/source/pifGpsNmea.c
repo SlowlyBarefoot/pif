@@ -147,18 +147,18 @@ static BOOL _makePacket(PifGpsNmea* p_owner, char* p_data)
 	p_data[i] = 0;
 	pifLog_Printf(LT_NONE, p_data);
 
-	pifRingBuffer_BackupHead(p_owner->__tx.p_buffer);
+	pifRingBuffer_BackupHead(&p_owner->__tx.buffer);
 
 	aucHeader[0] = i;
 	aucHeader[1] = 0;
 	aucHeader[2] = 0;
 	aucHeader[3] = 0;
-	if (!pifRingBuffer_PutData(p_owner->__tx.p_buffer, aucHeader, 4)) goto fail;
-	if (!pifRingBuffer_PutData(p_owner->__tx.p_buffer, (uint8_t *)p_data, aucHeader[0])) goto fail;
+	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, aucHeader, 4)) goto fail;
+	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, (uint8_t *)p_data, aucHeader[0])) goto fail;
 	return TRUE;
 
 fail:
-	pifRingBuffer_RestoreHead(p_owner->__tx.p_buffer);
+	pifRingBuffer_RestoreHead(&p_owner->__tx.buffer);
 	return FALSE;
 }
 
@@ -195,7 +195,7 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 			if (param == 0) { //frame identification
 				message_id = NMEA_MESSAGE_ID_NONE;
 				if (p_owner->__tx.state != GPTS_IDLE) {
-					pifRingBuffer_Remove(p_owner->__tx.p_buffer, 4 + p_owner->__tx.ui.st.length);
+					pifRingBuffer_Remove(&p_owner->__tx.buffer, 4 + p_owner->__tx.ui.st.length);
 					p_owner->__tx.state = GPTS_IDLE;
 				}
 				else {
@@ -346,16 +346,16 @@ BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 
 	switch (p_owner->__tx.state) {
 	case GPTS_IDLE:
-		if (!pifRingBuffer_IsEmpty(p_owner->__tx.p_buffer)) {
-			pifRingBuffer_CopyToArray(p_owner->__tx.ui.info, 4, p_owner->__tx.p_buffer, 0);
+		if (!pifRingBuffer_IsEmpty(&p_owner->__tx.buffer)) {
+			pifRingBuffer_CopyToArray(p_owner->__tx.ui.info, 4, &p_owner->__tx.buffer, 0);
 			p_owner->__tx.pos = 4;
 			p_owner->__tx.state = GPTS_SENDING;
 		}
 		break;
 
 	case GPTS_SENDING:
-		length = (*act_send_data)(p_owner->__p_comm, pifRingBuffer_GetTailPointer(p_owner->__tx.p_buffer, p_owner->__tx.pos),
-				pifRingBuffer_GetLinerSize(p_owner->__tx.p_buffer, p_owner->__tx.pos));
+		length = (*act_send_data)(p_owner->__p_comm, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, p_owner->__tx.pos),
+				pifRingBuffer_GetLinerSize(&p_owner->__tx.buffer, p_owner->__tx.pos));
 		p_owner->__tx.pos += length;
 		if (p_owner->__tx.pos >= 4 + p_owner->__tx.ui.st.length) {
 			p_owner->__tx.state = GPTS_WAIT_SENDED;
@@ -364,7 +364,7 @@ BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 
 	case GPTS_WAIT_SENDED:
 		if (!p_owner->__tx.ui.st.response) {
-			pifRingBuffer_Remove(p_owner->__tx.p_buffer, 4 + p_owner->__tx.ui.st.length);
+			pifRingBuffer_Remove(&p_owner->__tx.buffer, 4 + p_owner->__tx.ui.st.length);
 			p_owner->__tx.state = GPTS_IDLE;
 		}
 		break;
@@ -391,9 +391,8 @@ PifGpsNmea* pifGpsNmea_Create(PifId id)
 
     pifGps_Init(&p_owner->_gps, id);
 
-    p_owner->__tx.p_buffer = pifRingBuffer_InitHeap(PIF_ID_AUTO, PIF_GPS_NMEA_TX_SIZE);
-    if (!p_owner->__tx.p_buffer) goto fail;
-    pifRingBuffer_SetName(p_owner->__tx.p_buffer, "TxB");
+    if (!pifRingBuffer_InitHeap(&p_owner->__tx.buffer, PIF_ID_AUTO, PIF_GPS_NMEA_TX_SIZE)) goto fail;
+    pifRingBuffer_SetName(&p_owner->__tx.buffer, "TxB");
     return p_owner;
 
 fail:
@@ -409,10 +408,7 @@ fail:
 void pifGpsNmea_Destroy(PifGpsNmea **pp_owner)
 {
 	if (*pp_owner) {
-		if ((*pp_owner)->__tx.p_buffer) {
-			pifRingBuffer_Exit((*pp_owner)->__tx.p_buffer);
-			(*pp_owner)->__tx.p_buffer = NULL;
-		}
+		pifRingBuffer_Clear(&(*pp_owner)->__tx.buffer);
 		if ((*pp_owner)->__p_txt) {
 			free((*pp_owner)->__p_txt);
 			(*pp_owner)->__p_txt = NULL;

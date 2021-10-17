@@ -133,8 +133,8 @@ typedef struct StPifProtocolRx
  */
 typedef struct StPifProtocolTx
 {
-    PifRingBuffer* p_request_buffer;
-    PifRingBuffer* p_answer_buffer;
+    PifRingBuffer request_buffer;
+    PifRingBuffer answer_buffer;
 	const PifProtocolRequest* p_request;
 	uint8_t* p_data;
 	uint16_t data_size;

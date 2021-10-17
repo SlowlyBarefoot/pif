@@ -43,9 +43,13 @@ typedef struct StPifRingBuffer
 extern "C" {
 #endif
 
-PifRingBuffer* pifRingBuffer_InitHeap(PifId id, uint16_t size);
-PifRingBuffer* pifRingBuffer_InitStatic(PifId id, uint16_t size, uint8_t* p_buffer);
-void pifRingBuffer_Exit(PifRingBuffer* p_owner);
+PifRingBuffer* pifRingBuffer_CreateHeap(PifId id, uint16_t size);
+PifRingBuffer* pifRingBuffer_CreateStatic(PifId id, uint16_t size, uint8_t* p_buffer);
+void pifRingBuffer_Destroy(PifRingBuffer** pp_owner);
+
+BOOL pifRingBuffer_InitHeap(PifRingBuffer* p_owner, PifId id, uint16_t size);
+BOOL pifRingBuffer_InitStatic(PifRingBuffer* p_owner, PifId id, uint16_t size, uint8_t* p_buffer);
+void pifRingBuffer_Clear(PifRingBuffer* p_owner);
 
 BOOL pifRingBuffer_ResizeHeap(PifRingBuffer* p_owner, uint16_t size);
 
