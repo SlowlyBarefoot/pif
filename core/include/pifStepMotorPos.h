@@ -7,67 +7,67 @@
 
 
 /**
- * @class _PIF_stStepMotorPosStage
+ * @class StPifStepMotorPosStage
  * @brief
  */
-typedef struct _PIF_stStepMotorPosStage
+typedef struct StPifStepMotorPosStage
 {
-	uint8_t enMode;				// PIF_enMotorMode
+	uint8_t mode;				// PifMotorMode
 
     // Sensor
-    PifSensor **ppstStartSensor;
-    PifSensor **ppstReduceSensor;
-    PifSensor **ppstStopSensor;
+    PifSensor** pp_start_sensor;
+    PifSensor** pp_reduce_sensor;
+    PifSensor** pp_stop_sensor;
 
 	// 가속 구간 (Gained speed range)
-	uint16_t usGsStartPps;		// 초기 기동 P/S 설정
-	uint16_t usGsCtrlPps;		// 가속 P/S 설정. 이 값이 0인 경우 가속 구간을 생략함.
+	uint16_t gs_start_pps;		// 초기 기동 P/S 설정
+	uint16_t gs_ctrl_pps;		// 가속 P/S 설정. 이 값이 0인 경우 가속 구간을 생략함.
 
 	// 정속 구간 (Fixed speed range)
-	uint16_t usFsHighPps;		// 정해진 P/S
-	uint32_t unFsPulseCount;	// 정속 구간까지의 이동 pulse
+	uint16_t fs_high_pps;		// 정해진 P/S
+	uint32_t fs_pulse_count;	// 정속 구간까지의 이동 pulse
 
 	// 감속 구간 (Reduce speed range)
-    uint16_t usRsLowPps;		// 정위치에 정지하기 위한 저속 P/S
-	uint16_t usRsCtrlPps;		// 감속 P/S 설정. 이 값이 0인 경우 감속 구간을 생략함.
-    uint16_t usRsBreakTime;		// 전자식 또는 기계식 브레이크 사용시 브레이크 잡는 시간 설정.
+    uint16_t rs_low_pps;		// 정위치에 정지하기 위한 저속 P/S
+	uint16_t rs_ctrl_pps;		// 감속 P/S 설정. 이 값이 0인 경우 감속 구간을 생략함.
+    uint16_t rs_break_time;		// 전자식 또는 기계식 브레이크 사용시 브레이크 잡는 시간 설정.
 
-	uint32_t unTotalPulse;		// 총 이동 pulse
-} PIF_stStepMotorPosStage;
+	uint32_t total_pulse;		// 총 이동 pulse
+} PifStepMotorPosStage;
 
 /**
- * @class _PIF_stStepMotorPos
+ * @class StPifStepMotorPos
  * @brief
  */
-typedef struct _PIF_stStepMotorPos
+typedef struct StPifStepMotorPos
 {
 	PifStepMotor parent;
 
 	// Public Member Variable
 
 	// Read-only Member Variable
-    uint8_t _ucStageIndex;
+    uint8_t _stage_index;
 
 	// Private Member Variable
-    uint8_t __ucStageSize;
-    const PIF_stStepMotorPosStage *__pstStages;
-    const PIF_stStepMotorPosStage *__pstCurrentStage;
-} PIF_stStepMotorPos;
+    uint8_t __stage_size;
+    const PifStepMotorPosStage* __p_stages;
+    const PifStepMotorPosStage* __p_current_stage;
+} PifStepMotorPos;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-PifStepMotor *pifStepMotorPos_Create(PifId usPifId, PifPulse* p_timer, uint8_t ucResolution,
-		PifStepMotorOperation enOperation, uint16_t usControlPeriodMs);
+PifStepMotor* pifStepMotorPos_Create(PifId id, PifPulse* p_timer, uint8_t resolution,
+		PifStepMotorOperation operation, uint16_t control_period1ms);
 void pifStepMotorPos_Destroy(PifStepMotor** pp_parent);
 
-BOOL pifStepMotorPos_AddStages(PifStepMotor *pstOwner, uint8_t ucStageSize, const PIF_stStepMotorPosStage *pstStages);
+BOOL pifStepMotorPos_AddStages(PifStepMotor* p_parent, uint8_t stage_size, const PifStepMotorPosStage* p_stages);
 
-BOOL pifStepMotorPos_Start(PifStepMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime);
-void pifStepMotorPos_Stop(PifStepMotor *pstOwner);
-void pifStepMotorPos_Emergency(PifStepMotor *pstOwner);
+BOOL pifStepMotorPos_Start(PifStepMotor* p_parent, uint8_t stage_index, uint32_t operating_time);
+void pifStepMotorPos_Stop(PifStepMotor* p_parent);
+void pifStepMotorPos_Emergency(PifStepMotor* p_parent);
 
 #ifdef __cplusplus
 }
