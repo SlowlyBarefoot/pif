@@ -39,7 +39,7 @@ typedef struct _PIF_stStepMotorSpeedStage
  */
 typedef struct _PIF_stStepMotorSpeed
 {
-	PIF_stStepMotor parent;
+	PifStepMotor parent;
 
 	// Public Member Variable
 
@@ -57,15 +57,15 @@ typedef struct _PIF_stStepMotorSpeed
 extern "C" {
 #endif
 
-PIF_stStepMotor *pifStepMotorSpeed_Create(PifId usPifId, PifPulse* p_timer, uint8_t ucResolution,
-		PIF_enStepMotorOperation enOperation, uint16_t usControlPeriodMs);
-void pifStepMotorSpeed_Destroy(PIF_stStepMotor** pp_parent);
+PifStepMotor *pifStepMotorSpeed_Create(PifId usPifId, PifPulse* p_timer, uint8_t ucResolution,
+		PifStepMotorOperation enOperation, uint16_t usControlPeriodMs);
+void pifStepMotorSpeed_Destroy(PifStepMotor** pp_parent);
 
-BOOL pifStepMotorSpeed_AddStages(PIF_stStepMotor *pstOwner, uint8_t ucStageSize, const PIF_stStepMotorSpeedStage *pstStages);
+BOOL pifStepMotorSpeed_AddStages(PifStepMotor *pstOwner, uint8_t ucStageSize, const PIF_stStepMotorSpeedStage *pstStages);
 
-BOOL pifStepMotorSpeed_Start(PIF_stStepMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime);
-void pifStepMotorSpeed_Stop(PIF_stStepMotor *pstOwner);
-void pifStepMotorSpeed_Emergency(PIF_stStepMotor *pstOwner);
+BOOL pifStepMotorSpeed_Start(PifStepMotor *pstOwner, uint8_t ucStageIndex, uint32_t unOperatingTime);
+void pifStepMotorSpeed_Stop(PifStepMotor *pstOwner);
+void pifStepMotorSpeed_Emergency(PifStepMotor *pstOwner);
 
 #ifdef __cplusplus
 }

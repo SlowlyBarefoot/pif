@@ -6,85 +6,85 @@
 #include "pifMotor.h"
 
 
-typedef enum _PIF_enStepMotorMethod
+typedef enum EnPifStepMotorMethod
 {
-	SMM_enTimer		= 0,
-	SMM_enTask		= 1
-} PIF_enStepMotorMethod;
+	SMM_TIMER		= 0,
+	SMM_TASK		= 1
+} PifStepMotorMethod;
 
-typedef enum _PIF_enStepMotorOperation
+typedef enum EnPifStepMotorOperation
 {
-	SMO_en2P_2W			= 1,	// 2-Phase 2-Wire
-	SMO_en2P_4W_1S		= 2,	// 2-Phase 4-Wire : 1 Step
-	SMO_en2P_4W_2S		= 3,	// 2-Phase 4-Wire : 2 Step
-	SMO_en2P_4W_1_2S	= 4,	// 2-Phase 4-Wire : 1-2 Step
+	SMO_2P_2W			= 1,	// 2-Phase 2-Wire
+	SMO_2P_4W_1S		= 2,	// 2-Phase 4-Wire : 1 Step
+	SMO_2P_4W_2S		= 3,	// 2-Phase 4-Wire : 2 Step
+	SMO_2P_4W_1_2S		= 4,	// 2-Phase 4-Wire : 1-2 Step
 #if 0
-	SMO_en5P_PG			= 5		// 5-Phase Pantagon
+	SMO_5P_PG			= 5		// 5-Phase Pantagon
 #endif
-} PIF_enStepMotorOperation;
+} PifStepMotorOperation;
 
 
-struct _PIF_stStepMotor;
-typedef struct _PIF_stStepMotor PIF_stStepMotor;
+struct StPifStepMotor;
+typedef struct StPifStepMotor PifStepMotor;
 
-typedef void (*PIF_actStepMotorSetStep)(uint16_t usPhase);
+typedef void (*PifActStepMotorSetStep)(uint16_t phase);
 
-typedef void (*PIF_evtStepMotorStable)(PIF_stStepMotor *pstOwner);
-typedef void (*PIF_evtStepMotorStop)(PIF_stStepMotor *pstOwner);
-typedef void (*PIF_evtStepMotorError)(PIF_stStepMotor *pstOwner);
+typedef void (*PifEvtStepMotorStable)(PifStepMotor* p_owner);
+typedef void (*PifEvtStepMotorStop)(PifStepMotor* p_owner);
+typedef void (*PifEvtStepMotorError)(PifStepMotor* p_owner);
 
-typedef void (*PIF_fnStepMotorControl)(PIF_stStepMotor *pstOwner);
-typedef void (*PIF_fnStepMotorStopStep)(PIF_stStepMotor *pstOwner);
+typedef void (*PifStepMotorControl)(PifStepMotor* p_owner);
+typedef void (*PifStepMotorStopStep)(PifStepMotor* p_owner);
 
 
 /**
- * @class _PIF_stStepMotor
+ * @class StPifStepMotor
  * @brief
  */
-struct _PIF_stStepMotor
+struct StPifStepMotor
 {
 	// Public Member Variable
 
     // Public Event Function
-    PIF_evtStepMotorStable evtStable;
-    PIF_evtStepMotorStop evtStop;
-    PIF_evtStepMotorError evtError;
+    PifEvtStepMotorStable evt_stable;
+    PifEvtStepMotorStop evt_stop;
+    PifEvtStepMotorError evt_error;
 
 	// Read-only Member Variable
-    PifId _usPifId;
-    PifPulse *_p_timer;
-    PIF_enStepMotorMethod _enMethod;
-    PIF_enStepMotorOperation _enOperation;
-    uint16_t _usResolution;
-	uint16_t _usCurrentPps;
-    uint8_t _ucReductionGearRatio;
-    uint8_t _ucDirection;
-    PifMotorState _enState;
-    uint32_t _unCurrentPulse;
+    PifId _id;
+    PifPulse* _p_timer;
+    PifStepMotorMethod _method;
+    PifStepMotorOperation _operation;
+    uint16_t _resolution;
+	uint16_t _current_pps;
+    uint8_t _reduction_gear_ratio;
+    uint8_t _direction;
+    PifMotorState _state;
+    uint32_t _current_pulse;
 
 	// Private Member Variable
-    uint8_t __ucError;
-	uint8_t __ucStepSize;
-	uint16_t __usStepPeriodUs;
-	uint16_t __usControlPeriodMs;
+    uint8_t __error;
+	uint8_t __step_size;
+	uint16_t __step_period1us;
+	uint16_t __control_period1ms;
 
-	PifTask *__pstTask;
+	PifTask* __p_task;
 
-	PifPulseItem *__pstTimerStep;
-	PifPulseItem *__pstTimerControl;
-	PifPulseItem *__pstTimerDelay;
-	PifPulseItem *__pstTimerBreak;
+	PifPulseItem* __p_timer_step;
+	PifPulseItem* __p_timer_control;
+	PifPulseItem* __p_timer_delay;
+	PifPulseItem* __p_timer_break;
 
-	uint8_t __ucCurrentStep;
-	uint32_t __unTargetPulse;
-	const uint16_t *__pusPhaseOperation;
+	uint8_t __current_step;
+	uint32_t __target_pulse;
+	const uint16_t* __p_phase_operation;
 
     // Private Action Function
-    PIF_actStepMotorSetStep __actSetStep;
+    PifActStepMotorSetStep __act_set_step;
 
 	// Private Member Function
-    PIF_fnStepMotorControl __fnControl;
-    PIF_fnStepMotorStopStep __fnStopStep;
+    PifStepMotorControl __control;
+    PifStepMotorStopStep __stop_step;
 };
 
 
@@ -92,34 +92,34 @@ struct _PIF_stStepMotor
 extern "C" {
 #endif
 
-PIF_stStepMotor *pifStepMotor_Create(PifId usPifId, PifPulse* p_timer, uint16_t usResolution, PIF_enStepMotorOperation enOperation);
-void pifStepMotor_Destroy(PIF_stStepMotor** pp_owner);
+PifStepMotor* pifStepMotor_Create(PifId id, PifPulse* p_timer, uint16_t resolution, PifStepMotorOperation operation);
+void pifStepMotor_Destroy(PifStepMotor** pp_owner);
 
-BOOL pifStepMotor_Init(PIF_stStepMotor* p_owner, PifId usPifId, PifPulse* p_timer, uint16_t usResolution, PIF_enStepMotorOperation enOperation);
-void pifStepMotor_Clear(PIF_stStepMotor* p_owner);
+BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifPulse* p_timer, uint16_t resolution, PifStepMotorOperation operation);
+void pifStepMotor_Clear(PifStepMotor* p_owner);
 
-void pifStepMotor_AttachAction(PIF_stStepMotor *pstOwner, PIF_actStepMotorSetStep actSetStep);
+void pifStepMotor_AttachAction(PifStepMotor* p_owner, PifActStepMotorSetStep act_set_step);
 
-BOOL pifStepMotor_SetDirection(PIF_stStepMotor *pstOwner, uint8_t ucDirection);
-BOOL pifStepMotor_SetMethod(PIF_stStepMotor *pstOwner, PIF_enStepMotorMethod enMethod);
-BOOL pifStepMotor_SetOperatingTime(PIF_stStepMotor *pstOwner, uint32_t unOperatingTime);
-BOOL pifStepMotor_SetOperation(PIF_stStepMotor *pstOwner, PIF_enStepMotorOperation enOperation);
-BOOL pifStepMotor_SetPps(PIF_stStepMotor *pstOwner, uint16_t usPps);
-BOOL pifStepMotor_SetReductionGearRatio(PIF_stStepMotor *pstOwner, uint8_t ucReductionGearRatio);
-BOOL pifStepMotor_SetRpm(PIF_stStepMotor *pstOwner, float fRpm);
-float pifStepMotor_GetRpm(PIF_stStepMotor *pstOwner);
-BOOL pifStepMotor_SetTargetPulse(PIF_stStepMotor *pstOwner, uint32_t unTargetPulse);
+BOOL pifStepMotor_SetDirection(PifStepMotor* p_owner, uint8_t direction);
+BOOL pifStepMotor_SetMethod(PifStepMotor* p_owner, PifStepMotorMethod method);
+BOOL pifStepMotor_SetOperatingTime(PifStepMotor* p_owner, uint32_t operating_time);
+BOOL pifStepMotor_SetOperation(PifStepMotor* p_owner, PifStepMotorOperation operation);
+BOOL pifStepMotor_SetPps(PifStepMotor* p_owner, uint16_t pps);
+BOOL pifStepMotor_SetReductionGearRatio(PifStepMotor* p_owner, uint8_t reduction_gear_ratio);
+BOOL pifStepMotor_SetRpm(PifStepMotor* p_owner, float rpm);
+float pifStepMotor_GetRpm(PifStepMotor* p_owner);
+BOOL pifStepMotor_SetTargetPulse(PifStepMotor* p_owner, uint32_t target_pulse);
 
-BOOL pifStepMotor_Start(PIF_stStepMotor *pstOwner, uint32_t unTargetPulse);
-void pifStepMotor_Break(PIF_stStepMotor *pstOwner);
-void pifStepMotor_Release(PIF_stStepMotor *pstOwner);
-void pifStepMotor_BreakRelease(PIF_stStepMotor *pstOwner, uint16_t usBreakTime);
+BOOL pifStepMotor_Start(PifStepMotor* p_owner, uint32_t target_pulse);
+void pifStepMotor_Break(PifStepMotor* p_owner);
+void pifStepMotor_Release(PifStepMotor* p_owner);
+void pifStepMotor_BreakRelease(PifStepMotor* p_owner, uint16_t break_time);
 
-BOOL pifStepMotor_InitControl(PIF_stStepMotor *pstOwner, uint16_t usControlPeriodMs);
-BOOL pifStepMotor_StartControl(PIF_stStepMotor *pstOwner);
+BOOL pifStepMotor_InitControl(PifStepMotor* p_owner, uint16_t control_period1ms);
+BOOL pifStepMotor_StartControl(PifStepMotor* p_owner);
 
 // Task Function
-PifTask *pifStepMotor_AttachTask(PIF_stStepMotor *pstOwner, PifTaskMode enMode, uint16_t usPeriod, BOOL bStart);
+PifTask* pifStepMotor_AttachTask(PifStepMotor* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }
