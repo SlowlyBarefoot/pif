@@ -29,9 +29,7 @@ BOOL pifSList_Init(PifSList* p_owner)
         return FALSE;
 	}
 
-	p_owner->p_head = NULL;
-	p_owner->p_tail = NULL;
-	p_owner->size = 0;
+    memset(p_owner, 0, sizeof(PifSList));
 	return TRUE;
 }
 
@@ -165,9 +163,7 @@ BOOL pifDList_Init(PifDList* p_owner)
         return FALSE;
 	}
 
-	p_owner->p_head = NULL;
-	p_owner->p_tail = NULL;
-	p_owner->size = 0;
+    memset(p_owner, 0, sizeof(PifDList));
 	return TRUE;
 }
 

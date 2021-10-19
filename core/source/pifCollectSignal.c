@@ -17,7 +17,6 @@ typedef enum EnPifCollectSignalStep
 
 typedef struct StPifCollectSignalDevice
 {
-	PifId id;
 	PifCollectSignalVarType var_type;
 	uint8_t index;
 	uint16_t size;
@@ -28,10 +27,11 @@ typedef struct StPifCollectSignalDevice
 typedef struct StPifCollectSignal
 {
 	const char* p_module_name;
+	PifCollectSignalScale scale;
 	PifCollectSignalMethod method;
 	PifCollectSignalStep step;
 	uint8_t device_count;
-	uint32_t timer1ms;
+	uint32_t timer;
 	PifRingBuffer buffer;
 	PifDList device;
 	PifAddCollectSignalDevice add_device[32];
@@ -71,7 +71,22 @@ static void _printHeader()
 
 	pifLog_Printf(LT_VCD, "$version %u.%u.%u $end\n", PIF_VERSION_MAJOR, PIF_VERSION_MINOR, PIF_VERSION_PATCH);
 
-	pifLog_Printf(LT_VCD, "$timescale 1ms $end\n");
+	switch (s_collect_signal.scale) {
+	case CSS_1S:
+		pifLog_Printf(LT_VCD, "$timescale 1s $end\n");
+		break;
+
+	case CSS_1MS:
+		pifLog_Printf(LT_VCD, "$timescale 1ms $end\n");
+		break;
+
+	case CSS_1US:
+		pifLog_Printf(LT_VCD, "$timescale 1us $end\n");
+		break;
+
+	default:
+		break;
+	}
 
 	pifLog_Printf(LT_VCD, "$scope module %s $end\n", s_collect_signal.p_module_name);
 	it = pifDList_Begin(&s_collect_signal.device);
@@ -114,7 +129,8 @@ static void _printHeader()
 void pifCollectSignal_Init(const char* p_module_name)
 {
 	s_collect_signal.p_module_name = p_module_name;
-	s_collect_signal.method = CSM_REALTIME;
+	s_collect_signal.scale = CSS_1MS;
+	s_collect_signal.method = CSM_LOG;
 	s_collect_signal.step = CSS_IDLE;
 	s_collect_signal.device_count = 0;
 	pifDList_Init(&s_collect_signal.device);
@@ -122,13 +138,13 @@ void pifCollectSignal_Init(const char* p_module_name)
 }
 
 /**
- * @fn pifCollectSignal_InitHeap
+ * @fn pifCollectSignal_AllocHeap
  * @brief CollectSignal 구조체 초기화한다.
  * @param p_module_name
  * @param size
  * @return
  */
-BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size)
+BOOL pifCollectSignal_AllocHeap(const char *p_module_name, uint16_t size)
 {
 	pifCollectSignal_Init(p_module_name);
 
@@ -139,14 +155,14 @@ BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size)
 }
 
 /**
- * @fn pifCollectSignal_InitStatic
+ * @fn pifCollectSignal_AllocStatic
  * @brief CollectSignal 구조체 초기화한다.
  * @param p_module_name
  * @param size
  * @param p_buffer
  * @return
  */
-BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8_t* p_buffer)
+BOOL pifCollectSignal_AllocStatic(const char *p_module_name, uint16_t size, uint8_t* p_buffer)
 {
 	pifCollectSignal_Init(p_module_name);
 
@@ -163,6 +179,32 @@ BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8
 void pifCollectSignal_Clear()
 {
 	pifRingBuffer_Clear(&s_collect_signal.buffer);
+}
+
+/**
+ * @fn pifCollectSignal_ChangeScale
+ * @brief
+ * @param scale
+ */
+BOOL pifCollectSignal_ChangeScale(PifCollectSignalScale scale)
+{
+	if (s_collect_signal.step != CSS_IDLE) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
+
+	if (scale >= CSS_1NS) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	if (scale == CSS_1US && !pif_act_timer1us) {
+		pif_error = E_CANNOT_USE;
+		return FALSE;
+	}
+
+	s_collect_signal.scale = scale;
+	return TRUE;
 }
 
 /**
@@ -192,7 +234,10 @@ void pifCollectSignal_ChangeFlag(uint8_t* p_flag, uint8_t index, uint8_t flag)
  */
 BOOL pifCollectSignal_ChangeMethod(PifCollectSignalMethod method)
 {
-	if (s_collect_signal.step != CSS_IDLE) return FALSE;
+	if (s_collect_signal.step != CSS_IDLE) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
 
 	s_collect_signal.method = method;
 	return TRUE;
@@ -227,7 +272,6 @@ void* pifCollectSignal_AddDevice(PifId id, PifCollectSignalVarType var_type, uin
 	p_device = pifDList_AddLast(&s_collect_signal.device, sizeof(PifCollectSignalDevice));
 	if (!p_device) return NULL;
 
-	p_device->id = id;
 	p_device->var_type = var_type;
 	p_device->index = s_collect_signal.device_count;
 	p_device->size = size;
@@ -251,10 +295,10 @@ void pifCollectSignal_Start()
 	for (int i = 0; i < 32; i++) {
 		if (s_collect_signal.add_device[i]) (*s_collect_signal.add_device[i])();
 	}
-	s_collect_signal.timer1ms = 0L;
+	s_collect_signal.timer = 0L;
 
 	switch (s_collect_signal.method) {
-	case CSM_REALTIME:
+	case CSM_LOG:
 		_printHeader();
 
 		pifLog_Printf(LT_VCD, "#0\n");
@@ -280,7 +324,7 @@ void pifCollectSignal_Stop()
 	s_collect_signal.step = CSS_IDLE;
 
 	switch (s_collect_signal.method) {
-	case CSM_REALTIME:
+	case CSM_LOG:
 		pifLog_Printf(LT_VCD, "#%u\n", pif_cumulative_timer1ms);
 		break;
 
@@ -303,37 +347,109 @@ void pifCollectSignal_Stop()
 void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
 {
 	PifCollectSignalDevice* p_device = (PifCollectSignalDevice*)p_dev;
-	char buffer[24];
+	char buffer[64];
+	uint32_t timer;
 
 	if (s_collect_signal.step != CSS_COLLECT) return;
 
 	switch (s_collect_signal.method) {
-	case CSM_REALTIME:
-		if (s_collect_signal.timer1ms != pif_cumulative_timer1ms) {
-			pifLog_Printf(LT_VCD, "#%u\n", pif_cumulative_timer1ms);
-			s_collect_signal.timer1ms = pif_cumulative_timer1ms;
+	case CSM_LOG:
+		switch (s_collect_signal.scale) {
+		case CSS_1S:
+			if (s_collect_signal.timer != pif_timer1sec) {
+				pifLog_Printf(LT_VCD, "#%lu\n", pif_timer1sec);
+				s_collect_signal.timer = pif_timer1sec;
+			}
+			break;
+
+		case CSS_1MS:
+			if (s_collect_signal.timer != pif_cumulative_timer1ms) {
+				pifLog_Printf(LT_VCD, "#%lu\n", pif_cumulative_timer1ms);
+				s_collect_signal.timer = pif_cumulative_timer1ms;
+			}
+			break;
+
+		case CSS_1US:
+			timer = (*pif_act_timer1us)();
+			if (s_collect_signal.timer != timer) {
+				pifLog_Printf(LT_VCD, "#%lu\n", timer);
+				s_collect_signal.timer = timer;
+			}
+			break;
+
+		default:
+			break;
 		}
-		if (p_device->size == 1) {
-			pifLog_Printf(LT_VCD, "%u%c\n", state, '!' + p_device->index);
-		}
-		else {
+
+		switch (p_device->var_type) {
+		case CSVT_INTEGER:
+		case CSVT_REG:
 			pifLog_Printf(LT_VCD, "b%b %c\n", state, '!' + p_device->index);
+			break;
+
+		case CSVT_REAL:
+			pifLog_Printf(LT_VCD, "r%d %c\n", (double)state, '!' + p_device->index);
+			break;
+
+		case CSVT_WIRE:
+			pifLog_Printf(LT_VCD, "%u%c\n", state, '!' + p_device->index);
+			break;
+
+		default:
+			break;
 		}
 		break;
 
 	case CSM_BUFFER:
-		if (s_collect_signal.timer1ms != pif_cumulative_timer1ms) {
-			pif_Printf(buffer, "#%u\n", pif_cumulative_timer1ms);
-			pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
-			s_collect_signal.timer1ms = pif_cumulative_timer1ms;
+		switch (s_collect_signal.scale) {
+		case CSS_1S:
+			if (s_collect_signal.timer != pif_timer1sec) {
+				pif_Printf(buffer, "#%lu\n", pif_timer1sec);
+				pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
+				s_collect_signal.timer = pif_timer1sec;
+			}
+			break;
+
+		case CSS_1MS:
+			if (s_collect_signal.timer != pif_cumulative_timer1ms) {
+				pif_Printf(buffer, "#%lu\n", pif_cumulative_timer1ms);
+				pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
+				s_collect_signal.timer = pif_cumulative_timer1ms;
+			}
+			break;
+
+		case CSS_1US:
+			timer = (*pif_act_timer1us)();
+			if (s_collect_signal.timer != timer) {
+				pif_Printf(buffer, "#%lu\n", timer);
+				pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
+				s_collect_signal.timer = timer;
+			}
+			break;
+
+		default:
+			break;
 		}
-		if (p_device->size == 1) {
-			pif_Printf(buffer, "%u%c\n", state, '!' + p_device->index);
-		}
-		else {
+
+		switch (p_device->var_type) {
+		case CSVT_INTEGER:
+		case CSVT_REG:
 			pif_Printf(buffer, "b%b %c\n", state, '!' + p_device->index);
+			break;
+
+		case CSVT_REAL:
+			pif_Printf(buffer, "r%d %c\n", (double)state, '!' + p_device->index);
+			break;
+
+		case CSVT_WIRE:
+			pif_Printf(buffer, "%u%c\n", state, '!' + p_device->index);
+			break;
+
+		default:
+			buffer[0] = 0;
+			break;
 		}
-		pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
+		if (buffer[0]) pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
 		break;
 	}
 }

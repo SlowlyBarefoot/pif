@@ -13,7 +13,7 @@
  */
 PifI2c* pifI2c_Create(PifId id, uint16_t data_size)
 {
-	PifI2c* p_owner = calloc(sizeof(PifI2c), 1);
+	PifI2c* p_owner = malloc(sizeof(PifI2c));
 	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
@@ -56,7 +56,7 @@ BOOL pifI2c_Init(PifI2c* p_owner, PifId id, uint16_t data_size)
 		return FALSE;
 	}
 
-	p_owner->p_data = NULL;
+    memset(p_owner, 0, sizeof(PifI2c));
 
 	if (!data_size) {
 		pif_error = E_INVALID_PARAM;
@@ -72,8 +72,6 @@ BOOL pifI2c_Init(PifI2c* p_owner, PifId id, uint16_t data_size)
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     p_owner->data_size = data_size;
-    p_owner->_state_read = IS_IDLE;
-    p_owner->_state_write = IS_IDLE;
     return TRUE;
 }
 

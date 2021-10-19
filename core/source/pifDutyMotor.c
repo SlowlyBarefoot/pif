@@ -51,7 +51,7 @@ PifDutyMotor* pifDutyMotor_Create(PifId id, PifPulse* p_timer, uint16_t max_duty
 {
     PifDutyMotor* p_owner = NULL;
 
-    p_owner = calloc(sizeof(PifDutyMotor), 1);
+    p_owner = malloc(sizeof(PifDutyMotor));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
@@ -91,8 +91,7 @@ BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint1
 	    return FALSE;
 	}
 
-	p_owner->__p_timer_delay = NULL;
-	p_owner->__p_timer_break = NULL;
+    memset(p_owner, 0, sizeof(PifDutyMotor));
 
     if (!p_timer) {
 		pif_error = E_INVALID_PARAM;
@@ -102,7 +101,6 @@ BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint1
     p_owner->_p_timer = p_timer;
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-    p_owner->_state = MS_IDLE;
     p_owner->_max_duty = max_duty;
     return TRUE;
 }

@@ -12,7 +12,7 @@
  */
 PifGps* pifGps_Create(PifId id)
 {
-	PifGps *p_owner = calloc(sizeof(PifGps), 1);
+	PifGps *p_owner = malloc(sizeof(PifGps));
 	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
@@ -47,6 +47,8 @@ BOOL pifGps_Init(PifGps* p_owner, PifId id)
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
+
+    memset(p_owner, 0, sizeof(PifGps));
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
 	p_owner->_id = id;

@@ -129,7 +129,7 @@ PifStepMotor* pifStepMotor_Create(PifId id, PifPulse* p_timer, uint16_t resoluti
 		goto fail;
 	}
 
-    p_owner = calloc(sizeof(PifStepMotor), 1);
+    p_owner = malloc(sizeof(PifStepMotor));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
@@ -174,9 +174,7 @@ BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifPulse* p_timer, uint1
 		return FALSE;
 	}
 
-	p_owner->__p_timer_step = NULL;
-	p_owner->__p_timer_break = NULL;
-	p_owner->__p_timer_delay = NULL;
+    memset(p_owner, 0, sizeof(PifStepMotor));
 
     p_owner->_p_timer = p_timer;
 	p_owner->__p_timer_step = pifPulse_AddItem(p_timer, PT_REPEAT);
@@ -190,7 +188,6 @@ BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifPulse* p_timer, uint1
     p_owner->_resolution = resolution;
     p_owner->_reduction_gear_ratio = 1;
     p_owner->__step_period1us = 1000;
-    p_owner->_state = MS_IDLE;
     return TRUE;
 }
 
