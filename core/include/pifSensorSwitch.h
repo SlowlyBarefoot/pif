@@ -87,7 +87,7 @@ extern "C" {
 #endif
 
 PifSensor* pifSensorSwitch_Create(PifId id, SWITCH init_state);
-void pifSensorSwitch_Destroy(PifSensor** pp_sensor);
+void pifSensorSwitch_Destroy(PifSensor** pp_parent);
 
 void pifSensorSwitch_InitialState(PifSensor* p_parent);
 

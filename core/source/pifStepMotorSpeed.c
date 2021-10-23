@@ -141,10 +141,15 @@ PifStepMotor* pifStepMotorSpeed_Create(PifId id, PifPulse* p_timer, uint8_t reso
 {
 	PifStepMotorSpeed* p_owner = NULL;
 
+    if (!p_timer) {
+		pif_error = E_INVALID_PARAM;
+		return NULL;
+	}
+
 	p_owner = calloc(sizeof(PifStepMotorSpeed), 1);
     if (!p_owner) {
         pif_error = E_OUT_OF_HEAP;
-        goto fail;
+		return NULL;
     }
 
     PifStepMotor* p_parent = (PifStepMotor*)&p_owner->parent;

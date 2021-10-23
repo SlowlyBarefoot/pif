@@ -122,25 +122,17 @@ static void _evtTimerBreakFinish(void *p_issuer)
  */
 PifStepMotor* pifStepMotor_Create(PifId id, PifPulse* p_timer, uint16_t resolution, PifStepMotorOperation operation)
 {
-    PifStepMotor* p_owner = NULL;
-
-    if (!p_timer) {
-		pif_error = E_INVALID_PARAM;
-		goto fail;
-	}
-
-    p_owner = malloc(sizeof(PifStepMotor));
+    PifStepMotor* p_owner = malloc(sizeof(PifStepMotor));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
-		goto fail;
+		return NULL;
 	}
 
-    if (!pifStepMotor_Init(p_owner, id, p_timer, resolution, operation)) goto fail;
+    if (!pifStepMotor_Init(p_owner, id, p_timer, resolution, operation)) {
+		pifStepMotor_Destroy(&p_owner);
+		return NULL;
+	}
     return p_owner;
-
-fail:
-	pifStepMotor_Destroy(&p_owner);
-    return NULL;
 }
 
 /**
@@ -169,7 +161,7 @@ void pifStepMotor_Destroy(PifStepMotor** pp_owner)
  */
 BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifPulse* p_timer, uint16_t resolution, PifStepMotorOperation operation)
 {
-    if (!p_owner) {
+    if (!p_owner || !p_timer) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -178,7 +170,7 @@ BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifPulse* p_timer, uint1
 
     p_owner->_p_timer = p_timer;
 	p_owner->__p_timer_step = pifPulse_AddItem(p_timer, PT_REPEAT);
-    if (!p_owner->__p_timer_step) return FALSE;
+    if (!p_owner->__p_timer_step) goto fail;
     pifPulse_AttachEvtFinish(p_owner->__p_timer_step, _evtTimerStepFinish, p_owner);
 
 	pifStepMotor_SetOperation(p_owner, operation);
@@ -189,6 +181,10 @@ BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifPulse* p_timer, uint1
     p_owner->_reduction_gear_ratio = 1;
     p_owner->__step_period1us = 1000;
     return TRUE;
+
+fail:
+	pifStepMotor_Clear(p_owner);
+	return FALSE;	
 }
 
 /**

@@ -46,6 +46,9 @@ extern "C" {
 PifFnd* pifFnd_Create(PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFndDisplay act_display);
 void pifFnd_Destroy(PifFnd** pp_owner);
 
+BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFndDisplay act_display);
+void pifFnd_Clear(PifFnd* p_owner);
+
 void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count);
 
 void pifFnd_Start(PifFnd* p_owner);

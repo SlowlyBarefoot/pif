@@ -79,6 +79,9 @@ extern "C" {
 PifGpio* pifGpio_Create(PifId id, uint8_t count);
 void pifGpio_Destroy(PifGpio** pp_owner);
 
+BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count);
+void pifGpio_Clear(PifGpio* p_owner);
+
 uint8_t pifGpio_ReadAll(PifGpio* p_owner);
 SWITCH pifGpio_ReadCell(PifGpio* p_owner, uint8_t index);
 

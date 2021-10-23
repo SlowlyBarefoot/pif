@@ -36,12 +36,15 @@ extern "C" {
 PifPmlcdI2c* pifPmlcdI2c_Create(PifId id, uint8_t addr);
 void pifPmlcdI2c_Destroy(PifPmlcdI2c** pp_owner);
 
+BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, uint8_t addr);
+void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner);
+
 void pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size);
 
 void pifPmlcdI2c_Print(PifPmlcdI2c* p_owner, const char* p_string);
 void pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...);
 
-void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner);
+void pifPmlcdI2c_DisplayClear(PifPmlcdI2c* p_owner);
 
 void pifPmlcdI2c_Home(PifPmlcdI2c* p_owner);
 

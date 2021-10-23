@@ -35,24 +35,16 @@ static void _evtTimerBlinkFinish(void* p_issuer)
  */
 PifLed* pifLed_Create(PifId id, PifPulse* p_timer, uint8_t count, PifActLedState act_state)
 {
-	PifLed* p_owner = NULL;
-
-    if (!p_timer || !count || count > 32 || !act_state) {
-        pif_error = E_INVALID_PARAM;
-	    return NULL;
-    }
-
-    p_owner = calloc(sizeof(PifLed), 1);
+	PifLed* p_owner = malloc(sizeof(PifLed));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-    p_owner->__p_timer = p_timer;
-    if (id == PIF_ID_AUTO) id = pif_id++;
-    p_owner->_id = id;
-    p_owner->count = count;
-    p_owner->__act_state = act_state;
+    if (!pifLed_Init(p_owner, id, p_timer, count, act_state)) {
+		pifLed_Destroy(&p_owner);
+	    return NULL;
+	}
     return p_owner;
 }
 
@@ -64,12 +56,49 @@ PifLed* pifLed_Create(PifId id, PifPulse* p_timer, uint8_t count, PifActLedState
 void pifLed_Destroy(PifLed** pp_owner)
 {
 	if (*pp_owner) {
-		PifLed* p_owner = *pp_owner;
-		if (p_owner->__p_timer_blink) {
-			pifPulse_RemoveItem(p_owner->__p_timer_blink);
-		}
+		pifLed_Clear(*pp_owner);
 		free(*pp_owner);
 		*pp_owner = NULL;
+	}
+}
+
+/**
+ * @fn pifLed_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param p_timer
+ * @param count
+ * @param act_state
+ * @return
+ */
+BOOL pifLed_Init(PifLed* p_owner, PifId id, PifPulse* p_timer, uint8_t count, PifActLedState act_state)
+{
+	if (!p_owner || !p_timer || !count || count > 32 || !act_state) {
+		pif_error = E_INVALID_PARAM;
+	    return FALSE;
+	}
+
+	memset(p_owner, 0, sizeof(PifLed));
+
+    p_owner->__p_timer = p_timer;
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+    p_owner->count = count;
+    p_owner->__act_state = act_state;
+    return TRUE;
+}
+
+/**
+ * @fn pifLed_Clear
+ * @brief
+ * @param p_owner
+ */
+void pifLed_Clear(PifLed* p_owner)
+{
+	if (p_owner->__p_timer_blink) {
+		pifPulse_RemoveItem(p_owner->__p_timer_blink);
+		p_owner->__p_timer_blink = NULL;
 	}
 }
 

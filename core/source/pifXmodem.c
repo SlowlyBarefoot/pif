@@ -322,18 +322,51 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
  */
 PifXmodem* pifXmodem_Create(PifId id, PifPulse* p_timer, PifXmodemType type)
 {
-    PifXmodem *p_owner = NULL;
-
-    if (!p_timer) {
-		pif_error = E_INVALID_PARAM;
-		goto fail;
-	}
-
-    p_owner = calloc(sizeof(PifXmodem), 1);
+    PifXmodem *p_owner = malloc(sizeof(PifXmodem));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
-		goto fail;
+		return NULL;
 	}
+
+	if (!pifXmodem_Init(p_owner, id, p_timer, type)) {
+		pifXmodem_Destroy(&p_owner);
+		return NULL;
+	}
+
+    return p_owner;
+}
+
+/**
+ * @fn pifXmodem_Destroy
+ * @brief
+ * @param pp_owner
+ */
+void pifXmodem_Destroy(PifXmodem** pp_owner)
+{
+    if (*pp_owner) {
+    	pifXmodem_Clear(*pp_owner);
+    	free(*pp_owner);
+    	*pp_owner = NULL;
+    }
+}
+
+/**
+ * @fn pifXmodem_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param p_timer
+ * @param type
+ * @return
+ */
+BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifPulse* p_timer, PifXmodemType type)
+{
+    if (!p_owner || !p_timer) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	memset(p_owner, 0, sizeof(PifXmodem));
 
     p_owner->__p_timer = p_timer;
     switch (type) {
@@ -364,45 +397,40 @@ PifXmodem* pifXmodem_Create(PifId id, PifPulse* p_timer, PifXmodemType type)
 
     p_owner->__type = type;
 
-    p_owner->__tx.state = XTS_IDLE;
     pifPulse_AttachEvtFinish(p_owner->__tx.p_timer, _evtTimerTxTimeout, p_owner);
     p_owner->__tx.timeout = PIF_XMODEM_RESPONSE_TIMEOUT;
 
-    p_owner->__rx.state = XRS_IDLE;
     pifPulse_AttachEvtFinish(p_owner->__rx.p_timer, _evtTimerRxTimeout, p_owner);
     p_owner->__rx.timeout = PIF_XMODEM_RECEIVE_TIMEOUT;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-    return p_owner;
+    return TRUE;
 
 fail:
-	pifXmodem_Destroy(&p_owner);
-	return NULL;
+	pifXmodem_Clear(p_owner);
+	return FALSE;
 }
 
 /**
- * @fn pifXmodem_Destroy
+ * @fn pifXmodem_Clear
  * @brief
- * @param pp_owner
+ * @param p_owner
  */
-void pifXmodem_Destroy(PifXmodem** pp_owner)
+void pifXmodem_Clear(PifXmodem* p_owner)
 {
-    if (*pp_owner) {
-    	PifXmodem* p_owner = *pp_owner;
-		if (p_owner->__p_data) {
-			free(p_owner->__p_data);
-			p_owner->__p_data = NULL;
-		}
-		if (p_owner->__rx.p_timer) {
-			pifPulse_RemoveItem(p_owner->__rx.p_timer);
-		}
-		if (p_owner->__tx.p_timer) {
-			pifPulse_RemoveItem(p_owner->__tx.p_timer);
-		}
-    	free(*pp_owner);
-    	*pp_owner = NULL;
-    }
+	if (p_owner->__p_data) {
+		free(p_owner->__p_data);
+		p_owner->__p_data = NULL;
+	}
+	if (p_owner->__rx.p_timer) {
+		pifPulse_RemoveItem(p_owner->__rx.p_timer);
+		p_owner->__rx.p_timer = NULL;
+	}
+	if (p_owner->__tx.p_timer) {
+		pifPulse_RemoveItem(p_owner->__tx.p_timer);
+		p_owner->__tx.p_timer = NULL;
+	}
 }
 
 /**

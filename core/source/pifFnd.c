@@ -44,18 +44,51 @@ void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count)
  */
 PifFnd* pifFnd_Create(PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFndDisplay act_display)
 {
-    PifFnd *p_owner = NULL;
-
-    if (!p_timer || !digit_size || !act_display) {
-        pif_error = E_INVALID_PARAM;
-        goto fail;
-    }
-
-    p_owner = calloc(sizeof(PifFnd), 1);
+    PifFnd *p_owner = malloc(sizeof(PifFnd));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
-		goto fail;
+		return NULL;
 	}
+
+	if (!pifFnd_Init(p_owner, id, p_timer, digit_size, act_display)) {
+		pifFnd_Destroy(&p_owner);
+		return NULL;
+	}
+    return p_owner;
+}
+
+/**
+ * @fn pifFnd_Destroy
+ * @brief
+ * @param pp_owner
+ */
+void pifFnd_Destroy(PifFnd** pp_owner)
+{
+	if (*pp_owner) {
+		pifFnd_Clear(*pp_owner);
+		free(*pp_owner);
+		*pp_owner = NULL;
+	}
+}
+
+/**
+ * @fn pifFnd_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param p_timer
+ * @param digit_size
+ * @param act_display
+ * @return
+ */
+BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFndDisplay act_display)
+{
+    if (!p_owner || !p_timer || !digit_size || !act_display) {
+        pif_error = E_INVALID_PARAM;
+        return FALSE;
+    }
+
+	memset(p_owner, 0, sizeof(PifFnd));
 
     p_owner->__p_string = calloc(sizeof(uint8_t), digit_size);
     if (!p_owner->__p_string) {
@@ -70,32 +103,27 @@ PifFnd* pifFnd_Create(PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFnd
     p_owner->__bt.led = ON;
     p_owner->_digit_size = digit_size;
     p_owner->__act_display = act_display;
-    p_owner->__p_timer_blink = NULL;
-    return p_owner;
+    return TRUE;
 
 fail:
-	if (p_owner) free(p_owner);
-    return NULL;
+	pifFnd_Clear(p_owner);
+    return FALSE;
 }
 
 /**
- * @fn pifFnd_Destroy
+ * @fn pifFnd_Clear
  * @brief
- * @param pp_owner
+ * @param p_owner
  */
-void pifFnd_Destroy(PifFnd** pp_owner)
+void pifFnd_Clear(PifFnd* p_owner)
 {
-	if (*pp_owner) {
-		PifFnd* p_owner = *pp_owner;
-		if (p_owner->__p_string) {
-			free(p_owner->__p_string);
-			p_owner->__p_string = NULL;
-		}
-		if (p_owner->__p_timer_blink) {
-			pifPulse_RemoveItem(p_owner->__p_timer_blink);
-		}
-		free(*pp_owner);
-		*pp_owner = NULL;
+	if (p_owner->__p_string) {
+		free(p_owner->__p_string);
+		p_owner->__p_string = NULL;
+	}
+	if (p_owner->__p_timer_blink) {
+		pifPulse_RemoveItem(p_owner->__p_timer_blink);
+		p_owner->__p_timer_blink = NULL;
 	}
 }
 

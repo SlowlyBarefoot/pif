@@ -97,6 +97,9 @@ extern "C" {
 PifGpsNmea* pifGpsNmea_Create(PifId usPifId);
 void pifGpsNmea_Destroy(PifGpsNmea** pp_owner);
 
+BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId usPifId);
+void pifGpsNmea_Clear(PifGpsNmea* p_owner);
+
 void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* pstComm);
 void pifGpsNmea_AttachEvtText(PifGpsNmea* p_owner, PifEvtGpsNmeaText evt_text);
 

@@ -56,25 +56,17 @@ static BOOL _chopOff(PifRingBuffer* p_owner, uint16_t count)
  */
 PifRingBuffer* pifRingBuffer_CreateHeap(PifId id, uint16_t size)
 {
-	PifRingBuffer* p_owner = NULL;
-
-    if (!size) {
-		pif_error = E_INVALID_PARAM;
-		goto fail;
-	}
-
-    p_owner = calloc(sizeof(PifRingBuffer), 1);
+	PifRingBuffer* p_owner = malloc(sizeof(PifRingBuffer));
 	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
-		goto fail;
+		return NULL;
 	}
 
-	if (!pifRingBuffer_InitHeap(p_owner, id, size)) goto fail;
+	if (!pifRingBuffer_InitHeap(p_owner, id, size)) {
+		pifRingBuffer_Destroy(&p_owner);
+		return NULL;
+	}
     return p_owner;
-
-fail:
-	pifRingBuffer_Destroy(&p_owner);
-    return NULL;
 }
 
 /**
@@ -87,25 +79,17 @@ fail:
  */
 PifRingBuffer* pifRingBuffer_CreateStatic(PifId id, uint16_t size, uint8_t* p_buffer)
 {
-	PifRingBuffer* p_owner = NULL;
-
-    if (!size) {
-		pif_error = E_INVALID_PARAM;
-		goto fail;
-	}
-
-    p_owner = calloc(sizeof(PifRingBuffer), 1);
+	PifRingBuffer* p_owner = calloc(sizeof(PifRingBuffer), 1);
 	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
-		goto fail;
+		return NULL;
 	}
 
-	if (!pifRingBuffer_InitStatic(p_owner, id, size, p_buffer)) goto fail;
+	if (!pifRingBuffer_InitStatic(p_owner, id, size, p_buffer)) {
+		pifRingBuffer_Destroy(&p_owner);
+		return NULL;
+	}
     return p_owner;
-
-fail:
-	pifRingBuffer_Destroy(&p_owner);
-    return NULL;
 }
 
 /**
@@ -132,17 +116,12 @@ void pifRingBuffer_Destroy(PifRingBuffer** pp_owner)
  */
 BOOL pifRingBuffer_InitHeap(PifRingBuffer* p_owner, PifId id, uint16_t size)
 {
-    if (!p_owner) {
+    if (!p_owner || !size) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
-	p_owner->__p_buffer = NULL;
-
-    if (!size) {
-		pif_error = E_INVALID_PARAM;
-		goto fail;
-	}
+	memset(p_owner, 0, sizeof(PifRingBuffer));
 
 	p_owner->__p_buffer = calloc(sizeof(uint8_t), size);
 	if (!p_owner->__p_buffer) {
@@ -152,11 +131,7 @@ BOOL pifRingBuffer_InitHeap(PifRingBuffer* p_owner, PifId id, uint16_t size)
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
 	p_owner->_id = id;
-	p_owner->__p_name = NULL;
-    p_owner->_bt.is_static = FALSE;
     p_owner->_size = size;
-    p_owner->__head = 0;
-    p_owner->__tail = 0;
     return TRUE;
 
 fail:
@@ -175,32 +150,20 @@ fail:
  */
 BOOL pifRingBuffer_InitStatic(PifRingBuffer* p_owner, PifId id, uint16_t size, uint8_t* p_buffer)
 {
-    if (!p_owner) {
+    if (!p_owner || !size) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
-	p_owner->__p_buffer = NULL;
-
-    if (!size) {
-		pif_error = E_INVALID_PARAM;
-		goto fail;
-	}
+	memset(p_owner, 0, sizeof(PifRingBuffer));
 
 	p_owner->__p_buffer = p_buffer;
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
 	p_owner->_id = id;
-	p_owner->__p_name = NULL;
     p_owner->_bt.is_static = TRUE;
     p_owner->_size = size;
-    p_owner->__head = 0;
-    p_owner->__tail = 0;
     return TRUE;
-
-fail:
-	pifRingBuffer_Clear(p_owner);
-    return FALSE;
 }
 
 /**
@@ -210,12 +173,10 @@ fail:
  */
 void pifRingBuffer_Clear(PifRingBuffer* p_owner)
 {
-	if (p_owner) {
-		if (p_owner->_bt.is_static == FALSE && p_owner->__p_buffer) {
-	        free(p_owner->__p_buffer);
-	    }
-        p_owner->__p_buffer = NULL;
+	if (p_owner->_bt.is_static == FALSE && p_owner->__p_buffer) {
+        free(p_owner->__p_buffer);
     }
+    p_owner->__p_buffer = NULL;
 }
 
 /**

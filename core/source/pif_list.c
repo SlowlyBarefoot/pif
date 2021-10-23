@@ -5,11 +5,16 @@
 
 PifSList* pifSList_Create()
 {
-	PifSList* p_owner = calloc(sizeof(PifSList), 1);
+	PifSList* p_owner = malloc(sizeof(PifSList));
 	if (p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
+
+    if (!pifSList_Init(p_owner)) {
+        pifSList_Destroy(&p_owner);
+		return NULL;
+    }
 	return p_owner;
 }
 
@@ -139,11 +144,16 @@ PifSListIterator pifSList_Find(PifSList* p_owner, int index)
 
 PifDList* pifDList_Create()
 {
-	PifDList* p_owner = calloc(sizeof(PifDList), 1);
+	PifDList* p_owner = malloc(sizeof(PifDList));
 	if (p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
+
+    if (!pifDList_Init(p_owner)) {
+        pifDList_Destroy(&p_owner);
+        return NULL;
+    }
 	return p_owner;
 }
 

@@ -158,7 +158,7 @@ static void _fnStopStep(PifStepMotor* p_parent)
 }
 
 /**
- * @fn pifStepMotorPos_Add
+ * @fn pifStepMotorPos_Create
  * @brief 
  * @param id
  * @param p_timer
@@ -170,10 +170,15 @@ PifStepMotor* pifStepMotorPos_Create(PifId id, PifPulse* p_timer, uint8_t resolu
 {
 	PifStepMotorPos* p_owner = NULL;
 
+    if (!p_timer) {
+		pif_error = E_INVALID_PARAM;
+		return NULL;
+	}
+
     p_owner = calloc(sizeof(PifStepMotorPos), 1);
     if (!p_owner) {
         pif_error = E_OUT_OF_HEAP;
-        goto fail;
+		return NULL;
     }
 
     PifStepMotor* p_parent = &p_owner->parent;

@@ -88,6 +88,9 @@ extern "C" {
 PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, const PifSequencePhase* p_phase_list, void* p_param);
 void pifSequence_Destroy(PifSequence** pp_owner);
 
+BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, const PifSequencePhase* p_phase_list, void* p_param);
+void pifSequence_Clear(PifSequence* p_owner);
+
 #ifdef __PIF_COLLECT_SIGNAL__
 
 void pifSequence_SetCsFlagAll(PifSequenceCsFlag flag);

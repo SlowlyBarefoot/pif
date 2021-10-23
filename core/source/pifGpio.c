@@ -58,30 +58,16 @@ void pifGpio_ColSigClear()
  */
 PifGpio* pifGpio_Create(PifId id, uint8_t count)
 {
-    PifGpio* p_owner = NULL;
-
-    if (!count || count > PIF_GPIO_MAX_COUNT) {
-        pif_error = E_INVALID_PARAM;
-	    return NULL;
-    }
-
-    p_owner = calloc(sizeof(PifGpio), 1);
+    PifGpio* p_owner = malloc(sizeof(PifGpio));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-    if (id == PIF_ID_AUTO) id = pif_id++;
-    p_owner->_id = id;
-    p_owner->count = count;
-
-#ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_GPIO, _addDeviceInCollectSignal);
-	PIF_GpioColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_GpioColSig));
-	if (!p_colsig) return NULL;
-	p_colsig->p_owner = p_owner;
-	p_owner->__p_colsig = p_colsig;
-#endif
+    if (!pifGpio_Init(p_owner, id, count)) {
+		pifGpio_Destroy(&p_owner);
+	    return NULL;
+	}
     return p_owner;
 }
 
@@ -93,9 +79,71 @@ PifGpio* pifGpio_Create(PifId id, uint8_t count)
 void pifGpio_Destroy(PifGpio** pp_owner)
 {
     if (*pp_owner) {
+    	pifGpio_Clear(*pp_owner);
     	free(*pp_owner);
         *pp_owner = NULL;
     }
+}
+
+/**
+ * @fn pifGpio_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param count
+ * @return
+ */
+BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count)
+{
+	if (!p_owner || !count || count > PIF_GPIO_MAX_COUNT) {
+		pif_error = E_INVALID_PARAM;
+	    return FALSE;
+	}
+
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+    p_owner->count = count;
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	if (!pifDList_Size(&s_cs_list)) {
+		pifCollectSignal_Attach(CSF_GPIO, _addDeviceInCollectSignal);
+	}
+	PIF_GpioColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_GpioColSig));
+	if (!p_colsig) goto fail;
+	p_colsig->p_owner = p_owner;
+	p_owner->__p_colsig = p_colsig;
+#endif
+	return TRUE;
+
+fail:
+	pifGpio_Clear(p_owner);
+	return FALSE;	
+}
+
+/**
+ * @fn pifGpio_Clear
+ * @brief
+ * @param p_owner
+ */
+void pifGpio_Clear(PifGpio* p_owner)
+{
+#ifdef __PIF_COLLECT_SIGNAL__
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PIF_GpioColSig* p_colsig = (PIF_GpioColSig*)it->data;
+		if (p_colsig == p_owner->__p_colsig) {
+			pifDList_Remove(&s_cs_list, it);
+			break;
+		}
+		it = pifDList_Next(it);
+	}
+	if (!pifDList_Size(&s_cs_list)) {
+		pifCollectSignal_Detach(CSF_GPIO);
+	}
+	p_owner->__p_colsig = NULL;
+#else
+	(void)p_owner;
+#endif
 }
 
 /**

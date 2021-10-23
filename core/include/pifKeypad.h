@@ -76,6 +76,9 @@ extern "C" {
 PifKeypad* pifKeypad_Create(PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap);
 void pifKeypad_Destroy(PifKeypad** pp_owner);
 
+BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap);
+void pifKeypad_Clear(PifKeypad* p_owner);
+
 void pifKeypad_AttachAction(PifKeypad* p_owner, PifActKeypadAcquire act_acquire);
 
 BOOL pifKeypad_SetHoldTime(PifKeypad* p_owner, uint16_t hold_time1ms);

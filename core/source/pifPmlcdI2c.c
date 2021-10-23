@@ -90,28 +90,17 @@ static void _send(PifPmlcdI2c* p_owner, uint8_t value, uint8_t mode)
  */
 PifPmlcdI2c* pifPmlcdI2c_Create(PifId id, uint8_t addr)
 {
-    PifPmlcdI2c* p_owner = NULL;
-
-    if (!pif_act_timer1us) {
-		pif_error = E_INVALID_PARAM;
-		goto fail;
-	}
-
-    p_owner = calloc(sizeof(PifPmlcdI2c), 1);
+    PifPmlcdI2c* p_owner = malloc(sizeof(PifPmlcdI2c));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
-		goto fail;
+		return NULL;
 	}
 
-    if (!pifI2c_Init(&p_owner->_i2c, id, 2)) goto fail;
-    p_owner->_i2c.addr = addr;
-    p_owner->__backlight_val = LCD_NO_BACK_LIGHT;
-    p_owner->__display_function = LCD_4BIT_MODE | LCD_1LINE | LCD_5x8_DOTS;
+    if (!pifPmlcdI2c_Init(p_owner, id, addr)) {
+		pifPmlcdI2c_Destroy(&p_owner);
+		return NULL;
+	}
     return p_owner;
-
-fail:
-	if (p_owner) free(p_owner);
-    return NULL;
 }
 
 /**
@@ -122,13 +111,56 @@ fail:
 void pifPmlcdI2c_Destroy(PifPmlcdI2c** pp_owner)
 {
     if (*pp_owner) {
-    	if ((*pp_owner)->_i2c.p_data) {
-        	free((*pp_owner)->_i2c.p_data);
-            (*pp_owner)->_i2c.p_data = NULL;
-    	}
+		pifPmlcdI2c_Clear(*pp_owner);
     	free(*pp_owner);
     	*pp_owner = NULL;
     }
+}
+
+/**
+ * @fn pifPmlcdI2c_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param addr
+ * @return
+ */
+BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, uint8_t addr)
+{
+    if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+    if (!pif_act_timer1us) {
+		pif_error = E_CANNOT_USE;
+		return FALSE;
+	}
+
+	memset(p_owner, 0, sizeof(PifPmlcdI2c));
+
+    if (!pifI2c_Init(&p_owner->_i2c, id, 2)) goto fail;
+    p_owner->_i2c.addr = addr;
+    p_owner->__backlight_val = LCD_NO_BACK_LIGHT;
+    p_owner->__display_function = LCD_4BIT_MODE | LCD_1LINE | LCD_5x8_DOTS;
+    return TRUE;
+
+fail:
+	pifPmlcdI2c_Clear(p_owner);
+    return FALSE;
+}
+
+/**
+ * @fn pifPmlcdI2c_Clear
+ * @brief
+ * @param p_owner
+ */
+void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner)
+{
+	if (p_owner->_i2c.p_data) {
+		free(p_owner->_i2c.p_data);
+		p_owner->_i2c.p_data = NULL;
+	}
 }
 
 /**
@@ -232,11 +264,11 @@ void pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...)
 }
 
 /**
- * @fn pifPmlcdI2c_Clear
+ * @fn pifPmlcdI2c_DisplayClear
  * @brief
  * @param p_owner
  */
-void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner)
+void pifPmlcdI2c_DisplayClear(PifPmlcdI2c* p_owner)
 {
 	_send(p_owner, LCD_CLEAR_DISPLAY, 0);// clear display, set cursor position to zero
 	pifTaskManager_YieldMs(2);  // this command takes a long time!

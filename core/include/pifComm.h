@@ -99,6 +99,9 @@ extern "C" {
 PifComm* pifComm_Create(PifId id);
 void pifComm_Destroy(PifComm** pp_owner);
 
+BOOL pifComm_Init(PifComm* p_owner, PifId id);
+void pifComm_Clear(PifComm* p_owner);
+
 BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_size);
 BOOL pifComm_AllocTxBuffer(PifComm* p_owner, uint16_t tx_size);
 

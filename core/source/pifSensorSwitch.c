@@ -126,26 +126,50 @@ PifSensor* pifSensorSwitch_Create(PifId id, SWITCH init_state)
     p_parent->_curr_state = init_state;
 
 #ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_SENSOR_SWITCH, _addDeviceInCollectSignal);
+	if (!pifDList_Size(&s_cs_list)) {
+		pifCollectSignal_Attach(CSF_SENSOR_SWITCH, _addDeviceInCollectSignal);
+	}
 	PifSensorSwitchColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSensorSwitchColSig));
-	if (!p_colsig) return NULL;
+	if (!p_colsig) goto fail;
 	p_colsig->p_owner = p_owner;
 	p_owner->__p_colsig = p_colsig;
 	p_colsig->state = init_state;
 #endif
     return p_parent;
+
+fail:
+	pifSensorSwitch_Destroy((PifSensor**)&p_owner);
+	return NULL;
 }
 
 /**
  * @fn pifSensorSwitch_Destroy
  * @brief
- * @param pp_sensor
+ * @param pp_parent
  */
-void pifSensorSwitch_Destroy(PifSensor** pp_sensor)
+void pifSensorSwitch_Destroy(PifSensor** pp_parent)
 {
-    if (*pp_sensor) {
-        free(*pp_sensor);
-        *pp_sensor = NULL;
+    if (*pp_parent) {
+#ifdef __PIF_COLLECT_SIGNAL__
+    	PifSensorSwitch* p_owner = (PifSensorSwitch*)*pp_parent;
+
+		PifDListIterator it = pifDList_Begin(&s_cs_list);
+		while (it) {
+			PifSensorSwitchColSig* p_colsig = (PifSensorSwitchColSig*)it->data;
+			if (p_colsig == p_owner->__p_colsig) {
+				pifDList_Remove(&s_cs_list, it);
+				break;
+			}
+			it = pifDList_Next(it);
+		}
+		if (!pifDList_Size(&s_cs_list)) {
+			pifCollectSignal_Detach(CSF_SENSOR_SWITCH);
+		}
+		p_owner->__p_colsig = NULL;
+#endif
+
+        free(*pp_parent);
+        *pp_parent = NULL;
     }
 }
 

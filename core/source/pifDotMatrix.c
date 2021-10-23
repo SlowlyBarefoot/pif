@@ -146,18 +146,53 @@ static void _evtTimerShiftFinish(void* p_issuer)
 PifDotMatrix* pifDotMatrix_Create(PifId id, PifPulse* p_timer, uint16_t col_size, uint16_t row_size,
 		PifActDotMatrixDisplay act_display)
 {
-	PifDotMatrix* p_owner = NULL;
-
-    if (!p_timer || !col_size || !row_size || !act_display) {
-        pif_error = E_INVALID_PARAM;
-        goto fail;
-    }
-
-    p_owner = calloc(sizeof(PifDotMatrix), 1);
+	PifDotMatrix* p_owner = malloc(sizeof(PifDotMatrix));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
-		goto fail;
+	    return NULL;
 	}
+
+	if (!pifDotMatrix_Init(p_owner, id, p_timer, col_size, row_size, act_display)) {
+		pifDotMatrix_Destroy(&p_owner);
+		return NULL;
+	}
+    return p_owner;
+}
+
+/**
+ * @fn pifDotMatrix_Destroy
+ * @brief
+ * @param pp_owner
+ */
+void pifDotMatrix_Destroy(PifDotMatrix** pp_owner)
+{
+	if (*pp_owner) {
+		pifDotMatrix_Clear(*pp_owner);
+		free(*pp_owner);
+		*pp_owner = NULL;
+	}
+}
+
+/**
+ * @fn pifDotMatrix_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param p_timer
+ * @param col_size
+ * @param row_size
+ * @param act_display
+ * @return
+ */
+BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifPulse* p_timer, uint16_t col_size, uint16_t row_size,
+		PifActDotMatrixDisplay act_display)
+{
+    if (!p_owner || !p_timer || !col_size || !row_size || !act_display) {
+        pif_error = E_INVALID_PARAM;
+	    return FALSE;
+    }
+
+	memset(p_owner, 0, sizeof(PifDotMatrix));
 
     p_owner->__p_timer = p_timer;
     p_owner->__col_size = col_size;
@@ -175,40 +210,35 @@ PifDotMatrix* pifDotMatrix_Create(PifId id, PifPulse* p_timer, uint16_t col_size
     p_owner->_id = id;
     p_owner->__bt.led = ON;
     p_owner->__act_display = act_display;
-    p_owner->__p_timer_blink = NULL;
-    p_owner->__p_timer_shift = NULL;
-    return p_owner;
+    return TRUE;
 
 fail:
-	if (p_owner) free(p_owner);
-    return NULL;
+	pifDotMatrix_Clear(p_owner);
+    return FALSE;
 }
 
 /**
- * @fn pifDotMatrix_Destroy
+ * @fn pifDotMatrix_Clear
  * @brief
- * @param pp_owner
+ * @param p_owner
  */
-void pifDotMatrix_Destroy(PifDotMatrix** pp_owner)
+void pifDotMatrix_Clear(PifDotMatrix* p_owner)
 {
-	if (*pp_owner) {
-		PifDotMatrix* p_owner = *pp_owner;
-		if (p_owner->__p_paper) {
-			free(p_owner->__p_paper);
-			p_owner->__p_paper = NULL;
-		}
-		if (p_owner->__p_pattern) {
-			free(p_owner->__p_pattern);
-			p_owner->__p_pattern = NULL;
-		}
-		if (p_owner->__p_timer_blink) {
-			pifPulse_RemoveItem(p_owner->__p_timer_blink);
-		}
-		if (p_owner->__p_timer_shift) {
-			pifPulse_RemoveItem(p_owner->__p_timer_shift);
-		}
-		free(*pp_owner);
-		*pp_owner = NULL;
+	if (p_owner->__p_paper) {
+		free(p_owner->__p_paper);
+		p_owner->__p_paper = NULL;
+	}
+	if (p_owner->__p_pattern) {
+		free(p_owner->__p_pattern);
+		p_owner->__p_pattern = NULL;
+	}
+	if (p_owner->__p_timer_blink) {
+		pifPulse_RemoveItem(p_owner->__p_timer_blink);
+		p_owner->__p_timer_blink = NULL;
+	}
+	if (p_owner->__p_timer_shift) {
+		pifPulse_RemoveItem(p_owner->__p_timer_shift);
+		p_owner->__p_timer_shift = NULL;
 	}
 }
 

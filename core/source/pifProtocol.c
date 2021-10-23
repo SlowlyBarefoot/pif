@@ -420,34 +420,69 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
  * @brief
  * @param id
  * @param p_timer
- * @param enType
+ * @param type
  * @param p_questions
  * @return
  */
-PifProtocol *pifProtocol_Create(PifId id, PifPulse* p_timer, PifProtocolType type,
+PifProtocol* pifProtocol_Create(PifId id, PifPulse* p_timer, PifProtocolType type,
 		const PifProtocolQuestion* p_questions)
 {
-    PifProtocol* p_owner = NULL;
+    PifProtocol* p_owner = malloc(sizeof(PifProtocol));
+    if (!p_owner) {
+		pif_error = E_OUT_OF_HEAP;
+		return NULL;
+	}
+
+	if (!pifProtocol_Init(p_owner, id, p_timer, type, p_questions)) {
+		pifProtocol_Destroy(&p_owner);
+		return NULL;
+	}
+    return p_owner;
+}
+
+/**
+ * @fn pifProtocol_Destroy
+ * @brief
+ * @param pp_owner
+ */
+void pifProtocol_Destroy(PifProtocol** pp_owner)
+{
+    if (*pp_owner) {
+    	pifProtocol_Clear(*pp_owner);
+    	free(*pp_owner);
+    	*pp_owner = NULL;
+    }
+}
+
+/**
+ * @fn pifProtocol_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param p_timer
+ * @param type
+ * @param p_questions
+ * @return
+ */
+BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifPulse* p_timer, PifProtocolType type,
+		const PifProtocolQuestion* p_questions)
+{
 	const PifProtocolQuestion* p_question = p_questions;
 
-	if (!p_timer) {
+	if (!p_owner || !p_timer || !p_questions) {
 		pif_error = E_INVALID_PARAM;
-		goto fail;
+		return FALSE;
 	}
 
 	while (p_question->command) {
 		if (p_question->command < 0x20) {
 	        pif_error = E_INVALID_PARAM;
-			goto fail;
+			return FALSE;
 		}
 		p_question++;
 	}
 
-	p_owner = calloc(sizeof(PifProtocol), 1);
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-		goto fail;
-	}
+	memset(p_owner, 0, sizeof(PifProtocol));
 
     p_owner->__p_timer = p_timer;
     switch (type) {
@@ -494,37 +529,34 @@ PifProtocol *pifProtocol_Create(PifId id, PifPulse* p_timer, PifProtocolType typ
     p_owner->__packet_id = 0x20;
     p_owner->__rx.packet_size = 10 + PIF_PROTOCOL_RX_PACKET_SIZE;
     p_owner->_frame_size = 1;
-    return p_owner;
+    return TRUE;
 
 fail:
-	pifProtocol_Destroy(&p_owner);
-    return NULL;
+	pifProtocol_Clear(p_owner);
+    return FALSE;
 }
 
 /**
- * @fn pifProtocol_Destroy
+ * @fn pifProtocol_Clear
  * @brief
  * @param pp_owner
  */
-void pifProtocol_Destroy(PifProtocol** pp_owner)
+void pifProtocol_Clear(PifProtocol* p_owner)
 {
-    if (*pp_owner) {
-    	PifProtocol* p_owner = *pp_owner;
-		if (p_owner->__rx.p_packet) {
-			free(p_owner->__rx.p_packet);
-			p_owner->__rx.p_packet = NULL;
-		}
-		pifRingBuffer_Clear(&p_owner->__tx.request_buffer);
-		pifRingBuffer_Clear(&p_owner->__tx.answer_buffer);
-		if (p_owner->__rx.p_timer) {
-			pifPulse_RemoveItem(p_owner->__rx.p_timer);
-		}
-		if (p_owner->__tx.p_timer) {
-			pifPulse_RemoveItem(p_owner->__tx.p_timer);
-		}
-    	free(*pp_owner);
-    	*pp_owner = NULL;
-    }
+	if (p_owner->__rx.p_packet) {
+		free(p_owner->__rx.p_packet);
+		p_owner->__rx.p_packet = NULL;
+	}
+	pifRingBuffer_Clear(&p_owner->__tx.request_buffer);
+	pifRingBuffer_Clear(&p_owner->__tx.answer_buffer);
+	if (p_owner->__rx.p_timer) {
+		pifPulse_RemoveItem(p_owner->__rx.p_timer);
+		p_owner->__rx.p_timer = NULL;
+	}
+	if (p_owner->__tx.p_timer) {
+		pifPulse_RemoveItem(p_owner->__tx.p_timer);
+		p_owner->__tx.p_timer = NULL;
+	}
 }
 
 /**

@@ -18,7 +18,10 @@ PifGps* pifGps_Create(PifId id)
 	    return NULL;
 	}
 
-	pifGps_Init(p_owner, id);
+	if (!pifGps_Init(p_owner, id)) {
+		pifGps_Destroy(&p_owner);
+	    return NULL;
+	}
     return p_owner;
 }
 

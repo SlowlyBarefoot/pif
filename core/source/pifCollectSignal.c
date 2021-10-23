@@ -138,13 +138,13 @@ void pifCollectSignal_Init(const char* p_module_name)
 }
 
 /**
- * @fn pifCollectSignal_AllocHeap
+ * @fn pifCollectSignal_InitHeap
  * @brief CollectSignal 구조체 초기화한다.
  * @param p_module_name
  * @param size
  * @return
  */
-BOOL pifCollectSignal_AllocHeap(const char *p_module_name, uint16_t size)
+BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size)
 {
 	pifCollectSignal_Init(p_module_name);
 
@@ -155,14 +155,14 @@ BOOL pifCollectSignal_AllocHeap(const char *p_module_name, uint16_t size)
 }
 
 /**
- * @fn pifCollectSignal_AllocStatic
+ * @fn pifCollectSignal_InitStatic
  * @brief CollectSignal 구조체 초기화한다.
  * @param p_module_name
  * @param size
  * @param p_buffer
  * @return
  */
-BOOL pifCollectSignal_AllocStatic(const char *p_module_name, uint16_t size, uint8_t* p_buffer)
+BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8_t* p_buffer)
 {
 	pifCollectSignal_Init(p_module_name);
 
@@ -252,6 +252,16 @@ BOOL pifCollectSignal_ChangeMethod(PifCollectSignalMethod method)
 void pifCollectSignal_Attach(PifCollectSignalFlag flag, PifAddCollectSignalDevice add_device)
 {
 	s_collect_signal.add_device[flag] = add_device;
+}
+
+/**
+ * @fn pifCollectSignal_Detach
+ * @brief
+ * @param flag
+ */
+void pifCollectSignal_Detach(PifCollectSignalFlag flag)
+{
+	s_collect_signal.add_device[flag] = NULL;
 }
 
 /**

@@ -190,6 +190,10 @@ PifProtocol* pifProtocol_Create(PifId id, PifPulse* p_timer, PifProtocolType typ
 		const PifProtocolQuestion* p_questions);
 void pifProtocol_Destroy(PifProtocol** pp_owner);
 
+BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifPulse* p_timer, PifProtocolType type,
+		const PifProtocolQuestion* p_questions);
+void pifProtocol_Clear(PifProtocol* p_owner);
+
 BOOL pifProtocol_SetFrameSize(PifProtocol* p_owner, uint8_t frame_size);
 
 BOOL pifProtocol_ResizeRxPacket(PifProtocol* p_owner, uint16_t rx_packet_size);

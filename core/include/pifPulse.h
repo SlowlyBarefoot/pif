@@ -81,6 +81,9 @@ extern "C" {
 PifPulse* pifPulse_Create(PifId id, uint32_t period1us);
 void pifPulse_Destroy(PifPulse** pp_owner);
 
+BOOL pifPulse_Init(PifPulse* p_owner, PifId id, uint32_t period1us);
+void pifPulse_Clear(PifPulse* p_owner);
+
 PifPulseItem* pifPulse_AddItem(PifPulse* p_owner, PifPulseType type);
 void pifPulse_RemoveItem(PifPulseItem* p_item);
 

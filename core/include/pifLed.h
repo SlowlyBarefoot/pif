@@ -38,6 +38,9 @@ extern "C" {
 PifLed* pifLed_Create(PifId id, PifPulse* p_timer, uint8_t count, PifActLedState act_state);
 void pifLed_Destroy(PifLed** pp_owner);
 
+BOOL pifLed_Init(PifLed* p_owner, PifId id, PifPulse* p_timer, uint8_t count, PifActLedState act_state);
+void pifLed_Clear(PifLed* p_owner);
+
 void pifLed_EachOn(PifLed* p_owner, uint8_t index);
 void pifLed_EachOff(PifLed* p_owner, uint8_t index);
 void pifLed_EachChange(PifLed* p_owner, uint8_t index, SWITCH state);

@@ -33,6 +33,9 @@ extern "C" {
 PifRingData* pifRingData_Create(PifId id, uint16_t data_size, uint16_t data_count);
 void pifRingData_Destroy(PifRingData** pp_owner);
 
+BOOL pifRingData_Init(PifRingData* p_owner, PifId id, uint16_t data_size, uint16_t data_count);
+void pifRingData_Clear(PifRingData* p_owner);
+
 BOOL pifRingData_IsEmpty(PifRingData* p_owner);
 
 void* pifRingData_GetData(PifRingData* p_owner, uint16_t index);

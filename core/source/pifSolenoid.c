@@ -152,43 +152,16 @@ void pifSolenoid_ColSigClear()
 PifSolenoid* pifSolenoid_Create(PifId id, PifPulse* p_timer, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control)
 {
-    PifSolenoid *p_owner = NULL;
-
-    if (!p_timer || !act_control) {
-		pif_error = E_INVALID_PARAM;
-	    return NULL;
-	}
-
-    p_owner = calloc(sizeof(PifSolenoid), 1);
+    PifSolenoid* p_owner = malloc(sizeof(PifSolenoid));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-    p_owner->__p_timer_on = pifPulse_AddItem(p_timer, PT_ONCE);
-    if (!p_owner->__p_timer_on) return NULL;
-    pifPulse_AttachEvtFinish(p_owner->__p_timer_on, _evtTimerOnFinish, p_owner);
-
-    p_owner->__p_timer_delay = pifPulse_AddItem(p_timer, PT_ONCE);
-    if (!p_owner->__p_timer_delay) return NULL;
-    pifPulse_AttachEvtFinish(p_owner->__p_timer_delay, _evtTimerDelayFinish, p_owner);
-
-    p_owner->__p_timer = p_timer;
-    p_owner->__act_control = act_control;
-    p_owner->__state = FALSE;
-
-    if (id == PIF_ID_AUTO) id = pif_id++;
-    p_owner->_id = id;
-    p_owner->_type = type;
-    p_owner->on_time = on_time;
-
-#ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_SOLENOID, _addDeviceInCollectSignal);
-	PifSolenoidColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSolenoidColSig));
-	if (!p_colsig) return NULL;
-	p_colsig->p_owner = p_owner;
-	p_owner->__p_colsig = p_colsig;
-#endif
+	if (!pifSolenoid_Init(p_owner, id, p_timer, type, on_time, act_control)) {
+		pifSolenoid_Destroy(&p_owner);
+	    return NULL;
+	}
     return p_owner;
 }
 
@@ -200,17 +173,96 @@ PifSolenoid* pifSolenoid_Create(PifId id, PifPulse* p_timer, PifSolenoidType typ
 void pifSolenoid_Destroy(PifSolenoid** pp_owner)
 {
     if (*pp_owner) {
-		PifSolenoid* p_owner = *pp_owner;
-		if (p_owner->__p_timer_on) {
-			pifPulse_RemoveItem(p_owner->__p_timer_on);
-		}
-		if (p_owner->__p_timer_delay) {
-			pifPulse_RemoveItem(p_owner->__p_timer_delay);
-		}
-		pifRingData_Destroy(&p_owner->__p_buffer);
+		pifSolenoid_Clear(*pp_owner);
     	free(*pp_owner);
         *pp_owner = NULL;
     }
+}
+
+/**
+ * @fn pifSolenoid_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param p_timer
+ * @param type
+ * @param on_time
+ * @param act_control
+ * @return
+ */
+BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifPulse* p_timer, PifSolenoidType type, uint16_t on_time,
+		PifActSolenoidControl act_control)
+{
+    if (!p_owner || !p_timer || !act_control) {
+		pif_error = E_INVALID_PARAM;
+	    return FALSE;
+	}
+
+	memset(p_owner, 0, sizeof(PifSolenoid));
+
+    p_owner->__p_timer_on = pifPulse_AddItem(p_timer, PT_ONCE);
+    if (!p_owner->__p_timer_on) goto fail;
+    pifPulse_AttachEvtFinish(p_owner->__p_timer_on, _evtTimerOnFinish, p_owner);
+
+    p_owner->__p_timer_delay = pifPulse_AddItem(p_timer, PT_ONCE);
+    if (!p_owner->__p_timer_delay) goto fail;
+    pifPulse_AttachEvtFinish(p_owner->__p_timer_delay, _evtTimerDelayFinish, p_owner);
+
+    p_owner->__p_timer = p_timer;
+    p_owner->__act_control = act_control;
+
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+    p_owner->_type = type;
+    p_owner->on_time = on_time;
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	if (!pifDList_Size(&s_cs_list)) {
+		pifCollectSignal_Attach(CSF_SOLENOID, _addDeviceInCollectSignal);
+	}
+	PifSolenoidColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSolenoidColSig));
+	if (!p_colsig) goto fail;
+	p_colsig->p_owner = p_owner;
+	p_owner->__p_colsig = p_colsig;
+#endif
+    return TRUE;
+
+fail:
+	pifSolenoid_Clear(p_owner);
+	return FALSE;	
+}
+
+/**
+ * @fn pifSolenoid_Clear
+ * @brief
+ * @param p_owner
+ */
+void pifSolenoid_Clear(PifSolenoid* p_owner)
+{
+#ifdef __PIF_COLLECT_SIGNAL__
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PifSolenoidColSig* p_colsig = (PifSolenoidColSig*)it->data;
+		if (p_colsig == p_owner->__p_colsig) {
+			pifDList_Remove(&s_cs_list, it);
+			break;
+		}
+		it = pifDList_Next(it);
+	}
+	if (!pifDList_Size(&s_cs_list)) {
+		pifCollectSignal_Detach(CSF_SOLENOID);
+	}
+	p_owner->__p_colsig = NULL;
+#endif
+	if (p_owner->__p_timer_on) {
+		pifPulse_RemoveItem(p_owner->__p_timer_on);
+		p_owner->__p_timer_on = NULL;
+	}
+	if (p_owner->__p_timer_delay) {
+		pifPulse_RemoveItem(p_owner->__p_timer_delay);
+		p_owner->__p_timer_delay = NULL;
+	}
+	pifRingData_Destroy(&p_owner->__p_buffer);
 }
 
 /**

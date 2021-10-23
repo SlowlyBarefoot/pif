@@ -16,15 +16,14 @@ PifI2c* pifI2c_Create(PifId id, uint16_t data_size)
 	PifI2c* p_owner = malloc(sizeof(PifI2c));
 	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
-		goto fail;
+		return NULL;
 	}
 
-	if (!pifI2c_Init(p_owner, id, data_size)) goto fail;
+	if (!pifI2c_Init(p_owner, id, data_size)) {
+		pifI2c_Destroy(&p_owner);
+		return NULL;
+	}
     return p_owner;
-
-fail:
-	if (p_owner) free(p_owner);
-	return NULL;
 }
 
 /**
@@ -51,28 +50,27 @@ void pifI2c_Destroy(PifI2c** pp_owner)
  */
 BOOL pifI2c_Init(PifI2c* p_owner, PifId id, uint16_t data_size)
 {
-	if (!p_owner) {
+	if (!p_owner || !data_size) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
     memset(p_owner, 0, sizeof(PifI2c));
 
-	if (!data_size) {
-		pif_error = E_INVALID_PARAM;
-		return FALSE;
-	}
-
 	p_owner->p_data = calloc(sizeof(uint8_t), data_size);
     if (!p_owner->p_data) {
 		pif_error = E_OUT_OF_HEAP;
-		return FALSE;
+		goto fail;
 	}
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     p_owner->data_size = data_size;
     return TRUE;
+
+fail:
+	pifI2c_Clear(p_owner);
+	return FALSE;
 }
 
 /**

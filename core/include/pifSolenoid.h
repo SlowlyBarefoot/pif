@@ -106,6 +106,10 @@ PifSolenoid* pifSolenoid_Create(PifId id, PifPulse* p_timer, PifSolenoidType typ
 		PifActSolenoidControl act_control);
 void pifSolenoid_Destroy(PifSolenoid** pp_owner);
 
+BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifPulse* p_timer, PifSolenoidType type, uint16_t on_time,
+		PifActSolenoidControl act_control);
+void pifSolenoid_Clear(PifSolenoid* p_owner);
+
 BOOL pifSolenoid_SetBuffer(PifSolenoid* p_owner, uint16_t size);
 void pifSolenoid_SetInvalidDirection(PifSolenoid* p_owner);
 BOOL pifSolenoid_SetOnTime(PifSolenoid* p_owner, uint16_t on_time);

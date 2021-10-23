@@ -383,21 +383,17 @@ BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
  */
 PifGpsNmea* pifGpsNmea_Create(PifId id)
 {
-	PifGpsNmea* p_owner = calloc(sizeof(PifGpsNmea), 1);
+	PifGpsNmea* p_owner = malloc(sizeof(PifGpsNmea));
     if (!p_owner) {
         pif_error = E_OUT_OF_HEAP;
-        goto fail;
+	    return NULL;
     }
 
-    pifGps_Init(&p_owner->_gps, id);
-
-    if (!pifRingBuffer_InitHeap(&p_owner->__tx.buffer, PIF_ID_AUTO, PIF_GPS_NMEA_TX_SIZE)) goto fail;
-    pifRingBuffer_SetName(&p_owner->__tx.buffer, "TxB");
+	if (!pifGpsNmea_Init(p_owner, id)) {
+		pifGpsNmea_Destroy(&p_owner);
+	    return NULL;
+	}
     return p_owner;
-
-fail:
-	if (p_owner) free(p_owner);
-    return NULL;
 }
 
 /**
@@ -405,16 +401,53 @@ fail:
  * @brief
  * @param pp_owner
  */
-void pifGpsNmea_Destroy(PifGpsNmea **pp_owner)
+void pifGpsNmea_Destroy(PifGpsNmea** pp_owner)
 {
 	if (*pp_owner) {
-		pifRingBuffer_Clear(&(*pp_owner)->__tx.buffer);
-		if ((*pp_owner)->__p_txt) {
-			free((*pp_owner)->__p_txt);
-			(*pp_owner)->__p_txt = NULL;
-		}
+		pifGpsNmea_Clear(*pp_owner);
 		free(*pp_owner);
 		*pp_owner = NULL;
+	}
+}
+
+/**
+ * @fn pifGpsNmea_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @return
+ */
+BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId id)
+{
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+	    return FALSE;
+	}
+
+	memset(p_owner, 0, sizeof(PifGpsNmea));
+
+    if (!pifGps_Init(&p_owner->_gps, id)) goto fail;
+
+    if (!pifRingBuffer_InitHeap(&p_owner->__tx.buffer, PIF_ID_AUTO, PIF_GPS_NMEA_TX_SIZE)) goto fail;
+    pifRingBuffer_SetName(&p_owner->__tx.buffer, "TxB");
+    return TRUE;
+
+fail:
+	pifGpsNmea_Clear(p_owner);
+    return FALSE;
+}
+
+/**
+ * @fn pifGpsNmea_Clear
+ * @brief
+ * @param p_owner
+ */
+void pifGpsNmea_Clear(PifGpsNmea* p_owner)
+{
+	pifRingBuffer_Clear(&p_owner->__tx.buffer);
+	if (p_owner->__p_txt) {
+		free(p_owner->__p_txt);
+		p_owner->__p_txt = NULL;
 	}
 }
 

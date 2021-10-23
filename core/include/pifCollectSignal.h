@@ -67,16 +67,17 @@ extern "C" {
 #endif
 
 void pifCollectSignal_Init(const char* p_module_name);
+BOOL pifCollectSignal_InitHeap(const char* p_module_name, uint16_t size);
+BOOL pifCollectSignal_InitStatic(const char* p_module_name, uint16_t size, uint8_t* p_buffer);
 void pifCollectSignal_Clear();
-
-BOOL pifCollectSignal_AllocHeap(const char* p_module_name, uint16_t size);
-BOOL pifCollectSignal_AllocStatic(const char* p_module_name, uint16_t size, uint8_t* p_buffer);
 
 BOOL pifCollectSignal_ChangeScale(PifCollectSignalScale scale);
 void pifCollectSignal_ChangeFlag(uint8_t* p_flag, uint8_t index, uint8_t flag);
 BOOL pifCollectSignal_ChangeMethod(PifCollectSignalMethod method);
 
 void pifCollectSignal_Attach(PifCollectSignalFlag flag, PifAddCollectSignalDevice add_device);
+void pifCollectSignal_Detach(PifCollectSignalFlag flag);
+
 void* pifCollectSignal_AddDevice(PifId id, PifCollectSignalVarType var_type, uint16_t size,
 		const char* p_reference, uint16_t initial_value);
 

@@ -195,10 +195,15 @@ PifDutyMotor* pifDutyMotorSpeedEnc_Create(PifId id, PifPulse* p_timer, uint16_t 
 {
 	PifDutyMotorSpeedEnc* p_owner = NULL;
 
+    if (!p_timer || !max_duty) {
+		pif_error = E_INVALID_PARAM;
+	    return NULL;
+	}
+
 	p_owner = calloc(sizeof(PifDutyMotorSpeedEnc), 1);
     if (!p_owner) {
         pif_error = E_OUT_OF_HEAP;
-        goto fail;
+	    return NULL;
     }
 
     PifDutyMotor *p_parent = &p_owner->parent;

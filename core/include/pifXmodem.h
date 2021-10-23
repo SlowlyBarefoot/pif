@@ -110,6 +110,9 @@ extern "C" {
 PifXmodem* pifXmodem_Create(PifId id, PifPulse* p_timer, PifXmodemType type);
 void pifXmodem_Destroy(PifXmodem** pp_owner);
 
+BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifPulse* p_timer, PifXmodemType type);
+void pifXmodem_Clear(PifXmodem* p_owner);
+
 void pifXmodem_SetResponseTimeout(PifXmodem* p_owner, uint16_t response_timeout);
 void pifXmodem_SetReceiveTimeout(PifXmodem* p_owner, uint16_t receive_timeout);
 

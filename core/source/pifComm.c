@@ -46,18 +46,16 @@ static void _sendData(PifComm* p_owner)
  */
 PifComm* pifComm_Create(PifId id)
 {
-    PifComm* p_owner = NULL;
-
-    p_owner = calloc(sizeof(PifComm), 1);
+    PifComm* p_owner = malloc(sizeof(PifComm));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-    if (id == PIF_ID_AUTO) id = pif_id++;
-
-    p_owner->_id = id;
-    p_owner->__state = CTS_IDLE;
+    if (!pifComm_Init(p_owner, id)) {
+		pifComm_Destroy(&p_owner);
+		return NULL;
+	}
     return p_owner;
 }
 
@@ -69,12 +67,42 @@ PifComm* pifComm_Create(PifId id)
 void pifComm_Destroy(PifComm** pp_owner)
 {
 	if (*pp_owner) {
-		PifComm* p_owner = *pp_owner;
-		if (p_owner->_p_rx_buffer) pifRingBuffer_Destroy(&p_owner->_p_rx_buffer);
-		if (p_owner->_p_tx_buffer) pifRingBuffer_Destroy(&p_owner->_p_tx_buffer);
+		pifComm_Clear(*pp_owner);
 		free(*pp_owner);
 		*pp_owner = NULL;
 	}
+}
+
+/**
+ * @fn pifComm_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @return
+ */
+BOOL pifComm_Init(PifComm* p_owner, PifId id)
+{
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+	    return FALSE;
+	}
+
+	memset(p_owner, 0, sizeof(PifComm));
+
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+    return TRUE;
+}
+
+/**
+ * @fn pifComm_Clear
+ * @brief
+ * @param p_owner
+ */
+void pifComm_Clear(PifComm* p_owner)
+{
+	if (p_owner->_p_rx_buffer) pifRingBuffer_Destroy(&p_owner->_p_rx_buffer);
+	if (p_owner->_p_tx_buffer) pifRingBuffer_Destroy(&p_owner->_p_tx_buffer);
 }
 
 /**

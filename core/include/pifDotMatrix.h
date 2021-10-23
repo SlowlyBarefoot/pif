@@ -100,6 +100,10 @@ PifDotMatrix* pifDotMatrix_Create(PifId id, PifPulse* p_timer, uint16_t col_size
 		PifActDotMatrixDisplay act_display);
 void pifDotMatrix_Destroy(PifDotMatrix** pp_owner);
 
+BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifPulse* p_timer, uint16_t col_size, uint16_t row_size,
+		PifActDotMatrixDisplay act_display);
+void pifDotMatrix_Clear(PifDotMatrix* p_owner);
+
 BOOL pifDotMatrix_SetPatternSize(PifDotMatrix* p_owner, uint8_t size);
 BOOL pifDotMatrix_AddPattern(PifDotMatrix* p_owner, uint8_t col_size, uint8_t row_size, uint8_t* p_pattern);
 

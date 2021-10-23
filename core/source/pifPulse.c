@@ -16,29 +16,17 @@
  */
 PifPulse* pifPulse_Create(PifId id, uint32_t period1us)
 {
-	PifPulse* p_owner = NULL;
-
-    if (!period1us) {
-        pif_error = E_INVALID_PARAM;
-        goto fail;
-    }
-
-    p_owner = calloc(sizeof(PifPulse), 1);
+	PifPulse* p_owner = malloc(sizeof(PifPulse));
     if (!p_owner) {
     	pif_error = E_OUT_OF_HEAP;
-		goto fail;
+		return NULL;
 	}
 
-    if (id == PIF_ID_AUTO) id = pif_id++;
-    p_owner->_id = id;
-    if (!pifDList_Init(&p_owner->__items)) goto fail;
-
-    p_owner->_period1us = period1us;
+	if (!pifPulse_Init(p_owner, id, period1us)) {
+		pifPulse_Destroy(&p_owner);
+		return NULL;
+	}
     return p_owner;
-
-fail:
-	if (p_owner) free(p_owner);
-    return NULL;
 }
 
 /**
@@ -49,10 +37,48 @@ fail:
 void pifPulse_Destroy(PifPulse** pp_owner)
 {
 	if (*pp_owner) {
-		pifDList_Clear(&(*pp_owner)->__items);
+		pifPulse_Clear(*pp_owner);
 		free(*pp_owner);
 		*pp_owner = NULL;
 	}
+}
+
+/**
+ * @fn pifPulse_Init
+ * @brief Pulse를 추가한다.
+ * @param p_owner
+ * @param id
+ * @param period1us
+ * @return Pulse 구조체 포인터를 반환한다.
+ */
+BOOL pifPulse_Init(PifPulse* p_owner, PifId id, uint32_t period1us)
+{
+    if (!p_owner || !period1us) {
+        pif_error = E_INVALID_PARAM;
+        return FALSE;
+    }
+
+	memset(p_owner, 0, sizeof(PifPulse));
+
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+    if (!pifDList_Init(&p_owner->__items)) goto fail;
+    p_owner->_period1us = period1us;
+    return TRUE;
+
+fail:
+	pifPulse_Clear(p_owner);
+    return FALSE;
+}
+
+/**
+ * @fn pifPulse_Clear
+ * @brief Pulse용 메모리를 반환한다.
+ * @param p_owner Pulse 자신
+ */
+void pifPulse_Clear(PifPulse* p_owner)
+{
+	pifDList_Clear(&p_owner->__items);
 }
 
 /**

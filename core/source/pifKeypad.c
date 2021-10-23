@@ -121,34 +121,16 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
  */
 PifKeypad* pifKeypad_Create(PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap)
 {
-	PifKeypad* p_owner;
-
-	p_owner = calloc(sizeof(PifKeypad), 1);
+	PifKeypad* p_owner = malloc(sizeof(PifKeypad));
 	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
 
-	p_owner->__p_key = calloc(sizeof(PifKey), num_rows * num_cols);
-	if (!p_owner->__p_key) {
-		pif_error = E_OUT_OF_HEAP;
+	if (!pifKeypad_Init(p_owner, id, num_rows, num_cols, p_user_keymap)) {
+		pifKeypad_Destroy(&p_owner);
 		return NULL;
 	}
-
-	p_owner->__p_state = calloc(sizeof(uint16_t), num_rows);
-	if (!p_owner->__p_state) {
-		pif_error = E_OUT_OF_HEAP;
-		return NULL;
-	}
-
-    if (id == PIF_ID_AUTO) id = pif_id++;
-    p_owner->_id = id;
-    p_owner->__p_user_keymap = p_user_keymap;
-    p_owner->__num_rows = num_rows;
-    p_owner->__num_cols = num_cols;
-    p_owner->_hold_time1ms = PIF_KEYPAD_DEFAULT_HOLD_TIME;
-    p_owner->_long_time1ms = PIF_KEYPAD_DEFAULT_LONG_TIME;
-    p_owner->_double_time1ms = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
     return p_owner;
 }
 
@@ -160,11 +142,72 @@ PifKeypad* pifKeypad_Create(PifId id, uint8_t num_rows, uint8_t num_cols, const 
 void pifKeypad_Destroy(PifKeypad** pp_owner)
 {
 	if (*pp_owner) {
-		PifKeypad* p_owner = *pp_owner;
-		if (p_owner->__p_state) free(p_owner->__p_state);
-		if (p_owner->__p_key) free(p_owner->__p_key);
+		pifKeypad_Clear(*pp_owner);
 		free(*pp_owner);
 		*pp_owner = NULL;
+	}
+}
+
+/**
+ * @fn pifKeypad_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param num_rows
+ * @param num_cols
+ * @param p_user_keymap
+ * @return
+ */
+BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap)
+{
+	if (!p_owner || !num_rows || !num_cols || !p_user_keymap) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	memset(p_owner, 0, sizeof(PifKeypad));
+
+	p_owner->__p_key = calloc(sizeof(PifKey), num_rows * num_cols);
+	if (!p_owner->__p_key) {
+		pif_error = E_OUT_OF_HEAP;
+		goto fail;
+	}
+
+	p_owner->__p_state = calloc(sizeof(uint16_t), num_rows);
+	if (!p_owner->__p_state) {
+		pif_error = E_OUT_OF_HEAP;
+		goto fail;
+	}
+
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+    p_owner->__p_user_keymap = p_user_keymap;
+    p_owner->__num_rows = num_rows;
+    p_owner->__num_cols = num_cols;
+    p_owner->_hold_time1ms = PIF_KEYPAD_DEFAULT_HOLD_TIME;
+    p_owner->_long_time1ms = PIF_KEYPAD_DEFAULT_LONG_TIME;
+    p_owner->_double_time1ms = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
+    return TRUE;
+
+fail:
+	pifKeypad_Clear(p_owner);
+	return FALSE;
+}
+
+/**
+ * @fn pifKeypad_Clear
+ * @brief
+ * @param p_owner
+ */
+void pifKeypad_Clear(PifKeypad* p_owner)
+{
+	if (p_owner->__p_state) {
+		free(p_owner->__p_state);
+		p_owner->__p_state = NULL;
+	}
+	if (p_owner->__p_key) {
+		free(p_owner->__p_key);
+		p_owner->__p_key = NULL;
 	}
 }
 

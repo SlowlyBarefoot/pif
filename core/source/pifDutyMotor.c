@@ -49,15 +49,16 @@ static void _evtTimerBreakFinish(void* p_issuer)
  */
 PifDutyMotor* pifDutyMotor_Create(PifId id, PifPulse* p_timer, uint16_t max_duty)
 {
-    PifDutyMotor* p_owner = NULL;
-
-    p_owner = malloc(sizeof(PifDutyMotor));
+    PifDutyMotor* p_owner = malloc(sizeof(PifDutyMotor));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-    if (!pifDutyMotor_Init(p_owner, id, p_timer, max_duty)) return NULL;
+    if (!pifDutyMotor_Init(p_owner, id, p_timer, max_duty)) {
+		pifDutyMotor_Destroy(&p_owner);
+		return NULL;
+	}
     return p_owner;
 }
 
@@ -86,17 +87,12 @@ void pifDutyMotor_Destroy(PifDutyMotor** pp_owner)
  */
 BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint16_t max_duty)
 {
-    if (!p_owner) {
+    if (!p_owner || !p_timer || !max_duty) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
     memset(p_owner, 0, sizeof(PifDutyMotor));
-
-    if (!p_timer) {
-		pif_error = E_INVALID_PARAM;
-	    return FALSE;
-	}
 
     p_owner->_p_timer = p_timer;
     if (id == PIF_ID_AUTO) id = pif_id++;

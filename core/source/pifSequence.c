@@ -78,34 +78,16 @@ void pifSequence_ColSigClear()
  */
 PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, const PifSequencePhase* p_phase_list, void* p_param)
 {
-    PifSequence *p_owner = NULL;
-
-    if (!pif_act_timer1us) {
-        pif_error = E_CANNOT_USE;
-	    return NULL;
-    }
-
-    p_owner = calloc(sizeof(PifSequence), 1);
+    PifSequence *p_owner = malloc(sizeof(PifSequence));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
 	}
 
-    p_owner->__p_timer = p_timer;
-    p_owner->__p_phase_list = p_phase_list;
-
-    if (id == PIF_ID_AUTO) id = pif_id++;
-    p_owner->_id = id;
-    _setPhaseNo(p_owner, PIF_SEQUENCE_PHASE_NO_IDLE);
-    p_owner->p_param = p_param;
-
-#ifdef __PIF_COLLECT_SIGNAL__
-	pifCollectSignal_Attach(CSF_SEQUENCE, _addDeviceInCollectSignal);
-	PIF_SequenceColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_SequenceColSig));
-	if (!p_colsig) return NULL;
-	p_colsig->p_owner = p_owner;
-	p_owner->__p_colsig = p_colsig;
-#endif
+	if (!pifSequence_Init(p_owner, id, p_timer, p_phase_list, p_param)) {
+		pifSequence_Destroy(&p_owner);
+	    return NULL;
+	}
     return p_owner;
 }
 
@@ -117,13 +99,86 @@ PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, const PifSequencePh
 void pifSequence_Destroy(PifSequence** pp_owner)
 {
 	if (*pp_owner) {
-		PifSequence *p_owner = *pp_owner;
-		if (p_owner->__p_timer_timeout) {
-			pifPulse_RemoveItem(p_owner->__p_timer_timeout);
-		}
+		pifSequence_Clear(*pp_owner);
         free(*pp_owner);
         *pp_owner = NULL;
     }
+}
+
+/**
+ * @fn pifSequence_Init
+ * @brief Sequence를 추가한다.
+ * @param p_owner
+ * @param id
+ * @param p_timer
+ * @param p_phase_list
+ * @param p_param
+ * @return Sequence 구조체 포인터를 반환한다.
+ */
+BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, const PifSequencePhase* p_phase_list, void* p_param)
+{
+    if (!p_owner || !p_timer || !p_phase_list) {
+        pif_error = E_INVALID_PARAM;
+	    return FALSE;
+    }
+
+    if (!pif_act_timer1us) {
+        pif_error = E_CANNOT_USE;
+	    return FALSE;
+    }
+
+	memset(p_owner, 0, sizeof(PifSequence));
+
+    p_owner->__p_timer = p_timer;
+    p_owner->__p_phase_list = p_phase_list;
+
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+    _setPhaseNo(p_owner, PIF_SEQUENCE_PHASE_NO_IDLE);
+    p_owner->p_param = p_param;
+
+#ifdef __PIF_COLLECT_SIGNAL__
+	if (!pifDList_Size(&s_cs_list)) {
+		pifCollectSignal_Attach(CSF_SEQUENCE, _addDeviceInCollectSignal);
+	}
+	PIF_SequenceColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_SequenceColSig));
+	if (!p_colsig) goto fail;
+	p_colsig->p_owner = p_owner;
+	p_owner->__p_colsig = p_colsig;
+#endif
+    return TRUE;
+
+fail:
+	pifSequence_Clear(p_owner);
+	return FALSE;
+}
+
+/**
+ * @fn pifSequence_Clear
+ * @brief Sequence용 메모리를 반환한다.
+ * @param p_owner
+ */
+void pifSequence_Clear(PifSequence* p_owner)
+{
+#ifdef __PIF_COLLECT_SIGNAL__
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PIF_SequenceColSig* p_colsig = (PIF_SequenceColSig*)it->data;
+		if (p_colsig == p_owner->__p_colsig) {
+			pifDList_Remove(&s_cs_list, it);
+			break;
+		}
+		it = pifDList_Next(it);
+	}
+	if (!pifDList_Size(&s_cs_list)) {
+		pifCollectSignal_Detach(CSF_SEQUENCE);
+	}
+	p_owner->__p_colsig = NULL;
+#endif
+	if (p_owner->__p_timer_timeout) {
+		pifPulse_RemoveItem(p_owner->__p_timer_timeout);
+		p_owner->__p_timer_timeout = NULL;
+	}
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__
