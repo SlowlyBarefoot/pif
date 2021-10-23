@@ -183,14 +183,6 @@ static void _evtSwitchStopChange(PifId id, uint16_t level, void* p_issuer)
 	}
 }
 
-/**
- * @fn pifDutyMotorSpeedEnc_Create
- * @brief 
- * @param id
- * @param p_timer
- * @param max_duty
- * @return 
- */
 PifDutyMotor* pifDutyMotorSpeedEnc_Create(PifId id, PifPulse* p_timer, uint16_t max_duty)
 {
 	PifDutyMotorSpeedEnc* p_owner = NULL;
@@ -221,11 +213,6 @@ fail:
     return NULL;
 }
 
-/**
- * @fn pifDutyMotorSpeedEnc_Destroy
- * @brief
- * @param pp_parent
- */
 void pifDutyMotorSpeedEnc_Destroy(PifDutyMotor** pp_parent)
 {
     if (*pp_parent) {
@@ -235,14 +222,6 @@ void pifDutyMotorSpeedEnc_Destroy(PifDutyMotor** pp_parent)
     }
 }
 
-/**
- * @fn pifDutyMotorSpeedEnc_AddStages
- * @brief 
- * @param p_parent
- * @param stage_size
- * @param p_stages
- * @return 
- */
 BOOL pifDutyMotorSpeedEnc_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorSpeedEncStage* p_stages)
 {
     for (int i = 0; i < stage_size; i++) {
@@ -258,25 +237,11 @@ BOOL pifDutyMotorSpeedEnc_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, 
     return TRUE;
 }
 
-/**
- * @fn pifDutyMotorSpeedEnc_GetPidControl
- * @brief
- * @param p_parent
- * @return
- */
 PifPidControl *pifDutyMotorSpeedEnc_GetPidControl(PifDutyMotor* p_parent)
 {
 	return &((PifDutyMotorSpeedEnc*)p_parent)->__pid_control;
 }
 
-/**
- * @fn pifDutyMotorSpeedEnc_Start
- * @brief 
- * @param p_parent
- * @param stage_index
- * @param operating_time
- * @return 
- */
 BOOL pifDutyMotorSpeedEnc_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32_t operating_time)
 {
     PifDutyMotorSpeedEnc* p_owner = (PifDutyMotorSpeedEnc*)p_parent;
@@ -361,11 +326,6 @@ BOOL pifDutyMotorSpeedEnc_Start(PifDutyMotor* p_parent, uint8_t stage_index, uin
     return TRUE;
 }
 
-/**
- * @fn pifDutyMotorSpeedEnc_Stop
- * @brief 
- * @param p_parent
- */
 void pifDutyMotorSpeedEnc_Stop(PifDutyMotor* p_parent)
 {
     const PifDutyMotorSpeedEncStage* p_stage = ((PifDutyMotorSpeedEnc*)p_parent)->__p_current_stage;
@@ -380,22 +340,12 @@ void pifDutyMotorSpeedEnc_Stop(PifDutyMotor* p_parent)
     }
 }
 
-/**
- * @fn pifDutyMotorSpeedEnc_Emergency
- * @brief
- * @param p_parent
- */
 void pifDutyMotorSpeedEnc_Emergency(PifDutyMotor* p_parent)
 {
     p_parent->_current_duty = 0;
     p_parent->_state = MS_BREAK;
 }
 
-/**
- * @fn pifDutyMotorSpeedEnc_sigEncoder
- * @brief Interrupt Function에서 호출할 것
- * @param p_parent
- */
 void pifDutyMotorSpeedEnc_sigEncoder(PifDutyMotor* p_parent)
 {
     ((PifDutyMotorSpeedEnc*)p_parent)->__measure_enc++;

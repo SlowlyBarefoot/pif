@@ -57,13 +57,55 @@ typedef struct StPifDutyMotorSpeed
 extern "C" {
 #endif
 
+/**
+ * @fn pifDutyMotorSpeed_Create
+ * @brief 
+ * @param id
+ * @param p_timer
+ * @param max_duty
+ * @return 
+ */
 PifDutyMotor* pifDutyMotorSpeed_Create(PifId id, PifPulse* p_timer, uint16_t max_duty);
+
+/**
+ * @fn pifDutyMotorSpeed_Destroy
+ * @brief
+ * @param pp_parent
+ */
 void pifDutyMotorSpeed_Destroy(PifDutyMotor** pp_parent);
 
+/**
+ * @fn pifDutyMotorSpeed_AddStages
+ * @brief 
+ * @param p_parent
+ * @param stage_size
+ * @param p_stages
+ * @return 
+ */
 BOOL pifDutyMotorSpeed_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorSpeedStage* p_stages);
 
+/**
+ * @fn pifDutyMotorSpeed_Start
+ * @brief 
+ * @param p_parent
+ * @param stage_index
+ * @param operating_time
+ * @return 
+ */
 BOOL pifDutyMotorSpeed_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32_t operating_time);
+
+/**
+ * @fn pifDutyMotorSpeed_Stop
+ * @brief 
+ * @param p_parent
+ */
 void pifDutyMotorSpeed_Stop(PifDutyMotor* p_parent);
+
+/**
+ * @fn pifDutyMotorSpeed_Emergency
+ * @brief
+ * @param p_parent
+ */
 void pifDutyMotorSpeed_Emergency(PifDutyMotor* p_parent);
 
 #ifdef __cplusplus

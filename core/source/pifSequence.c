@@ -67,15 +67,6 @@ void pifSequence_ColSigClear()
 
 #endif
 
-/**
- * @fn pifSequence_Create
- * @brief Sequence를 추가한다.
- * @param id
- * @param p_timer
- * @param p_phase_list
- * @param p_param
- * @return Sequence 구조체 포인터를 반환한다.
- */
 PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, const PifSequencePhase* p_phase_list, void* p_param)
 {
     PifSequence *p_owner = malloc(sizeof(PifSequence));
@@ -91,11 +82,6 @@ PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, const PifSequencePh
     return p_owner;
 }
 
-/**
- * @fn pifSequence_Destroy
- * @brief Sequence용 메모리를 반환한다.
- * @param pp_owner
- */
 void pifSequence_Destroy(PifSequence** pp_owner)
 {
 	if (*pp_owner) {
@@ -105,16 +91,6 @@ void pifSequence_Destroy(PifSequence** pp_owner)
     }
 }
 
-/**
- * @fn pifSequence_Init
- * @brief Sequence를 추가한다.
- * @param p_owner
- * @param id
- * @param p_timer
- * @param p_phase_list
- * @param p_param
- * @return Sequence 구조체 포인터를 반환한다.
- */
 BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, const PifSequencePhase* p_phase_list, void* p_param)
 {
     if (!p_owner || !p_timer || !p_phase_list) {
@@ -153,11 +129,6 @@ fail:
 	return FALSE;
 }
 
-/**
- * @fn pifSequence_Clear
- * @brief Sequence용 메모리를 반환한다.
- * @param p_owner
- */
 void pifSequence_Clear(PifSequence* p_owner)
 {
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -183,11 +154,6 @@ void pifSequence_Clear(PifSequence* p_owner)
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-/**
- * @fn pifSequence_SetCsFlagAll
- * @brief
- * @param flag
- */
 void pifSequence_SetCsFlagAll(PifSequenceCsFlag flag)
 {
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
@@ -198,11 +164,6 @@ void pifSequence_SetCsFlagAll(PifSequenceCsFlag flag)
 	}
 }
 
-/**
- * @fn pifSequence_ResetCsFlagAll
- * @brief
- * @param flag
- */
 void pifSequence_ResetCsFlagAll(PifSequenceCsFlag flag)
 {
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
@@ -213,23 +174,11 @@ void pifSequence_ResetCsFlagAll(PifSequenceCsFlag flag)
 	}
 }
 
-/**
- * @fn pifSequence_SetCsFlagEach
- * @brief
- * @param p_owner
- * @param flag
- */
 void pifSequence_SetCsFlagEach(PifSequence* p_owner, PifSequenceCsFlag flag)
 {
 	p_owner->__p_colsig->flag |= flag;
 }
 
-/**
- * @fn pifSequence_ResetCsFlagEach
- * @brief
- * @param p_owner
- * @param flag
- */
 void pifSequence_ResetCsFlagEach(PifSequence* p_owner, PifSequenceCsFlag flag)
 {
 	p_owner->__p_colsig->flag &= ~flag;
@@ -237,11 +186,6 @@ void pifSequence_ResetCsFlagEach(PifSequence* p_owner, PifSequenceCsFlag flag)
 
 #endif
 
-/**
- * @fn pifSequence_Start
- * @brief 
- * @param p_owner
- */
 void pifSequence_Start(PifSequence* p_owner)
 {
 	_setPhaseNo(p_owner, 0);
@@ -250,13 +194,6 @@ void pifSequence_Start(PifSequence* p_owner)
 	p_owner->delay1us = 0;
 }	
 
-/**
- * @fn pifSequence_SetTimeout
- * @brief
- * @param p_owner
- * @param timeout
- * @return
- */
 BOOL pifSequence_SetTimeout(PifSequence* p_owner, uint16_t timeout)
 {
 	if (!p_owner->__p_timer_timeout) {
@@ -331,15 +268,6 @@ fail:
 	return 0;
 }
 
-/**
- * @fn pifSequence_AttachTask
- * @brief Task를 추가한다.
- * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
 PifTask* pifSequence_AttachTask(PifSequence* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
 	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);

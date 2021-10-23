@@ -121,11 +121,6 @@ static void _printHeader()
 	pifLog_Printf(LT_VCD, "$end\n");
 }
 
-/**
- * @fn pifCollectSignal_Init
- * @brief CollectSignal 구조체 초기화한다.
- * @param p_module_name
- */
 void pifCollectSignal_Init(const char* p_module_name)
 {
 	s_collect_signal.p_module_name = p_module_name;
@@ -137,13 +132,6 @@ void pifCollectSignal_Init(const char* p_module_name)
 	memset(s_collect_signal.add_device, 0, sizeof(s_collect_signal.add_device));
 }
 
-/**
- * @fn pifCollectSignal_InitHeap
- * @brief CollectSignal 구조체 초기화한다.
- * @param p_module_name
- * @param size
- * @return
- */
 BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size)
 {
 	pifCollectSignal_Init(p_module_name);
@@ -154,14 +142,6 @@ BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size)
 	return TRUE;
 }
 
-/**
- * @fn pifCollectSignal_InitStatic
- * @brief CollectSignal 구조체 초기화한다.
- * @param p_module_name
- * @param size
- * @param p_buffer
- * @return
- */
 BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8_t* p_buffer)
 {
 	pifCollectSignal_Init(p_module_name);
@@ -172,20 +152,11 @@ BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8
 	return TRUE;
 }
 
-/**
- * @fn pifCollectSignal_Clear
- * @brief CollectSignal 구조체를 파기하다.
- */
 void pifCollectSignal_Clear()
 {
 	pifRingBuffer_Clear(&s_collect_signal.buffer);
 }
 
-/**
- * @fn pifCollectSignal_ChangeScale
- * @brief
- * @param scale
- */
 BOOL pifCollectSignal_ChangeScale(PifCollectSignalScale scale)
 {
 	if (s_collect_signal.step != CSS_IDLE) {
@@ -207,13 +178,6 @@ BOOL pifCollectSignal_ChangeScale(PifCollectSignalScale scale)
 	return TRUE;
 }
 
-/**
- * @fn pifCollectSignal_ChangeFlag
- * @brief
- * @param p_flag
- * @param index
- * @param flag
- */
 void pifCollectSignal_ChangeFlag(uint8_t* p_flag, uint8_t index, uint8_t flag)
 {
 	if (index & 1) {
@@ -226,12 +190,6 @@ void pifCollectSignal_ChangeFlag(uint8_t* p_flag, uint8_t index, uint8_t flag)
 	}
 }
 
-/**
- * @fn pifCollectSignal_ChangeMethod
- * @brief
- * @param method
- * @return
- */
 BOOL pifCollectSignal_ChangeMethod(PifCollectSignalMethod method)
 {
 	if (s_collect_signal.step != CSS_IDLE) {
@@ -243,37 +201,16 @@ BOOL pifCollectSignal_ChangeMethod(PifCollectSignalMethod method)
 	return TRUE;
 }
 
-/**
- * @fn pifCollectSignal_Attach
- * @brief
- * @param flag
- * @param add_device
- */
 void pifCollectSignal_Attach(PifCollectSignalFlag flag, PifAddCollectSignalDevice add_device)
 {
 	s_collect_signal.add_device[flag] = add_device;
 }
 
-/**
- * @fn pifCollectSignal_Detach
- * @brief
- * @param flag
- */
 void pifCollectSignal_Detach(PifCollectSignalFlag flag)
 {
 	s_collect_signal.add_device[flag] = NULL;
 }
 
-/**
- * @fn pifCollectSignal_AddDevice
- * @brief
- * @param id
- * @param var_type
- * @param size
- * @param p_reference
- * @param initial_value
- * @return
- */
 void* pifCollectSignal_AddDevice(PifId id, PifCollectSignalVarType var_type, uint16_t size,
 		const char* p_reference, uint16_t initial_value)
 {
@@ -294,10 +231,6 @@ void* pifCollectSignal_AddDevice(PifId id, PifCollectSignalVarType var_type, uin
 	return p_device;
 }
 
-/**
- * @fn pifCollectSignal_Start
- * @brief
- */
 void pifCollectSignal_Start()
 {
 	char cBuffer[4];
@@ -323,10 +256,6 @@ void pifCollectSignal_Start()
 	s_collect_signal.step = CSS_COLLECT;
 }
 
-/**
- * @fn pifCollectSignal_Stop
- * @brief
- */
 void pifCollectSignal_Stop()
 {
 	char buffer[12];
@@ -348,12 +277,6 @@ void pifCollectSignal_Stop()
 	s_collect_signal.device_count = 0;
 }
 
-/**
- * @fn pifCollectSignal_AddSignal
- * @brief
- * @param p_dev
- * @param state
- */
 void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
 {
 	PifCollectSignalDevice* p_device = (PifCollectSignalDevice*)p_dev;
@@ -464,10 +387,6 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
 	}
 }
 
-/**
- * @fn pifCollectSignal_PrintLog
- * @brief
- */
 void pifCollectSignal_PrintLog()
 {
 	_printHeader();
@@ -512,14 +431,6 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-/**
- * @fn pifCollectSignal_AttachTask
- * @brief Task를 추가한다.
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
 PifTask* pifCollectSignal_AttachTask(PifTaskMode mode, uint16_t period, BOOL start)
 {
 	return pifTaskManager_Add(mode, period, _doTask, &s_collect_signal, start);

@@ -283,10 +283,6 @@ static void _printTime()
 	_printLog(tmp_buf, FALSE);
 }
 
-/**
- * @fn pifLog_Init
- * @brief Log 구조체 초기화한다.
- */
 void pifLog_Init()
 {
 	s_log.enable = TRUE;
@@ -296,12 +292,6 @@ void pifLog_Init()
 #endif
 }
 
-/**
- * @fn pifLog_InitHeap
- * @brief Log 구조체 초기화한다.
- * @param size
- * @return
- */
 BOOL pifLog_InitHeap(uint16_t size)
 {
 	s_log.enable = TRUE;
@@ -309,13 +299,6 @@ BOOL pifLog_InitHeap(uint16_t size)
 	return TRUE;
 }
 
-/**
- * @fn pifLog_InitStatic
- * @brief Log 구조체 초기화한다.
- * @param size
- * @param p_buffer
- * @return
- */
 BOOL pifLog_InitStatic(uint16_t size, uint8_t* p_buffer)
 {
 	s_log.enable = TRUE;
@@ -323,10 +306,6 @@ BOOL pifLog_InitStatic(uint16_t size, uint8_t* p_buffer)
 	return TRUE;
 }
 
-/**
- * @fn pifLog_Clear
- * @brief Log 구조체를 파기하다.
- */
 void pifLog_Clear()
 {
 	pifRingBuffer_Clear(&s_log.buffer);
@@ -341,13 +320,6 @@ void pifLog_Clear()
 
 #ifdef __PIF_LOG_COMMAND__
 
-/**
- * @fn pifLog_UseCommad
- * @brief
- * @param p_cmd_table
- * @param p_prompt
- * @return
- */
 BOOL pifLog_UseCommand(const PifLogCmdEntry* p_cmd_table, const char* p_prompt)
 {
     if (!p_cmd_table || !p_prompt) {
@@ -370,40 +342,21 @@ BOOL pifLog_UseCommand(const PifLogCmdEntry* p_cmd_table, const char* p_prompt)
 
 #endif
 
-/**
- * @fn pifLog_Enable
- * @brief
- */
 void pifLog_Enable()
 {
 	s_log.enable = TRUE;
 }
 
-/**
- * @fn pifLog_Disable
- * @brief
- */
 void pifLog_Disable()
 {
 	s_log.enable = FALSE;
 }
 
-/**
- * @fn pifLog_IsEmpty
- * @brief
- * @return
- */
 BOOL pifLog_IsEmpty()
 {
 	return pifRingBuffer_IsEmpty(&s_log.buffer);
 }
 
-/**
- * @fn pifLog_Printf
- * @brief
- * @param type
- * @param p_format
- */
 void pifLog_Printf(PifLogType type, const char* p_format, ...)
 {
 	va_list data;
@@ -434,10 +387,6 @@ void pifLog_Printf(PifLogType type, const char* p_format, ...)
 	_printLog(tmp_buf, type == LT_VCD);
 }
 
-/**
- * @fn pifLog_PrintInBuffer
- * @brief
- */
 void pifLog_PrintInBuffer()
 {
 	uint16_t length;
@@ -454,22 +403,11 @@ void pifLog_PrintInBuffer()
 	}
 }
 
-/**
- * @fn pifLog_GetCommTask
- * @brief
- * @return
- */
 PifTask* pifLog_GetCommTask()
 {
 	return s_log.p_comm->_p_task;
 }
 
-/**
- * @fn pifLog_AttachComm
- * @brief
- * @param p_comm
- * @return
- */
 BOOL pifLog_AttachComm(PifComm* p_comm)
 {
     s_log.p_tx_buffer = pifRingBuffer_CreateHeap(PIF_ID_AUTO, PIF_LOG_TX_BUFFER_SIZE);
@@ -532,14 +470,6 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-/**
- * @fn pifLog_AttachTask
- * @brief Task를 추가한다.
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
 PifTask* pifLog_AttachTask(PifTaskMode mode, uint16_t period, BOOL start)
 {
 	return pifTaskManager_Add(mode, period, _doTask, &s_log, start);

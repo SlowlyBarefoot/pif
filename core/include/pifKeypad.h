@@ -73,19 +73,87 @@ typedef struct StPifKeypad
 extern "C" {
 #endif
 
+/**
+ * @fn pifKeypad_Create
+ * @brief
+ * @param id
+ * @param num_rows
+ * @param num_cols
+ * @param p_user_keymap
+ * @return
+ */
 PifKeypad* pifKeypad_Create(PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap);
+
+/**
+ * @fn pifKeypad_Destroy
+ * @brief
+ * @param pp_owner
+ */
 void pifKeypad_Destroy(PifKeypad** pp_owner);
 
+/**
+ * @fn pifKeypad_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param num_rows
+ * @param num_cols
+ * @param p_user_keymap
+ * @return
+ */
 BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap);
+
+/**
+ * @fn pifKeypad_Clear
+ * @brief
+ * @param p_owner
+ */
 void pifKeypad_Clear(PifKeypad* p_owner);
 
+/**
+ * @fn pifKeypad_AttachAction
+ * @brief
+ * @param p_owner
+ * @param act_acquire
+ */
 void pifKeypad_AttachAction(PifKeypad* p_owner, PifActKeypadAcquire act_acquire);
 
+/**
+ * @fn pifKeypad_SetHoldTime
+ * @brief
+ * @param p_owner
+ * @param hold_time1ms
+ * @return
+ */
 BOOL pifKeypad_SetHoldTime(PifKeypad* p_owner, uint16_t hold_time1ms);
+
+/**
+ * @fn pifKeypad_SetLongTime
+ * @brief
+ * @param p_owner
+ * @param long_time1ms
+ * @return
+ */
 BOOL pifKeypad_SetLongTime(PifKeypad* p_owner, uint16_t long_time1ms);
+
+/**
+ * @fn pifKeypad_SetDoubleTime
+ * @brief
+ * @param p_owner
+ * @param double_time1ms
+ * @return
+ */
 BOOL pifKeypad_SetDoubleTime(PifKeypad* p_owner, uint16_t double_time1ms);
 
-// Task Function
+/**
+ * @fn pifKeypad_AttachTask
+ * @brief Task를 추가한다.
+ * @param p_owner
+ * @param mode Task의 Mode를 설정한다.
+ * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @param start 즉시 시작할지를 지정한다.
+ * @return Task 구조체 포인터를 반환한다.
+ */
 PifTask* pifKeypad_AttachTask(PifKeypad* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus

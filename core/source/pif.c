@@ -58,11 +58,6 @@ void PIF_WEAK pifSequence_ColSigClear() {}
 
 #endif
 
-/**
- * @fn pif_Init
- * @brief pif의 전역 변수를 초기화한다.
- * @param act_timer1us
- */
 void pif_Init(PifActTimer1us act_timer1us)
 {
 	extern void pifTaskManager_Init();
@@ -83,10 +78,6 @@ void pif_Init(PifActTimer1us act_timer1us)
 #endif
 }
 
-/**
- * @fn pif_Exit
- * @brief
- */
 void pif_Exit()
 {
 	extern void pifTaskManager_Clear();
@@ -102,10 +93,6 @@ void pif_Exit()
 #endif
 }
 
-/**
- * @fn pif_Loop
- * @brief Main loop에서 수행해야 하는 pif 함수이다.
- */
 void pif_Loop()
 {
     extern void pifTaskManager_Loop();
@@ -148,10 +135,6 @@ void pif_Loop()
     pifTaskManager_Loop();
 }
 
-/**
- * @fn pif_sigTimer1ms
- * @brief 1ms 타이머 인터럽트에서 실행할 pif 함수이다.
- */
 void pif_sigTimer1ms()
 {
 	uint8_t days;
@@ -213,11 +196,6 @@ void pif_sigTimer1ms()
     }
 }
 
-/**
- * @fn pif_Delay1ms
- * @brief
- * @param delay
- */
 void pif_Delay1ms(uint16_t delay)
 {
 	uint32_t start, diff;
@@ -228,11 +206,6 @@ void pif_Delay1ms(uint16_t delay)
 	} while (diff < delay);
 }
 
-/**
- * @fn pif_Delay1us
- * @brief
- * @param delay
- */
 void pif_Delay1us(uint16_t delay)
 {
 	uint32_t start, diff;
@@ -243,23 +216,11 @@ void pif_Delay1us(uint16_t delay)
 	} while (diff < delay);
 }
 
-/**
- * @fn pif_ClearError
- * @brief Error를 정리하다.
- */
 void pif_ClearError()
 {
 	pif_error = E_SUCCESS;
 }
 
-/**
- * @fn pif_BinToString
- * @brief
- * @param p_buffer
- * @param value
- * @param str_cnt
- * @return
- */
 int pif_BinToString(char* p_buffer, uint32_t value, uint16_t str_cnt)
 {
 	int i, idx = 0;
@@ -287,14 +248,6 @@ int pif_BinToString(char* p_buffer, uint32_t value, uint16_t str_cnt)
     return idx;
 }
 
-/**
- * @fn pif_DecToString
- * @brief
- * @param p_buffer
- * @param value
- * @param str_cnt
- * @return
- */
 int pif_DecToString(char* p_buffer, uint32_t value, uint16_t str_cnt)
 {
     uint16_t exp_cnt = 0;
@@ -341,15 +294,6 @@ int pif_DecToString(char* p_buffer, uint32_t value, uint16_t str_cnt)
     return idx;
 }
 
-/**
- * @fn pif_HexToString
- * @brief
- * @param p_buffer
- * @param value
- * @param str_cnt
- * @param upper
- * @return
- */
 int pif_HexToString(char* p_buffer, uint32_t value, uint16_t str_cnt, BOOL upper)
 {
 	int i, idx = 0;
@@ -379,14 +323,6 @@ int pif_HexToString(char* p_buffer, uint32_t value, uint16_t str_cnt, BOOL upper
     return idx;
 }
 
-/**
- * @fn pif_FloatToString
- * @brief
- * @param p_buffer
- * @param value
- * @param point
- * @return
- */
 int pif_FloatToString(char* p_buffer, double value, uint16_t point)
 {
 	uint16_t i, idx = 0;
@@ -409,13 +345,6 @@ int pif_FloatToString(char* p_buffer, double value, uint16_t point)
     return idx;
 }
 
-/**
- * @fn pif_PrintFormat
- * @brief
- * @param p_buffer
- * @param p_data
- * @param p_format
- */
 void pif_PrintFormat(char* p_buffer, va_list* p_data, const char* p_format)
 {
 	unsigned int uint_val;
@@ -555,12 +484,6 @@ NEXT_STR:
 	p_buffer[offset] = 0;
 }
 
-/**
- * @fn pif_Printf
- * @brief
- * @param p_buffer
- * @param p_format
- */
 void pif_Printf(char* p_buffer, const char* p_format, ...)
 {
 	va_list data;
@@ -570,20 +493,11 @@ void pif_Printf(char* p_buffer, const char* p_format, ...)
 	va_end(data);
 }
 
-/**
- * @fn pifCrc7_Init
- * @brief 7비트 CRC 계산을 위한 변수를 초기화한다.
- */
 void pifCrc7_Init()
 {
 	s_crc7 = 0;
 }
 
-/**
- * @fn pifCrc7_Calcurate
- * @brief 7비트 CRC를 계산한다.
- * @param data 7비트 CRC 계산에 이 데이터를 추가한다.
- */
 void pifCrc7_Calcurate(uint8_t data)
 {
 	for (int i = 0; i < 8; i++) {
@@ -593,23 +507,12 @@ void pifCrc7_Calcurate(uint8_t data)
 	}
 }
 
-/**
- * @fn pifCrc7_Result
- * @brief 계산된 7비트 CRC 결과를 반환한다.
- * @return 7비트 CRC 결과
- */
 uint8_t pifCrc7_Result()
 {
 	s_crc7 = (s_crc7 << 1) | 1;
 	return s_crc7;
 }
 
-/**
- * @fn pifCrc16
- * @brief 16비트 CRC를 계산한 결과를 반환한다.
- * @param p_data 16비트 CRC 계산할 데이터.
- * @param length 16비트 CRC 계산할 데이터의 크기.
- */
 uint16_t pifCrc16(uint8_t* p_data, uint16_t length)
 {
 	uint16_t i;
@@ -627,12 +530,6 @@ uint16_t pifCrc16(uint8_t* p_data, uint16_t length)
 	return crc16 & 0xFFFF;
 }
 
-/**
- * @fn pifCheckSum
- * @brief Byte 단위로 합산한 결과를 반환한다.
- * @param p_data Checksum할 데이터.
- * @param length Checksum할 데이터의 크기.
- */
 uint8_t pifCheckSum(uint8_t* p_data, uint16_t length)
 {
 	uint16_t i;
@@ -644,12 +541,6 @@ uint8_t pifCheckSum(uint8_t* p_data, uint16_t length)
 	return sum & 0xFF;
 }
 
-/**
- * @fn pifCheckXor
- * @brief Byte 단위로 Xor한 결과를 반환한다.
- * @param p_data CheckXor할 데이터.
- * @param length CheckXor할 데이터의 크기.
- */
 uint8_t pifCheckXor(uint8_t* p_data, uint16_t length)
 {
 	uint16_t i;
@@ -661,15 +552,6 @@ uint8_t pifCheckXor(uint8_t* p_data, uint16_t length)
 	return xor & 0xFF;
 }
 
-/**
- * @fn pifPidControl_Init
- * @brief PID 컨트롤에 사용되는 전역 변수를 초기화한다.
- * @param p_owner PidControl 자신
- * @param kp 비례 계수
- * @param ki 적분 계수
- * @param kd 미분 계수
- * @param max_integration 최대 적분 오차값
- */
 void pifPidControl_Init(PifPidControl* p_owner, float kp, float ki, float kd, float max_integration)
 {
 	p_owner->kp = kp;
@@ -680,13 +562,6 @@ void pifPidControl_Init(PifPidControl* p_owner, float kp, float ki, float kd, fl
 	p_owner->err_prev = 0;
 }
 
-/**
- * @fn pifPidControl_Calcurate
- * @brief 입력된 오차로 조정값을 계산한다.
- * @param p_owner PidControl 자신
- * @param err 오차
- * @return 조정값
- */
 float pifPidControl_Calcurate(PifPidControl* p_owner, float err)
 {
 	float up;			// Variable: Proportional output

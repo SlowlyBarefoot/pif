@@ -139,16 +139,6 @@ void pifSolenoid_ColSigClear()
 
 #endif
 
-/**
- * @fn pifSolenoid_Create
- * @brief
- * @param id
- * @param p_timer
- * @param type
- * @param on_time
- * @param act_control
- * @return
- */
 PifSolenoid* pifSolenoid_Create(PifId id, PifPulse* p_timer, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control)
 {
@@ -165,11 +155,6 @@ PifSolenoid* pifSolenoid_Create(PifId id, PifPulse* p_timer, PifSolenoidType typ
     return p_owner;
 }
 
-/**
- * @fn pifSolenoid_Destroy
- * @brief
- * @param pp_owner
- */
 void pifSolenoid_Destroy(PifSolenoid** pp_owner)
 {
     if (*pp_owner) {
@@ -179,17 +164,6 @@ void pifSolenoid_Destroy(PifSolenoid** pp_owner)
     }
 }
 
-/**
- * @fn pifSolenoid_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_timer
- * @param type
- * @param on_time
- * @param act_control
- * @return
- */
 BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifPulse* p_timer, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control)
 {
@@ -232,11 +206,6 @@ fail:
 	return FALSE;	
 }
 
-/**
- * @fn pifSolenoid_Clear
- * @brief
- * @param p_owner
- */
 void pifSolenoid_Clear(PifSolenoid* p_owner)
 {
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -265,13 +234,6 @@ void pifSolenoid_Clear(PifSolenoid* p_owner)
 	pifRingData_Destroy(&p_owner->__p_buffer);
 }
 
-/**
- * @fn pifSolenoid_SetBuffer
- * @brief
- * @param p_owner
- * @param size
- * @return
- */
 BOOL pifSolenoid_SetBuffer(PifSolenoid* p_owner, uint16_t size)
 {
 	p_owner->__p_buffer = pifRingData_Create(PIF_ID_AUTO, sizeof(PifSolenoidContent), size);
@@ -279,23 +241,11 @@ BOOL pifSolenoid_SetBuffer(PifSolenoid* p_owner, uint16_t size)
 	return TRUE;
 }
 
-/**
- * @fn pifSolenoid_SetInvalidDirection
- * @brief
- * @param p_owner
- */
 void pifSolenoid_SetInvalidDirection(PifSolenoid* p_owner)
 {
 	p_owner->__current_dir = SD_INVALID;
 }
 
-/**
- * @fn pifSolenoid_SetOnTime
- * @brief
- * @param p_owner
- * @param on_time
- * @return
- */
 BOOL pifSolenoid_SetOnTime(PifSolenoid* p_owner, uint16_t on_time)
 {
     if (!on_time) {
@@ -307,12 +257,6 @@ BOOL pifSolenoid_SetOnTime(PifSolenoid* p_owner, uint16_t on_time)
     return TRUE;
 }
 
-/**
- * @fn pifSolenoid_ActionOn
- * @brief
- * @param p_owner
- * @param delay
- */
 void pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay)
 {
 	PifSolenoidContent *pstContent;
@@ -330,13 +274,6 @@ void pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay)
 	_actionOn(p_owner, delay, SD_INVALID);
 }
 
-/**
- * @fn pifSolenoid_ActionOnDir
- * @brief 
- * @param p_owner
- * @param delay
- * @param dir
- */
 void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDir dir)
 {
 	PifSolenoidContent *pstContent;
@@ -355,11 +292,6 @@ void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDi
     _actionOn(p_owner, delay, dir);
 }
 
-/**
- * @fn pifSolenoid_ActionOff
- * @brief
- * @param p_owner
- */
 void pifSolenoid_ActionOff(PifSolenoid* p_owner)
 {
 	if (p_owner->__state) {
@@ -371,11 +303,6 @@ void pifSolenoid_ActionOff(PifSolenoid* p_owner)
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-/**
- * @fn pifSolenoid_SetCsFlagAll
- * @brief
- * @param flag
- */
 void pifSolenoid_SetCsFlagAll(PifSolenoidCsFlag flag)
 {
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
@@ -386,11 +313,6 @@ void pifSolenoid_SetCsFlagAll(PifSolenoidCsFlag flag)
 	}
 }
 
-/**
- * @fn pifSolenoid_ResetCsFlagAll
- * @brief
- * @param flag
- */
 void pifSolenoid_ResetCsFlagAll(PifSolenoidCsFlag flag)
 {
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
@@ -401,23 +323,11 @@ void pifSolenoid_ResetCsFlagAll(PifSolenoidCsFlag flag)
 	}
 }
 
-/**
- * @fn pifSolenoid_SetCsFlagEach
- * @brief
- * @param pstSensor
- * @param flag
- */
 void pifSolenoid_SetCsFlagEach(PifSolenoid *p_owner, PifSolenoidCsFlag flag)
 {
 	((PifSolenoid *)p_owner)->__p_colsig->flag |= flag;
 }
 
-/**
- * @fn pifSolenoid_ResetCsFlagEach
- * @brief
- * @param pstSensor
- * @param flag
- */
 void pifSolenoid_ResetCsFlagEach(PifSolenoid *p_owner, PifSolenoidCsFlag flag)
 {
 	((PifSolenoid *)p_owner)->__p_colsig->flag &= ~flag;

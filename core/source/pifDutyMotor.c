@@ -39,14 +39,6 @@ static void _evtTimerBreakFinish(void* p_issuer)
     }
 }
 
-/**
- * @fn pifDutyMotor_Create
- * @brief 
- * @param id
- * @param p_timer
- * @param max_duty
- * @return 
- */
 PifDutyMotor* pifDutyMotor_Create(PifId id, PifPulse* p_timer, uint16_t max_duty)
 {
     PifDutyMotor* p_owner = malloc(sizeof(PifDutyMotor));
@@ -62,11 +54,6 @@ PifDutyMotor* pifDutyMotor_Create(PifId id, PifPulse* p_timer, uint16_t max_duty
     return p_owner;
 }
 
-/**
- * @fn pifDutyMotor_Destroy
- * @brief
- * @param pp_owner
- */
 void pifDutyMotor_Destroy(PifDutyMotor** pp_owner)
 {
 	if (*pp_owner) {
@@ -76,15 +63,6 @@ void pifDutyMotor_Destroy(PifDutyMotor** pp_owner)
 	}
 }
 
-/**
- * @fn pifDutyMotor_Init
- * @brief 
- * @param p_owner
- * @param id
- * @param p_timer
- * @param max_duty
- * @return 
- */
 BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint16_t max_duty)
 {
     if (!p_owner || !p_timer || !max_duty) {
@@ -101,11 +79,6 @@ BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint1
     return TRUE;
 }
 
-/**
- * @fn pifDutyMotor_Clear
- * @brief
- * @param p_owner
- */
 void pifDutyMotor_Clear(PifDutyMotor* p_owner)
 {
 	if (p_owner->__p_timer_delay) {
@@ -118,14 +91,6 @@ void pifDutyMotor_Clear(PifDutyMotor* p_owner)
 	}
 }
 
-/**
- * @fn pifDutyMotor_AttachAction
- * @brief
- * @param p_owner
- * @param act_set_duty
- * @param act_set_direction
- * @param act_operate_break
- */
 void pifDutyMotor_AttachAction(PifDutyMotor* p_owner, PifActDutyMotorSetDuty act_set_duty,
 		PifActDutyMotorSetDirection act_set_direction, PifActDutyMotorOperateBreak act_operate_break)
 {
@@ -134,12 +99,6 @@ void pifDutyMotor_AttachAction(PifDutyMotor* p_owner, PifActDutyMotorSetDuty act
     p_owner->__act_operate_break = act_operate_break;
 }
 
-/**
- * @fn pifDutyMotor_SetDirection
- * @brief
- * @param p_owner
- * @param direction
- */
 void pifDutyMotor_SetDirection(PifDutyMotor* p_owner, uint8_t direction)
 {
 	p_owner->_direction = direction;
@@ -147,12 +106,6 @@ void pifDutyMotor_SetDirection(PifDutyMotor* p_owner, uint8_t direction)
 	if (p_owner->__act_set_direction) (*p_owner->__act_set_direction)(p_owner->_direction);
 }
 
-/**
- * @fn pifDutyMotor_SetDuty
- * @brief
- * @param p_owner
- * @param duty
- */
 void pifDutyMotor_SetDuty(PifDutyMotor* p_owner, uint16_t duty)
 {
     if (duty > p_owner->_max_duty) duty = p_owner->_max_duty;
@@ -161,12 +114,6 @@ void pifDutyMotor_SetDuty(PifDutyMotor* p_owner, uint16_t duty)
 	(*p_owner->__act_set_duty)(p_owner->_current_duty);
 }
 
-/**
- * @fn pifDutyMotor_SetOperatingTime
- * @brief
- * @param p_owner
- * @param operating_time
- */
 BOOL pifDutyMotor_SetOperatingTime(PifDutyMotor* p_owner, uint32_t operating_time)
 {
 	if (!p_owner->__p_timer_break) {
@@ -181,13 +128,6 @@ BOOL pifDutyMotor_SetOperatingTime(PifDutyMotor* p_owner, uint32_t operating_tim
 	return FALSE;
 }
 
-/**
- * @fn pifDutyMotor_Start
- * @brief
- * @param p_owner
- * @param duty
- * @return
- */
 BOOL pifDutyMotor_Start(PifDutyMotor* p_owner, uint16_t duty)
 {
     if (!p_owner->__act_set_duty || !p_owner->__act_set_direction) {
@@ -203,12 +143,6 @@ BOOL pifDutyMotor_Start(PifDutyMotor* p_owner, uint16_t duty)
 	return TRUE;
 }
 
-/**
- * @fn pifDutyMotor_BreakRelease
- * @brief
- * @param p_owner
- * @param break_time
- */
 void pifDutyMotor_BreakRelease(PifDutyMotor* p_owner, uint16_t break_time)
 {
     p_owner->_current_duty = 0;
@@ -228,12 +162,6 @@ void pifDutyMotor_BreakRelease(PifDutyMotor* p_owner, uint16_t break_time)
 	}
 }
 
-/**
- * @fn pifDutyMotor_StartControl
- * @brief 
- * @param p_owner
- * @return 
- */
 BOOL pifDutyMotor_StartControl(PifDutyMotor* p_owner)
 {
 	if (!p_owner->__p_task) {
@@ -245,12 +173,6 @@ BOOL pifDutyMotor_StartControl(PifDutyMotor* p_owner)
     return TRUE;
 }
 
-/**
- * @fn pifDutyMotor_StopControl
- * @brief
- * @param p_owner
- * @return
- */
 BOOL pifDutyMotor_StopControl(PifDutyMotor* p_owner)
 {
 	if (!p_owner->__p_task) {
@@ -262,14 +184,6 @@ BOOL pifDutyMotor_StopControl(PifDutyMotor* p_owner)
     return TRUE;
 }
 
-/**
- * @fn pifComm_AttachTask
- * @brief Task를 추가한다.
- * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @return Task 구조체 포인터를 반환한다.
- */
 PifTask* pifDutyMotor_AttachTask(PifDutyMotor* p_owner, PifTaskMode mode, uint16_t period)
 {
 	p_owner->__p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, FALSE);

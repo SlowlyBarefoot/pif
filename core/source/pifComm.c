@@ -38,12 +38,6 @@ static void _sendData(PifComm* p_owner)
 	}
 }
 
-/**
- * @fn pifComm_Create
- * @brief 
- * @param id
- * @return 
- */
 PifComm* pifComm_Create(PifId id)
 {
     PifComm* p_owner = malloc(sizeof(PifComm));
@@ -59,11 +53,6 @@ PifComm* pifComm_Create(PifId id)
     return p_owner;
 }
 
-/**
- * @fn pifComm_Destroy
- * @brief 
- * @param pp_owner
- */
 void pifComm_Destroy(PifComm** pp_owner)
 {
 	if (*pp_owner) {
@@ -73,13 +62,6 @@ void pifComm_Destroy(PifComm** pp_owner)
 	}
 }
 
-/**
- * @fn pifComm_Init
- * @brief
- * @param p_owner
- * @param id
- * @return
- */
 BOOL pifComm_Init(PifComm* p_owner, PifId id)
 {
 	if (!p_owner) {
@@ -94,24 +76,12 @@ BOOL pifComm_Init(PifComm* p_owner, PifId id)
     return TRUE;
 }
 
-/**
- * @fn pifComm_Clear
- * @brief
- * @param p_owner
- */
 void pifComm_Clear(PifComm* p_owner)
 {
 	if (p_owner->_p_rx_buffer) pifRingBuffer_Destroy(&p_owner->_p_rx_buffer);
 	if (p_owner->_p_tx_buffer) pifRingBuffer_Destroy(&p_owner->_p_tx_buffer);
 }
 
-/**
- * @fn pifComm_AllocRxBuffer
- * @brief
- * @param p_owner
- * @param rx_Size
- * @return
- */
 BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_Size)
 {
     if (!rx_Size) {
@@ -125,13 +95,6 @@ BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_Size)
     return TRUE;
 }
 
-/**
- * @fn pifComm_AllocTxBuffer
- * @brief
- * @param p_owner
- * @param tx_size
- * @return
- */
 BOOL pifComm_AllocTxBuffer(PifComm* p_owner, uint16_t tx_size)
 {
 	if (!tx_size) {
@@ -145,79 +108,36 @@ BOOL pifComm_AllocTxBuffer(PifComm* p_owner, uint16_t tx_size)
 	return TRUE;
 }
 
-/**
- * @fn pifComm_AttachClient
- * @brief
- * @param p_owner
- * @param p_client
- */
 void pifComm_AttachClient(PifComm* p_owner, void* p_client)
 {
 	p_owner->__p_client = p_client;
 }
 
-/**
- * @fn pifComm_AttachActReceiveData
- * @brief
- * @param p_owner
- * @param act_receive_data
- */
 void pifComm_AttachActReceiveData(PifComm* p_owner, PifActCommReceiveData act_receive_data)
 {
 	p_owner->__act_receive_data = act_receive_data;
 }
 
-/**
- * @fn pifComm_AttachActSendData
- * @brief
- * @param p_owner
- * @param act_send_data
- */
 void pifComm_AttachActSendData(PifComm* p_owner, PifActCommSendData act_send_data)
 {
 	p_owner->__act_send_data = act_send_data;
 }
 
-/**
- * @fn pifComm_AttachActStartTransfer
- * @brief
- * @param p_owner
- * @param act_start_transfer
- */
 void pifComm_AttachActStartTransfer(PifComm* p_owner, PifActCommStartTransfer act_start_transfer)
 {
 	p_owner->__act_start_transfer = act_start_transfer;
 }
 
-/**
- * @fn pifComm_GetRemainSizeOfRxBuffer
- * @brief
- * @param p_owner
- * @return
- */
 uint16_t pifComm_GetRemainSizeOfRxBuffer(PifComm* p_owner)
 {
 	return pifRingBuffer_GetRemainSize(p_owner->_p_rx_buffer);
 }
 
-/**
- * @fn pifComm_GetFillSizeOfTxBuffer
- * @brief
- * @param p_owner
- * @return
- */
 uint16_t pifComm_GetFillSizeOfTxBuffer(PifComm* p_owner)
 {
 	return pifRingBuffer_GetFillSize(p_owner->_p_tx_buffer);
 }
 
-/**
- * @fn pifComm_ReceiveData
- * @brief
- * @param p_owner
- * @param data
- * @return 
- */
 BOOL pifComm_ReceiveData(PifComm* p_owner, uint8_t data)
 {
 	if (!p_owner->_p_rx_buffer) return FALSE;
@@ -225,14 +145,6 @@ BOOL pifComm_ReceiveData(PifComm* p_owner, uint8_t data)
 	return pifRingBuffer_PutByte(p_owner->_p_rx_buffer, data);
 }
 
-/**
- * @fn pifComm_ReceiveDatas
- * @brief
- * @param p_owner
- * @param p_data
- * @param length
- * @return
- */
 BOOL pifComm_ReceiveDatas(PifComm* p_owner, uint8_t* p_data, uint16_t length)
 {
 	if (!p_owner->_p_rx_buffer) return FALSE;
@@ -240,13 +152,6 @@ BOOL pifComm_ReceiveDatas(PifComm* p_owner, uint8_t* p_data, uint16_t length)
 	return pifRingBuffer_PutData(p_owner->_p_rx_buffer, p_data, length);
 }
 
-/**
- * @fn pifComm_SendData
- * @brief
- * @param p_owner
- * @param p_data
- * @return
- */
 uint8_t pifComm_SendData(PifComm* p_owner, uint8_t* p_data)
 {
 	uint8_t ucState = PIF_COMM_SEND_DATA_STATE_INIT;
@@ -263,14 +168,6 @@ uint8_t pifComm_SendData(PifComm* p_owner, uint8_t* p_data)
 	return ucState;
 }
 
-/**
- * @fn pifComm_StartSendDatas
- * @brief
- * @param p_owner
- * @param pp_data
- * @param p_length
- * @return
- */
 uint8_t pifComm_StartSendDatas(PifComm* p_owner, uint8_t** pp_data, uint16_t* p_length)
 {
 	uint16_t usLength;
@@ -284,35 +181,18 @@ uint8_t pifComm_StartSendDatas(PifComm* p_owner, uint8_t** pp_data, uint16_t* p_
 	return PIF_COMM_SEND_DATA_STATE_DATA;
 }
 
-/**
- * @fn pifComm_EndSendDatas
- * @brief
- * @param p_owner
- * @param length
- * @return
- */
 uint8_t pifComm_EndSendDatas(PifComm* p_owner, uint16_t length)
 {
     pifRingBuffer_Remove(p_owner->_p_tx_buffer, length);
 	return pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer) << 1;
 }
 
-/**
- * @fn pifComm_FinishTransfer
- * @brief
- * @param p_owner
- */
 void pifComm_FinishTransfer(PifComm* p_owner)
 {
 	p_owner->__state = CTS_IDLE;
 	p_owner->_p_task->immediate = TRUE;
 }
 
-/**
- * @fn pifComm_ForceSendData
- * @brief
- * @param p_owner
- */
 void pifComm_ForceSendData(PifComm* p_owner)
 {
 	if (p_owner->evt_sending) _sendData(p_owner);
@@ -335,15 +215,6 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-/**
- * @fn pifComm_AttachTask
- * @brief Task를 추가한다.
- * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
 PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
 	p_owner->_p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, start);

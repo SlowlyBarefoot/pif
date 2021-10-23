@@ -60,16 +60,62 @@ typedef struct StPifDutyMotorPos
 extern "C" {
 #endif
 
+/**
+ * @fn pifDutyMotorPos_Create
+ * @brief 
+ * @param id
+ * @param p_timer
+ * @param max_duty
+ * @return 
+ */
 PifDutyMotor* pifDutyMotorPos_Create(PifId id, PifPulse* p_timer, uint16_t max_duty);
+
+/**
+ * @fn pifDutyMotorPos_Destroy
+ * @brief
+ * @param pp_parent
+ */
 void pifDutyMotorPos_Destroy(PifDutyMotor** pp_parent);
 
+/**
+ * @fn pifDutyMotorPos_AddStages
+ * @brief 
+ * @param p_parent
+ * @param stage_size
+ * @param p_stages
+ * @return 
+ */
 BOOL pifDutyMotorPos_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorPosStage* p_stages);
 
+/**
+ * @fn pifDutyMotorPos_Start
+ * @brief 
+ * @param p_parent
+ * @param stage_index
+ * @param operating_time
+ * @return 
+ */
 BOOL pifDutyMotorPos_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32_t operating_time);
+
+/**
+ * @fn pifDutyMotorPos_Stop
+ * @brief 
+ * @param p_parent
+ */
 void pifDutyMotorPos_Stop(PifDutyMotor* p_parent);
+
+/**
+ * @fn pifDutyMotorPos_Emergency
+ * @brief
+ * @param p_parent
+ */
 void pifDutyMotorPos_Emergency(PifDutyMotor* p_parent);
 
-// Signal Function
+/**
+ * @fn pifDutyMotorPos_sigEncoder
+ * @brief Interrupt Function에서 호출할 것
+ * @param p_parent
+ */
 void pifDutyMotorPos_sigEncoder(PifDutyMotor* p_parent);
 
 #ifdef __cplusplus

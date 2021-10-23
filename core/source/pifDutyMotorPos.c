@@ -147,14 +147,6 @@ static void _evtSwitchStopChange(PifId id, uint16_t level, void* p_issuer)
 	}
 }
 
-/**
- * @fn pifDutyMotorPos_Create
- * @brief 
- * @param id
- * @param p_timer
- * @param max_duty
- * @return 
- */
 PifDutyMotor* pifDutyMotorPos_Create(PifId id, PifPulse* p_timer, uint16_t max_duty)
 {
     PifDutyMotorPos* p_owner = NULL;
@@ -185,11 +177,6 @@ fail:
     return NULL;
 }
 
-/**
- * @fn pifDutyMotorPos_Destroy
- * @brief
- * @param pp_parent
- */
 void pifDutyMotorPos_Destroy(PifDutyMotor** pp_parent)
 {
     if (*pp_parent) {
@@ -199,14 +186,6 @@ void pifDutyMotorPos_Destroy(PifDutyMotor** pp_parent)
     }
 }
 
-/**
- * @fn pifDutyMotorPos_AddStages
- * @brief 
- * @param p_parent
- * @param stage_size
- * @param p_stages
- * @return 
- */
 BOOL pifDutyMotorPos_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorPosStage* p_stages)
 {
     for (int i = 0; i < stage_size; i++) {
@@ -222,14 +201,6 @@ BOOL pifDutyMotorPos_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const
     return TRUE;
 }
 
-/**
- * @fn pifDutyMotorPos_Start
- * @brief 
- * @param p_parent
- * @param stage_index
- * @param operating_time
- * @return 
- */
 BOOL pifDutyMotorPos_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32_t operating_time)
 {
     PifDutyMotorPos* p_owner = (PifDutyMotorPos*)p_parent;
@@ -306,11 +277,6 @@ BOOL pifDutyMotorPos_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32_t
     return TRUE;
 }
 
-/**
- * @fn pifDutyMotorPos_Stop
- * @brief 
- * @param p_parent
- */
 void pifDutyMotorPos_Stop(PifDutyMotor* p_parent)
 {
     if (p_parent->_state == MS_IDLE) return;
@@ -318,22 +284,12 @@ void pifDutyMotorPos_Stop(PifDutyMotor* p_parent)
     p_parent->_state = MS_REDUCE;
 }
 
-/**
- * @fn pifDutyMotorPos_Emergency
- * @brief
- * @param p_parent
- */
 void pifDutyMotorPos_Emergency(PifDutyMotor* p_parent)
 {
 	p_parent->_current_duty = 0;
 	p_parent->_state = MS_REDUCE;
 }
 
-/**
- * @fn pifDutyMotorPos_sigEncoder
- * @brief Interrupt Function에서 호출할 것
- * @param p_parent
- */
 void pifDutyMotorPos_sigEncoder(PifDutyMotor* p_parent)
 {
     PifDutyMotorPos* p_owner = (PifDutyMotorPos*)p_parent;

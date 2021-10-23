@@ -94,21 +94,104 @@ typedef struct StPifGpsNmea
 extern "C" {
 #endif
 
+/**
+ * @fn pifGpsNmea_Create
+ * @brief
+ * @param id
+ * @return
+ */
 PifGpsNmea* pifGpsNmea_Create(PifId usPifId);
+
+/**
+ * @fn pifGpsNmea_Destroy
+ * @brief
+ * @param pp_owner
+ */
 void pifGpsNmea_Destroy(PifGpsNmea** pp_owner);
 
+/**
+ * @fn pifGpsNmea_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @return
+ */
 BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId usPifId);
+
+/**
+ * @fn pifGpsNmea_Clear
+ * @brief
+ * @param p_owner
+ */
 void pifGpsNmea_Clear(PifGpsNmea* p_owner);
 
+/**
+ * @fn pifGpsNmea_AttachComm
+ * @brief
+ * @param p_owner
+ * @param p_comm
+ */
 void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* pstComm);
+
+/**
+ * @fn pifGpsNmea_AttachEvtText
+ * @brief
+ * @param p_owner
+ * @param evt_text
+ */
 void pifGpsNmea_AttachEvtText(PifGpsNmea* p_owner, PifEvtGpsNmeaText evt_text);
 
+/**
+ * @fn pifGpsNmea_SetProcessMessageId
+ * @brief
+ * @param p_owner
+ * @param count
+ * @return
+ */
 BOOL pifGpsNmea_SetProcessMessageId(PifGpsNmea* p_owner, int count, ...);
+
+/**
+ * @fn pifGpsNmea_SetEventMessageId
+ * @brief
+ * @param p_owner
+ * @param message_id
+ */
 void pifGpsNmea_SetEventMessageId(PifGpsNmea* p_owner, PifGpsNmeaMessageId message_id);
 
+/**
+ * @fn pifGpsNmea_PollRequestGBQ
+ * @brief
+ * @param p_owner
+ * @param p_mag_id
+ * @return
+ */
 BOOL pifGpsNmea_PollRequestGBQ(PifGpsNmea* p_owner, const char* p_mag_id);
+
+/**
+ * @fn pifGpsNmea_PollRequestGLQ
+ * @brief
+ * @param p_owner
+ * @param p_mag_id
+ * @return
+ */
 BOOL pifGpsNmea_PollRequestGLQ(PifGpsNmea* p_owner, const char* p_mag_id);
+
+/**
+ * @fn pifGpsNmea_PollRequestGNQ
+ * @brief
+ * @param p_owner
+ * @param p_mag_id
+ * @return
+ */
 BOOL pifGpsNmea_PollRequestGNQ(PifGpsNmea* p_owner, const char* p_mag_id);
+
+/**
+ * @fn pifGpsNmea_PollRequestGPQ
+ * @brief
+ * @param p_owner
+ * @param p_mag_id
+ * @return
+ */
 BOOL pifGpsNmea_PollRequestGPQ(PifGpsNmea* p_owner, const char* p_mag_id);
 
 #ifdef __cplusplus

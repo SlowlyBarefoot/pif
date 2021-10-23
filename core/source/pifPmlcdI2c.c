@@ -81,13 +81,6 @@ static void _send(PifPmlcdI2c* p_owner, uint8_t value, uint8_t mode)
 	_write4bits(p_owner, ((value << 4) & 0xf0) | mode);
 }
 
-/**
- * @fn pifPmlcdI2c_Create
- * @brief
- * @param id
- * @param addr
- * @return
- */
 PifPmlcdI2c* pifPmlcdI2c_Create(PifId id, uint8_t addr)
 {
     PifPmlcdI2c* p_owner = malloc(sizeof(PifPmlcdI2c));
@@ -103,11 +96,6 @@ PifPmlcdI2c* pifPmlcdI2c_Create(PifId id, uint8_t addr)
     return p_owner;
 }
 
-/**
- * @fn pifPmlcdI2c_Destroy
- * @brief
- * @param pp_owner
- */
 void pifPmlcdI2c_Destroy(PifPmlcdI2c** pp_owner)
 {
     if (*pp_owner) {
@@ -117,14 +105,6 @@ void pifPmlcdI2c_Destroy(PifPmlcdI2c** pp_owner)
     }
 }
 
-/**
- * @fn pifPmlcdI2c_Init
- * @brief
- * @param p_owner
- * @param id
- * @param addr
- * @return
- */
 BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, uint8_t addr)
 {
     if (!p_owner) {
@@ -150,11 +130,6 @@ fail:
     return FALSE;
 }
 
-/**
- * @fn pifPmlcdI2c_Clear
- * @brief
- * @param p_owner
- */
 void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner)
 {
 	if (p_owner->_i2c.p_data) {
@@ -163,14 +138,6 @@ void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner)
 	}
 }
 
-/**
- * @fn pifPmlcdI2c_Begin
- * @brief
- * @param p_owner
- * @param lines
- * @param dot_size
- * @return
- */
 void pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size)
 {
 	if (lines > 1) {
@@ -230,12 +197,6 @@ void pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size)
 	pifPmlcdI2c_Home(p_owner);
 }
 
-/**
- * @fn pifPmlcdI2c_Print
- * @brief
- * @param p_owner
- * @param p_string
- */
 void pifPmlcdI2c_Print(PifPmlcdI2c* p_owner, const char* p_string)
 {
 	uint8_t i;
@@ -245,12 +206,6 @@ void pifPmlcdI2c_Print(PifPmlcdI2c* p_owner, const char* p_string)
 	}
 }
 
-/**
- * @fn pifPmlcdI2c_Printf
- * @brief
- * @param p_owner
- * @param p_format
- */
 void pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...)
 {
 	va_list data;
@@ -263,35 +218,18 @@ void pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...)
 	pifPmlcdI2c_Print(p_owner, buffer);
 }
 
-/**
- * @fn pifPmlcdI2c_DisplayClear
- * @brief
- * @param p_owner
- */
 void pifPmlcdI2c_DisplayClear(PifPmlcdI2c* p_owner)
 {
 	_send(p_owner, LCD_CLEAR_DISPLAY, 0);// clear display, set cursor position to zero
 	pifTaskManager_YieldMs(2);  // this command takes a long time!
 }
 
-/**
- * @fn pifPmlcdI2c_Home
- * @brief
- * @param p_owner
- */
 void pifPmlcdI2c_Home(PifPmlcdI2c* p_owner)
 {
 	_send(p_owner, LCD_RETURN_HOME, 0);  // set cursor position to zero
 	pifTaskManager_YieldMs(2);  // this command takes a long time!
 }
 
-/**
- * @fn pifPmlcdI2c_SetCursor
- * @brief
- * @param p_owner
- * @param col
- * @param row
- */
 void pifPmlcdI2c_SetCursor(PifPmlcdI2c* p_owner, uint8_t col, uint8_t row)
 {
 	int row_offsets[] = { 0x00, 0x40, 0x14, 0x54 };
@@ -302,143 +240,76 @@ void pifPmlcdI2c_SetCursor(PifPmlcdI2c* p_owner, uint8_t col, uint8_t row)
 	_send(p_owner, LCD_SET_DDRAM_ADDR | (col + row_offsets[row]), 0);
 }
 
-/**
- * @fn pifPmlcdI2c_Display
- * @brief
- * @param p_owner
- */
 void pifPmlcdI2c_Display(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_control |= LCD_DISPLAY_ON;
 	_send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_NoDisplay
- * @brief Turn the display on/off (quickly)
- * @param p_owner
- */
 void pifPmlcdI2c_NoDisplay(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_control &= ~LCD_DISPLAY_ON;
 	_send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_Cursor
- * @brief
- * @param p_owner
- */
 void pifPmlcdI2c_Cursor(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_control |= LCD_CURSOR_ON;
 	_send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_NoCursor
- * @brief Turns the underline cursor on/off
- * @param p_owner
- */
 void pifPmlcdI2c_NoCursor(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_control &= ~LCD_CURSOR_ON;
 	_send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_Blink
- * @brief
- * @param p_owner
- */
 void pifPmlcdI2c_Blink(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_control |= LCD_BLINK_ON;
 	_send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_NoBlink
- * @brief Turn on and off the blinking cursor
- * @param p_owner
- */
 void pifPmlcdI2c_NoBlink(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_control &= ~LCD_BLINK_ON;
 	_send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_ScrollDisplayLeft
- * @brief These commands scroll the display without changing the RAM
- * @param p_owner
- */
 void pifPmlcdI2c_ScrollDisplayLeft(PifPmlcdI2c* p_owner)
 {
 	_send(p_owner, LCD_CURSOR_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_LEFT, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_ScrollDisplayRight
- * @brief
- * @param p_owner
- */
 void pifPmlcdI2c_ScrollDisplayRight(PifPmlcdI2c* p_owner)
 {
 	_send(p_owner, LCD_CURSOR_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_RIGHT, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_LeftToRight
- * @brief This is for text that flows Left to Right
- * @param p_owner
- */
 void pifPmlcdI2c_LeftToRight(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_mode |= LCD_ENTRY_LEFT;
 	_send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_RightToLeft
- * @brief This is for text that flows Right to Left
- * @param p_owner
- */
 void pifPmlcdI2c_RightToLeft(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_mode &= ~LCD_ENTRY_LEFT;
 	_send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_AutoScroll
- * @brief This will 'right justify' text from the cursor
- * @param p_owner
- */
 void pifPmlcdI2c_AutoScroll(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_mode |= LCD_ENTRY_SHIFT_INCREMENT;
 	_send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_NoAutoScroll
- * @brief This will 'left justify' text from the cursor
- * @param p_owner
- */
 void pifPmlcdI2c_NoAutoScroll(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_mode &= ~LCD_ENTRY_SHIFT_INCREMENT;
 	_send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_CreateChar
- * @brief Allows us to fill the first 8 CGRAM locations with custom characters
- * @param p_owner
- * @param location
- * @param char_map
- */
 void pifPmlcdI2c_CreateChar(PifPmlcdI2c* p_owner, uint8_t location, uint8_t char_map[])
 {
 	location &= 0x7; // we only have 8 locations 0-7
@@ -448,22 +319,12 @@ void pifPmlcdI2c_CreateChar(PifPmlcdI2c* p_owner, uint8_t location, uint8_t char
 	}
 }
 
-/**
- * @fn pifPmlcdI2c_Backlight
- * @brief
- * @param p_owner
- */
 void pifPmlcdI2c_Backlight(PifPmlcdI2c* p_owner)
 {
 	p_owner->__backlight_val = LCD_BACK_LIGHT;
 	_expanderWrite(p_owner, 0);
 }
 
-/**
- * @fn pifPmlcdI2c_NoBacklight
- * @brief Turn the (optional) backlight off/on
- * @param p_owner
- */
 void pifPmlcdI2c_NoBacklight(PifPmlcdI2c* p_owner)
 {
 	p_owner->__backlight_val = LCD_NO_BACK_LIGHT;

@@ -63,26 +63,117 @@ struct StPifDutyMotor
 extern "C" {
 #endif
 
+/**
+ * @fn pifDutyMotor_Create
+ * @brief 
+ * @param id
+ * @param p_timer
+ * @param max_duty
+ * @return 
+ */
 PifDutyMotor* pifDutyMotor_Create(PifId id, PifPulse* p_timer, uint16_t max_duty);
+
+/**
+ * @fn pifDutyMotor_Destroy
+ * @brief
+ * @param pp_owner
+ */
 void pifDutyMotor_Destroy(PifDutyMotor** pp_owner);
 
+/**
+ * @fn pifDutyMotor_Init
+ * @brief 
+ * @param p_owner
+ * @param id
+ * @param p_timer
+ * @param max_duty
+ * @return 
+ */
 BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint16_t max_duty);
+
+/**
+ * @fn pifDutyMotor_Clear
+ * @brief
+ * @param p_owner
+ */
 void pifDutyMotor_Clear(PifDutyMotor* p_owner);
 
+/**
+ * @fn pifDutyMotor_AttachAction
+ * @brief
+ * @param p_owner
+ * @param act_set_duty
+ * @param act_set_direction
+ * @param act_operate_break
+ */
 void pifDutyMotor_AttachAction(PifDutyMotor* p_owner, PifActDutyMotorSetDuty act_set_duty,
 		PifActDutyMotorSetDirection act_set_direction, PifActDutyMotorOperateBreak act_operate_break);
 
+/**
+ * @fn pifDutyMotor_SetDirection
+ * @brief
+ * @param p_owner
+ * @param direction
+ */
 void pifDutyMotor_SetDirection(PifDutyMotor* p_owner, uint8_t direction);
+
+/**
+ * @fn pifDutyMotor_SetDuty
+ * @brief
+ * @param p_owner
+ * @param duty
+ */
 void pifDutyMotor_SetDuty(PifDutyMotor* p_owner, uint16_t duty);
+
+/**
+ * @fn pifDutyMotor_SetOperatingTime
+ * @brief
+ * @param p_owner
+ * @param operating_time
+ */
 BOOL pifDutyMotor_SetOperatingTime(PifDutyMotor* p_owner, uint32_t operating_time);
 
+/**
+ * @fn pifDutyMotor_Start
+ * @brief
+ * @param p_owner
+ * @param duty
+ * @return
+ */
 BOOL pifDutyMotor_Start(PifDutyMotor* p_owner, uint16_t duty);
+
+/**
+ * @fn pifDutyMotor_BreakRelease
+ * @brief
+ * @param p_owner
+ * @param break_time
+ */
 void pifDutyMotor_BreakRelease(PifDutyMotor* p_owner, uint16_t break_time);
 
+/**
+ * @fn pifDutyMotor_StartControl
+ * @brief 
+ * @param p_owner
+ * @return 
+ */
 BOOL pifDutyMotor_StartControl(PifDutyMotor* p_owner);
+
+/**
+ * @fn pifDutyMotor_StopControl
+ * @brief
+ * @param p_owner
+ * @return
+ */
 BOOL pifDutyMotor_StopControl(PifDutyMotor* p_owner);
 
-// Task Function
+/**
+ * @fn pifComm_AttachTask
+ * @brief Task를 추가한다.
+ * @param p_owner
+ * @param mode Task의 Mode를 설정한다.
+ * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @return Task 구조체 포인터를 반환한다.
+ */
 PifTask* pifDutyMotor_AttachTask(PifDutyMotor* p_owner, PifTaskMode mode, uint16_t period);
 
 #ifdef __cplusplus

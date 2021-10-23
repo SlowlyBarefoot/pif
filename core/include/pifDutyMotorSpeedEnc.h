@@ -76,18 +76,70 @@ typedef struct StPifDutyMotorSpeedEnc
 extern "C" {
 #endif
 
+/**
+ * @fn pifDutyMotorSpeedEnc_Create
+ * @brief 
+ * @param id
+ * @param p_timer
+ * @param max_duty
+ * @return 
+ */
 PifDutyMotor* pifDutyMotorSpeedEnc_Create(PifId id, PifPulse* p_timer, uint16_t max_duty);
+
+/**
+ * @fn pifDutyMotorSpeedEnc_Destroy
+ * @brief
+ * @param pp_parent
+ */
 void pifDutyMotorSpeedEnc_Destroy(PifDutyMotor** pp_parent);
 
+/**
+ * @fn pifDutyMotorSpeedEnc_AddStages
+ * @brief 
+ * @param p_parent
+ * @param stage_size
+ * @param p_stages
+ * @return 
+ */
 BOOL pifDutyMotorSpeedEnc_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorSpeedEncStage* p_stages);
 
+/**
+ * @fn pifDutyMotorSpeedEnc_GetPidControl
+ * @brief
+ * @param p_parent
+ * @return
+ */
 PifPidControl *pifDutyMotorSpeedEnc_GetPidControl(PifDutyMotor* p_parent);
 
+/**
+ * @fn pifDutyMotorSpeedEnc_Start
+ * @brief 
+ * @param p_parent
+ * @param stage_index
+ * @param operating_time
+ * @return 
+ */
 BOOL pifDutyMotorSpeedEnc_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32_t operating_time);
+
+/**
+ * @fn pifDutyMotorSpeedEnc_Stop
+ * @brief 
+ * @param p_parent
+ */
 void pifDutyMotorSpeedEnc_Stop(PifDutyMotor* p_parent);
+
+/**
+ * @fn pifDutyMotorSpeedEnc_Emergency
+ * @brief
+ * @param p_parent
+ */
 void pifDutyMotorSpeedEnc_Emergency(PifDutyMotor* p_parent);
 
-// Signal Function
+/**
+ * @fn pifDutyMotorSpeedEnc_sigEncoder
+ * @brief Interrupt Function에서 호출할 것
+ * @param p_parent
+ */
 void pifDutyMotorSpeedEnc_sigEncoder(PifDutyMotor* p_parent);
 
 #ifdef __cplusplus

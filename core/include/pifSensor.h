@@ -37,9 +37,28 @@ typedef struct StPifSensor
 extern "C" {
 #endif
 
+/**
+ * @fn pifSensor_AttachAction
+ * @brief
+ * @param p_owner
+ * @param act_acquire
+ */
 void pifSensor_AttachAction(PifSensor* p_owner, PifActSensorAcquire act_acquire);
 
+/**
+ * @fn pifSensor_AttachEvtChange
+ * @brief
+ * @param p_owner
+ * @param evt_change
+ * @param p_issuer
+ */
 void pifSensor_AttachEvtChange(PifSensor* p_owner, PifEvtSensorChange evt_change, void* p_issuer);
+
+/**
+ * @fn pifSensor_DetachEvtChange
+ * @brief
+ * @param p_owner
+ */
 void pifSensor_DetachEvtChange(PifSensor* p_owner);
 
 #ifdef __cplusplus

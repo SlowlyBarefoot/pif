@@ -133,16 +133,6 @@ static void _evtTimerShiftFinish(void* p_issuer)
     }
 }
 
-/**
- * @fn pifDotMatrix_Create
- * @brief
- * @param id
- * @param p_timer
- * @param col_size
- * @param row_size
- * @param act_display
- * @return
- */
 PifDotMatrix* pifDotMatrix_Create(PifId id, PifPulse* p_timer, uint16_t col_size, uint16_t row_size,
 		PifActDotMatrixDisplay act_display)
 {
@@ -159,11 +149,6 @@ PifDotMatrix* pifDotMatrix_Create(PifId id, PifPulse* p_timer, uint16_t col_size
     return p_owner;
 }
 
-/**
- * @fn pifDotMatrix_Destroy
- * @brief
- * @param pp_owner
- */
 void pifDotMatrix_Destroy(PifDotMatrix** pp_owner)
 {
 	if (*pp_owner) {
@@ -173,17 +158,6 @@ void pifDotMatrix_Destroy(PifDotMatrix** pp_owner)
 	}
 }
 
-/**
- * @fn pifDotMatrix_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_timer
- * @param col_size
- * @param row_size
- * @param act_display
- * @return
- */
 BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifPulse* p_timer, uint16_t col_size, uint16_t row_size,
 		PifActDotMatrixDisplay act_display)
 {
@@ -217,11 +191,6 @@ fail:
     return FALSE;
 }
 
-/**
- * @fn pifDotMatrix_Clear
- * @brief
- * @param p_owner
- */
 void pifDotMatrix_Clear(PifDotMatrix* p_owner)
 {
 	if (p_owner->__p_paper) {
@@ -242,13 +211,6 @@ void pifDotMatrix_Clear(PifDotMatrix* p_owner)
 	}
 }
 
-/**
- * @fn pifDotMatrix_SetPatternSize
- * @brief
- * @param p_owner
- * @param size
- * @return
- */
 BOOL pifDotMatrix_SetPatternSize(PifDotMatrix* p_owner, uint8_t size)
 {
 	if (p_owner->__p_pattern) free(p_owner->__p_pattern);
@@ -263,15 +225,6 @@ BOOL pifDotMatrix_SetPatternSize(PifDotMatrix* p_owner, uint8_t size)
     return TRUE;
 }
 
-/**
- * @fn pifDotMatrix_AddPattern
- * @brief
- * @param p_owner
- * @param col_size
- * @param row_size
- * @param p_pattern
- * @return
- */
 BOOL pifDotMatrix_AddPattern(PifDotMatrix* p_owner, uint8_t col_size, uint8_t row_size, uint8_t* p_pattern)
 {
 	if (p_owner->__pattern_count >= p_owner->__pattern_size) {
@@ -295,22 +248,12 @@ BOOL pifDotMatrix_AddPattern(PifDotMatrix* p_owner, uint8_t col_size, uint8_t ro
     return TRUE;
 }
 
-/**
- * @fn pifDotMatrix_Start
- * @brief
- * @param p_owner
- */
 void pifDotMatrix_Start(PifDotMatrix* p_owner)
 {
 	_setPattern(p_owner, p_owner->__position_x, p_owner->__position_y, 0);
     p_owner->__bt.run = TRUE;
 }
 
-/**
- * @fn pifDotMatrix_Stop
- * @brief
- * @param p_owner
- */
 void pifDotMatrix_Stop(PifDotMatrix* p_owner)
 {
 	uint16_t col, row;
@@ -328,13 +271,6 @@ void pifDotMatrix_Stop(PifDotMatrix* p_owner)
     }
 }
 
-/**
- * @fn pifDotMatrix_SelectPattern
- * @brief
- * @param p_owner
- * @param pattern_index
- * @return
- */
 BOOL pifDotMatrix_SelectPattern(PifDotMatrix* p_owner, uint8_t pattern_index)
 {
 	if (pattern_index >= p_owner->__pattern_size) {
@@ -347,13 +283,6 @@ BOOL pifDotMatrix_SelectPattern(PifDotMatrix* p_owner, uint8_t pattern_index)
     return TRUE;
 }
 
-/**
- * @fn pifDotMatrix_BlinkOn
- * @brief
- * @param p_owner
- * @param period1ms
- * @return
- */
 BOOL pifDotMatrix_BlinkOn(PifDotMatrix* p_owner, uint16_t period1ms)
 {
 	if (!period1ms) {
@@ -371,11 +300,6 @@ BOOL pifDotMatrix_BlinkOn(PifDotMatrix* p_owner, uint16_t period1ms)
     return TRUE;
 }
 
-/**
- * @fn pifDotMatrix_BlinkOff
- * @brief
- * @param p_owner
- */
 void pifDotMatrix_BlinkOff(PifDotMatrix* p_owner)
 {
 	p_owner->__bt.led = ON;
@@ -386,12 +310,6 @@ void pifDotMatrix_BlinkOff(PifDotMatrix* p_owner)
 	}
 }
 
-/**
- * @fn pifDotMatrix_ChangeBlinkPeriod
- * @brief
- * @param p_owner
- * @param period1ms
- */
 void pifDotMatrix_ChangeBlinkPeriod(PifDotMatrix* p_owner, uint16_t period1ms)
 {
 	if (p_owner->__p_timer_blink) {
@@ -399,14 +317,6 @@ void pifDotMatrix_ChangeBlinkPeriod(PifDotMatrix* p_owner, uint16_t period1ms)
 	}
 }
 
-/**
- * @fn pifDotMatrix_SetPosition
- * @brief
- * @param p_owner
- * @param pos_x
- * @param pos_y
- * @return
- */
 BOOL pifDotMatrix_SetPosition(PifDotMatrix* p_owner, uint16_t pos_x, uint16_t pos_y)
 {
 	if (pos_x >= p_owner->__p_pattern[p_owner->__pattern_index].col_size - p_owner->__col_size ||
@@ -420,16 +330,6 @@ BOOL pifDotMatrix_SetPosition(PifDotMatrix* p_owner, uint16_t pos_x, uint16_t po
 	return TRUE;
 }
 
-/**
- * @fn pifDotMatrix_ShiftOn
- * @brief
- * @param p_owner
- * @param shift_direction
- * @param shift_method
- * @param period1ms
- * @param count
- * @return
- */
 BOOL pifDotMatrix_ShiftOn(PifDotMatrix* p_owner, PifDotMatrixShiftDir shift_direction,
 		PifDotMatrixShiftMethod shift_method, uint16_t period1ms, uint16_t count)
 {
@@ -450,11 +350,6 @@ BOOL pifDotMatrix_ShiftOn(PifDotMatrix* p_owner, PifDotMatrixShiftDir shift_dire
 	return TRUE;
 }
 
-/**
- * @fn pifDotMatrix_ShiftOff
- * @brief
- * @param p_owner
- */
 void pifDotMatrix_ShiftOff(PifDotMatrix* p_owner)
 {
 	if (p_owner->__p_timer_shift) {
@@ -465,12 +360,6 @@ void pifDotMatrix_ShiftOff(PifDotMatrix* p_owner)
 	}
 }
 
-/**
- * @fn pifDotMatrix_ChnageShiftPeriod
- * @brief
- * @param p_owner
- * @param period1ms
- */
 void pifDotMatrix_ChangeShiftPeriod(PifDotMatrix* p_owner, uint16_t period1ms)
 {
 	if (p_owner->__p_timer_shift) {
@@ -500,15 +389,6 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-/**
- * @fn pifDotMatrix_AttachTask
- * @brief Task를 추가한다.
- * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
 PifTask* pifDotMatrix_AttachTask(PifDotMatrix* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
 	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);

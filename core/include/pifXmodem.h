@@ -107,23 +107,111 @@ typedef struct StPifXmodem
 extern "C" {
 #endif
 
+/**
+ * @fn pifXmodem_Create
+ * @brief
+ * @param id
+ * @param p_timer
+ * @param type
+ * @return
+ */
 PifXmodem* pifXmodem_Create(PifId id, PifPulse* p_timer, PifXmodemType type);
+
+/**
+ * @fn pifXmodem_Destroy
+ * @brief
+ * @param pp_owner
+ */
 void pifXmodem_Destroy(PifXmodem** pp_owner);
 
+/**
+ * @fn pifXmodem_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param p_timer
+ * @param type
+ * @return
+ */
 BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifPulse* p_timer, PifXmodemType type);
+
+/**
+ * @fn pifXmodem_Clear
+ * @brief
+ * @param p_owner
+ */
 void pifXmodem_Clear(PifXmodem* p_owner);
 
+/**
+ * @fn pifXmodem_SetResponseTimeout
+ * @brief
+ * @param p_owner
+ * @param response_timeout
+ */
 void pifXmodem_SetResponseTimeout(PifXmodem* p_owner, uint16_t response_timeout);
+
+/**
+ * @fn pifXmodem_SetReceiveTimeout
+ * @brief
+ * @param p_owner
+ * @param receive_timeout
+ */
 void pifXmodem_SetReceiveTimeout(PifXmodem* p_owner, uint16_t receive_timeout);
 
+/**
+ * @fn pifXmodem_AttachComm
+ * @brief
+ * @param p_owner
+ * @param p_comm
+ */
 void pifXmodem_AttachComm(PifXmodem* p_owner, PifComm* p_comm);
+
+/**
+ * @fn pifXmodem_AttachEvtTxReceive
+ * @brief
+ * @param p_owner
+ * @param evt_tx_receive
+ */
 void pifXmodem_AttachEvtTxReceive(PifXmodem* p_owner, PifEvtXmodemTxReceive evt_tx_receive);
+
+/**
+ * @fn pifXmodem_AttachEvtRxReceive
+ * @brief
+ * @param p_owner
+ * @param evt_rx_receive
+ */
 void pifXmodem_AttachEvtRxReceive(PifXmodem* p_owner, PifEvtXmodemRxReceive evt_rx_receive);
 
+/**
+ * @fn pifXmodem_SendData
+ * @brief
+ * @param p_owner
+ * @param packet_no
+ * @param p_data
+ * @param data_size
+ * @return
+ */
 BOOL pifXmodem_SendData(PifXmodem* p_owner, uint8_t packet_no, uint8_t* p_data, uint16_t data_size);
+
+/**
+ * @fn pifXmodem_SendEot
+ * @brief
+ * @param p_owner
+ */
 void pifXmodem_SendEot(PifXmodem* p_owner);
+
+/**
+ * @fn pifXmodem_SendCancel
+ * @brief
+ * @param p_owner
+ */
 void pifXmodem_SendCancel(PifXmodem* p_owner);
 
+/**
+ * @fn pifXmodem_ReadyReceive
+ * @brief
+ * @param p_owner
+ */
 void pifXmodem_ReadyReceive(PifXmodem* p_owner);
 
 #ifdef __cplusplus

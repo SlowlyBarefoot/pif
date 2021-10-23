@@ -4,13 +4,6 @@
 #endif
 
 
-/**
- * @fn pifI2c_Create
- * @brief
- * @param id
- * @param data_size
- * @return
- */
 PifI2c* pifI2c_Create(PifId id, uint16_t data_size)
 {
 	PifI2c* p_owner = malloc(sizeof(PifI2c));
@@ -26,11 +19,6 @@ PifI2c* pifI2c_Create(PifId id, uint16_t data_size)
     return p_owner;
 }
 
-/**
- * @fn pifI2c_Destroy
- * @brief
- * @param pp_owner
- */
 void pifI2c_Destroy(PifI2c** pp_owner)
 {
 	if (*pp_owner) {
@@ -40,14 +28,6 @@ void pifI2c_Destroy(PifI2c** pp_owner)
 	}
 }
 
-/**
- * @fn pifI2c_Init
- * @brief
- * @param p_owner
- * @param id
- * @param data_size
- * @return
- */
 BOOL pifI2c_Init(PifI2c* p_owner, PifId id, uint16_t data_size)
 {
 	if (!p_owner || !data_size) {
@@ -73,11 +53,6 @@ fail:
 	return FALSE;
 }
 
-/**
- * @fn pifI2c_Clear
- * @brief
- * @param p_owner
- */
 void pifI2c_Clear(PifI2c* p_owner)
 {
 	if (p_owner->p_data) {
@@ -88,11 +63,6 @@ void pifI2c_Clear(PifI2c* p_owner)
 
 #ifndef __PIF_NO_LOG__
 
-/**
- * @fn pifI2c_ScanAddress
- * @brief
- * @param p_owner
- */
 void pifI2c_ScanAddress(PifI2c* p_owner)
 {
 	int i;
@@ -107,13 +77,6 @@ void pifI2c_ScanAddress(PifI2c* p_owner)
 
 #endif
 
-/**
- * @fn pifI2c_Read
- * @brief
- * @param p_owner
- * @param size
- * @return
- */
 BOOL pifI2c_Read(PifI2c* p_owner, uint8_t size)
 {
 	if (!p_owner->__act_read) return FALSE;
@@ -130,13 +93,6 @@ BOOL pifI2c_Read(PifI2c* p_owner, uint8_t size)
 	return p_owner->_state_read == IS_COMPLETE;
 }
 
-/**
- * @fn pifI2c_Write
- * @brief
- * @param p_owner
- * @param size
- * @return
- */
 BOOL pifI2c_Write(PifI2c* p_owner, uint8_t size)
 {
 	if (!p_owner->__act_write) return FALSE;
@@ -153,35 +109,16 @@ BOOL pifI2c_Write(PifI2c* p_owner, uint8_t size)
 	return p_owner->_state_write == IS_COMPLETE;
 }
 
-/**
- * @fn pifI2c_sigEndRead
- * @brief
- * @param p_owner
- * @param result
- */
 void pifI2c_sigEndRead(PifI2c* p_owner, BOOL result)
 {
 	p_owner->_state_read = result ? IS_COMPLETE : IS_ERROR;
 }
 
-/**
- * @fn pifI2c_sigEndWrite
- * @brief
- * @param p_owner
- * @param result
- */
 void pifI2c_sigEndWrite(PifI2c* p_owner, BOOL result)
 {
 	p_owner->_state_write = result ? IS_COMPLETE : IS_ERROR;
 }
 
-/**
- * @fn pifI2c_AttachAction
- * @brief
- * @param p_owner
- * @param act_read
- * @param act_write
- */
 void pifI2c_AttachAction(PifI2c* p_owner, PifActI2cRead act_read, PifActI2cWrite act_write)
 {
 	p_owner->__act_read = act_read;

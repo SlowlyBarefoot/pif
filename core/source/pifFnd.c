@@ -21,27 +21,12 @@ static void _evtTimerBlinkFinish(void* p_issuer)
     if (p_owner->__bt.blink) p_owner->__bt.led ^= 1;
 }
 
-/**
- * @fn pifFnd_SetUserChar
- * @brief
- * @param p_user_char
- * @param count
- */
 void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count)
 {
 	c_user_char = p_user_char;
 	s_user_char_count = count;
 }
 
-/**
- * @fn pifFnd_Create
- * @brief
- * @param id
- * @param p_timer
- * @param digit_size
- * @param act_display
- * @return
- */
 PifFnd* pifFnd_Create(PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFndDisplay act_display)
 {
     PifFnd *p_owner = malloc(sizeof(PifFnd));
@@ -57,11 +42,6 @@ PifFnd* pifFnd_Create(PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFnd
     return p_owner;
 }
 
-/**
- * @fn pifFnd_Destroy
- * @brief
- * @param pp_owner
- */
 void pifFnd_Destroy(PifFnd** pp_owner)
 {
 	if (*pp_owner) {
@@ -71,16 +51,6 @@ void pifFnd_Destroy(PifFnd** pp_owner)
 	}
 }
 
-/**
- * @fn pifFnd_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_timer
- * @param digit_size
- * @param act_display
- * @return
- */
 BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFndDisplay act_display)
 {
     if (!p_owner || !p_timer || !digit_size || !act_display) {
@@ -110,11 +80,6 @@ fail:
     return FALSE;
 }
 
-/**
- * @fn pifFnd_Clear
- * @brief
- * @param p_owner
- */
 void pifFnd_Clear(PifFnd* p_owner)
 {
 	if (p_owner->__p_string) {
@@ -127,21 +92,11 @@ void pifFnd_Clear(PifFnd* p_owner)
 	}
 }
 
-/**
- * @fn pifFnd_Start
- * @brief
- * @param p_owner
- */
 void pifFnd_Start(PifFnd* p_owner)
 {
 	p_owner->__bt.run = TRUE;
 }
 
-/**
- * @fn pifFnd_Stop
- * @brief
- * @param p_owner
- */
 void pifFnd_Stop(PifFnd* p_owner)
 {
 	int i;
@@ -156,13 +111,6 @@ void pifFnd_Stop(PifFnd* p_owner)
     }
 }
 
-/**
- * @fn pifFnd_BlinkOn
- * @brief
- * @param p_owner
- * @param period1ms
- * @return
- */
 BOOL pifFnd_BlinkOn(PifFnd* p_owner, uint16_t period1ms)
 {
 	if (!period1ms) {
@@ -179,11 +127,6 @@ BOOL pifFnd_BlinkOn(PifFnd* p_owner, uint16_t period1ms)
     return TRUE;
 }
 
-/**
- * @fn pifFnd_BlinkOff
- * @brief
- * @param p_owner
- */
 void pifFnd_BlinkOff(PifFnd* p_owner)
 {
 	p_owner->__bt.led = ON;
@@ -194,13 +137,6 @@ void pifFnd_BlinkOff(PifFnd* p_owner)
 	}
 }
 
-/**
- * @fn pifFnd_ChangeBlinkPeriod
- * @brief
- * @param p_owner
- * @param period1ms
- * @return
- */
 BOOL pifFnd_ChangeBlinkPeriod(PifFnd* p_owner, uint16_t period1ms)
 {
 	if (!period1ms) {
@@ -217,23 +153,11 @@ BOOL pifFnd_ChangeBlinkPeriod(PifFnd* p_owner, uint16_t period1ms)
 	return TRUE;
 }
 
-/**
- * @fn pifFnd_SetFillZero
- * @brief
- * @param p_owner
- * @param fill_zero
- */
 void pifFnd_SetFillZero(PifFnd* p_owner, BOOL fill_zero)
 {
     p_owner->__bt.fill_zero = fill_zero;
 }
 
-/**
- * @fn pifFnd_SetFloat
- * @brief
- * @param p_owner
- * @param value
- */
 void pifFnd_SetFloat(PifFnd* p_owner, double value)
 {
     BOOL minus = FALSE;
@@ -279,12 +203,6 @@ void pifFnd_SetFloat(PifFnd* p_owner, double value)
 	}
 }
 
-/**
- * @fn pifFnd_SetInterger
- * @brief
- * @param p_owner
- * @param value
- */
 void pifFnd_SetInterger(PifFnd* p_owner, int32_t value)
 {
     BOOL minus = FALSE;
@@ -338,12 +256,6 @@ void pifFnd_SetInterger(PifFnd* p_owner, int32_t value)
     }
 }
 
-/**
- * @fn pifFnd_SetString
- * @brief
- * @param p_owner
- * @param p_string
- */
 void pifFnd_SetString(PifFnd* p_owner, char* p_string)
 {
     int src = 0;
@@ -395,15 +307,6 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-/**
- * @fn pifFnd_AttachTask
- * @brief Task를 추가한다.
- * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
 PifTask* pifFnd_AttachTask(PifFnd* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
 	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);

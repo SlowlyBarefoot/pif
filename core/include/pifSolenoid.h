@@ -102,28 +102,126 @@ struct StPifSolenoid
 extern "C" {
 #endif
 
+/**
+ * @fn pifSolenoid_Create
+ * @brief
+ * @param id
+ * @param p_timer
+ * @param type
+ * @param on_time
+ * @param act_control
+ * @return
+ */
 PifSolenoid* pifSolenoid_Create(PifId id, PifPulse* p_timer, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control);
+
+/**
+ * @fn pifSolenoid_Destroy
+ * @brief
+ * @param pp_owner
+ */
 void pifSolenoid_Destroy(PifSolenoid** pp_owner);
 
+/**
+ * @fn pifSolenoid_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param p_timer
+ * @param type
+ * @param on_time
+ * @param act_control
+ * @return
+ */
 BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifPulse* p_timer, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control);
+
+/**
+ * @fn pifSolenoid_Clear
+ * @brief
+ * @param p_owner
+ */
 void pifSolenoid_Clear(PifSolenoid* p_owner);
 
+/**
+ * @fn pifSolenoid_SetBuffer
+ * @brief
+ * @param p_owner
+ * @param size
+ * @return
+ */
 BOOL pifSolenoid_SetBuffer(PifSolenoid* p_owner, uint16_t size);
+
+/**
+ * @fn pifSolenoid_SetInvalidDirection
+ * @brief
+ * @param p_owner
+ */
 void pifSolenoid_SetInvalidDirection(PifSolenoid* p_owner);
+
+/**
+ * @fn pifSolenoid_SetOnTime
+ * @brief
+ * @param p_owner
+ * @param on_time
+ * @return
+ */
 BOOL pifSolenoid_SetOnTime(PifSolenoid* p_owner, uint16_t on_time);
 
+/**
+ * @fn pifSolenoid_ActionOn
+ * @brief
+ * @param p_owner
+ * @param delay
+ */
 void pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay);
+
+/**
+ * @fn pifSolenoid_ActionOnDir
+ * @brief 
+ * @param p_owner
+ * @param delay
+ * @param dir
+ */
 void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDir dir);
+
+/**
+ * @fn pifSolenoid_ActionOff
+ * @brief
+ * @param p_owner
+ */
 void pifSolenoid_ActionOff(PifSolenoid* p_owner);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
+/**
+ * @fn pifSolenoid_SetCsFlagAll
+ * @brief
+ * @param flag
+ */
 void pifSolenoid_SetCsFlagAll(PifSolenoidCsFlag flag);
+
+/**
+ * @fn pifSolenoid_ResetCsFlagAll
+ * @brief
+ * @param flag
+ */
 void pifSolenoid_ResetCsFlagAll(PifSolenoidCsFlag flag);
 
+/**
+ * @fn pifSolenoid_SetCsFlagEach
+ * @brief
+ * @param pstSensor
+ * @param flag
+ */
 void pifSolenoid_SetCsFlagEach(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
+
+/**
+ * @fn pifSolenoid_ResetCsFlagEach
+ * @brief
+ * @param pstSensor
+ * @param flag
+ */
 void pifSolenoid_ResetCsFlagEach(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
 
 #endif

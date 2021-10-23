@@ -415,15 +415,6 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 	return FALSE;
 }
 
-/**
- * @fn pifProtocol_Create
- * @brief
- * @param id
- * @param p_timer
- * @param type
- * @param p_questions
- * @return
- */
 PifProtocol* pifProtocol_Create(PifId id, PifPulse* p_timer, PifProtocolType type,
 		const PifProtocolQuestion* p_questions)
 {
@@ -440,11 +431,6 @@ PifProtocol* pifProtocol_Create(PifId id, PifPulse* p_timer, PifProtocolType typ
     return p_owner;
 }
 
-/**
- * @fn pifProtocol_Destroy
- * @brief
- * @param pp_owner
- */
 void pifProtocol_Destroy(PifProtocol** pp_owner)
 {
     if (*pp_owner) {
@@ -454,16 +440,6 @@ void pifProtocol_Destroy(PifProtocol** pp_owner)
     }
 }
 
-/**
- * @fn pifProtocol_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_timer
- * @param type
- * @param p_questions
- * @return
- */
 BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifPulse* p_timer, PifProtocolType type,
 		const PifProtocolQuestion* p_questions)
 {
@@ -536,11 +512,6 @@ fail:
     return FALSE;
 }
 
-/**
- * @fn pifProtocol_Clear
- * @brief
- * @param pp_owner
- */
 void pifProtocol_Clear(PifProtocol* p_owner)
 {
 	if (p_owner->__rx.p_packet) {
@@ -559,13 +530,6 @@ void pifProtocol_Clear(PifProtocol* p_owner)
 	}
 }
 
-/**
- * @fn pifProtocol_SetFrameSize
- * @brief
- * @param pvOwner
- * @param frame_size
- * @return
- */
 BOOL pifProtocol_SetFrameSize(PifProtocol* p_owner, uint8_t frame_size)
 {
 	switch (frame_size) {
@@ -579,13 +543,6 @@ BOOL pifProtocol_SetFrameSize(PifProtocol* p_owner, uint8_t frame_size)
 	return FALSE;
 }
 
-/**
- * @fn pifProtocol_ResizeRxPacket
- * @brief
- * @param pvOwner
- * @param rx_packet_size
- * @return
- */
 BOOL pifProtocol_ResizeRxPacket(PifProtocol* p_owner, uint16_t rx_packet_size)
 {
     if (!rx_packet_size) {
@@ -603,13 +560,6 @@ BOOL pifProtocol_ResizeRxPacket(PifProtocol* p_owner, uint16_t rx_packet_size)
     return TRUE;
 }
 
-/**
- * @fn pifProtocol_ResizeTxRequest
- * @brief
- * @param pvOwner
- * @param tx_request_size
- * @return
- */
 BOOL pifProtocol_ResizeTxRequest(PifProtocol* p_owner, uint16_t tx_request_size)
 {
     if (!tx_request_size) {
@@ -620,13 +570,6 @@ BOOL pifProtocol_ResizeTxRequest(PifProtocol* p_owner, uint16_t tx_request_size)
     return pifRingBuffer_ResizeHeap(&p_owner->__tx.request_buffer, tx_request_size);
 }
 
-/**
- * @fn pifProtocol_ResizeTxResponse
- * @brief
- * @param pvOwner
- * @param tx_response_size
- * @return
- */
 BOOL pifProtocol_ResizeTxResponse(PifProtocol* p_owner, uint16_t tx_response_size)
 {
     if (tx_response_size) {
@@ -637,12 +580,6 @@ BOOL pifProtocol_ResizeTxResponse(PifProtocol* p_owner, uint16_t tx_response_siz
     return pifRingBuffer_ResizeHeap(&p_owner->__tx.answer_buffer, tx_response_size);
 }
 
-/**
- * @fn pifProtocol_AttachComm
- * @brief
- * @param p_owner
- * @param p_comm
- */
 void pifProtocol_AttachComm(PifProtocol* p_owner, PifComm* p_comm)
 {
 	p_owner->__p_comm = p_comm;
@@ -651,15 +588,6 @@ void pifProtocol_AttachComm(PifProtocol* p_owner, PifComm* p_comm)
 	p_comm->evt_sending = _evtSending;
 }
 
-/**
- * @fn pifProtocol_MakeRequest
- * @brief
- * @param p_owner
- * @param p_request
- * @param p_data
- * @param data_size
- * @return
- */
 BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_request, uint8_t* p_data, uint16_t data_size)
 {
 	int i;
@@ -753,16 +681,6 @@ fail:
 	return FALSE;
 }
 
-/**
- * @fn pifProtocol_MakeAnswer
- * @brief
- * @param p_owner
- * @param p_question
- * @param flags
- * @param p_data
- * @param data_size
- * @return
- */
 BOOL pifProtocol_MakeAnswer(PifProtocol* p_owner, PifProtocolPacket* p_question, uint8_t flags,
 		uint8_t* p_data, uint16_t data_size)
 {

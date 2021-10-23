@@ -111,15 +111,6 @@ static void _evtTimerBreakFinish(void *p_issuer)
     }
 }
 
-/**
- * @fn pifStepMotor_Create
- * @brief 
- * @param id
- * @param p_timer
- * @param resolution
- * @param operation
- * @return 
- */
 PifStepMotor* pifStepMotor_Create(PifId id, PifPulse* p_timer, uint16_t resolution, PifStepMotorOperation operation)
 {
     PifStepMotor* p_owner = malloc(sizeof(PifStepMotor));
@@ -135,11 +126,6 @@ PifStepMotor* pifStepMotor_Create(PifId id, PifPulse* p_timer, uint16_t resoluti
     return p_owner;
 }
 
-/**
- * @fn pifStepMotor_Destroy
- * @brief 
- * @param pp_owner
- */
 void pifStepMotor_Destroy(PifStepMotor** pp_owner)
 {
 	if (*pp_owner) {
@@ -149,16 +135,6 @@ void pifStepMotor_Destroy(PifStepMotor** pp_owner)
     }
 }
 
-/**
- * @fn pifStepMotor_Init
- * @brief 
- * @param p_owner
- * @param id
- * @param p_timer
- * @param resolution
- * @param operation
- * @return 
- */
 BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifPulse* p_timer, uint16_t resolution, PifStepMotorOperation operation)
 {
     if (!p_owner || !p_timer) {
@@ -187,11 +163,6 @@ fail:
 	return FALSE;	
 }
 
-/**
- * @fn pifStepMotor_Clear
- * @brief 
- * @param p_owner
- */
 void pifStepMotor_Clear(PifStepMotor* p_owner)
 {
 	if (p_owner->__p_timer_step) {
@@ -208,24 +179,11 @@ void pifStepMotor_Clear(PifStepMotor* p_owner)
 	}
 }
 
-/**
- * @fn pifStepMotor_AttachAction
- * @brief
- * @param p_owner
- * @param act_set_step
- */
 void pifStepMotor_AttachAction(PifStepMotor* p_owner, PifActStepMotorSetStep act_set_step)
 {
     p_owner->__act_set_step = act_set_step;
 }
 
-/**
- * @fn pifStepMotor_SetDirection
- * @brief
- * @param p_owner
- * @param direction
- * @return
- */
 BOOL pifStepMotor_SetDirection(PifStepMotor* p_owner, uint8_t direction)
 {
 	if (p_owner->_state != MS_IDLE) {
@@ -237,13 +195,6 @@ BOOL pifStepMotor_SetDirection(PifStepMotor* p_owner, uint8_t direction)
 	return TRUE;
 }
 
-/**
- * @fn pifStepMotor_SetOperatingTime
- * @brief
- * @param p_owner
- * @param operating_time
- * @return
- */
 BOOL pifStepMotor_SetOperatingTime(PifStepMotor* p_owner, uint32_t operating_time)
 {
 	if (!p_owner->__p_timer_break) {
@@ -258,13 +209,6 @@ BOOL pifStepMotor_SetOperatingTime(PifStepMotor* p_owner, uint32_t operating_tim
 	return FALSE;
 }
 
-/**
- * @fn pifStepMotor_SetOperation
- * @brief
- * @param p_owner
- * @param operation
- * @return
- */
 BOOL pifStepMotor_SetOperation(PifStepMotor* p_owner, PifStepMotorOperation operation)
 {
 	if (p_owner->__p_timer_step->_step != PS_STOP) {
@@ -308,13 +252,6 @@ BOOL pifStepMotor_SetOperation(PifStepMotor* p_owner, PifStepMotorOperation oper
 	return TRUE;
 }
 
-/**
- * @fn pifStepMotor_SetPps
- * @brief
- * @param p_owner
- * @param pps
- * @return
- */
 BOOL pifStepMotor_SetPps(PifStepMotor* p_owner, uint16_t pps)
 {
     if (!pps) {
@@ -345,13 +282,6 @@ BOOL pifStepMotor_SetPps(PifStepMotor* p_owner, uint16_t pps)
 	return TRUE;
 }
 
-/**
- * @fn pifStepMotor_SetReductionGearRatio
- * @brief
- * @param p_owner
- * @param reduction_gear_ratio
- * @return
- */
 BOOL pifStepMotor_SetReductionGearRatio(PifStepMotor* p_owner, uint8_t reduction_gear_ratio)
 {
 	if (p_owner->_state != MS_IDLE) {
@@ -363,36 +293,16 @@ BOOL pifStepMotor_SetReductionGearRatio(PifStepMotor* p_owner, uint8_t reduction
 	return TRUE;
 }
 
-/**
- * @fn pifStepMotor_SetRpm
- * @brief
- * @param p_owner
- * @param rpm
- * @return
- */
 BOOL pifStepMotor_SetRpm(PifStepMotor* p_owner, float rpm)
 {
 	return pifStepMotor_SetPps(p_owner, rpm * p_owner->_resolution / 60 + 0.5);
 }
 
-/**
- * @fn pifStepMotor_GetRpm
- * @brief
- * @param p_owner
- * @return
- */
 float pifStepMotor_GetRpm(PifStepMotor* p_owner)
 {
 	return 60.0 * p_owner->_current_pps / p_owner->_resolution;
 }
 
-/**
- * @fn pifStepMotor_SetTargetPulse
- * @brief
- * @param p_owner
- * @param target_pulse
- * @return
- */
 BOOL pifStepMotor_SetTargetPulse(PifStepMotor* p_owner, uint32_t target_pulse)
 {
 	if (p_owner->_state != MS_IDLE) {
@@ -405,13 +315,6 @@ BOOL pifStepMotor_SetTargetPulse(PifStepMotor* p_owner, uint32_t target_pulse)
 	return TRUE;
 }
 
-/**
- * @fn pifStepMotor_Start
- * @brief
- * @param p_owner
- * @param target_pulse
- * @return
- */
 BOOL pifStepMotor_Start(PifStepMotor* p_owner, uint32_t target_pulse)
 {
 	if (p_owner->__step_period1us < 2 * p_owner->_p_timer->_period1us) {
@@ -424,32 +327,16 @@ BOOL pifStepMotor_Start(PifStepMotor* p_owner, uint32_t target_pulse)
 	return TRUE;
 }
 
-/**
- * @fn pifStepMotor_Break
- * @brief
- * @param p_owner
- */
 void pifStepMotor_Break(PifStepMotor* p_owner)
 {
    	pifPulse_StopItem(p_owner->__p_timer_step);
 }
 
-/**
- * @fn pifStepMotor_Release
- * @brief
- * @param p_owner
- */
 void pifStepMotor_Release(PifStepMotor* p_owner)
 {
 	(*p_owner->__act_set_step)(0);
 }
 
-/**
- * @fn pifStepMotor_BreakRelease
- * @brief
- * @param p_owner
- * @param break_time
- */
 void pifStepMotor_BreakRelease(PifStepMotor* p_owner, uint16_t break_time)
 {
 	pifStepMotor_Break(p_owner);
@@ -467,12 +354,6 @@ void pifStepMotor_BreakRelease(PifStepMotor* p_owner, uint16_t break_time)
 	pifStepMotor_Release(p_owner);
 }
 
-/**
- * @fn pifStepMotor_StartControl
- * @brief 
- * @param p_owner
- * @return 
- */
 BOOL pifStepMotor_StartControl(PifStepMotor* p_owner)
 {
 	if (!p_owner->__p_task) {
@@ -484,12 +365,6 @@ BOOL pifStepMotor_StartControl(PifStepMotor* p_owner)
     return TRUE;
 }
 
-/**
- * @fn pifStepMotor_StopControl
- * @brief
- * @param p_owner
- * @return
- */
 BOOL pifStepMotor_StopControl(PifStepMotor* p_owner)
 {
 	if (!p_owner->__p_task) {
@@ -501,14 +376,6 @@ BOOL pifStepMotor_StopControl(PifStepMotor* p_owner)
     return TRUE;
 }
 
-/**
- * @fn pifStepMotor_AttachTask
- * @brief Task를 추가한다.
- * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @return Task 구조체 포인터를 반환한다.
- */
 PifTask* pifStepMotor_AttachTask(PifStepMotor* p_owner, PifTaskMode mode, uint16_t period)
 {
 	p_owner->__p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, FALSE);

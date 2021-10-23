@@ -57,13 +57,56 @@ typedef struct StPifStepMotorSpeed
 extern "C" {
 #endif
 
+/**
+ * @fn pifStepMotorSpeed_Create
+ * @brief 
+ * @param id
+ * @param p_timer
+ * @param resolution
+ * @param operation
+ * @return 
+ */
 PifStepMotor* pifStepMotorSpeed_Create(PifId id, PifPulse* p_timer, uint8_t resolution, PifStepMotorOperation operation);
+
+/**
+ * @fn pifStepMotorSpeed_Destroy
+ * @brief
+ * @param pp_parent
+ */
 void pifStepMotorSpeed_Destroy(PifStepMotor** pp_parent);
 
+/**
+ * @fn pifStepMotorSpeed_AddStages
+ * @brief 
+ * @param p_parent
+ * @param stage_size
+ * @param p_stages
+ * @return 
+ */
 BOOL pifStepMotorSpeed_AddStages(PifStepMotor* p_parent, uint8_t stage_size, const PifStepMotorSpeedStage* p_stages);
 
+/**
+ * @fn pifStepMotorSpeed_Start
+ * @brief 
+ * @param p_parent
+ * @param stage_index
+ * @param operating_time
+ * @return 
+ */
 BOOL pifStepMotorSpeed_Start(PifStepMotor* p_parent, uint8_t stage_index, uint32_t operating_time);
+
+/**
+ * @fn pifStepMotorSpeed_Stop
+ * @brief 
+ * @param p_parent
+ */
 void pifStepMotorSpeed_Stop(PifStepMotor* p_parent);
+
+/**
+ * @fn pifStepMotorSpeed_Emergency
+ * @brief
+ * @param p_parent
+ */
 void pifStepMotorSpeed_Emergency(PifStepMotor* p_parent);
 
 #ifdef __cplusplus

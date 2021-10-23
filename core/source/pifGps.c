@@ -4,12 +4,6 @@
 #endif
 
 
-/**
- * @fn pifGps_Create
- * @brief
- * @param id
- * @return
- */
 PifGps* pifGps_Create(PifId id)
 {
 	PifGps *p_owner = malloc(sizeof(PifGps));
@@ -25,11 +19,6 @@ PifGps* pifGps_Create(PifId id)
     return p_owner;
 }
 
-/**
- * @fn pifGps_Destroy
- * @brief
- * @param pp_owner
- */
 void pifGps_Destroy(PifGps** pp_owner)
 {
 	if (*pp_owner) {
@@ -38,12 +27,6 @@ void pifGps_Destroy(PifGps** pp_owner)
 	}
 }
 
-/**
- * @fn pifGps_Init
- * @brief
- * @param p_owner
- * @param id
- */
 BOOL pifGps_Init(PifGps* p_owner, PifId id)
 {
 	if (!p_owner) {
@@ -58,23 +41,11 @@ BOOL pifGps_Init(PifGps* p_owner, PifId id)
 	return TRUE;
 }
 
-/**
- * @fn pifGps_AttachEvent
- * @brief
- * @param p_owner
- * @param evt_receive
- */
 void pifGps_AttachEvent(PifGps* p_owner, PifEvtGpsReceive evt_receive)
 {
 	p_owner->__evt_receive = evt_receive;
 }
 
-/**
- * @fn pifGps_ConvertLatitude2DegMin
- * @brief
- * @param p_owner
- * @param p_deg_min
- */
 void pifGps_ConvertLatitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min)
 {
 	double degree, minute;
@@ -85,12 +56,6 @@ void pifGps_ConvertLatitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min)
 	p_deg_min->minute = minute;
 }
 
-/**
- * @fn pifGps_ConvertLongitude2DegMin
- * @brief
- * @param p_owner
- * @param p_deg_min
- */
 void pifGps_ConvertLongitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min)
 {
 	double degree, minute;
@@ -101,12 +66,6 @@ void pifGps_ConvertLongitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min)
 	p_deg_min->minute = minute;
 }
 
-/**
- * @fn pifGps_ConvertLatitude2DegMinSec
- * @brief
- * @param p_owner
- * @param p_deg_min_sec
- */
 void pifGps_ConvertLatitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_sec)
 {
 	double degree, minute, second;
@@ -119,12 +78,6 @@ void pifGps_ConvertLatitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_s
 	p_deg_min_sec->second = second;
 }
 
-/**
- * @fn pifGps_ConvertLongitude2DegMinSec
- * @brief
- * @param p_owner
- * @param p_deg_min_sec
- */
 void pifGps_ConvertLongitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_sec)
 {
 	double degree, minute, second;
@@ -137,12 +90,6 @@ void pifGps_ConvertLongitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_
 	p_deg_min_sec->second = second;
 }
 
-/**
- * @fn pifGps_ConvertKnots2MpS
- * @brief
- * @param knots
- * @return
- */
 double pifGps_ConvertKnots2MpS(double knots)
 {
 	return knots * 0.514444;		// m/s = 1 knots * 0.514444

@@ -78,13 +78,6 @@ void pifSensorDigital_ColSigClear()
 
 #endif
 
-/**
- * @fn pifSensorDigital_Create
- * @brief 
- * @param id
- * @param p_timer
- * @return 
- */
 PifSensor* pifSensorDigital_Create(PifId id, PifPulse *p_timer)
 {
     PifSensorDigital* p_owner = NULL;
@@ -122,11 +115,6 @@ fail:
 	return NULL;	
 }
 
-/**
- * @fn pifSensorDigital_Destroy
- * @brief 
- * @param pp_parent
- */
 void pifSensorDigital_Destroy(PifSensor** pp_parent)
 {
    if (*pp_parent) {
@@ -164,24 +152,12 @@ void pifSensorDigital_Destroy(PifSensor** pp_parent)
     }
 }
 
-/**
- * @fn pifSensorDigital_InitialState
- * @brief
- * @param p_parent
- */
 void pifSensorDigital_InitialState(PifSensor* p_parent)
 {
 	p_parent->_curr_state = p_parent->_init_state;
 	((PifSensorDigital*)p_parent)->__curr_level = p_parent->_init_state ? 0xFFFF : 0;
 }
 
-/**
- * @fn pifSensorDigital_AttachEvtPeriod
- * @brief
- * @param p_parent
- * @param evt_period
- * @return
- */
 BOOL pifSensorDigital_AttachEvtPeriod(PifSensor* p_parent, PifEvtSensorDigitalPeriod evt_period)
 {
 	PifSensorDigital* p_owner = (PifSensorDigital*)p_parent;
@@ -194,34 +170,16 @@ BOOL pifSensorDigital_AttachEvtPeriod(PifSensor* p_parent, PifEvtSensorDigitalPe
 	return TRUE;
 }
 
-/**
- * @fn pifSensorDigital_StartPeriod
- * @brief
- * @param p_parent
- * @param period
- * @return
- */
 BOOL pifSensorDigital_StartPeriod(PifSensor* p_parent, uint16_t period)
 {
 	return pifPulse_StartItem(((PifSensorDigital*)p_parent)->__ui.period.p_timer, period);
 }
 
-/**
- * @fn pifSensorDigital_StopPeriod
- * @brief
- * @param p_parent
- */
 void pifSensorDigital_StopPeriod(PifSensor* p_parent)
 {
 	pifPulse_StopItem(((PifSensorDigital*)p_parent)->__ui.period.p_timer);
 }
 
-/**
- * @fn pifSensorDigital_SetEventThreshold1P
- * @brief
- * @param p_parent
- * @param threshold
- */
 void pifSensorDigital_SetEventThreshold1P(PifSensor* p_parent, uint16_t threshold)
 {
 	PifSensorDigital* p_owner = (PifSensorDigital*)p_parent;
@@ -230,13 +188,6 @@ void pifSensorDigital_SetEventThreshold1P(PifSensor* p_parent, uint16_t threshol
 	p_owner->__ui.threshold1p = threshold;
 }
 
-/**
- * @fn pifSensorDigital_SetEventThreshold2P
- * @brief
- * @param p_parent
- * @param threshold_low
- * @param threshold_high
- */
 void pifSensorDigital_SetEventThreshold2P(PifSensor* p_parent, uint16_t threshold_low, uint16_t threshold_high)
 {
 	PifSensorDigital* p_owner = (PifSensorDigital*)p_parent;
@@ -246,16 +197,6 @@ void pifSensorDigital_SetEventThreshold2P(PifSensor* p_parent, uint16_t threshol
     p_owner->__ui.threshold2p.high = threshold_high;
 }
 
-/**
- * @fn pifSensorDigital_AttachFilter
- * @brief 
- * @param p_parent
- * @param filter_method
- * @param filter_size
- * @param p_filter
- * @param init_filter
- * @return 
- */
 BOOL pifSensorDigital_AttachFilter(PifSensor* p_parent, uint8_t filter_method, uint8_t filter_size,
 		PifSensorDigitalFilter* p_filter, BOOL init_filter)
 {
@@ -294,11 +235,6 @@ BOOL pifSensorDigital_AttachFilter(PifSensor* p_parent, uint8_t filter_method, u
     return TRUE;
 }
 
-/**
- * @fn pifSensorDigital_DetachFilter
- * @brief
- * @param p_parent
- */
 void pifSensorDigital_DetachFilter(PifSensor* p_parent)
 {
 	PifSensorDigital* p_owner = (PifSensorDigital*)p_parent;
@@ -318,11 +254,6 @@ void pifSensorDigital_DetachFilter(PifSensor* p_parent)
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-/**
- * @fn pifSensorDigital_SetCsFlagAll
- * @brief
- * @param flag
- */
 void pifSensorDigital_SetCsFlagAll(PifSensorDigitalCsFlag flag)
 {
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
@@ -333,11 +264,6 @@ void pifSensorDigital_SetCsFlagAll(PifSensorDigitalCsFlag flag)
 	}
 }
 
-/**
- * @fn pifSensorDigital_ResetCsFlagAll
- * @brief
- * @param flag
- */
 void pifSensorDigital_ResetCsFlagAll(PifSensorDigitalCsFlag flag)
 {
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
@@ -348,23 +274,11 @@ void pifSensorDigital_ResetCsFlagAll(PifSensorDigitalCsFlag flag)
 	}
 }
 
-/**
- * @fn pifSensorDigital_SetCsFlagEach
- * @brief
- * @param p_parent
- * @param flag
- */
 void pifSensorDigital_SetCsFlagEach(PifSensor* p_parent, PifSensorDigitalCsFlag flag)
 {
 	((PifSensorDigital*)p_parent)->__p_colsig->flag |= flag;
 }
 
-/**
- * @fn pifSensorDigital_ResetCsFlagEach
- * @brief
- * @param p_parent
- * @param flag
- */
 void pifSensorDigital_ResetCsFlagEach(PifSensor* p_parent, PifSensorDigitalCsFlag flag)
 {
 	((PifSensorDigital*)p_parent)->__p_colsig->flag &= ~flag;
@@ -372,12 +286,6 @@ void pifSensorDigital_ResetCsFlagEach(PifSensor* p_parent, PifSensorDigitalCsFla
 
 #endif
 
-/**
- * @fn pifSensorDigital_sigData
- * @brief 
- * @param p_parent
- * @param level
- */
 void pifSensorDigital_sigData(PifSensor* p_parent, uint16_t level)
 {
 	PifSensorDigital* p_owner = (PifSensorDigital*)p_parent;
@@ -438,15 +346,6 @@ static uint16_t _doTask(PifTask* p_task)
     return 0;
 }
 
-/**
- * @fn pifSensorDigital_AttachTask
- * @brief Task를 추가한다.
- * @param p_parent
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
 PifTask* pifSensorDigital_AttachTask(PifSensor* p_parent, PifTaskMode mode, uint16_t period, BOOL start)
 {
 	return pifTaskManager_Add(mode, period, _doTask, p_parent, start);

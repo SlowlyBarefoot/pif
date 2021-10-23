@@ -58,19 +58,75 @@ struct StPifGps
 extern "C" {
 #endif
 
+/**
+ * @fn pifGps_Create
+ * @brief
+ * @param id
+ * @return
+ */
 PifGps* pifGps_Create(PifId id);
+
+/**
+ * @fn pifGps_Destroy
+ * @brief
+ * @param pp_owner
+ */
 void pifGps_Destroy(PifGps** pp_owner);
 
+/**
+ * @fn pifGps_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ */
 BOOL pifGps_Init(PifGps* p_owner, PifId id);
 
+/**
+ * @fn pifGps_AttachEvent
+ * @brief
+ * @param p_owner
+ * @param evt_receive
+ */
 void pifGps_AttachEvent(PifGps* p_owner, PifEvtGpsReceive evt_receive);
 
+/**
+ * @fn pifGps_ConvertLatitude2DegMin
+ * @brief
+ * @param p_owner
+ * @param p_deg_min
+ */
 void pifGps_ConvertLatitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min);
+
+/**
+ * @fn pifGps_ConvertLongitude2DegMin
+ * @brief
+ * @param p_owner
+ * @param p_deg_min
+ */
 void pifGps_ConvertLongitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min);
 
+/**
+ * @fn pifGps_ConvertLatitude2DegMinSec
+ * @brief
+ * @param p_owner
+ * @param p_deg_min_sec
+ */
 void pifGps_ConvertLatitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_sec);
+
+/**
+ * @fn pifGps_ConvertLongitude2DegMinSec
+ * @brief
+ * @param p_owner
+ * @param p_deg_min_sec
+ */
 void pifGps_ConvertLongitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_sec);
 
+/**
+ * @fn pifGps_ConvertKnots2MpS
+ * @brief
+ * @param knots
+ * @return
+ */
 double pifGps_ConvertKnots2MpS(double knots);
 
 #ifdef __cplusplus

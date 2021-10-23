@@ -96,33 +96,173 @@ struct StPifComm
 extern "C" {
 #endif
 
+/**
+ * @fn pifComm_Create
+ * @brief 
+ * @param id
+ * @return 
+ */
 PifComm* pifComm_Create(PifId id);
+
+/**
+ * @fn pifComm_Destroy
+ * @brief 
+ * @param pp_owner
+ */
 void pifComm_Destroy(PifComm** pp_owner);
 
+/**
+ * @fn pifComm_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @return
+ */
 BOOL pifComm_Init(PifComm* p_owner, PifId id);
+
+/**
+ * @fn pifComm_Clear
+ * @brief
+ * @param p_owner
+ */
 void pifComm_Clear(PifComm* p_owner);
 
+/**
+ * @fn pifComm_AllocRxBuffer
+ * @brief
+ * @param p_owner
+ * @param rx_Size
+ * @return
+ */
 BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_size);
+
+/**
+ * @fn pifComm_AllocTxBuffer
+ * @brief
+ * @param p_owner
+ * @param tx_size
+ * @return
+ */
 BOOL pifComm_AllocTxBuffer(PifComm* p_owner, uint16_t tx_size);
 
+/**
+ * @fn pifComm_AttachClient
+ * @brief
+ * @param p_owner
+ * @param p_client
+ */
 void pifComm_AttachClient(PifComm* p_owner, void* p_client);
+
+/**
+ * @fn pifComm_AttachActReceiveData
+ * @brief
+ * @param p_owner
+ * @param act_receive_data
+ */
 void pifComm_AttachActReceiveData(PifComm* p_owner, PifActCommReceiveData act_receive_data);
+
+/**
+ * @fn pifComm_AttachActSendData
+ * @brief
+ * @param p_owner
+ * @param act_send_data
+ */
 void pifComm_AttachActSendData(PifComm* p_owner, PifActCommSendData act_send_data);
+
+/**
+ * @fn pifComm_AttachActStartTransfer
+ * @brief
+ * @param p_owner
+ * @param act_start_transfer
+ */
 void pifComm_AttachActStartTransfer(PifComm* p_owner, PifActCommStartTransfer act_start_transfer);
 
+/**
+ * @fn pifComm_GetRemainSizeOfRxBuffer
+ * @brief
+ * @param p_owner
+ * @return
+ */
 uint16_t pifComm_GetRemainSizeOfRxBuffer(PifComm* p_owner);
+
+/**
+ * @fn pifComm_GetFillSizeOfTxBuffer
+ * @brief
+ * @param p_owner
+ * @return
+ */
 uint16_t pifComm_GetFillSizeOfTxBuffer(PifComm* p_owner);
 
+/**
+ * @fn pifComm_ReceiveData
+ * @brief
+ * @param p_owner
+ * @param data
+ * @return 
+ */
 BOOL pifComm_ReceiveData(PifComm* p_owner, uint8_t data);
+
+/**
+ * @fn pifComm_ReceiveDatas
+ * @brief
+ * @param p_owner
+ * @param p_data
+ * @param length
+ * @return
+ */
 BOOL pifComm_ReceiveDatas(PifComm* p_owner, uint8_t* p_data, uint16_t length);
+
+/**
+ * @fn pifComm_SendData
+ * @brief
+ * @param p_owner
+ * @param p_data
+ * @return
+ */
 uint8_t pifComm_SendData(PifComm* p_owner, uint8_t* p_data);
+
+/**
+ * @fn pifComm_StartSendDatas
+ * @brief
+ * @param p_owner
+ * @param pp_data
+ * @param p_length
+ * @return
+ */
 uint8_t pifComm_StartSendDatas(PifComm* p_owner, uint8_t** pp_data, uint16_t *p_length);
+
+/**
+ * @fn pifComm_EndSendDatas
+ * @brief
+ * @param p_owner
+ * @param length
+ * @return
+ */
 uint8_t pifComm_EndSendDatas(PifComm* p_owner, uint16_t length);
+
+/**
+ * @fn pifComm_FinishTransfer
+ * @brief
+ * @param p_owner
+ */
 void pifComm_FinishTransfer(PifComm* p_owner);
 
+/**
+ * @fn pifComm_ForceSendData
+ * @brief
+ * @param p_owner
+ */
 void pifComm_ForceSendData(PifComm* p_owner);
 
-// Task Function
+/**
+ * @fn pifComm_AttachTask
+ * @brief Task를 추가한다.
+ * @param p_owner
+ * @param mode Task의 Mode를 설정한다.
+ * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @param start 즉시 시작할지를 지정한다.
+ * @return Task 구조체 포인터를 반환한다.
+ */
 PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus

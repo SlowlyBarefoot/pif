@@ -157,15 +157,6 @@ static void _fnStopStep(PifStepMotor* p_parent)
 #endif
 }
 
-/**
- * @fn pifStepMotorPos_Create
- * @brief 
- * @param id
- * @param p_timer
- * @param resolution
- * @param operation
- * @return
- */
 PifStepMotor* pifStepMotorPos_Create(PifId id, PifPulse* p_timer, uint8_t resolution, PifStepMotorOperation operation)
 {
 	PifStepMotorPos* p_owner = NULL;
@@ -197,11 +188,6 @@ fail:
     return NULL;
 }
 
-/**
- * @fn pifStepMotorPos_Destroy
- * @brief
- * @param pp_parent
- */
 void pifStepMotorPos_Destroy(PifStepMotor** pp_parent)
 {
     if (*pp_parent) {
@@ -211,14 +197,6 @@ void pifStepMotorPos_Destroy(PifStepMotor** pp_parent)
     }
 }
 
-/**
- * @fn pifStepMotorPos_AddStages
- * @brief 
- * @param p_parent
- * @param stage_size
- * @param p_stages
- * @return 
- */
 BOOL pifStepMotorPos_AddStages(PifStepMotor* p_parent, uint8_t stage_size, const PifStepMotorPosStage* p_stages)
 {
     for (int i = 0; i < stage_size; i++) {
@@ -234,14 +212,6 @@ BOOL pifStepMotorPos_AddStages(PifStepMotor* p_parent, uint8_t stage_size, const
     return TRUE;
 }
 
-/**
- * @fn pifStepMotorPos_Start
- * @brief 
- * @param p_parent
- * @param stage_index
- * @param operating_time
- * @return 
- */
 BOOL pifStepMotorPos_Start(PifStepMotor* p_parent, uint8_t stage_index, uint32_t operating_time)
 {
     PifStepMotorPos* pstPos = (PifStepMotorPos*)p_parent;
@@ -322,11 +292,6 @@ BOOL pifStepMotorPos_Start(PifStepMotor* p_parent, uint8_t stage_index, uint32_t
     return TRUE;
 }
 
-/**
- * @fn pifStepMotorPos_Stop
- * @brief 
- * @param p_parent
- */
 void pifStepMotorPos_Stop(PifStepMotor* p_parent)
 {
     if (p_parent->_state == MS_IDLE) return;
@@ -334,11 +299,6 @@ void pifStepMotorPos_Stop(PifStepMotor* p_parent)
     p_parent->_state = MS_REDUCE;
 }
 
-/**
- * @fn pifStepMotorPos_Emergency
- * @brief
- * @param p_parent
- */
 void pifStepMotorPos_Emergency(PifStepMotor* p_parent)
 {
 	p_parent->_state = MS_BREAK;

@@ -375,12 +375,6 @@ BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 	return FALSE;
 }
 
-/**
- * @fn pifGpsNmea_Create
- * @brief
- * @param id
- * @return
- */
 PifGpsNmea* pifGpsNmea_Create(PifId id)
 {
 	PifGpsNmea* p_owner = malloc(sizeof(PifGpsNmea));
@@ -396,11 +390,6 @@ PifGpsNmea* pifGpsNmea_Create(PifId id)
     return p_owner;
 }
 
-/**
- * @fn pifGpsNmea_Destroy
- * @brief
- * @param pp_owner
- */
 void pifGpsNmea_Destroy(PifGpsNmea** pp_owner)
 {
 	if (*pp_owner) {
@@ -410,13 +399,6 @@ void pifGpsNmea_Destroy(PifGpsNmea** pp_owner)
 	}
 }
 
-/**
- * @fn pifGpsNmea_Init
- * @brief
- * @param p_owner
- * @param id
- * @return
- */
 BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId id)
 {
 	if (!p_owner) {
@@ -437,11 +419,6 @@ fail:
     return FALSE;
 }
 
-/**
- * @fn pifGpsNmea_Clear
- * @brief
- * @param p_owner
- */
 void pifGpsNmea_Clear(PifGpsNmea* p_owner)
 {
 	pifRingBuffer_Clear(&p_owner->__tx.buffer);
@@ -451,12 +428,6 @@ void pifGpsNmea_Clear(PifGpsNmea* p_owner)
 	}
 }
 
-/**
- * @fn pifGpsNmea_AttachComm
- * @brief
- * @param p_owner
- * @param p_comm
- */
 void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* p_comm)
 {
 	p_owner->__p_comm = p_comm;
@@ -465,24 +436,11 @@ void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* p_comm)
 	p_comm->evt_sending = _evtSending;
 }
 
-/**
- * @fn pifGpsNmea_AttachEvtText
- * @brief
- * @param p_owner
- * @param evt_text
- */
 void pifGpsNmea_AttachEvtText(PifGpsNmea* p_owner, PifEvtGpsNmeaText evt_text)
 {
 	p_owner->__evt_text = evt_text;
 }
 
-/**
- * @fn pifGpsNmea_SetProcessMessageId
- * @brief
- * @param p_owner
- * @param count
- * @return
- */
 BOOL pifGpsNmea_SetProcessMessageId(PifGpsNmea* p_owner, int count, ...)
 {
 	va_list ap;
@@ -521,24 +479,11 @@ BOOL pifGpsNmea_SetProcessMessageId(PifGpsNmea* p_owner, int count, ...)
 	return TRUE;
 }
 
-/**
- * @fn pifGpsNmea_SetEventMessageId
- * @brief
- * @param p_owner
- * @param message_id
- */
 void pifGpsNmea_SetEventMessageId(PifGpsNmea* p_owner, PifGpsNmeaMessageId message_id)
 {
 	p_owner->__event_message_id = message_id;
 }
 
-/**
- * @fn pifGpsNmea_PollRequestGBQ
- * @brief
- * @param p_owner
- * @param p_mag_id
- * @return
- */
 BOOL pifGpsNmea_PollRequestGBQ(PifGpsNmea* p_owner, const char* p_mag_id)
 {
 	char data[16] = "$GBGBQ,";
@@ -564,13 +509,6 @@ BOOL pifGpsNmea_PollRequestGBQ(PifGpsNmea* p_owner, const char* p_mag_id)
 	return _makePacket(p_owner, data);
 }
 
-/**
- * @fn pifGpsNmea_PollRequestGLQ
- * @brief
- * @param p_owner
- * @param p_mag_id
- * @return
- */
 BOOL pifGpsNmea_PollRequestGLQ(PifGpsNmea* p_owner, const char* p_mag_id)
 {
 	char data[16] = "$GLGLQ,";
@@ -596,13 +534,6 @@ BOOL pifGpsNmea_PollRequestGLQ(PifGpsNmea* p_owner, const char* p_mag_id)
 	return _makePacket(p_owner, data);
 }
 
-/**
- * @fn pifGpsNmea_PollRequestGNQ
- * @brief
- * @param p_owner
- * @param p_mag_id
- * @return
- */
 BOOL pifGpsNmea_PollRequestGNQ(PifGpsNmea* p_owner, const char* p_mag_id)
 {
 	char data[16] = "$GNGNQ,";
@@ -628,13 +559,6 @@ BOOL pifGpsNmea_PollRequestGNQ(PifGpsNmea* p_owner, const char* p_mag_id)
 	return _makePacket(p_owner, data);
 }
 
-/**
- * @fn pifGpsNmea_PollRequestGPQ
- * @brief
- * @param p_owner
- * @param p_mag_id
- * @return
- */
 BOOL pifGpsNmea_PollRequestGPQ(PifGpsNmea* p_owner, const char* p_mag_id)
 {
 	char data[16] = "$GPGPQ,";
