@@ -14,6 +14,38 @@ const uint8_t *c_user_char;
 static uint8_t s_user_char_count = 0;
 
 
+static uint16_t _doTask(PifTask* p_task)
+{
+	PifFnd *p_owner = p_task->_p_client;
+	uint8_t ch, seg = 0;
+	BOOL point = FALSE;
+
+	if (p_owner->__bt.led) {
+		ch = p_owner->__p_string[p_owner->__digit_index];
+		if (ch & 0x80) {
+			point = TRUE;
+			ch &= 0x7F;
+		}
+		if (ch >= '0' && ch <= '9') {
+			seg = kFndNumber[ch - '0'];
+		}
+		else if (ch == '-') {
+			seg = 0x40;
+		}
+		else if (s_user_char_count && ch >= 'A' && ch < 'A' + s_user_char_count) {
+			seg = c_user_char[ch - 'A'];
+		}
+		if (point) seg |= 0x80;
+		(*p_owner->__act_display)(seg, p_owner->__digit_index);
+	}
+	else {
+		(*p_owner->__act_display)(0, p_owner->__digit_index);
+	}
+	p_owner->__digit_index++;
+	if (p_owner->__digit_index >= p_owner->_digit_size) p_owner->__digit_index = 0;
+	return 0;
+}
+
 static void _evtTimerBlinkFinish(void* p_issuer)
 {
     PifFnd* p_owner = (PifFnd*)p_issuer;
@@ -73,6 +105,17 @@ BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifPulse* p_timer, uint8_t digit_siz
     p_owner->__bt.led = ON;
     p_owner->_digit_size = digit_size;
     p_owner->__act_display = act_display;
+    p_owner->__period_per_digit_1ms = PIF_FND_DEFAULT_PERIOD_PER_DIGIT_1MS;
+
+    if (pif_act_timer1us) {
+    	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_US, p_owner->__period_per_digit_1ms * 1000L / digit_size,
+    			_doTask, p_owner, FALSE);
+    }
+    else {
+    	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_MS, p_owner->__period_per_digit_1ms / digit_size,
+    			_doTask, p_owner, FALSE);
+    }
+    if (!p_owner->__p_task) goto fail;
     return TRUE;
 
 fail:
@@ -92,9 +135,31 @@ void pifFnd_Clear(PifFnd* p_owner)
 	}
 }
 
+uint16_t pifFnd_GetPeriodPerDigit1ms(PifFnd* p_owner)
+{
+	return p_owner->__period_per_digit_1ms;
+}
+
+BOOL pifFnd_SetPeriodPerDigit1ms(PifFnd* p_owner, uint16_t period1ms)
+{
+	if (!period1ms) {
+        pif_error = E_INVALID_PARAM;
+        return FALSE;
+	}
+
+	p_owner->__period_per_digit_1ms = period1ms;
+    if (pif_act_timer1us) {
+    	pifTask_SetPeriod(p_owner->__p_task, p_owner->__period_per_digit_1ms * 1000L / p_owner->_digit_size);
+    }
+    else {
+    	pifTask_SetPeriod(p_owner->__p_task, p_owner->__period_per_digit_1ms / p_owner->_digit_size);
+    }
+	return TRUE;
+}
+
 void pifFnd_Start(PifFnd* p_owner)
 {
-	p_owner->__bt.run = TRUE;
+	p_owner->__p_task->pause = FALSE;
 }
 
 void pifFnd_Stop(PifFnd* p_owner)
@@ -104,7 +169,7 @@ void pifFnd_Stop(PifFnd* p_owner)
 	for (i = 0; i < p_owner->_digit_size; i++) {
 		(*p_owner->__act_display)(0, 1 << i);
 	}
-	p_owner->__bt.run = FALSE;
+	p_owner->__p_task->pause = TRUE;
     if (p_owner->__bt.blink) {
 		pifPulse_StopItem(p_owner->__p_timer_blink);
 		p_owner->__bt.blink = FALSE;
@@ -124,6 +189,7 @@ BOOL pifFnd_BlinkOn(PifFnd* p_owner, uint16_t period1ms)
         pifPulse_AttachEvtFinish(p_owner->__p_timer_blink, _evtTimerBlinkFinish, p_owner);
     }
     if (!pifPulse_StartItem(p_owner->__p_timer_blink, period1ms * 1000L / p_owner->__p_timer->_period1us)) return FALSE;
+	p_owner->__bt.blink = TRUE;
     return TRUE;
 }
 
@@ -271,43 +337,4 @@ void pifFnd_SetString(PifFnd* p_owner, char* p_string)
     	}
     	src++;
     }
-}
-
-static uint16_t _doTask(PifTask* p_task)
-{
-	PifFnd *p_owner = p_task->_p_client;
-	uint8_t ch, seg = 0;
-	BOOL point = FALSE;
-
-	if (!p_owner->__bt.run) return 0;
-
-	if (p_owner->__bt.led) {
-		ch = p_owner->__p_string[p_owner->__digit_index];
-		if (ch & 0x80) {
-			point = TRUE;
-			ch &= 0x7F;
-		}
-		if (ch >= '0' && ch <= '9') {
-			seg = kFndNumber[ch - '0'];
-		}
-		else if (ch == '-') {
-			seg = 0x40;
-		}
-		else if (s_user_char_count && ch >= 'A' && ch < 'A' + s_user_char_count) {
-			seg = c_user_char[ch - 'A'];
-		}
-		if (point) seg |= 0x80;
-		(*p_owner->__act_display)(seg, p_owner->__digit_index);
-	}
-	else {
-		(*p_owner->__act_display)(0, p_owner->__digit_index);
-	}
-	p_owner->__digit_index++;
-	if (p_owner->__digit_index >= p_owner->_digit_size) p_owner->__digit_index = 0;
-	return 0;
-}
-
-PifTask* pifFnd_AttachTask(PifFnd* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
-{
-	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
 }

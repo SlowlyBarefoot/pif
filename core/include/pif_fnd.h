@@ -5,6 +5,9 @@
 #include "pif_pulse.h"
 
 
+#define PIF_FND_DEFAULT_PERIOD_PER_DIGIT_1MS	25
+
+
 typedef void (*PifActFndDisplay)(uint8_t segment, uint8_t digit);
 
 /**
@@ -22,9 +25,10 @@ typedef struct StPifFnd
     uint8_t _digit_size;
 
 	// Private Member Variable
+    PifTask* __p_task;
     PifPulse* __p_timer;
+    uint16_t __period_per_digit_1ms;	// PIF_FND_DEFAULT_PERIOD_PER_DIGIT_1MS
 	struct {
-		uint8_t run			: 1;
 		uint8_t blink		: 1;
 		uint8_t fill_zero	: 1;
 		uint8_t led			: 1;
@@ -87,6 +91,23 @@ void pifFnd_Clear(PifFnd* p_owner);
  * @param count
  */
 void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count);
+
+/**
+ * @fn pifFnd_GetPeriodPerDigit1ms
+ * @brief
+ * @param p_owner
+ * @return
+ */
+uint16_t pifFnd_GetPeriodPerDigit1ms(PifFnd* p_owner);
+
+/**
+ * @fn pifFnd_SetPeriodPerDigit1ms
+ * @brief
+ * @param p_owner
+ * @param period1ms
+ * @return
+ */
+BOOL pifFnd_SetPeriodPerDigit1ms(PifFnd* p_owner, uint16_t period1ms);
 
 /**
  * @fn pifFnd_Start
@@ -158,17 +179,6 @@ void pifFnd_SetInterger(PifFnd* p_owner, int32_t value);
  * @param p_string
  */
 void pifFnd_SetString(PifFnd* p_owner, char* p_string);
-
-/**
- * @fn pifFnd_AttachTask
- * @brief Task를 추가한다.
- * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
-PifTask* pifFnd_AttachTask(PifFnd* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }
