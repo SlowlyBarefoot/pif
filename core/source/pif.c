@@ -2,9 +2,9 @@
 
 #include "pif.h"
 #ifndef	__PIF_NO_LOG__
-#include "pifLog.h"
+#include "pif_log.h"
 #endif
-#include "pifTask.h"
+#include "pif_task.h"
 
 
 PifError pif_error = E_SUCCESS;
