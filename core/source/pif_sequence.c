@@ -124,9 +124,11 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, const P
 #endif
     return TRUE;
 
+#ifdef __PIF_COLLECT_SIGNAL__
 fail:
 	pifSequence_Clear(p_owner);
 	return FALSE;
+#endif
 }
 
 void pifSequence_Clear(PifSequence* p_owner)

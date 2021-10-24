@@ -590,7 +590,7 @@ void pifProtocol_AttachComm(PifProtocol* p_owner, PifComm* p_comm)
 
 BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_request, uint8_t* p_data, uint16_t data_size)
 {
-	int i;
+	uint16_t i;
 	uint16_t length;
 	uint8_t header[13];
 	uint8_t tailer[10];
@@ -684,7 +684,7 @@ fail:
 BOOL pifProtocol_MakeAnswer(PifProtocol* p_owner, PifProtocolPacket* p_question, uint8_t flags,
 		uint8_t* p_data, uint16_t data_size)
 {
-	int i;
+	uint16_t i;
 	uint8_t header[8];
 	uint8_t tailer[10];
 	uint8_t packet_id = 0, data, lack;

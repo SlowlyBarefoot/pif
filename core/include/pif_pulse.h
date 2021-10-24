@@ -71,6 +71,7 @@ struct StPifPulse
 
 	// Private Member Variable
     PifDList __items;
+	PifTask* __p_task;
 };
 
 
@@ -190,17 +191,6 @@ void pifPulse_AttachAction(PifPulseItem* p_item, PifActPulsePwm act_pwm);
  * @param p_issuer 이벤트 발생시 전달할 발행자
  */
 void pifPulse_AttachEvtFinish(PifPulseItem* p_item, PifEvtPulseFinish evt_finish, void* p_issuer);
-
-/**
- * @fn pifPulse_AttachTask
- * @brief Task를 추가한다.
- * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
-PifTask* pifPulse_AttachTask(PifPulse* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }

@@ -95,9 +95,11 @@ BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count)
 #endif
 	return TRUE;
 
+#ifdef __PIF_COLLECT_SIGNAL__
 fail:
 	pifGpio_Clear(p_owner);
 	return FALSE;	
+#endif
 }
 
 void pifGpio_Clear(PifGpio* p_owner)

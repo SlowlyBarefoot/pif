@@ -130,9 +130,11 @@ PifSensor* pifSensorSwitch_Create(PifId id, SWITCH init_state)
 #endif
     return p_parent;
 
+#ifdef __PIF_COLLECT_SIGNAL__
 fail:
 	pifSensorSwitch_Destroy((PifSensor**)&p_owner);
 	return NULL;
+#endif
 }
 
 void pifSensorSwitch_Destroy(PifSensor** pp_parent)

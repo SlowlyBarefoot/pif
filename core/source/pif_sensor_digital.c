@@ -110,9 +110,11 @@ PifSensor* pifSensorDigital_Create(PifId id, PifPulse *p_timer)
 #endif
     return &p_owner->parent;
 
+#ifdef __PIF_COLLECT_SIGNAL__
 fail:
 	pifSensorDigital_Destroy((PifSensor**)&p_owner);
 	return NULL;	
+#endif
 }
 
 void pifSensorDigital_Destroy(PifSensor** pp_parent)

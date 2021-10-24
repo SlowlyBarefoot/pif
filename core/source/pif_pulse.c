@@ -7,6 +7,27 @@
 #define PIF_PULSE_INDEX_NULL   0xFF
 
 
+static uint16_t _doTask(PifTask* p_task)
+{
+	PifPulse* p_owner = p_task->_p_client;
+
+	PifDListIterator it = pifDList_Begin(&p_owner->__items);
+	while (it) {
+		PifPulseItem* p_item = (PifPulseItem*)it->data;
+
+		if (p_item->_type != PT_PWM) {
+			if (p_item->__event) {
+				p_item->__event = FALSE;
+
+				if (p_item->__evt_finish) (*p_item->__evt_finish)(p_item->__p_finish_issuer);
+			}
+		}
+
+		it = pifDList_Next(it);
+	}
+	return 0;
+}
+
 PifPulse* pifPulse_Create(PifId id, uint32_t period1us)
 {
 	PifPulse* p_owner = malloc(sizeof(PifPulse));
@@ -44,6 +65,9 @@ BOOL pifPulse_Init(PifPulse* p_owner, PifId id, uint32_t period1us)
     p_owner->_id = id;
     if (!pifDList_Init(&p_owner->__items)) goto fail;
     p_owner->_period1us = period1us;
+
+    p_owner->__p_task = pifTaskManager_Add(TM_RATIO, 100, _doTask, p_owner, TRUE);
+    if (!p_owner->__p_task) goto fail;
     return TRUE;
 
 fail:
@@ -187,30 +211,4 @@ void pifPulse_AttachEvtFinish(PifPulseItem* p_item, PifEvtPulseFinish evt_finish
 {
 	p_item->__evt_finish = evt_finish;
 	p_item->__p_finish_issuer = p_issuer;
-}
-
-static uint16_t _doTask(PifTask* p_task)
-{
-	PifPulse* p_owner = p_task->_p_client;
-
-	PifDListIterator it = pifDList_Begin(&p_owner->__items);
-	while (it) {
-		PifPulseItem* p_item = (PifPulseItem*)it->data;
-
-		if (p_item->_type != PT_PWM) {
-			if (p_item->__event) {
-				p_item->__event = FALSE;
-
-				if (p_item->__evt_finish) (*p_item->__evt_finish)(p_item->__p_finish_issuer);
-			}
-		}
-
-		it = pifDList_Next(it);
-	}
-	return 0;
-}
-
-PifTask* pifPulse_AttachTask(PifPulse* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
-{
-	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
 }
