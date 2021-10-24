@@ -141,56 +141,308 @@ typedef struct StPifAds1x1x
 extern "C" {
 #endif
 
+/**
+ * @fn pifAds1x1x_Create
+ * @brief
+ * @param id
+ * @param type
+ * @return
+ */
 PifAds1x1x* pifAds1x1x_Create(PifId id, PifAds1x1xType type);
+
+/**
+ * @fn pifAds1x1x_Destroy
+ * @brief
+ * @param pp_owner
+ */
 void pifAds1x1x_Destroy(PifAds1x1x** pp_owner);
 
+/**
+ * @fn pifAds1x1x_Init
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param type
+ * @return
+ */
+BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type);
+
+/**
+ * @fn pifAds1x1x_Clear
+ * @brief
+ * @param p_owner
+ */
+void pifAds1x1x_Clear(PifAds1x1x* p_owner);
+
+/**
+ * @fn pifAds1x1x_SetAddress
+ * @brief
+ * @param p_owner
+ * @param addr
+ */
 void pifAds1x1x_SetAddress(PifAds1x1x* p_owner, uint8_t addr);
 
+/**
+ * @fn pifAds1x1x_Read
+ * @brief
+ * @param p_owner
+ * @return
+ */
 int16_t pifAds1x1x_Read(PifAds1x1x* p_owner);
+
+/**
+ * @fn pifAds1x1x_ReadMux
+ * @brief
+ * @param p_owner
+ * @param mux
+ * @return
+ */
 int16_t pifAds1x1x_ReadMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux);
 
+/**
+ * @fn pifAds1x1x_Voltage
+ * @brief
+ * @param p_owner
+ * @return
+ */
 double pifAds1x1x_Voltage(PifAds1x1x* p_owner);
+
+/**
+ * @fn pifAds1x1x_VoltageMux
+ * @brief
+ * @param p_owner
+ * @param mux
+ * @return
+ */
 double pifAds1x1x_VoltageMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux);
 
+/**
+ * @fn pifAds1x1x_SetConfig
+ * @brief
+ * @param p_owner
+ * @param p_config
+ * @return
+ */
 BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, PifAds1x1xConfig* p_config);
+
+/**
+ * @fn pifAds1x1x_GetConfig
+ * @brief
+ * @param p_owner
+ * @return
+ */
 PifAds1x1xConfig pifAds1x1x_GetConfig(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SingleShotConvert
+ * @brief
+ * @param p_owner
+ * @return
+ */
 BOOL pifAds1x1x_SingleShotConvert(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SetMux
+ * @brief
+ * @param p_owner
+ * @param mux
+ * @return
+ */
 BOOL pifAds1x1x_SetMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux);
+
+/**
+ * @fn pifAds1x1x_GetMux
+ * @brief
+ * @param p_owner
+ * @return
+ */
 PifAds1x1xConfigMux pifAds1x1x_GetMux(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SetGain
+ * @brief
+ * @param p_owner
+ * @param pga
+ * @return
+ */
 BOOL pifAds1x1x_SetGain(PifAds1x1x* p_owner, PifAds1x1xConfigPGA pga);
+
+/**
+ * @fn pifAds1x1x_GetGain
+ * @brief
+ * @param p_owner
+ * @return
+ */
 PifAds1x1xConfigPGA pifAds1x1x_GetGain(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SetMode
+ * @brief
+ * @param p_owner
+ * @param mode
+ * @return
+ */
 BOOL pifAds1x1x_SetMode(PifAds1x1x* p_owner, PifAds1x1xConfigMode mode);
+
+/**
+ * @fn pifAds1x1x_GetMode
+ * @brief
+ * @param p_owner
+ * @return
+ */
 PifAds1x1xConfigMode pifAds1x1x_GetMode(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SetDataRate
+ * @brief
+ * @param p_owner
+ * @param dr
+ * @return
+ */
 BOOL pifAds1x1x_SetDataRate(PifAds1x1x* p_owner, PifAds1x1xConfigDR dr);
+
+/**
+ * @fn pifAds1x1x_GetDataRate
+ * @brief
+ * @param p_owner
+ * @return
+ */
 PifAds1x1xConfigDR pifAds1x1x_GetDataRate(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SetCompMode
+ * @brief
+ * @param p_owner
+ * @param comp_mode
+ * @return
+ */
 BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xConfigCompMode comp_mode);
+
+/**
+ * @fn pifAds1x1x_GetCompMode
+ * @brief
+ * @param p_owner
+ * @return
+ */
 PifAds1x1xConfigCompMode pifAds1x1x_GetCompMode(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SetCompPol
+ * @brief
+ * @param p_owner
+ * @param comp_pol
+ * @return
+ */
 BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xConfigCompPol comp_pol);
+
+/**
+ * @fn pifAds1x1x_GetCompPol
+ * @brief
+ * @param p_owner
+ * @return
+ */
 PifAds1x1xConfigCompPol pifAds1x1x_GetCompPol(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SetCompLat
+ * @brief
+ * @param p_owner
+ * @param comp_lat
+ * @return
+ */
 BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xConfigCompLat compLat);
+
+/**
+ * @fn pifAds1x1x_GetCompLat
+ * @brief
+ * @param p_owner
+ * @return
+ */
 PifAds1x1xConfigCompLat pifAds1x1x_GetCompLat(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SetCompQue
+ * @brief
+ * @param p_owner
+ * @param comp_que
+ * @return
+ */
 BOOL pifAds1x1x_SetCompQue(PifAds1x1x* p_owner, PifAds1x1xConfigCompQue comp_que);
+
+/**
+ * @fn pifAds1x1x_GetCompQue
+ * @brief
+ * @param p_owner
+ * @return
+ */
 PifAds1x1xConfigCompQue pifAds1x1x_GetCompQue(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SetLoThresh
+ * @brief
+ * @param p_owner
+ * @param threshold
+ * @return
+ */
 BOOL pifAds1x1x_SetLoThresh(PifAds1x1x* p_owner, int16_t threshold);
+
+/**
+ * @fn pifAds1x1x_GetLoThresh
+ * @brief
+ * @param p_owner
+ * @return
+ */
 int16_t pifAds1x1x_GetLoThresh(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SetLoThreshVoltage
+ * @brief
+ * @param p_owner
+ * @param threshold
+ * @return
+ */
 BOOL pifAds1x1x_SetLoThreshVoltage(PifAds1x1x* p_owner, double threshold);
+
+/**
+ * @fn pifAds1x1x_GetLoThreshVoltage
+ * @brief
+ * @param p_owner
+ * @return
+ */
 double pifAds1x1x_GetLoThreshVoltage(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SetHiThresh
+ * @brief
+ * @param p_owner
+ * @param threshold
+ * @return
+ */
 BOOL pifAds1x1x_SetHiThresh(PifAds1x1x* p_owner, int16_t threshold);
+
+/**
+ * @fn pifAds1x1x_GetHiThresh
+ * @brief
+ * @param p_owner
+ * @return
+ */
 int16_t pifAds1x1x_GetHiThresh(PifAds1x1x* p_owner);
 
+/**
+ * @fn pifAds1x1x_SetHiThreshVoltage
+ * @brief
+ * @param p_owner
+ * @param threshold
+ * @return
+ */
 BOOL pifAds1x1x_SetHiThreshVoltage(PifAds1x1x* p_owner, double threshold);
+
+/**
+ * @fn pifAds1x1x_GetHiThreshVoltage
+ * @brief
+ * @param p_owner
+ * @return
+ */
 double pifAds1x1x_GetHiThreshVoltage(PifAds1x1x* p_owner);
 
 #ifdef __cplusplus
