@@ -5,6 +5,9 @@
 #include "pif_pulse.h"
 
 
+#define PIF_DOT_MATRIX_DEFAULT_PERIOD_PER_ROW_1MS	25
+
+
 typedef enum EnPifDotMatrixShiftDir
 {
 	DMSD_NONE			= 0,
@@ -57,13 +60,14 @@ typedef struct StPifDotMatrix
 
 	// Private Member Variable
 	PifPulse* __p_timer;
+	PifTask* __p_task;
     uint16_t __col_size;
     uint16_t __row_size;
+    uint16_t __period_per_row_1ms;	// PIF_DOT_MATRIX_DEFAULT_PERIOD_PER_ROW_1MS
 
 	uint8_t __pattern_index;
 
 	struct {
-		uint8_t run			: 1;
 		uint8_t blink		: 1;
 		uint8_t led			: 1;
 	} __bt;
@@ -158,6 +162,23 @@ BOOL pifDotMatrix_SetPatternSize(PifDotMatrix* p_owner, uint8_t size);
 BOOL pifDotMatrix_AddPattern(PifDotMatrix* p_owner, uint8_t col_size, uint8_t row_size, uint8_t* p_pattern);
 
 /**
+ * @fn pifDotMatrix_GetPeriodPerRow1ms
+ * @brief
+ * @param p_owner
+ * @return
+ */
+uint16_t pifDotMatrix_GetPeriodPerRow1ms(PifDotMatrix* p_owner);
+
+/**
+ * @fn pifDotMatrix_SetPeriodPerRow1ms
+ * @brief
+ * @param p_owner
+ * @param period1ms
+ * @return
+ */
+BOOL pifDotMatrix_SetPeriodPerRow1ms(PifDotMatrix* p_owner, uint16_t period1ms);
+
+/**
  * @fn pifDotMatrix_Start
  * @brief
  * @param p_owner
@@ -241,17 +262,6 @@ void pifDotMatrix_ShiftOff(PifDotMatrix* p_owner);
  * @param period1ms
  */
 void pifDotMatrix_ChangeShiftPeriod(PifDotMatrix* p_owner, uint16_t period1ms);
-
-/**
- * @fn pifDotMatrix_AttachTask
- * @brief Task를 추가한다.
- * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
-PifTask* pifDotMatrix_AttachTask(PifDotMatrix* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }

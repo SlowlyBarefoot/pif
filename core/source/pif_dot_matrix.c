@@ -36,6 +36,26 @@ static void _setPattern(PifDotMatrix* p_owner, uint16_t position_x, uint16_t pos
     }
 }
 
+static uint16_t _doTask(PifTask* p_task)
+{
+	PifDotMatrix* p_owner = p_task->_p_client;
+	uint8_t* p_pattern;
+	uint8_t off = 0;
+
+	if (p_owner->__bt.led) {
+		p_pattern = p_owner->__p_paper;
+		int index = p_owner->__row_index * p_owner->__col_bytes;
+		(*p_owner->__act_display)(p_owner->__row_index, p_pattern + index);
+		p_pattern += p_owner->__total_bytes;
+	}
+	else {
+		(*p_owner->__act_display)(p_owner->__row_index, &off);
+	}
+	p_owner->__row_index++;
+	if (p_owner->__row_index >= p_owner->__row_size) p_owner->__row_index = 0;
+	return 0;
+}
+
 static void _evtTimerBlinkFinish(void* p_issuer)
 {
     PifDotMatrix* p_owner = (PifDotMatrix*)p_issuer;
@@ -184,6 +204,17 @@ BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifPulse* p_timer, uint1
     p_owner->_id = id;
     p_owner->__bt.led = ON;
     p_owner->__act_display = act_display;
+    p_owner->__period_per_row_1ms = PIF_DOT_MATRIX_DEFAULT_PERIOD_PER_ROW_1MS;
+
+    if (pif_act_timer1us) {
+    	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_US, p_owner->__period_per_row_1ms * 1000L / row_size,
+    			_doTask, p_owner, FALSE);
+    }
+    else {
+    	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_MS, p_owner->__period_per_row_1ms / row_size,
+    			_doTask, p_owner, FALSE);
+    }
+    if (!p_owner->__p_task) goto fail;
     return TRUE;
 
 fail:
@@ -248,10 +279,32 @@ BOOL pifDotMatrix_AddPattern(PifDotMatrix* p_owner, uint8_t col_size, uint8_t ro
     return TRUE;
 }
 
+uint16_t pifDotMatrix_GetPeriodPerRow1ms(PifDotMatrix* p_owner)
+{
+	return p_owner->__period_per_row_1ms;
+}
+
+BOOL pifDotMatrix_SetPeriodPerRow1ms(PifDotMatrix* p_owner, uint16_t period1ms)
+{
+	if (!period1ms) {
+        pif_error = E_INVALID_PARAM;
+        return FALSE;
+	}
+
+	p_owner->__period_per_row_1ms = period1ms;
+    if (pif_act_timer1us) {
+    	pifTask_SetPeriod(p_owner->__p_task, p_owner->__period_per_row_1ms * 1000L / p_owner->__row_size);
+    }
+    else {
+    	pifTask_SetPeriod(p_owner->__p_task, p_owner->__period_per_row_1ms / p_owner->__row_size);
+    }
+	return TRUE;
+}
+
 void pifDotMatrix_Start(PifDotMatrix* p_owner)
 {
 	_setPattern(p_owner, p_owner->__position_x, p_owner->__position_y, 0);
-    p_owner->__bt.run = TRUE;
+    p_owner->__p_task->pause = FALSE;
 }
 
 void pifDotMatrix_Stop(PifDotMatrix* p_owner)
@@ -264,7 +317,7 @@ void pifDotMatrix_Stop(PifDotMatrix* p_owner)
 			(*p_owner->__act_display)(row, &off);
 		}
 	}
-	p_owner->__bt.run = FALSE;
+	p_owner->__p_task->pause = TRUE;
     if (p_owner->__bt.blink) {
 		pifPulse_StopItem(p_owner->__p_timer_blink);
 		p_owner->__bt.blink = FALSE;
@@ -365,31 +418,4 @@ void pifDotMatrix_ChangeShiftPeriod(PifDotMatrix* p_owner, uint16_t period1ms)
 	if (p_owner->__p_timer_shift) {
 		p_owner->__p_timer_shift->target = period1ms * 1000 / p_owner->__p_timer->_period1us;
 	}
-}
-
-static uint16_t _doTask(PifTask* p_task)
-{
-	PifDotMatrix* p_owner = p_task->_p_client;
-	uint8_t* p_pattern;
-	uint8_t off = 0;
-
-	if (!p_owner->__bt.run) return 0;
-
-	if (p_owner->__bt.led) {
-		p_pattern = p_owner->__p_paper;
-		int index = p_owner->__row_index * p_owner->__col_bytes;
-		(*p_owner->__act_display)(p_owner->__row_index, p_pattern + index);
-		p_pattern += p_owner->__total_bytes;
-	}
-	else {
-		(*p_owner->__act_display)(p_owner->__row_index, &off);
-	}
-	p_owner->__row_index++;
-	if (p_owner->__row_index >= p_owner->__row_size) p_owner->__row_index = 0;
-	return 0;
-}
-
-PifTask* pifDotMatrix_AttachTask(PifDotMatrix* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
-{
-	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
 }
