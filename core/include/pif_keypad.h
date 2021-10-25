@@ -5,7 +5,7 @@
 #include "pif_task.h"
 
 
-#define PIF_FND_DEFAULT_CONTROL_PERIOD_1MS		20
+#define PIF_KEYPAD_CONTROL_PERIOD		20
 
 
 typedef enum EnPifKeyState
@@ -67,7 +67,7 @@ typedef struct StPifKeypad
 	uint8_t __num_cols;
 	uint16_t* __p_state;
 	PifKey* __p_key;
-    uint16_t __control_period_1ms;					// PIF_FND_DEFAULT_CONTROL_PERIOD_1MS
+    uint16_t __control_period_1ms;					// PIF_KEYPAD_CONTROL_PERIOD
 
 	// Private Action Function
 	PifActKeypadAcquire __act_acquire;				// Default: NULL
@@ -116,21 +116,21 @@ BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num_rows, uint8_t num_
 void pifKeypad_Clear(PifKeypad* p_owner);
 
 /**
- * @fn pifKeypad_GetControlPeriod1ms
+ * @fn pifKeypad_GetControlPeriod
  * @brief
  * @param p_owner
  * @return
  */
-uint16_t pifKeypad_GetControlPeriod1ms(PifKeypad* p_owner);
+uint16_t pifKeypad_GetControlPeriod(PifKeypad* p_owner);
 
 /**
- * @fn pifKeypad_SetControlPeriod1ms
+ * @fn pifKeypad_SetControlPeriod
  * @brief
  * @param p_owner
  * @param period1ms
  * @return
  */
-BOOL pifKeypad_SetControlPeriod1ms(PifKeypad* p_owner, uint16_t period1ms);
+BOOL pifKeypad_SetControlPeriod(PifKeypad* p_owner, uint16_t period1ms);
 
 /**
  * @fn pifKeypad_AttachAction

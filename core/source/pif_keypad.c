@@ -181,7 +181,7 @@ BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num_rows, uint8_t num_
     p_owner->_hold_time1ms = PIF_KEYPAD_DEFAULT_HOLD_TIME;
     p_owner->_long_time1ms = PIF_KEYPAD_DEFAULT_LONG_TIME;
     p_owner->_double_time1ms = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
-    p_owner->__control_period_1ms = PIF_FND_DEFAULT_CONTROL_PERIOD_1MS;
+    p_owner->__control_period_1ms = PIF_KEYPAD_CONTROL_PERIOD;
 
 	if (!pifTaskManager_Add(TM_PERIOD_MS, p_owner->__control_period_1ms, _doTask, p_owner, TRUE)) goto fail;
     return TRUE;
@@ -203,12 +203,12 @@ void pifKeypad_Clear(PifKeypad* p_owner)
 	}
 }
 
-uint16_t pifKeypad_GetControlPeriod1ms(PifKeypad* p_owner)
+uint16_t pifKeypad_GetControlPeriod(PifKeypad* p_owner)
 {
 	return p_owner->__control_period_1ms;
 }
 
-BOOL pifKeypad_SetControlPeriod1ms(PifKeypad* p_owner, uint16_t period1ms)
+BOOL pifKeypad_SetControlPeriod(PifKeypad* p_owner, uint16_t period1ms)
 {
 	if (!period1ms) {
         pif_error = E_INVALID_PARAM;

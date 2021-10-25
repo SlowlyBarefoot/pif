@@ -4,7 +4,9 @@
 #include "pif_log.h"
 
 
-#define LOG_FLAG_COUNT	5
+#define LOG_FLAG_COUNT					5
+
+#define LOG_CMD_PARSING_PERIOD_1MS		200
 
 
 typedef struct StPifLog
@@ -15,6 +17,8 @@ typedef struct StPifLog
     PifRingBuffer* p_tx_buffer;
 
 #ifdef __PIF_LOG_COMMAND__
+    PifTask* p_task;
+    uint16_t cmd_parsing_period_1ms;		// Default : LOG_CMD_PARSING_PERIOD_1MS
     char last_char;
     uint8_t char_idx;
     BOOL cmd_done;
@@ -224,6 +228,54 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
     }
 }
 
+static uint16_t _doTask(PifTask* p_task)
+{
+    int status = PIF_LOG_CMD_NO_ERROR;
+
+    (void)p_task;
+
+	if (s_log.cmd_done == TRUE) {
+		status = _processDebugCmd(&s_log);
+
+	    while (s_log.char_idx) {
+	    	s_log.p_rx_buffer[s_log.char_idx] = 0;
+	    	s_log.char_idx--;
+	    }
+
+	    for (int i = 0; i < PIF_LOG_CMD_MAX_ARGS; i++) {
+	    	s_log.p_argv[i] = 0;
+	    }
+
+	    // Handle the case of bad command.
+	    if (status == PIF_LOG_CMD_BAD_CMD) {
+	    	pifRingBuffer_PutString(s_log.p_tx_buffer, "\nNot defined command!");
+	    }
+
+	    // Handle the case of too many arguments.
+	    else if (status == PIF_LOG_CMD_TOO_MANY_ARGS) {
+	    	pifRingBuffer_PutString(s_log.p_tx_buffer, "\nToo many arguments for command!");
+	    }
+
+	    // Handle the case of too few arguments.
+	    else if (status == PIF_LOG_CMD_TOO_FEW_ARGS) {
+	    	pifRingBuffer_PutString(s_log.p_tx_buffer, "\nToo few arguments for command!");
+	    }
+
+	    // Otherwise the command was executed.  Print the error
+	    // code if one was returned.
+	    else if (status != PIF_LOG_CMD_NO_ERROR) {
+	    	pifRingBuffer_PutString(s_log.p_tx_buffer, "\nCommand returned error code");
+	    }
+
+		pifRingBuffer_PutString(s_log.p_tx_buffer, (char *)s_log.p_prompt);
+		pifRingBuffer_PutString(s_log.p_tx_buffer, "> ");
+
+		s_log.cmd_done = FALSE;
+	}
+
+	return 0;
+}
+
 #else
 
 static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
@@ -283,26 +335,37 @@ static void _printTime()
 	_printLog(tmp_buf, FALSE);
 }
 
-void pifLog_Init()
+BOOL pifLog_Init()
 {
+	memset(&s_log, 0, sizeof(PifLog));
+
 	s_log.enable = TRUE;
-	s_log.p_tx_buffer = NULL;
 #ifdef __PIF_LOG_COMMAND__
-	s_log.p_rx_buffer = NULL;
+	s_log.cmd_parsing_period_1ms = LOG_CMD_PARSING_PERIOD_1MS;
+
+	s_log.p_task = pifTaskManager_Add(TM_PERIOD_MS, s_log.cmd_parsing_period_1ms, _doTask, &s_log, TRUE);
+	if (!s_log.p_task) return FALSE;
 #endif
+   	return TRUE;
 }
 
 BOOL pifLog_InitHeap(uint16_t size)
 {
-	s_log.enable = TRUE;
-	if (!pifRingBuffer_InitHeap(&s_log.buffer, PIF_ID_AUTO, size)) return FALSE;
+	if (!pifLog_Init()) return FALSE;
+	if (!pifRingBuffer_InitHeap(&s_log.buffer, PIF_ID_AUTO, size)) {
+		pifLog_Clear();
+		return FALSE;
+	}
 	return TRUE;
 }
 
 BOOL pifLog_InitStatic(uint16_t size, uint8_t* p_buffer)
 {
-	s_log.enable = TRUE;
-	if (!pifRingBuffer_InitStatic(&s_log.buffer, PIF_ID_AUTO, size, p_buffer)) return FALSE;
+	if (!pifLog_Init()) return FALSE;
+	if (!pifRingBuffer_InitStatic(&s_log.buffer, PIF_ID_AUTO, size, p_buffer)) {
+		pifLog_Clear();
+		return FALSE;
+	}
 	return TRUE;
 }
 
@@ -338,6 +401,24 @@ BOOL pifLog_UseCommand(const PifLogCmdEntry* p_cmd_table, const char* p_prompt)
     s_log.p_cmd_table[1] = p_cmd_table;
     s_log.p_prompt = p_prompt;
     return TRUE;
+}
+
+uint16_t pifLog_GetCmdParsingPeriod()
+{
+	return s_log.cmd_parsing_period_1ms;
+}
+
+BOOL pifLog_SetCmdParsingPeriod(uint16_t period1ms)
+{
+	if (!period1ms) {
+        pif_error = E_INVALID_PARAM;
+        return FALSE;
+	}
+
+	s_log.cmd_parsing_period_1ms = period1ms;
+
+   	pifTask_SetPeriod(s_log.p_task, s_log.cmd_parsing_period_1ms);
+	return TRUE;
 }
 
 #endif
@@ -419,60 +500,3 @@ BOOL pifLog_AttachComm(PifComm* p_comm)
 	p_comm->evt_sending = _evtSending;
     return TRUE;
 }
-
-#ifdef __PIF_LOG_COMMAND__
-
-static uint16_t _doTask(PifTask* p_task)
-{
-    int status = PIF_LOG_CMD_NO_ERROR;
-
-    (void)p_task;
-
-	if (s_log.cmd_done == TRUE) {
-		status = _processDebugCmd(&s_log);
-
-	    while (s_log.char_idx) {
-	    	s_log.p_rx_buffer[s_log.char_idx] = 0;
-	    	s_log.char_idx--;
-	    }
-
-	    for (int i = 0; i < PIF_LOG_CMD_MAX_ARGS; i++) {
-	    	s_log.p_argv[i] = 0;
-	    }
-
-	    // Handle the case of bad command.
-	    if (status == PIF_LOG_CMD_BAD_CMD) {
-	    	pifRingBuffer_PutString(s_log.p_tx_buffer, "\nNot defined command!");
-	    }
-
-	    // Handle the case of too many arguments.
-	    else if (status == PIF_LOG_CMD_TOO_MANY_ARGS) {
-	    	pifRingBuffer_PutString(s_log.p_tx_buffer, "\nToo many arguments for command!");
-	    }
-
-	    // Handle the case of too few arguments.
-	    else if (status == PIF_LOG_CMD_TOO_FEW_ARGS) {
-	    	pifRingBuffer_PutString(s_log.p_tx_buffer, "\nToo few arguments for command!");
-	    }
-
-	    // Otherwise the command was executed.  Print the error
-	    // code if one was returned.
-	    else if (status != PIF_LOG_CMD_NO_ERROR) {
-	    	pifRingBuffer_PutString(s_log.p_tx_buffer, "\nCommand returned error code");
-	    }
-
-		pifRingBuffer_PutString(s_log.p_tx_buffer, (char *)s_log.p_prompt);
-		pifRingBuffer_PutString(s_log.p_tx_buffer, "> ");
-
-		s_log.cmd_done = FALSE;
-	}
-
-	return 0;
-}
-
-PifTask* pifLog_AttachTask(PifTaskMode mode, uint16_t period, BOOL start)
-{
-	return pifTaskManager_Add(mode, period, _doTask, &s_log, start);
-}
-
-#endif

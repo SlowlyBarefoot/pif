@@ -105,7 +105,7 @@ BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifPulse* p_timer, uint8_t digit_siz
     p_owner->__bt.led = ON;
     p_owner->_digit_size = digit_size;
     p_owner->__act_display = act_display;
-    p_owner->__period_per_digit_1ms = PIF_FND_DEFAULT_PERIOD_PER_DIGIT_1MS;
+    p_owner->__period_per_digit_1ms = PIF_FND_PERIOD_PER_DIGIT;
 
     if (pif_act_timer1us) {
     	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_US, p_owner->__period_per_digit_1ms * 1000L / digit_size,
@@ -135,12 +135,12 @@ void pifFnd_Clear(PifFnd* p_owner)
 	}
 }
 
-uint16_t pifFnd_GetPeriodPerDigit1ms(PifFnd* p_owner)
+uint16_t pifFnd_GetPeriodPerDigit(PifFnd* p_owner)
 {
 	return p_owner->__period_per_digit_1ms;
 }
 
-BOOL pifFnd_SetPeriodPerDigit1ms(PifFnd* p_owner, uint16_t period1ms)
+BOOL pifFnd_SetPeriodPerDigit(PifFnd* p_owner, uint16_t period1ms)
 {
 	if (!period1ms) {
         pif_error = E_INVALID_PARAM;

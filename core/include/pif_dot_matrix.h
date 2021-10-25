@@ -5,7 +5,7 @@
 #include "pif_pulse.h"
 
 
-#define PIF_DOT_MATRIX_DEFAULT_PERIOD_PER_ROW_1MS	25
+#define PIF_DOT_MATRIX_PERIOD_PER_ROW	25
 
 
 typedef enum EnPifDotMatrixShiftDir
@@ -63,7 +63,7 @@ typedef struct StPifDotMatrix
 	PifTask* __p_task;
     uint16_t __col_size;
     uint16_t __row_size;
-    uint16_t __period_per_row_1ms;	// PIF_DOT_MATRIX_DEFAULT_PERIOD_PER_ROW_1MS
+    uint16_t __period_per_row_1ms;	// PIF_DOT_MATRIX_PERIOD_PER_ROW
 
 	uint8_t __pattern_index;
 
@@ -162,21 +162,21 @@ BOOL pifDotMatrix_SetPatternSize(PifDotMatrix* p_owner, uint8_t size);
 BOOL pifDotMatrix_AddPattern(PifDotMatrix* p_owner, uint8_t col_size, uint8_t row_size, uint8_t* p_pattern);
 
 /**
- * @fn pifDotMatrix_GetPeriodPerRow1ms
+ * @fn pifDotMatrix_GetPeriodPerRow
  * @brief
  * @param p_owner
  * @return
  */
-uint16_t pifDotMatrix_GetPeriodPerRow1ms(PifDotMatrix* p_owner);
+uint16_t pifDotMatrix_GetPeriodPerRow(PifDotMatrix* p_owner);
 
 /**
- * @fn pifDotMatrix_SetPeriodPerRow1ms
+ * @fn pifDotMatrix_SetPeriodPerRow
  * @brief
  * @param p_owner
  * @param period1ms
  * @return
  */
-BOOL pifDotMatrix_SetPeriodPerRow1ms(PifDotMatrix* p_owner, uint16_t period1ms);
+BOOL pifDotMatrix_SetPeriodPerRow(PifDotMatrix* p_owner, uint16_t period1ms);
 
 /**
  * @fn pifDotMatrix_Start

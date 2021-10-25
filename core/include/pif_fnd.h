@@ -5,7 +5,7 @@
 #include "pif_pulse.h"
 
 
-#define PIF_FND_DEFAULT_PERIOD_PER_DIGIT_1MS	25
+#define PIF_FND_PERIOD_PER_DIGIT	25
 
 
 typedef void (*PifActFndDisplay)(uint8_t segment, uint8_t digit);
@@ -27,7 +27,7 @@ typedef struct StPifFnd
 	// Private Member Variable
     PifTask* __p_task;
     PifPulse* __p_timer;
-    uint16_t __period_per_digit_1ms;	// PIF_FND_DEFAULT_PERIOD_PER_DIGIT_1MS
+    uint16_t __period_per_digit_1ms;	// PIF_FND_PERIOD_PER_DIGIT
 	struct {
 		uint8_t blink		: 1;
 		uint8_t fill_zero	: 1;
@@ -93,21 +93,21 @@ void pifFnd_Clear(PifFnd* p_owner);
 void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count);
 
 /**
- * @fn pifFnd_GetPeriodPerDigit1ms
+ * @fn pifFnd_GetPeriodPerDigit
  * @brief
  * @param p_owner
  * @return
  */
-uint16_t pifFnd_GetPeriodPerDigit1ms(PifFnd* p_owner);
+uint16_t pifFnd_GetPeriodPerDigit(PifFnd* p_owner);
 
 /**
- * @fn pifFnd_SetPeriodPerDigit1ms
+ * @fn pifFnd_SetPeriodPerDigit
  * @brief
  * @param p_owner
  * @param period1ms
  * @return
  */
-BOOL pifFnd_SetPeriodPerDigit1ms(PifFnd* p_owner, uint16_t period1ms);
+BOOL pifFnd_SetPeriodPerDigit(PifFnd* p_owner, uint16_t period1ms);
 
 /**
  * @fn pifFnd_Start

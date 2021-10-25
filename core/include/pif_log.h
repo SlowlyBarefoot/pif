@@ -70,8 +70,9 @@ extern "C" {
 /**
  * @fn pifLog_Init
  * @brief Log 구조체 초기화한다.
+ * @return
  */
-void pifLog_Init();
+BOOL pifLog_Init();
 
 /**
  * @fn pifLog_InitHeap
@@ -106,6 +107,21 @@ void pifLog_Clear();
  * @return
  */
 BOOL pifLog_UseCommand(const PifLogCmdEntry* p_cmd_table, const char* p_prompt);
+
+/**
+ * @fn pifLog_GetCmdParsingPeriod
+ * @brief
+ * @return
+ */
+uint16_t pifLog_GetCmdParsingPeriod();
+
+/**
+ * @fn pifLog_SetCmdParsingPeriod
+ * @brief
+ * @param period1ms
+ * @return
+ */
+BOOL pifLog_SetCmdParsingPeriod(uint16_t period1ms);
 
 #endif
 
@@ -156,20 +172,6 @@ PifTask* pifLog_GetCommTask();
  * @return
  */
 BOOL pifLog_AttachComm(PifComm* p_comm);
-
-#ifdef __PIF_LOG_COMMAND__
-
-/**
- * @fn pifLog_AttachTask
- * @brief Task를 추가한다.
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
-PifTask* pifLog_AttachTask(PifTaskMode mode, uint16_t period, BOOL start);
-
-#endif
 
 #ifdef __cplusplus
 }

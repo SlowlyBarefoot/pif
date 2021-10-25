@@ -204,7 +204,7 @@ BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifPulse* p_timer, uint1
     p_owner->_id = id;
     p_owner->__bt.led = ON;
     p_owner->__act_display = act_display;
-    p_owner->__period_per_row_1ms = PIF_DOT_MATRIX_DEFAULT_PERIOD_PER_ROW_1MS;
+    p_owner->__period_per_row_1ms = PIF_DOT_MATRIX_PERIOD_PER_ROW;
 
     if (pif_act_timer1us) {
     	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_US, p_owner->__period_per_row_1ms * 1000L / row_size,
@@ -279,12 +279,12 @@ BOOL pifDotMatrix_AddPattern(PifDotMatrix* p_owner, uint8_t col_size, uint8_t ro
     return TRUE;
 }
 
-uint16_t pifDotMatrix_GetPeriodPerRow1ms(PifDotMatrix* p_owner)
+uint16_t pifDotMatrix_GetPeriodPerRow(PifDotMatrix* p_owner)
 {
 	return p_owner->__period_per_row_1ms;
 }
 
-BOOL pifDotMatrix_SetPeriodPerRow1ms(PifDotMatrix* p_owner, uint16_t period1ms)
+BOOL pifDotMatrix_SetPeriodPerRow(PifDotMatrix* p_owner, uint16_t period1ms)
 {
 	if (!period1ms) {
         pif_error = E_INVALID_PARAM;
