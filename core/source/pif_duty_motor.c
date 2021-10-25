@@ -2,12 +2,8 @@
 #include "pif_duty_motor.h"
 
 
-static uint16_t _doTask(PifTask* p_task)
+void pifDutyMotor_Control(PifDutyMotor* p_owner)
 {
-	PifDutyMotor* p_owner = p_task->_p_client;
-
-    if (p_owner->__control) (*p_owner->__control)(p_owner);
-
     if (p_owner->__error) {
         if (p_owner->_state < MS_BREAK) {
 			(*p_owner->__act_set_duty)(0);
@@ -20,11 +16,10 @@ static uint16_t _doTask(PifTask* p_task)
     }
 
 	if (p_owner->_state == MS_STOP) {
-		p_task->pause = TRUE;
+		p_owner->__p_task->pause = TRUE;
 		p_owner->_state = MS_IDLE;
 		if (p_owner->evt_stop) (*p_owner->evt_stop)(p_owner);
 	}
-	return 0;
 }
 
 static void _evtTimerBreakFinish(void* p_issuer)
@@ -182,10 +177,4 @@ BOOL pifDutyMotor_StopControl(PifDutyMotor* p_owner)
 
     p_owner->__p_task->pause = TRUE;
     return TRUE;
-}
-
-PifTask* pifDutyMotor_AttachTask(PifDutyMotor* p_owner, PifTaskMode mode, uint16_t period)
-{
-	p_owner->__p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, FALSE);
-	return p_owner->__p_task;
 }

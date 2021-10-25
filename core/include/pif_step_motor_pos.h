@@ -66,9 +66,10 @@ extern "C" {
  * @param p_timer
  * @param resolution
  * @param operation
+ * @param period1ms
  * @return
  */
-PifStepMotor* pifStepMotorPos_Create(PifId id, PifPulse* p_timer, uint8_t resolution, PifStepMotorOperation operation);
+PifStepMotor* pifStepMotorPos_Create(PifId id, PifPulse* p_timer, uint8_t resolution, PifStepMotorOperation operation, uint16_t period1ms);
 
 /**
  * @fn pifStepMotorPos_Destroy

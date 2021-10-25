@@ -85,18 +85,13 @@ static void _evtTimerStepFinish(void* p_issuer)
 	}
 }
 
-static uint16_t _doTask(PifTask* p_task)
+void pifStepMotor_Control(PifStepMotor* p_owner)
 {
-	PifStepMotor *p_owner = p_task->_p_client;
-
-	(*p_owner->__control)(p_owner);
-
 	if (p_owner->_state == MS_STOP) {
-		p_task->pause = TRUE;
+		p_owner->__p_task->pause = TRUE;
 		p_owner->_state = MS_IDLE;
 		if (p_owner->evt_stop) (*p_owner->evt_stop)(p_owner);
 	}
-	return 0;
 }
 
 static void _evtTimerBreakFinish(void *p_issuer)
@@ -374,10 +369,4 @@ BOOL pifStepMotor_StopControl(PifStepMotor* p_owner)
 
     p_owner->__p_task->pause = TRUE;
     return TRUE;
-}
-
-PifTask* pifStepMotor_AttachTask(PifStepMotor* p_owner, PifTaskMode mode, uint16_t period)
-{
-	p_owner->__p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, FALSE);
-	return p_owner->__p_task;
 }

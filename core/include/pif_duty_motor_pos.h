@@ -66,9 +66,10 @@ extern "C" {
  * @param id
  * @param p_timer
  * @param max_duty
+ * @param period1ms
  * @return 
  */
-PifDutyMotor* pifDutyMotorPos_Create(PifId id, PifPulse* p_timer, uint16_t max_duty);
+PifDutyMotor* pifDutyMotorPos_Create(PifId id, PifPulse* p_timer, uint16_t max_duty, uint16_t period1ms);
 
 /**
  * @fn pifDutyMotorPos_Destroy

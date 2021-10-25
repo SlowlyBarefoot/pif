@@ -23,8 +23,9 @@ static void _evtTimerDelayFinish(void* p_issuer)
 	}
 }
 
-static void _fnControlSpeed(PifStepMotor* p_parent)
+static uint16_t _doTask(PifTask* p_task)
 {
+	PifStepMotor *p_parent = p_task->_p_client;
 	uint16_t tmp_pps = 0;
     PifStepMotorSpeed* p_owner = (PifStepMotorSpeed*)p_parent;
     const PifStepMotorSpeedStage* p_stage = p_owner->__p_current_stage;
@@ -100,6 +101,9 @@ static void _fnControlSpeed(PifStepMotor* p_parent)
 				kMotorState[p_parent->_state], tmp_pps);
 	}
 #endif
+
+	pifStepMotor_Control(p_parent);
+	return 0;
 }
 
 static void _evtSwitchReduceChange(PifId id, uint16_t level, void* p_issuer)
@@ -128,7 +132,7 @@ static void _evtSwitchStopChange(PifId id, uint16_t level, void* p_issuer)
 	}
 }
 
-PifStepMotor* pifStepMotorSpeed_Create(PifId id, PifPulse* p_timer, uint8_t resolution, PifStepMotorOperation operation)
+PifStepMotor* pifStepMotorSpeed_Create(PifId id, PifPulse* p_timer, uint8_t resolution, PifStepMotorOperation operation, uint16_t period1ms)
 {
 	PifStepMotorSpeed* p_owner = NULL;
 
@@ -150,7 +154,7 @@ PifStepMotor* pifStepMotorSpeed_Create(PifId id, PifPulse* p_timer, uint8_t reso
     if (!p_parent->__p_timer_delay) goto fail;
     pifPulse_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent);
 
-	p_parent->__control = _fnControlSpeed;
+    p_parent->__p_task = pifTaskManager_Add(TM_PERIOD_MS, period1ms, _doTask, p_owner, FALSE);
     return p_parent;
 
 fail:

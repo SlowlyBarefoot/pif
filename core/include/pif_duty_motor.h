@@ -53,9 +53,6 @@ struct StPifDutyMotor
     PifActDutyMotorSetDuty __act_set_duty;
     PifActDutyMotorSetDirection __act_set_direction;
     PifActDutyMotorOperateBreak __act_operate_break;
-
-	// Private Member Function
-    PifDutyMotorControl __control;
 };
 
 
@@ -167,14 +164,11 @@ BOOL pifDutyMotor_StartControl(PifDutyMotor* p_owner);
 BOOL pifDutyMotor_StopControl(PifDutyMotor* p_owner);
 
 /**
- * @fn pifComm_AttachTask
- * @brief Task를 추가한다.
+ * @fn pifDutyMotor_Control
+ * @brief
  * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifDutyMotor_AttachTask(PifDutyMotor* p_owner, PifTaskMode mode, uint16_t period);
+void pifDutyMotor_Control(PifDutyMotor* p_owner);
 
 #ifdef __cplusplus
 }

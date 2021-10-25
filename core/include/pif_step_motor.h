@@ -74,7 +74,6 @@ struct StPifStepMotor
     PifActStepMotorSetStep __act_set_step;
 
 	// Private Member Function
-    PifStepMotorControl __control;
     PifStepMotorStopStep __stop_step;
 };
 
@@ -247,14 +246,11 @@ BOOL pifStepMotor_StartControl(PifStepMotor* p_owner);
 BOOL pifStepMotor_StopControl(PifStepMotor* p_owner);
 
 /**
- * @fn pifStepMotor_AttachTask
- * @brief Task를 추가한다.
+ * @fn pifStepMotor_Control
+ * @brief
  * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifStepMotor_AttachTask(PifStepMotor* p_owner, PifTaskMode mode, uint16_t period);
+void pifStepMotor_Control(PifStepMotor* p_owner);
 
 #ifdef __cplusplus
 }
