@@ -5,6 +5,9 @@
 #include "pif_task.h"
 
 
+#define PIF_FND_DEFAULT_CONTROL_PERIOD_1MS		20
+
+
 typedef enum EnPifKeyState
 {
 	KS_IDLE,
@@ -58,11 +61,13 @@ typedef struct StPifKeypad
 	uint16_t _double_time1ms;						// Default: PIF_KEYPAD_DEFAULT_DOUBLE_TIME
 
 	// Private Member Variable
+    PifTask* __p_task;
 	const char* __p_user_keymap;
 	uint8_t __num_rows;
 	uint8_t __num_cols;
 	uint16_t* __p_state;
 	PifKey* __p_key;
+    uint16_t __control_period_1ms;					// PIF_FND_DEFAULT_CONTROL_PERIOD_1MS
 
 	// Private Action Function
 	PifActKeypadAcquire __act_acquire;				// Default: NULL
@@ -111,6 +116,23 @@ BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num_rows, uint8_t num_
 void pifKeypad_Clear(PifKeypad* p_owner);
 
 /**
+ * @fn pifKeypad_GetControlPeriod1ms
+ * @brief
+ * @param p_owner
+ * @return
+ */
+uint16_t pifKeypad_GetControlPeriod1ms(PifKeypad* p_owner);
+
+/**
+ * @fn pifKeypad_SetControlPeriod1ms
+ * @brief
+ * @param p_owner
+ * @param period1ms
+ * @return
+ */
+BOOL pifKeypad_SetControlPeriod1ms(PifKeypad* p_owner, uint16_t period1ms);
+
+/**
  * @fn pifKeypad_AttachAction
  * @brief
  * @param p_owner
@@ -144,17 +166,6 @@ BOOL pifKeypad_SetLongTime(PifKeypad* p_owner, uint16_t long_time1ms);
  * @return
  */
 BOOL pifKeypad_SetDoubleTime(PifKeypad* p_owner, uint16_t double_time1ms);
-
-/**
- * @fn pifKeypad_AttachTask
- * @brief Task를 추가한다.
- * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
-PifTask* pifKeypad_AttachTask(PifKeypad* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }

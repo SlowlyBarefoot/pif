@@ -110,6 +110,24 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 	}
 }
 
+static uint16_t _doTask(PifTask* p_task)
+{
+	int idx, r, c;
+
+	PifKeypad* p_owner = p_task->_p_client;
+
+	if (!p_owner->__p_key || !p_owner->__act_acquire) return 0;
+
+	(*p_owner->__act_acquire)(p_owner->__p_state);
+
+	for (idx = 0, r = 0; r < p_owner->__num_rows; r++) {
+		for (c = 0; c < p_owner->__num_cols; c++, idx++) {
+			_checkKeyState(p_owner, idx, (p_owner->__p_state[r] >> c) & 1);
+		}
+	}
+	return 0;
+}
+
 PifKeypad* pifKeypad_Create(PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap)
 {
 	PifKeypad* p_owner = malloc(sizeof(PifKeypad));
@@ -163,6 +181,9 @@ BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num_rows, uint8_t num_
     p_owner->_hold_time1ms = PIF_KEYPAD_DEFAULT_HOLD_TIME;
     p_owner->_long_time1ms = PIF_KEYPAD_DEFAULT_LONG_TIME;
     p_owner->_double_time1ms = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
+    p_owner->__control_period_1ms = PIF_FND_DEFAULT_CONTROL_PERIOD_1MS;
+
+	if (!pifTaskManager_Add(TM_PERIOD_MS, p_owner->__control_period_1ms, _doTask, p_owner, TRUE)) goto fail;
     return TRUE;
 
 fail:
@@ -180,6 +201,23 @@ void pifKeypad_Clear(PifKeypad* p_owner)
 		free(p_owner->__p_key);
 		p_owner->__p_key = NULL;
 	}
+}
+
+uint16_t pifKeypad_GetControlPeriod1ms(PifKeypad* p_owner)
+{
+	return p_owner->__control_period_1ms;
+}
+
+BOOL pifKeypad_SetControlPeriod1ms(PifKeypad* p_owner, uint16_t period1ms)
+{
+	if (!period1ms) {
+        pif_error = E_INVALID_PARAM;
+        return FALSE;
+	}
+
+	p_owner->__control_period_1ms = period1ms;
+   	pifTask_SetPeriod(p_owner->__p_task, p_owner->__control_period_1ms);
+	return TRUE;
 }
 
 void pifKeypad_AttachAction(PifKeypad* p_owner, PifActKeypadAcquire act_acquire)
@@ -218,27 +256,4 @@ BOOL pifKeypad_SetDoubleTime(PifKeypad* p_owner, uint16_t double_time1ms)
 
 	p_owner->_double_time1ms = double_time1ms;
 	return TRUE;
-}
-
-static uint16_t _doTask(PifTask* p_task)
-{
-	int idx, r, c;
-
-	PifKeypad* p_owner = p_task->_p_client;
-
-	if (!p_owner->__p_key || !p_owner->__act_acquire) return 0;
-
-	(*p_owner->__act_acquire)(p_owner->__p_state);
-
-	for (idx = 0, r = 0; r < p_owner->__num_rows; r++) {
-		for (c = 0; c < p_owner->__num_cols; c++, idx++) {
-			_checkKeyState(p_owner, idx, (p_owner->__p_state[r] >> c) & 1);
-		}
-	}
-	return 0;
-}
-
-PifTask* pifKeypad_AttachTask(PifKeypad* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
-{
-	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
 }
