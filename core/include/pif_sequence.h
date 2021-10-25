@@ -90,11 +90,13 @@ extern "C" {
  * @brief Sequence를 추가한다.
  * @param id
  * @param p_timer
+ * @param control_period1ms
  * @param p_phase_list
  * @param p_param
  * @return Sequence 구조체 포인터를 반환한다.
  */
-PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, const PifSequencePhase* p_phase_list, void* p_param);
+PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, uint16_t control_period1ms,
+		const PifSequencePhase* p_phase_list, void* p_param);
 
 /**
  * @fn pifSequence_Destroy
@@ -109,11 +111,13 @@ void pifSequence_Destroy(PifSequence** pp_owner);
  * @param p_owner
  * @param id
  * @param p_timer
+ * @param control_period1ms
  * @param p_phase_list
  * @param p_param
  * @return Sequence 구조체 포인터를 반환한다.
  */
-BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, const PifSequencePhase* p_phase_list, void* p_param);
+BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, uint16_t control_period1ms,
+		const PifSequencePhase* p_phase_list, void* p_param);
 
 /**
  * @fn pifSequence_Clear
@@ -171,17 +175,6 @@ void pifSequence_Start(PifSequence* p_owner);
  * @return
  */
 BOOL pifSequence_SetTimeout(PifSequence* p_owner, uint16_t timeout);
-
-/**
- * @fn pifSequence_AttachTask
- * @brief Task를 추가한다.
- * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
-PifTask* pifSequence_AttachTask(PifSequence* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }

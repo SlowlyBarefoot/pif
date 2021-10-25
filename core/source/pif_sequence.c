@@ -23,6 +23,69 @@ static void _setPhaseNo(PifSequence* p_owner, uint8_t phase_no)
 #endif
 }
 
+static uint16_t _doTask(PifTask* p_task)
+{
+	PifSequence *p_owner = p_task->_p_client;
+	const PifSequencePhase *pstPhase;
+	uint8_t ucPhaseNoNext;
+
+	if (p_owner->_phase_no == PIF_SEQUENCE_PHASE_NO_IDLE) return 0;
+
+	if (p_owner->delay1us) {
+		if ((*pif_act_timer1us)() >= p_owner->__target_delay) {
+			p_owner->delay1us = 0;
+		}
+		else return 0;
+	}
+
+	pstPhase = &p_owner->__p_phase_list[p_owner->_phase_no];
+
+	if (!pstPhase->process) {
+		pif_error = E_WRONG_DATA;
+		goto fail;
+	}
+
+	switch ((*pstPhase->process)(p_owner)) {
+	case SR_CONTINUE:
+		if (p_owner->delay1us) {
+			p_owner->__target_delay = (*pif_act_timer1us)() + p_owner->delay1us;
+		}
+		break;
+
+	case SR_NEXT:
+		if (p_owner->__p_timer_timeout) pifPulse_StopItem(p_owner->__p_timer_timeout);
+
+		ucPhaseNoNext = p_owner->phase_no_next;
+		if (ucPhaseNoNext == PIF_SEQUENCE_PHASE_NO_IDLE) {
+			ucPhaseNoNext = pstPhase->phase_no_next;
+		}
+
+		if (ucPhaseNoNext != PIF_SEQUENCE_PHASE_NO_IDLE) {
+			if (p_owner->delay1us) {
+				p_owner->__target_delay = (*pif_act_timer1us)() + p_owner->delay1us;
+			}
+			p_owner->step = PIF_SEQUENCE_STEP_INIT;
+			p_owner->phase_no_next = PIF_SEQUENCE_PHASE_NO_IDLE;
+		}
+		_setPhaseNo(p_owner, ucPhaseNoNext);
+		break;
+
+	case SR_FINISH:
+		_setPhaseNo(p_owner, PIF_SEQUENCE_PHASE_NO_IDLE);
+		break;
+
+	default:
+		pif_error = E_WRONG_DATA;
+		goto fail;
+	}
+	return 0;
+
+fail:
+	if (p_owner->evt_error) (*p_owner->evt_error)(p_owner);
+	_setPhaseNo(p_owner, PIF_SEQUENCE_PHASE_NO_IDLE);
+	return 0;
+}
+
 static void _evtTimerTimeoutFinish(void* p_issuer)
 {
     PifSequence* p_owner = (PifSequence*)p_issuer;
@@ -67,7 +130,8 @@ void pifSequence_ColSigClear()
 
 #endif
 
-PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, const PifSequencePhase* p_phase_list, void* p_param)
+PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, uint16_t control_period1ms,
+		const PifSequencePhase* p_phase_list, void* p_param)
 {
     PifSequence *p_owner = malloc(sizeof(PifSequence));
     if (!p_owner) {
@@ -75,7 +139,7 @@ PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, const PifSequencePh
 	    return NULL;
 	}
 
-	if (!pifSequence_Init(p_owner, id, p_timer, p_phase_list, p_param)) {
+	if (!pifSequence_Init(p_owner, id, p_timer, control_period1ms, p_phase_list, p_param)) {
 		pifSequence_Destroy(&p_owner);
 	    return NULL;
 	}
@@ -91,7 +155,8 @@ void pifSequence_Destroy(PifSequence** pp_owner)
     }
 }
 
-BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, const PifSequencePhase* p_phase_list, void* p_param)
+BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, uint16_t control_period1ms,
+		const PifSequencePhase* p_phase_list, void* p_param)
 {
     if (!p_owner || !p_timer || !p_phase_list) {
         pif_error = E_INVALID_PARAM;
@@ -113,6 +178,8 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, const P
     _setPhaseNo(p_owner, PIF_SEQUENCE_PHASE_NO_IDLE);
     p_owner->p_param = p_param;
 
+	if (!pifTaskManager_Add(TM_PERIOD_MS, control_period1ms, _doTask, p_owner, FALSE)) goto fail;
+
 #ifdef __PIF_COLLECT_SIGNAL__
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Attach(CSF_SEQUENCE, _addDeviceInCollectSignal);
@@ -124,11 +191,9 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, const P
 #endif
     return TRUE;
 
-#ifdef __PIF_COLLECT_SIGNAL__
 fail:
 	pifSequence_Clear(p_owner);
 	return FALSE;
-#endif
 }
 
 void pifSequence_Clear(PifSequence* p_owner)
@@ -205,72 +270,4 @@ BOOL pifSequence_SetTimeout(PifSequence* p_owner, uint16_t timeout)
 	}
 	pifPulse_StartItem(p_owner->__p_timer_timeout, timeout);
 	return TRUE;
-}
-
-static uint16_t _doTask(PifTask* p_task)
-{
-	PifSequence *p_owner = p_task->_p_client;
-	const PifSequencePhase *pstPhase;
-	uint8_t ucPhaseNoNext;
-	
-	if (p_owner->_phase_no == PIF_SEQUENCE_PHASE_NO_IDLE) return 0;
-
-	if (p_owner->delay1us) {
-		if ((*pif_act_timer1us)() >= p_owner->__target_delay) {
-			p_owner->delay1us = 0;
-		}
-		else return 0;
-	}
-
-	pstPhase = &p_owner->__p_phase_list[p_owner->_phase_no];
-
-	if (!pstPhase->process) {
-		pif_error = E_WRONG_DATA;
-		goto fail;
-	}
-
-	switch ((*pstPhase->process)(p_owner)) {
-	case SR_CONTINUE:
-		if (p_owner->delay1us) {
-			p_owner->__target_delay = (*pif_act_timer1us)() + p_owner->delay1us;
-		}
-		break;
-
-	case SR_NEXT:
-		if (p_owner->__p_timer_timeout) pifPulse_StopItem(p_owner->__p_timer_timeout);
-
-		ucPhaseNoNext = p_owner->phase_no_next;
-		if (ucPhaseNoNext == PIF_SEQUENCE_PHASE_NO_IDLE) {
-			ucPhaseNoNext = pstPhase->phase_no_next;
-		}
-
-		if (ucPhaseNoNext != PIF_SEQUENCE_PHASE_NO_IDLE) {
-			if (p_owner->delay1us) {
-				p_owner->__target_delay = (*pif_act_timer1us)() + p_owner->delay1us;
-			}
-			p_owner->step = PIF_SEQUENCE_STEP_INIT;
-			p_owner->phase_no_next = PIF_SEQUENCE_PHASE_NO_IDLE;
-		}
-		_setPhaseNo(p_owner, ucPhaseNoNext);
-		break;
-
-	case SR_FINISH:
-		_setPhaseNo(p_owner, PIF_SEQUENCE_PHASE_NO_IDLE);
-		break;
-
-	default:
-		pif_error = E_WRONG_DATA;
-		goto fail;
-	}
-	return 0;
-
-fail:
-	if (p_owner->evt_error) (*p_owner->evt_error)(p_owner);
-	_setPhaseNo(p_owner, PIF_SEQUENCE_PHASE_NO_IDLE);
-	return 0;
-}
-
-PifTask* pifSequence_AttachTask(PifSequence* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
-{
-	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
 }
