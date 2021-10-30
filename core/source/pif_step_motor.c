@@ -67,7 +67,7 @@ static void _setStep(PifStepMotor* p_owner)
 
 	p_owner->_current_pulse++;
 
-	(*p_owner->__act_set_step)(p_owner->__p_phase_operation[p_owner->__current_step]);
+	(*p_owner->act_set_step)(p_owner->__p_phase_operation[p_owner->__current_step]);
 }
 
 static void _evtTimerStepFinish(void* p_issuer)
@@ -172,11 +172,6 @@ void pifStepMotor_Clear(PifStepMotor* p_owner)
 		pifPulse_RemoveItem(p_owner->__p_timer_delay);
 		p_owner->__p_timer_delay = NULL;
 	}
-}
-
-void pifStepMotor_AttachAction(PifStepMotor* p_owner, PifActStepMotorSetStep act_set_step)
-{
-    p_owner->__act_set_step = act_set_step;
 }
 
 BOOL pifStepMotor_SetDirection(PifStepMotor* p_owner, uint8_t direction)
@@ -329,7 +324,7 @@ void pifStepMotor_Break(PifStepMotor* p_owner)
 
 void pifStepMotor_Release(PifStepMotor* p_owner)
 {
-	(*p_owner->__act_set_step)(0);
+	(*p_owner->act_set_step)(0);
 }
 
 void pifStepMotor_BreakRelease(PifStepMotor* p_owner, uint16_t break_time)

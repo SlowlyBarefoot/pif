@@ -122,7 +122,7 @@ void pifPulse_StopItem(PifPulseItem* p_item)
 	p_item->__current = 0;
 	p_item->_step = PS_STOP;
 	if (p_item->_type == PT_PWM) {
-		(*p_item->__act_pwm)(OFF);
+		(*p_item->act_pwm)(OFF);
 	}
 }
 
@@ -130,7 +130,7 @@ void pifPulse_SetPwmDuty(PifPulseItem* p_item, uint16_t duty)
 {
 	p_item->__pwm_duty = p_item->target * duty / PIF_PWM_MAX_DUTY;
 	if (p_item->__pwm_duty == p_item->target) {
-		(*p_item->__act_pwm)(ON);
+		(*p_item->act_pwm)(ON);
 	}
 }
 
@@ -185,11 +185,11 @@ void pifPulse_sigTick(PifPulse* p_owner)
 			case PT_PWM:
 				if (p_item->__pwm_duty != p_item->target) {
 					if (!p_item->__current) {
-						(*p_item->__act_pwm)(OFF);
+						(*p_item->act_pwm)(OFF);
 						p_item->__current = p_item->target;
 					}
 					if (p_item->__current == p_item->__pwm_duty) {
-						(*p_item->__act_pwm)(ON);
+						(*p_item->act_pwm)(ON);
 					}
 				}
 				else {
@@ -205,11 +205,6 @@ void pifPulse_sigTick(PifPulse* p_owner)
 	}
 
 	if (it_remove) pifDList_RemoveIterator(&p_owner->__items, it_remove);
-}
-
-void pifPulse_AttachAction(PifPulseItem* p_item, PifActPulsePwm act_pwm)
-{
-	p_item->__act_pwm = act_pwm;
 }
 
 void pifPulse_AttachEvtFinish(PifPulseItem* p_item, PifEvtPulseFinish evt_finish, void* p_issuer)

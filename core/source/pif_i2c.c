@@ -79,10 +79,10 @@ void pifI2c_ScanAddress(PifI2c* p_owner)
 
 BOOL pifI2c_Read(PifI2c* p_owner, uint8_t size)
 {
-	if (!p_owner->__act_read) return FALSE;
+	if (!p_owner->act_read) return FALSE;
 
 	p_owner->_state_read = IS_RUN;
-	if (!(*p_owner->__act_read)(p_owner, size)) {
+	if (!(*p_owner->act_read)(p_owner, size)) {
 		p_owner->_state_read = IS_ERROR;
 		return FALSE;
 	}
@@ -95,10 +95,10 @@ BOOL pifI2c_Read(PifI2c* p_owner, uint8_t size)
 
 BOOL pifI2c_Write(PifI2c* p_owner, uint8_t size)
 {
-	if (!p_owner->__act_write) return FALSE;
+	if (!p_owner->act_write) return FALSE;
 
 	p_owner->_state_write = IS_RUN;
-	if (!(*p_owner->__act_write)(p_owner, size)) {
+	if (!(*p_owner->act_write)(p_owner, size)) {
 		p_owner->_state_write = IS_ERROR;
 		return FALSE;
 	}
@@ -117,10 +117,4 @@ void pifI2c_sigEndRead(PifI2c* p_owner, BOOL result)
 void pifI2c_sigEndWrite(PifI2c* p_owner, BOOL result)
 {
 	p_owner->_state_write = result ? IS_COMPLETE : IS_ERROR;
-}
-
-void pifI2c_AttachAction(PifI2c* p_owner, PifActI2cRead act_read, PifActI2cWrite act_write)
-{
-	p_owner->__act_read = act_read;
-	p_owner->__act_write = act_write;
 }

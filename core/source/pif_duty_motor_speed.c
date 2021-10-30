@@ -58,25 +58,25 @@ static uint16_t _doTask(PifTask* p_task)
 	}
 
 	if (tmp_duty != p_parent->_current_duty) {
-		(*p_parent->__act_set_duty)(tmp_duty);
+		(*p_parent->act_set_duty)(tmp_duty);
 		p_parent->_current_duty = tmp_duty;
 	}
 
     if (p_parent->_state == MS_BREAK) {
-    	if (p_parent->__act_operate_break && p_stage->rs_break_time &&
+    	if (p_parent->act_operate_break && p_stage->rs_break_time &&
     			pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
-			(*p_parent->__act_operate_break)(1);
+			(*p_parent->act_operate_break)(1);
 			p_parent->_state = MS_BREAKING;
     	}
     	else {
-			if (p_parent->__act_operate_break) (*p_parent->__act_operate_break)(1);
+			if (p_parent->act_operate_break) (*p_parent->act_operate_break)(1);
     		p_parent->_state = MS_STOPPING;
     	}
 	}
 
     if (p_parent->_state == MS_STOPPING) {
 		if (!(p_stage->mode & MM_NR_MASK)) {
-			if (p_parent->__act_operate_break) (*p_parent->__act_operate_break)(0);
+			if (p_parent->act_operate_break) (*p_parent->act_operate_break)(0);
 		}
 		p_parent->_state = MS_STOP;
 
@@ -202,7 +202,7 @@ BOOL pifDutyMotorSpeed_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32
     const PifDutyMotorSpeedStage* p_stage;
     uint8_t state;
 
-    if (!p_parent->__act_set_duty || !p_parent->__act_set_direction) {
+    if (!p_parent->act_set_duty || !p_parent->act_set_direction) {
     	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
@@ -255,7 +255,7 @@ BOOL pifDutyMotorSpeed_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32
         pifSensor_AttachEvtChange(*p_stage->pp_stop_sensor, _evtSwitchStopChange, p_parent);
     }
 
-    if (p_parent->__act_set_direction) (*p_parent->__act_set_direction)((p_stage->mode & MM_D_MASK) >> MM_D_SHIFT);
+    if (p_parent->act_set_direction) (*p_parent->act_set_direction)((p_stage->mode & MM_D_MASK) >> MM_D_SHIFT);
 
     if (p_stage->gs_ctrl_duty) {
     	p_parent->_current_duty = p_stage->gs_start_duty;
@@ -267,7 +267,7 @@ BOOL pifDutyMotorSpeed_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32
     }
     p_parent->__error = 0;
 
-    (*p_parent->__act_set_duty)(p_parent->_current_duty);
+    (*p_parent->act_set_duty)(p_parent->_current_duty);
     return TRUE;
 }
 

@@ -227,7 +227,7 @@ BOOL pifStepMotorPos_Start(PifStepMotor* p_parent, uint8_t stage_index, uint32_t
     const PifStepMotorPosStage *pstStage;
     uint8_t state;
 
-    if (!p_parent->__act_set_step) {
+    if (!p_parent->act_set_step) {
     	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }

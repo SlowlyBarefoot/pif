@@ -75,6 +75,9 @@ typedef struct StPifGpsNmea
 {
 	// Public Member Variable
 
+	// Public Event Variable
+    PifEvtGpsNmeaText evt_text;
+
 	// Read-only Member Variable
     PifGps _gps;
 
@@ -84,9 +87,6 @@ typedef struct StPifGpsNmea
     uint32_t __process_message_id;
     PifGpsNmeaMessageId __event_message_id;
     PifGpsNmeaTxt* __p_txt;
-
-	// Private Member Variable
-    PifEvtGpsNmeaText __evt_text;
 } PifGpsNmea;
 
 
@@ -132,14 +132,6 @@ void pifGpsNmea_Clear(PifGpsNmea* p_owner);
  * @param p_comm
  */
 void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* pstComm);
-
-/**
- * @fn pifGpsNmea_AttachEvtText
- * @brief
- * @param p_owner
- * @param evt_text
- */
-void pifGpsNmea_AttachEvtText(PifGpsNmea* p_owner, PifEvtGpsNmeaText evt_text);
 
 /**
  * @fn pifGpsNmea_SetProcessMessageId

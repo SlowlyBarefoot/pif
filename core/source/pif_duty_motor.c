@@ -6,7 +6,7 @@ void pifDutyMotor_Control(PifDutyMotor* p_owner)
 {
     if (p_owner->__error) {
         if (p_owner->_state < MS_BREAK) {
-			(*p_owner->__act_set_duty)(0);
+			(*p_owner->act_set_duty)(0);
 			p_owner->_current_duty = 0;
 
 			p_owner->_state = MS_BREAK;
@@ -30,7 +30,7 @@ static void _evtTimerBreakFinish(void* p_issuer)
     	p_owner->_state = MS_REDUCE;
     }
     else {
-    	(*p_owner->__act_operate_break)(0);
+    	(*p_owner->act_operate_break)(0);
     }
 }
 
@@ -86,19 +86,11 @@ void pifDutyMotor_Clear(PifDutyMotor* p_owner)
 	}
 }
 
-void pifDutyMotor_AttachAction(PifDutyMotor* p_owner, PifActDutyMotorSetDuty act_set_duty,
-		PifActDutyMotorSetDirection act_set_direction, PifActDutyMotorOperateBreak act_operate_break)
-{
-    p_owner->__act_set_duty = act_set_duty;
-    p_owner->__act_set_direction = act_set_direction;
-    p_owner->__act_operate_break = act_operate_break;
-}
-
 void pifDutyMotor_SetDirection(PifDutyMotor* p_owner, uint8_t direction)
 {
 	p_owner->_direction = direction;
 
-	if (p_owner->__act_set_direction) (*p_owner->__act_set_direction)(p_owner->_direction);
+	if (p_owner->act_set_direction) (*p_owner->act_set_direction)(p_owner->_direction);
 }
 
 void pifDutyMotor_SetDuty(PifDutyMotor* p_owner, uint16_t duty)
@@ -106,7 +98,7 @@ void pifDutyMotor_SetDuty(PifDutyMotor* p_owner, uint16_t duty)
     if (duty > p_owner->_max_duty) duty = p_owner->_max_duty;
 	p_owner->_current_duty = duty;
 
-	(*p_owner->__act_set_duty)(p_owner->_current_duty);
+	(*p_owner->act_set_duty)(p_owner->_current_duty);
 }
 
 BOOL pifDutyMotor_SetOperatingTime(PifDutyMotor* p_owner, uint32_t operating_time)
@@ -125,16 +117,16 @@ BOOL pifDutyMotor_SetOperatingTime(PifDutyMotor* p_owner, uint32_t operating_tim
 
 BOOL pifDutyMotor_Start(PifDutyMotor* p_owner, uint16_t duty)
 {
-    if (!p_owner->__act_set_duty || !p_owner->__act_set_direction) {
+    if (!p_owner->act_set_duty || !p_owner->act_set_direction) {
         pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
-    (*p_owner->__act_set_direction)(p_owner->_direction);
+    (*p_owner->act_set_direction)(p_owner->_direction);
 
    	p_owner->_current_duty = duty;
 
-    (*p_owner->__act_set_duty)(p_owner->_current_duty);
+    (*p_owner->act_set_duty)(p_owner->_current_duty);
 	return TRUE;
 }
 
@@ -142,16 +134,16 @@ void pifDutyMotor_BreakRelease(PifDutyMotor* p_owner, uint16_t break_time)
 {
     p_owner->_current_duty = 0;
 
-    (*p_owner->__act_set_duty)(p_owner->_current_duty);
+    (*p_owner->act_set_duty)(p_owner->_current_duty);
 
-    if (break_time && p_owner->__act_operate_break) {
+    if (break_time && p_owner->act_operate_break) {
 	    if (!p_owner->__p_timer_break) {
 	    	p_owner->__p_timer_break = pifPulse_AddItem(p_owner->_p_timer, PT_ONCE);
 	    }
 	    if (p_owner->__p_timer_break) {
 	    	pifPulse_AttachEvtFinish(p_owner->__p_timer_break, _evtTimerBreakFinish, p_owner);
 			if (pifPulse_StartItem(p_owner->__p_timer_break, break_time)) {
-		    	(*p_owner->__act_operate_break)(1);
+		    	(*p_owner->act_operate_break)(1);
 			}
 	    }
 	}

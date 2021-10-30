@@ -31,16 +31,16 @@ struct StPifI2c
 	uint8_t data_size;
 	uint8_t* p_data;
 
+	// Public Action Function
+	PifActI2cRead act_read;
+	PifActI2cWrite act_write;
+
 	// Read-only Member Variable
 	PifId _id;
 	volatile PifI2cState _state_read;
 	volatile PifI2cState _state_write;
 
 	// Private Member Variable
-
-	// Private Action Function
-	PifActI2cRead __act_read;
-	PifActI2cWrite __act_write;
 };
 
 
@@ -125,15 +125,6 @@ void pifI2c_sigEndRead(PifI2c* p_owner, BOOL result);
  * @param result
  */
 void pifI2c_sigEndWrite(PifI2c* p_owner, BOOL result);
-
-/**
- * @fn pifI2c_AttachAction
- * @brief
- * @param p_owner
- * @param act_read
- * @param act_write
- */
-void pifI2c_AttachAction(PifI2c* p_owner, PifActI2cRead act_read, PifActI2cWrite act_write);
 
 #ifdef __cplusplus
 }

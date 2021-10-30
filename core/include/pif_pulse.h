@@ -39,6 +39,9 @@ typedef struct StPifPulseItem
 	// Public Member Variable
     uint32_t target;
 
+    // Public Action Function
+    PifActPulsePwm act_pwm;
+
 	// Read-only Member Variable
     PifPulseType _type;
     PifPulseStep _step;
@@ -50,9 +53,6 @@ typedef struct StPifPulseItem
     void* __p_int_finish_issuer;
     uint32_t __pwm_duty;
 	BOOL __event;
-
-    // Private Action Function
-    PifActPulsePwm __act_pwm;
 
     // Private Event Function
     PifEvtPulseFinish __evt_finish;
@@ -176,14 +176,6 @@ uint32_t pifPulse_ElapsedItem(PifPulseItem* p_item);
  * @param p_owner Pulse 자신
  */
 void pifPulse_sigTick(PifPulse* p_owner);
-
-/**
- * @fn pifPulse_AttachAction
- * @brief
- * @param p_item Pulse 항목 포인터
- * @param act_pwm 연결시킬 Action
- */
-void pifPulse_AttachAction(PifPulseItem* p_item, PifActPulsePwm act_pwm);
 
 /**
  * @fn pifPulse_AttachEvtFinish

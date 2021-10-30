@@ -23,15 +23,15 @@ static uint16_t _actSendData(PifComm* p_owner, uint8_t* p_buffer, uint16_t size)
 
 static void _sendData(PifComm* p_owner)
 {
-	if (p_owner->__act_send_data) {
-		(*p_owner->evt_sending)(p_owner->__p_client, p_owner->__act_send_data);
+	if (p_owner->act_send_data) {
+		(*p_owner->evt_sending)(p_owner->__p_client, p_owner->act_send_data);
 	}
 	else if (p_owner->_p_tx_buffer) {
 		if ((*p_owner->evt_sending)(p_owner->__p_client, _actSendData)) {
 			if (p_owner->__state == CTS_IDLE) {
 				p_owner->__state = CTS_SENDING;
-				if (p_owner->__act_start_transfer) {
-					if (!(*p_owner->__act_start_transfer)()) p_owner->__state = CTS_IDLE;
+				if (p_owner->act_start_transfer) {
+					if (!(*p_owner->act_start_transfer)()) p_owner->__state = CTS_IDLE;
 				}
 			}
 		}
@@ -113,21 +113,6 @@ void pifComm_AttachClient(PifComm* p_owner, void* p_client)
 	p_owner->__p_client = p_client;
 }
 
-void pifComm_AttachActReceiveData(PifComm* p_owner, PifActCommReceiveData act_receive_data)
-{
-	p_owner->__act_receive_data = act_receive_data;
-}
-
-void pifComm_AttachActSendData(PifComm* p_owner, PifActCommSendData act_send_data)
-{
-	p_owner->__act_send_data = act_send_data;
-}
-
-void pifComm_AttachActStartTransfer(PifComm* p_owner, PifActCommStartTransfer act_start_transfer)
-{
-	p_owner->__act_start_transfer = act_start_transfer;
-}
-
 uint16_t pifComm_GetRemainSizeOfRxBuffer(PifComm* p_owner)
 {
 	return pifRingBuffer_GetRemainSize(p_owner->_p_rx_buffer);
@@ -203,8 +188,8 @@ static uint16_t _doTask(PifTask* p_task)
 	PifComm *p_owner = p_task->_p_client;
 
 	if (p_owner->evt_parsing) {
-		if (p_owner->__act_receive_data) {
-			(*p_owner->evt_parsing)(p_owner->__p_client, p_owner->__act_receive_data);
+		if (p_owner->act_receive_data) {
+			(*p_owner->evt_parsing)(p_owner->__p_client, p_owner->act_receive_data);
 		}
 		else if (p_owner->_p_rx_buffer) {
 			(*p_owner->evt_parsing)(p_owner->__p_client, _actReceiveData);

@@ -39,6 +39,9 @@ struct StPifStepMotor
 {
 	// Public Member Variable
 
+    // Public Action Function
+    PifActStepMotorSetStep act_set_step;
+
     // Public Event Function
     PifEvtStepMotorStable evt_stable;
     PifEvtStepMotorStop evt_stop;
@@ -69,9 +72,6 @@ struct StPifStepMotor
 	uint8_t __current_step;
 	uint32_t __target_pulse;
 	const uint16_t* __p_phase_operation;
-
-    // Private Action Function
-    PifActStepMotorSetStep __act_set_step;
 
 	// Private Member Function
     PifStepMotorStopStep __stop_step;
@@ -118,14 +118,6 @@ BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifPulse* p_timer, uint1
  * @param p_owner
  */
 void pifStepMotor_Clear(PifStepMotor* p_owner);
-
-/**
- * @fn pifStepMotor_AttachAction
- * @brief
- * @param p_owner
- * @param act_set_step
- */
-void pifStepMotor_AttachAction(PifStepMotor* p_owner, PifActStepMotorSetStep act_set_step);
 
 /**
  * @fn pifStepMotor_SetDirection

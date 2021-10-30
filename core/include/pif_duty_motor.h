@@ -28,6 +28,11 @@ struct StPifDutyMotor
 {
 	// Public Member Variable
 
+    // Public Action Function
+    PifActDutyMotorSetDuty act_set_duty;
+    PifActDutyMotorSetDirection act_set_direction;
+    PifActDutyMotorOperateBreak act_operate_break;
+
     // Public Event Function
     PifEvtDutyMotorStable evt_stable;
     PifEvtDutyMotorStop evt_stop;
@@ -48,11 +53,6 @@ struct StPifDutyMotor
 	PifPulseItem* __p_timer_break;
 
     PifTask* __p_task;
-
-    // Private Action Function
-    PifActDutyMotorSetDuty __act_set_duty;
-    PifActDutyMotorSetDirection __act_set_direction;
-    PifActDutyMotorOperateBreak __act_operate_break;
 };
 
 
@@ -94,17 +94,6 @@ BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint1
  * @param p_owner
  */
 void pifDutyMotor_Clear(PifDutyMotor* p_owner);
-
-/**
- * @fn pifDutyMotor_AttachAction
- * @brief
- * @param p_owner
- * @param act_set_duty
- * @param act_set_direction
- * @param act_operate_break
- */
-void pifDutyMotor_AttachAction(PifDutyMotor* p_owner, PifActDutyMotorSetDuty act_set_duty,
-		PifActDutyMotorSetDirection act_set_direction, PifActDutyMotorOperateBreak act_operate_break);
 
 /**
  * @fn pifDutyMotor_SetDirection

@@ -71,6 +71,11 @@ struct StPifComm
 {
 	// Public Member Variable
 
+	// Public Action Function
+	PifActCommReceiveData act_receive_data;
+    PifActCommSendData act_send_data;
+    PifActCommStartTransfer act_start_transfer;
+
     // Public Event Function
     PifEvtCommParsing evt_parsing;
     PifEvtCommSending evt_sending;
@@ -84,11 +89,6 @@ struct StPifComm
 	// Private Member Variable
     void* __p_client;
     PifCommTxState __state;
-
-	// Private Action Function
-	PifActCommReceiveData __act_receive_data;
-    PifActCommSendData __act_send_data;
-    PifActCommStartTransfer __act_start_transfer;
 };
 
 
@@ -152,30 +152,6 @@ BOOL pifComm_AllocTxBuffer(PifComm* p_owner, uint16_t tx_size);
  * @param p_client
  */
 void pifComm_AttachClient(PifComm* p_owner, void* p_client);
-
-/**
- * @fn pifComm_AttachActReceiveData
- * @brief
- * @param p_owner
- * @param act_receive_data
- */
-void pifComm_AttachActReceiveData(PifComm* p_owner, PifActCommReceiveData act_receive_data);
-
-/**
- * @fn pifComm_AttachActSendData
- * @brief
- * @param p_owner
- * @param act_send_data
- */
-void pifComm_AttachActSendData(PifComm* p_owner, PifActCommSendData act_send_data);
-
-/**
- * @fn pifComm_AttachActStartTransfer
- * @brief
- * @param p_owner
- * @param act_start_transfer
- */
-void pifComm_AttachActStartTransfer(PifComm* p_owner, PifActCommStartTransfer act_start_transfer);
 
 /**
  * @fn pifComm_GetRemainSizeOfRxBuffer

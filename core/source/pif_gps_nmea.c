@@ -316,8 +316,8 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 				if (checksum == parity) {
 					checksum_param = 0;
 					if (p_owner->__event_message_id && message_id == p_owner->__event_message_id) frame_ok = 1;
-					if (message_id == NMEA_MESSAGE_ID_TXT && p_owner->__evt_text) {
-						(p_owner->__evt_text)(p_owner->__p_txt);
+					if (message_id == NMEA_MESSAGE_ID_TXT && p_owner->evt_text) {
+						(p_owner->evt_text)(p_owner->__p_txt);
 					}
 					break;
 				}
@@ -436,11 +436,6 @@ void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* p_comm)
 	p_comm->evt_sending = _evtSending;
 }
 
-void pifGpsNmea_AttachEvtText(PifGpsNmea* p_owner, PifEvtGpsNmeaText evt_text)
-{
-	p_owner->__evt_text = evt_text;
-}
-
 BOOL pifGpsNmea_SetProcessMessageId(PifGpsNmea* p_owner, int count, ...)
 {
 	va_list ap;
@@ -489,7 +484,7 @@ BOOL pifGpsNmea_PollRequestGBQ(PifGpsNmea* p_owner, const char* p_mag_id)
 	char data[16] = "$GBGBQ,";
 	int i;
 
-	if (!p_owner->__p_comm->__act_send_data) {
+	if (!p_owner->__p_comm->act_send_data) {
 		pif_error = E_TRANSFER_FAILED;
 		return FALSE;
 	}
@@ -514,7 +509,7 @@ BOOL pifGpsNmea_PollRequestGLQ(PifGpsNmea* p_owner, const char* p_mag_id)
 	char data[16] = "$GLGLQ,";
 	int i;
 
-	if (!p_owner->__p_comm->__act_send_data) {
+	if (!p_owner->__p_comm->act_send_data) {
 		pif_error = E_TRANSFER_FAILED;
 		return FALSE;
 	}
@@ -539,7 +534,7 @@ BOOL pifGpsNmea_PollRequestGNQ(PifGpsNmea* p_owner, const char* p_mag_id)
 	char data[16] = "$GNGNQ,";
 	int i;
 
-	if (!p_owner->__p_comm->__act_send_data) {
+	if (!p_owner->__p_comm->act_send_data) {
 		pif_error = E_TRANSFER_FAILED;
 		return FALSE;
 	}
@@ -564,7 +559,7 @@ BOOL pifGpsNmea_PollRequestGPQ(PifGpsNmea* p_owner, const char* p_mag_id)
 	char data[16] = "$GPGPQ,";
 	int i;
 
-	if (!p_owner->__p_comm->__act_send_data) {
+	if (!p_owner->__p_comm->act_send_data) {
 		pif_error = E_TRANSFER_FAILED;
 		return FALSE;
 	}
