@@ -15,12 +15,10 @@ static uint16_t _doTask(PifTask* p_task)
 	while (it) {
 		PifPulseItem* p_item = (PifPulseItem*)it->data;
 
-		if (p_item->_type != PT_PWM) {
-			if (p_item->__event) {
-				p_item->__event = FALSE;
+		if (p_item->__event) {
+			p_item->__event = FALSE;
 
-				if (p_item->__evt_finish) (*p_item->__evt_finish)(p_item->__p_finish_issuer);
-			}
+			if (p_item->__evt_finish) (*p_item->__evt_finish)(p_item->__p_finish_issuer);
 		}
 
 		it = pifDList_Next(it);

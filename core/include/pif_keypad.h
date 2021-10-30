@@ -63,8 +63,8 @@ typedef struct StPifKeypad
 	// Private Member Variable
     PifTask* __p_task;
 	const char* __p_user_keymap;
-	uint8_t __num_rows;
-	uint8_t __num_cols;
+	uint8_t __num_block;
+	uint8_t __num_cell;
 	uint16_t* __p_state;
 	PifKey* __p_key;
     uint16_t __control_period_1ms;					// PIF_KEYPAD_CONTROL_PERIOD
@@ -82,12 +82,11 @@ extern "C" {
  * @fn pifKeypad_Create
  * @brief
  * @param id
- * @param num_rows
- * @param num_cols
+ * @param num
  * @param p_user_keymap
  * @return
  */
-PifKeypad* pifKeypad_Create(PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap);
+PifKeypad* pifKeypad_Create(PifId id, uint8_t num, const char* p_user_keymap);
 
 /**
  * @fn pifKeypad_Destroy
@@ -101,12 +100,11 @@ void pifKeypad_Destroy(PifKeypad** pp_owner);
  * @brief
  * @param p_owner
  * @param id
- * @param num_rows
- * @param num_cols
+ * @param num
  * @param p_user_keymap
  * @return
  */
-BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap);
+BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num, const char* p_user_keymap);
 
 /**
  * @fn pifKeypad_Clear

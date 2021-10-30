@@ -112,7 +112,7 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 
 static uint16_t _doTask(PifTask* p_task)
 {
-	int idx, r, c;
+	int idx, b, c;
 
 	PifKeypad* p_owner = p_task->_p_client;
 
@@ -120,15 +120,15 @@ static uint16_t _doTask(PifTask* p_task)
 
 	(*p_owner->__act_acquire)(p_owner->__p_state);
 
-	for (idx = 0, r = 0; r < p_owner->__num_rows; r++) {
-		for (c = 0; c < p_owner->__num_cols; c++, idx++) {
-			_checkKeyState(p_owner, idx, (p_owner->__p_state[r] >> c) & 1);
+	for (idx = 0, b = 0; b < p_owner->__num_block; b++) {
+		for (c = 0; c < p_owner->__num_cell; c++, idx++) {
+			_checkKeyState(p_owner, idx, (p_owner->__p_state[b] >> c) & 1);
 		}
 	}
 	return 0;
 }
 
-PifKeypad* pifKeypad_Create(PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap)
+PifKeypad* pifKeypad_Create(PifId id, uint8_t num, const char* p_user_keymap)
 {
 	PifKeypad* p_owner = malloc(sizeof(PifKeypad));
 	if (!p_owner) {
@@ -136,7 +136,7 @@ PifKeypad* pifKeypad_Create(PifId id, uint8_t num_rows, uint8_t num_cols, const 
 		return NULL;
 	}
 
-	if (!pifKeypad_Init(p_owner, id, num_rows, num_cols, p_user_keymap)) {
+	if (!pifKeypad_Init(p_owner, id, num, p_user_keymap)) {
 		pifKeypad_Destroy(&p_owner);
 		return NULL;
 	}
@@ -152,22 +152,25 @@ void pifKeypad_Destroy(PifKeypad** pp_owner)
 	}
 }
 
-BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num_rows, uint8_t num_cols, const char* p_user_keymap)
+BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num, const char* p_user_keymap)
 {
-	if (!p_owner || !num_rows || !num_cols || !p_user_keymap) {
+	if (!p_owner || !num || !p_user_keymap) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
 	memset(p_owner, 0, sizeof(PifKeypad));
 
-	p_owner->__p_key = calloc(sizeof(PifKey), num_rows * num_cols);
+    p_owner->__num_block = (num + 15) / 16;
+    p_owner->__num_cell = num < 16 ? num : 16;
+
+	p_owner->__p_key = calloc(sizeof(PifKey), num);
 	if (!p_owner->__p_key) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
-	p_owner->__p_state = calloc(sizeof(uint16_t), num_rows);
+	p_owner->__p_state = calloc(sizeof(uint16_t), p_owner->__num_block);
 	if (!p_owner->__p_state) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
@@ -176,8 +179,6 @@ BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num_rows, uint8_t num_
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     p_owner->__p_user_keymap = p_user_keymap;
-    p_owner->__num_rows = num_rows;
-    p_owner->__num_cols = num_cols;
     p_owner->_hold_time1ms = PIF_KEYPAD_DEFAULT_HOLD_TIME;
     p_owner->_long_time1ms = PIF_KEYPAD_DEFAULT_LONG_TIME;
     p_owner->_double_time1ms = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
