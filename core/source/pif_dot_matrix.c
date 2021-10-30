@@ -224,6 +224,10 @@ fail:
 
 void pifDotMatrix_Clear(PifDotMatrix* p_owner)
 {
+	if (p_owner->__p_task) {
+		pifTaskManager_Remove(p_owner->__p_task);
+		p_owner->__p_task = NULL;
+	}
 	if (p_owner->__p_paper) {
 		free(p_owner->__p_paper);
 		p_owner->__p_paper = NULL;

@@ -209,15 +209,7 @@ fail:
 void pifSolenoid_Clear(PifSolenoid* p_owner)
 {
 #ifdef __PIF_COLLECT_SIGNAL__
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSolenoidColSig* p_colsig = (PifSolenoidColSig*)it->data;
-		if (p_colsig == p_owner->__p_colsig) {
-			pifDList_Remove(&s_cs_list, it);
-			break;
-		}
-		it = pifDList_Next(it);
-	}
+	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Detach(CSF_SOLENOID);
 	}

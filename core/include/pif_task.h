@@ -97,6 +97,13 @@ void pifTaskManager_Clear();
 PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start);
 
 /**
+ * @fn pifTaskManager_Remove
+ * @brief Task를 추가한다.
+ * @param p_task Task의 Mode를 설정한다.
+ */
+void pifTaskManager_Remove(PifTask* p_task);
+
+/**
  * @fn pifTaskManager_Loop
  * @brief Main loop에서 수행해야 하는 Task 함수이다.
  */

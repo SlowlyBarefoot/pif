@@ -7,11 +7,13 @@
 #include "pif_log.h"
 
 
+#define PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS	20
+
+
 typedef enum EnPifCollectSignalStep
 {
 	CSS_IDLE		= 0,
-	CSS_COLLECT		= 1,
-	CSS_SEND_LOG	= 2
+	CSS_COLLECT		= 1
 } PifCollectSignalStep;
 
 
@@ -30,6 +32,8 @@ typedef struct StPifCollectSignal
 	PifCollectSignalScale scale;
 	PifCollectSignalMethod method;
 	PifCollectSignalStep step;
+	PifTask* p_task;
+	uint16_t transfer_period_1ms;	// PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS
 	uint8_t device_count;
 	uint32_t timer;
 	PifRingBuffer buffer;
@@ -121,40 +125,94 @@ static void _printHeader()
 	pifLog_Printf(LT_VCD, "$end\n");
 }
 
+static uint16_t _doTask(PifTask* p_task)
+{
+	uint16_t length;
+	uint8_t tmp_buf[64 + 1];
+
+	if (!pifLog_IsEmpty()) return 0;
+
+	if (!pifRingBuffer_IsEmpty(&s_collect_signal.buffer)) {
+		length = pifRingBuffer_CopyToArray(tmp_buf, 64, &s_collect_signal.buffer, 0);
+		tmp_buf[length] = 0;
+		pifRingBuffer_Remove(&s_collect_signal.buffer, length);
+		pifLog_Print(LT_VCD, (char *)tmp_buf);
+	}
+	else {
+		p_task->pause = TRUE;
+		pifLog_Enable();
+	}
+	return 0;
+}
+
 void pifCollectSignal_Init(const char* p_module_name)
 {
+	memset(&s_collect_signal, 0, sizeof(PifCollectSignal));
+
 	s_collect_signal.p_module_name = p_module_name;
 	s_collect_signal.scale = CSS_1MS;
 	s_collect_signal.method = CSM_LOG;
-	s_collect_signal.step = CSS_IDLE;
-	s_collect_signal.device_count = 0;
 	pifDList_Init(&s_collect_signal.device);
-	memset(s_collect_signal.add_device, 0, sizeof(s_collect_signal.add_device));
 }
 
 BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size)
 {
 	pifCollectSignal_Init(p_module_name);
 
-	if (!pifRingBuffer_InitHeap(&s_collect_signal.buffer, PIF_ID_AUTO, size)) return FALSE;
+	if (!pifRingBuffer_InitHeap(&s_collect_signal.buffer, PIF_ID_AUTO, size)) goto fail;
 	pifRingBuffer_ChopsOffChar(&s_collect_signal.buffer, '#');
 	s_collect_signal.method = CSM_BUFFER;
+
+	s_collect_signal.p_task = pifTaskManager_Add(TM_PERIOD_MS, PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS, _doTask, &s_collect_signal, FALSE);
+	if (s_collect_signal.p_task == NULL) goto fail;
 	return TRUE;
+
+fail:
+	pifCollectSignal_Clear();
+	return FALSE;
 }
 
 BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8_t* p_buffer)
 {
 	pifCollectSignal_Init(p_module_name);
 
-	if (!pifRingBuffer_InitStatic(&s_collect_signal.buffer, PIF_ID_AUTO, size, p_buffer)) return FALSE;
+	if (!pifRingBuffer_InitStatic(&s_collect_signal.buffer, PIF_ID_AUTO, size, p_buffer)) goto fail;
 	pifRingBuffer_ChopsOffChar(&s_collect_signal.buffer, '#');
 	s_collect_signal.method = CSM_BUFFER;
+
+	s_collect_signal.p_task = pifTaskManager_Add(TM_PERIOD_MS, PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS, _doTask, &s_collect_signal, FALSE);
+	if (s_collect_signal.p_task == NULL) goto fail;
 	return TRUE;
+
+fail:
+	pifCollectSignal_Clear();
+	return FALSE;
 }
 
 void pifCollectSignal_Clear()
 {
+	if (s_collect_signal.p_task) {
+		pifTaskManager_Remove(s_collect_signal.p_task);
+		s_collect_signal.p_task = NULL;
+	}
 	pifRingBuffer_Clear(&s_collect_signal.buffer);
+}
+
+uint16_t pifCollectSignal_GetTransferPeriod()
+{
+	return s_collect_signal.transfer_period_1ms;
+}
+
+BOOL pifCollectSignal_SetTransferPeriod(uint16_t period1ms)
+{
+	if (!period1ms) {
+        pif_error = E_INVALID_PARAM;
+        return FALSE;
+	}
+
+	s_collect_signal.transfer_period_1ms = period1ms;
+   	pifTask_SetPeriod(s_collect_signal.p_task, s_collect_signal.transfer_period_1ms);
+	return TRUE;
 }
 
 BOOL pifCollectSignal_ChangeScale(PifCollectSignalScale scale)
@@ -164,7 +222,7 @@ BOOL pifCollectSignal_ChangeScale(PifCollectSignalScale scale)
 		return FALSE;
 	}
 
-	if (scale >= CSS_1NS) {
+	if (scale > CSS_1US) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -235,6 +293,10 @@ void pifCollectSignal_Start()
 {
 	char cBuffer[4];
 
+	if (pifDList_Size(&s_collect_signal.device)) {
+		pifDList_Clear(&s_collect_signal.device);
+		s_collect_signal.device_count = 0;
+	}
 	for (int i = 0; i < 32; i++) {
 		if (s_collect_signal.add_device[i]) (*s_collect_signal.add_device[i])();
 	}
@@ -242,6 +304,8 @@ void pifCollectSignal_Start()
 
 	switch (s_collect_signal.method) {
 	case CSM_LOG:
+		pifLog_Disable();
+
 		_printHeader();
 
 		pifLog_Printf(LT_VCD, "#0\n");
@@ -258,23 +322,37 @@ void pifCollectSignal_Start()
 
 void pifCollectSignal_Stop()
 {
-	char buffer[12];
+	uint32_t timer;
+	char buffer[16];
 
 	s_collect_signal.step = CSS_IDLE;
 
-	switch (s_collect_signal.method) {
-	case CSM_LOG:
-		pifLog_Printf(LT_VCD, "#%u\n", pif_cumulative_timer1ms);
+	switch (s_collect_signal.scale) {
+	case CSS_1S:
+		timer = pif_timer1sec;
 		break;
 
-	case CSM_BUFFER:
-		pif_Printf(buffer, "#%u\n", pif_cumulative_timer1ms);
-		pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
+	case CSS_1US:
+		timer = (*pif_act_timer1us)();
+		break;
+
+	default:
+		timer = pif_cumulative_timer1ms;
 		break;
 	}
 
-	pifDList_Clear(&s_collect_signal.device);
-	s_collect_signal.device_count = 0;
+	switch (s_collect_signal.method) {
+	case CSM_LOG:
+		pifLog_Printf(LT_VCD, "#%lu\n", timer);
+
+		pifLog_Enable();
+		break;
+
+	case CSM_BUFFER:
+		pif_Printf(buffer, "#%lu\n", timer);
+		pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
+		break;
+	}
 }
 
 void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
@@ -285,47 +363,39 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
 
 	if (s_collect_signal.step != CSS_COLLECT) return;
 
+	switch (s_collect_signal.scale) {
+	case CSS_1S:
+		timer = pif_timer1sec;
+		break;
+
+	case CSS_1US:
+		timer = (*pif_act_timer1us)();
+		break;
+
+	default:
+		timer = pif_cumulative_timer1ms;
+		break;
+	}
+
 	switch (s_collect_signal.method) {
 	case CSM_LOG:
-		switch (s_collect_signal.scale) {
-		case CSS_1S:
-			if (s_collect_signal.timer != pif_timer1sec) {
-				pifLog_Printf(LT_VCD, "#%lu\n", pif_timer1sec);
-				s_collect_signal.timer = pif_timer1sec;
-			}
-			break;
-
-		case CSS_1MS:
-			if (s_collect_signal.timer != pif_cumulative_timer1ms) {
-				pifLog_Printf(LT_VCD, "#%lu\n", pif_cumulative_timer1ms);
-				s_collect_signal.timer = pif_cumulative_timer1ms;
-			}
-			break;
-
-		case CSS_1US:
-			timer = (*pif_act_timer1us)();
-			if (s_collect_signal.timer != timer) {
-				pifLog_Printf(LT_VCD, "#%lu\n", timer);
-				s_collect_signal.timer = timer;
-			}
-			break;
-
-		default:
-			break;
+		if (s_collect_signal.timer != timer) {
+			pifLog_Printf(LT_VCD, "#%lu\n", timer);
+			s_collect_signal.timer = timer;
 		}
 
 		switch (p_device->var_type) {
 		case CSVT_INTEGER:
 		case CSVT_REG:
-			pifLog_Printf(LT_VCD, "b%b %c\n", state, '!' + p_device->index);
+			pifLog_Printf(LT_VCD, "b%b %c\n", state, (int)('!' + p_device->index));
 			break;
 
 		case CSVT_REAL:
-			pifLog_Printf(LT_VCD, "r%d %c\n", (double)state, '!' + p_device->index);
+			pifLog_Printf(LT_VCD, "r%f %c\n", (double)state, (int)('!' + p_device->index));
 			break;
 
 		case CSVT_WIRE:
-			pifLog_Printf(LT_VCD, "%u%c\n", state, '!' + p_device->index);
+			pifLog_Printf(LT_VCD, "%u%c\n", state, (int)('!' + p_device->index));
 			break;
 
 		default:
@@ -334,48 +404,24 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
 		break;
 
 	case CSM_BUFFER:
-		switch (s_collect_signal.scale) {
-		case CSS_1S:
-			if (s_collect_signal.timer != pif_timer1sec) {
-				pif_Printf(buffer, "#%lu\n", pif_timer1sec);
-				pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
-				s_collect_signal.timer = pif_timer1sec;
-			}
-			break;
-
-		case CSS_1MS:
-			if (s_collect_signal.timer != pif_cumulative_timer1ms) {
-				pif_Printf(buffer, "#%lu\n", pif_cumulative_timer1ms);
-				pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
-				s_collect_signal.timer = pif_cumulative_timer1ms;
-			}
-			break;
-
-		case CSS_1US:
-			timer = (*pif_act_timer1us)();
-			if (s_collect_signal.timer != timer) {
-				pif_Printf(buffer, "#%lu\n", timer);
-				pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
-				s_collect_signal.timer = timer;
-			}
-			break;
-
-		default:
-			break;
+		if (s_collect_signal.timer != timer) {
+			pif_Printf(buffer, "#%lu\n", timer);
+			pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
+			s_collect_signal.timer = timer;
 		}
 
 		switch (p_device->var_type) {
 		case CSVT_INTEGER:
 		case CSVT_REG:
-			pif_Printf(buffer, "b%b %c\n", state, '!' + p_device->index);
+			pif_Printf(buffer, "b%b %c\n", state, (int)('!' + p_device->index));
 			break;
 
 		case CSVT_REAL:
-			pif_Printf(buffer, "r%d %c\n", (double)state, '!' + p_device->index);
+			pif_Printf(buffer, "r%f %c\n", (double)state, (int)('!' + p_device->index));
 			break;
 
 		case CSVT_WIRE:
-			pif_Printf(buffer, "%u%c\n", state, '!' + p_device->index);
+			pif_Printf(buffer, "%u%c\n", state, (int)('!' + p_device->index));
 			break;
 
 		default:
@@ -389,51 +435,12 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
 
 void pifCollectSignal_PrintLog()
 {
+	if (s_collect_signal.method != CSM_BUFFER) return;
+
 	_printHeader();
 
 	pifLog_Disable();
-	s_collect_signal.step = CSS_SEND_LOG;
-}
-
-static uint16_t _doTask(PifTask* p_task)
-{
-	uint16_t size, length;
-	static uint8_t tmp_buf[PIF_LOG_LINE_SIZE + 1];
-
-	(void)p_task;
-
-	if (s_collect_signal.step == CSS_SEND_LOG) {
-		size = pifRingBuffer_GetFillSize(&s_collect_signal.buffer);
-		length = PIF_LOG_LINE_SIZE;
-		if (size > length) {
-			pifRingBuffer_CopyToArray(tmp_buf, length, &s_collect_signal.buffer, 0);
-			while (length) {
-				if (tmp_buf[length - 1] == '\n') {
-					tmp_buf[length] = 0;
-					break;
-				}
-				else {
-					length--;
-				}
-			}
-			pifRingBuffer_Remove(&s_collect_signal.buffer, length);
-			pifLog_Printf(LT_VCD, (char *)tmp_buf);
-		}
-		else {
-			pifRingBuffer_CopyToArray(tmp_buf, size, &s_collect_signal.buffer, 0);
-			tmp_buf[size] = 0;
-			pifRingBuffer_Remove(&s_collect_signal.buffer, size);
-			pifLog_Printf(LT_VCD, (char *)tmp_buf);
-			s_collect_signal.step = CSS_IDLE;
-			pifLog_Enable();
-		}
-	}
-	return 0;
-}
-
-PifTask* pifCollectSignal_AttachTask(PifTaskMode mode, uint16_t period, BOOL start)
-{
-	return pifTaskManager_Add(mode, period, _doTask, &s_collect_signal, start);
+	s_collect_signal.p_task->pause = FALSE;
 }
 
 #endif	// __PIF_COLLECT_SIGNAL__

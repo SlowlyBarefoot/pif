@@ -196,6 +196,10 @@ fail:
 void pifStepMotorPos_Destroy(PifStepMotor** pp_parent)
 {
     if (*pp_parent) {
+		if ((*pp_parent)->__p_task) {
+			pifTaskManager_Remove((*pp_parent)->__p_task);
+			(*pp_parent)->__p_task = NULL;
+		}
     	pifStepMotor_Clear(*pp_parent);
         free(*pp_parent);
         *pp_parent = NULL;

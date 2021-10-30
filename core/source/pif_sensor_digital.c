@@ -123,15 +123,7 @@ void pifSensorDigital_Destroy(PifSensor** pp_parent)
     	PifSensorDigital* p_owner = (PifSensorDigital*)*pp_parent;
 
 #ifdef __PIF_COLLECT_SIGNAL__
-		PifDListIterator it = pifDList_Begin(&s_cs_list);
-		while (it) {
-			PifSensorDigitalColSig* p_colsig = (PifSensorDigitalColSig*)it->data;
-			if (p_colsig == p_owner->__p_colsig) {
-				pifDList_Remove(&s_cs_list, it);
-				break;
-			}
-			it = pifDList_Next(it);
-		}
+		pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
 		if (!pifDList_Size(&s_cs_list)) {
 			pifCollectSignal_Detach(CSF_SENSOR_DIGITAL);
 		}

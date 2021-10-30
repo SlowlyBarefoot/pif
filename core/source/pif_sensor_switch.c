@@ -143,15 +143,7 @@ void pifSensorSwitch_Destroy(PifSensor** pp_parent)
 #ifdef __PIF_COLLECT_SIGNAL__
     	PifSensorSwitch* p_owner = (PifSensorSwitch*)*pp_parent;
 
-		PifDListIterator it = pifDList_Begin(&s_cs_list);
-		while (it) {
-			PifSensorSwitchColSig* p_colsig = (PifSensorSwitchColSig*)it->data;
-			if (p_colsig == p_owner->__p_colsig) {
-				pifDList_Remove(&s_cs_list, it);
-				break;
-			}
-			it = pifDList_Next(it);
-		}
+		pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
 		if (!pifDList_Size(&s_cs_list)) {
 			pifCollectSignal_Detach(CSF_SENSOR_SWITCH);
 		}

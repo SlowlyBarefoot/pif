@@ -71,6 +71,7 @@ struct StPifSequence
 	uint8_t _phase_no;
 
 	// Private Member Variable
+	PifTask* __p_task;
 	PifPulse* __p_timer;
 	const PifSequencePhase* __p_phase_list;
 	PifPulseItem* __p_timer_timeout;

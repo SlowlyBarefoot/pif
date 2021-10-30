@@ -365,8 +365,6 @@ NEXT_STR:
 			p_format = p_format + 1;
             switch(*p_format) {
                 case '0':
-                    goto NEXT_STR;
-
                 case '1':
                 case '2':
                 case '3':

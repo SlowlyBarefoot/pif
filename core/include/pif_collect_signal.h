@@ -17,9 +17,11 @@ typedef enum EnPifCollectSignalScale
 	CSS_1S				= 0,
 	CSS_1MS				= 1,	// Default
 	CSS_1US				= 2,
+#if 0
 	CSS_1NS				= 3,	// Not support
 	CSS_1PS				= 4,	// Not support
 	CSS_1FS				= 5		// Not support
+#endif
 } PifCollectSignalScale;
 
 typedef enum EnPifCollectSignalFlag
@@ -97,6 +99,21 @@ BOOL pifCollectSignal_InitStatic(const char* p_module_name, uint16_t size, uint8
  * @brief CollectSignal 구조체를 파기하다.
  */
 void pifCollectSignal_Clear();
+
+/**
+ * @fn pifCollectSignal_GetTransferPeriod
+ * @brief
+ * @return
+ */
+uint16_t pifCollectSignal_GetTransferPeriod();
+
+/**
+ * @fn pifCollectSignal_SetTransferPeriod
+ * @brief
+ * @param period1ms
+ * @return
+ */
+BOOL pifCollectSignal_SetTransferPeriod(uint16_t period1ms);
 
 /**
  * @fn pifCollectSignal_ChangeScale

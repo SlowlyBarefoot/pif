@@ -34,6 +34,7 @@ typedef struct StPifLog
 PifLogFlag pif_log_flag = { .all = 0L };
 
 static PifLog s_log;
+static uint8_t s_minute = 255;
 
 const struct {
 	char* p_name;
@@ -45,6 +46,7 @@ const struct {
 		{ "Duty Motor", "dm" },
 		{ "Step Motor", "sm" }
 };
+const char type_ch[] = { 'I', 'W', 'E', 'C' };
 
 #ifdef __PIF_LOG_COMMAND__
 
@@ -308,10 +310,13 @@ static void _printLog(char* p_string, BOOL vcd)
 
 	if (s_log.enable || vcd) {
         if (!pifRingBuffer_PutString(s_log.p_tx_buffer, p_string)) {
-        	pifTaskManager_YieldPeriod(s_log.p_comm->_p_task);
+            pifComm_ForceSendData(s_log.p_comm);
+
+            pifTaskManager_YieldPeriod(s_log.p_comm->_p_task);
+
             pifRingBuffer_PutString(s_log.p_tx_buffer, p_string);
+            pifComm_ForceSendData(s_log.p_comm);
         }
-        pifComm_ForceSendData(s_log.p_comm);
 	}
 }
 
@@ -374,6 +379,10 @@ void pifLog_Clear()
 	pifRingBuffer_Clear(&s_log.buffer);
 	if (s_log.p_tx_buffer) pifRingBuffer_Destroy(&s_log.p_tx_buffer);
 #ifdef __PIF_LOG_COMMAND__
+	if (s_log.p_task) {
+		pifTaskManager_Remove(s_log.p_task);
+		s_log.p_task = NULL;
+	}
 	if (s_log.p_rx_buffer) {
 		free(s_log.p_rx_buffer);
 		s_log.p_rx_buffer = NULL;
@@ -438,18 +447,41 @@ BOOL pifLog_IsEmpty()
 	return pifRingBuffer_IsEmpty(&s_log.buffer);
 }
 
+void pifLog_Print(PifLogType type, char* p_string)
+{
+	int offset = 0;
+    char tmp_buf[PIF_LOG_LINE_SIZE];
+
+    if (type >= LT_INFO) {
+        if (s_minute != pif_datetime.minute) {
+        	_printTime();
+        	s_minute = pif_datetime.minute;
+    	}
+
+        tmp_buf[offset++] = '\n';
+    	offset += pif_DecToString(tmp_buf + offset, (uint32_t)pif_datetime.second, 2);
+    	tmp_buf[offset++] = '.';
+    	offset += pif_DecToString(tmp_buf + offset, (uint32_t)pif_timer1ms, 3);
+    	tmp_buf[offset++] = ' ';
+    	tmp_buf[offset++] = type_ch[type - LT_INFO];
+    	tmp_buf[offset++] = ' ';
+    	tmp_buf[offset] = 0;
+    	_printLog(tmp_buf, type == LT_VCD);
+    }
+
+	_printLog(p_string, type == LT_VCD);
+}
+
 void pifLog_Printf(PifLogType type, const char* p_format, ...)
 {
 	va_list data;
 	int offset = 0;
-    static char tmp_buf[PIF_LOG_LINE_SIZE];
-    static uint8_t minute = 255;
-    const char type_ch[] = { 'I', 'W', 'E', 'C' };
+    char tmp_buf[PIF_LOG_LINE_SIZE + 1];
 
     if (type >= LT_INFO) {
-        if (minute != pif_datetime.minute) {
+        if (s_minute != pif_datetime.minute) {
         	_printTime();
-        	minute = pif_datetime.minute;
+        	s_minute = pif_datetime.minute;
     	}
 
         tmp_buf[offset++] = '\n';

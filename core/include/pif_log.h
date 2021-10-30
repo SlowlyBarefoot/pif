@@ -145,6 +145,14 @@ void pifLog_Disable();
 BOOL pifLog_IsEmpty();
 
 /**
+ * @fn pifLog_Print
+ * @brief
+ * @param type
+ * @param p_string
+ */
+void pifLog_Print(PifLogType type, char* p_string);
+
+/**
  * @fn pifLog_Printf
  * @brief
  * @param type

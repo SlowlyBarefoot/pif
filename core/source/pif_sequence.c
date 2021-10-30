@@ -133,7 +133,7 @@ void pifSequence_ColSigClear()
 PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, uint16_t control_period1ms,
 		const PifSequencePhase* p_phase_list, void* p_param)
 {
-    PifSequence *p_owner = malloc(sizeof(PifSequence));
+    PifSequence* p_owner = malloc(sizeof(PifSequence));
     if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 	    return NULL;
@@ -178,7 +178,8 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, uint16_
     _setPhaseNo(p_owner, PIF_SEQUENCE_PHASE_NO_IDLE);
     p_owner->p_param = p_param;
 
-	if (!pifTaskManager_Add(TM_PERIOD_MS, control_period1ms, _doTask, p_owner, FALSE)) goto fail;
+    p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_MS, control_period1ms, _doTask, p_owner, TRUE);
+	if (!p_owner->__p_task) goto fail;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	if (!pifDList_Size(&s_cs_list)) {
@@ -199,20 +200,16 @@ fail:
 void pifSequence_Clear(PifSequence* p_owner)
 {
 #ifdef __PIF_COLLECT_SIGNAL__
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PIF_SequenceColSig* p_colsig = (PIF_SequenceColSig*)it->data;
-		if (p_colsig == p_owner->__p_colsig) {
-			pifDList_Remove(&s_cs_list, it);
-			break;
-		}
-		it = pifDList_Next(it);
-	}
+	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Detach(CSF_SEQUENCE);
 	}
 	p_owner->__p_colsig = NULL;
 #endif
+	if (p_owner->__p_task) {
+		pifTaskManager_Remove(p_owner->__p_task);
+		p_owner->__p_task = NULL;
+	}
 	if (p_owner->__p_timer_timeout) {
 		pifPulse_RemoveItem(p_owner->__p_timer_timeout);
 		p_owner->__p_timer_timeout = NULL;

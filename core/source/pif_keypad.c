@@ -183,7 +183,8 @@ BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num_rows, uint8_t num_
     p_owner->_double_time1ms = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
     p_owner->__control_period_1ms = PIF_KEYPAD_CONTROL_PERIOD;
 
-	if (!pifTaskManager_Add(TM_PERIOD_MS, p_owner->__control_period_1ms, _doTask, p_owner, TRUE)) goto fail;
+	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_MS, p_owner->__control_period_1ms, _doTask, p_owner, TRUE);
+	if (!p_owner->__p_task) goto fail;
     return TRUE;
 
 fail:
@@ -193,6 +194,10 @@ fail:
 
 void pifKeypad_Clear(PifKeypad* p_owner)
 {
+	if (p_owner->__p_task) {
+		pifTaskManager_Remove(p_owner->__p_task);
+		p_owner->__p_task = NULL;
+	}
 	if (p_owner->__p_state) {
 		free(p_owner->__p_state);
 		p_owner->__p_state = NULL;

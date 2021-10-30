@@ -255,6 +255,11 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
     return p_owner;
 }
 
+void pifTaskManager_Remove(PifTask* p_task)
+{
+	pifDList_Remove(&s_tasks, p_task);
+}
+
 void pifTaskManager_Loop()
 {
 #ifdef __PIF_DEBUG__

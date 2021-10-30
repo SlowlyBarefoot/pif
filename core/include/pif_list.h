@@ -256,12 +256,20 @@ void pifDList_RemoveFirst(PifDList* p_owner);
 void pifDList_RemoveLast(PifDList* p_owner);
 
 /**
- * @fn pifDList_Remove
+ * @fn pifDList_RemoveIterator
  * @brief
  * @param p_owner
  * @param it
  */
-void pifDList_Remove(PifDList* p_owner, PifDListIterator it);
+void pifDList_RemoveIterator(PifDList* p_owner, PifDListIterator it);
+
+/**
+ * @fn pifDList_Remove
+ * @brief
+ * @param p_owner
+ * @param p_data
+ */
+void pifDList_Remove(PifDList* p_owner, void* p_data);
 
 /**
  * @fn pifDList_Size

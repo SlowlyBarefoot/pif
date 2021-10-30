@@ -77,6 +77,10 @@ fail:
 
 void pifPulse_Clear(PifPulse* p_owner)
 {
+	if (p_owner->__p_task) {
+		pifTaskManager_Remove(p_owner->__p_task);
+		p_owner->__p_task = NULL;
+	}
 	pifDList_Clear(&p_owner->__items);
 }
 
@@ -199,7 +203,7 @@ void pifPulse_sigTick(PifPulse* p_owner)
 		it = pifDList_Next(it);
 	}
 
-	if (it_remove) pifDList_Remove(&p_owner->__items, it_remove);
+	if (it_remove) pifDList_RemoveIterator(&p_owner->__items, it_remove);
 }
 
 void pifPulse_AttachAction(PifPulseItem* p_item, PifActPulsePwm act_pwm)

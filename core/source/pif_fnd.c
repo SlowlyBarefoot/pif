@@ -125,6 +125,10 @@ fail:
 
 void pifFnd_Clear(PifFnd* p_owner)
 {
+	if (p_owner->__p_task) {
+		pifTaskManager_Remove(p_owner->__p_task);
+		p_owner->__p_task = NULL;
+	}
 	if (p_owner->__p_string) {
 		free(p_owner->__p_string);
 		p_owner->__p_string = NULL;

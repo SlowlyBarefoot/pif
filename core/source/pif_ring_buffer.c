@@ -8,7 +8,7 @@
 
 static BOOL _chopOff(PifRingBuffer* p_owner, uint16_t count)
 {
-	uint16_t length = pifRingBuffer_GetFillSize(p_owner);
+	uint16_t length;
 	uint16_t size, tail;
 
 	switch (p_owner->_bt.chop_off) {
@@ -29,6 +29,7 @@ static BOOL _chopOff(PifRingBuffer* p_owner, uint16_t count)
 		break;
 
 	case RB_CHOP_OFF_LENGTH:
+		length = pifRingBuffer_GetFillSize(p_owner);
 		size = p_owner->__ui.chop_off_length;
 		while (count > size) {
 			size += p_owner->__ui.chop_off_length;
