@@ -82,9 +82,15 @@ static void _evtTimerOnFinish(void* p_issuer)
 {
     PifSolenoid* p_owner = (PifSolenoid*)p_issuer;
 
+    if (p_owner->evt_off) (*p_owner->evt_off)(p_owner);
+}
+
+static void _evtTimerOnIntFinish(void* p_issuer)
+{
+    PifSolenoid* p_owner = (PifSolenoid*)p_issuer;
+
     if (p_owner->__state) {
         _action(p_owner, OFF, SD_INVALID);
-        if (p_owner->evt_off) (*p_owner->evt_off)(p_owner);
         p_owner->__state = FALSE;
     }
 }
@@ -177,6 +183,7 @@ BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifPulse* p_timer, PifSole
     p_owner->__p_timer_on = pifPulse_AddItem(p_timer, PT_ONCE);
     if (!p_owner->__p_timer_on) goto fail;
     pifPulse_AttachEvtFinish(p_owner->__p_timer_on, _evtTimerOnFinish, p_owner);
+    pifPulse_AttachEvtIntFinish(p_owner->__p_timer_on, _evtTimerOnIntFinish, p_owner);
 
     p_owner->__p_timer_delay = pifPulse_AddItem(p_timer, PT_ONCE);
     if (!p_owner->__p_timer_delay) goto fail;

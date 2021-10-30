@@ -47,6 +47,7 @@ typedef struct StPifPulseItem
 	PifPulse* __p_owner;
     uint32_t __current;
     void* __p_finish_issuer;
+    void* __p_int_finish_issuer;
     uint32_t __pwm_duty;
 	BOOL __event;
 
@@ -55,6 +56,7 @@ typedef struct StPifPulseItem
 
     // Private Event Function
     PifEvtPulseFinish __evt_finish;
+    PifEvtPulseFinish __evt_int_finish;
 } PifPulseItem;
 
 /**
@@ -185,12 +187,21 @@ void pifPulse_AttachAction(PifPulseItem* p_item, PifActPulsePwm act_pwm);
 
 /**
  * @fn pifPulse_AttachEvtFinish
- * @brief Pulse 항목의 이동 완료시 발생시킬 이벤트를 연결한다.
+ * @brief 이동 완료후 task에서 발생시킬 이벤트를 연결한다.
  * @param p_item Pulse 항목 포인터
  * @param evt_finish 연결시킬 이벤트
  * @param p_issuer 이벤트 발생시 전달할 발행자
  */
 void pifPulse_AttachEvtFinish(PifPulseItem* p_item, PifEvtPulseFinish evt_finish, void* p_issuer);
+
+/**
+ * @fn pifPulse_AttachEvtIntFinish
+ * @brief 이동 완료후 interrupt에서 즉시 발생시킬 이벤트를 연결한다. 단, 이벤트의 실행코드는 최소화하여야 한다.
+ * @param p_item Pulse 항목 포인터
+ * @param evt_finish 연결시킬 이벤트
+ * @param p_issuer 이벤트 발생시 전달할 발행자
+ */
+void pifPulse_AttachEvtIntFinish(PifPulseItem* p_item, PifEvtPulseFinish evt_finish, void* p_issuer);
 
 #ifdef __cplusplus
 }

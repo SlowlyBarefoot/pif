@@ -88,9 +88,6 @@ PifPulseItem* pifPulse_AddItem(PifPulse* p_owner, PifPulseType type)
     if (!p_item) return NULL;
 
     p_item->_type = type;
-    p_item->__evt_finish = NULL;
-    p_item->__p_finish_issuer = NULL;
-
     p_item->_step = PS_STOP;
     return p_item;
 }
@@ -169,6 +166,9 @@ void pifPulse_sigTick(PifPulse* p_owner)
 				if (!p_item->__current) {
 					p_item->_step = PS_STOP;
 					p_item->__event = TRUE;
+					if (p_item->__evt_int_finish) {
+						(*p_item->__evt_int_finish)(p_item->__p_int_finish_issuer);
+					}
 				}
 				break;
 
@@ -176,6 +176,9 @@ void pifPulse_sigTick(PifPulse* p_owner)
 				if (!p_item->__current) {
 					p_item->__current = p_item->target;
 					p_item->__event = TRUE;
+					if (p_item->__evt_int_finish) {
+						(*p_item->__evt_int_finish)(p_item->__p_int_finish_issuer);
+					}
 				}
 				break;
 
@@ -213,4 +216,10 @@ void pifPulse_AttachEvtFinish(PifPulseItem* p_item, PifEvtPulseFinish evt_finish
 {
 	p_item->__evt_finish = evt_finish;
 	p_item->__p_finish_issuer = p_issuer;
+}
+
+void pifPulse_AttachEvtIntFinish(PifPulseItem* p_item, PifEvtPulseFinish evt_finish, void* p_issuer)
+{
+	p_item->__evt_int_finish = evt_finish;
+	p_item->__p_int_finish_issuer = p_issuer;
 }
