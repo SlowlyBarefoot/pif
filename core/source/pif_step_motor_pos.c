@@ -186,6 +186,7 @@ PifStepMotor* pifStepMotorPos_Create(PifId id, PifPulse* p_timer, uint8_t resolu
     p_parent->__stop_step = _fnStopStep;
 
     p_parent->__p_task = pifTaskManager_Add(TM_PERIOD_MS, period1ms, _doTask, p_owner, FALSE);
+	if (!p_parent->__p_task) goto fail;
     return p_parent;
 
 fail:

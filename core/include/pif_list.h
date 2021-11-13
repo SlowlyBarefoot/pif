@@ -36,20 +36,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifSList_Create
- * @brief
- * @return
- */
-PifSList* pifSList_Create();
-
-/**
- * @fn pifSList_Destroy
- * @brief
- * @param pp_owner
- */
-void pifSList_Destroy(PifSList** pp_owner);
-
-/**
  * @fn pifSList_Init
  * @brief
  * @param p_owner
@@ -181,20 +167,6 @@ typedef struct StPifDList
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @fn pifDList_Create
- * @brief
- * @return
- */
-PifDList* pifDList_Create();
-
-/**
- * @fn pifDList_Destroy
- * @brief
- * @param pp_owner
- */
-void pifDList_Destroy(PifDList** pp_owner);
 
 /**
  * @fn pifDList_Init
@@ -339,6 +311,115 @@ void pifDList_Remove(PifDList* p_owner, void* p_data);
  * @return
  */
 PifDListIterator pifDList_Find(PifDList* p_owner, int index);
+
+#ifdef __cplusplus
+}
+#endif
+
+
+// ---------- PIF Fixed Linked List ----------
+
+/**
+ * @struct StPifFixListNode
+ * @brief
+ */
+typedef struct StPifFixListNode
+{
+	struct StPifFixListNode* p_next;
+	struct StPifFixListNode* p_prev;
+	char data[1];
+} PifFixListNode;
+
+typedef PifFixListNode* PifFixListIterator;
+
+/**
+ * @struct StPifFixList
+ * @brief
+ */
+typedef struct StPifFixList
+{
+	int size;
+    int max_count;
+    int count;
+    PifFixListIterator p_node;
+
+    PifFixListIterator p_first;
+    PifFixListIterator p_free;
+} PifFixList;
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @fn pifFixList_Init
+ * @brief
+ * @param p_owner
+ * @param size
+ * @param max_count
+ * @return
+ */
+BOOL pifFixList_Init(PifFixList* p_owner, int size, int max_count);
+
+/**
+ * @fn pifFixList_Clear
+ * @brief
+ * @param p_owner
+ */
+void pifFixList_Clear(PifFixList* p_owner);
+
+/**
+ * @fn pifFixList_AddFirst
+ * @brief
+ * @param p_owner
+ * @return
+ */
+void* pifFixList_AddFirst(PifFixList* p_owner);
+
+/**
+ * @fn pifFixList_Remove
+ * @brief
+ * @param p_owner
+ * @param p_data
+ */
+void pifFixList_Remove(PifFixList* p_owner, void* p_data);
+
+/**
+ * @fn pifFixList_Count
+ * @brief
+ * @param p_owner
+ * @return
+ */
+#ifdef __PIF_NO_USE_INLINE__
+	int pifFixList_Count(PifFixList* p_owner);
+#else
+	inline int pifFixList_Count(PifFixList* p_owner) { return p_owner->count; }
+#endif
+
+/**
+ * @fn pifFixList_Begin
+ * @brief
+ * @param p_owner
+ * @return
+ */
+#ifdef __PIF_NO_USE_INLINE__
+	PifFixListIterator pifFixList_Begin(PifFixList* p_owner);
+#else
+	inline PifFixListIterator pifFixList_Begin(PifFixList* p_owner) { return p_owner->p_first; }
+#endif
+
+/**
+ * @fn pifFixList_Next
+ * @brief
+ * @param it
+ * @return
+ */
+#ifdef __PIF_NO_USE_INLINE__
+	PifFixListIterator pifFixList_Next(PifFixListIterator it);
+#else
+	inline PifFixListIterator pifFixList_Next(PifFixListIterator it) { return it ? it->p_next : NULL; }
+#endif
 
 #ifdef __cplusplus
 }

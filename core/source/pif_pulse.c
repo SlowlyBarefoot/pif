@@ -11,7 +11,7 @@ static uint16_t _doTask(PifTask* p_task)
 {
 	PifPulse* p_owner = p_task->_p_client;
 
-	PifDListIterator it = pifDList_Begin(&p_owner->__items);
+	PifFixListIterator it = pifFixList_Begin(&p_owner->__items);
 	while (it) {
 		PifPulseItem* p_item = (PifPulseItem*)it->data;
 
@@ -21,12 +21,12 @@ static uint16_t _doTask(PifTask* p_task)
 			if (p_item->__evt_finish) (*p_item->__evt_finish)(p_item->__p_finish_issuer);
 		}
 
-		it = pifDList_Next(it);
+		it = pifFixList_Next(it);
 	}
 	return 0;
 }
 
-PifPulse* pifPulse_Create(PifId id, uint32_t period1us)
+PifPulse* pifPulse_Create(PifId id, uint32_t period1us, int max_count)
 {
 	PifPulse* p_owner = malloc(sizeof(PifPulse));
     if (!p_owner) {
@@ -34,7 +34,7 @@ PifPulse* pifPulse_Create(PifId id, uint32_t period1us)
 		return NULL;
 	}
 
-	if (!pifPulse_Init(p_owner, id, period1us)) {
+	if (!pifPulse_Init(p_owner, id, period1us, max_count)) {
 		pifPulse_Destroy(&p_owner);
 		return NULL;
 	}
@@ -50,7 +50,7 @@ void pifPulse_Destroy(PifPulse** pp_owner)
 	}
 }
 
-BOOL pifPulse_Init(PifPulse* p_owner, PifId id, uint32_t period1us)
+BOOL pifPulse_Init(PifPulse* p_owner, PifId id, uint32_t period1us, int max_count)
 {
     if (!p_owner || !period1us) {
         pif_error = E_INVALID_PARAM;
@@ -61,7 +61,7 @@ BOOL pifPulse_Init(PifPulse* p_owner, PifId id, uint32_t period1us)
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-    if (!pifDList_Init(&p_owner->__items)) goto fail;
+    if (!pifFixList_Init(&p_owner->__items, sizeof(PifPulseItem), max_count)) goto fail;
     p_owner->_period1us = period1us;
 
     p_owner->__p_task = pifTaskManager_Add(TM_RATIO, 100, _doTask, p_owner, TRUE);
@@ -79,12 +79,12 @@ void pifPulse_Clear(PifPulse* p_owner)
 		pifTaskManager_Remove(p_owner->__p_task);
 		p_owner->__p_task = NULL;
 	}
-	pifDList_Clear(&p_owner->__items);
+	pifFixList_Clear(&p_owner->__items);
 }
 
 PifPulseItem* pifPulse_AddItem(PifPulse* p_owner, PifPulseType type)
 {
-    PifPulseItem* p_item = (PifPulseItem*)pifDList_AddLast(&p_owner->__items, sizeof(PifPulseItem));
+    PifPulseItem* p_item = (PifPulseItem*)pifFixList_AddFirst(&p_owner->__items);
     if (!p_item) return NULL;
 
     p_item->_type = type;
@@ -95,6 +95,11 @@ PifPulseItem* pifPulse_AddItem(PifPulse* p_owner, PifPulseType type)
 void pifPulse_RemoveItem(PifPulseItem* p_item)
 {
     p_item->_step = PS_REMOVE;
+}
+
+int pifPulse_Count(PifPulse* p_owner)
+{
+	return pifFixList_Count(&p_owner->__items);
 }
 
 BOOL pifPulse_StartItem(PifPulseItem* p_item, uint32_t target)
@@ -148,16 +153,16 @@ uint32_t pifPulse_ElapsedItem(PifPulseItem* p_item)
 
 void pifPulse_sigTick(PifPulse* p_owner)
 {
-	PifDListIterator it_remove = NULL;
+	PifPulseItem* p_remove = NULL;
 
     if (!p_owner) return;
 
-	PifDListIterator it = pifDList_Begin(&p_owner->__items);
+    PifFixListIterator it = pifFixList_Begin(&p_owner->__items);
 	while (it) {
 		PifPulseItem* p_item = (PifPulseItem*)it->data;
 
 		if (p_item->_step == PS_REMOVE) {
-			if (!it_remove) it_remove = it;
+			if (!p_remove) p_remove = p_item;
 		}
 		else if (p_item->__current) {
 			p_item->__current--;
@@ -201,10 +206,10 @@ void pifPulse_sigTick(PifPulse* p_owner)
 			}
 		}
 
-		it = pifDList_Next(it);
+		it = pifFixList_Next(it);
 	}
 
-	if (it_remove) pifDList_RemoveIterator(&p_owner->__items, it_remove);
+	if (p_remove) pifFixList_Remove(&p_owner->__items, p_remove);
 }
 
 void pifPulse_AttachEvtFinish(PifPulseItem* p_item, PifEvtPulseFinish evt_finish, void* p_issuer)

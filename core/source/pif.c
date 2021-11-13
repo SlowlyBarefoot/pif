@@ -60,14 +60,10 @@ void PIF_WEAK pifSequence_ColSigClear() {}
 
 void pif_Init(PifActTimer1us act_timer1us)
 {
-	extern void pifTaskManager_Init();
-
 	pif_act_timer1us = act_timer1us;
 
 	pif_datetime.month = 1;
 	pif_datetime.day = 1;
-
-    pifTaskManager_Init();
 
 #ifdef __PIF_COLLECT_SIGNAL__
     pifGpio_ColSigInit();

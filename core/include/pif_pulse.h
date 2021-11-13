@@ -60,7 +60,7 @@ typedef struct StPifPulseItem
 } PifPulseItem;
 
 /**
- * @struct _PIF_Pulse
+ * @struct StPifPulse
  * @brief Pulse를 관리하기 위한 구조체
  */
 struct StPifPulse
@@ -72,7 +72,7 @@ struct StPifPulse
 	uint32_t _period1us;
 
 	// Private Member Variable
-    PifDList __items;
+    PifFixList __items;
 	PifTask* __p_task;
 };
 
@@ -88,7 +88,7 @@ extern "C" {
  * @param period1us
  * @return Pulse 구조체 포인터를 반환한다.
  */
-PifPulse* pifPulse_Create(PifId id, uint32_t period1us);
+PifPulse* pifPulse_Create(PifId id, uint32_t period1us, int max_count);
 
 /**
  * @fn pifPulse_Destroy
@@ -105,7 +105,7 @@ void pifPulse_Destroy(PifPulse** pp_owner);
  * @param period1us
  * @return Pulse 구조체 포인터를 반환한다.
  */
-BOOL pifPulse_Init(PifPulse* p_owner, PifId id, uint32_t period1us);
+BOOL pifPulse_Init(PifPulse* p_owner, PifId id, uint32_t period1us, int max_count);
 
 /**
  * @fn pifPulse_Clear
@@ -129,6 +129,13 @@ PifPulseItem* pifPulse_AddItem(PifPulse* p_owner, PifPulseType type);
  * @param p_item Pulse 항목 포인터
  */
 void pifPulse_RemoveItem(PifPulseItem* p_item);
+
+/**
+ * @fn pifPulse_Count
+ * @brief Pulse 항목의 갯수를 구한다.
+ * @return Pulse 항목의 갯수를 반환한다.
+ */
+int pifPulse_Count(PifPulse* p_owner);
 
 /**
  * @fn pifPulse_StartItem

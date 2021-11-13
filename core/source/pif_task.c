@@ -10,8 +10,8 @@
 #define PIF_TASK_TABLE_MASK		(PIF_TASK_TABLE_SIZE - 1)
 
 
-static PifDList s_tasks;
-static PifDListIterator s_it_current;
+static PifFixList s_tasks;
+static PifFixListIterator s_it_current;
 
 static uint32_t s_table_number;
 static uint32_t s_table[PIF_TASK_TABLE_SIZE];
@@ -129,18 +129,19 @@ void pifTask_SetPeriod(PifTask* p_owner, uint16_t period)
 }
 
 
-void pifTaskManager_Init()
+BOOL pifTaskManager_Init(int max_count)
 {
-	pifDList_Init(&s_tasks);
+	if (!pifFixList_Init(&s_tasks, sizeof(PifTask), max_count)) return FALSE;
 	s_it_current = NULL;
 
 	s_table_number = 0L;
 	memset(s_table, 0, sizeof(s_table));
+	return TRUE;
 }
 
 void pifTaskManager_Clear()
 {
-	pifDList_Clear(&s_tasks);
+	pifFixList_Clear(&s_tasks);
 }
 
 PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start)
@@ -226,7 +227,7 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
     	break;
     }
 
-	PifTask* p_owner = (PifTask*)pifDList_AddLast(&s_tasks, sizeof(PifTask));
+	PifTask* p_owner = (PifTask*)pifFixList_AddFirst(&s_tasks);
 	if (!p_owner) return NULL;
 
     switch (mode) {
@@ -257,7 +258,12 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
 
 void pifTaskManager_Remove(PifTask* p_task)
 {
-	pifDList_Remove(&s_tasks, p_task);
+	pifFixList_Remove(&s_tasks, p_task);
+}
+
+int pifTaskManager_Count()
+{
+	return pifFixList_Count(&s_tasks);
 }
 
 void pifTaskManager_Loop()
@@ -266,12 +272,12 @@ void pifTaskManager_Loop()
 	static uint8_t sec = 0;
 #endif
 
-	PifDListIterator it = s_it_current ? s_it_current : pifDList_Begin(&s_tasks);
+	PifFixListIterator it = s_it_current ? s_it_current : pifFixList_Begin(&s_tasks);
 	while (it) {
 		s_it_current = it;
 		PifTask* p_owner = (PifTask*)it->data;
 		_processing(p_owner, s_table[s_number] & (1 << p_owner->__table_number));
-		it = pifDList_Next(it);
+		it = pifFixList_Next(it);
 	}
 
 	s_number = (s_number + 1) & PIF_TASK_TABLE_MASK;
@@ -287,12 +293,12 @@ void pifTaskManager_Loop()
 
 void pifTaskManager_Yield()
 {
-	if (!pifDList_Size(&s_tasks)) return;
+	if (!pifFixList_Count(&s_tasks)) return;
 
-	s_it_current = pifDList_Next(s_it_current);
+	s_it_current = pifFixList_Next(s_it_current);
 	if (!s_it_current) {
 		s_number = (s_number + 1) & PIF_TASK_TABLE_MASK;
-		s_it_current = pifDList_Begin(&s_tasks);
+		s_it_current = pifFixList_Begin(&s_tasks);
 	}
 
 	PifTask* p_owner = (PifTask*)s_it_current->data;
@@ -306,7 +312,7 @@ void pifTaskManager_YieldMs(uint32_t unTime)
     uint32_t unCurrent = 1000L * pif_timer1sec + pif_timer1ms;
     uint32_t unTarget = unCurrent + unTime;
 
-	if (!pifDList_Size(&s_tasks)) return;
+	if (!pifFixList_Count(&s_tasks)) return;
     if (!unTime) return;
 
     if (unTarget < unCurrent) {
@@ -326,7 +332,7 @@ void pifTaskManager_YieldUs(uint32_t unTime)
     uint32_t unCurrent = (*pif_act_timer1us)();
     uint32_t unTarget = unCurrent + unTime;
 
-	if (!pifDList_Size(&s_tasks)) return;
+	if (!pifFixList_Count(&s_tasks)) return;
     if (!unTime) return;
     if (!pif_act_timer1us) {
     	pifTaskManager_YieldMs((unTime + 999) / 1000);
@@ -347,15 +353,15 @@ void pifTaskManager_YieldUs(uint32_t unTime)
 
 void pifTaskManager_YieldPeriod(PifTask *p_owner)
 {
-	PifDListIterator it;
+	PifFixListIterator it;
 
 	switch (p_owner->_mode) {
 	case TM_RATIO:
 	case TM_ALWAYS:
-		it = pifDList_Begin(&s_tasks);
+		it = pifFixList_Begin(&s_tasks);
 		while (it) {
 			pifTaskManager_Yield();
-			it = pifDList_Next(it);
+			it = pifFixList_Next(it);
 		}
 		break;
 
@@ -378,11 +384,11 @@ void pifTaskManager_YieldPeriod(PifTask *p_owner)
 
 void pifTaskManager_Print()
 {
-	PifDListIterator it;
+	PifFixListIterator it;
 
 	if (!pif_log_flag.bt.task) return;
 
-	it = pifDList_Begin(&s_tasks);
+	it = pifFixList_Begin(&s_tasks);
 	while (it) {
 		PifTask* p_owner = (PifTask*)it->data;
 		if (p_owner->_mode == TM_RATIO) {
@@ -391,7 +397,7 @@ void pifTaskManager_Print()
 					p_owner->_id, p_owner->_period, p_owner->__period);
 #endif
 		}
-		it = pifDList_Next(it);
+		it = pifFixList_Next(it);
 	}
 }
 

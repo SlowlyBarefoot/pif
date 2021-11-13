@@ -75,8 +75,10 @@ void pifTask_SetPeriod(PifTask* p_owner, uint16_t period);
 /**
  * @fn pifTaskManager_Init
  * @brief Task용 구조체를 초기화한다.
+ * @param max_count 추가할 task의 수를 지정한다..
+ * @return
  */
-void pifTaskManager_Init();
+BOOL pifTaskManager_Init(int max_count);
 
 /**
  * @fn pifTaskManager_Clear
@@ -102,6 +104,13 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
  * @param p_task Task의 Mode를 설정한다.
  */
 void pifTaskManager_Remove(PifTask* p_task);
+
+/**
+ * @fn pifTaskManager_Count
+ * @brief 등록된 task의 수를 구한다.
+ * @return 등록된 task의 수를 반환한다.
+ */
+int pifTaskManager_Count();
 
 /**
  * @fn pifTaskManager_Loop

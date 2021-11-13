@@ -3,30 +3,6 @@
 
 // ---------- PIF Singly Linked List ----------
 
-PifSList* pifSList_Create()
-{
-	PifSList* p_owner = malloc(sizeof(PifSList));
-	if (p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-		return NULL;
-	}
-
-    if (!pifSList_Init(p_owner)) {
-        pifSList_Destroy(&p_owner);
-		return NULL;
-    }
-	return p_owner;
-}
-
-void pifSList_Destroy(PifSList** pp_owner)
-{
-	if (*pp_owner) {
-		pifSList_Clear(*pp_owner);
-		free(*pp_owner);
-		*pp_owner = NULL;
-	}
-}
-
 BOOL pifSList_Init(PifSList* p_owner)
 {
 	if (!p_owner) {
@@ -141,30 +117,6 @@ PifSListIterator pifSList_Find(PifSList* p_owner, int index)
 
 
 // ---------- PIF Doubly Linked List ----------
-
-PifDList* pifDList_Create()
-{
-	PifDList* p_owner = malloc(sizeof(PifDList));
-	if (p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-		return NULL;
-	}
-
-    if (!pifDList_Init(p_owner)) {
-        pifDList_Destroy(&p_owner);
-        return NULL;
-    }
-	return p_owner;
-}
-
-void pifDList_Destroy(PifDList** pp_owner)
-{
-	if (*pp_owner) {
-		pifDList_Clear(*pp_owner);
-		free(*pp_owner);
-		*pp_owner = NULL;
-	}
-}
 
 BOOL pifDList_Init(PifDList* p_owner)
 {
@@ -369,3 +321,109 @@ PifDListIterator pifDList_Find(PifDList* p_owner, int index)
 	}
 	return it;
 }
+
+// ---------- PIF Fixed Linked List ----------
+
+BOOL pifFixList_Init(PifFixList* p_owner, int size, int max_count)
+{
+	char* p_buffer;
+	PifFixListIterator p_node;
+
+	if (!p_owner || !size || !max_count) {
+		pif_error = E_INVALID_PARAM;
+        return FALSE;
+	}
+
+	p_buffer = calloc(2 * sizeof(PifFixListIterator) + size, max_count);
+	if (!p_buffer) goto fail;
+
+	p_owner->p_node = (PifFixListIterator)p_buffer;
+	p_owner->size = size;
+	p_owner->max_count = max_count;
+	p_owner->count = 0;
+
+	p_owner->p_first = NULL;
+
+	p_node = p_owner->p_node;
+	p_owner->p_free = p_node;
+	for (int i = 1; i < max_count; i++) {
+		p_buffer += 2 * sizeof(PifFixListIterator) + size;
+		p_node->p_next = (PifFixListIterator)p_buffer;
+		p_node->p_prev = NULL;
+		p_node = (PifFixListIterator)p_buffer;
+	}
+	p_node->p_next = NULL;
+	p_node->p_prev = NULL;
+
+	return TRUE;
+
+fail:
+	pifFixList_Clear(p_owner);
+	return FALSE;
+}
+
+void pifFixList_Clear(PifFixList* p_owner)
+{
+	if (p_owner->p_node) {
+		free(p_owner->p_node);
+		p_owner->p_node = NULL;
+	}
+
+	p_owner->size = 0;
+	p_owner->max_count = 0;
+}
+
+void* pifFixList_AddFirst(PifFixList* p_owner)
+{
+	if (p_owner->p_free == NULL) return NULL;
+
+	PifFixListIterator p_node = p_owner->p_free;
+	p_owner->p_free = p_node->p_next;
+
+	p_node->p_next = p_owner->p_first;
+	if (p_owner->p_first) {
+		p_owner->p_first->p_prev = p_node;
+	}
+	p_owner->p_first = p_node;
+	p_owner->count++;
+    return (char*)p_node + 2 * sizeof(PifFixListIterator);
+}
+
+void pifFixList_Remove(PifFixList* p_owner, void* p_data)
+{
+	PifFixListIterator p_node = p_data - 2 * sizeof(PifFixListIterator);
+
+	if (p_node->p_prev) {
+		p_node->p_prev->p_next = p_node->p_next;
+	}
+	else {
+		p_owner->p_first = p_node->p_next;
+	}
+	if (p_node->p_next) {
+		p_node->p_next->p_prev = p_node->p_prev;
+	}
+	p_node->p_next = p_owner->p_free;
+	p_node->p_prev = NULL;
+	p_owner->p_free = p_node;
+
+	p_owner->count--;
+}
+
+#ifdef __PIF_NO_USE_INLINE__
+
+int pifFixList_Count(PifFixList* p_owner)
+{
+	return p_owner->count;
+}
+
+PifFixListIterator pifFixList_Begin(PifFixList* p_owner)
+{
+	return p_owner->p_first;
+}
+
+PifFixListIterator pifFixList_Next(PifFixListIterator it)
+{
+	return it ? it->p_next : NULL;
+}
+
+#endif
