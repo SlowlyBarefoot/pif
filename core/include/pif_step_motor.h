@@ -2,7 +2,7 @@
 #define PIF_STEP_MOTOR_H
 
 
-#include "pif_pulse.h"
+#include "pif_timer.h"
 #include "pif_motor.h"
 
 
@@ -49,7 +49,7 @@ struct StPifStepMotor
 
 	// Read-only Member Variable
     PifId _id;
-    PifPulse* _p_timer;
+    PifTimerManager* _p_timer_manager;
     PifStepMotorOperation _operation;
     uint16_t _resolution;
 	uint16_t _current_pps;
@@ -65,9 +65,9 @@ struct StPifStepMotor
 
 	PifTask* __p_task;
 
-	PifPulseItem* __p_timer_step;
-	PifPulseItem* __p_timer_delay;
-	PifPulseItem* __p_timer_break;
+	PifTimer* __p_timer_step;
+	PifTimer* __p_timer_delay;
+	PifTimer* __p_timer_break;
 
 	uint8_t __current_step;
 	uint32_t __target_pulse;
@@ -86,12 +86,12 @@ extern "C" {
  * @fn pifStepMotor_Create
  * @brief 
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param resolution
  * @param operation
  * @return 
  */
-PifStepMotor* pifStepMotor_Create(PifId id, PifPulse* p_timer, uint16_t resolution, PifStepMotorOperation operation);
+PifStepMotor* pifStepMotor_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t resolution, PifStepMotorOperation operation);
 
 /**
  * @fn pifStepMotor_Destroy
@@ -105,12 +105,12 @@ void pifStepMotor_Destroy(PifStepMotor** pp_owner);
  * @brief 
  * @param p_owner
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param resolution
  * @param operation
  * @return 
  */
-BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifPulse* p_timer, uint16_t resolution, PifStepMotorOperation operation);
+BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t resolution, PifStepMotorOperation operation);
 
 /**
  * @fn pifStepMotor_Clear

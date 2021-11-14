@@ -2,7 +2,7 @@
 #define PIF_LED_H
 
 
-#include "pif_pulse.h"
+#include "pif_timer.h"
 
 
 typedef void (*PifActLedState)(PifId id, uint32_t state);
@@ -20,11 +20,11 @@ typedef struct StPifLed
     PifId _id;
 
 	// Private Member Variable
-	PifPulse*__p_timer;
+	PifTimerManager*__p_timer_manager;
 	uint32_t __state;
 	SWITCH __blink;
 	uint32_t __blink_flag;
-	PifPulseItem* __p_timer_blink;
+	PifTimer* __p_timer_blink;
 
 	// Private Action Function
 	PifActLedState __act_state;
@@ -39,12 +39,12 @@ extern "C" {
  * @fn pifLed_Create
  * @brief
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param count
  * @param act_state
  * @return
  */
-PifLed* pifLed_Create(PifId id, PifPulse* p_timer, uint8_t count, PifActLedState act_state);
+PifLed* pifLed_Create(PifId id, PifTimerManager* p_timer_manager, uint8_t count, PifActLedState act_state);
 
 /**
  * @fn pifLed_Destroy
@@ -58,12 +58,12 @@ void pifLed_Destroy(PifLed** pp_owner);
  * @brief
  * @param p_owner
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param count
  * @param act_state
  * @return
  */
-BOOL pifLed_Init(PifLed* p_owner, PifId id, PifPulse* p_timer, uint8_t count, PifActLedState act_state);
+BOOL pifLed_Init(PifLed* p_owner, PifId id, PifTimerManager* p_timer_manager, uint8_t count, PifActLedState act_state);
 
 /**
  * @fn pifLed_Clear

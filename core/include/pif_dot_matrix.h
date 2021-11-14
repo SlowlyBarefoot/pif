@@ -2,7 +2,7 @@
 #define PIF_DOT_MATRIX_H
 
 
-#include "pif_pulse.h"
+#include "pif_timer.h"
 
 
 #define PIF_DOT_MATRIX_PERIOD_PER_ROW	25
@@ -59,7 +59,7 @@ typedef struct StPifDotMatrix
     PifId _id;
 
 	// Private Member Variable
-	PifPulse* __p_timer;
+	PifTimerManager* __p_timer_manager;
 	PifTask* __p_task;
     uint16_t __col_size;
     uint16_t __row_size;
@@ -88,8 +88,8 @@ typedef struct StPifDotMatrix
 	uint16_t __position_y;
 	uint16_t __shift_count;
 
-	PifPulseItem* __p_timer_blink;
-	PifPulseItem* __p_timer_shift;
+	PifTimer* __p_timer_blink;
+	PifTimer* __p_timer_shift;
 
 	// Private Action Function
    	PifActDotMatrixDisplay __act_display;
@@ -104,13 +104,13 @@ extern "C" {
  * @fn pifDotMatrix_Create
  * @brief
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param col_size
  * @param row_size
  * @param act_display
  * @return
  */
-PifDotMatrix* pifDotMatrix_Create(PifId id, PifPulse* p_timer, uint16_t col_size, uint16_t row_size,
+PifDotMatrix* pifDotMatrix_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t col_size, uint16_t row_size,
 		PifActDotMatrixDisplay act_display);
 
 /**
@@ -125,13 +125,13 @@ void pifDotMatrix_Destroy(PifDotMatrix** pp_owner);
  * @brief
  * @param p_owner
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param col_size
  * @param row_size
  * @param act_display
  * @return
  */
-BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifPulse* p_timer, uint16_t col_size, uint16_t row_size,
+BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t col_size, uint16_t row_size,
 		PifActDotMatrixDisplay act_display);
 
 /**

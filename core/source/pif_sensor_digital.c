@@ -78,11 +78,11 @@ void pifSensorDigital_ColSigClear()
 
 #endif
 
-PifSensor* pifSensorDigital_Create(PifId id, PifPulse *p_timer)
+PifSensor* pifSensorDigital_Create(PifId id, PifTimerManager *p_timer_manager)
 {
     PifSensorDigital* p_owner = NULL;
 
-    if (!p_timer) {
+    if (!p_timer_manager) {
 		pif_error = E_INVALID_PARAM;
 	    return NULL;
 	}
@@ -93,7 +93,7 @@ PifSensor* pifSensorDigital_Create(PifId id, PifPulse *p_timer)
 	    return NULL;
 	}
 
-    p_owner->__p_timer = p_timer;
+    p_owner->__p_timer_manager = p_timer_manager;
 	p_owner->parent._curr_state = OFF;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
@@ -138,7 +138,7 @@ void pifSensorDigital_Destroy(PifSensor** pp_parent)
 			}
 		}
 		if (p_owner->__ui.period.p_timer) {
-			pifPulse_RemoveItem(p_owner->__ui.period.p_timer);
+			pifTimerManager_Remove(p_owner->__ui.period.p_timer);
 		}
 
 		free(*pp_parent);
@@ -156,9 +156,9 @@ BOOL pifSensorDigital_AttachEvtPeriod(PifSensor* p_parent, PifEvtSensorDigitalPe
 {
 	PifSensorDigital* p_owner = (PifSensorDigital*)p_parent;
 
-	p_owner->__ui.period.p_timer = pifPulse_AddItem(p_owner->__p_timer, PT_REPEAT);
+	p_owner->__ui.period.p_timer = pifTimerManager_Add(p_owner->__p_timer_manager, TT_REPEAT);
     if (!p_owner->__ui.period.p_timer) return FALSE;
-    pifPulse_AttachEvtFinish(p_owner->__ui.period.p_timer, _evtTimerPeriodFinish, p_owner);
+    pifTimer_AttachEvtFinish(p_owner->__ui.period.p_timer, _evtTimerPeriodFinish, p_owner);
     p_owner->__event_type = SDET_PERIOD;
     p_owner->__evt_period = evt_period;
 	return TRUE;
@@ -166,12 +166,12 @@ BOOL pifSensorDigital_AttachEvtPeriod(PifSensor* p_parent, PifEvtSensorDigitalPe
 
 BOOL pifSensorDigital_StartPeriod(PifSensor* p_parent, uint16_t period)
 {
-	return pifPulse_StartItem(((PifSensorDigital*)p_parent)->__ui.period.p_timer, period);
+	return pifTimer_Start(((PifSensorDigital*)p_parent)->__ui.period.p_timer, period);
 }
 
 void pifSensorDigital_StopPeriod(PifSensor* p_parent)
 {
-	pifPulse_StopItem(((PifSensorDigital*)p_parent)->__ui.period.p_timer);
+	pifTimer_Stop(((PifSensorDigital*)p_parent)->__ui.period.p_timer);
 }
 
 void pifSensorDigital_SetEventThreshold1P(PifSensor* p_parent, uint16_t threshold)

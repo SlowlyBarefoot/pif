@@ -64,7 +64,7 @@ static uint16_t _doTask(PifTask* p_task)
 
     if (p_parent->_state == MS_BREAK) {
     	if (p_parent->act_operate_break && p_stage->rs_break_time &&
-    			pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
+    			pifTimer_Start(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
 			(*p_parent->act_operate_break)(1);
 			p_parent->_state = MS_BREAKING;
     	}
@@ -134,11 +134,11 @@ static void _evtSwitchStopChange(PifId id, uint16_t level, void *p_issuer)
 	}
 }
 
-PifDutyMotor* pifDutyMotorSpeed_Create(PifId id, PifPulse* p_timer, uint16_t max_duty, uint16_t period1ms)
+PifDutyMotor* pifDutyMotorSpeed_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms)
 {
 	PifDutyMotorSpeed* p_owner = NULL;
 
-    if (!p_timer || !max_duty) {
+    if (!p_timer_manager || !max_duty) {
 		pif_error = E_INVALID_PARAM;
 	    return NULL;
 	}
@@ -150,11 +150,11 @@ PifDutyMotor* pifDutyMotorSpeed_Create(PifId id, PifPulse* p_timer, uint16_t max
     }
 
     PifDutyMotor *p_parent = &p_owner->parent;
-    if (!pifDutyMotor_Init(p_parent, id, p_timer, max_duty)) goto fail;
+    if (!pifDutyMotor_Init(p_parent, id, p_timer_manager, max_duty)) goto fail;
 
-    p_parent->__p_timer_delay = pifPulse_AddItem(p_parent->_p_timer, PT_ONCE);
+    p_parent->__p_timer_delay = pifTimerManager_Add(p_parent->_p_timer_manager, TT_ONCE);
     if (!p_parent->__p_timer_delay) goto fail;
-    pifPulse_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent);
+    pifTimer_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent);
 
     p_parent->__p_task = pifTaskManager_Add(TM_PERIOD_MS, period1ms, _doTask, p_owner, FALSE);
 	if (!p_parent->__p_task) goto fail;
@@ -278,7 +278,7 @@ void pifDutyMotorSpeed_Stop(PifDutyMotor* p_parent)
 
     if (p_parent->_state == MS_IDLE) return;
 
-    if (p_stage->fs_overtime && pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->fs_overtime)) {
+    if (p_stage->fs_overtime && pifTimer_Start(p_parent->__p_timer_delay, p_stage->fs_overtime)) {
         p_parent->_state = MS_OVER_RUN;
     }
     else {

@@ -85,7 +85,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 				pifCrc7_Init();
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
 				if (p_owner->__tx.state == PTS_IDLE) {
-					pifPulse_StartItem(p_owner->__rx.p_timer, PIF_PROTOCOL_RECEIVE_TIMEOUT);
+					pifTimer_Start(p_owner->__rx.p_timer, PIF_PROTOCOL_RECEIVE_TIMEOUT);
 				}
 #endif
 			}
@@ -98,10 +98,10 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 					pifLog_Printf(LT_WARN, "PTC(%u):Receive NAK(%xh)", p_owner->_id, data);
 #endif
 #if PIF_PROTOCOL_RETRY_DELAY
-					pifPulse_StartItem(p_owner->__tx.p_timer, PIF_PROTOCOL_RETRY_DELAY);
+					pifTimer_Start(p_owner->__tx.p_timer, PIF_PROTOCOL_RETRY_DELAY);
 					p_owner->__tx.state = PTS_RETRY_DELAY;
 #else
-					pifPulse_StopItem(p_owner->__tx.p_timer);
+					pifTimer_Stop(p_owner->__tx.p_timer);
 					p_owner->__tx.state = PTS_enRetry;
 #endif
 					p_owner->__rx.state = PRS_IDLE;
@@ -192,7 +192,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 		case PRS_GET_TAILER:
 			if (data == ASCII_ETX) {
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
-	            pifPulse_StopItem(p_owner->__rx.p_timer);
+	            pifTimer_Stop(p_owner->__rx.p_timer);
 #endif
 	            p_owner->__rx.state = PRS_DONE;
 	            return;
@@ -221,16 +221,16 @@ fail:
 #endif
     if (p_owner->__tx.state == PTS_IDLE) {
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
-    	pifPulse_StopItem(p_owner->__rx.p_timer);
+    	pifTimer_Stop(p_owner->__rx.p_timer);
 #endif
     	pifRingBuffer_PutByte(&p_owner->__tx.answer_buffer, ASCII_NAK);
     }
     else if (p_owner->__tx.state == PTS_WAIT_RESPONSE) {
 #if PIF_PROTOCOL_RETRY_DELAY
-    	pifPulse_StartItem(p_owner->__tx.p_timer, PIF_PROTOCOL_RETRY_DELAY);
+    	pifTimer_Start(p_owner->__tx.p_timer, PIF_PROTOCOL_RETRY_DELAY);
 		p_owner->__tx.state = PTS_RETRY_DELAY;
 #else
-		pifPulse_StopItem(p_owner->__tx.p_timer);
+		pifTimer_Stop(p_owner->__tx.p_timer);
 		p_owner->__tx.state = PTS_enRetry;
 #endif
     }
@@ -283,16 +283,16 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
     	    	if (p_owner->__tx.ui.st.command == p_packet->command && (p_owner->_type == PT_SMALL ||
     	    			p_owner->__tx.ui.st.packet_id == p_packet->packet_id)) {
     				pifRingBuffer_Remove(&p_owner->__tx.request_buffer, 5 + p_owner->__tx.ui.st.length);
-		            pifPulse_StopItem(p_owner->__tx.p_timer);
+    				pifTimer_Stop(p_owner->__tx.p_timer);
 					(*p_owner->__tx.p_request->evt_response)(p_packet);
 					p_owner->__tx.state = PTS_IDLE;
     	    	}
     	    	else {
 #if PIF_PROTOCOL_RETRY_DELAY
-    	    		pifPulse_StartItem(p_owner->__tx.p_timer, PIF_PROTOCOL_RETRY_DELAY);
+    	    		pifTimer_Start(p_owner->__tx.p_timer, PIF_PROTOCOL_RETRY_DELAY);
 					p_owner->__tx.state = PTS_RETRY_DELAY;
 #else
-					pifPulse_StopItem(p_owner->__tx.p_timer);
+					pifTimer_Stop(p_owner->__tx.p_timer);
 					p_owner->__tx.state = PTS_enRetry;
 #endif
     	    	}
@@ -307,7 +307,7 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
     }
     else if (p_owner->__rx.state == PRS_ACK) {
 		pifRingBuffer_Remove(&p_owner->__tx.request_buffer, 5 + p_owner->__tx.ui.st.length);
-        pifPulse_StopItem(p_owner->__tx.p_timer);
+        pifTimer_Stop(p_owner->__tx.p_timer);
 		(*p_owner->__tx.p_request->evt_response)(NULL);
 		p_owner->__tx.state = PTS_IDLE;
     	p_owner->__rx.state = PRS_IDLE;
@@ -372,7 +372,7 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 				p_owner->__tx.state = PTS_IDLE;
 			}
 			else {
-				if (!pifPulse_StartItem(p_owner->__tx.p_timer, p_owner->__tx.ui.st.timeout)) {
+				if (!pifTimer_Start(p_owner->__tx.p_timer, p_owner->__tx.ui.st.timeout)) {
 					pif_error = E_OVERFLOW_BUFFER;
 					if (p_owner->evt_error) (*p_owner->evt_error)(p_owner->_id);
 					pifRingBuffer_Remove(&p_owner->__tx.request_buffer, 5 + p_owner->__tx.ui.st.length);
@@ -415,7 +415,7 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 	return FALSE;
 }
 
-PifProtocol* pifProtocol_Create(PifId id, PifPulse* p_timer, PifProtocolType type,
+PifProtocol* pifProtocol_Create(PifId id, PifTimerManager* p_timer_manager, PifProtocolType type,
 		const PifProtocolQuestion* p_questions)
 {
     PifProtocol* p_owner = malloc(sizeof(PifProtocol));
@@ -424,7 +424,7 @@ PifProtocol* pifProtocol_Create(PifId id, PifPulse* p_timer, PifProtocolType typ
 		return NULL;
 	}
 
-	if (!pifProtocol_Init(p_owner, id, p_timer, type, p_questions)) {
+	if (!pifProtocol_Init(p_owner, id, p_timer_manager, type, p_questions)) {
 		pifProtocol_Destroy(&p_owner);
 		return NULL;
 	}
@@ -440,12 +440,12 @@ void pifProtocol_Destroy(PifProtocol** pp_owner)
     }
 }
 
-BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifPulse* p_timer, PifProtocolType type,
+BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifTimerManager* p_timer_manager, PifProtocolType type,
 		const PifProtocolQuestion* p_questions)
 {
 	const PifProtocolQuestion* p_question = p_questions;
 
-	if (!p_owner || !p_timer || !p_questions) {
+	if (!p_owner || !p_timer_manager || !p_questions) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -460,7 +460,7 @@ BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifPulse* p_timer, PifProt
 
 	memset(p_owner, 0, sizeof(PifProtocol));
 
-    p_owner->__p_timer = p_timer;
+    p_owner->__p_timer_manager = p_timer_manager;
     switch (type) {
 	case PT_SMALL:
 		p_owner->__header_size = 4;
@@ -482,9 +482,9 @@ BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifPulse* p_timer, PifProt
     }
 
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
-    p_owner->__rx.p_timer = pifPulse_AddItem(p_timer, PT_ONCE);
+    p_owner->__rx.p_timer = pifTimerManager_Add(p_timer_manager, TT_ONCE);
     if (!p_owner->__rx.p_timer) goto fail;
-    pifPulse_AttachEvtFinish(p_owner->__rx.p_timer, _evtTimerRxTimeout, p_owner);
+    pifTimer_AttachEvtFinish(p_owner->__rx.p_timer, _evtTimerRxTimeout, p_owner);
 #endif
 
     if (id == PIF_ID_AUTO) id = pif_id++;
@@ -495,9 +495,9 @@ BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifPulse* p_timer, PifProt
     if (!pifRingBuffer_InitHeap(&p_owner->__tx.answer_buffer, PIF_ID_AUTO, PIF_PROTOCOL_TX_ANSWER_SIZE)) goto fail;
     pifRingBuffer_SetName(&p_owner->__tx.answer_buffer, "RSB");
 
-    p_owner->__tx.p_timer = pifPulse_AddItem(p_timer, PT_ONCE);
+    p_owner->__tx.p_timer = pifTimerManager_Add(p_timer_manager, TT_ONCE);
     if (!p_owner->__tx.p_timer) goto fail;
-    pifPulse_AttachEvtFinish(p_owner->__tx.p_timer, _evtTimerTxTimeout, p_owner);
+    pifTimer_AttachEvtFinish(p_owner->__tx.p_timer, _evtTimerTxTimeout, p_owner);
 
     p_owner->_type = type;
     p_owner->__p_questions = p_questions;
@@ -521,11 +521,11 @@ void pifProtocol_Clear(PifProtocol* p_owner)
 	pifRingBuffer_Clear(&p_owner->__tx.request_buffer);
 	pifRingBuffer_Clear(&p_owner->__tx.answer_buffer);
 	if (p_owner->__rx.p_timer) {
-		pifPulse_RemoveItem(p_owner->__rx.p_timer);
+		pifTimerManager_Remove(p_owner->__rx.p_timer);
 		p_owner->__rx.p_timer = NULL;
 	}
 	if (p_owner->__tx.p_timer) {
-		pifPulse_RemoveItem(p_owner->__tx.p_timer);
+		pifTimerManager_Remove(p_owner->__tx.p_timer);
 		p_owner->__tx.p_timer = NULL;
 	}
 }

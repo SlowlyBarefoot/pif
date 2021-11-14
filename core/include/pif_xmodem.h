@@ -3,7 +3,7 @@
 
 
 #include "pif_comm.h"
-#include "pif_pulse.h"
+#include "pif_timer.h"
 
 
 typedef enum EnPifXmodemType
@@ -62,7 +62,7 @@ typedef struct StPifXmodemTx
 	PifXmodemTxState state;
 	uint16_t data_pos;
 	uint16_t timeout;
-	PifPulseItem* p_timer;
+	PifTimer* p_timer;
 	PifEvtXmodemTxReceive evt_receive;
 } PifXmodemTx;
 
@@ -77,7 +77,7 @@ typedef struct StPifXmodemRx
 	uint16_t count;
 	uint16_t crc;
 	uint16_t timeout;
-	PifPulseItem* p_timer;
+	PifTimer* p_timer;
 	PifEvtXmodemRxReceive evt_receive;
 } PifXmodemRx;
 
@@ -93,7 +93,7 @@ typedef struct StPifXmodem
 	PifId _id;
 
 	// Private Member Variable
-	PifPulse* __p_timer;
+	PifTimerManager* __p_timer_manager;
 	PifComm* __p_comm;
 	PifXmodemType __type;
 	uint16_t __packet_size;
@@ -111,11 +111,11 @@ extern "C" {
  * @fn pifXmodem_Create
  * @brief
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param type
  * @return
  */
-PifXmodem* pifXmodem_Create(PifId id, PifPulse* p_timer, PifXmodemType type);
+PifXmodem* pifXmodem_Create(PifId id, PifTimerManager* p_timer_manager, PifXmodemType type);
 
 /**
  * @fn pifXmodem_Destroy
@@ -129,11 +129,11 @@ void pifXmodem_Destroy(PifXmodem** pp_owner);
  * @brief
  * @param p_owner
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param type
  * @return
  */
-BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifPulse* p_timer, PifXmodemType type);
+BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifTimerManager* p_timer_manager, PifXmodemType type);
 
 /**
  * @fn pifXmodem_Clear

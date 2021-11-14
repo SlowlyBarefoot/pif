@@ -2,7 +2,7 @@
 #define PIF_SOLENOID_H
 
 
-#include "pif_pulse.h"
+#include "pif_timer.h"
 #include "pif_ring_data.h"
 
 
@@ -82,11 +82,11 @@ struct StPifSolenoid
     PifSolenoidType _type;
 
 	// Private Member Variable
-    PifPulse* __p_timer;
+    PifTimerManager* __p_timer_manager;
     BOOL __state;
     PifSolenoidDir __current_dir;
-    PifPulseItem* __p_timer_on;
-	PifPulseItem* __p_timer_delay;
+    PifTimer* __p_timer_on;
+	PifTimer* __p_timer_delay;
     PifSolenoidDir __dir;
 	PifRingData* __p_buffer;
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -106,13 +106,13 @@ extern "C" {
  * @fn pifSolenoid_Create
  * @brief
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param type
  * @param on_time
  * @param act_control
  * @return
  */
-PifSolenoid* pifSolenoid_Create(PifId id, PifPulse* p_timer, PifSolenoidType type, uint16_t on_time,
+PifSolenoid* pifSolenoid_Create(PifId id, PifTimerManager* p_timer_manager, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control);
 
 /**
@@ -127,13 +127,13 @@ void pifSolenoid_Destroy(PifSolenoid** pp_owner);
  * @brief
  * @param p_owner
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param type
  * @param on_time
  * @param act_control
  * @return
  */
-BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifPulse* p_timer, PifSolenoidType type, uint16_t on_time,
+BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifTimerManager* p_timer_manager, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control);
 
 /**

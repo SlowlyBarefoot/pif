@@ -35,7 +35,7 @@ static void _actionOn(PifSolenoid *p_owner, uint16_t delay, PifSolenoidDir dir)
 			_action(p_owner, ON, dir);
 			p_owner->__state = TRUE;
 			if (p_owner->on_time) {
-				if (!pifPulse_StartItem(p_owner->__p_timer_on, p_owner->on_time)) {
+				if (!pifTimer_Start(p_owner->__p_timer_on, p_owner->on_time)) {
 					p_owner->__current_dir = SD_INVALID;
 					_action(p_owner, OFF, SD_INVALID);
 					p_owner->__state = FALSE;
@@ -46,7 +46,7 @@ static void _actionOn(PifSolenoid *p_owner, uint16_t delay, PifSolenoidDir dir)
 	}
 	else {
 		p_owner->__dir = dir;
-		if (!pifPulse_StartItem(p_owner->__p_timer_delay, delay)) {
+		if (!pifTimer_Start(p_owner->__p_timer_delay, delay)) {
 			if (p_owner->evt_error) (*p_owner->evt_error)(p_owner);
 		}
 	}
@@ -61,7 +61,7 @@ static void _evtTimerDelayFinish(void* p_issuer)
 		_action(p_owner, ON, p_owner->__dir);
 		p_owner->__state = TRUE;
 		if (p_owner->on_time) {
-			if (!pifPulse_StartItem(p_owner->__p_timer_on, p_owner->on_time)) {
+			if (!pifTimer_Start(p_owner->__p_timer_on, p_owner->on_time)) {
 				p_owner->__current_dir = SD_INVALID;
 				_action(p_owner, OFF, SD_INVALID);
 				p_owner->__state = FALSE;
@@ -100,7 +100,7 @@ static int32_t _calcurateTime(PifSolenoid* p_owner)
 	PifSolenoidContent* p_content;
 	int32_t time;
 
-	time = pifPulse_RemainItem(p_owner->__p_timer_delay);
+	time = pifTimer_Remain(p_owner->__p_timer_delay);
 	p_content = pifRingData_GetFirstData(p_owner->__p_buffer);
 	while (p_content) {
 		time += p_content->delay;
@@ -145,7 +145,7 @@ void pifSolenoid_ColSigClear()
 
 #endif
 
-PifSolenoid* pifSolenoid_Create(PifId id, PifPulse* p_timer, PifSolenoidType type, uint16_t on_time,
+PifSolenoid* pifSolenoid_Create(PifId id, PifTimerManager* p_timer_manager, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control)
 {
     PifSolenoid* p_owner = malloc(sizeof(PifSolenoid));
@@ -154,7 +154,7 @@ PifSolenoid* pifSolenoid_Create(PifId id, PifPulse* p_timer, PifSolenoidType typ
 	    return NULL;
 	}
 
-	if (!pifSolenoid_Init(p_owner, id, p_timer, type, on_time, act_control)) {
+	if (!pifSolenoid_Init(p_owner, id, p_timer_manager, type, on_time, act_control)) {
 		pifSolenoid_Destroy(&p_owner);
 	    return NULL;
 	}
@@ -170,26 +170,26 @@ void pifSolenoid_Destroy(PifSolenoid** pp_owner)
     }
 }
 
-BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifPulse* p_timer, PifSolenoidType type, uint16_t on_time,
+BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifTimerManager* p_timer_manager, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control)
 {
-    if (!p_owner || !p_timer || !act_control) {
+    if (!p_owner || !p_timer_manager || !act_control) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
 	memset(p_owner, 0, sizeof(PifSolenoid));
 
-    p_owner->__p_timer_on = pifPulse_AddItem(p_timer, PT_ONCE);
+    p_owner->__p_timer_on = pifTimerManager_Add(p_timer_manager, TT_ONCE);
     if (!p_owner->__p_timer_on) goto fail;
-    pifPulse_AttachEvtFinish(p_owner->__p_timer_on, _evtTimerOnFinish, p_owner);
-    pifPulse_AttachEvtIntFinish(p_owner->__p_timer_on, _evtTimerOnIntFinish, p_owner);
+    pifTimer_AttachEvtFinish(p_owner->__p_timer_on, _evtTimerOnFinish, p_owner);
+    pifTimer_AttachEvtIntFinish(p_owner->__p_timer_on, _evtTimerOnIntFinish, p_owner);
 
-    p_owner->__p_timer_delay = pifPulse_AddItem(p_timer, PT_ONCE);
+    p_owner->__p_timer_delay = pifTimerManager_Add(p_timer_manager, TT_ONCE);
     if (!p_owner->__p_timer_delay) goto fail;
-    pifPulse_AttachEvtFinish(p_owner->__p_timer_delay, _evtTimerDelayFinish, p_owner);
+    pifTimer_AttachEvtFinish(p_owner->__p_timer_delay, _evtTimerDelayFinish, p_owner);
 
-    p_owner->__p_timer = p_timer;
+    p_owner->__p_timer_manager = p_timer_manager;
     p_owner->__act_control = act_control;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
@@ -223,11 +223,11 @@ void pifSolenoid_Clear(PifSolenoid* p_owner)
 	p_owner->__p_colsig = NULL;
 #endif
 	if (p_owner->__p_timer_on) {
-		pifPulse_RemoveItem(p_owner->__p_timer_on);
+		pifTimerManager_Remove(p_owner->__p_timer_on);
 		p_owner->__p_timer_on = NULL;
 	}
 	if (p_owner->__p_timer_delay) {
-		pifPulse_RemoveItem(p_owner->__p_timer_delay);
+		pifTimerManager_Remove(p_owner->__p_timer_delay);
 		p_owner->__p_timer_delay = NULL;
 	}
 	pifRingData_Destroy(&p_owner->__p_buffer);
@@ -262,7 +262,7 @@ void pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay)
 	int32_t time;
 
 	if (p_owner->__p_buffer) {
-		if (p_owner->__p_timer_delay->_step == PS_RUNNING) {
+		if (p_owner->__p_timer_delay->_step == TS_RUNNING) {
 			time = _calcurateTime(p_owner);
 			pstContent = pifRingData_Add(p_owner->__p_buffer);
 			pstContent->delay = delay > time ? delay - time : 0;
@@ -279,7 +279,7 @@ void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDi
 	int32_t time;
 
 	if (p_owner->__p_buffer) {
-		if (p_owner->__p_timer_delay->_step == PS_RUNNING) {
+		if (p_owner->__p_timer_delay->_step == TS_RUNNING) {
 			time = _calcurateTime(p_owner);
 			pstContent = pifRingData_Add(p_owner->__p_buffer);
 			pstContent->delay = delay >= time ? delay - time : 0;
@@ -294,7 +294,7 @@ void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDi
 void pifSolenoid_ActionOff(PifSolenoid* p_owner)
 {
 	if (p_owner->__state) {
-		pifPulse_StopItem(p_owner->__p_timer_on);
+		pifTimer_Stop(p_owner->__p_timer_on);
 		_action(p_owner, OFF, SD_INVALID);
 		p_owner->__state = FALSE;
     }

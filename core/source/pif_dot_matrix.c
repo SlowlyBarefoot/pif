@@ -79,7 +79,7 @@ static void _evtTimerShiftFinish(void* p_issuer)
         	p_owner->__position_x = 0;
 		}
 		else {
-			pifPulse_StopItem(p_owner->__p_timer_shift);
+			pifTimer_Stop(p_owner->__p_timer_shift);
 			if (p_owner->evt_shift_finish) {
 				(*p_owner->evt_shift_finish)(p_owner->_id);
 			}
@@ -97,7 +97,7 @@ static void _evtTimerShiftFinish(void* p_issuer)
         	p_owner->__position_x = p_owner->__p_pattern[p_owner->__pattern_index].col_size - p_owner->__col_size;
 		}
 		else {
-			pifPulse_StopItem(p_owner->__p_timer_shift);
+			pifTimer_Stop(p_owner->__p_timer_shift);
 			if (p_owner->evt_shift_finish) {
 				(*p_owner->evt_shift_finish)(p_owner->_id);
 			}
@@ -115,7 +115,7 @@ static void _evtTimerShiftFinish(void* p_issuer)
         	p_owner->__position_y = 0;
 		}
 		else {
-			pifPulse_StopItem(p_owner->__p_timer_shift);
+			pifTimer_Stop(p_owner->__p_timer_shift);
 			if (p_owner->evt_shift_finish) {
 				(*p_owner->evt_shift_finish)(p_owner->_id);
 			}
@@ -133,7 +133,7 @@ static void _evtTimerShiftFinish(void* p_issuer)
         	p_owner->__position_y = p_owner->__p_pattern[p_owner->__pattern_index].row_size - p_owner->__row_size;
 		}
 		else {
-			pifPulse_StopItem(p_owner->__p_timer_shift);
+			pifTimer_Stop(p_owner->__p_timer_shift);
 			if (p_owner->evt_shift_finish) {
 				(*p_owner->evt_shift_finish)(p_owner->_id);
 			}
@@ -148,12 +148,12 @@ static void _evtTimerShiftFinish(void* p_issuer)
     if (p_owner->__shift_count) {
     	p_owner->__shift_count--;
 		if (!p_owner->__shift_count) {
-			pifPulse_StopItem(p_owner->__p_timer_shift);
+			pifTimer_Stop(p_owner->__p_timer_shift);
 		}
     }
 }
 
-PifDotMatrix* pifDotMatrix_Create(PifId id, PifPulse* p_timer, uint16_t col_size, uint16_t row_size,
+PifDotMatrix* pifDotMatrix_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t col_size, uint16_t row_size,
 		PifActDotMatrixDisplay act_display)
 {
 	PifDotMatrix* p_owner = malloc(sizeof(PifDotMatrix));
@@ -162,7 +162,7 @@ PifDotMatrix* pifDotMatrix_Create(PifId id, PifPulse* p_timer, uint16_t col_size
 	    return NULL;
 	}
 
-	if (!pifDotMatrix_Init(p_owner, id, p_timer, col_size, row_size, act_display)) {
+	if (!pifDotMatrix_Init(p_owner, id, p_timer_manager, col_size, row_size, act_display)) {
 		pifDotMatrix_Destroy(&p_owner);
 		return NULL;
 	}
@@ -178,17 +178,17 @@ void pifDotMatrix_Destroy(PifDotMatrix** pp_owner)
 	}
 }
 
-BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifPulse* p_timer, uint16_t col_size, uint16_t row_size,
+BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t col_size, uint16_t row_size,
 		PifActDotMatrixDisplay act_display)
 {
-    if (!p_owner || !p_timer || !col_size || !row_size || !act_display) {
+    if (!p_owner || !p_timer_manager || !col_size || !row_size || !act_display) {
         pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
 	memset(p_owner, 0, sizeof(PifDotMatrix));
 
-    p_owner->__p_timer = p_timer;
+    p_owner->__p_timer_manager = p_timer_manager;
     p_owner->__col_size = col_size;
     p_owner->__row_size = row_size;
     p_owner->__col_bytes = (p_owner->__col_size - 1) / 8 + 1;
@@ -237,11 +237,11 @@ void pifDotMatrix_Clear(PifDotMatrix* p_owner)
 		p_owner->__p_pattern = NULL;
 	}
 	if (p_owner->__p_timer_blink) {
-		pifPulse_RemoveItem(p_owner->__p_timer_blink);
+		pifTimerManager_Remove(p_owner->__p_timer_blink);
 		p_owner->__p_timer_blink = NULL;
 	}
 	if (p_owner->__p_timer_shift) {
-		pifPulse_RemoveItem(p_owner->__p_timer_shift);
+		pifTimerManager_Remove(p_owner->__p_timer_shift);
 		p_owner->__p_timer_shift = NULL;
 	}
 }
@@ -323,7 +323,7 @@ void pifDotMatrix_Stop(PifDotMatrix* p_owner)
 	}
 	p_owner->__p_task->pause = TRUE;
     if (p_owner->__bt.blink) {
-		pifPulse_StopItem(p_owner->__p_timer_blink);
+		pifTimer_Stop(p_owner->__p_timer_blink);
 		p_owner->__bt.blink = FALSE;
     }
 }
@@ -348,11 +348,11 @@ BOOL pifDotMatrix_BlinkOn(PifDotMatrix* p_owner, uint16_t period1ms)
     }
 
 	if (!p_owner->__p_timer_blink) {
-		p_owner->__p_timer_blink = pifPulse_AddItem(p_owner->__p_timer, PT_REPEAT);
+		p_owner->__p_timer_blink = pifTimerManager_Add(p_owner->__p_timer_manager, TT_REPEAT);
 		if (!p_owner->__p_timer_blink) return FALSE;
-		pifPulse_AttachEvtFinish(p_owner->__p_timer_blink, _evtTimerBlinkFinish, p_owner);
+		pifTimer_AttachEvtFinish(p_owner->__p_timer_blink, _evtTimerBlinkFinish, p_owner);
 	}
-	if (!pifPulse_StartItem(p_owner->__p_timer_blink, period1ms * 1000L / p_owner->__p_timer->_period1us)) return FALSE;
+	if (!pifTimer_Start(p_owner->__p_timer_blink, period1ms * 1000L / p_owner->__p_timer_manager->_period1us)) return FALSE;
 	p_owner->__bt.blink = TRUE;
     return TRUE;
 }
@@ -362,7 +362,7 @@ void pifDotMatrix_BlinkOff(PifDotMatrix* p_owner)
 	p_owner->__bt.led = ON;
 	p_owner->__bt.blink = FALSE;
 	if (p_owner->__p_timer_blink) {
-		pifPulse_RemoveItem(p_owner->__p_timer_blink);
+		pifTimerManager_Remove(p_owner->__p_timer_blink);
 		p_owner->__p_timer_blink = NULL;
 	}
 }
@@ -370,7 +370,7 @@ void pifDotMatrix_BlinkOff(PifDotMatrix* p_owner)
 void pifDotMatrix_ChangeBlinkPeriod(PifDotMatrix* p_owner, uint16_t period1ms)
 {
 	if (p_owner->__p_timer_blink) {
-		p_owner->__p_timer_blink->target = period1ms * 1000 / p_owner->__p_timer->_period1us;
+		p_owner->__p_timer_blink->target = period1ms * 1000 / p_owner->__p_timer_manager->_period1us;
 	}
 }
 
@@ -396,11 +396,11 @@ BOOL pifDotMatrix_ShiftOn(PifDotMatrix* p_owner, PifDotMatrixShiftDir shift_dire
     }
 
 	if (!p_owner->__p_timer_shift) {
-		p_owner->__p_timer_shift = pifPulse_AddItem(p_owner->__p_timer, PT_REPEAT);
+		p_owner->__p_timer_shift = pifTimerManager_Add(p_owner->__p_timer_manager, TT_REPEAT);
 		if (!p_owner->__p_timer_shift) return FALSE;
-		pifPulse_AttachEvtFinish(p_owner->__p_timer_shift, _evtTimerShiftFinish, p_owner);
+		pifTimer_AttachEvtFinish(p_owner->__p_timer_shift, _evtTimerShiftFinish, p_owner);
 	}
-	if(!pifPulse_StartItem(p_owner->__p_timer_shift, period1ms * 1000L / p_owner->__p_timer->_period1us)) return FALSE;
+	if(!pifTimer_Start(p_owner->__p_timer_shift, period1ms * 1000L / p_owner->__p_timer_manager->_period1us)) return FALSE;
 	p_owner->__shift_direction = shift_direction;
 	p_owner->__shift_method = shift_method;
 	p_owner->__shift_count = count;
@@ -411,7 +411,7 @@ void pifDotMatrix_ShiftOff(PifDotMatrix* p_owner)
 {
 	if (p_owner->__p_timer_shift) {
 		p_owner->__shift_direction = DMSD_NONE;
-		pifPulse_StopItem(p_owner->__p_timer_shift);
+		pifTimer_Stop(p_owner->__p_timer_shift);
 		p_owner->__position_x = 0;
 		p_owner->__position_y = 0;
 	}
@@ -420,6 +420,6 @@ void pifDotMatrix_ShiftOff(PifDotMatrix* p_owner)
 void pifDotMatrix_ChangeShiftPeriod(PifDotMatrix* p_owner, uint16_t period1ms)
 {
 	if (p_owner->__p_timer_shift) {
-		p_owner->__p_timer_shift->target = period1ms * 1000 / p_owner->__p_timer->_period1us;
+		p_owner->__p_timer_shift->target = period1ms * 1000 / p_owner->__p_timer_manager->_period1us;
 	}
 }

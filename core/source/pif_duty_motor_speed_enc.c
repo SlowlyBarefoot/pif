@@ -53,7 +53,7 @@ static uint16_t _doTask(PifTask* p_task)
 	if (p_parent->_state == MS_GAINED) {
 		if (tmp_enc >= p_owner->__arrive_ppr) {
 			p_parent->_state = MS_STABLE;
-            if (!pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->fs_stable_timeout)) {
+            if (!pifTimer_Start(p_parent->__p_timer_delay, p_stage->fs_stable_timeout)) {
                 p_parent->__error = 1;
             }
 		}
@@ -66,7 +66,7 @@ static uint16_t _doTask(PifTask* p_task)
 		enc_average = p_owner->__enc_sample_sum / MAX_STABLE_CNT;
 
         if (enc_average >= p_owner->__err_low_ppr && enc_average <= p_owner->__err_high_ppr) {
-            pifPulse_StopItem(p_parent->__p_timer_delay);
+            pifTimer_Stop(p_parent->__p_timer_delay);
             p_parent->_state = MS_CONST;
         }
     }
@@ -117,7 +117,7 @@ static uint16_t _doTask(PifTask* p_task)
 
     if (p_parent->_state == MS_BREAK) {
     	if (p_parent->act_operate_break && p_stage->rs_break_time &&
-    			pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
+    			pifTimer_Start(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
 			(*p_parent->act_operate_break)(1);
 			p_parent->_state = MS_BREAKING;
     	}
@@ -187,11 +187,11 @@ static void _evtSwitchStopChange(PifId id, uint16_t level, void* p_issuer)
 	}
 }
 
-PifDutyMotor* pifDutyMotorSpeedEnc_Create(PifId id, PifPulse* p_timer, uint16_t max_duty, uint16_t period1ms)
+PifDutyMotor* pifDutyMotorSpeedEnc_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms)
 {
 	PifDutyMotorSpeedEnc* p_owner = NULL;
 
-    if (!p_timer || !max_duty) {
+    if (!p_timer_manager || !max_duty) {
 		pif_error = E_INVALID_PARAM;
 	    return NULL;
 	}
@@ -203,11 +203,11 @@ PifDutyMotor* pifDutyMotorSpeedEnc_Create(PifId id, PifPulse* p_timer, uint16_t 
     }
 
     PifDutyMotor *p_parent = &p_owner->parent;
-    if (!pifDutyMotor_Init(p_parent, id, p_timer, max_duty)) goto fail;
+    if (!pifDutyMotor_Init(p_parent, id, p_timer_manager, max_duty)) goto fail;
 
-    p_parent->__p_timer_delay = pifPulse_AddItem(p_parent->_p_timer, PT_ONCE);
+    p_parent->__p_timer_delay = pifTimerManager_Add(p_parent->_p_timer_manager, TT_ONCE);
     if (!p_parent->__p_timer_delay) goto fail;
-    pifPulse_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent);
+    pifTimer_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent);
 
     p_parent->__p_task = pifTaskManager_Add(TM_PERIOD_MS, period1ms, _doTask, p_owner, FALSE);
 	if (!p_parent->__p_task) goto fail;
@@ -313,7 +313,7 @@ BOOL pifDutyMotorSpeedEnc_Start(PifDutyMotor* p_parent, uint8_t stage_index, uin
     if (p_parent->act_set_direction) (*p_parent->act_set_direction)((p_stage->mode & MM_D_MASK) >> MM_D_SHIFT);
 
     if (p_stage->gs_ctrl_duty) {
-		if (!pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->gs_arrive_timeout)) return FALSE;
+		if (!pifTimer_Start(p_parent->__p_timer_delay, p_stage->gs_arrive_timeout)) return FALSE;
 
 		p_owner->__arrive_ppr = p_stage->fs_pulses_per_range * p_stage->gs_arrive_ratio / 100;
 		p_parent->_current_duty = p_stage->gs_start_duty;
@@ -341,7 +341,7 @@ void pifDutyMotorSpeedEnc_Stop(PifDutyMotor* p_parent)
 
     if (p_parent->_state == MS_IDLE) return;
 
-    if (p_stage->fs_overtime && pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->fs_overtime)) {
+    if (p_stage->fs_overtime && pifTimer_Start(p_parent->__p_timer_delay, p_stage->fs_overtime)) {
         p_parent->_state = MS_OVER_RUN;
     }
     else {

@@ -2,7 +2,7 @@
 #define PIF_DUTY_MOTOR_H
 
 
-#include "pif_pulse.h"
+#include "pif_timer.h"
 #include "pif_motor.h"
 
 
@@ -40,7 +40,7 @@ struct StPifDutyMotor
 
     // Read-only Member Variable
     PifId _id;
-    PifPulse* _p_timer;
+    PifTimerManager* _p_timer_manager;
 	uint16_t _max_duty;
 	uint16_t _current_duty;
 	uint8_t _direction;
@@ -49,8 +49,8 @@ struct StPifDutyMotor
 	// Private Member Variable
     uint8_t __error;
 
-	PifPulseItem* __p_timer_delay;
-	PifPulseItem* __p_timer_break;
+	PifTimer* __p_timer_delay;
+	PifTimer* __p_timer_break;
 
     PifTask* __p_task;
 };
@@ -64,11 +64,11 @@ extern "C" {
  * @fn pifDutyMotor_Create
  * @brief 
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param max_duty
  * @return 
  */
-PifDutyMotor* pifDutyMotor_Create(PifId id, PifPulse* p_timer, uint16_t max_duty);
+PifDutyMotor* pifDutyMotor_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty);
 
 /**
  * @fn pifDutyMotor_Destroy
@@ -82,11 +82,11 @@ void pifDutyMotor_Destroy(PifDutyMotor** pp_owner);
  * @brief 
  * @param p_owner
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param max_duty
  * @return 
  */
-BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint16_t max_duty);
+BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty);
 
 /**
  * @fn pifDutyMotor_Clear

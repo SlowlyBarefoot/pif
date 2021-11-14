@@ -2,7 +2,7 @@
 #define PIF_SEQUENCE_H
 
 
-#include "pif_pulse.h"
+#include "pif_timer.h"
 #include "pif_task.h"
 
 
@@ -72,9 +72,9 @@ struct StPifSequence
 
 	// Private Member Variable
 	PifTask* __p_task;
-	PifPulse* __p_timer;
+	PifTimerManager* __p_timer_manager;
 	const PifSequencePhase* __p_phase_list;
-	PifPulseItem* __p_timer_timeout;
+	PifTimer* __p_timer_timeout;
 	uint32_t __target_delay;
 #ifdef __PIF_COLLECT_SIGNAL__
 	PIF_SequenceColSig* __p_colsig;
@@ -90,13 +90,13 @@ extern "C" {
  * @fn pifSequence_Create
  * @brief Sequence를 추가한다.
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param control_period1ms
  * @param p_phase_list
  * @param p_param
  * @return Sequence 구조체 포인터를 반환한다.
  */
-PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, uint16_t control_period1ms,
+PifSequence* pifSequence_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t control_period1ms,
 		const PifSequencePhase* p_phase_list, void* p_param);
 
 /**
@@ -111,13 +111,13 @@ void pifSequence_Destroy(PifSequence** pp_owner);
  * @brief Sequence를 추가한다.
  * @param p_owner
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param control_period1ms
  * @param p_phase_list
  * @param p_param
  * @return Sequence 구조체 포인터를 반환한다.
  */
-BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, uint16_t control_period1ms,
+BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t control_period1ms,
 		const PifSequencePhase* p_phase_list, void* p_param);
 
 /**

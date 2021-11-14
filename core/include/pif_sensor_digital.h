@@ -3,6 +3,7 @@
 
 
 #include "pif_sensor.h"
+#include "pif_timer.h"
 
 
 #define PIF_SENSOR_DIGITAL_FILTER_NONE		0
@@ -75,12 +76,12 @@ struct StPifSensorDigital
 	PifSensor parent;
 
 	// Private Member Variable
-	PifPulse* __p_timer;
+	PifTimerManager* __p_timer_manager;
     PifSensorDigitalEventType __event_type;
     union {
     	struct {
     		uint16_t time;
-    	    PifPulseItem* p_timer;
+    	    PifTimer* p_timer;
     	} period;
 		uint16_t threshold1p;
     	struct {
@@ -111,10 +112,10 @@ extern "C" {
  * @fn pifSensorDigital_Create
  * @brief 
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @return 
  */
-PifSensor* pifSensorDigital_Create(PifId id, PifPulse* p_timer);
+PifSensor* pifSensorDigital_Create(PifId id, PifTimerManager* p_timer_manager);
 
 /**
  * @fn pifSensorDigital_Destroy

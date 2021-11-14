@@ -3,7 +3,7 @@
 
 
 #include "pif_comm.h"
-#include "pif_pulse.h"
+#include "pif_timer.h"
 #include "pif_ring_buffer.h"
 
 
@@ -123,7 +123,7 @@ typedef struct StPifProtocolRx
 	BOOL data_link_escape;
 	PifProtocolPacket packet;
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
-	PifPulseItem* p_timer;
+	PifTimer* p_timer;
 #endif
 } PifProtocolRx;
 
@@ -152,7 +152,7 @@ typedef struct StPifProtocolTx
 		} st;
 	} ui;
 	uint16_t pos;
-	PifPulseItem* p_timer;
+	PifTimer* p_timer;
 } PifProtocolTx;
 
 /**
@@ -172,7 +172,7 @@ typedef struct StPifProtocol
     uint8_t _frame_size;
 
 	// Private Member Variable
-    PifPulse* __p_timer;
+    PifTimerManager* __p_timer_manager;
 	PifComm* __p_comm;
     const PifProtocolQuestion* __p_questions;
     PifProtocolRx __rx;
@@ -190,12 +190,12 @@ extern "C" {
  * @fn pifProtocol_Create
  * @brief
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param type
  * @param p_questions
  * @return
  */
-PifProtocol* pifProtocol_Create(PifId id, PifPulse* p_timer, PifProtocolType type,
+PifProtocol* pifProtocol_Create(PifId id, PifTimerManager* p_timer_manager, PifProtocolType type,
 		const PifProtocolQuestion* p_questions);
 
 /**
@@ -210,12 +210,12 @@ void pifProtocol_Destroy(PifProtocol** pp_owner);
  * @brief
  * @param p_owner
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param type
  * @param p_questions
  * @return
  */
-BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifPulse* p_timer, PifProtocolType type,
+BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifTimerManager* p_timer_manager, PifProtocolType type,
 		const PifProtocolQuestion* p_questions);
 
 /**

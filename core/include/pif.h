@@ -93,7 +93,7 @@
 #define PIF_PROTOCOL_RETRY_DELAY		10
 #endif
 
-// -------- pifPulse -----------------------------
+// -------- pifTimer -----------------------------
 
 #ifndef PIF_PWM_MAX_DUTY
 #define PIF_PWM_MAX_DUTY				1000

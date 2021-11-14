@@ -2,7 +2,7 @@
 #define PIF_FND_H
 
 
-#include "pif_pulse.h"
+#include "pif_timer.h"
 
 
 #define PIF_FND_PERIOD_PER_DIGIT	25
@@ -26,7 +26,7 @@ typedef struct StPifFnd
 
 	// Private Member Variable
     PifTask* __p_task;
-    PifPulse* __p_timer;
+    PifTimerManager* __p_timer_manager;
     uint16_t __period_per_digit_1ms;	// PIF_FND_PERIOD_PER_DIGIT
 	struct {
 		uint8_t blink		: 1;
@@ -36,7 +36,7 @@ typedef struct StPifFnd
 	uint8_t __digit_index;
 	uint8_t __string_size;
     char* __p_string;
-	PifPulseItem* __p_timer_blink;
+	PifTimer* __p_timer_blink;
 
 	// Private Action Function
    	PifActFndDisplay __act_display;
@@ -51,12 +51,12 @@ extern "C" {
  * @fn pifFnd_Create
  * @brief
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param digit_size
  * @param act_display
  * @return
  */
-PifFnd* pifFnd_Create(PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFndDisplay act_display);
+PifFnd* pifFnd_Create(PifId id, PifTimerManager* p_timer_manager, uint8_t digit_size, PifActFndDisplay act_display);
 
 /**
  * @fn pifFnd_Destroy
@@ -70,12 +70,12 @@ void pifFnd_Destroy(PifFnd** pp_owner);
  * @brief
  * @param p_owner
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param digit_size
  * @param act_display
  * @return
  */
-BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifPulse* p_timer, uint8_t digit_size, PifActFndDisplay act_display);
+BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifTimerManager* p_timer_manager, uint8_t digit_size, PifActFndDisplay act_display);
 
 /**
  * @fn pifFnd_Clear

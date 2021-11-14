@@ -61,13 +61,13 @@ extern "C" {
  * @fn pifStepMotorSpeed_Create
  * @brief 
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param resolution
  * @param operation
  * @param period1ms
  * @return 
  */
-PifStepMotor* pifStepMotorSpeed_Create(PifId id, PifPulse* p_timer, uint8_t resolution, PifStepMotorOperation operation, uint16_t period1ms);
+PifStepMotor* pifStepMotorSpeed_Create(PifId id, PifTimerManager* p_timer_manager, uint8_t resolution, PifStepMotorOperation operation, uint16_t period1ms);
 
 /**
  * @fn pifStepMotorSpeed_Destroy

@@ -85,7 +85,7 @@ static void _parsingPacket(PifXmodem* p_owner, PifActCommReceiveData act_receive
 
 				p_owner->__rx.count = 1;
 				p_owner->__rx.state = XRS_GET_HEADER;
-				if (!pifPulse_StartItem(p_owner->__rx.p_timer, p_owner->__rx.timeout * 1000L / p_owner->__p_timer->_period1us)) {
+				if (!pifTimer_Start(p_owner->__rx.p_timer, p_owner->__rx.timeout * 1000L / p_owner->__p_timer_manager->_period1us)) {
 #ifndef __PIF_NO_LOG__
 					pifLog_Printf(LT_WARN, "XM(%u) Not start timer", p_owner->_id);
 #endif
@@ -139,7 +139,7 @@ static void _parsingPacket(PifXmodem* p_owner, PifActCommReceiveData act_receive
 				p_owner->__rx.crc = data;
 				crc = pifCheckSum(p_packet->p_data, 128);
 				if (p_owner->__rx.crc == crc) {
-					pifPulse_StopItem(p_owner->__rx.p_timer);
+					pifTimer_Stop(p_owner->__rx.p_timer);
 					p_owner->__rx.state = XRS_SOH;
 
 					p_owner->__tx.state = XTS_ACK;
@@ -162,7 +162,7 @@ static void _parsingPacket(PifXmodem* p_owner, PifActCommReceiveData act_receive
 					p_owner->__rx.crc |= data;
 					crc = pifCrc16(p_packet->p_data, 128);
 					if (p_owner->__rx.crc == crc) {
-			            pifPulse_StopItem(p_owner->__rx.p_timer);
+			            pifTimer_Stop(p_owner->__rx.p_timer);
 			            p_owner->__rx.state = XRS_SOH;
 
 			            p_owner->__tx.state = XTS_ACK;
@@ -186,7 +186,7 @@ static void _parsingPacket(PifXmodem* p_owner, PifActCommReceiveData act_receive
 	return;
 
 fail:
-	pifPulse_StopItem(p_owner->__rx.p_timer);
+	pifTimer_Stop(p_owner->__rx.p_timer);
 	p_owner->__rx.state = XRS_IDLE;
 
 	p_owner->__tx.state = XTS_NAK;
@@ -203,7 +203,7 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 			case ASCII_ACK:
 			case ASCII_NAK:
 			case ASCII_CAN:
-				pifPulse_StopItem(p_owner->__tx.p_timer);
+				pifTimer_Stop(p_owner->__tx.p_timer);
 				p_owner->__tx.state = XTS_IDLE;
 				if (p_owner->__tx.evt_receive) {
 					(*p_owner->__tx.evt_receive)(data, p_owner->__p_data[1]);
@@ -312,7 +312,7 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 	return FALSE;
 }
 
-PifXmodem* pifXmodem_Create(PifId id, PifPulse* p_timer, PifXmodemType type)
+PifXmodem* pifXmodem_Create(PifId id, PifTimerManager* p_timer_manager, PifXmodemType type)
 {
     PifXmodem *p_owner = malloc(sizeof(PifXmodem));
     if (!p_owner) {
@@ -320,7 +320,7 @@ PifXmodem* pifXmodem_Create(PifId id, PifPulse* p_timer, PifXmodemType type)
 		return NULL;
 	}
 
-	if (!pifXmodem_Init(p_owner, id, p_timer, type)) {
+	if (!pifXmodem_Init(p_owner, id, p_timer_manager, type)) {
 		pifXmodem_Destroy(&p_owner);
 		return NULL;
 	}
@@ -337,16 +337,16 @@ void pifXmodem_Destroy(PifXmodem** pp_owner)
     }
 }
 
-BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifPulse* p_timer, PifXmodemType type)
+BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifTimerManager* p_timer_manager, PifXmodemType type)
 {
-    if (!p_owner || !p_timer) {
+    if (!p_owner || !p_timer_manager) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
 	memset(p_owner, 0, sizeof(PifXmodem));
 
-    p_owner->__p_timer = p_timer;
+    p_owner->__p_timer_manager = p_timer_manager;
     switch (type) {
     case XT_ORIGINAL:
     	p_owner->__packet_size = 3 + 128 + 1;
@@ -367,18 +367,18 @@ BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifPulse* p_timer, PifXmodemTy
         goto fail;
     }
 
-    p_owner->__tx.p_timer = pifPulse_AddItem(p_timer, PT_ONCE);
+    p_owner->__tx.p_timer = pifTimerManager_Add(p_timer_manager, TT_ONCE);
     if (!p_owner->__tx.p_timer) goto fail;
 
-    p_owner->__rx.p_timer = pifPulse_AddItem(p_timer, PT_ONCE);
+    p_owner->__rx.p_timer = pifTimerManager_Add(p_timer_manager, TT_ONCE);
     if (!p_owner->__rx.p_timer) goto fail;
 
     p_owner->__type = type;
 
-    pifPulse_AttachEvtFinish(p_owner->__tx.p_timer, _evtTimerTxTimeout, p_owner);
+    pifTimer_AttachEvtFinish(p_owner->__tx.p_timer, _evtTimerTxTimeout, p_owner);
     p_owner->__tx.timeout = PIF_XMODEM_RESPONSE_TIMEOUT;
 
-    pifPulse_AttachEvtFinish(p_owner->__rx.p_timer, _evtTimerRxTimeout, p_owner);
+    pifTimer_AttachEvtFinish(p_owner->__rx.p_timer, _evtTimerRxTimeout, p_owner);
     p_owner->__rx.timeout = PIF_XMODEM_RECEIVE_TIMEOUT;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
@@ -397,11 +397,11 @@ void pifXmodem_Clear(PifXmodem* p_owner)
 		p_owner->__p_data = NULL;
 	}
 	if (p_owner->__rx.p_timer) {
-		pifPulse_RemoveItem(p_owner->__rx.p_timer);
+		pifTimerManager_Remove(p_owner->__rx.p_timer);
 		p_owner->__rx.p_timer = NULL;
 	}
 	if (p_owner->__tx.p_timer) {
-		pifPulse_RemoveItem(p_owner->__tx.p_timer);
+		pifTimerManager_Remove(p_owner->__tx.p_timer);
 		p_owner->__tx.p_timer = NULL;
 	}
 }
@@ -480,7 +480,7 @@ BOOL pifXmodem_SendData(PifXmodem* p_owner, uint8_t packet_no, uint8_t* p_data, 
 
 	p_owner->__tx.data_pos = 0;
 	p_owner->__tx.state = XTS_SENDING;
-	if (!pifPulse_StartItem(p_owner->__tx.p_timer, p_owner->__tx.timeout * 1000L / p_owner->__p_timer->_period1us)) {
+	if (!pifTimer_Start(p_owner->__tx.p_timer, p_owner->__tx.timeout * 1000L / p_owner->__p_timer_manager->_period1us)) {
 #ifndef __PIF_NO_LOG__
 		pifLog_Printf(LT_WARN, "XM(%u) Not start timer", p_owner->_id);
 #endif

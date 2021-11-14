@@ -34,7 +34,7 @@ static void _evtTimerBreakFinish(void* p_issuer)
     }
 }
 
-PifDutyMotor* pifDutyMotor_Create(PifId id, PifPulse* p_timer, uint16_t max_duty)
+PifDutyMotor* pifDutyMotor_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty)
 {
     PifDutyMotor* p_owner = malloc(sizeof(PifDutyMotor));
     if (!p_owner) {
@@ -42,7 +42,7 @@ PifDutyMotor* pifDutyMotor_Create(PifId id, PifPulse* p_timer, uint16_t max_duty
 	    return NULL;
 	}
 
-    if (!pifDutyMotor_Init(p_owner, id, p_timer, max_duty)) {
+    if (!pifDutyMotor_Init(p_owner, id, p_timer_manager, max_duty)) {
 		pifDutyMotor_Destroy(&p_owner);
 		return NULL;
 	}
@@ -58,16 +58,16 @@ void pifDutyMotor_Destroy(PifDutyMotor** pp_owner)
 	}
 }
 
-BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint16_t max_duty)
+BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty)
 {
-    if (!p_owner || !p_timer || !max_duty) {
+    if (!p_owner || !p_timer_manager || !max_duty) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
     memset(p_owner, 0, sizeof(PifDutyMotor));
 
-    p_owner->_p_timer = p_timer;
+    p_owner->_p_timer_manager = p_timer_manager;
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     p_owner->_max_duty = max_duty;
@@ -77,11 +77,11 @@ BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifPulse* p_timer, uint1
 void pifDutyMotor_Clear(PifDutyMotor* p_owner)
 {
 	if (p_owner->__p_timer_delay) {
-		pifPulse_RemoveItem(p_owner->__p_timer_delay);
+		pifTimerManager_Remove(p_owner->__p_timer_delay);
 		p_owner->__p_timer_delay = NULL;
 	}
 	if (p_owner->__p_timer_break) {
-		pifPulse_RemoveItem(p_owner->__p_timer_break);
+		pifTimerManager_Remove(p_owner->__p_timer_break);
 		p_owner->__p_timer_break = NULL;
 	}
 }
@@ -104,11 +104,11 @@ void pifDutyMotor_SetDuty(PifDutyMotor* p_owner, uint16_t duty)
 BOOL pifDutyMotor_SetOperatingTime(PifDutyMotor* p_owner, uint32_t operating_time)
 {
 	if (!p_owner->__p_timer_break) {
-		p_owner->__p_timer_break = pifPulse_AddItem(p_owner->_p_timer, PT_ONCE);
+		p_owner->__p_timer_break = pifTimerManager_Add(p_owner->_p_timer_manager, TT_ONCE);
 	}
 	if (p_owner->__p_timer_break) {
-		pifPulse_AttachEvtFinish(p_owner->__p_timer_break, _evtTimerBreakFinish, p_owner);
-		if (pifPulse_StartItem(p_owner->__p_timer_break, operating_time)) {
+		pifTimer_AttachEvtFinish(p_owner->__p_timer_break, _evtTimerBreakFinish, p_owner);
+		if (pifTimer_Start(p_owner->__p_timer_break, operating_time)) {
 			return TRUE;
 		}
 	}
@@ -138,11 +138,11 @@ void pifDutyMotor_BreakRelease(PifDutyMotor* p_owner, uint16_t break_time)
 
     if (break_time && p_owner->act_operate_break) {
 	    if (!p_owner->__p_timer_break) {
-	    	p_owner->__p_timer_break = pifPulse_AddItem(p_owner->_p_timer, PT_ONCE);
+	    	p_owner->__p_timer_break = pifTimerManager_Add(p_owner->_p_timer_manager, TT_ONCE);
 	    }
 	    if (p_owner->__p_timer_break) {
-	    	pifPulse_AttachEvtFinish(p_owner->__p_timer_break, _evtTimerBreakFinish, p_owner);
-			if (pifPulse_StartItem(p_owner->__p_timer_break, break_time)) {
+	    	pifTimer_AttachEvtFinish(p_owner->__p_timer_break, _evtTimerBreakFinish, p_owner);
+			if (pifTimer_Start(p_owner->__p_timer_break, break_time)) {
 		    	(*p_owner->act_operate_break)(1);
 			}
 	    }

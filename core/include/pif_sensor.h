@@ -2,7 +2,6 @@
 #define PIF_SENSOR_H
 
 
-#include "pif_pulse.h"
 #include "pif_task.h"
 
 

@@ -24,7 +24,7 @@ static void _evtTimerBlinkFinish(void* p_issuer)
     if (bBlink) (*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
-PifLed* pifLed_Create(PifId id, PifPulse* p_timer, uint8_t count, PifActLedState act_state)
+PifLed* pifLed_Create(PifId id, PifTimerManager* p_timer_manager, uint8_t count, PifActLedState act_state)
 {
 	PifLed* p_owner = malloc(sizeof(PifLed));
     if (!p_owner) {
@@ -32,7 +32,7 @@ PifLed* pifLed_Create(PifId id, PifPulse* p_timer, uint8_t count, PifActLedState
 	    return NULL;
 	}
 
-    if (!pifLed_Init(p_owner, id, p_timer, count, act_state)) {
+    if (!pifLed_Init(p_owner, id, p_timer_manager, count, act_state)) {
 		pifLed_Destroy(&p_owner);
 	    return NULL;
 	}
@@ -48,16 +48,16 @@ void pifLed_Destroy(PifLed** pp_owner)
 	}
 }
 
-BOOL pifLed_Init(PifLed* p_owner, PifId id, PifPulse* p_timer, uint8_t count, PifActLedState act_state)
+BOOL pifLed_Init(PifLed* p_owner, PifId id, PifTimerManager* p_timer_manager, uint8_t count, PifActLedState act_state)
 {
-	if (!p_owner || !p_timer || !count || count > 32 || !act_state) {
+	if (!p_owner || !p_timer_manager || !count || count > 32 || !act_state) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
 	memset(p_owner, 0, sizeof(PifLed));
 
-    p_owner->__p_timer = p_timer;
+    p_owner->__p_timer_manager = p_timer_manager;
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     p_owner->count = count;
@@ -68,7 +68,7 @@ BOOL pifLed_Init(PifLed* p_owner, PifId id, PifPulse* p_timer, uint8_t count, Pi
 void pifLed_Clear(PifLed* p_owner)
 {
 	if (p_owner->__p_timer_blink) {
-		pifPulse_RemoveItem(p_owner->__p_timer_blink);
+		pifTimerManager_Remove(p_owner->__p_timer_blink);
 		p_owner->__p_timer_blink = NULL;
 	}
 }
@@ -134,20 +134,20 @@ BOOL pifLed_AttachBlink(PifLed* p_owner, uint16_t period1ms)
     }
 
 	if (!p_owner->__p_timer_blink) {
-		p_owner->__p_timer_blink = pifPulse_AddItem(p_owner->__p_timer, PT_REPEAT);
+		p_owner->__p_timer_blink = pifTimerManager_Add(p_owner->__p_timer_manager, TT_REPEAT);
 		if (!p_owner->__p_timer_blink) return FALSE;
-		pifPulse_AttachEvtFinish(p_owner->__p_timer_blink, _evtTimerBlinkFinish, p_owner);
+		pifTimer_AttachEvtFinish(p_owner->__p_timer_blink, _evtTimerBlinkFinish, p_owner);
 	}
 
 	p_owner->__blink_flag = 0L;
-    pifPulse_StartItem(p_owner->__p_timer_blink, period1ms * 1000L / p_owner->__p_timer->_period1us);
+    pifTimer_Start(p_owner->__p_timer_blink, period1ms * 1000L / p_owner->__p_timer_manager->_period1us);
 	return TRUE;
 }
 
 void pifLed_DetachBlink(PifLed* p_owner)
 {
 	if (p_owner->__p_timer_blink) {
-		pifPulse_RemoveItem(p_owner->__p_timer_blink);
+		pifTimerManager_Remove(p_owner->__p_timer_blink);
 		p_owner->__p_timer_blink = NULL;
 	}
 }
@@ -159,12 +159,12 @@ BOOL pifLed_ChangeBlinkPeriod(PifLed* p_owner, uint16_t period1ms)
 		return FALSE;
     }
 
-	if (!p_owner->__p_timer_blink || p_owner->__p_timer_blink->_step == PS_STOP) {
+	if (!p_owner->__p_timer_blink || p_owner->__p_timer_blink->_step == TS_STOP) {
         pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
-	p_owner->__p_timer_blink->target = period1ms * 1000L / p_owner->__p_timer->_period1us;
+	p_owner->__p_timer_blink->target = period1ms * 1000L / p_owner->__p_timer_manager->_period1us;
 	return TRUE;
 }
 

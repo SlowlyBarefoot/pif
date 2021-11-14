@@ -53,7 +53,7 @@ static uint16_t _doTask(PifTask* p_task)
 		break;
 
 	case SR_NEXT:
-		if (p_owner->__p_timer_timeout) pifPulse_StopItem(p_owner->__p_timer_timeout);
+		if (p_owner->__p_timer_timeout) pifTimer_Stop(p_owner->__p_timer_timeout);
 
 		ucPhaseNoNext = p_owner->phase_no_next;
 		if (ucPhaseNoNext == PIF_SEQUENCE_PHASE_NO_IDLE) {
@@ -130,7 +130,7 @@ void pifSequence_ColSigClear()
 
 #endif
 
-PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, uint16_t control_period1ms,
+PifSequence* pifSequence_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t control_period1ms,
 		const PifSequencePhase* p_phase_list, void* p_param)
 {
     PifSequence* p_owner = malloc(sizeof(PifSequence));
@@ -139,7 +139,7 @@ PifSequence* pifSequence_Create(PifId id, PifPulse* p_timer, uint16_t control_pe
 	    return NULL;
 	}
 
-	if (!pifSequence_Init(p_owner, id, p_timer, control_period1ms, p_phase_list, p_param)) {
+	if (!pifSequence_Init(p_owner, id, p_timer_manager, control_period1ms, p_phase_list, p_param)) {
 		pifSequence_Destroy(&p_owner);
 	    return NULL;
 	}
@@ -155,10 +155,10 @@ void pifSequence_Destroy(PifSequence** pp_owner)
     }
 }
 
-BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, uint16_t control_period1ms,
+BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t control_period1ms,
 		const PifSequencePhase* p_phase_list, void* p_param)
 {
-    if (!p_owner || !p_timer || !p_phase_list) {
+    if (!p_owner || !p_timer_manager || !p_phase_list) {
         pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
@@ -170,7 +170,7 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifPulse* p_timer, uint16_
 
 	memset(p_owner, 0, sizeof(PifSequence));
 
-    p_owner->__p_timer = p_timer;
+    p_owner->__p_timer_manager = p_timer_manager;
     p_owner->__p_phase_list = p_phase_list;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
@@ -211,7 +211,7 @@ void pifSequence_Clear(PifSequence* p_owner)
 		p_owner->__p_task = NULL;
 	}
 	if (p_owner->__p_timer_timeout) {
-		pifPulse_RemoveItem(p_owner->__p_timer_timeout);
+		pifTimerManager_Remove(p_owner->__p_timer_timeout);
 		p_owner->__p_timer_timeout = NULL;
 	}
 }
@@ -261,10 +261,10 @@ void pifSequence_Start(PifSequence* p_owner)
 BOOL pifSequence_SetTimeout(PifSequence* p_owner, uint16_t timeout)
 {
 	if (!p_owner->__p_timer_timeout) {
-		p_owner->__p_timer_timeout = pifPulse_AddItem(p_owner->__p_timer, PT_ONCE);
+		p_owner->__p_timer_timeout = pifTimerManager_Add(p_owner->__p_timer_manager, TT_ONCE);
 		if (!p_owner->__p_timer_timeout) return FALSE;
-		pifPulse_AttachEvtFinish(p_owner->__p_timer_timeout, _evtTimerTimeoutFinish, p_owner);
+		pifTimer_AttachEvtFinish(p_owner->__p_timer_timeout, _evtTimerTimeoutFinish, p_owner);
 	}
-	pifPulse_StartItem(p_owner->__p_timer_timeout, timeout);
+	pifTimer_Start(p_owner->__p_timer_timeout, timeout);
 	return TRUE;
 }

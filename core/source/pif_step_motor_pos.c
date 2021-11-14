@@ -81,7 +81,7 @@ static uint16_t _doTask(PifTask* p_task)
     if (p_parent->_state == MS_BREAK) {
     	pifStepMotor_Break(p_parent);
 		if (p_stage->rs_break_time &&
-				pifPulse_StartItem(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
+				pifTimer_Start(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
 			p_parent->_state = MS_BREAKING;
     	}
     	else {
@@ -161,11 +161,11 @@ static void _fnStopStep(PifStepMotor* p_parent)
 #endif
 }
 
-PifStepMotor* pifStepMotorPos_Create(PifId id, PifPulse* p_timer, uint8_t resolution, PifStepMotorOperation operation, uint16_t period1ms)
+PifStepMotor* pifStepMotorPos_Create(PifId id, PifTimerManager* p_timer_manager, uint8_t resolution, PifStepMotorOperation operation, uint16_t period1ms)
 {
 	PifStepMotorPos* p_owner = NULL;
 
-    if (!p_timer) {
+    if (!p_timer_manager) {
 		pif_error = E_INVALID_PARAM;
 		return NULL;
 	}
@@ -177,11 +177,11 @@ PifStepMotor* pifStepMotorPos_Create(PifId id, PifPulse* p_timer, uint8_t resolu
     }
 
     PifStepMotor* p_parent = &p_owner->parent;
-    if (!pifStepMotor_Init(p_parent, id, p_timer, resolution, operation)) goto fail;
+    if (!pifStepMotor_Init(p_parent, id, p_timer_manager, resolution, operation)) goto fail;
 
-    p_parent->__p_timer_delay = pifPulse_AddItem(p_parent->_p_timer, PT_ONCE);
+    p_parent->__p_timer_delay = pifTimerManager_Add(p_parent->_p_timer_manager, TT_ONCE);
     if (!p_parent->__p_timer_delay) goto fail;
-    pifPulse_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent);
+    pifTimer_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent);
 
     p_parent->__stop_step = _fnStopStep;
 

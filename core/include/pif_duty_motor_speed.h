@@ -61,12 +61,12 @@ extern "C" {
  * @fn pifDutyMotorSpeed_Create
  * @brief 
  * @param id
- * @param p_timer
+ * @param p_timer_manager
  * @param max_duty
  * @param period1ms
  * @return 
  */
-PifDutyMotor* pifDutyMotorSpeed_Create(PifId id, PifPulse* p_timer, uint16_t max_duty, uint16_t period1ms);
+PifDutyMotor* pifDutyMotorSpeed_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms);
 
 /**
  * @fn pifDutyMotorSpeed_Destroy
