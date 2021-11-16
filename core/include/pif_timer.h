@@ -77,22 +77,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifTimerManager_Create
- * @brief Timer manager를 추가한다.
- * @param id
- * @param period1us
- * @return TimerManager 구조체 포인터를 반환한다.
- */
-PifTimerManager* pifTimerManager_Create(PifId id, uint32_t period1us, int max_count);
-
-/**
- * @fn pifTimerManager_Destroy
- * @brief Timer manager용 메모리를 반환한다.
- * @param pp_manager Timer manager 자신
- */
-void pifTimerManager_Destroy(PifTimerManager** pp_manager);
-
-/**
  * @fn pifTimerManager_Init
  * @brief Timer manager를 추가한다.
  * @param p_manager

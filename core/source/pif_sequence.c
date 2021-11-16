@@ -130,31 +130,6 @@ void pifSequence_ColSigClear()
 
 #endif
 
-PifSequence* pifSequence_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t control_period1ms,
-		const PifSequencePhase* p_phase_list, void* p_param)
-{
-    PifSequence* p_owner = malloc(sizeof(PifSequence));
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-	    return NULL;
-	}
-
-	if (!pifSequence_Init(p_owner, id, p_timer_manager, control_period1ms, p_phase_list, p_param)) {
-		pifSequence_Destroy(&p_owner);
-	    return NULL;
-	}
-    return p_owner;
-}
-
-void pifSequence_Destroy(PifSequence** pp_owner)
-{
-	if (*pp_owner) {
-		pifSequence_Clear(*pp_owner);
-        free(*pp_owner);
-        *pp_owner = NULL;
-    }
-}
-
 BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t control_period1ms,
 		const PifSequencePhase* p_phase_list, void* p_param)
 {

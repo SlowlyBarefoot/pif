@@ -153,31 +153,6 @@ static void _evtTimerShiftFinish(void* p_issuer)
     }
 }
 
-PifDotMatrix* pifDotMatrix_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t col_size, uint16_t row_size,
-		PifActDotMatrixDisplay act_display)
-{
-	PifDotMatrix* p_owner = malloc(sizeof(PifDotMatrix));
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-	    return NULL;
-	}
-
-	if (!pifDotMatrix_Init(p_owner, id, p_timer_manager, col_size, row_size, act_display)) {
-		pifDotMatrix_Destroy(&p_owner);
-		return NULL;
-	}
-    return p_owner;
-}
-
-void pifDotMatrix_Destroy(PifDotMatrix** pp_owner)
-{
-	if (*pp_owner) {
-		pifDotMatrix_Clear(*pp_owner);
-		free(*pp_owner);
-		*pp_owner = NULL;
-	}
-}
-
 BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t col_size, uint16_t row_size,
 		PifActDotMatrixDisplay act_display)
 {

@@ -26,30 +26,6 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-PifTimerManager* pifTimerManager_Create(PifId id, uint32_t period1us, int max_count)
-{
-	PifTimerManager* p_manager = malloc(sizeof(PifTimerManager));
-    if (!p_manager) {
-    	pif_error = E_OUT_OF_HEAP;
-		return NULL;
-	}
-
-	if (!pifTimerManager_Init(p_manager, id, period1us, max_count)) {
-		pifTimerManager_Destroy(&p_manager);
-		return NULL;
-	}
-    return p_manager;
-}
-
-void pifTimerManager_Destroy(PifTimerManager** pp_manager)
-{
-	if (*pp_manager) {
-		pifTimerManager_Clear(*pp_manager);
-		free(*pp_manager);
-		*pp_manager = NULL;
-	}
-}
-
 BOOL pifTimerManager_Init(PifTimerManager* p_manager, PifId id, uint32_t period1us, int max_count)
 {
     if (!p_manager || !period1us) {

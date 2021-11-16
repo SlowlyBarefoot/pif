@@ -108,23 +108,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifXmodem_Create
- * @brief
- * @param id
- * @param p_timer_manager
- * @param type
- * @return
- */
-PifXmodem* pifXmodem_Create(PifId id, PifTimerManager* p_timer_manager, PifXmodemType type);
-
-/**
- * @fn pifXmodem_Destroy
- * @brief
- * @param pp_owner
- */
-void pifXmodem_Destroy(PifXmodem** pp_owner);
-
-/**
  * @fn pifXmodem_Init
  * @brief
  * @param p_owner

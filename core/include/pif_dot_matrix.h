@@ -101,26 +101,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifDotMatrix_Create
- * @brief
- * @param id
- * @param p_timer_manager
- * @param col_size
- * @param row_size
- * @param act_display
- * @return
- */
-PifDotMatrix* pifDotMatrix_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t col_size, uint16_t row_size,
-		PifActDotMatrixDisplay act_display);
-
-/**
- * @fn pifDotMatrix_Destroy
- * @brief
- * @param pp_owner
- */
-void pifDotMatrix_Destroy(PifDotMatrix** pp_owner);
-
-/**
  * @fn pifDotMatrix_Init
  * @brief
  * @param p_owner

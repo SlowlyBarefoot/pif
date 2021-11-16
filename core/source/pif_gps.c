@@ -4,29 +4,6 @@
 #endif
 
 
-PifGps* pifGps_Create(PifId id)
-{
-	PifGps *p_owner = malloc(sizeof(PifGps));
-	if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-	    return NULL;
-	}
-
-	if (!pifGps_Init(p_owner, id)) {
-		pifGps_Destroy(&p_owner);
-	    return NULL;
-	}
-    return p_owner;
-}
-
-void pifGps_Destroy(PifGps** pp_owner)
-{
-	if (*pp_owner) {
-		free(*pp_owner);
-		*pp_owner = NULL;
-	}
-}
-
 BOOL pifGps_Init(PifGps* p_owner, PifId id)
 {
 	if (!p_owner) {

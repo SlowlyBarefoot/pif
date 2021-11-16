@@ -103,26 +103,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifSolenoid_Create
- * @brief
- * @param id
- * @param p_timer_manager
- * @param type
- * @param on_time
- * @param act_control
- * @return
- */
-PifSolenoid* pifSolenoid_Create(PifId id, PifTimerManager* p_timer_manager, PifSolenoidType type, uint16_t on_time,
-		PifActSolenoidControl act_control);
-
-/**
- * @fn pifSolenoid_Destroy
- * @brief
- * @param pp_owner
- */
-void pifSolenoid_Destroy(PifSolenoid** pp_owner);
-
-/**
  * @fn pifSolenoid_Init
  * @brief
  * @param p_owner

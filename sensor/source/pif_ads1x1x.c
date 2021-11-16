@@ -75,30 +75,6 @@ static uint32_t _conversionDelay(PifAds1x1x* p_owner)
     return 0;
 }
 
-PifAds1x1x* pifAds1x1x_Create(PifId id, PifAds1x1xType type)
-{
-    PifAds1x1x *p_owner = malloc(sizeof(PifAds1x1x));
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-		return NULL;
-	}
-
-	if (!pifAds1x1x_Init(p_owner, id, type)) {
-		pifAds1x1x_Destroy(&p_owner);
-		return NULL;
-	}
-    return p_owner;
-}
-
-void pifAds1x1x_Destroy(PifAds1x1x** pp_owner)
-{
-    if (*pp_owner) {
-		pifAds1x1x_Clear(*pp_owner);
-    	free(*pp_owner);
-    	*pp_owner = NULL;
-    }
-}
-
 BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type)
 {
 	if (!p_owner) {

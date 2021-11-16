@@ -38,30 +38,6 @@ static void _sendData(PifComm* p_owner)
 	}
 }
 
-PifComm* pifComm_Create(PifId id)
-{
-    PifComm* p_owner = malloc(sizeof(PifComm));
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-	    return NULL;
-	}
-
-    if (!pifComm_Init(p_owner, id)) {
-		pifComm_Destroy(&p_owner);
-		return NULL;
-	}
-    return p_owner;
-}
-
-void pifComm_Destroy(PifComm** pp_owner)
-{
-	if (*pp_owner) {
-		pifComm_Clear(*pp_owner);
-		free(*pp_owner);
-		*pp_owner = NULL;
-	}
-}
-
 BOOL pifComm_Init(PifComm* p_owner, PifId id)
 {
 	if (!p_owner) {

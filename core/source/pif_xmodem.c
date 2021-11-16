@@ -312,31 +312,6 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 	return FALSE;
 }
 
-PifXmodem* pifXmodem_Create(PifId id, PifTimerManager* p_timer_manager, PifXmodemType type)
-{
-    PifXmodem *p_owner = malloc(sizeof(PifXmodem));
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-		return NULL;
-	}
-
-	if (!pifXmodem_Init(p_owner, id, p_timer_manager, type)) {
-		pifXmodem_Destroy(&p_owner);
-		return NULL;
-	}
-
-    return p_owner;
-}
-
-void pifXmodem_Destroy(PifXmodem** pp_owner)
-{
-    if (*pp_owner) {
-    	pifXmodem_Clear(*pp_owner);
-    	free(*pp_owner);
-    	*pp_owner = NULL;
-    }
-}
-
 BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifTimerManager* p_timer_manager, PifXmodemType type)
 {
     if (!p_owner || !p_timer_manager) {

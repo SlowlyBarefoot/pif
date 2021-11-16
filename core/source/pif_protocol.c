@@ -415,31 +415,6 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 	return FALSE;
 }
 
-PifProtocol* pifProtocol_Create(PifId id, PifTimerManager* p_timer_manager, PifProtocolType type,
-		const PifProtocolQuestion* p_questions)
-{
-    PifProtocol* p_owner = malloc(sizeof(PifProtocol));
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-		return NULL;
-	}
-
-	if (!pifProtocol_Init(p_owner, id, p_timer_manager, type, p_questions)) {
-		pifProtocol_Destroy(&p_owner);
-		return NULL;
-	}
-    return p_owner;
-}
-
-void pifProtocol_Destroy(PifProtocol** pp_owner)
-{
-    if (*pp_owner) {
-    	pifProtocol_Clear(*pp_owner);
-    	free(*pp_owner);
-    	*pp_owner = NULL;
-    }
-}
-
 BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifTimerManager* p_timer_manager, PifProtocolType type,
 		const PifProtocolQuestion* p_questions)
 {

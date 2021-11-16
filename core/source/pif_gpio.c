@@ -49,30 +49,6 @@ void pifGpio_ColSigClear()
 
 #endif
 
-PifGpio* pifGpio_Create(PifId id, uint8_t count)
-{
-    PifGpio* p_owner = malloc(sizeof(PifGpio));
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-	    return NULL;
-	}
-
-    if (!pifGpio_Init(p_owner, id, count)) {
-		pifGpio_Destroy(&p_owner);
-	    return NULL;
-	}
-    return p_owner;
-}
-
-void pifGpio_Destroy(PifGpio** pp_owner)
-{
-    if (*pp_owner) {
-    	pifGpio_Clear(*pp_owner);
-    	free(*pp_owner);
-        *pp_owner = NULL;
-    }
-}
-
 BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count)
 {
 	if (!p_owner || !count || count > PIF_GPIO_MAX_COUNT) {

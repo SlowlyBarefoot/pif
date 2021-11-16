@@ -128,30 +128,6 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-PifKeypad* pifKeypad_Create(PifId id, uint8_t num, const char* p_user_keymap)
-{
-	PifKeypad* p_owner = malloc(sizeof(PifKeypad));
-	if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-		return NULL;
-	}
-
-	if (!pifKeypad_Init(p_owner, id, num, p_user_keymap)) {
-		pifKeypad_Destroy(&p_owner);
-		return NULL;
-	}
-    return p_owner;
-}
-
-void pifKeypad_Destroy(PifKeypad** pp_owner)
-{
-	if (*pp_owner) {
-		pifKeypad_Clear(*pp_owner);
-		free(*pp_owner);
-		*pp_owner = NULL;
-	}
-}
-
 BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num, const char* p_user_keymap)
 {
 	if (!p_owner || !num || !p_user_keymap) {

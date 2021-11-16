@@ -59,21 +59,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifGps_Create
- * @brief
- * @param id
- * @return
- */
-PifGps* pifGps_Create(PifId id);
-
-/**
- * @fn pifGps_Destroy
- * @brief
- * @param pp_owner
- */
-void pifGps_Destroy(PifGps** pp_owner);
-
-/**
  * @fn pifGps_Init
  * @brief
  * @param p_owner

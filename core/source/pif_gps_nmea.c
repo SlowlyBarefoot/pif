@@ -375,30 +375,6 @@ BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 	return FALSE;
 }
 
-PifGpsNmea* pifGpsNmea_Create(PifId id)
-{
-	PifGpsNmea* p_owner = malloc(sizeof(PifGpsNmea));
-    if (!p_owner) {
-        pif_error = E_OUT_OF_HEAP;
-	    return NULL;
-    }
-
-	if (!pifGpsNmea_Init(p_owner, id)) {
-		pifGpsNmea_Destroy(&p_owner);
-	    return NULL;
-	}
-    return p_owner;
-}
-
-void pifGpsNmea_Destroy(PifGpsNmea** pp_owner)
-{
-	if (*pp_owner) {
-		pifGpsNmea_Clear(*pp_owner);
-		free(*pp_owner);
-		*pp_owner = NULL;
-	}
-}
-
 BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId id)
 {
 	if (!p_owner) {

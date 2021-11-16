@@ -59,30 +59,6 @@ void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count)
 	s_user_char_count = count;
 }
 
-PifFnd* pifFnd_Create(PifId id, PifTimerManager* p_timer_manager, uint8_t digit_size, PifActFndDisplay act_display)
-{
-    PifFnd *p_owner = malloc(sizeof(PifFnd));
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-		return NULL;
-	}
-
-	if (!pifFnd_Init(p_owner, id, p_timer_manager, digit_size, act_display)) {
-		pifFnd_Destroy(&p_owner);
-		return NULL;
-	}
-    return p_owner;
-}
-
-void pifFnd_Destroy(PifFnd** pp_owner)
-{
-	if (*pp_owner) {
-		pifFnd_Clear(*pp_owner);
-		free(*pp_owner);
-		*pp_owner = NULL;
-	}
-}
-
 BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifTimerManager* p_timer_manager, uint8_t digit_size, PifActFndDisplay act_display)
 {
     if (!p_owner || !p_timer_manager || !digit_size || !act_display) {

@@ -4,30 +4,6 @@
 #endif
 
 
-PifI2c* pifI2c_Create(PifId id, uint16_t data_size)
-{
-	PifI2c* p_owner = malloc(sizeof(PifI2c));
-	if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-		return NULL;
-	}
-
-	if (!pifI2c_Init(p_owner, id, data_size)) {
-		pifI2c_Destroy(&p_owner);
-		return NULL;
-	}
-    return p_owner;
-}
-
-void pifI2c_Destroy(PifI2c** pp_owner)
-{
-	if (*pp_owner) {
-		pifI2c_Clear(*pp_owner);
-		free(*pp_owner);
-		*pp_owner = NULL;
-	}
-}
-
 BOOL pifI2c_Init(PifI2c* p_owner, PifId id, uint16_t data_size)
 {
 	if (!p_owner || !data_size) {

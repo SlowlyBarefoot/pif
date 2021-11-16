@@ -145,31 +145,6 @@ void pifSolenoid_ColSigClear()
 
 #endif
 
-PifSolenoid* pifSolenoid_Create(PifId id, PifTimerManager* p_timer_manager, PifSolenoidType type, uint16_t on_time,
-		PifActSolenoidControl act_control)
-{
-    PifSolenoid* p_owner = malloc(sizeof(PifSolenoid));
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-	    return NULL;
-	}
-
-	if (!pifSolenoid_Init(p_owner, id, p_timer_manager, type, on_time, act_control)) {
-		pifSolenoid_Destroy(&p_owner);
-	    return NULL;
-	}
-    return p_owner;
-}
-
-void pifSolenoid_Destroy(PifSolenoid** pp_owner)
-{
-    if (*pp_owner) {
-		pifSolenoid_Clear(*pp_owner);
-    	free(*pp_owner);
-        *pp_owner = NULL;
-    }
-}
-
 BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifTimerManager* p_timer_manager, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control)
 {

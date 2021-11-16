@@ -95,21 +95,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifGpsNmea_Create
- * @brief
- * @param id
- * @return
- */
-PifGpsNmea* pifGpsNmea_Create(PifId usPifId);
-
-/**
- * @fn pifGpsNmea_Destroy
- * @brief
- * @param pp_owner
- */
-void pifGpsNmea_Destroy(PifGpsNmea** pp_owner);
-
-/**
  * @fn pifGpsNmea_Init
  * @brief
  * @param p_owner

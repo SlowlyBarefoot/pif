@@ -97,21 +97,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifComm_Create
- * @brief 
- * @param id
- * @return 
- */
-PifComm* pifComm_Create(PifId id);
-
-/**
- * @fn pifComm_Destroy
- * @brief 
- * @param pp_owner
- */
-void pifComm_Destroy(PifComm** pp_owner);
-
-/**
  * @fn pifComm_Init
  * @brief
  * @param p_owner

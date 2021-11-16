@@ -81,30 +81,6 @@ static void _send(PifPmlcdI2c* p_owner, uint8_t value, uint8_t mode)
 	_write4bits(p_owner, ((value << 4) & 0xf0) | mode);
 }
 
-PifPmlcdI2c* pifPmlcdI2c_Create(PifId id, uint8_t addr)
-{
-    PifPmlcdI2c* p_owner = malloc(sizeof(PifPmlcdI2c));
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-		return NULL;
-	}
-
-    if (!pifPmlcdI2c_Init(p_owner, id, addr)) {
-		pifPmlcdI2c_Destroy(&p_owner);
-		return NULL;
-	}
-    return p_owner;
-}
-
-void pifPmlcdI2c_Destroy(PifPmlcdI2c** pp_owner)
-{
-    if (*pp_owner) {
-		pifPmlcdI2c_Clear(*pp_owner);
-    	free(*pp_owner);
-    	*pp_owner = NULL;
-    }
-}
-
 BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, uint8_t addr)
 {
     if (!p_owner) {

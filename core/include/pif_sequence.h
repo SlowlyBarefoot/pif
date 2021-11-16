@@ -87,26 +87,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifSequence_Create
- * @brief Sequence를 추가한다.
- * @param id
- * @param p_timer_manager
- * @param control_period1ms
- * @param p_phase_list
- * @param p_param
- * @return Sequence 구조체 포인터를 반환한다.
- */
-PifSequence* pifSequence_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t control_period1ms,
-		const PifSequencePhase* p_phase_list, void* p_param);
-
-/**
- * @fn pifSequence_Destroy
- * @brief Sequence용 메모리를 반환한다.
- * @param pp_owner
- */
-void pifSequence_Destroy(PifSequence** pp_owner);
-
-/**
  * @fn pifSequence_Init
  * @brief Sequence를 추가한다.
  * @param p_owner

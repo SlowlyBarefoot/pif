@@ -36,24 +36,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifLed_Create
- * @brief
- * @param id
- * @param p_timer_manager
- * @param count
- * @param act_state
- * @return
- */
-PifLed* pifLed_Create(PifId id, PifTimerManager* p_timer_manager, uint8_t count, PifActLedState act_state);
-
-/**
- * @fn pifLed_Destroy
- * @brief
- * @param pp_owner
- */
-void pifLed_Destroy(PifLed** pp_owner);
-
-/**
  * @fn pifLed_Init
  * @brief
  * @param p_owner

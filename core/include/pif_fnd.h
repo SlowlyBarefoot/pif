@@ -48,24 +48,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifFnd_Create
- * @brief
- * @param id
- * @param p_timer_manager
- * @param digit_size
- * @param act_display
- * @return
- */
-PifFnd* pifFnd_Create(PifId id, PifTimerManager* p_timer_manager, uint8_t digit_size, PifActFndDisplay act_display);
-
-/**
- * @fn pifFnd_Destroy
- * @brief
- * @param pp_owner
- */
-void pifFnd_Destroy(PifFnd** pp_owner);
-
-/**
  * @fn pifFnd_Init
  * @brief
  * @param p_owner

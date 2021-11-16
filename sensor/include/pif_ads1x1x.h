@@ -142,22 +142,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifAds1x1x_Create
- * @brief
- * @param id
- * @param type
- * @return
- */
-PifAds1x1x* pifAds1x1x_Create(PifId id, PifAds1x1xType type);
-
-/**
- * @fn pifAds1x1x_Destroy
- * @brief
- * @param pp_owner
- */
-void pifAds1x1x_Destroy(PifAds1x1x** pp_owner);
-
-/**
  * @fn pifAds1x1x_Init
  * @brief
  * @param p_owner

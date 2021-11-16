@@ -77,22 +77,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifGpio_Create
- * @brief
- * @param id
- * @param count
- * @return
- */
-PifGpio* pifGpio_Create(PifId id, uint8_t count);
-
-/**
- * @fn pifGpio_Destroy
- * @brief
- * @param pp_owner
- */
-void pifGpio_Destroy(PifGpio** pp_owner);
-
-/**
  * @fn pifGpio_Init
  * @brief
  * @param p_owner

@@ -49,22 +49,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifI2c_Create
- * @brief
- * @param id
- * @param data_size
- * @return
- */
-PifI2c* pifI2c_Create(PifId id, uint16_t data_size);
-
-/**
- * @fn pifI2c_Destroy
- * @brief
- * @param pp_owner
- */
-void pifI2c_Destroy(PifI2c** pp_owner);
-
-/**
  * @fn pifI2c_Init
  * @brief
  * @param p_owner

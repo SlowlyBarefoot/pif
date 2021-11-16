@@ -79,23 +79,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifKeypad_Create
- * @brief
- * @param id
- * @param num
- * @param p_user_keymap
- * @return
- */
-PifKeypad* pifKeypad_Create(PifId id, uint8_t num, const char* p_user_keymap);
-
-/**
- * @fn pifKeypad_Destroy
- * @brief
- * @param pp_owner
- */
-void pifKeypad_Destroy(PifKeypad** pp_owner);
-
-/**
  * @fn pifKeypad_Init
  * @brief
  * @param p_owner

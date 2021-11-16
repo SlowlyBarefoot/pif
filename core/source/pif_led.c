@@ -24,30 +24,6 @@ static void _evtTimerBlinkFinish(void* p_issuer)
     if (bBlink) (*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
-PifLed* pifLed_Create(PifId id, PifTimerManager* p_timer_manager, uint8_t count, PifActLedState act_state)
-{
-	PifLed* p_owner = malloc(sizeof(PifLed));
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-	    return NULL;
-	}
-
-    if (!pifLed_Init(p_owner, id, p_timer_manager, count, act_state)) {
-		pifLed_Destroy(&p_owner);
-	    return NULL;
-	}
-    return p_owner;
-}
-
-void pifLed_Destroy(PifLed** pp_owner)
-{
-	if (*pp_owner) {
-		pifLed_Clear(*pp_owner);
-		free(*pp_owner);
-		*pp_owner = NULL;
-	}
-}
-
 BOOL pifLed_Init(PifLed* p_owner, PifId id, PifTimerManager* p_timer_manager, uint8_t count, PifActLedState act_state)
 {
 	if (!p_owner || !p_timer_manager || !count || count > 32 || !act_state) {

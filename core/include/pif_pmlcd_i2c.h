@@ -34,22 +34,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifPmlcdI2c_Create
- * @brief
- * @param id
- * @param addr
- * @return
- */
-PifPmlcdI2c* pifPmlcdI2c_Create(PifId id, uint8_t addr);
-
-/**
- * @fn pifPmlcdI2c_Destroy
- * @brief
- * @param pp_owner
- */
-void pifPmlcdI2c_Destroy(PifPmlcdI2c** pp_owner);
-
-/**
  * @fn pifPmlcdI2c_Init
  * @brief
  * @param p_owner

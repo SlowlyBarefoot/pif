@@ -187,25 +187,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifProtocol_Create
- * @brief
- * @param id
- * @param p_timer_manager
- * @param type
- * @param p_questions
- * @return
- */
-PifProtocol* pifProtocol_Create(PifId id, PifTimerManager* p_timer_manager, PifProtocolType type,
-		const PifProtocolQuestion* p_questions);
-
-/**
- * @fn pifProtocol_Destroy
- * @brief
- * @param pp_owner
- */
-void pifProtocol_Destroy(PifProtocol** pp_owner);
-
-/**
  * @fn pifProtocol_Init
  * @brief
  * @param p_owner
