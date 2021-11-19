@@ -87,45 +87,46 @@ extern "C" {
 #endif
 
 /**
- * @fn pifSensorSwitch_Create
+ * @fn pifSensorSwitch_Init
  * @brief 
+ * @param p_owner
  * @param id
  * @param init_state
  * @return 
  */
-PifSensor* pifSensorSwitch_Create(PifId id, SWITCH init_state);
+BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state);
 
 /**
- * @fn pifSensorSwitch_Destroy
+ * @fn pifSensorSwitch_Clear
  * @brief
- * @param pp_parent
+ * @param p_owner
  */
-void pifSensorSwitch_Destroy(PifSensor** pp_parent);
+void pifSensorSwitch_Clear(PifSensorSwitch* p_owner);
 
 /**
  * @fn pifSensorSwitch_InitialState
  * @brief
- * @param p_parent
+ * @param p_owner
  */
-void pifSensorSwitch_InitialState(PifSensor* p_parent);
+void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner);
 
 /**
  * @fn pifSensorSwitch_AttachFilter
  * @brief
- * @param p_parent
+ * @param p_owner
  * @param filter_method
  * @param filter_size
  * @param p_filter
  * @return
  */
-BOOL pifSensorSwitch_AttachFilter(PifSensor* p_parent, uint8_t filter_method, uint8_t filter_size, PifSensorSwitchFilter* p_filter);
+BOOL pifSensorSwitch_AttachFilter(PifSensorSwitch* p_owner, uint8_t filter_method, uint8_t filter_size, PifSensorSwitchFilter* p_filter);
 
 /**
  * @fn pifSensorSwitch_DetachFilter
  * @brief
- * @param p_parent
+ * @param p_owner
  */
-void pifSensorSwitch_DetachFilter(PifSensor* p_parent);
+void pifSensorSwitch_DetachFilter(PifSensorSwitch* p_owner);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
@@ -146,39 +147,39 @@ void pifSensorSwitch_ResetCsFlagAll(PifSensorSwitchCsFlag flag);
 /**
  * @fn pifSensorSwitch_SetCsFlagEach
  * @brief
- * @param p_parent
+ * @param p_owner
  * @param flag
  */
-void pifSensorSwitch_SetCsFlagEach(PifSensor* p_parent, PifSensorSwitchCsFlag flag);
+void pifSensorSwitch_SetCsFlagEach(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
 
 /**
  * @fn pifSensorSwitch_ResetCsFlagEach
  * @brief
- * @param p_parent
+ * @param p_owner
  * @param flag
  */
-void pifSensorSwitch_ResetCsFlagEach(PifSensor* p_parent, PifSensorSwitchCsFlag flag);
+void pifSensorSwitch_ResetCsFlagEach(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
 
 #endif
 
 /**
  * @fn pifSensorSwitch_sigData
  * @brief 
- * @param p_parent
+ * @param p_owner
  * @param swState
  */
-void pifSensorSwitch_sigData(PifSensor* p_parent, SWITCH state);
+void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state);
 
 /**
  * @fn pifSensorSwitch_AttachTask
  * @brief Task를 추가한다.
- * @param p_parent
+ * @param p_owner
  * @param mode Task의 Mode를 설정한다.
  * @param period Mode에 따라 주기의 단위가 변경된다.
  * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask *pifSensorSwitch_AttachTask(PifSensor* p_parent, PifTaskMode mode, uint16_t period, BOOL start);
+PifTask *pifSensorSwitch_AttachTask(PifSensorSwitch* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }

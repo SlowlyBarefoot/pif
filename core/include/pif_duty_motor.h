@@ -61,23 +61,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifDutyMotor_Create
- * @brief 
- * @param id
- * @param p_timer_manager
- * @param max_duty
- * @return 
- */
-PifDutyMotor* pifDutyMotor_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty);
-
-/**
- * @fn pifDutyMotor_Destroy
- * @brief
- * @param pp_owner
- */
-void pifDutyMotor_Destroy(PifDutyMotor** pp_owner);
-
-/**
  * @fn pifDutyMotor_Init
  * @brief 
  * @param p_owner

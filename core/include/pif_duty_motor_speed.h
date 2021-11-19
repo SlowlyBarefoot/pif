@@ -15,9 +15,9 @@ typedef struct StPifDutyMotorSpeedStage
 	uint8_t mode;				// PifMotorMode
 
     // Sensor
-    PifSensor** pp_start_sensor;
-    PifSensor** pp_reduce_sensor;
-    PifSensor** pp_stop_sensor;
+    PifSensor* p_start_sensor;
+    PifSensor* p_reduce_sensor;
+    PifSensor* p_stop_sensor;
 
 	// 가속 구간 (Gained speed range)
 	uint16_t gs_start_duty;		// 초기 기동 duty 설정
@@ -58,56 +58,57 @@ extern "C" {
 #endif
 
 /**
- * @fn pifDutyMotorSpeed_Create
+ * @fn pifDutyMotorSpeed_Init
  * @brief 
+ * @param p_owner
  * @param id
  * @param p_timer_manager
  * @param max_duty
  * @param period1ms
  * @return 
  */
-PifDutyMotor* pifDutyMotorSpeed_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms);
+BOOL pifDutyMotorSpeed_Init(PifDutyMotorSpeed* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms);
 
 /**
- * @fn pifDutyMotorSpeed_Destroy
+ * @fn pifDutyMotorSpeed_Clear
  * @brief
- * @param pp_parent
+ * @param p_owner
  */
-void pifDutyMotorSpeed_Destroy(PifDutyMotor** pp_parent);
+void pifDutyMotorSpeed_Clear(PifDutyMotorSpeed* p_owner);
 
 /**
  * @fn pifDutyMotorSpeed_AddStages
  * @brief 
- * @param p_parent
+ * @param p_owner
  * @param stage_size
  * @param p_stages
  * @return 
  */
-BOOL pifDutyMotorSpeed_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorSpeedStage* p_stages);
+BOOL pifDutyMotorSpeed_AddStages(PifDutyMotorSpeed* p_owner, uint8_t stage_size, const PifDutyMotorSpeedStage* p_stages);
 
 /**
  * @fn pifDutyMotorSpeed_Start
  * @brief 
- * @param p_parent
+ * @param p_owner
  * @param stage_index
  * @param operating_time
  * @return 
  */
-BOOL pifDutyMotorSpeed_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32_t operating_time);
+BOOL pifDutyMotorSpeed_Start(PifDutyMotorSpeed* p_owner, uint8_t stage_index, uint32_t operating_time);
 
 /**
  * @fn pifDutyMotorSpeed_Stop
  * @brief 
- * @param p_parent
+ * @param p_owner
  */
-void pifDutyMotorSpeed_Stop(PifDutyMotor* p_parent);
+void pifDutyMotorSpeed_Stop(PifDutyMotorSpeed* p_owner);
 
 /**
  * @fn pifDutyMotorSpeed_Emergency
  * @brief
- * @param p_parent
+ * @param p_owner
  */
-void pifDutyMotorSpeed_Emergency(PifDutyMotor* p_parent);
+void pifDutyMotorSpeed_Emergency(PifDutyMotorSpeed* p_owner);
 
 #ifdef __cplusplus
 }

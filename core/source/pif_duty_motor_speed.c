@@ -81,18 +81,18 @@ static uint16_t _doTask(PifTask* p_task)
 		p_parent->_state = MS_STOP;
 
 		if (p_stage->mode & MM_CFPS_MASK) {
-	    	if (*p_stage->pp_stop_sensor) {
-	    		if ((*p_stage->pp_stop_sensor)->_curr_state == OFF) {
+	    	if (p_stage->p_stop_sensor) {
+	    		if (p_stage->p_stop_sensor->_curr_state == OFF) {
 	    			p_parent->__error = 1;
 	    		}
 	    	}
 	    }
 
-		if (*p_stage->pp_reduce_sensor) {
-			pifSensor_DetachEvtChange(*p_stage->pp_reduce_sensor);
+		if (p_stage->p_reduce_sensor) {
+			pifSensor_DetachEvtChange(p_stage->p_reduce_sensor);
 		}
-		if (*p_stage->pp_stop_sensor) {
-			pifSensor_DetachEvtChange(*p_stage->pp_stop_sensor);
+		if (p_stage->p_stop_sensor) {
+			pifSensor_DetachEvtChange(p_stage->p_stop_sensor);
 		}
     }
 
@@ -109,14 +109,14 @@ static uint16_t _doTask(PifTask* p_task)
 
 static void _evtSwitchReduceChange(PifId id, uint16_t level, void* p_issuer)
 {
-	PifDutyMotor* p_parent = (PifDutyMotor*)p_issuer;
+	PifDutyMotorSpeed* p_owner = (PifDutyMotorSpeed*)p_issuer;
 
 	(void)id;
 
-	if (p_parent->_state >= MS_REDUCE) return;
+	if (p_owner->parent._state >= MS_REDUCE) return;
 
 	if (level) {
-		pifDutyMotorSpeed_Stop(p_parent);
+		pifDutyMotorSpeed_Stop(p_owner);
 	}
 }
 
@@ -134,20 +134,14 @@ static void _evtSwitchStopChange(PifId id, uint16_t level, void *p_issuer)
 	}
 }
 
-PifDutyMotor* pifDutyMotorSpeed_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms)
+BOOL pifDutyMotorSpeed_Init(PifDutyMotorSpeed* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms)
 {
-	PifDutyMotorSpeed* p_owner = NULL;
-
     if (!p_timer_manager || !max_duty) {
 		pif_error = E_INVALID_PARAM;
-	    return NULL;
+	    return FALSE;
 	}
 
-	p_owner = calloc(sizeof(PifDutyMotorSpeed), 1);
-    if (!p_owner) {
-        pif_error = E_OUT_OF_HEAP;
-	    return NULL;
-    }
+    memset(p_owner, 0, sizeof(PifDutyMotorSpeed));
 
     PifDutyMotor *p_parent = &p_owner->parent;
     if (!pifDutyMotor_Init(p_parent, id, p_timer_manager, max_duty)) goto fail;
@@ -158,27 +152,25 @@ PifDutyMotor* pifDutyMotorSpeed_Create(PifId id, PifTimerManager* p_timer_manage
 
     p_parent->__p_task = pifTaskManager_Add(TM_PERIOD_MS, period1ms, _doTask, p_owner, FALSE);
 	if (!p_parent->__p_task) goto fail;
-    return p_parent;
+    return TRUE;
 
 fail:
-	pifDutyMotorSpeed_Destroy((PifDutyMotor**)&p_owner);
-    return NULL;
+	pifDutyMotorSpeed_Clear(p_owner);
+    return FALSE;
 }
 
-void pifDutyMotorSpeed_Destroy(PifDutyMotor** pp_parent)
+void pifDutyMotorSpeed_Clear(PifDutyMotorSpeed* p_owner)
 {
-    if (*pp_parent) {
-		if ((*pp_parent)->__p_task) {
-			pifTaskManager_Remove((*pp_parent)->__p_task);
-			(*pp_parent)->__p_task = NULL;
-		}
-    	pifDutyMotor_Clear(*pp_parent);
-        free(*pp_parent);
-        *pp_parent= NULL;
-    }
+    PifDutyMotor *p_parent = &p_owner->parent;
+
+    if (p_parent->__p_task) {
+		pifTaskManager_Remove(p_parent->__p_task);
+		p_parent->__p_task = NULL;
+	}
+	pifDutyMotor_Clear(p_parent);
 }
 
-BOOL pifDutyMotorSpeed_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorSpeedStage* p_stages)
+BOOL pifDutyMotorSpeed_AddStages(PifDutyMotorSpeed* p_owner, uint8_t stage_size, const PifDutyMotorSpeedStage* p_stages)
 {
     for (int i = 0; i < stage_size; i++) {
     	if (p_stages[i].mode & MM_SC_MASK) {
@@ -191,15 +183,14 @@ BOOL pifDutyMotorSpeed_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, con
     	}
     }
 
-    PifDutyMotorSpeed* pstSpeed = (PifDutyMotorSpeed*)p_parent;
-    pstSpeed->__stage_size = stage_size;
-    pstSpeed->__p_stages = p_stages;
+    p_owner->__stage_size = stage_size;
+    p_owner->__p_stages = p_stages;
     return TRUE;
 }
 
-BOOL pifDutyMotorSpeed_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32_t operating_time)
+BOOL pifDutyMotorSpeed_Start(PifDutyMotorSpeed* p_owner, uint8_t stage_index, uint32_t operating_time)
 {
-    PifDutyMotorSpeed* p_owner = (PifDutyMotorSpeed*)p_parent;
+    PifDutyMotor* p_parent = &p_owner->parent;
     const PifDutyMotorSpeedStage* p_stage;
     uint8_t state;
 
@@ -213,18 +204,18 @@ BOOL pifDutyMotorSpeed_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32
 
     if (p_stage->mode & MM_CIAS_MASK) {
     	state = 0;
-    	if (*p_stage->pp_start_sensor) {
-    		if ((*p_stage->pp_start_sensor)->_curr_state != ON) {
+    	if (p_stage->p_start_sensor) {
+    		if (p_stage->p_start_sensor->_curr_state != ON) {
     			state |= 1;
     		}
     	}
-    	if (*p_stage->pp_reduce_sensor) {
-    		if ((*p_stage->pp_reduce_sensor)->_curr_state != OFF) {
+    	if (p_stage->p_reduce_sensor) {
+    		if (p_stage->p_reduce_sensor->_curr_state != OFF) {
     			state |= 2;
     		}
     	}
-    	if (*p_stage->pp_stop_sensor) {
-    		if ((*p_stage->pp_stop_sensor)->_curr_state != OFF) {
+    	if (p_stage->p_stop_sensor) {
+    		if (p_stage->p_stop_sensor->_curr_state != OFF) {
     			state |= 4;
     		}
     	}
@@ -248,12 +239,12 @@ BOOL pifDutyMotorSpeed_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32
 
     p_owner->_stage_index = stage_index;
 
-    if (*p_stage->pp_reduce_sensor) {
-        pifSensor_AttachEvtChange(*p_stage->pp_reduce_sensor, _evtSwitchReduceChange, p_parent);
+    if (p_stage->p_reduce_sensor) {
+        pifSensor_AttachEvtChange(p_stage->p_reduce_sensor, _evtSwitchReduceChange, p_owner);
     }
 
-    if (*p_stage->pp_stop_sensor) {
-        pifSensor_AttachEvtChange(*p_stage->pp_stop_sensor, _evtSwitchStopChange, p_parent);
+    if (p_stage->p_stop_sensor) {
+        pifSensor_AttachEvtChange(p_stage->p_stop_sensor, _evtSwitchStopChange, p_parent);
     }
 
     if (p_parent->act_set_direction) (*p_parent->act_set_direction)((p_stage->mode & MM_D_MASK) >> MM_D_SHIFT);
@@ -272,9 +263,10 @@ BOOL pifDutyMotorSpeed_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32
     return TRUE;
 }
 
-void pifDutyMotorSpeed_Stop(PifDutyMotor* p_parent)
+void pifDutyMotorSpeed_Stop(PifDutyMotorSpeed* p_owner)
 {
-    const PifDutyMotorSpeedStage* p_stage = ((PifDutyMotorSpeed*)p_parent)->__p_current_stage;
+    const PifDutyMotorSpeedStage* p_stage = p_owner->__p_current_stage;
+    PifDutyMotor* p_parent = &p_owner->parent;
 
     if (p_parent->_state == MS_IDLE) return;
 
@@ -286,8 +278,10 @@ void pifDutyMotorSpeed_Stop(PifDutyMotor* p_parent)
     }
 }
 
-void pifDutyMotorSpeed_Emergency(PifDutyMotor* p_parent)
+void pifDutyMotorSpeed_Emergency(PifDutyMotorSpeed* p_owner)
 {
+    PifDutyMotor* p_parent = &p_owner->parent;
+
     p_parent->_current_duty = 0;
     p_parent->_state = MS_BREAK;
 }

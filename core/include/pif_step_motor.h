@@ -83,24 +83,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifStepMotor_Create
- * @brief 
- * @param id
- * @param p_timer_manager
- * @param resolution
- * @param operation
- * @return 
- */
-PifStepMotor* pifStepMotor_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t resolution, PifStepMotorOperation operation);
-
-/**
- * @fn pifStepMotor_Destroy
- * @brief 
- * @param pp_owner
- */
-void pifStepMotor_Destroy(PifStepMotor** pp_owner);
-
-/**
  * @fn pifStepMotor_Init
  * @brief 
  * @param p_owner

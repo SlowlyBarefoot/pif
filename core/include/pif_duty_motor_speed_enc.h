@@ -18,9 +18,9 @@ typedef struct StPifDutyMotorSpeedEncStage
 	uint8_t mode;					// PifMotorMode
 
     // Sensor
-    PifSensor** pp_start_sensor;
-    PifSensor** pp_reduce_sensor;
-    PifSensor** pp_stop_sensor;
+    PifSensor* p_start_sensor;
+    PifSensor* p_reduce_sensor;
+    PifSensor* p_stop_sensor;
 
 	// 가속 구간 (Gained speed range)
 	uint8_t gs_arrive_ratio;		// % (0 ~ 100)
@@ -77,71 +77,72 @@ extern "C" {
 #endif
 
 /**
- * @fn pifDutyMotorSpeedEnc_Create
+ * @fn pifDutyMotorSpeedEnc_Init
  * @brief 
+ * @param p_owner
  * @param id
  * @param p_timer_manager
  * @param max_duty
  * @param period1ms
  * @return 
  */
-PifDutyMotor* pifDutyMotorSpeedEnc_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms);
+BOOL pifDutyMotorSpeedEnc_Init(PifDutyMotorSpeedEnc* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms);
 
 /**
- * @fn pifDutyMotorSpeedEnc_Destroy
+ * @fn pifDutyMotorSpeedEnc_Clear
  * @brief
- * @param pp_parent
+ * @param p_owner
  */
-void pifDutyMotorSpeedEnc_Destroy(PifDutyMotor** pp_parent);
+void pifDutyMotorSpeedEnc_Clear(PifDutyMotorSpeedEnc* p_owner);
 
 /**
  * @fn pifDutyMotorSpeedEnc_AddStages
  * @brief 
- * @param p_parent
+ * @param p_owner
  * @param stage_size
  * @param p_stages
  * @return 
  */
-BOOL pifDutyMotorSpeedEnc_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorSpeedEncStage* p_stages);
+BOOL pifDutyMotorSpeedEnc_AddStages(PifDutyMotorSpeedEnc* p_owner, uint8_t stage_size, const PifDutyMotorSpeedEncStage* p_stages);
 
 /**
  * @fn pifDutyMotorSpeedEnc_GetPidControl
  * @brief
- * @param p_parent
+ * @param p_owner
  * @return
  */
-PifPidControl *pifDutyMotorSpeedEnc_GetPidControl(PifDutyMotor* p_parent);
+PifPidControl *pifDutyMotorSpeedEnc_GetPidControl(PifDutyMotorSpeedEnc* p_owner);
 
 /**
  * @fn pifDutyMotorSpeedEnc_Start
  * @brief 
- * @param p_parent
+ * @param p_owner
  * @param stage_index
  * @param operating_time
  * @return 
  */
-BOOL pifDutyMotorSpeedEnc_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32_t operating_time);
+BOOL pifDutyMotorSpeedEnc_Start(PifDutyMotorSpeedEnc* p_owner, uint8_t stage_index, uint32_t operating_time);
 
 /**
  * @fn pifDutyMotorSpeedEnc_Stop
  * @brief 
- * @param p_parent
+ * @param p_owner
  */
-void pifDutyMotorSpeedEnc_Stop(PifDutyMotor* p_parent);
+void pifDutyMotorSpeedEnc_Stop(PifDutyMotorSpeedEnc* p_owner);
 
 /**
  * @fn pifDutyMotorSpeedEnc_Emergency
  * @brief
- * @param p_parent
+ * @param p_owner
  */
-void pifDutyMotorSpeedEnc_Emergency(PifDutyMotor* p_parent);
+void pifDutyMotorSpeedEnc_Emergency(PifDutyMotorSpeedEnc* p_owner);
 
 /**
  * @fn pifDutyMotorSpeedEnc_sigEncoder
  * @brief Interrupt Function에서 호출할 것
- * @param p_parent
+ * @param p_owner
  */
-void pifDutyMotorSpeedEnc_sigEncoder(PifDutyMotor* p_parent);
+void pifDutyMotorSpeedEnc_sigEncoder(PifDutyMotorSpeedEnc* p_owner);
 
 #ifdef __cplusplus
 }

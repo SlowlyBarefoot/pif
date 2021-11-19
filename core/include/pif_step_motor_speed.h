@@ -15,9 +15,9 @@ typedef struct StPifStepMotorSpeedStage
 	uint8_t mode;				// PifMotorMode
 
     // Sensor
-    PifSensor** pp_start_sensor;
-    PifSensor** pp_reduce_sensor;
-    PifSensor** pp_stop_sensor;
+    PifSensor* p_start_sensor;
+    PifSensor* p_reduce_sensor;
+    PifSensor* p_stop_sensor;
 
 	// 가속 구간 (Gained speed range)
 	uint16_t gs_start_pps;		// 초기 기동 P/S 설정
@@ -58,8 +58,9 @@ extern "C" {
 #endif
 
 /**
- * @fn pifStepMotorSpeed_Create
+ * @fn pifStepMotorSpeed_Init
  * @brief 
+ * @param p_owner
  * @param id
  * @param p_timer_manager
  * @param resolution
@@ -67,48 +68,49 @@ extern "C" {
  * @param period1ms
  * @return 
  */
-PifStepMotor* pifStepMotorSpeed_Create(PifId id, PifTimerManager* p_timer_manager, uint8_t resolution, PifStepMotorOperation operation, uint16_t period1ms);
+BOOL pifStepMotorSpeed_Init(PifStepMotorSpeed* p_owner, PifId id, PifTimerManager* p_timer_manager, uint8_t resolution,
+		PifStepMotorOperation operation, uint16_t period1ms);
 
 /**
- * @fn pifStepMotorSpeed_Destroy
+ * @fn pifStepMotorSpeed_Clear
  * @brief
- * @param pp_parent
+ * @param p_owner
  */
-void pifStepMotorSpeed_Destroy(PifStepMotor** pp_parent);
+void pifStepMotorSpeed_Clear(PifStepMotorSpeed* p_owner);
 
 /**
  * @fn pifStepMotorSpeed_AddStages
  * @brief 
- * @param p_parent
+ * @param p_owner
  * @param stage_size
  * @param p_stages
  * @return 
  */
-BOOL pifStepMotorSpeed_AddStages(PifStepMotor* p_parent, uint8_t stage_size, const PifStepMotorSpeedStage* p_stages);
+BOOL pifStepMotorSpeed_AddStages(PifStepMotorSpeed* p_owner, uint8_t stage_size, const PifStepMotorSpeedStage* p_stages);
 
 /**
  * @fn pifStepMotorSpeed_Start
  * @brief 
- * @param p_parent
+ * @param p_owner
  * @param stage_index
  * @param operating_time
  * @return 
  */
-BOOL pifStepMotorSpeed_Start(PifStepMotor* p_parent, uint8_t stage_index, uint32_t operating_time);
+BOOL pifStepMotorSpeed_Start(PifStepMotorSpeed* p_owner, uint8_t stage_index, uint32_t operating_time);
 
 /**
  * @fn pifStepMotorSpeed_Stop
  * @brief 
- * @param p_parent
+ * @param p_owner
  */
-void pifStepMotorSpeed_Stop(PifStepMotor* p_parent);
+void pifStepMotorSpeed_Stop(PifStepMotorSpeed* p_owner);
 
 /**
  * @fn pifStepMotorSpeed_Emergency
  * @brief
- * @param p_parent
+ * @param p_owner
  */
-void pifStepMotorSpeed_Emergency(PifStepMotor* p_parent);
+void pifStepMotorSpeed_Emergency(PifStepMotorSpeed* p_owner);
 
 #ifdef __cplusplus
 }

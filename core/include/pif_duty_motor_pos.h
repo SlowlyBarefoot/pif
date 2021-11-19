@@ -15,9 +15,9 @@ typedef struct StPifDutyMotorPosStage
 	uint8_t mode;				// PifMotorMode
 
     // Sensor
-    PifSensor** pp_start_sensor;
-    PifSensor** pp_reduce_sensor;
-    PifSensor** pp_stop_sensor;
+    PifSensor* p_start_sensor;
+    PifSensor* p_reduce_sensor;
+    PifSensor* p_stop_sensor;
 
 	// 가속 구간 (Gained speed range)
 	uint16_t gs_start_duty;		// 초기 기동 duty 설정
@@ -61,63 +61,64 @@ extern "C" {
 #endif
 
 /**
- * @fn pifDutyMotorPos_Create
+ * @fn pifDutyMotorPos_Init
  * @brief 
+ * @param p_owner
  * @param id
  * @param p_timer_manager
  * @param max_duty
  * @param period1ms
  * @return 
  */
-PifDutyMotor* pifDutyMotorPos_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms);
+BOOL pifDutyMotorPos_Init(PifDutyMotorPos* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms);
 
 /**
- * @fn pifDutyMotorPos_Destroy
+ * @fn pifDutyMotorPos_Clear
  * @brief
- * @param pp_parent
+ * @param p_owner
  */
-void pifDutyMotorPos_Destroy(PifDutyMotor** pp_parent);
+void pifDutyMotorPos_Clear(PifDutyMotorPos* p_owner);
 
 /**
  * @fn pifDutyMotorPos_AddStages
  * @brief 
- * @param p_parent
+ * @param p_owner
  * @param stage_size
  * @param p_stages
  * @return 
  */
-BOOL pifDutyMotorPos_AddStages(PifDutyMotor* p_parent, uint8_t stage_size, const PifDutyMotorPosStage* p_stages);
+BOOL pifDutyMotorPos_AddStages(PifDutyMotorPos* p_owner, uint8_t stage_size, const PifDutyMotorPosStage* p_stages);
 
 /**
  * @fn pifDutyMotorPos_Start
  * @brief 
- * @param p_parent
+ * @param p_owner
  * @param stage_index
  * @param operating_time
  * @return 
  */
-BOOL pifDutyMotorPos_Start(PifDutyMotor* p_parent, uint8_t stage_index, uint32_t operating_time);
+BOOL pifDutyMotorPos_Start(PifDutyMotorPos* p_owner, uint8_t stage_index, uint32_t operating_time);
 
 /**
  * @fn pifDutyMotorPos_Stop
  * @brief 
- * @param p_parent
+ * @param p_owner
  */
-void pifDutyMotorPos_Stop(PifDutyMotor* p_parent);
+void pifDutyMotorPos_Stop(PifDutyMotorPos* p_owner);
 
 /**
  * @fn pifDutyMotorPos_Emergency
  * @brief
- * @param p_parent
+ * @param p_owner
  */
-void pifDutyMotorPos_Emergency(PifDutyMotor* p_parent);
+void pifDutyMotorPos_Emergency(PifDutyMotorPos* p_owner);
 
 /**
  * @fn pifDutyMotorPos_sigEncoder
  * @brief Interrupt Function에서 호출할 것
- * @param p_parent
+ * @param p_owner
  */
-void pifDutyMotorPos_sigEncoder(PifDutyMotor* p_parent);
+void pifDutyMotorPos_sigEncoder(PifDutyMotorPos* p_owner);
 
 #ifdef __cplusplus
 }

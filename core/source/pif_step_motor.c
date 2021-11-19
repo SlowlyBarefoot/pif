@@ -58,7 +58,7 @@ static void _setStep(PifStepMotor* p_owner)
 			p_owner->__current_step = 0;
 		}
 	}
-	else{
+	else {
 		if (p_owner->__current_step == 0) {
 			p_owner->__current_step = p_owner->__step_size;
 		}
@@ -103,30 +103,6 @@ static void _evtTimerBreakFinish(void *p_issuer)
     }
     else {
     	pifStepMotor_Release(p_owner);
-    }
-}
-
-PifStepMotor* pifStepMotor_Create(PifId id, PifTimerManager* p_timer_manager, uint16_t resolution, PifStepMotorOperation operation)
-{
-    PifStepMotor* p_owner = malloc(sizeof(PifStepMotor));
-    if (!p_owner) {
-		pif_error = E_OUT_OF_HEAP;
-		return NULL;
-	}
-
-    if (!pifStepMotor_Init(p_owner, id, p_timer_manager, resolution, operation)) {
-		pifStepMotor_Destroy(&p_owner);
-		return NULL;
-	}
-    return p_owner;
-}
-
-void pifStepMotor_Destroy(PifStepMotor** pp_owner)
-{
-	if (*pp_owner) {
-		pifStepMotor_Clear(*pp_owner);
-		free(*pp_owner);
-		*pp_owner = NULL;
     }
 }
 
