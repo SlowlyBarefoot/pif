@@ -1,7 +1,4 @@
 #include "pif_comm.h"
-#ifndef __PIF_NO_LOG__
-#include "pif_log.h"
-#endif
 
 
 static BOOL _actReceiveData(PifComm* p_owner, uint8_t* p_data)

@@ -3,6 +3,7 @@
 
 
 #include "pif_duty_motor.h"
+#include "pif_pulse.h"
 #include "pif_sensor.h"
 
 
@@ -47,12 +48,13 @@ typedef struct StPifDutyMotorPos
 
 	// Read-only Member Variable
 	uint8_t _stage_index;
-	volatile uint32_t _current_pulse;		// 현재까지 이동 pulse
 
 	// Private Member Variable
     uint8_t __stage_size;
     const PifDutyMotorPosStage* __p_stages;
     const PifDutyMotorPosStage* __p_current_stage;
+
+    PifPulse* __p_encoder;
 } PifDutyMotorPos;
 
 
@@ -68,9 +70,11 @@ extern "C" {
  * @param p_timer_manager
  * @param max_duty
  * @param period1ms
+ * @param p_encoder
  * @return 
  */
-BOOL pifDutyMotorPos_Init(PifDutyMotorPos* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms);
+BOOL pifDutyMotorPos_Init(PifDutyMotorPos* p_owner, PifId id, PifTimerManager* p_timer_manager,
+		uint16_t max_duty, uint16_t period1ms, PifPulse* p_encoder);
 
 /**
  * @fn pifDutyMotorPos_Clear
@@ -107,18 +111,22 @@ BOOL pifDutyMotorPos_Start(PifDutyMotorPos* p_owner, uint8_t stage_index, uint32
 void pifDutyMotorPos_Stop(PifDutyMotorPos* p_owner);
 
 /**
+ * @fn pifDutyMotorPos_GetCurrentPulse
+ * @brief
+ * @param p_owner
+ */
+#ifdef __PIF_NO_USE_INLINE__
+	uint32_t pifDutyMotorPos_GetCurrentPulse(PifDutyMotorPos* p_owner);
+#else
+	inline uint32_t pifDutyMotorPos_GetCurrentPulse(PifDutyMotorPos* p_owner) { return p_owner->__p_encoder->falling_count; }
+#endif
+
+/**
  * @fn pifDutyMotorPos_Emergency
  * @brief
  * @param p_owner
  */
 void pifDutyMotorPos_Emergency(PifDutyMotorPos* p_owner);
-
-/**
- * @fn pifDutyMotorPos_sigEncoder
- * @brief Interrupt Function에서 호출할 것
- * @param p_owner
- */
-void pifDutyMotorPos_sigEncoder(PifDutyMotorPos* p_owner);
 
 #ifdef __cplusplus
 }

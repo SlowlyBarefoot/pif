@@ -1,15 +1,15 @@
 #ifdef __PIF_COLLECT_SIGNAL__
-#include "pif_collect_signal.h"
+	#include "pif_collect_signal.h"
 #endif
 #include "pif_list.h"
 #ifndef __PIF_NO_LOG__
-#include "pif_log.h"
+	#include "pif_log.h"
 #endif
 #include "pif_solenoid.h"
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
-static PifDList s_cs_list;
+	static PifDList s_cs_list;
 #endif
 
 
@@ -131,16 +131,6 @@ static void _addDeviceInCollectSignal()
 
 		it = pifDList_Next(it);
 	}
-}
-
-void pifSolenoid_ColSigInit()
-{
-	pifDList_Init(&s_cs_list);
-}
-
-void pifSolenoid_ColSigClear()
-{
-	pifDList_Clear(&s_cs_list);
 }
 
 #endif
@@ -275,9 +265,30 @@ void pifSolenoid_ActionOff(PifSolenoid* p_owner)
     }
 }
 
+
 #ifdef __PIF_COLLECT_SIGNAL__
 
-void pifSolenoid_SetCsFlagAll(PifSolenoidCsFlag flag)
+void pifSolenoid_SetCsFlag(PifSolenoid *p_owner, PifSolenoidCsFlag flag)
+{
+	((PifSolenoid *)p_owner)->__p_colsig->flag |= flag;
+}
+
+void pifSolenoid_ResetCsFlag(PifSolenoid *p_owner, PifSolenoidCsFlag flag)
+{
+	((PifSolenoid *)p_owner)->__p_colsig->flag &= ~flag;
+}
+
+void pifSolenoidColSig_Init()
+{
+	pifDList_Init(&s_cs_list);
+}
+
+void pifSolenoidColSig_Clear()
+{
+	pifDList_Clear(&s_cs_list);
+}
+
+void pifSolenoidColSig_SetFlag(PifSolenoidCsFlag flag)
 {
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
@@ -287,7 +298,7 @@ void pifSolenoid_SetCsFlagAll(PifSolenoidCsFlag flag)
 	}
 }
 
-void pifSolenoid_ResetCsFlagAll(PifSolenoidCsFlag flag)
+void pifSolenoidColSig_ResetFlag(PifSolenoidCsFlag flag)
 {
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
@@ -295,16 +306,6 @@ void pifSolenoid_ResetCsFlagAll(PifSolenoidCsFlag flag)
 		p_colsig->flag &= ~flag;
 		it = pifDList_Next(it);
 	}
-}
-
-void pifSolenoid_SetCsFlagEach(PifSolenoid *p_owner, PifSolenoidCsFlag flag)
-{
-	((PifSolenoid *)p_owner)->__p_colsig->flag |= flag;
-}
-
-void pifSolenoid_ResetCsFlagEach(PifSolenoid *p_owner, PifSolenoidCsFlag flag)
-{
-	((PifSolenoid *)p_owner)->__p_colsig->flag &= ~flag;
 }
 
 #endif

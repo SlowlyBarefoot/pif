@@ -1,7 +1,5 @@
 #include "pif_ads1x1x.h"
-#ifndef __PIF_NO_LOG__
-#include "pif_log.h"
-#endif
+#include "pif_task.h"
 
 
 #define DEFAULT_I2C_ADDR	0x48

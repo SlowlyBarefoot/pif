@@ -1,4 +1,6 @@
-#include "pif_log.h"
+#ifndef __PIF_NO_LOG__
+	#include "pif_log.h"
+#endif
 #include "pif_step_motor_pos.h"
 
 
@@ -8,7 +10,11 @@ static void _evtTimerDelayFinish(void* p_issuer)
 
 	switch (p_parent->_state) {
 	case MS_BREAKING:
-		p_parent->_state = MS_STOPPING;
+#ifndef __PIF_NO_LOG__
+		pifStepMotor_SetState(p_parent, MS_STOPPING, "SMP");
+#else
+		pifStepMotor_SetState(p_parent, MS_STOPPING);
+#endif
 		break;
 
 	default:
@@ -32,7 +38,11 @@ static uint16_t _doTask(PifTask* p_task)
 	if (p_parent->_state == MS_GAINED) {
 		if (tmp_pps >= p_stage->fs_high_pps) {
 			tmp_pps = p_stage->fs_high_pps;
-			p_parent->_state = MS_CONST;
+#ifndef __PIF_NO_LOG__
+			pifStepMotor_SetState(p_parent, MS_CONST, "SMP");
+#else
+			pifStepMotor_SetState(p_parent, MS_CONST);
+#endif
 			if (p_parent->evt_stable) (*p_parent->evt_stable)(p_parent);
 		}
 		else {
@@ -43,11 +53,19 @@ static uint16_t _doTask(PifTask* p_task)
 		if (!p_stage->rs_ctrl_pps) {
 			if (p_stage->mode & MM_PC_MASK) {
 				tmp_pps = p_stage->rs_low_pps;
-				p_parent->_state = MS_LOW_CONST;
+#ifndef __PIF_NO_LOG__
+				pifStepMotor_SetState(p_parent, MS_LOW_CONST, "SMP");
+#else
+				pifStepMotor_SetState(p_parent, MS_LOW_CONST);
+#endif
 			}
 			else {
 				tmp_pps = 0;
-				p_parent->_state = MS_BREAK;
+#ifndef __PIF_NO_LOG__
+				pifStepMotor_SetState(p_parent, MS_BREAK, "SMP");
+#else
+				pifStepMotor_SetState(p_parent, MS_BREAK);
+#endif
 			}
 		}
 		else if (tmp_pps > p_stage->rs_low_pps + p_stage->rs_ctrl_pps) {
@@ -55,7 +73,11 @@ static uint16_t _doTask(PifTask* p_task)
 		}
 		else if (tmp_pps) {
 			tmp_pps = p_stage->rs_low_pps;
-			p_parent->_state = MS_LOW_CONST;
+#ifndef __PIF_NO_LOG__
+			pifStepMotor_SetState(p_parent, MS_LOW_CONST, "SMP");
+#else
+			pifStepMotor_SetState(p_parent, MS_LOW_CONST);
+#endif
 		}
 	}
 
@@ -63,12 +85,20 @@ static uint16_t _doTask(PifTask* p_task)
 		if (p_parent->_current_pulse >= p_stage->total_pulse) {
 			tmp_pps = 0;
 			if (p_parent->_state < MS_BREAK) {
-				p_parent->_state = MS_BREAK;
+#ifndef __PIF_NO_LOG__
+				pifStepMotor_SetState(p_parent, MS_BREAK, "SMP");
+#else
+				pifStepMotor_SetState(p_parent, MS_BREAK);
+#endif
 			}
 		}
 		else if (p_parent->_current_pulse >= p_stage->fs_pulse_count) {
 			if (p_parent->_state < MS_REDUCE) {
-				p_parent->_state = MS_REDUCE;
+#ifndef __PIF_NO_LOG__
+				pifStepMotor_SetState(p_parent, MS_REDUCE, "SMP");
+#else
+				pifStepMotor_SetState(p_parent, MS_REDUCE);
+#endif
 			}
 		}
 	}
@@ -82,10 +112,18 @@ static uint16_t _doTask(PifTask* p_task)
     	pifStepMotor_Break(p_parent);
 		if (p_stage->rs_break_time &&
 				pifTimer_Start(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
-			p_parent->_state = MS_BREAKING;
+#ifndef __PIF_NO_LOG__
+			pifStepMotor_SetState(p_parent, MS_BREAKING, "SMP");
+#else
+			pifStepMotor_SetState(p_parent, MS_BREAKING);
+#endif
     	}
     	else {
-    		p_parent->_state = MS_STOPPING;
+#ifndef __PIF_NO_LOG__
+			pifStepMotor_SetState(p_parent, MS_STOPPING, "SMP");
+#else
+			pifStepMotor_SetState(p_parent, MS_STOPPING);
+#endif
     	}
 	}
 
@@ -93,7 +131,11 @@ static uint16_t _doTask(PifTask* p_task)
 		if (!(p_stage->mode & MM_NR_MASK)) {
 			pifStepMotor_Release(p_parent);
 		}
-		p_parent->_state = MS_STOP;
+#ifndef __PIF_NO_LOG__
+		pifStepMotor_SetState(p_parent, MS_STOP, "SMP");
+#else
+		pifStepMotor_SetState(p_parent, MS_STOP);
+#endif
 
 		if (p_stage->mode & MM_CFPS_MASK) {
 	    	if (p_stage->p_stop_sensor) {
@@ -144,14 +186,22 @@ static void _evtSwitchStopChange(PifId id, uint16_t level, void* p_issuer)
 	if (p_parent->_state >= MS_BREAK) return;
 
 	if (level) {
-		p_parent->_state = MS_BREAK;
+#ifndef __PIF_NO_LOG__
+		pifStepMotor_SetState(p_parent, MS_BREAK, "SMP");
+#else
+		pifStepMotor_SetState(p_parent, MS_BREAK);
+#endif
 	}
 }
 
 static void _fnStopStep(PifStepMotor* p_parent)
 {
 	p_parent->_current_pps = 0;
-	p_parent->_state = MS_BREAK;
+#ifndef __PIF_NO_LOG__
+	pifStepMotor_SetState(p_parent, MS_BREAK, "SMP");
+#else
+	pifStepMotor_SetState(p_parent, MS_BREAK);
+#endif
 
 #ifndef __PIF_NO_LOG__
     if (pif_log_flag.bt.step_motor) {
@@ -277,11 +327,19 @@ BOOL pifStepMotorPos_Start(PifStepMotorPos* p_owner, uint8_t stage_index, uint32
 
     if (pstStage->gs_ctrl_pps) {
     	pifStepMotor_SetPps(p_parent, pstStage->gs_start_pps);
-    	p_parent->_state = MS_GAINED;
+#ifndef __PIF_NO_LOG__
+    	pifStepMotor_SetState(p_parent, MS_GAINED, "SMP");
+#else
+    	pifStepMotor_SetState(p_parent, MS_GAINED);
+#endif
     }
     else {
     	pifStepMotor_SetPps(p_parent, pstStage->fs_high_pps);
-    	p_parent->_state = MS_CONST;
+#ifndef __PIF_NO_LOG__
+    	pifStepMotor_SetState(p_parent, MS_CONST, "SMP");
+#else
+    	pifStepMotor_SetState(p_parent, MS_CONST);
+#endif
     }
     p_parent->__error = 0;
 
@@ -300,10 +358,18 @@ void pifStepMotorPos_Stop(PifStepMotorPos* p_owner)
 
     if (p_parent->_state == MS_IDLE) return;
 
-    p_parent->_state = MS_REDUCE;
+#ifndef __PIF_NO_LOG__
+   	pifStepMotor_SetState(p_parent, MS_REDUCE, "SMP");
+#else
+   	pifStepMotor_SetState(p_parent, MS_REDUCE);
+#endif
 }
 
 void pifStepMotorPos_Emergency(PifStepMotorPos* p_owner)
 {
-	p_owner->parent._state = MS_BREAK;
+#ifndef __PIF_NO_LOG__
+   	pifStepMotor_SetState(&p_owner->parent, MS_BREAK, "SMP");
+#else
+   	pifStepMotor_SetState(&p_owner->parent, MS_BREAK);
+#endif
 }

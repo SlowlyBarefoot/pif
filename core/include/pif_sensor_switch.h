@@ -10,21 +10,6 @@
 #define PIF_SENSOR_SWITCH_FILTER_CONTINUE	2
 
 
-typedef enum EnPifSensorSwitchCsFlag
-{
-    SS_CSF_OFF			= 0,
-
-    SS_CSF_RAW_IDX		= 0,
-	SS_CSF_FILTER_IDX	= 1,
-
-	SS_CSF_RAW_BIT		= 1,
-    SS_CSF_FILTER_BIT	= 2,
-    SS_CSF_ALL_BIT		= 3,
-
-    SS_CSF_COUNT		= 2
-} PifSensorSwitchCsFlag;
-
-
 struct StPifSensorSwitch;
 typedef struct StPifSensorSwitch PifSensorSwitch;
 
@@ -51,6 +36,20 @@ struct StPifSensorSwitchFilter
 };
 
 #ifdef __PIF_COLLECT_SIGNAL__
+
+typedef enum EnPifSensorSwitchCsFlag
+{
+    SS_CSF_OFF			= 0,
+
+    SS_CSF_RAW_IDX		= 0,
+	SS_CSF_FILTER_IDX	= 1,
+
+	SS_CSF_RAW_BIT		= 1,
+    SS_CSF_FILTER_BIT	= 2,
+    SS_CSF_ALL_BIT		= 3,
+
+    SS_CSF_COUNT		= 2
+} PifSensorSwitchCsFlag;
 
 typedef struct StPifSensorSwitchColSig
 {
@@ -128,43 +127,9 @@ BOOL pifSensorSwitch_AttachFilter(PifSensorSwitch* p_owner, uint8_t filter_metho
  */
 void pifSensorSwitch_DetachFilter(PifSensorSwitch* p_owner);
 
-#ifdef __PIF_COLLECT_SIGNAL__
-
-/**
- * @fn pifSensorSwitch_SetCsFlagAll
- * @brief
- * @param flag
- */
-void pifSensorSwitch_SetCsFlagAll(PifSensorSwitchCsFlag flag);
-
-/**
- * @fn pifSensorSwitch_ResetCsFlagAll
- * @brief
- * @param flag
- */
-void pifSensorSwitch_ResetCsFlagAll(PifSensorSwitchCsFlag flag);
-
-/**
- * @fn pifSensorSwitch_SetCsFlagEach
- * @brief
- * @param p_owner
- * @param flag
- */
-void pifSensorSwitch_SetCsFlagEach(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
-
-/**
- * @fn pifSensorSwitch_ResetCsFlagEach
- * @brief
- * @param p_owner
- * @param flag
- */
-void pifSensorSwitch_ResetCsFlagEach(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
-
-#endif
-
 /**
  * @fn pifSensorSwitch_sigData
- * @brief 
+ * @brief
  * @param p_owner
  * @param swState
  */
@@ -180,6 +145,41 @@ void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state);
  * @return Task 구조체 포인터를 반환한다.
  */
 PifTask *pifSensorSwitch_AttachTask(PifSensorSwitch* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
+
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+/**
+ * @fn pifSensorSwitch_SetCsFlag
+ * @brief
+ * @param p_owner
+ * @param flag
+ */
+void pifSensorSwitch_SetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
+
+/**
+ * @fn pifSensorSwitch_ResetCsFlag
+ * @brief
+ * @param p_owner
+ * @param flag
+ */
+void pifSensorSwitch_ResetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
+
+/**
+ * @fn pifSensorSwitchColSig_SetFlag
+ * @brief
+ * @param flag
+ */
+void pifSensorSwitchColSig_SetFlag(PifSensorSwitchCsFlag flag);
+
+/**
+ * @fn pifSensorSwitchColSig_ResetFlag
+ * @brief
+ * @param flag
+ */
+void pifSensorSwitchColSig_ResetFlag(PifSensorSwitchCsFlag flag);
+
+#endif
 
 #ifdef __cplusplus
 }

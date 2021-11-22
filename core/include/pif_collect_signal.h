@@ -31,6 +31,7 @@ typedef enum EnPifCollectSignalFlag
 	CSF_SENSOR_SWITCH	= 2,
 	CSF_SEQUENCE		= 3,
 	CSF_SOLENOID		= 4,
+	CSF_PULSE			= 5,
 } PifCollectSignalFlag;
 
 typedef enum EnPifCollectSignalMethod

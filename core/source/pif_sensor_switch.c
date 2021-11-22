@@ -1,15 +1,15 @@
 #ifdef __PIF_COLLECT_SIGNAL__
-#include "pif_collect_signal.h"
+	#include "pif_collect_signal.h"
 #endif
 #include "pif_list.h"
 #ifndef __PIF_NO_LOG__
-#include "pif_log.h"
+	#include "pif_log.h"
 #endif
 #include "pif_sensor_switch.h"
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
-static PifDList s_cs_list;
+	static PifDList s_cs_list;
 #endif
 
 
@@ -87,16 +87,6 @@ static void _addDeviceInCollectSignal()
 
 		it = pifDList_Next(it);
 	}
-}
-
-void pifSensorSwitch_ColSigInit()
-{
-	pifDList_Init(&s_cs_list);
-}
-
-void pifSensorSwitch_ColSigClear()
-{
-	pifDList_Clear(&s_cs_list);
 }
 
 #endif
@@ -201,40 +191,6 @@ void pifSensorSwitch_DetachFilter(PifSensorSwitch* p_owner)
 	p_owner->__p_filter = NULL;
 }
 
-#ifdef __PIF_COLLECT_SIGNAL__
-
-void pifSensorSwitch_SetCsFlagAll(PifSensorSwitchCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSensorSwitchColSig* p_colsig = (PifSensorSwitchColSig*)it->data;
-		p_colsig->flag |= flag;
-		it = pifDList_Next(it);
-	}
-}
-
-void pifSensorSwitch_ResetCsFlagAll(PifSensorSwitchCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSensorSwitchColSig* p_colsig = (PifSensorSwitchColSig*)it->data;
-		p_colsig->flag &= ~flag;
-		it = pifDList_Next(it);
-	}
-}
-
-void pifSensorSwitch_SetCsFlagEach(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag)
-{
-	p_owner->__p_colsig->flag |= flag;
-}
-
-void pifSensorSwitch_ResetCsFlagEach(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag)
-{
-	p_owner->__p_colsig->flag &= ~flag;
-}
-
-#endif
-
 void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state)
 {
 	if (p_owner->__filter_method) {
@@ -283,3 +239,47 @@ PifTask* pifSensorSwitch_AttachTask(PifSensorSwitch* p_owner, PifTaskMode mode, 
 	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
 }
 
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+void pifSensorSwitch_SetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag)
+{
+	p_owner->__p_colsig->flag |= flag;
+}
+
+void pifSensorSwitch_ResetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag)
+{
+	p_owner->__p_colsig->flag &= ~flag;
+}
+
+void pifSensorSwitchColSig_Init()
+{
+	pifDList_Init(&s_cs_list);
+}
+
+void pifSensorSwitchColSig_Clear()
+{
+	pifDList_Clear(&s_cs_list);
+}
+
+void pifSensorSwitchColSig_SetFlag(PifSensorSwitchCsFlag flag)
+{
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PifSensorSwitchColSig* p_colsig = (PifSensorSwitchColSig*)it->data;
+		p_colsig->flag |= flag;
+		it = pifDList_Next(it);
+	}
+}
+
+void pifSensorSwitchColSig_ResetFlag(PifSensorSwitchCsFlag flag)
+{
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PifSensorSwitchColSig* p_colsig = (PifSensorSwitchColSig*)it->data;
+		p_colsig->flag &= ~flag;
+		it = pifDList_Next(it);
+	}
+}
+
+#endif

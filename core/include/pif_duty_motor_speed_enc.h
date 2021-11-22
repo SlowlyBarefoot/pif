@@ -3,6 +3,7 @@
 
 
 #include "pif_duty_motor.h"
+#include "pif_pulse.h"
 #include "pif_sensor.h"
 
 
@@ -29,7 +30,7 @@ typedef struct StPifDutyMotorSpeedEncStage
 	uint16_t gs_arrive_timeout;
 
 	// 정속 구간 (Fixed speed range)
-	float fs_pulses_per_range;
+	float fs_pulses_per_period;
 	uint16_t fs_high_duty;
     uint16_t fs_overtime;
 	uint16_t fs_stable_timeout;
@@ -60,12 +61,12 @@ typedef struct StPifDutyMotorSpeedEnc
     const PifDutyMotorSpeedEncStage* __p_stages;
     const PifDutyMotorSpeedEncStage* __p_current_stage;
 
+	PifPulse* __p_encoder;
     PifPidControl __pid_control;
 
 	uint16_t __arrive_ppr;
 	uint16_t __err_low_ppr;
 	uint16_t __err_high_ppr;
-	volatile uint16_t __measure_enc;	// pulse
 	uint8_t __enc_sample_idx;
 	uint16_t __enc_sample[MAX_STABLE_CNT];
 	uint32_t __enc_sample_sum;
@@ -84,9 +85,11 @@ extern "C" {
  * @param p_timer_manager
  * @param max_duty
  * @param period1ms
+ * @param p_encoder
  * @return 
  */
-BOOL pifDutyMotorSpeedEnc_Init(PifDutyMotorSpeedEnc* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms);
+BOOL pifDutyMotorSpeedEnc_Init(PifDutyMotorSpeedEnc* p_owner, PifId id, PifTimerManager* p_timer_manager,
+		uint16_t max_duty, uint16_t period1ms, PifPulse* p_encoder);
 
 /**
  * @fn pifDutyMotorSpeedEnc_Clear
@@ -136,13 +139,6 @@ void pifDutyMotorSpeedEnc_Stop(PifDutyMotorSpeedEnc* p_owner);
  * @param p_owner
  */
 void pifDutyMotorSpeedEnc_Emergency(PifDutyMotorSpeedEnc* p_owner);
-
-/**
- * @fn pifDutyMotorSpeedEnc_sigEncoder
- * @brief Interrupt Function에서 호출할 것
- * @param p_owner
- */
-void pifDutyMotorSpeedEnc_sigEncoder(PifDutyMotorSpeedEnc* p_owner);
 
 #ifdef __cplusplus
 }

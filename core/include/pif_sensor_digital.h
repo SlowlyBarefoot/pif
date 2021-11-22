@@ -18,18 +18,6 @@ typedef enum EnPifSensorDigitalEventType
 	SDET_THRESHOLD_2P	= 3
 } PifSensorDigitalEventType;
 
-typedef enum EnPifSensorDigitalCsFlag
-{
-    SD_CSF_OFF			= 0,
-
-    SD_CSF_STATE_IDX	= 0,
-
-	SD_CSF_STATE_BIT	= 1,
-    SD_CSF_ALL_BIT		= 1,
-
-    SD_CSF_COUNT		= 1
-} PifSensorDigitalCsFlag;
-
 
 struct StPifSensorDigital;
 typedef struct StPifSensorDigital PifSensorDigital;
@@ -57,6 +45,18 @@ struct StPifSensorDigitalFilter
 };
 
 #ifdef __PIF_COLLECT_SIGNAL__
+
+typedef enum EnPifSensorDigitalCsFlag
+{
+    SD_CSF_OFF			= 0,
+
+    SD_CSF_STATE_IDX	= 0,
+
+	SD_CSF_STATE_BIT	= 1,
+    SD_CSF_ALL_BIT		= 1,
+
+    SD_CSF_COUNT		= 1
+} PifSensorDigitalCsFlag;
 
 typedef struct StPifSensorDigitalColSig
 {
@@ -194,43 +194,9 @@ BOOL pifSensorDigital_AttachFilter(PifSensorDigital* p_owner, uint8_t filter_met
  */
 void pifSensorDigital_DetachFilter(PifSensorDigital* p_owner);
 
-#ifdef __PIF_COLLECT_SIGNAL__
-
-/**
- * @fn pifSensorDigital_SetCsFlagAll
- * @brief
- * @param flag
- */
-void pifSensorDigital_SetCsFlagAll(PifSensorDigitalCsFlag flag);
-
-/**
- * @fn pifSensorDigital_ResetCsFlagAll
- * @brief
- * @param flag
- */
-void pifSensorDigital_ResetCsFlagAll(PifSensorDigitalCsFlag flag);
-
-/**
- * @fn pifSensorDigital_SetCsFlagEach
- * @brief
- * @param p_owner
- * @param flag
- */
-void pifSensorDigital_SetCsFlagEach(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag);
-
-/**
- * @fn pifSensorDigital_ResetCsFlagEach
- * @brief
- * @param p_owner
- * @param flag
- */
-void pifSensorDigital_ResetCsFlagEach(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag);
-
-#endif
-
 /**
  * @fn pifSensorDigital_sigData
- * @brief 
+ * @brief
  * @param p_owner
  * @param level
  */
@@ -246,6 +212,41 @@ void pifSensorDigital_sigData(PifSensorDigital* p_owner, uint16_t level);
  * @return Task 구조체 포인터를 반환한다.
  */
 PifTask* pifSensorDigital_AttachTask(PifSensorDigital* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
+
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+/**
+ * @fn pifSensorDigital_SetCsFlag
+ * @brief
+ * @param p_owner
+ * @param flag
+ */
+void pifSensorDigital_SetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag);
+
+/**
+ * @fn pifSensorDigital_ResetCsFlag
+ * @brief
+ * @param p_owner
+ * @param flag
+ */
+void pifSensorDigital_ResetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag);
+
+/**
+ * @fn pifSensorDigitalColSig_SetFlag
+ * @brief
+ * @param flag
+ */
+void pifSensorDigitalColSig_SetFlag(PifSensorDigitalCsFlag flag);
+
+/**
+ * @fn pifSensorDigitalColSig_ResetFlag
+ * @brief
+ * @param flag
+ */
+void pifSensorDigitalColSig_ResetFlag(PifSensorDigitalCsFlag flag);
+
+#endif
 
 #ifdef __cplusplus
 }

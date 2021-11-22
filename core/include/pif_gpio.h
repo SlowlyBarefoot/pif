@@ -8,6 +8,17 @@
 #define PIF_GPIO_MAX_COUNT		7
 
 
+struct StPifGpio;
+typedef struct StPifGpio PifGpio;
+
+typedef uint8_t (*PifActGpioIn)(PifId id);
+typedef void (*PifActGpioOut)(PifId id, uint8_t state);
+
+typedef void (*PifEvtGpioIn)(uint8_t index, uint8_t state);
+
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
 typedef enum EnPifGpioCsFlag
 {
     GP_CSF_OFF			= 0,
@@ -20,24 +31,12 @@ typedef enum EnPifGpioCsFlag
 	GP_CSF_COUNT		= 1
 } PifGpioCsFlag;
 
-
-struct StPifGpio;
-typedef struct StPifGpio PifGpio;
-
-typedef uint8_t (*PifActGpioIn)(PifId id);
-typedef void (*PifActGpioOut)(PifId id, uint8_t state);
-
-typedef void (*PifEvtGpioIn)(uint8_t index, uint8_t state);
-
-
-#ifdef __PIF_COLLECT_SIGNAL__
-
 typedef struct
 {
 	PifGpio* p_owner;
     uint8_t flag;
     void* p_device[GP_CSF_COUNT];
-} PIF_GpioColSig;
+} PifGpioColSig;
 
 #endif
 
@@ -61,7 +60,7 @@ struct StPifGpio
 	uint8_t __write_state;
 
 #ifdef __PIF_COLLECT_SIGNAL__
-	PIF_GpioColSig* __p_colsig;
+	PifGpioColSig* __p_colsig;
 #endif
 
 	// Private Action Function
@@ -129,40 +128,6 @@ BOOL pifGpio_WriteAll(PifGpio* p_owner, uint8_t state);
  */
 BOOL pifGpio_WriteCell(PifGpio* p_owner, uint8_t index, SWITCH state);
 
-#ifdef __PIF_COLLECT_SIGNAL__
-
-/**
- * @fn pifGpio_SetCsFlagAll
- * @brief
- * @param flag
- */
-void pifGpio_SetCsFlagAll(PifGpioCsFlag flag);
-
-/**
- * @fn pifGpio_ResetCsFlagAll
- * @brief
- * @param flag
- */
-void pifGpio_ResetCsFlagAll(PifGpioCsFlag flag);
-
-/**
- * @fn pifGpio_SetCsFlagEach
- * @brief
- * @param p_owner
- * @param flag
- */
-void pifGpio_SetCsFlagEach(PifGpio* p_owner, PifGpioCsFlag flag);
-
-/**
- * @fn pifGpio_ResetCsFlagEach
- * @brief
- * @param p_owner
- * @param flag
- */
-void pifGpio_ResetCsFlagEach(PifGpio* p_owner, PifGpioCsFlag flag);
-
-#endif
-
 /**
  * @fn pifGpio_sigData
  * @brief
@@ -198,6 +163,41 @@ void pifGpio_AttachActOut(PifGpio* p_owner, PifActGpioOut act_out);
  * @return Task 구조체 포인터를 반환한다.
  */
 PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
+
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+/**
+ * @fn pifGpio_SetCsFlag
+ * @brief
+ * @param p_owner
+ * @param flag
+ */
+void pifGpio_SetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag);
+
+/**
+ * @fn pifGpio_ResetCsFlag
+ * @brief
+ * @param p_owner
+ * @param flag
+ */
+void pifGpio_ResetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag);
+
+/**
+ * @fn pifGpioColSig_SetFlag
+ * @brief
+ * @param flag
+ */
+void pifGpioColSig_SetFlag(PifGpioCsFlag flag);
+
+/**
+ * @fn pifGpioColSig_ResetFlag
+ * @brief
+ * @param flag
+ */
+void pifGpioColSig_ResetFlag(PifGpioCsFlag flag);
+
+#endif
 
 #ifdef __cplusplus
 }

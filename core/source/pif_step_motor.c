@@ -1,4 +1,6 @@
-#include "pif_log.h"
+#ifndef __PIF_NO_LOG__
+	#include "pif_log.h"
+#endif
 #include "pif_step_motor.h"
 
 
@@ -89,7 +91,11 @@ void pifStepMotor_Control(PifStepMotor* p_owner)
 {
 	if (p_owner->_state == MS_STOP) {
 		p_owner->__p_task->pause = TRUE;
-		p_owner->_state = MS_IDLE;
+#ifndef __PIF_NO_LOG__
+		pifStepMotor_SetState(p_owner, MS_IDLE, "SM");
+#else
+		pifStepMotor_SetState(p_owner, MS_IDLE);
+#endif
 		if (p_owner->evt_stop) (*p_owner->evt_stop)(p_owner);
 	}
 }
@@ -99,7 +105,11 @@ static void _evtTimerBreakFinish(void *p_issuer)
     PifStepMotor* p_owner = (PifStepMotor*)p_issuer;
 
     if (p_owner->_state > MS_IDLE && p_owner->_state < MS_REDUCE) {
-    	p_owner->_state = MS_REDUCE;
+#ifndef __PIF_NO_LOG__
+		pifStepMotor_SetState(p_owner, MS_REDUCE, "SM");
+#else
+		pifStepMotor_SetState(p_owner, MS_REDUCE);
+#endif
     }
     else {
     	pifStepMotor_Release(p_owner);
@@ -149,6 +159,28 @@ void pifStepMotor_Clear(PifStepMotor* p_owner)
 		p_owner->__p_timer_delay = NULL;
 	}
 }
+
+#ifndef __PIF_NO_LOG__
+
+void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state, char *tag)
+{
+	pifLog_Printf(LT_INFO, "%s(%u) %s->%s E:%d", tag, p_owner->_id,
+			kMotorState[p_owner->_state], kMotorState[state], p_owner->__error);
+	p_owner->_state = state;
+}
+
+#else
+
+#ifdef __PIF_NO_USE_INLINE__
+
+void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state)
+{
+	p_owner->_state = state;
+}
+
+#endif
+
+#endif
 
 BOOL pifStepMotor_SetDirection(PifStepMotor* p_owner, uint8_t direction)
 {

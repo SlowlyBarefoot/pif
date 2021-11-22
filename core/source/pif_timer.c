@@ -1,10 +1,4 @@
-#ifndef __PIF_NO_LOG__
-#include "pif_log.h"
-#endif
 #include "pif_timer.h"
-
-
-#define PIF_PULSE_INDEX_NULL   0xFF
 
 
 static uint16_t _doTask(PifTask* p_task)

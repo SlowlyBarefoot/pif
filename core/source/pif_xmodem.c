@@ -1,4 +1,6 @@
-#include "pif_log.h"
+#ifndef __PIF_NO_LOG__
+	#include "pif_log.h"
+#endif
 #include "pif_ring_buffer.h"
 #include "pif_xmodem.h"
 

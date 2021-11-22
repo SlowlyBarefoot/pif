@@ -101,6 +101,29 @@ BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifTimerManager* p_timer
  */
 void pifStepMotor_Clear(PifStepMotor* p_owner);
 
+#ifndef __PIF_NO_LOG__
+	/**
+	* @fn pifStepMotor_SetState
+	* @brief
+	* @param p_owner
+	* @param state
+	* @param tag
+	*/
+	void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state, char *tag);
+#else
+	/**
+	 * @fn pifStepMotor_SetState
+	 * @brief
+	 * @param p_owner
+	 * @param state
+	 */
+	#ifdef __PIF_NO_USE_INLINE__
+		void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state);
+	#else
+		void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state) { p_owner->_state = state; }
+	#endif
+#endif
+
 /**
  * @fn pifStepMotor_SetDirection
  * @brief

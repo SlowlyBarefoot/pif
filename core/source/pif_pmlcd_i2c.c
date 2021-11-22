@@ -1,9 +1,7 @@
 #include <string.h>
 
 #include "pif_pmlcd_i2c.h"
-#ifndef __PIF_NO_LOG__
-#include "pif_log.h"
-#endif
+#include "pif_task.h"
 
 
 // commands

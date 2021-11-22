@@ -1,6 +1,3 @@
-#ifndef __PIF_NO_LOG__
-#include "pif_log.h"
-#endif
 #include "pif_sensor.h"
 
 

@@ -1,7 +1,4 @@
 #include "pif_led.h"
-#ifndef __PIF_NO_LOG__
-#include "pif_log.h"
-#endif
 
 
 static void _evtTimerBlinkFinish(void* p_issuer)

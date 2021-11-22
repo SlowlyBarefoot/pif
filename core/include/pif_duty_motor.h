@@ -78,6 +78,29 @@ BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifTimerManager* p_timer
  */
 void pifDutyMotor_Clear(PifDutyMotor* p_owner);
 
+#ifndef __PIF_NO_LOG__
+	/**
+	* @fn pifDutyMotor_SetState
+	* @brief
+	* @param p_owner
+	* @param state
+	* @param tag
+	*/
+	void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state, char *tag);
+#else
+	/**
+	 * @fn pifDutyMotor_SetState
+	 * @brief
+	 * @param p_owner
+	 * @param state
+	 */
+	#ifdef __PIF_NO_USE_INLINE__
+		void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state);
+	#else
+		void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state) { p_owner->_state = state; }
+	#endif
+#endif
+
 /**
  * @fn pifDutyMotor_SetDirection
  * @brief

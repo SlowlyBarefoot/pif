@@ -2,7 +2,7 @@
 
 #include "pif.h"
 #ifndef	__PIF_NO_LOG__
-#include "pif_log.h"
+	#include "pif_log.h"
 #endif
 #include "pif_task.h"
 
@@ -41,20 +41,23 @@ static uint8_t s_crc7;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
-void PIF_WEAK pifGpio_ColSigInit() {}
-void PIF_WEAK pifGpio_ColSigClear() {}
+void PIF_WEAK pifGpioColSig_Init() {}
+void PIF_WEAK pifGpioColSig_Clear() {}
 
-void PIF_WEAK pifSensorDigital_ColSigInit() {}
-void PIF_WEAK pifSensorDigital_ColSigClear() {}
+void PIF_WEAK pifPulseColSig_Init() {}
+void PIF_WEAK pifPulseColSig_Clear() {}
 
-void PIF_WEAK pifSensorSwitch_ColSigInit() {}
-void PIF_WEAK pifSensorSwitch_ColSigClear() {}
+void PIF_WEAK pifSensorDigitalColSig_Init() {}
+void PIF_WEAK pifSensorDigitalColSig_Clear() {}
 
-void PIF_WEAK pifSolenoid_ColSigInit() {}
-void PIF_WEAK pifSolenoid_ColSigClear() {}
+void PIF_WEAK pifSensorSwitchColSig_Init() {}
+void PIF_WEAK pifSensorSwitchColSig_Clear() {}
 
-void PIF_WEAK pifSequence_ColSigInit() {}
-void PIF_WEAK pifSequence_ColSigClear() {}
+void PIF_WEAK pifSolenoidColSig_Init() {}
+void PIF_WEAK pifSolenoidColSig_Clear() {}
+
+void PIF_WEAK pifSequenceColSig_Init() {}
+void PIF_WEAK pifSequenceColSig_Clear() {}
 
 #endif
 
@@ -66,11 +69,12 @@ void pif_Init(PifActTimer1us act_timer1us)
 	pif_datetime.day = 1;
 
 #ifdef __PIF_COLLECT_SIGNAL__
-    pifGpio_ColSigInit();
-    pifSensorDigital_ColSigInit();
-    pifSensorSwitch_ColSigInit();
-    pifSolenoid_ColSigInit();
-    pifSequence_ColSigInit();
+    pifGpioColSig_Init();
+    pifPulseColSig_Init();
+    pifSensorDigitalColSig_Init();
+    pifSensorSwitchColSig_Init();
+    pifSolenoidColSig_Init();
+    pifSequenceColSig_Init();
 #endif
 }
 
@@ -81,11 +85,12 @@ void pif_Exit()
 	pifTaskManager_Clear();
 
 #ifdef __PIF_COLLECT_SIGNAL__
-	pifGpio_ColSigClear();
-	pifSensorDigital_ColSigClear();
-	pifSensorSwitch_ColSigClear();
-	pifSolenoid_ColSigClear();
-    pifSequence_ColSigClear();
+	pifGpioColSig_Clear();
+	pifPulseColSig_Clear();
+	pifSensorDigitalColSig_Clear();
+	pifSensorSwitchColSig_Clear();
+	pifSolenoidColSig_Clear();
+    pifSequenceColSig_Clear();
 #endif
 }
 

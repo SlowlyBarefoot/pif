@@ -1,15 +1,15 @@
 #ifdef __PIF_COLLECT_SIGNAL__
-#include "pif_collect_signal.h"
+	#include "pif_collect_signal.h"
 #endif
 #include "pif_list.h"
 #ifndef __PIF_NO_LOG__
-#include "pif_log.h"
+	#include "pif_log.h"
 #endif
 #include "pif_sequence.h"
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
-static PifDList s_cs_list;
+	static PifDList s_cs_list;
 #endif
 
 
@@ -103,7 +103,7 @@ static void _addDeviceInCollectSignal()
 
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
-		PIF_SequenceColSig* p_colsig = (PIF_SequenceColSig*)it->data;
+		PifSequenceColSig* p_colsig = (PifSequenceColSig*)it->data;
 		PifSequence* p_owner = p_colsig->p_owner;
 		for (int f = 0; f < SQ_CSF_COUNT; f++) {
 			if (p_colsig->flag & (1 << f)) {
@@ -116,16 +116,6 @@ static void _addDeviceInCollectSignal()
 
 		it = pifDList_Next(it);
 	}
-}
-
-void pifSequence_ColSigInit()
-{
-	pifDList_Init(&s_cs_list);
-}
-
-void pifSequence_ColSigClear()
-{
-	pifDList_Clear(&s_cs_list);
 }
 
 #endif
@@ -160,7 +150,7 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_m
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Attach(CSF_SEQUENCE, _addDeviceInCollectSignal);
 	}
-	PIF_SequenceColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PIF_SequenceColSig));
+	PifSequenceColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSequenceColSig));
 	if (!p_colsig) goto fail;
 	p_colsig->p_owner = p_owner;
 	p_owner->__p_colsig = p_colsig;
@@ -191,47 +181,13 @@ void pifSequence_Clear(PifSequence* p_owner)
 	}
 }
 
-#ifdef __PIF_COLLECT_SIGNAL__
-
-void pifSequence_SetCsFlagAll(PifSequenceCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PIF_SequenceColSig* p_colsig = (PIF_SequenceColSig*)it->data;
-		p_colsig->flag |= flag;
-		it = pifDList_Next(it);
-	}
-}
-
-void pifSequence_ResetCsFlagAll(PifSequenceCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PIF_SequenceColSig* p_colsig = (PIF_SequenceColSig*)it->data;
-		p_colsig->flag &= ~flag;
-		it = pifDList_Next(it);
-	}
-}
-
-void pifSequence_SetCsFlagEach(PifSequence* p_owner, PifSequenceCsFlag flag)
-{
-	p_owner->__p_colsig->flag |= flag;
-}
-
-void pifSequence_ResetCsFlagEach(PifSequence* p_owner, PifSequenceCsFlag flag)
-{
-	p_owner->__p_colsig->flag &= ~flag;
-}
-
-#endif
-
 void pifSequence_Start(PifSequence* p_owner)
 {
 	_setPhaseNo(p_owner, 0);
 	p_owner->step = PIF_SEQUENCE_STEP_INIT;
 	p_owner->phase_no_next = PIF_SEQUENCE_PHASE_NO_IDLE;
 	p_owner->delay1us = 0;
-}	
+}
 
 BOOL pifSequence_SetTimeout(PifSequence* p_owner, uint16_t timeout)
 {
@@ -243,3 +199,48 @@ BOOL pifSequence_SetTimeout(PifSequence* p_owner, uint16_t timeout)
 	pifTimer_Start(p_owner->__p_timer_timeout, timeout);
 	return TRUE;
 }
+
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+void pifSequence_SetCsFlag(PifSequence* p_owner, PifSequenceCsFlag flag)
+{
+	p_owner->__p_colsig->flag |= flag;
+}
+
+void pifSequence_ResetCsFlag(PifSequence* p_owner, PifSequenceCsFlag flag)
+{
+	p_owner->__p_colsig->flag &= ~flag;
+}
+
+void pifSequenceColSig_Init()
+{
+	pifDList_Init(&s_cs_list);
+}
+
+void pifSequenceColSig_Clear()
+{
+	pifDList_Clear(&s_cs_list);
+}
+
+void pifSequenceColSig_SetFlag(PifSequenceCsFlag flag)
+{
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PifSequenceColSig* p_colsig = (PifSequenceColSig*)it->data;
+		p_colsig->flag |= flag;
+		it = pifDList_Next(it);
+	}
+}
+
+void pifSequenceColSig_ResetFlag(PifSequenceCsFlag flag)
+{
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PifSequenceColSig* p_colsig = (PifSequenceColSig*)it->data;
+		p_colsig->flag &= ~flag;
+		it = pifDList_Next(it);
+	}
+}
+
+#endif

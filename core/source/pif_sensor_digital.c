@@ -1,15 +1,15 @@
 #ifdef __PIF_COLLECT_SIGNAL__
-#include "pif_collect_signal.h"
+	#include "pif_collect_signal.h"
 #endif
 #include "pif_list.h"
 #ifndef __PIF_NO_LOG__
-#include "pif_log.h"
+	#include "pif_log.h"
 #endif
 #include "pif_sensor_digital.h"
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
-static PifDList s_cs_list;
+	static PifDList s_cs_list;
 #endif
 
 
@@ -64,16 +64,6 @@ static void _addDeviceInCollectSignal()
 
 		it = pifDList_Next(it);
 	}
-}
-
-void pifSensorDigital_ColSigInit()
-{
-	pifDList_Init(&s_cs_list);
-}
-
-void pifSensorDigital_ColSigClear()
-{
-	pifDList_Clear(&s_cs_list);
 }
 
 #endif
@@ -226,40 +216,6 @@ void pifSensorDigital_DetachFilter(PifSensorDigital* p_owner)
 	p_owner->__p_filter = NULL;
 }
 
-#ifdef __PIF_COLLECT_SIGNAL__
-
-void pifSensorDigital_SetCsFlagAll(PifSensorDigitalCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSensorDigitalColSig* p_colsig = (PifSensorDigitalColSig*)it->data;
-		p_colsig->flag |= flag;
-		it = pifDList_Next(it);
-	}
-}
-
-void pifSensorDigital_ResetCsFlagAll(PifSensorDigitalCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSensorDigitalColSig* p_colsig = (PifSensorDigitalColSig*)it->data;
-		p_colsig->flag &= ~flag;
-		it = pifDList_Next(it);
-	}
-}
-
-void pifSensorDigital_SetCsFlagEach(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag)
-{
-	p_owner->__p_colsig->flag |= flag;
-}
-
-void pifSensorDigital_ResetCsFlagEach(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag)
-{
-	p_owner->__p_colsig->flag &= ~flag;
-}
-
-#endif
-
 void pifSensorDigital_sigData(PifSensorDigital* p_owner, uint16_t level)
 {
 	p_owner->__prev_level = p_owner->__curr_level;
@@ -322,3 +278,48 @@ PifTask* pifSensorDigital_AttachTask(PifSensorDigital* p_owner, PifTaskMode mode
 {
 	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
 }
+
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+void pifSensorDigital_SetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag)
+{
+	p_owner->__p_colsig->flag |= flag;
+}
+
+void pifSensorDigital_ResetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag)
+{
+	p_owner->__p_colsig->flag &= ~flag;
+}
+
+void pifSensorDigitalColSig_Init()
+{
+	pifDList_Init(&s_cs_list);
+}
+
+void pifSensorDigitalColSig_Clear()
+{
+	pifDList_Clear(&s_cs_list);
+}
+
+void pifSensorDigitalColSig_SetFlag(PifSensorDigitalCsFlag flag)
+{
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PifSensorDigitalColSig* p_colsig = (PifSensorDigitalColSig*)it->data;
+		p_colsig->flag |= flag;
+		it = pifDList_Next(it);
+	}
+}
+
+void pifSensorDigitalColSig_ResetFlag(PifSensorDigitalCsFlag flag)
+{
+	PifDListIterator it = pifDList_Begin(&s_cs_list);
+	while (it) {
+		PifSensorDigitalColSig* p_colsig = (PifSensorDigitalColSig*)it->data;
+		p_colsig->flag &= ~flag;
+		it = pifDList_Next(it);
+	}
+}
+
+#endif

@@ -11,18 +11,6 @@
 #define PIF_SEQUENCE_STEP_INIT		0
 
 
-typedef enum EnPifSequenceCsFlag
-{
-    SQ_CSF_OFF			= 0,
-
-    SQ_CSF_PHASE_IDX	= 0,
-
-	SQ_CSF_PHASE_BIT	= 1,
-	SQ_CSF_ALL_BIT		= 1,
-
-    SQ_CSF_COUNT		= 1
-} PifSequenceCsFlag;
-
 typedef enum EnPifSequenceResult
 {
     SR_CONTINUE			= 1,
@@ -46,12 +34,24 @@ typedef struct StPifSequencePhase
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
+typedef enum EnPifSequenceCsFlag
+{
+    SQ_CSF_OFF			= 0,
+
+    SQ_CSF_PHASE_IDX	= 0,
+
+	SQ_CSF_PHASE_BIT	= 1,
+	SQ_CSF_ALL_BIT		= 1,
+
+    SQ_CSF_COUNT		= 1
+} PifSequenceCsFlag;
+
 typedef struct StPifSequenceColSig
 {
 	PifSequence* p_owner;
 	uint8_t flag;
     void* p_device[SQ_CSF_COUNT];
-} PIF_SequenceColSig;
+} PifSequenceColSig;
 
 #endif
 
@@ -77,7 +77,7 @@ struct StPifSequence
 	PifTimer* __p_timer_timeout;
 	uint32_t __target_delay;
 #ifdef __PIF_COLLECT_SIGNAL__
-	PIF_SequenceColSig* __p_colsig;
+	PifSequenceColSig* __p_colsig;
 #endif
 };
 
@@ -107,43 +107,9 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_m
  */
 void pifSequence_Clear(PifSequence* p_owner);
 
-#ifdef __PIF_COLLECT_SIGNAL__
-
-/**
- * @fn pifSequence_SetCsFlagAll
- * @brief
- * @param flag
- */
-void pifSequence_SetCsFlagAll(PifSequenceCsFlag flag);
-
-/**
- * @fn pifSequence_ResetCsFlagAll
- * @brief
- * @param flag
- */
-void pifSequence_ResetCsFlagAll(PifSequenceCsFlag flag);
-
-/**
- * @fn pifSequence_SetCsFlagEach
- * @brief
- * @param p_owner
- * @param flag
- */
-void pifSequence_SetCsFlagEach(PifSequence* p_owner, PifSequenceCsFlag flag);
-
-/**
- * @fn pifSequence_ResetCsFlagEach
- * @brief
- * @param p_owner
- * @param flag
- */
-void pifSequence_ResetCsFlagEach(PifSequence* p_owner, PifSequenceCsFlag flag);
-
-#endif
-
 /**
  * @fn pifSequence_Start
- * @brief 
+ * @brief
  * @param p_owner
  */
 void pifSequence_Start(PifSequence* p_owner);
@@ -156,6 +122,41 @@ void pifSequence_Start(PifSequence* p_owner);
  * @return
  */
 BOOL pifSequence_SetTimeout(PifSequence* p_owner, uint16_t timeout);
+
+
+#ifdef __PIF_COLLECT_SIGNAL__
+
+/**
+ * @fn pifSequence_SetCsFlag
+ * @brief
+ * @param p_owner
+ * @param flag
+ */
+void pifSequence_SetCsFlag(PifSequence* p_owner, PifSequenceCsFlag flag);
+
+/**
+ * @fn pifSequence_ResetCsFlag
+ * @brief
+ * @param p_owner
+ * @param flag
+ */
+void pifSequence_ResetCsFlag(PifSequence* p_owner, PifSequenceCsFlag flag);
+
+/**
+ * @fn pifSequenceColSig_SetFlag
+ * @brief
+ * @param flag
+ */
+void pifSequenceColSig_SetFlag(PifSequenceCsFlag flag);
+
+/**
+ * @fn pifSequenceColSig_ResetFlag
+ * @brief
+ * @param flag
+ */
+void pifSequenceColSig_ResetFlag(PifSequenceCsFlag flag);
+
+#endif
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,4 @@
 #include "pif_keypad.h"
-#ifndef __PIF_NO_LOG__
-#include "pif_log.h"
-#endif
 
 
 static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)

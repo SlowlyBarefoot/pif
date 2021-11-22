@@ -1,7 +1,4 @@
 #include "pif_dot_matrix.h"
-#ifndef __PIF_NO_LOG__
-#include "pif_log.h"
-#endif
 
 
 static void _setPattern(PifDotMatrix* p_owner, uint16_t position_x, uint16_t position_y, uint16_t position)

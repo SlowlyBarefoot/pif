@@ -1,7 +1,4 @@
 #include "pif_fnd.h"
-#ifndef __PIF_NO_LOG__
-#include "pif_log.h"
-#endif
 
 
 const uint8_t kFndNumber[] = {

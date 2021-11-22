@@ -1,7 +1,4 @@
 #include "pif_gps.h"
-#ifndef __PIF_NO_LOG__
-#include "pif_log.h"
-#endif
 
 
 BOOL pifGps_Init(PifGps* p_owner, PifId id)

@@ -1,7 +1,9 @@
 #include <string.h>
 
-#include "pif_log.h"
 #include "pif_duty_motor_speed_enc.h"
+#ifndef __PIF_NO_LOG__
+	#include "pif_log.h"
+#endif
 
 
 static void _evtTimerDelayFinish(void* p_issuer)
@@ -11,15 +13,23 @@ static void _evtTimerDelayFinish(void* p_issuer)
 	switch (p_parent->_state) {
     case MS_GAINED:
     case MS_STABLE:
-        p_parent->__error = 1;
+        p_parent->__error = 3;
         break;
 
 	case MS_OVER_RUN:
-        p_parent->_state = MS_REDUCE;
+#ifndef __PIF_NO_LOG__
+        pifDutyMotor_SetState(p_parent, MS_REDUCE, "DMSE");
+#else
+        pifDutyMotor_SetState(p_parent, MS_REDUCE);
+#endif
         break;
 
 	case MS_BREAKING:
-        p_parent->_state = MS_STOPPING;
+#ifndef __PIF_NO_LOG__
+        pifDutyMotor_SetState(p_parent, MS_STOPPING, "DMSE");
+#else
+        pifDutyMotor_SetState(p_parent, MS_STOPPING);
+#endif
 		break;
 
 	default:
@@ -39,10 +49,12 @@ static uint16_t _doTask(PifTask* p_task)
 	uint16_t enc_average = 0;
     PifDutyMotorSpeedEnc* p_owner = (PifDutyMotorSpeedEnc*)p_parent;
 	const PifDutyMotorSpeedEncStage* p_stage = p_owner->__p_current_stage;
-	PifMotorState state = p_parent->_state;
+#ifndef __PIF_NO_LOG__
+	uint16_t pre_duty = p_parent->_current_duty;
+#endif
 
-	tmp_enc = p_owner->__measure_enc;
-	p_owner->__measure_enc = 0;
+	tmp_enc = p_owner->__p_encoder->falling_count;
+	p_owner->__p_encoder->falling_count = 0UL;
 	tmp_duty = p_parent->_current_duty;
 
 	p_owner->__enc_sample_sum -= p_owner->__enc_sample[p_owner->__enc_sample_idx];
@@ -52,7 +64,11 @@ static uint16_t _doTask(PifTask* p_task)
 
 	if (p_parent->_state == MS_GAINED) {
 		if (tmp_enc >= p_owner->__arrive_ppr) {
-			p_parent->_state = MS_STABLE;
+#ifndef __PIF_NO_LOG__
+			pifDutyMotor_SetState(p_parent, MS_STABLE, "DMSE");
+#else
+			pifDutyMotor_SetState(p_parent, MS_STABLE);
+#endif
             if (!pifTimer_Start(p_parent->__p_timer_delay, p_stage->fs_stable_timeout)) {
                 p_parent->__error = 1;
             }
@@ -67,26 +83,38 @@ static uint16_t _doTask(PifTask* p_task)
 
         if (enc_average >= p_owner->__err_low_ppr && enc_average <= p_owner->__err_high_ppr) {
             pifTimer_Stop(p_parent->__p_timer_delay);
-            p_parent->_state = MS_CONST;
+#ifndef __PIF_NO_LOG__
+			pifDutyMotor_SetState(p_parent, MS_CONST, "DMSE");
+#else
+			pifDutyMotor_SetState(p_parent, MS_CONST);
+#endif
         }
     }
 	else if (p_parent->_state == MS_REDUCE) {
 		if (!p_stage->rs_ctrl_duty) {
 			tmp_duty = 0;
-			p_parent->_state = MS_BREAK;
+#ifndef __PIF_NO_LOG__
+			pifDutyMotor_SetState(p_parent, MS_BREAK, "DMSE");
+#else
+			pifDutyMotor_SetState(p_parent, MS_BREAK);
+#endif
 		}
 		else if (tmp_duty > p_stage->rs_ctrl_duty && tmp_duty > p_stage->rs_low_duty) {
 			tmp_duty -= p_stage->rs_ctrl_duty;
 		}
 		else if (tmp_duty) {
 			tmp_duty = 0;
-			p_parent->_state = MS_BREAK;
+#ifndef __PIF_NO_LOG__
+			pifDutyMotor_SetState(p_parent, MS_BREAK, "DMSE");
+#else
+			pifDutyMotor_SetState(p_parent, MS_BREAK);
+#endif
 		}
 	}
 
 	if (p_stage->mode & MM_SC_MASK) {
 		if ((p_parent->_state == MS_STABLE) || (p_parent->_state == MS_CONST)) {
-			ctrl_duty = pifPidControl_Calcurate(&p_owner->__pid_control, p_stage->fs_pulses_per_range - tmp_enc);
+			ctrl_duty = pifPidControl_Calcurate(&p_owner->__pid_control, p_stage->fs_pulses_per_period - tmp_enc);
 
 			if (ctrl_duty > 0) {
 				if (tmp_duty + ctrl_duty < p_stage->fs_high_duty) {
@@ -119,11 +147,19 @@ static uint16_t _doTask(PifTask* p_task)
     	if (p_parent->act_operate_break && p_stage->rs_break_time &&
     			pifTimer_Start(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
 			(*p_parent->act_operate_break)(1);
-			p_parent->_state = MS_BREAKING;
+#ifndef __PIF_NO_LOG__
+			pifDutyMotor_SetState(p_parent, MS_BREAKING, "DMSE");
+#else
+			pifDutyMotor_SetState(p_parent, MS_BREAKING);
+#endif
     	}
     	else {
 			if (p_parent->act_operate_break) (*p_parent->act_operate_break)(1);
-    		p_parent->_state = MS_STOPPING;
+#ifndef __PIF_NO_LOG__
+			pifDutyMotor_SetState(p_parent, MS_STOPPING, "DMSE");
+#else
+			pifDutyMotor_SetState(p_parent, MS_STOPPING);
+#endif
     	}
 	}
 
@@ -131,12 +167,16 @@ static uint16_t _doTask(PifTask* p_task)
 		if (!(p_stage->mode & MM_NR_MASK)) {
 			if (p_parent->act_operate_break) (*p_parent->act_operate_break)(0);
 		}
-		p_parent->_state = MS_STOP;
+#ifndef __PIF_NO_LOG__
+		pifDutyMotor_SetState(p_parent, MS_STOP, "DMSE");
+#else
+		pifDutyMotor_SetState(p_parent, MS_STOP);
+#endif
 
 		if (p_stage->mode & MM_CFPS_MASK) {
 	    	if (p_stage->p_stop_sensor) {
 	    		if (p_stage->p_stop_sensor->_curr_state == OFF) {
-	    			p_parent->__error = 1;
+	    			p_parent->__error = 2;
 	    		}
 	    	}
 	    }
@@ -150,9 +190,16 @@ static uint16_t _doTask(PifTask* p_task)
     }
 
 #ifndef __PIF_NO_LOG__
-	if (state != p_parent->_state && pif_log_flag.bt.duty_motor) {
-		pifLog_Printf(LT_INFO, "DMSE(%u) %s D:%u(%u%%) E:%u", p_parent->_id,
-				kMotorState[p_parent->_state], tmp_duty, (uint16_t)(100 * tmp_duty / p_parent->_max_duty), tmp_enc);
+	if (pif_log_flag.bt.duty_motor && pre_duty != tmp_duty) {
+		if (p_parent->_state == MS_CONST) {
+			pifLog_Printf(LT_INFO, "DMSE(%u) %s D:%u->%u(%u%%) ENC:%u E:%d P:%luus", p_parent->_id, kMotorState[p_parent->_state],
+					pre_duty, tmp_duty, (uint16_t)(100 * tmp_duty / p_parent->_max_duty), tmp_enc, p_parent->__error,
+					p_owner->__p_encoder->_period_1us);
+		}
+		else {
+			pifLog_Printf(LT_INFO, "DMSE(%u) %s D:%u->%u(%u%%) ENC:%u E:%d", p_parent->_id, kMotorState[p_parent->_state],
+					pre_duty, tmp_duty, (uint16_t)(100 * tmp_duty / p_parent->_max_duty), tmp_enc, p_parent->__error);
+		}
 	}
 #endif
 
@@ -183,13 +230,18 @@ static void _evtSwitchStopChange(PifId id, uint16_t level, void* p_issuer)
 
 	if (level) {
 		p_parent->_current_duty = 0;
-		p_parent->_state = MS_BREAK;
+#ifndef __PIF_NO_LOG__
+		pifDutyMotor_SetState(p_parent, MS_BREAK, "DMSE");
+#else
+		pifDutyMotor_SetState(p_parent, MS_BREAK);
+#endif
 	}
 }
 
-BOOL pifDutyMotorSpeedEnc_Init(PifDutyMotorSpeedEnc* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t max_duty, uint16_t period1ms)
+BOOL pifDutyMotorSpeedEnc_Init(PifDutyMotorSpeedEnc* p_owner, PifId id, PifTimerManager* p_timer_manager,
+		uint16_t max_duty, uint16_t period1ms, PifPulse* p_encoder)
 {
-    if (!p_timer_manager || !max_duty) {
+    if (!p_timer_manager || !max_duty || !period1ms || !p_encoder) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
@@ -205,6 +257,13 @@ BOOL pifDutyMotorSpeedEnc_Init(PifDutyMotorSpeedEnc* p_owner, PifId id, PifTimer
 
     p_parent->__p_task = pifTaskManager_Add(TM_PERIOD_MS, period1ms, _doTask, p_owner, FALSE);
 	if (!p_parent->__p_task) goto fail;
+
+	p_owner->__p_encoder = p_encoder;
+#ifndef __PIF_NO_LOG__
+    pifPulse_SetMeasureMode(p_encoder, PIF_PMM_FALLING_COUNT | PIF_PMM_PERIOD);
+#else
+    pifPulse_SetMeasureMode(p_encoder, PIF_PMM_FALLING_COUNT);
+#endif
     return TRUE;
 
 fail:
@@ -306,20 +365,28 @@ BOOL pifDutyMotorSpeedEnc_Start(PifDutyMotorSpeedEnc* p_owner, uint8_t stage_ind
     if (p_stage->gs_ctrl_duty) {
 		if (!pifTimer_Start(p_parent->__p_timer_delay, p_stage->gs_arrive_timeout)) return FALSE;
 
-		p_owner->__arrive_ppr = p_stage->fs_pulses_per_range * p_stage->gs_arrive_ratio / 100;
+		p_owner->__arrive_ppr = p_stage->fs_pulses_per_period * p_stage->gs_arrive_ratio / 100;
 		p_parent->_current_duty = p_stage->gs_start_duty;
-		p_parent->_state = MS_GAINED;
+#ifndef __PIF_NO_LOG__
+		pifDutyMotor_SetState(p_parent, MS_GAINED, "DMSE");
+#else
+		pifDutyMotor_SetState(p_parent, MS_GAINED);
+#endif
     }
     else {
     	p_parent->_current_duty = p_stage->fs_high_duty;
-        p_parent->_state = MS_CONST;
+#ifndef __PIF_NO_LOG__
+		pifDutyMotor_SetState(p_parent, MS_CONST, "DMSE");
+#else
+		pifDutyMotor_SetState(p_parent, MS_CONST);
+#endif
     }
-    p_owner->__err_low_ppr = p_stage->fs_pulses_per_range * p_stage->fs_stable_err_low / 100;
-    p_owner->__err_high_ppr = p_stage->fs_pulses_per_range * p_stage->fs_stable_err_high / 100;
+    p_owner->__err_low_ppr = p_stage->fs_pulses_per_period * p_stage->fs_stable_err_low / 100;
+    p_owner->__err_high_ppr = p_stage->fs_pulses_per_period * p_stage->fs_stable_err_high / 100;
     p_owner->__enc_sample_idx = 0;
     memset(p_owner->__enc_sample, 0, sizeof(p_owner->__enc_sample));
     p_owner->__enc_sample_sum = 0;
-    p_owner->__measure_enc = 0;
+	p_owner->__p_encoder->falling_count = 0UL;
     p_parent->__error = 0;
 
     (*p_parent->act_set_duty)(p_parent->_current_duty);
@@ -334,10 +401,18 @@ void pifDutyMotorSpeedEnc_Stop(PifDutyMotorSpeedEnc* p_owner)
     if (p_parent->_state == MS_IDLE) return;
 
     if (p_stage->fs_overtime && pifTimer_Start(p_parent->__p_timer_delay, p_stage->fs_overtime)) {
-        p_parent->_state = MS_OVER_RUN;
+#ifndef __PIF_NO_LOG__
+		pifDutyMotor_SetState(p_parent, MS_OVER_RUN, "DMSE");
+#else
+		pifDutyMotor_SetState(p_parent, MS_OVER_RUN);
+#endif
     }
     else {
-        p_parent->_state = MS_REDUCE;
+#ifndef __PIF_NO_LOG__
+		pifDutyMotor_SetState(p_parent, MS_REDUCE, "DMSE");
+#else
+		pifDutyMotor_SetState(p_parent, MS_REDUCE);
+#endif
     }
 }
 
@@ -346,10 +421,9 @@ void pifDutyMotorSpeedEnc_Emergency(PifDutyMotorSpeedEnc* p_owner)
     PifDutyMotor* p_parent = &p_owner->parent;
 
     p_parent->_current_duty = 0;
-    p_parent->_state = MS_BREAK;
-}
-
-void pifDutyMotorSpeedEnc_sigEncoder(PifDutyMotorSpeedEnc* p_owner)
-{
-    p_owner->__measure_enc++;
+#ifndef __PIF_NO_LOG__
+	pifDutyMotor_SetState(p_parent, MS_BREAK, "DMSE");
+#else
+	pifDutyMotor_SetState(p_parent, MS_BREAK);
+#endif
 }

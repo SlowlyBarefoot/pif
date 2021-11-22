@@ -20,20 +20,6 @@ typedef enum EnPifSolenoidDir
     SD_RIGHT	    = 2
 } PifSolenoidDir;
 
-typedef enum EnPifSolenoidCsFlag
-{
-    SN_CSF_OFF			= 0,
-
-    SN_CSF_ACTION_IDX	= 0,
-    SN_CSF_DIR_IDX		= 1,
-
-	SN_CSF_ACTION_BIT	= 1,
-	SN_CSF_DIR_BIT		= 2,
-	SN_CSF_ALL_BIT		= 3,
-
-    SN_CSF_COUNT		= 2
-} PifSolenoidCsFlag;
-
 
 struct StPifSolenoid;
 typedef struct StPifSolenoid PifSolenoid;
@@ -54,6 +40,20 @@ typedef struct StPifSolenoidContent
 } PifSolenoidContent;
 
 #ifdef __PIF_COLLECT_SIGNAL__
+
+typedef enum EnPifSolenoidCsFlag
+{
+    SN_CSF_OFF			= 0,
+
+    SN_CSF_ACTION_IDX	= 0,
+    SN_CSF_DIR_IDX		= 1,
+
+	SN_CSF_ACTION_BIT	= 1,
+	SN_CSF_DIR_BIT		= 2,
+	SN_CSF_ALL_BIT		= 3,
+
+    SN_CSF_COUNT		= 2
+} PifSolenoidCsFlag;
 
 typedef struct StPifSolenoidColSig
 {
@@ -172,37 +172,38 @@ void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDi
  */
 void pifSolenoid_ActionOff(PifSolenoid* p_owner);
 
+
 #ifdef __PIF_COLLECT_SIGNAL__
 
 /**
- * @fn pifSolenoid_SetCsFlagAll
- * @brief
- * @param flag
- */
-void pifSolenoid_SetCsFlagAll(PifSolenoidCsFlag flag);
-
-/**
- * @fn pifSolenoid_ResetCsFlagAll
- * @brief
- * @param flag
- */
-void pifSolenoid_ResetCsFlagAll(PifSolenoidCsFlag flag);
-
-/**
- * @fn pifSolenoid_SetCsFlagEach
+ * @fn pifSolenoid_SetCsFlag
  * @brief
  * @param pstSensor
  * @param flag
  */
-void pifSolenoid_SetCsFlagEach(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
+void pifSolenoid_SetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
 
 /**
- * @fn pifSolenoid_ResetCsFlagEach
+ * @fn pifSolenoid_ResetCsFlag
  * @brief
  * @param pstSensor
  * @param flag
  */
-void pifSolenoid_ResetCsFlagEach(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
+void pifSolenoid_ResetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
+
+/**
+ * @fn pifSolenoidColSig_SetFlag
+ * @brief
+ * @param flag
+ */
+void pifSolenoidColSig_SetFlag(PifSolenoidCsFlag flag);
+
+/**
+ * @fn pifSolenoidColSig_ResetFlag
+ * @brief
+ * @param flag
+ */
+void pifSolenoidColSig_ResetFlag(PifSolenoidCsFlag flag);
 
 #endif
 

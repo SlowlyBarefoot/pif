@@ -1,5 +1,7 @@
-#include "pif_log.h"
 #include "pif_duty_motor.h"
+#ifndef __PIF_NO_LOG__
+	#include "pif_log.h"
+#endif
 
 
 void pifDutyMotor_Control(PifDutyMotor* p_owner)
@@ -9,7 +11,11 @@ void pifDutyMotor_Control(PifDutyMotor* p_owner)
 			(*p_owner->act_set_duty)(0);
 			p_owner->_current_duty = 0;
 
-			p_owner->_state = MS_BREAK;
+#ifndef __PIF_NO_LOG__
+			pifDutyMotor_SetState(p_owner, MS_BREAK, "DM");
+#else
+			pifDutyMotor_SetState(p_owner, MS_BREAK);
+#endif
         }
 
         if (p_owner->evt_error) (*p_owner->evt_error)(p_owner);
@@ -17,7 +23,11 @@ void pifDutyMotor_Control(PifDutyMotor* p_owner)
 
 	if (p_owner->_state == MS_STOP) {
 		p_owner->__p_task->pause = TRUE;
-		p_owner->_state = MS_IDLE;
+#ifndef __PIF_NO_LOG__
+		pifDutyMotor_SetState(p_owner, MS_IDLE, "DM");
+#else
+		pifDutyMotor_SetState(p_owner, MS_IDLE);
+#endif
 		if (p_owner->evt_stop) (*p_owner->evt_stop)(p_owner);
 	}
 }
@@ -27,7 +37,11 @@ static void _evtTimerBreakFinish(void* p_issuer)
     PifDutyMotor* p_owner = (PifDutyMotor*)p_issuer;
 
     if (p_owner->_state > MS_IDLE && p_owner->_state < MS_REDUCE) {
-    	p_owner->_state = MS_REDUCE;
+#ifndef __PIF_NO_LOG__
+		pifDutyMotor_SetState(p_owner, MS_REDUCE, "DM");
+#else
+		pifDutyMotor_SetState(p_owner, MS_REDUCE);
+#endif
     }
     else {
     	(*p_owner->act_operate_break)(0);
@@ -62,6 +76,28 @@ void pifDutyMotor_Clear(PifDutyMotor* p_owner)
 	}
 }
 
+#ifndef __PIF_NO_LOG__
+
+void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state, char *tag)
+{
+	pifLog_Printf(LT_INFO, "%s(%u) %s->%s E:%d", tag, p_owner->_id,
+			kMotorState[p_owner->_state], kMotorState[state], p_owner->__error);
+	p_owner->_state = state;
+}
+
+#else
+
+#ifdef __PIF_NO_USE_INLINE__
+
+void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state)
+{
+	p_owner->_state = state;
+}
+
+#endif
+
+#endif
+
 void pifDutyMotor_SetDirection(PifDutyMotor* p_owner, uint8_t direction)
 {
 	p_owner->_direction = direction;
@@ -79,6 +115,8 @@ void pifDutyMotor_SetDuty(PifDutyMotor* p_owner, uint16_t duty)
 
 BOOL pifDutyMotor_SetOperatingTime(PifDutyMotor* p_owner, uint32_t operating_time)
 {
+	if (!operating_time) return TRUE;
+
 	if (!p_owner->__p_timer_break) {
 		p_owner->__p_timer_break = pifTimerManager_Add(p_owner->_p_timer_manager, TT_ONCE);
 	}
