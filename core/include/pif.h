@@ -157,7 +157,11 @@ typedef enum EnPifError
 	E_NOT_SET_EVENT				= 0x08,
 	E_CANNOT_USE				= 0x09,
 	E_TRANSFER_FAILED			= 0x0A,
-	E_NOT_SET_TASK				= 0x0B
+	E_NOT_SET_TASK				= 0x0B,
+	E_MISMATCH_CRC				= 0x0C,
+	E_ACCESS_FAILED				= 0x0D,
+	E_CANNOT_FOUND				= 0x0E,
+	E_IS_NOT_FORMATED			= 0x0F
 } PifError;
 
 
