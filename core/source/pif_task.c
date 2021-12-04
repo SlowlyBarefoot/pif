@@ -42,7 +42,7 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 	case TM_PERIOD_US:
 		time = (*pif_act_timer1us)();
 		gap = time - p_owner->__pretime;
-		if (gap >= p_owner->_period) {
+		if (gap > p_owner->_period) {
 			p_owner->__running = TRUE;
 			(*p_owner->__evt_loop)(p_owner);
 			p_owner->__running = FALSE;
@@ -53,7 +53,7 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 	case TM_PERIOD_MS:
 		time = 1000L * pif_timer1sec + pif_timer1ms;
 		gap = time - p_owner->__pretime;
-		if (gap >= p_owner->_period) {
+		if (gap > p_owner->_period) {
 			p_owner->__running = TRUE;
 			(*p_owner->__evt_loop)(p_owner);
 			p_owner->__running = FALSE;
@@ -64,7 +64,7 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 	case TM_CHANGE_US:
 		time = (*pif_act_timer1us)();
 		gap = time - p_owner->__pretime;
-		if (gap >= p_owner->_period) {
+		if (gap > p_owner->_period) {
 			p_owner->__running = TRUE;
 			period = (*p_owner->__evt_loop)(p_owner);
 			p_owner->__running = FALSE;
@@ -76,7 +76,7 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 	case TM_CHANGE_MS:
 		time = 1000L * pif_timer1sec + pif_timer1ms;
 		gap = time - p_owner->__pretime;
-		if (gap >= p_owner->_period) {
+		if (gap > p_owner->_period) {
 			p_owner->__running = TRUE;
 			period = (*p_owner->__evt_loop)(p_owner);
 			p_owner->__running = FALSE;
@@ -307,48 +307,39 @@ void pifTaskManager_Yield()
 	}
 }
 
-void pifTaskManager_YieldMs(uint32_t unTime)
+void pifTaskManager_YieldMs(uint32_t time)
 {
-    uint32_t unCurrent = 1000L * pif_timer1sec + pif_timer1ms;
-    uint32_t unTarget = unCurrent + unTime;
+    uint32_t start = 1000L * pif_timer1sec + pif_timer1ms;
+    uint32_t current;
 
 	if (!pifFixList_Count(&s_tasks)) return;
-    if (!unTime) return;
+    if (!time) return;
 
-    if (unTarget < unCurrent) {
-    	while (unCurrent <= 0xFFFFFFFF) {
-    		pifTaskManager_Yield();
-    		unCurrent = 1000L * pif_timer1sec + pif_timer1ms;
-    	}
-    }
-	while (unCurrent < unTarget) {
+    do {
 		pifTaskManager_Yield();
-		unCurrent = 1000L * pif_timer1sec + pif_timer1ms;
-	}
+        current = 1000L * pif_timer1sec + pif_timer1ms;
+    } while (current - start <= time);
 }
 
-void pifTaskManager_YieldUs(uint32_t unTime)
+void pifTaskManager_YieldUs(uint32_t time)
 {
-    uint32_t unCurrent = (*pif_act_timer1us)();
-    uint32_t unTarget = unCurrent + unTime;
+    uint32_t start = (*pif_act_timer1us)();
+    uint32_t current;
+    uint32_t delay;
 
 	if (!pifFixList_Count(&s_tasks)) return;
-    if (!unTime) return;
-    if (!pif_act_timer1us) {
-    	pifTaskManager_YieldMs((unTime + 999) / 1000);
-    	return;
-    }
+    if (!time) return;
 
-    if (unTarget < unCurrent) {
-    	while (unCurrent <= 0xFFFFFFFF) {
-    		pifTaskManager_Yield();
-    		unCurrent = (*pif_act_timer1us)();
-    	}
+    if (!pif_act_timer1us) {
+    	delay = (time + 999) / 1000;
+    	pifTaskManager_YieldMs(delay > 0 ? delay : 1);
     }
-	while (unCurrent < unTarget) {
-		pifTaskManager_Yield();
-		unCurrent = (*pif_act_timer1us)();
-	}
+    else {
+		do {
+			pifTaskManager_Yield();
+			current = (*pif_act_timer1us)();
+		} while (current - start <= time);
+    }
 }
 
 void pifTaskManager_YieldPeriod(PifTask *p_owner)

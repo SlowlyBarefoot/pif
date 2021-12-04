@@ -15,14 +15,6 @@ typedef enum EnPifAds1x1xType
 	AT_1013		= 5
 } PifAds1x1xType;
 
-typedef enum EnPifAds1x1xReg
-{
-    AR_CONVERSION,
-	AR_CONFIG,
-	AR_LO_THRESH,
-	AR_HI_THRESH
-} PifAds1x1xReg;
-
 typedef enum ENPifAds1x1xConfigMux
 {
     ACM_DIFF_0_1, // default
@@ -126,9 +118,9 @@ typedef struct StPifAds1x1x
 
 	// Read-only Member Variable
 	PifAds1x1xType _type;
-	PifI2c _i2c;
 
 	// Private Member Variable
+	PifI2cDevice* __p_i2c;
     uint8_t __resolution;
     uint8_t __channels;
     PifAds1x1xConfig __config;
@@ -147,9 +139,10 @@ extern "C" {
  * @param p_owner
  * @param id
  * @param type
+ * @param port
  * @return
  */
-BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type);
+BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port);
 
 /**
  * @fn pifAds1x1x_Clear

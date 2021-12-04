@@ -127,14 +127,14 @@ void pifTaskManager_Yield();
 /**
  * @fn pifTaskManager_YieldMs
  * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
- * @param usTime
+ * @param time
  */
 void pifTaskManager_YieldMs(uint32_t time);
 
 /**
  * @fn pifTaskManager_YieldUs
  * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
- * @param usTime
+ * @param time
  */
 void pifTaskManager_YieldUs(uint32_t time);
 

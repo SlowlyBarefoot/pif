@@ -53,33 +53,36 @@
 
 static BOOL _expanderWrite(PifPmlcdI2c* p_owner, uint8_t data)
 {
-	p_owner->_i2c.p_data[0] = data | p_owner->__backlight_val;
-	return pifI2c_Write(&p_owner->_i2c, 1);
+	p_owner->__p_i2c->p_data[0] = data | p_owner->__backlight_val;
+	return pifI2cDevice_Write(p_owner->__p_i2c, 1);
 }
 
-static void _pulseEnable(PifPmlcdI2c* p_owner, uint8_t data)
+static BOOL _pulseEnable(PifPmlcdI2c* p_owner, uint8_t data)
 {
-	_expanderWrite(p_owner, data | En);	// En high
-	pif_Delay1us(1);						// enable pulse must be >450ns
+	if (!_expanderWrite(p_owner, data | En)) return FALSE;	// En high
+	pif_Delay1us(1);										// enable pulse must be >450ns
 
-	_expanderWrite(p_owner, data & ~En);	// En low
-	pifTaskManager_YieldUs(50);					// commands need > 37us to settle
+	if (!_expanderWrite(p_owner, data & ~En)) return FALSE;	// En low
+	pifTaskManager_YieldUs(50);								// commands need > 37us to settle
+	return TRUE;
 }
 
-static void _write4bits(PifPmlcdI2c* p_owner, uint8_t value)
+static BOOL _write4bits(PifPmlcdI2c* p_owner, uint8_t value)
 {
-	_expanderWrite(p_owner, value);
-	_pulseEnable(p_owner, value);
+	if (!_expanderWrite(p_owner, value)) return FALSE;
+	if (!_pulseEnable(p_owner, value)) return FALSE;
+	return TRUE;
 }
 
 // write either command or data
-static void _send(PifPmlcdI2c* p_owner, uint8_t value, uint8_t mode)
+static BOOL _send(PifPmlcdI2c* p_owner, uint8_t value, uint8_t mode)
 {
-    _write4bits(p_owner, (value & 0xf0) | mode);
-	_write4bits(p_owner, ((value << 4) & 0xf0) | mode);
+    if (!_write4bits(p_owner, (value & 0xf0) | mode)) return FALSE;
+	if (!_write4bits(p_owner, ((value << 4) & 0xf0) | mode)) return FALSE;
+	return TRUE;
 }
 
-BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, uint8_t addr)
+BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_t addr)
 {
     if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -93,8 +96,10 @@ BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, uint8_t addr)
 
 	memset(p_owner, 0, sizeof(PifPmlcdI2c));
 
-    if (!pifI2c_Init(&p_owner->_i2c, id, 2)) goto fail;
-    p_owner->_i2c.addr = addr;
+	p_owner->__p_i2c = pifI2cPort_AddDevice(p_port, id, 2);
+    if (!p_owner->__p_i2c) goto fail;
+
+    p_owner->__p_i2c->addr = addr;
     p_owner->__backlight_val = LCD_NO_BACK_LIGHT;
     p_owner->__display_function = LCD_4BIT_MODE | LCD_1LINE | LCD_5x8_DOTS;
     return TRUE;
@@ -106,13 +111,16 @@ fail:
 
 void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner)
 {
-	if (p_owner->_i2c.p_data) {
-		free(p_owner->_i2c.p_data);
-		p_owner->_i2c.p_data = NULL;
+	if (p_owner->__p_i2c) {
+		if (p_owner->__p_i2c->p_data) {
+			free(p_owner->__p_i2c->p_data);
+			p_owner->__p_i2c->p_data = NULL;
+		}
+		pifI2cPort_RemoveDevice(p_owner->__p_i2c->__p_port, p_owner->__p_i2c);
 	}
 }
 
-void pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size)
+BOOL pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size)
 {
 	if (lines > 1) {
 		p_owner->__display_function |= LCD_2LINE;
@@ -130,7 +138,7 @@ void pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size)
 	pifTaskManager_YieldMs(50);
 
 	// Now we pull both RS and R/W low to begin commands
-	_expanderWrite(p_owner, p_owner->__backlight_val);	// reset expanderand turn backlight off (Bit 8 =1)
+	if (!_expanderWrite(p_owner, p_owner->__backlight_val)) return FALSE;	// reset expanderand turn backlight off (Bit 8 =1)
 	pifTaskManager_YieldMs(1000);
 
   	//put the LCD into 4 bit mode
@@ -138,49 +146,51 @@ void pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size)
 	// figure 24, pg 46
 
 	// we start in 8bit mode, try to set 4 bit mode
-	_write4bits(p_owner, 0x03 << 4);
+	if (!_write4bits(p_owner, 0x03 << 4)) return FALSE;
 	pifTaskManager_YieldUs(4500); // wait min 4.1ms
 
 	// second try
-	_write4bits(p_owner, 0x03 << 4);
+	if (!_write4bits(p_owner, 0x03 << 4)) return FALSE;
 	pifTaskManager_YieldUs(4500); // wait min 4.1ms
 
 	// third go!
-	_write4bits(p_owner, 0x03 << 4);
+	if (!_write4bits(p_owner, 0x03 << 4)) return FALSE;
 	pifTaskManager_YieldUs(150);
 
 	// finally, set to 4-bit interface
-	_write4bits(p_owner, 0x02 << 4);
+	if (!_write4bits(p_owner, 0x02 << 4)) return FALSE;
 
 	// set # lines, font size, etc.
-	_send(p_owner, LCD_FUNCTION_SET | p_owner->__display_function, 0);
+	if (!_send(p_owner, LCD_FUNCTION_SET | p_owner->__display_function, 0)) return FALSE;
 
 	// turn the display on with no cursor or blinking default
 	p_owner->__display_control = LCD_DISPLAY_ON | LCD_CURSOR_OFF | LCD_BLINK_OFF;
-	pifPmlcdI2c_Display(p_owner);
+	if (!pifPmlcdI2c_Display(p_owner)) return FALSE;
 
 	// clear it off
-	pifPmlcdI2c_Clear(p_owner);
+	if (!pifPmlcdI2c_DisplayClear(p_owner)) return FALSE;
 
 	// Initialize to default text direction (for roman languages)
 	p_owner->__display_mode = LCD_ENTRY_LEFT | LCD_ENTRY_SHIFT_DECREMENT;
 
 	// set the entry mode
-	_send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
+	if (!_send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0)) return FALSE;
 
-	pifPmlcdI2c_Home(p_owner);
+	if (!pifPmlcdI2c_Home(p_owner)) return FALSE;
+	return TRUE;
 }
 
-void pifPmlcdI2c_Print(PifPmlcdI2c* p_owner, const char* p_string)
+BOOL pifPmlcdI2c_Print(PifPmlcdI2c* p_owner, const char* p_string)
 {
 	uint8_t i;
 
 	for (i = 0; i < strlen(p_string); i++) {
-		_send(p_owner, p_string[i], Rs);
+		if (!_send(p_owner, p_string[i], Rs)) return FALSE;
 	}
+	return TRUE;
 }
 
-void pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...)
+BOOL pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...)
 {
 	va_list data;
 	char buffer[32];
@@ -189,118 +199,121 @@ void pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...)
 	pif_PrintFormat(buffer, &data, p_format);
 	va_end(data);
 
-	pifPmlcdI2c_Print(p_owner, buffer);
+	return pifPmlcdI2c_Print(p_owner, buffer);
 }
 
-void pifPmlcdI2c_DisplayClear(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_DisplayClear(PifPmlcdI2c* p_owner)
 {
-	_send(p_owner, LCD_CLEAR_DISPLAY, 0);// clear display, set cursor position to zero
-	pifTaskManager_YieldMs(2);  // this command takes a long time!
+	if (!_send(p_owner, LCD_CLEAR_DISPLAY, 0)) return FALSE;// clear display, set cursor position to zero
+	pifTaskManager_YieldMs(2);  							// this command takes a long time!
+	return TRUE;
 }
 
-void pifPmlcdI2c_Home(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_Home(PifPmlcdI2c* p_owner)
 {
-	_send(p_owner, LCD_RETURN_HOME, 0);  // set cursor position to zero
-	pifTaskManager_YieldMs(2);  // this command takes a long time!
+	if (!_send(p_owner, LCD_RETURN_HOME, 0)) return FALSE;  // set cursor position to zero
+	pifTaskManager_YieldMs(2);  							// this command takes a long time!
+	return TRUE;
 }
 
-void pifPmlcdI2c_SetCursor(PifPmlcdI2c* p_owner, uint8_t col, uint8_t row)
+BOOL pifPmlcdI2c_SetCursor(PifPmlcdI2c* p_owner, uint8_t col, uint8_t row)
 {
 	int row_offsets[] = { 0x00, 0x40, 0x14, 0x54 };
 
 	if (row > p_owner->__num_lines) {
 		row = p_owner->__num_lines - 1;    // we count rows starting w/0
 	}
-	_send(p_owner, LCD_SET_DDRAM_ADDR | (col + row_offsets[row]), 0);
+	return _send(p_owner, LCD_SET_DDRAM_ADDR | (col + row_offsets[row]), 0);
 }
 
-void pifPmlcdI2c_Display(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_Display(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_control |= LCD_DISPLAY_ON;
-	_send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
+	return _send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
 }
 
-void pifPmlcdI2c_NoDisplay(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_NoDisplay(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_control &= ~LCD_DISPLAY_ON;
-	_send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
+	return _send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
 }
 
-void pifPmlcdI2c_Cursor(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_Cursor(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_control |= LCD_CURSOR_ON;
-	_send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
+	return _send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
 }
 
-void pifPmlcdI2c_NoCursor(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_NoCursor(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_control &= ~LCD_CURSOR_ON;
-	_send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
+	return _send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
 }
 
-void pifPmlcdI2c_Blink(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_Blink(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_control |= LCD_BLINK_ON;
-	_send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
+	return _send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
 }
 
-void pifPmlcdI2c_NoBlink(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_NoBlink(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_control &= ~LCD_BLINK_ON;
-	_send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
+	return _send(p_owner, LCD_DISPLAY_CONTROL | p_owner->__display_control, 0);
 }
 
-void pifPmlcdI2c_ScrollDisplayLeft(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_ScrollDisplayLeft(PifPmlcdI2c* p_owner)
 {
-	_send(p_owner, LCD_CURSOR_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_LEFT, 0);
+	return _send(p_owner, LCD_CURSOR_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_LEFT, 0);
 }
 
-void pifPmlcdI2c_ScrollDisplayRight(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_ScrollDisplayRight(PifPmlcdI2c* p_owner)
 {
-	_send(p_owner, LCD_CURSOR_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_RIGHT, 0);
+	return _send(p_owner, LCD_CURSOR_SHIFT | LCD_DISPLAY_MOVE | LCD_MOVE_RIGHT, 0);
 }
 
-void pifPmlcdI2c_LeftToRight(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_LeftToRight(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_mode |= LCD_ENTRY_LEFT;
-	_send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
+	return _send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
 }
 
-void pifPmlcdI2c_RightToLeft(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_RightToLeft(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_mode &= ~LCD_ENTRY_LEFT;
-	_send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
+	return _send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
 }
 
-void pifPmlcdI2c_AutoScroll(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_AutoScroll(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_mode |= LCD_ENTRY_SHIFT_INCREMENT;
-	_send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
+	return _send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
 }
 
-void pifPmlcdI2c_NoAutoScroll(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_NoAutoScroll(PifPmlcdI2c* p_owner)
 {
 	p_owner->__display_mode &= ~LCD_ENTRY_SHIFT_INCREMENT;
-	_send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
+	return _send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
 }
 
-void pifPmlcdI2c_CreateChar(PifPmlcdI2c* p_owner, uint8_t location, uint8_t char_map[])
+BOOL pifPmlcdI2c_CreateChar(PifPmlcdI2c* p_owner, uint8_t location, uint8_t char_map[])
 {
 	location &= 0x7; // we only have 8 locations 0-7
-	_send(p_owner, LCD_SET_CGRAM_ADDR | (location << 3), 0);
+	if (!_send(p_owner, LCD_SET_CGRAM_ADDR | (location << 3), 0)) return FALSE;
 	for (int i = 0; i < 8; i++) {
-		_send(p_owner, char_map[i], Rs);
+		if (!_send(p_owner, char_map[i], Rs)) return FALSE;
 	}
+	return TRUE;
 }
 
-void pifPmlcdI2c_Backlight(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_Backlight(PifPmlcdI2c* p_owner)
 {
 	p_owner->__backlight_val = LCD_BACK_LIGHT;
-	_expanderWrite(p_owner, 0);
+	return _expanderWrite(p_owner, 0);
 }
 
-void pifPmlcdI2c_NoBacklight(PifPmlcdI2c* p_owner)
+BOOL pifPmlcdI2c_NoBacklight(PifPmlcdI2c* p_owner)
 {
 	p_owner->__backlight_val = LCD_NO_BACK_LIGHT;
-	_expanderWrite(p_owner, 0);
+	return _expanderWrite(p_owner, 0);
 }

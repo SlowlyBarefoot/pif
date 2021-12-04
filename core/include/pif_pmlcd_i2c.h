@@ -18,9 +18,9 @@ typedef struct StPifPmlcdI2c
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PifI2c _i2c;
 
 	// Private Member Variable
+	PifI2cDevice* __p_i2c;
 	uint8_t __display_function;
 	uint8_t __display_control;
 	uint8_t __display_mode;
@@ -38,10 +38,11 @@ extern "C" {
  * @brief
  * @param p_owner
  * @param id
+ * @param p_port
  * @param addr
  * @return
  */
-BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, uint8_t addr);
+BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_t addr);
 
 /**
  * @fn pifPmlcdI2c_Clear
@@ -58,37 +59,41 @@ void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner);
  * @param dot_size
  * @return
  */
-void pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size);
+BOOL pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size);
 
 /**
  * @fn pifPmlcdI2c_Print
  * @brief
  * @param p_owner
  * @param p_string
+ * @return
  */
-void pifPmlcdI2c_Print(PifPmlcdI2c* p_owner, const char* p_string);
+BOOL pifPmlcdI2c_Print(PifPmlcdI2c* p_owner, const char* p_string);
 
 /**
  * @fn pifPmlcdI2c_Printf
  * @brief
  * @param p_owner
  * @param p_format
+ * @return
  */
-void pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...);
+BOOL pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...);
 
 /**
  * @fn pifPmlcdI2c_DisplayClear
  * @brief
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_DisplayClear(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_DisplayClear(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_Home
  * @brief
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_Home(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_Home(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_SetCursor
@@ -96,92 +101,105 @@ void pifPmlcdI2c_Home(PifPmlcdI2c* p_owner);
  * @param p_owner
  * @param col
  * @param row
+ * @return
  */
-void pifPmlcdI2c_SetCursor(PifPmlcdI2c* p_owner, uint8_t col, uint8_t row);
+BOOL pifPmlcdI2c_SetCursor(PifPmlcdI2c* p_owner, uint8_t col, uint8_t row);
 
 /**
  * @fn pifPmlcdI2c_Display
  * @brief
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_Display(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_Display(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_NoDisplay
  * @brief Turn the display on/off (quickly)
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_NoDisplay(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_NoDisplay(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_Cursor
  * @brief
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_Cursor(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_Cursor(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_NoCursor
  * @brief Turns the underline cursor on/off
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_NoCursor(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_NoCursor(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_Blink
  * @brief
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_Blink(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_Blink(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_NoBlink
  * @brief Turn on and off the blinking cursor
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_NoBlink(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_NoBlink(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_ScrollDisplayLeft
  * @brief These commands scroll the display without changing the RAM
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_ScrollDisplayLeft(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_ScrollDisplayLeft(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_ScrollDisplayRight
  * @brief
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_ScrollDisplayRight(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_ScrollDisplayRight(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_LeftToRight
  * @brief This is for text that flows Left to Right
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_LeftToRight(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_LeftToRight(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_RightToLeft
  * @brief This is for text that flows Right to Left
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_RightToLeft(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_RightToLeft(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_AutoScroll
  * @brief This will 'right justify' text from the cursor
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_AutoScroll(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_AutoScroll(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_NoAutoScroll
  * @brief This will 'left justify' text from the cursor
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_NoAutoScroll(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_NoAutoScroll(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_CreateChar
@@ -189,22 +207,25 @@ void pifPmlcdI2c_NoAutoScroll(PifPmlcdI2c* p_owner);
  * @param p_owner
  * @param location
  * @param char_map
+ * @return
  */
-void pifPmlcdI2c_CreateChar(PifPmlcdI2c* p_owner, uint8_t location, uint8_t char_map[]);
+BOOL pifPmlcdI2c_CreateChar(PifPmlcdI2c* p_owner, uint8_t location, uint8_t char_map[]);
 
 /**
  * @fn pifPmlcdI2c_Backlight
  * @brief
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_Backlight(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_Backlight(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_NoBacklight
  * @brief Turn the (optional) backlight off/on
  * @param p_owner
+ * @return
  */
-void pifPmlcdI2c_NoBacklight(PifPmlcdI2c* p_owner);
+BOOL pifPmlcdI2c_NoBacklight(PifPmlcdI2c* p_owner);
 
 #ifdef __cplusplus
 }
