@@ -14,12 +14,14 @@ BOOL pifSList_Init(PifSList* p_owner)
 	return TRUE;
 }
 
-void pifSList_Clear(PifSList* p_owner)
+void pifSList_Clear(PifSList* p_owner, PifEvtSListClear* evt_clear)
 {
 	PifSListIterator it;
 
     while (p_owner->p_head) {
     	it = p_owner->p_head->p_next;
+    	if (evt_clear) (*evt_clear)(it->data);
+
         free(p_owner->p_head);
         p_owner->p_head = it;
     }
@@ -129,13 +131,15 @@ BOOL pifDList_Init(PifDList* p_owner)
 	return TRUE;
 }
 
-void pifDList_Clear(PifDList* p_owner)
+void pifDList_Clear(PifDList* p_owner, PifEvtDListClear* evt_clear)
 {
 	PifDListIterator it;
 
     while (p_owner->p_head) {
     	it = p_owner->p_head->p_next;
-        free(p_owner->p_head);
+    	if (evt_clear) (*evt_clear)(it->data);
+
+    	free(p_owner->p_head);
         p_owner->p_head = it;
     }
     p_owner->p_tail = NULL;
@@ -358,13 +362,21 @@ BOOL pifFixList_Init(PifFixList* p_owner, int size, int max_count)
 	return TRUE;
 
 fail:
-	pifFixList_Clear(p_owner);
+	pifFixList_Clear(p_owner, NULL);
 	return FALSE;
 }
 
-void pifFixList_Clear(PifFixList* p_owner)
+void pifFixList_Clear(PifFixList* p_owner, PifEvtFixListClear evt_clear)
 {
 	if (p_owner->p_node) {
+		if (evt_clear) {
+			PifFixListIterator it = p_owner->p_first;
+			while (it) {
+				(*evt_clear)(it->data);
+				it = it ? it->p_next : NULL;
+			}
+		}
+
 		free(p_owner->p_node);
 		p_owner->p_node = NULL;
 	}

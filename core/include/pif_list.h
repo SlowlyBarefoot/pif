@@ -30,6 +30,8 @@ typedef struct StPifSList
     int size;
 } PifSList;
 
+typedef void (*PifEvtSListClear)(char* p_data);
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,8 +49,9 @@ BOOL pifSList_Init(PifSList* p_owner);
  * @fn pifSList_Clear
  * @brief
  * @param p_owner
+ * @param evt_clear
  */
-void pifSList_Clear(PifSList* p_owner);
+void pifSList_Clear(PifSList* p_owner, PifEvtSListClear* evt_clear);
 
 /**
  * @fn pifSList_AddFirst
@@ -163,6 +166,8 @@ typedef struct StPifDList
 	int size;
 } PifDList;
 
+typedef void (*PifEvtDListClear)(char* p_data);
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -180,8 +185,9 @@ BOOL pifDList_Init(PifDList* p_owner);
  * @fn pifDList_Clear
  * @brief
  * @param p_owner
+ * @param evt_clear
  */
-void pifDList_Clear(PifDList* p_owner);
+void pifDList_Clear(PifDList* p_owner, PifEvtDListClear* evt_clear);
 
 /**
  * @fn pifDList_AddFirst
@@ -347,6 +353,8 @@ typedef struct StPifFixList
     PifFixListIterator p_free;
 } PifFixList;
 
+typedef void (*PifEvtFixListClear)(char* p_data);
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -366,8 +374,9 @@ BOOL pifFixList_Init(PifFixList* p_owner, int size, int max_count);
  * @fn pifFixList_Clear
  * @brief
  * @param p_owner
+ * @param evt_clear
  */
-void pifFixList_Clear(PifFixList* p_owner);
+void pifFixList_Clear(PifFixList* p_owner, PifEvtFixListClear evt_clear);
 
 /**
  * @fn pifFixList_AddFirst

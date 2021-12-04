@@ -285,7 +285,7 @@ void pifSolenoidColSig_Init()
 
 void pifSolenoidColSig_Clear()
 {
-	pifDList_Clear(&s_cs_list);
+	pifDList_Clear(&s_cs_list, NULL);
 }
 
 void pifSolenoidColSig_SetFlag(PifSolenoidCsFlag flag)

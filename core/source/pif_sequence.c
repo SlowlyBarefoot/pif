@@ -220,7 +220,7 @@ void pifSequenceColSig_Init()
 
 void pifSequenceColSig_Clear()
 {
-	pifDList_Clear(&s_cs_list);
+	pifDList_Clear(&s_cs_list, NULL);
 }
 
 void pifSequenceColSig_SetFlag(PifSequenceCsFlag flag)

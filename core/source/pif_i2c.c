@@ -3,6 +3,15 @@
 	#include "pif_log.h"
 #endif
 
+static void _evtClear(char* p_data)
+{
+	PifI2cDevice* p_device = (PifI2cDevice*)p_data;
+
+	if (p_device->p_data) {
+		free(p_device->p_data);
+		p_device->p_data = NULL;
+	}
+}
 
 BOOL pifI2cPort_Init(PifI2cPort* p_owner, PifId id, uint8_t size)
 {
@@ -25,7 +34,7 @@ fail:
 
 void pifI2cPort_Clear(PifI2cPort* p_owner)
 {
-	pifFixList_Clear(&p_owner->__devices);
+	pifFixList_Clear(&p_owner->__devices, _evtClear);
 }
 
 PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint16_t data_size)

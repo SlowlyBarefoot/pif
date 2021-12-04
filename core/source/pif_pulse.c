@@ -278,7 +278,7 @@ void pifPulseColSig_Init()
 
 void pifPulseColSig_Clear()
 {
-	pifDList_Clear(&s_cs_list);
+	pifDList_Clear(&s_cs_list, NULL);
 }
 
 void pifPulseColSig_SetFlag(PifPulseCsFlag flag)

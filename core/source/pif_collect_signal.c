@@ -294,7 +294,7 @@ void pifCollectSignal_Start()
 	char cBuffer[4];
 
 	if (pifDList_Size(&s_collect_signal.device)) {
-		pifDList_Clear(&s_collect_signal.device);
+		pifDList_Clear(&s_collect_signal.device, NULL);
 		s_collect_signal.device_count = 0;
 	}
 	for (int i = 0; i < 32; i++) {

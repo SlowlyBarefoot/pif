@@ -249,7 +249,7 @@ void pifGpioColSig_Init()
 
 void pifGpioColSig_Clear()
 {
-	pifDList_Clear(&s_cs_list);
+	pifDList_Clear(&s_cs_list, NULL);
 }
 
 void pifGpioColSig_SetFlag(PifGpioCsFlag flag)

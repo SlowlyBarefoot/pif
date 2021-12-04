@@ -49,7 +49,7 @@ void pifTimerManager_Clear(PifTimerManager* p_manager)
 		pifTaskManager_Remove(p_manager->__p_task);
 		p_manager->__p_task = NULL;
 	}
-	pifFixList_Clear(&p_manager->__timers);
+	pifFixList_Clear(&p_manager->__timers, NULL);
 }
 
 PifTimer* pifTimerManager_Add(PifTimerManager* p_manager, PifTimerType type)

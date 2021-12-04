@@ -259,7 +259,7 @@ void pifSensorSwitchColSig_Init()
 
 void pifSensorSwitchColSig_Clear()
 {
-	pifDList_Clear(&s_cs_list);
+	pifDList_Clear(&s_cs_list, NULL);
 }
 
 void pifSensorSwitchColSig_SetFlag(PifSensorSwitchCsFlag flag)

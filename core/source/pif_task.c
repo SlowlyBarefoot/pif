@@ -141,7 +141,7 @@ BOOL pifTaskManager_Init(int max_count)
 
 void pifTaskManager_Clear()
 {
-	pifFixList_Clear(&s_tasks);
+	pifFixList_Clear(&s_tasks, NULL);
 }
 
 PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start)

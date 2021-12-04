@@ -299,7 +299,7 @@ void pifSensorDigitalColSig_Init()
 
 void pifSensorDigitalColSig_Clear()
 {
-	pifDList_Clear(&s_cs_list);
+	pifDList_Clear(&s_cs_list, NULL);
 }
 
 void pifSensorDigitalColSig_SetFlag(PifSensorDigitalCsFlag flag)
