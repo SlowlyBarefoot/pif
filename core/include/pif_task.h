@@ -20,6 +20,7 @@ struct StPifTask;
 typedef struct StPifTask PifTask;
 
 typedef uint16_t (*PifEvtTaskLoop)(PifTask* p_task);
+typedef void (*PifActTaskMeasure)();
 
 
 /**
@@ -50,6 +51,13 @@ struct StPifTask
 	// Private Event Function
 	PifEvtTaskLoop __evt_loop;
 };
+
+#ifdef __PIF_DEBUG__
+
+extern PifActTaskMeasure pif_act_task_loop;
+extern PifActTaskMeasure pif_act_task_yield;
+
+#endif
 
 
 #ifdef __cplusplus

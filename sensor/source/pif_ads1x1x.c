@@ -2,44 +2,15 @@
 #include "pif_task.h"
 
 
-#define DEFAULT_I2C_ADDR	0x48
-
-
-typedef enum EnPifAds1x1xReg
-{
-    AR_CONVERSION,
-	AR_CONFIG,
-	AR_LO_THRESH,
-	AR_HI_THRESH
-} PifAds1x1xReg;
-
-
-static BOOL _readWord(PifI2cDevice* p_i2c, const PifAds1x1xReg reg, uint16_t* p_data)
-{
-	p_i2c->p_data[0] = reg;
-	if (!pifI2cDevice_Write(p_i2c, 1)) return FALSE;
-	if (!pifI2cDevice_Read(p_i2c, 2)) return FALSE;
-	*p_data = (p_i2c->p_data[0] << 8) + p_i2c->p_data[1];
-	return TRUE;
-}
-
-static BOOL _writeWord(PifI2cDevice* p_i2c, const PifAds1x1xReg reg, uint16_t data)
-{
-	p_i2c->p_data[0] = reg;
-	p_i2c->p_data[1] = data >> 8;
-	p_i2c->p_data[2] = data & 0xFF;
-	return pifI2cDevice_Write(p_i2c, 3);
-}
-
 static double _convertVoltage(PifAds1x1x* p_owner)
 {
-    switch (p_owner->__config.bt.pga) {
-        case ACP_FSR_6_144V: return 6.144 / (0x7FFF >> p_owner->__bit_offset);
-        case ACP_FSR_4_096V: return 4.096 / (0x7FFF >> p_owner->__bit_offset);
-        case ACP_FSR_2_048V: return 2.048 / (0x7FFF >> p_owner->__bit_offset);
-        case ACP_FSR_1_024V: return 1.024 / (0x7FFF >> p_owner->__bit_offset);
-        case ACP_FSR_0_512V: return 0.512 / (0x7FFF >> p_owner->__bit_offset);
-        case ACP_FSR_0_256V: return 0.256 / (0x7FFF >> p_owner->__bit_offset);
+    switch (p_owner->_config.bit.pga) {
+        case ADS1X1X_PGA_FSR_6_144V: return 6.144 / (0x7FFF >> p_owner->__bit_offset);
+        case ADS1X1X_PGA_FSR_4_096V: return 4.096 / (0x7FFF >> p_owner->__bit_offset);
+        case ADS1X1X_PGA_FSR_2_048V: return 2.048 / (0x7FFF >> p_owner->__bit_offset);
+        case ADS1X1X_PGA_FSR_1_024V: return 1.024 / (0x7FFF >> p_owner->__bit_offset);
+        case ADS1X1X_PGA_FSR_0_512V: return 0.512 / (0x7FFF >> p_owner->__bit_offset);
+        case ADS1X1X_PGA_FSR_0_256V: return 0.256 / (0x7FFF >> p_owner->__bit_offset);
     }
     return 2.048 / (0x7FFF >> p_owner->__bit_offset);
 }
@@ -50,26 +21,26 @@ static uint32_t _conversionDelay(PifAds1x1x* p_owner)
 	uint32_t delay;
 
     if (p_owner->__resolution == 12) {
-        switch (p_owner->__config.bt.dr) {
-            case ACD_DR_12B_0128_SPS: data_rate = 128; break;
-            case ACD_DR_12B_0250_SPS: data_rate = 250; break;
-            case ACD_DR_12B_0490_SPS: data_rate = 490; break;
-            case ACD_DR_12B_0920_SPS: data_rate = 920; break;
-            case ACD_DR_12B_1600_SPS: data_rate = 1600; break;
-            case ACD_DR_12B_2400_SPS: data_rate = 2400; break;
-            case ACD_DR_12B_3300_SPS: data_rate = 3300; break;
+        switch (p_owner->_config.bit.dr) {
+            case ADS1X1X_DR_12B_0128_SPS: data_rate = 128; break;
+            case ADS1X1X_DR_12B_0250_SPS: data_rate = 250; break;
+            case ADS1X1X_DR_12B_0490_SPS: data_rate = 490; break;
+            case ADS1X1X_DR_12B_0920_SPS: data_rate = 920; break;
+            case ADS1X1X_DR_12B_1600_SPS: data_rate = 1600; break;
+            case ADS1X1X_DR_12B_2400_SPS: data_rate = 2400; break;
+            case ADS1X1X_DR_12B_3300_SPS: data_rate = 3300; break;
         }
     }
     else {
-        switch (p_owner->__config.bt.dr) {
-            case ACD_DR_16B_0008_SPS: data_rate = 8; break;
-            case ACD_DR_16B_0016_SPS: data_rate = 16; break;
-            case ACD_DR_16B_0032_SPS: data_rate = 32; break;
-            case ACD_DR_16B_0064_SPS: data_rate = 64; break;
-            case ACD_DR_16B_0128_SPS: data_rate = 128; break;
-            case ACD_DR_16B_0250_SPS: data_rate = 250; break;
-            case ACD_DR_16B_0475_SPS: data_rate = 475; break;
-            case ACD_DR_16B_0860_SPS: data_rate = 860; break;
+        switch (p_owner->_config.bit.dr) {
+            case ADS1X1X_DR_16B_0008_SPS: data_rate = 8; break;
+            case ADS1X1X_DR_16B_0016_SPS: data_rate = 16; break;
+            case ADS1X1X_DR_16B_0032_SPS: data_rate = 32; break;
+            case ADS1X1X_DR_16B_0064_SPS: data_rate = 64; break;
+            case ADS1X1X_DR_16B_0128_SPS: data_rate = 128; break;
+            case ADS1X1X_DR_16B_0250_SPS: data_rate = 250; break;
+            case ADS1X1X_DR_16B_0475_SPS: data_rate = 475; break;
+            case ADS1X1X_DR_16B_0860_SPS: data_rate = 860; break;
         }
     }
     if (data_rate) {
@@ -84,7 +55,7 @@ static uint32_t _conversionDelay(PifAds1x1x* p_owner)
     return 0;
 }
 
-BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port)
+BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, PifAds1x1xAddr addr)
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -93,24 +64,26 @@ BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cP
 
 	memset(p_owner, 0, sizeof(PifAds1x1x));
 
-	p_owner->__p_i2c = pifI2cPort_AddDevice(p_port, id, 4);
-    if (!p_owner->__p_i2c) return FALSE;
+	if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, 4);
+    if (!p_owner->_p_i2c) return FALSE;
 
-    p_owner->__p_i2c->addr = DEFAULT_I2C_ADDR;
+    p_owner->_p_i2c->addr = addr;
     switch (type) {
-    case AT_1115: p_owner->__resolution = 16; p_owner->__channels = 4; break;
-    case AT_1114: p_owner->__resolution = 16; p_owner->__channels = 1; break;
-    case AT_1113: p_owner->__resolution = 16; p_owner->__channels = 1; break;
-    case AT_1015: p_owner->__resolution = 12; p_owner->__channels = 4; break;
-    case AT_1014: p_owner->__resolution = 12; p_owner->__channels = 1; break;
-    case AT_1013: p_owner->__resolution = 12; p_owner->__channels = 1; break;
+    case ADS1X1X_TYPE_1115: p_owner->__resolution = 16; p_owner->__channels = 4; break;
+    case ADS1X1X_TYPE_1114: p_owner->__resolution = 16; p_owner->__channels = 1; break;
+    case ADS1X1X_TYPE_1113: p_owner->__resolution = 16; p_owner->__channels = 1; break;
+    case ADS1X1X_TYPE_1015: p_owner->__resolution = 12; p_owner->__channels = 4; break;
+    case ADS1X1X_TYPE_1014: p_owner->__resolution = 12; p_owner->__channels = 1; break;
+    case ADS1X1X_TYPE_1013: p_owner->__resolution = 12; p_owner->__channels = 1; break;
     default:
 		pif_error = E_INVALID_PARAM;
     	goto fail;
     }
     p_owner->_type = type;
     p_owner->__bit_offset = p_owner->__resolution == 12 ? 4 : 0;
-    if (!_readWord(p_owner->__p_i2c, AR_CONFIG, &p_owner->__config.all)) goto fail;
+    if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, &p_owner->_config.word)) goto fail;
     p_owner->convert_voltage = _convertVoltage(p_owner);
     p_owner->__conversion_delay = _conversionDelay(p_owner);
     return TRUE;
@@ -122,39 +95,31 @@ fail:
 
 void pifAds1x1x_Clear(PifAds1x1x* p_owner)
 {
-	if (p_owner->__p_i2c) {
-		if (p_owner->__p_i2c->p_data) {
-			free(p_owner->__p_i2c->p_data);
-			p_owner->__p_i2c->p_data = NULL;
-		}
-		pifI2cPort_RemoveDevice(p_owner->__p_i2c->__p_port, p_owner->__p_i2c);
+	if (p_owner->_p_i2c) {
+		pifI2cPort_RemoveDevice(p_owner->_p_i2c->__p_port, p_owner->_p_i2c);
+    	p_owner->_p_i2c = NULL;
 	}
-}
-
-void pifAds1x1x_SetAddress(PifAds1x1x* p_owner, uint8_t addr)
-{
-	p_owner->__p_i2c->addr = addr;
 }
 
 int16_t pifAds1x1x_Read(PifAds1x1x* p_owner)
 {
 	uint16_t data;
 
-	if (!_readWord(p_owner->__p_i2c, AR_CONVERSION, &data)) return 0;
+	if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONVERSION, &data)) return 0;
 	return data >> p_owner->__bit_offset;
 }
 
-int16_t pifAds1x1x_ReadMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux)
+int16_t pifAds1x1x_ReadMux(PifAds1x1x* p_owner, PifAds1x1xMux mux)
 {
 	uint16_t data;
 	PifAds1x1xConfig config;
 
-	if (p_owner->__channels == 1 || p_owner->__config.bt.mode == ACM_CONTINUOUS) return 0;
+	if (p_owner->__channels == 1 || p_owner->_config.bit.mode == ADS1X1X_MODE_CONTINUOUS) return 0;
 
-	p_owner->__config.bt.mux = mux;
-	config.all = p_owner->__config.all;
-	config.bt.os_sscs = 1;
-	if (!_writeWord(p_owner->__p_i2c, AR_CONFIG, config.all)) return 0;
+	p_owner->_config.bit.mux = mux;
+	config.word = p_owner->_config.word;
+	config.bit.os_sscs = 1;
+	if (!pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, config.word)) return 0;
 	if (p_owner->__conversion_delay) {
 		if (pif_act_timer1us) {
 			pifTaskManager_YieldUs(p_owner->__conversion_delay);
@@ -163,7 +128,7 @@ int16_t pifAds1x1x_ReadMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux)
 			pifTaskManager_YieldMs(p_owner->__conversion_delay);
 		}
 	}
-	if (!_readWord(p_owner->__p_i2c, AR_CONVERSION, &data)) return 0;
+	if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONVERSION, &data)) return 0;
 	return data >> p_owner->__bit_offset;
 }
 
@@ -172,141 +137,96 @@ double pifAds1x1x_Voltage(PifAds1x1x* p_owner)
     return (double)pifAds1x1x_Read(p_owner) * p_owner->convert_voltage;
 }
 
-double pifAds1x1x_VoltageMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux)
+double pifAds1x1x_VoltageMux(PifAds1x1x* p_owner, PifAds1x1xMux mux)
 {
     return (double)pifAds1x1x_ReadMux(p_owner, mux) * p_owner->convert_voltage;
 }
 
 BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, PifAds1x1xConfig* p_config)
 {
-	p_owner->__config.all = p_config->all;
-	return _writeWord(p_owner->__p_i2c, AR_CONFIG, p_owner->__config.all);
-}
-
-PifAds1x1xConfig pifAds1x1x_GetConfig(PifAds1x1x* p_owner)
-{
-	return p_owner->__config;
+	p_owner->_config.word = p_config->word;
+	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config.word);
 }
 
 BOOL pifAds1x1x_SingleShotConvert(PifAds1x1x* p_owner)
 {
-	p_owner->__config.bt.os_sscs = 1;
-	return _writeWord(p_owner->__p_i2c, AR_CONFIG, p_owner->__config.all);
+	p_owner->_config.bit.os_sscs = 1;
+	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config.word);
 }
 
-BOOL pifAds1x1x_SetMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux)
+BOOL pifAds1x1x_SetMux(PifAds1x1x* p_owner, PifAds1x1xMux mux)
 {
 	if (p_owner->__channels == 1) return FALSE;
 
-	p_owner->__config.bt.mux = mux;
-	return _writeWord(p_owner->__p_i2c, AR_CONFIG, p_owner->__config.all);
+	p_owner->_config.bit.mux = mux;
+	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config.word);
 }
 
-PifAds1x1xConfigMux pifAds1x1x_GetMux(PifAds1x1x* p_owner)
+BOOL pifAds1x1x_SetGain(PifAds1x1x* p_owner, PifAds1x1xPGA pga)
 {
-    return p_owner->__config.bt.mux;
-}
+	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
-BOOL pifAds1x1x_SetGain(PifAds1x1x* p_owner, PifAds1x1xConfigPGA pga)
-{
-	if (p_owner->_type == AT_1013 || p_owner->_type == AT_1113) return FALSE;
-
-	p_owner->__config.bt.pga = pga;
+	p_owner->_config.bit.pga = pga;
     p_owner->convert_voltage = _convertVoltage(p_owner);
-	return _writeWord(p_owner->__p_i2c, AR_CONFIG, p_owner->__config.all);
+	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config.word);
 }
 
-PifAds1x1xConfigPGA pifAds1x1x_GetGain(PifAds1x1x* p_owner)
+BOOL pifAds1x1x_SetMode(PifAds1x1x* p_owner, PifAds1x1xMode mode)
 {
-	return p_owner->__config.bt.pga;
+	p_owner->_config.bit.mode = mode;
+	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config.word);
 }
 
-BOOL pifAds1x1x_SetMode(PifAds1x1x* p_owner, PifAds1x1xConfigMode mode)
+BOOL pifAds1x1x_SetDataRate(PifAds1x1x* p_owner, PifAds1x1xDR dr)
 {
-	p_owner->__config.bt.mode = mode;
-	return _writeWord(p_owner->__p_i2c, AR_CONFIG, p_owner->__config.all);
-}
-
-PifAds1x1xConfigMode pifAds1x1x_GetMode(PifAds1x1x* p_owner)
-{
-	return p_owner->__config.bt.mode;
-}
-
-BOOL pifAds1x1x_SetDataRate(PifAds1x1x* p_owner, PifAds1x1xConfigDR dr)
-{
-	p_owner->__config.bt.dr = dr;
+	p_owner->_config.bit.dr = dr;
     p_owner->__conversion_delay = _conversionDelay(p_owner);
-	return _writeWord(p_owner->__p_i2c, AR_CONFIG, p_owner->__config.all);
+	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config.word);
 }
 
-PifAds1x1xConfigDR pifAds1x1x_GetDataRate(PifAds1x1x* p_owner)
+BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xCompMode comp_mode)
 {
-	return p_owner->__config.bt.dr;
+	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
+
+	p_owner->_config.bit.comp_mode = comp_mode;
+	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config.word);
 }
 
-BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xConfigCompMode comp_mode)
+BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xCompPol comp_pol)
 {
-	if (p_owner->_type == AT_1013 || p_owner->_type == AT_1113) return FALSE;
+	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
-	p_owner->__config.bt.comp_mode = comp_mode;
-	return _writeWord(p_owner->__p_i2c, AR_CONFIG, p_owner->__config.all);
+	p_owner->_config.bit.comp_pol = comp_pol;
+	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config.word);
 }
 
-PifAds1x1xConfigCompMode pifAds1x1x_GetCompMode(PifAds1x1x* p_owner)
+BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xCompLat comp_lat)
 {
-	return p_owner->__config.bt.comp_mode;
+	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
+
+	p_owner->_config.bit.comp_lat = comp_lat;
+	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config.word);
 }
 
-BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xConfigCompPol comp_pol)
+BOOL pifAds1x1x_SetCompQue(PifAds1x1x* p_owner, PifAds1x1xCompQue comp_que)
 {
-	if (p_owner->_type == AT_1013 || p_owner->_type == AT_1113) return FALSE;
+	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
-	p_owner->__config.bt.comp_pol = comp_pol;
-	return _writeWord(p_owner->__p_i2c, AR_CONFIG, p_owner->__config.all);
-}
-
-PifAds1x1xConfigCompPol pifAds1x1x_GetCompPol(PifAds1x1x* p_owner)
-{
-	return p_owner->__config.bt.comp_pol;
-}
-
-BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xConfigCompLat comp_lat)
-{
-	if (p_owner->_type == AT_1013 || p_owner->_type == AT_1113) return FALSE;
-
-	p_owner->__config.bt.comp_lat = comp_lat;
-	return _writeWord(p_owner->__p_i2c, AR_CONFIG, p_owner->__config.all);
-}
-
-PifAds1x1xConfigCompLat pifAds1x1x_GetCompLat(PifAds1x1x* p_owner)
-{
-	return p_owner->__config.bt.comp_lat;
-}
-
-BOOL pifAds1x1x_SetCompQue(PifAds1x1x* p_owner, PifAds1x1xConfigCompQue comp_que)
-{
-	if (p_owner->_type == AT_1013 || p_owner->_type == AT_1113) return FALSE;
-
-	p_owner->__config.bt.comp_que = comp_que;
-	return _writeWord(p_owner->__p_i2c, AR_CONFIG, p_owner->__config.all);
-}
-
-PifAds1x1xConfigCompQue pifAds1x1x_GetCompQue(PifAds1x1x* p_owner)
-{
-	return p_owner->__config.bt.comp_que;
+	p_owner->_config.bit.comp_que = comp_que;
+	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config.word);
 }
 
 BOOL pifAds1x1x_SetLoThresh(PifAds1x1x* p_owner, int16_t threshold)
 {
     int16_t v = (threshold & ((1 << p_owner->__resolution) - 1)) << p_owner->__bit_offset;
-    return _writeWord(p_owner->__p_i2c, AR_LO_THRESH, v);
+    return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_LO_THRESH, v);
 }
 
 int16_t pifAds1x1x_GetLoThresh(PifAds1x1x* p_owner)
 {
 	uint16_t data;
 
-    if (!_readWord(p_owner->__p_i2c, AR_LO_THRESH, &data)) return 0;
+    if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_LO_THRESH, &data)) return 0;
     return data >> p_owner->__bit_offset;
 }
 
@@ -323,14 +243,14 @@ double pifAds1x1x_GetLoThreshVoltage(PifAds1x1x* p_owner)
 BOOL pifAds1x1x_SetHiThresh(PifAds1x1x* p_owner, int16_t threshold)
 {
     int16_t v = (threshold & ((1 << p_owner->__resolution) - 1)) << p_owner->__bit_offset;
-    return _writeWord(p_owner->__p_i2c, AR_HI_THRESH, v);
+    return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_HI_THRESH, v);
 }
 
 int16_t pifAds1x1x_GetHiThresh(PifAds1x1x* p_owner)
 {
 	uint16_t data;
 
-    if (!_readWord(p_owner->__p_i2c, AR_HI_THRESH, &data)) return 0;
+    if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_HI_THRESH, &data)) return 0;
     return data >> p_owner->__bit_offset;
 }
 

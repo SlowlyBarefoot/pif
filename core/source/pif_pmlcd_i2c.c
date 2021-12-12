@@ -53,8 +53,8 @@
 
 static BOOL _expanderWrite(PifPmlcdI2c* p_owner, uint8_t data)
 {
-	p_owner->__p_i2c->p_data[0] = data | p_owner->__backlight_val;
-	return pifI2cDevice_Write(p_owner->__p_i2c, 1);
+	p_owner->_p_i2c->p_data[0] = data | p_owner->__backlight_val;
+	return pifI2cDevice_Write(p_owner->_p_i2c, 1);
 }
 
 static BOOL _pulseEnable(PifPmlcdI2c* p_owner, uint8_t data)
@@ -96,10 +96,12 @@ BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_
 
 	memset(p_owner, 0, sizeof(PifPmlcdI2c));
 
-	p_owner->__p_i2c = pifI2cPort_AddDevice(p_port, id, 2);
-    if (!p_owner->__p_i2c) goto fail;
+	if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
+	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, 2);
+    if (!p_owner->_p_i2c) goto fail;
 
-    p_owner->__p_i2c->addr = addr;
+    p_owner->_p_i2c->addr = addr;
     p_owner->__backlight_val = LCD_NO_BACK_LIGHT;
     p_owner->__display_function = LCD_4BIT_MODE | LCD_1LINE | LCD_5x8_DOTS;
     return TRUE;
@@ -111,12 +113,12 @@ fail:
 
 void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner)
 {
-	if (p_owner->__p_i2c) {
-		if (p_owner->__p_i2c->p_data) {
-			free(p_owner->__p_i2c->p_data);
-			p_owner->__p_i2c->p_data = NULL;
+	if (p_owner->_p_i2c) {
+		if (p_owner->_p_i2c->p_data) {
+			free(p_owner->_p_i2c->p_data);
+			p_owner->_p_i2c->p_data = NULL;
 		}
-		pifI2cPort_RemoveDevice(p_owner->__p_i2c->__p_port, p_owner->__p_i2c);
+		pifI2cPort_RemoveDevice(p_owner->_p_i2c->__p_port, p_owner->_p_i2c);
 	}
 }
 

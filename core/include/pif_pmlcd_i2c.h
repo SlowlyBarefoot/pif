@@ -18,9 +18,10 @@ typedef struct StPifPmlcdI2c
 	// Public Member Variable
 
 	// Read-only Member Variable
+	PifId _id;
+	PifI2cDevice* _p_i2c;
 
 	// Private Member Variable
-	PifI2cDevice* __p_i2c;
 	uint8_t __display_function;
 	uint8_t __display_control;
 	uint8_t __display_mode;

@@ -7,93 +7,122 @@
 
 typedef enum EnPifAds1x1xType
 {
-	AT_1115		= 0,
-	AT_1114		= 1,
-	AT_1113		= 2,
-	AT_1015		= 3,
-	AT_1014		= 4,
-	AT_1013		= 5
+	ADS1X1X_TYPE_1115		= 0,
+	ADS1X1X_TYPE_1114		= 1,
+	ADS1X1X_TYPE_1113		= 2,
+	ADS1X1X_TYPE_1015		= 3,
+	ADS1X1X_TYPE_1014		= 4,
+	ADS1X1X_TYPE_1013		= 5
 } PifAds1x1xType;
 
-typedef enum ENPifAds1x1xConfigMux
+typedef enum EnPifAds1x1xAddr
 {
-    ACM_DIFF_0_1, // default
-	ACM_DIFF_0_3,
-	ACM_DIFF_1_3,
-	ACM_DIFF_2_3,
-	ACM_SINGLE_0,
-	ACM_SINGLE_1,
-	ACM_SINGLE_2,
-	ACM_SINGLE_3
-} PifAds1x1xConfigMux;
+	ADS1X1X_I2C_ADDR_0	= 0x48,		// Default
+	ADS1X1X_I2C_ADDR_1	= 0x49,
+	ADS1X1X_I2C_ADDR_2	= 0x4A,
+	ADS1X1X_I2C_ADDR_3	= 0x4B
+} PifAds1x1xAddr;
 
-typedef enum EnPifAds1x1xConfigPGA
+typedef enum EnPifAds1x1xReg
 {
-    ACP_FSR_6_144V,
-	ACP_FSR_4_096V,
-	ACP_FSR_2_048V, // default
-	ACP_FSR_1_024V,
-	ACP_FSR_0_512V,
-	ACP_FSR_0_256V
-} PifAds1x1xConfigPGA;
+    ADS1X1X_REG_CONVERSION,
+	ADS1X1X_REG_CONFIG,
+	ADS1X1X_REG_LO_THRESH,
+	ADS1X1X_REG_HI_THRESH
+} PifAds1x1xReg;
 
-typedef enum EnPifAds1x1xConfigMode
+
+// Register : Config
+
+typedef enum ENPifAds1x1xMux
 {
-    ACM_CONTINUOUS,
-	ACM_SINGLE_SHOT
-} PifAds1x1xConfigMode;
+    ADS1X1X_MUX_DIFF_0_1, 			// default
+	ADS1X1X_MUX_DIFF_0_3,
+	ADS1X1X_MUX_DIFF_1_3,
+	ADS1X1X_MUX_DIFF_2_3,
+	ADS1X1X_MUX_SINGLE_0,
+	ADS1X1X_MUX_SINGLE_1,
+	ADS1X1X_MUX_SINGLE_2,
+	ADS1X1X_MUX_SINGLE_3
+} PifAds1x1xMux;
 
-typedef enum EnPifAds1x1xConfigDR
+typedef enum EnPifAds1x1xPGA
+{
+    ADS1X1X_PGA_FSR_6_144V,
+	ADS1X1X_PGA_FSR_4_096V,
+	ADS1X1X_PGA_FSR_2_048V,			// default
+	ADS1X1X_PGA_FSR_1_024V,
+	ADS1X1X_PGA_FSR_0_512V,
+	ADS1X1X_PGA_FSR_0_256V
+} PifAds1x1xPGA;
+
+typedef enum EnPifAds1x1xMode
+{
+    ADS1X1X_MODE_CONTINUOUS,
+	ADS1X1X_MODE_SINGLE_SHOT
+} PifAds1x1xMode;
+
+typedef enum EnPifAds1x1xDR
 {
     // for 12bit model
-    ACD_DR_12B_0128_SPS = 0x00,
-	ACD_DR_12B_0250_SPS,
-	ACD_DR_12B_0490_SPS,
-	ACD_DR_12B_0920_SPS,
-	ACD_DR_12B_1600_SPS, // default
-	ACD_DR_12B_2400_SPS,
-	ACD_DR_12B_3300_SPS,
+    ADS1X1X_DR_12B_0128_SPS = 0x00,
+	ADS1X1X_DR_12B_0250_SPS,
+	ADS1X1X_DR_12B_0490_SPS,
+	ADS1X1X_DR_12B_0920_SPS,
+	ADS1X1X_DR_12B_1600_SPS,		// default
+	ADS1X1X_DR_12B_2400_SPS,
+	ADS1X1X_DR_12B_3300_SPS,
 
     // for 16bit model
-	ACD_DR_16B_0008_SPS = 0x00,
-	ACD_DR_16B_0016_SPS,
-	ACD_DR_16B_0032_SPS,
-	ACD_DR_16B_0064_SPS,
-	ACD_DR_16B_0128_SPS, // default
-	ACD_DR_16B_0250_SPS,
-	ACD_DR_16B_0475_SPS,
-	ACD_DR_16B_0860_SPS
-} PifAds1x1xConfigDR;
+	ADS1X1X_DR_16B_0008_SPS = 0x00,
+	ADS1X1X_DR_16B_0016_SPS,
+	ADS1X1X_DR_16B_0032_SPS,
+	ADS1X1X_DR_16B_0064_SPS,
+	ADS1X1X_DR_16B_0128_SPS,		// default
+	ADS1X1X_DR_16B_0250_SPS,
+	ADS1X1X_DR_16B_0475_SPS,
+	ADS1X1X_DR_16B_0860_SPS
+} PifAds1x1xDR;
 
-typedef enum EnPifAds1x1xConfigCompMode
+typedef enum EnPifAds1x1xCompMode
 {
-    ACCM_TRADITIONAL, // default
-	ACCM_WINDOW
-} PifAds1x1xConfigCompMode;
+    ADS1X1X_COMP_MODE_TRADITIONAL, 	// default
+	ADS1X1X_COMP_MODE_WINDOW
+} PifAds1x1xCompMode;
 
-typedef enum EnPifAds1x1xConfigCompPol
+typedef enum EnPifAds1x1xCompPol
 {
-    ACCP_ACTIVE_L, // default
-	ACCP_ACTIVE_H
-} PifAds1x1xConfigCompPol;
+    ADS1X1X_COMP_POL_ACTIVE_L, 		// default
+	ADS1X1X_COMP_POL_ACTIVE_H
+} PifAds1x1xCompPol;
 
-typedef enum EnPifAds1x1xConfigCompLat
+typedef enum EnPifAds1x1xCompLat
 {
-    ACCL_DISABLE, // default
-	ACCL_ENABLE
-} PifAds1x1xConfigCompLat;
+    ADS1X1X_COMP_LAT_DISABLE, 		// default
+	ADS1X1X_COMP_LAT_ENABLE
+} PifAds1x1xCompLat;
 
-typedef enum EnPifAds1x1xConfigCompQue
+typedef enum EnPifAds1x1xCompQue
 {
-    ACCQ_ONE,
-	ACCQ_TWO,
-	ACCQ_FOUR,
-	ACCQ_DISABLE
-} PifAds1x1xConfigCompQue;
+    ADS1X1X_COMP_QUE_ONE,
+	ADS1X1X_COMP_QUE_TWO,
+	ADS1X1X_COMP_QUE_FOUR,
+	ADS1X1X_COMP_QUE_DISABLE
+} PifAds1x1xCompQue;
+
+#define ADS1X1X_CONFIG_COMP_QUE		0x0002
+#define ADS1X1X_CONFIG_COMP_LAT		0x0201
+#define ADS1X1X_CONFIG_COMP_POL		0x0301
+#define ADS1X1X_CONFIG_COMP_MODE	0x0401
+#define ADS1X1X_CONFIG_DR			0x0503
+#define ADS1X1X_CONFIG_MODE			0x0801
+#define ADS1X1X_CONFIG_PGA			0x0903
+#define ADS1X1X_CONFIG_MUX			0x0C03
+#define ADS1X1X_CONFIG_OS_SSCS		0x0F01
 
 typedef union StPifAds1x1xConfig
 {
-	uint16_t all;
+	uint16_t word;
 	struct {
 		uint16_t comp_que	: 2;	// Comparator queue and disable (ADS1114 and ADS1115 only)
 		uint16_t comp_lat	: 1;	// Latching comparator (ADS1114 and ADS1115 only)
@@ -104,8 +133,9 @@ typedef union StPifAds1x1xConfig
 		uint16_t pga		: 3;	// Programmable gain amplifier configuration
 		uint16_t mux		: 3;	// Input multiplexer configuration (ADS1115 only)
 		uint16_t os_sscs	: 1;	// Operational Status(R) or single-shot conversion start(W) */
-	} bt;
+	} bit;
 } PifAds1x1xConfig;
+
 
 /**
  * @class StPifAds1x1x
@@ -117,13 +147,14 @@ typedef struct StPifAds1x1x
 	double convert_voltage;
 
 	// Read-only Member Variable
+	PifId _id;
 	PifAds1x1xType _type;
+	PifI2cDevice* _p_i2c;
+    PifAds1x1xConfig _config;
 
 	// Private Member Variable
-	PifI2cDevice* __p_i2c;
     uint8_t __resolution;
     uint8_t __channels;
-    PifAds1x1xConfig __config;
     uint8_t __bit_offset;
     uint32_t __conversion_delay;
 } PifAds1x1x;
@@ -140,9 +171,10 @@ extern "C" {
  * @param id
  * @param type
  * @param port
+ * @param addr
  * @return
  */
-BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port);
+BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, PifAds1x1xAddr addr);
 
 /**
  * @fn pifAds1x1x_Clear
@@ -150,14 +182,6 @@ BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cP
  * @param p_owner
  */
 void pifAds1x1x_Clear(PifAds1x1x* p_owner);
-
-/**
- * @fn pifAds1x1x_SetAddress
- * @brief
- * @param p_owner
- * @param addr
- */
-void pifAds1x1x_SetAddress(PifAds1x1x* p_owner, uint8_t addr);
 
 /**
  * @fn pifAds1x1x_Read
@@ -174,7 +198,7 @@ int16_t pifAds1x1x_Read(PifAds1x1x* p_owner);
  * @param mux
  * @return
  */
-int16_t pifAds1x1x_ReadMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux);
+int16_t pifAds1x1x_ReadMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 
 /**
  * @fn pifAds1x1x_Voltage
@@ -191,7 +215,7 @@ double pifAds1x1x_Voltage(PifAds1x1x* p_owner);
  * @param mux
  * @return
  */
-double pifAds1x1x_VoltageMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux);
+double pifAds1x1x_VoltageMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 
 /**
  * @fn pifAds1x1x_SetConfig
@@ -201,14 +225,6 @@ double pifAds1x1x_VoltageMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux);
  * @return
  */
 BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, PifAds1x1xConfig* p_config);
-
-/**
- * @fn pifAds1x1x_GetConfig
- * @brief
- * @param p_owner
- * @return
- */
-PifAds1x1xConfig pifAds1x1x_GetConfig(PifAds1x1x* p_owner);
 
 /**
  * @fn pifAds1x1x_SingleShotConvert
@@ -225,15 +241,7 @@ BOOL pifAds1x1x_SingleShotConvert(PifAds1x1x* p_owner);
  * @param mux
  * @return
  */
-BOOL pifAds1x1x_SetMux(PifAds1x1x* p_owner, PifAds1x1xConfigMux mux);
-
-/**
- * @fn pifAds1x1x_GetMux
- * @brief
- * @param p_owner
- * @return
- */
-PifAds1x1xConfigMux pifAds1x1x_GetMux(PifAds1x1x* p_owner);
+BOOL pifAds1x1x_SetMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 
 /**
  * @fn pifAds1x1x_SetGain
@@ -242,15 +250,7 @@ PifAds1x1xConfigMux pifAds1x1x_GetMux(PifAds1x1x* p_owner);
  * @param pga
  * @return
  */
-BOOL pifAds1x1x_SetGain(PifAds1x1x* p_owner, PifAds1x1xConfigPGA pga);
-
-/**
- * @fn pifAds1x1x_GetGain
- * @brief
- * @param p_owner
- * @return
- */
-PifAds1x1xConfigPGA pifAds1x1x_GetGain(PifAds1x1x* p_owner);
+BOOL pifAds1x1x_SetGain(PifAds1x1x* p_owner, PifAds1x1xPGA pga);
 
 /**
  * @fn pifAds1x1x_SetMode
@@ -259,15 +259,7 @@ PifAds1x1xConfigPGA pifAds1x1x_GetGain(PifAds1x1x* p_owner);
  * @param mode
  * @return
  */
-BOOL pifAds1x1x_SetMode(PifAds1x1x* p_owner, PifAds1x1xConfigMode mode);
-
-/**
- * @fn pifAds1x1x_GetMode
- * @brief
- * @param p_owner
- * @return
- */
-PifAds1x1xConfigMode pifAds1x1x_GetMode(PifAds1x1x* p_owner);
+BOOL pifAds1x1x_SetMode(PifAds1x1x* p_owner, PifAds1x1xMode mode);
 
 /**
  * @fn pifAds1x1x_SetDataRate
@@ -276,15 +268,7 @@ PifAds1x1xConfigMode pifAds1x1x_GetMode(PifAds1x1x* p_owner);
  * @param dr
  * @return
  */
-BOOL pifAds1x1x_SetDataRate(PifAds1x1x* p_owner, PifAds1x1xConfigDR dr);
-
-/**
- * @fn pifAds1x1x_GetDataRate
- * @brief
- * @param p_owner
- * @return
- */
-PifAds1x1xConfigDR pifAds1x1x_GetDataRate(PifAds1x1x* p_owner);
+BOOL pifAds1x1x_SetDataRate(PifAds1x1x* p_owner, PifAds1x1xDR dr);
 
 /**
  * @fn pifAds1x1x_SetCompMode
@@ -293,15 +277,7 @@ PifAds1x1xConfigDR pifAds1x1x_GetDataRate(PifAds1x1x* p_owner);
  * @param comp_mode
  * @return
  */
-BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xConfigCompMode comp_mode);
-
-/**
- * @fn pifAds1x1x_GetCompMode
- * @brief
- * @param p_owner
- * @return
- */
-PifAds1x1xConfigCompMode pifAds1x1x_GetCompMode(PifAds1x1x* p_owner);
+BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xCompMode comp_mode);
 
 /**
  * @fn pifAds1x1x_SetCompPol
@@ -310,15 +286,7 @@ PifAds1x1xConfigCompMode pifAds1x1x_GetCompMode(PifAds1x1x* p_owner);
  * @param comp_pol
  * @return
  */
-BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xConfigCompPol comp_pol);
-
-/**
- * @fn pifAds1x1x_GetCompPol
- * @brief
- * @param p_owner
- * @return
- */
-PifAds1x1xConfigCompPol pifAds1x1x_GetCompPol(PifAds1x1x* p_owner);
+BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xCompPol comp_pol);
 
 /**
  * @fn pifAds1x1x_SetCompLat
@@ -327,15 +295,7 @@ PifAds1x1xConfigCompPol pifAds1x1x_GetCompPol(PifAds1x1x* p_owner);
  * @param comp_lat
  * @return
  */
-BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xConfigCompLat compLat);
-
-/**
- * @fn pifAds1x1x_GetCompLat
- * @brief
- * @param p_owner
- * @return
- */
-PifAds1x1xConfigCompLat pifAds1x1x_GetCompLat(PifAds1x1x* p_owner);
+BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xCompLat compLat);
 
 /**
  * @fn pifAds1x1x_SetCompQue
@@ -344,15 +304,7 @@ PifAds1x1xConfigCompLat pifAds1x1x_GetCompLat(PifAds1x1x* p_owner);
  * @param comp_que
  * @return
  */
-BOOL pifAds1x1x_SetCompQue(PifAds1x1x* p_owner, PifAds1x1xConfigCompQue comp_que);
-
-/**
- * @fn pifAds1x1x_GetCompQue
- * @brief
- * @param p_owner
- * @return
- */
-PifAds1x1xConfigCompQue pifAds1x1x_GetCompQue(PifAds1x1x* p_owner);
+BOOL pifAds1x1x_SetCompQue(PifAds1x1x* p_owner, PifAds1x1xCompQue comp_que);
 
 /**
  * @fn pifAds1x1x_SetLoThresh

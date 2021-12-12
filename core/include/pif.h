@@ -161,7 +161,8 @@ typedef enum EnPifError
 	E_MISMATCH_CRC				= 0x0C,
 	E_ACCESS_FAILED				= 0x0D,
 	E_CANNOT_FOUND				= 0x0E,
-	E_IS_NOT_FORMATED			= 0x0F
+	E_IS_NOT_FORMATED			= 0x0F,
+	E_RECEIVE_NACK				= 0x10
 } PifError;
 
 

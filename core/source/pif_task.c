@@ -10,6 +10,13 @@
 #define PIF_TASK_TABLE_MASK		(PIF_TASK_TABLE_SIZE - 1)
 
 
+#ifdef __PIF_DEBUG__
+
+PifActTaskMeasure pif_act_task_loop = NULL;
+PifActTaskMeasure pif_act_task_yield = NULL;
+
+#endif
+
 static PifFixList s_tasks;
 static PifFixListIterator s_it_current;
 
@@ -270,6 +277,8 @@ void pifTaskManager_Loop()
 {
 #ifdef __PIF_DEBUG__
 	static uint8_t sec = 0;
+
+    if (pif_act_task_loop) (*pif_act_task_loop)();
 #endif
 
 	PifFixListIterator it = s_it_current ? s_it_current : pifFixList_Begin(&s_tasks);
@@ -294,6 +303,10 @@ void pifTaskManager_Loop()
 void pifTaskManager_Yield()
 {
 	if (!pifFixList_Count(&s_tasks)) return;
+
+#ifdef __PIF_DEBUG__
+    if (pif_act_task_yield) (*pif_act_task_yield)();
+#endif
 
 	s_it_current = pifFixList_Next(s_it_current);
 	if (!s_it_current) {
