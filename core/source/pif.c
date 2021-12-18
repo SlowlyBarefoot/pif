@@ -14,6 +14,7 @@ volatile uint32_t pif_timer1sec = 0L;
 volatile PifDateTime pif_datetime;
 
 volatile uint32_t pif_cumulative_timer1ms = 0L;
+volatile uint32_t pif_cumulative_timer1us = 0L;
 
 PifPerformance pif_performance = {
 		._count = 0,
@@ -98,6 +99,8 @@ void pif_Loop()
 {
     extern void pifTaskManager_Loop();
 
+    pif_cumulative_timer1us = (*pif_act_timer1us)();
+
 #ifndef __PIF_NO_LOG__
 #ifdef __PIF_DEBUG__
 	static BOOL first = TRUE;
@@ -105,7 +108,7 @@ void pif_Loop()
 	uint32_t gap;
 #endif
 
-    if (pif_log_flag.bt.performance) {
+	if (pif_log_flag.bt.performance) {
 		pif_performance._count++;
 		if (pif_performance.__state) {
         	uint32_t value = 1000000L / pif_performance._count;
@@ -118,7 +121,7 @@ void pif_Loop()
     else {
     	if (pif_act_timer1us) {
     		if (!first) {
-    			gap = (*pif_act_timer1us)() - pretime;
+    			gap = pif_cumulative_timer1us - pretime;
     			if (gap > pif_performance.__max_loop_time1us) {
     				pif_performance.__max_loop_time1us = gap;
     				pifLog_Printf(LT_NONE, "\nMLT: %luus", pif_performance.__max_loop_time1us);
@@ -127,7 +130,7 @@ void pif_Loop()
     		else {
     			first = FALSE;
     		}
-    		pretime = (*pif_act_timer1us)();
+    		pretime = pif_cumulative_timer1us;
     	}
 	}
 #endif

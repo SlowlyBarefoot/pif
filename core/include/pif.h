@@ -222,6 +222,7 @@ extern volatile uint32_t pif_timer1sec;
 extern volatile PifDateTime pif_datetime;
 
 extern volatile uint32_t pif_cumulative_timer1ms;
+extern volatile uint32_t pif_cumulative_timer1us;
 
 extern PifPerformance pif_performance;
 

@@ -47,13 +47,12 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 		break;
 
 	case TM_PERIOD_US:
-		time = (*pif_act_timer1us)();
-		gap = time - p_owner->__pretime;
+		gap = pif_cumulative_timer1us - p_owner->__pretime;
 		if (gap > p_owner->_period) {
 			p_owner->__running = TRUE;
 			(*p_owner->__evt_loop)(p_owner);
 			p_owner->__running = FALSE;
-			p_owner->__pretime = time;
+			p_owner->__pretime = pif_cumulative_timer1us;
 		}
 		break;
 
@@ -69,14 +68,13 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 		break;
 
 	case TM_CHANGE_US:
-		time = (*pif_act_timer1us)();
-		gap = time - p_owner->__pretime;
+		gap = pif_cumulative_timer1us - p_owner->__pretime;
 		if (gap > p_owner->_period) {
 			p_owner->__running = TRUE;
 			period = (*p_owner->__evt_loop)(p_owner);
 			p_owner->__running = FALSE;
 			if (period > 0) p_owner->_period = period;
-			p_owner->__pretime = time;
+			p_owner->__pretime = pif_cumulative_timer1us;
 		}
 		break;
 
@@ -336,7 +334,7 @@ void pifTaskManager_YieldMs(uint32_t time)
 
 void pifTaskManager_YieldUs(uint32_t time)
 {
-    uint32_t start = (*pif_act_timer1us)();
+    uint32_t start;
     uint32_t current;
     uint32_t delay;
 
@@ -348,6 +346,7 @@ void pifTaskManager_YieldUs(uint32_t time)
     	pifTaskManager_YieldMs(delay > 0 ? delay : 1);
     }
     else {
+    	start = (*pif_act_timer1us)();
 		do {
 			pifTaskManager_Yield();
 			current = (*pif_act_timer1us)();
