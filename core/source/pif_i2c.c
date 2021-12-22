@@ -97,7 +97,7 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint8_t size)
 	PifI2cPort* p_port = p_owner->__p_port;
 
 	if (!p_port->act_read) goto fail;
-	if (p_port->__use_device) goto fail;
+	if (p_port->__use_device) return FALSE;
 
 	p_port->__use_device = p_owner;
 	p_owner->_state = IS_RUN;
@@ -113,7 +113,6 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint8_t size)
 		break;
 
 	case IR_ERROR:
-		p_port->__use_device = NULL;
 		goto fail;
 	}
 	p_port->__use_device = NULL;
@@ -132,7 +131,7 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint8_t size)
 	PifI2cPort* p_port = p_owner->__p_port;
 
 	if (!p_port->act_write) goto fail;
-	if (p_port->__use_device) goto fail;
+	if (p_port->__use_device) return FALSE;
 
 	p_port->__use_device = p_owner;
 	p_owner->_state = IS_RUN;
@@ -148,7 +147,6 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint8_t size)
 		break;
 
 	case IR_ERROR:
-		p_port->__use_device = NULL;
 		goto fail;
 	}
 	p_port->__use_device = NULL;

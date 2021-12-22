@@ -275,8 +275,6 @@ void pifTaskManager_Loop()
 {
 #ifdef __PIF_DEBUG__
 	static uint8_t sec = 0;
-
-    if (pif_act_task_loop) (*pif_act_task_loop)();
 #endif
 
 	PifFixListIterator it = s_it_current ? s_it_current : pifFixList_Begin(&s_tasks);
@@ -284,6 +282,9 @@ void pifTaskManager_Loop()
 		s_it_current = it;
 		PifTask* p_owner = (PifTask*)it->data;
 		_processing(p_owner, s_table[s_number] & (1 << p_owner->__table_number));
+#ifdef __PIF_DEBUG__
+	    if (pif_act_task_loop) (*pif_act_task_loop)();
+#endif
 		it = pifFixList_Next(it);
 	}
 
@@ -302,10 +303,6 @@ void pifTaskManager_Yield()
 {
 	if (!pifFixList_Count(&s_tasks)) return;
 
-#ifdef __PIF_DEBUG__
-    if (pif_act_task_yield) (*pif_act_task_yield)();
-#endif
-
 	s_it_current = pifFixList_Next(s_it_current);
 	if (!s_it_current) {
 		s_number = (s_number + 1) & PIF_TASK_TABLE_MASK;
@@ -315,6 +312,10 @@ void pifTaskManager_Yield()
 	PifTask* p_owner = (PifTask*)s_it_current->data;
 	if (!p_owner->__running) {
 		_processing(p_owner, s_table[s_number] & (1 << p_owner->__table_number));
+
+#ifdef __PIF_DEBUG__
+		if (pif_act_task_yield) (*pif_act_task_yield)();
+#endif
 	}
 }
 

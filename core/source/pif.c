@@ -410,7 +410,7 @@ NEXT_STR:
             			if (long_val < 0) {
             				p_buffer[offset++] = '-';
             				long_val *= -1;
-            				num_str_cnt--;
+            				if (num_str_cnt) num_str_cnt--;
             			}
             			offset += pif_DecToString(p_buffer + offset, long_val, num_str_cnt);
                 	}
@@ -419,7 +419,7 @@ NEXT_STR:
             			if (int_val < 0) {
             				p_buffer[offset++] = '-';
                 			int_val *= -1;
-            				num_str_cnt--;
+                			if (num_str_cnt) num_str_cnt--;
             			}
             			offset += pif_DecToString(p_buffer + offset, int_val, num_str_cnt);
                 	}
