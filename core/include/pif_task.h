@@ -43,6 +43,7 @@ struct StPifTask
 	int __table_number;
 	BOOL __running;
 	uint32_t __pretime;
+	uint16_t __delay_ms;
 #ifdef __PIF_DEBUG__
 	uint32_t __count;
 	float __period;
@@ -78,6 +79,14 @@ void pifTask_Init(PifTask* p_owner);
  * @param period Task 주기 (ms, us)
  */
 void pifTask_SetPeriod(PifTask* p_owner, uint16_t period);
+
+/**
+ * @fn pifTask_DelayMs
+ * @brief Task를 일정 시간 정지시킨다.
+ * @param p_owner Task 자신
+ * @param 정지시킬 시
+ */
+void pifTask_DelayMs(PifTask* p_owner, uint16_t delay);
 
 
 /**

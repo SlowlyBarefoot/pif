@@ -29,6 +29,9 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 {
 	uint16_t period;
 	uint32_t time, gap;
+#ifdef __PIF_DEBUG__
+	static uint32_t pretime;
+#endif
 
 	if (p_owner->pause) return;
 	else if (p_owner->immediate) {
@@ -41,9 +44,17 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 
 	switch (p_owner->_mode) {
 	case TM_ALWAYS:
-		p_owner->__running = TRUE;
-		(*p_owner->__evt_loop)(p_owner);
-		p_owner->__running = FALSE;
+		if (p_owner->__delay_ms) {
+			gap = pif_cumulative_timer1ms - p_owner->__pretime;
+			if (gap > p_owner->__delay_ms) {
+				p_owner->__delay_ms = 0;
+			}
+		}
+		else {
+			p_owner->__running = TRUE;
+			(*p_owner->__evt_loop)(p_owner);
+			p_owner->__running = FALSE;
+		}
 		break;
 
 	case TM_PERIOD_US:
@@ -91,13 +102,19 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 		break;
 
 	default:
-		if (ratio) {
+		if (p_owner->__delay_ms) {
+			gap = pif_cumulative_timer1ms - p_owner->__pretime;
+			if (gap > p_owner->__delay_ms) {
+				p_owner->__delay_ms = 0;
+			}
+		}
+		else if (ratio) {
 #ifdef __PIF_DEBUG__
 			time = pif_timer1sec;
-			if (time != p_owner->__pretime) {
+			if (time != pretime) {
 				p_owner->__period = 1000000.0 / p_owner->__count;
 				p_owner->__count = 0;
-				p_owner->__pretime = time;
+				pretime = time;
 			}
 #endif
 			p_owner->__running = TRUE;
@@ -133,6 +150,20 @@ void pifTask_SetPeriod(PifTask* p_owner, uint16_t period)
 	}
 }
 
+void pifTask_DelayMs(PifTask* p_owner, uint16_t delay)
+{
+	switch (p_owner->_mode) {
+	case TM_RATIO:
+	case TM_ALWAYS:
+		p_owner->__delay_ms = delay;
+    	p_owner->__pretime = 1000L * pif_timer1sec + pif_timer1ms;
+		break;
+
+	default:
+		break;
+	}
+}
+
 
 BOOL pifTaskManager_Init(int max_count)
 {
@@ -151,7 +182,7 @@ void pifTaskManager_Clear()
 
 PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start)
 {
-	uint32_t count, gap, index;
+	uint32_t count, gap, index, bit;
 	static int base = 0;
 	int i, num = -1;
 
@@ -205,14 +236,15 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
     		pif_error = E_OVERFLOW_BUFFER;
 		    return NULL;
     	}
-    	s_table_number |= 1 << num;
+    	bit = 1 << num;
+    	s_table_number |= bit;
 
 		count = (PIF_TASK_TABLE_SIZE - 1) * period + 100;
 		gap = 10000L * PIF_TASK_TABLE_SIZE / count;
 		if (gap > 100) {
 			index = 100 * base;
 			for (uint16_t i = 0; i < count / 100; i++) {
-				s_table[(index / 100) & PIF_TASK_TABLE_MASK] |= 1 << num;
+				s_table[(index / 100) & PIF_TASK_TABLE_MASK] |= bit;
 				index += gap;
 			}
 			base++;
@@ -263,6 +295,22 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
 
 void pifTaskManager_Remove(PifTask* p_task)
 {
+	int i;
+	uint32_t mask;
+
+	switch (p_task->_mode) {
+	case TM_RATIO:
+	case TM_ALWAYS:
+		mask = ~((uint32_t)1 << p_task->__table_number);
+		for (i = 0; i < PIF_TASK_TABLE_SIZE; i++) {
+			s_table[i] &= mask;
+		}
+		s_table_number &= mask;
+		break;
+
+	default:
+		break;
+	}
 	pifFixList_Remove(&s_tasks, p_task);
 }
 
