@@ -134,6 +134,13 @@ BOOL pifTimer_Start(PifTimer* p_owner, uint32_t pulse);
 void pifTimer_Stop(PifTimer* p_owner);
 
 /**
+ * @fn pifTimer_Reset
+ * @brief Timer를 다시 시작한다.
+ * @param p_owner Timer 포인터
+ */
+void pifTimer_Reset(PifTimer* p_owner);
+
+/**
  * @fn pifTimer_SetPwmDuty
  * @brief Timer의 이동 pulse를 재설정한다.
  * @param p_owner Timer 포인터

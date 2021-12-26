@@ -20,7 +20,7 @@ typedef struct StPifLed
     PifId _id;
 
 	// Private Member Variable
-	PifTimerManager*__p_timer_manager;
+	PifTimerManager* __p_timer_manager;
 	uint32_t __state;
 	SWITCH __blink;
 	uint32_t __blink_flag;

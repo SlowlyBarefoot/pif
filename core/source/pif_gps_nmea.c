@@ -145,7 +145,6 @@ static BOOL _makePacket(PifGpsNmea* p_owner, char* p_data)
 	p_data[i] = '\r'; i++;
 	p_data[i] = '\n'; i++;
 	p_data[i] = 0;
-	pifLog_Printf(LT_NONE, p_data);
 
 	pifRingBuffer_BackupHead(&p_owner->__tx.buffer);
 
@@ -335,7 +334,7 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 		}
 	}
 	if (frame_ok) {
-		if (p_parent->__evt_receive) (*p_parent->__evt_receive)(p_parent);
+		pifGps_SendEvent(p_parent);
 	}
 }
 

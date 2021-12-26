@@ -101,6 +101,12 @@ void pifTimer_Stop(PifTimer* p_owner)
 	}
 }
 
+void pifTimer_Reset(PifTimer* p_owner)
+{
+	p_owner->__current = p_owner->target;
+	p_owner->_step = TS_RUNNING;
+}
+
 void pifTimer_SetPwmDuty(PifTimer* p_owner, uint16_t duty)
 {
 	p_owner->__pwm_duty = p_owner->target * duty / PIF_PWM_MAX_DUTY;
