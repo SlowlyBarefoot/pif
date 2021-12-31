@@ -43,8 +43,8 @@ static uint16_t _doTask(PifTask* p_task)
 {
 	PifPulse* p_owner = (PifPulse*)p_task->_p_client;
 	int i;
-	uint8_t curr, next, count;
-	uint32_t sum;
+	uint8_t start, curr, prev;
+	uint32_t value;
 
 	if (p_owner->__trigger_edge == PE_UNKNOWN) return 0;
 
@@ -54,69 +54,85 @@ static uint16_t _doTask(PifTask* p_task)
 	}
 #endif
 
+	start = (p_owner->__ptr + PIF_PULSE_DATA_MASK) & PIF_PULSE_DATA_MASK;
+
 	if (p_owner->_measure_mode & PIF_PMM_PERIOD) {
-		sum = 0UL;
-		count = 0;
-		curr = p_owner->__ptr;
-		for (i = 0; i < PIF_PULSE_DATA_SIZE - 2;) {
-			next = (curr + 2) & PIF_PULSE_DATA_MASK;
-			if (p_owner->__data[curr].edge == PE_FALLING && p_owner->__data[next].edge == PE_FALLING) {
-				sum += p_owner->__data[next].timer1us - p_owner->__data[curr].timer1us;
-				count++;
-				curr = (curr + 2) & PIF_PULSE_DATA_MASK;
-				i += 2;
+		curr = start;
+		for (i = 0; i < PIF_PULSE_DATA_SIZE - 3;) {
+			if (p_owner->__data[curr].edge == PE_UNKNOWN) break;
+
+			prev = (curr + PIF_PULSE_DATA_SIZE - 2) & PIF_PULSE_DATA_MASK;
+			if (p_owner->__data[curr].edge == p_owner->__data[prev].edge) {
+				value = p_owner->__data[curr].timer1us - p_owner->__data[prev].timer1us;
+				if (p_owner->__valid_range[0].check) {
+					if (value >= p_owner->__valid_range[0].min && value <= p_owner->__valid_range[0].max) {
+						p_owner->_period_1us = value;
+						break;
+					}
+					curr = (curr + PIF_PULSE_DATA_MASK) & PIF_PULSE_DATA_MASK;
+					i++;
+				}
+				else {
+					p_owner->_period_1us = value;
+					break;
+				}
 			}
 			else {
-				curr = (curr + 1) & PIF_PULSE_DATA_MASK;
+				curr = (curr + PIF_PULSE_DATA_MASK) & PIF_PULSE_DATA_MASK;
 				i++;
 			}
-		}
-		if (count) {
-			p_owner->_period_1us = sum / count;
 		}
 	}
 
 	if (p_owner->_measure_mode & PIF_PMM_LOW_LEVEL_TIME) {
-		sum = 0UL;
-		count = 0;
-		curr = p_owner->__ptr;
-		for (i = 0; i < PIF_PULSE_DATA_SIZE - 1;) {
-			next = (curr + 1) & PIF_PULSE_DATA_MASK;
-			if (p_owner->__data[curr].edge == PE_FALLING && p_owner->__data[next].edge == PE_RISING) {
-				sum += p_owner->__data[next].timer1us - p_owner->__data[curr].timer1us;
-				count++;
-				curr = (curr + 2) & PIF_PULSE_DATA_MASK;
-				i += 2;
+		curr = start;
+		for (i = 0; i < PIF_PULSE_DATA_SIZE - 2;) {
+			prev = (curr + PIF_PULSE_DATA_MASK) & PIF_PULSE_DATA_MASK;
+			if (p_owner->__data[prev].edge == PE_FALLING && p_owner->__data[curr].edge == PE_RISING) {
+				value = p_owner->__data[curr].timer1us - p_owner->__data[prev].timer1us;
+				if (p_owner->__valid_range[1].check) {
+					if (value >= p_owner->__valid_range[1].min && value <= p_owner->__valid_range[1].max) {
+						p_owner->_low_level_1us = value;
+						break;
+					}
+					curr = (curr + PIF_PULSE_DATA_SIZE - 2) & PIF_PULSE_DATA_MASK;
+					i += 2;
+				}
+				else {
+					p_owner->_low_level_1us = value;
+					break;
+				}
 			}
 			else {
-				curr = (curr + 1) & PIF_PULSE_DATA_MASK;
+				curr = prev;
 				i++;
 			}
-		}
-		if (count) {
-			p_owner->_low_level_1us = sum / count;
 		}
 	}
 
 	if (p_owner->_measure_mode & PIF_PMM_HIGH_LEVEL_TIME) {
-		sum = 0UL;
-		count = 0;
-		curr = p_owner->__ptr;
-		for (i = 0; i < PIF_PULSE_DATA_SIZE - 1;) {
-			next = (curr + 1) & PIF_PULSE_DATA_MASK;
-			if (p_owner->__data[curr].edge == PE_RISING && p_owner->__data[next].edge == PE_FALLING) {
-				sum += p_owner->__data[next].timer1us - p_owner->__data[curr].timer1us;
-				count++;
-				curr = (curr + 2) & PIF_PULSE_DATA_MASK;
-				i += 2;
+		curr = start;
+		for (i = 0; i < PIF_PULSE_DATA_SIZE - 2;) {
+			prev = (curr + PIF_PULSE_DATA_MASK) & PIF_PULSE_DATA_MASK;
+			if (p_owner->__data[prev].edge == PE_RISING && p_owner->__data[curr].edge == PE_FALLING) {
+				value = p_owner->__data[curr].timer1us - p_owner->__data[prev].timer1us;
+				if (p_owner->__valid_range[2].check) {
+					if (value >= p_owner->__valid_range[2].min && value <= p_owner->__valid_range[2].max) {
+						p_owner->_high_level_1us = value;
+						break;
+					}
+					curr = (curr + PIF_PULSE_DATA_SIZE - 2) & PIF_PULSE_DATA_MASK;
+					i += 2;
+				}
+				else {
+					p_owner->_high_level_1us = value;
+					break;
+				}
 			}
 			else {
-				curr = (curr + 1) & PIF_PULSE_DATA_MASK;
+				curr = prev;
 				i++;
 			}
-		}
-		if (count) {
-			p_owner->_high_level_1us = sum / count;
 		}
 	}
 
@@ -139,9 +155,6 @@ BOOL pifPulse_Init(PifPulse* p_owner, PifId id)
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-
-    p_owner->__p_task = pifTaskManager_Add(TM_RATIO, 100, _doTask, p_owner, TRUE);
-    if (!p_owner->__p_task) goto fail;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	if (!pifDList_Size(&s_cs_list)) {
@@ -190,6 +203,55 @@ void pifPulse_SetMeasureMode(PifPulse* p_owner, uint8_t measure_mode)
 void pifPulse_ResetMeasureMode(PifPulse* p_owner, uint8_t measure_mode)
 {
 	p_owner->_measure_mode &= ~measure_mode;
+}
+
+BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint32_t min, uint32_t max)
+{
+	int index = -1;
+
+	switch (measure_mode) {
+	case PIF_PMM_PERIOD:
+		index = 0;
+		break;
+
+	case PIF_PMM_LOW_LEVEL_TIME:
+		index = 1;
+		break;
+
+	case PIF_PMM_HIGH_LEVEL_TIME:
+		index = 2;
+		break;
+	}
+	if (index < 0) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+	p_owner->__valid_range[index].check = TRUE;
+	p_owner->__valid_range[index].min = min;
+	p_owner->__valid_range[index].max = max;
+	return TRUE;
+}
+
+BOOL pifPulse_SetInitValue(PifPulse* p_owner, uint8_t measure_mode, uint32_t value)
+{
+	switch (measure_mode) {
+	case PIF_PMM_PERIOD:
+		p_owner->_period_1us = value;
+		break;
+
+	case PIF_PMM_LOW_LEVEL_TIME:
+		p_owner->_low_level_1us = value;
+		break;
+
+	case PIF_PMM_HIGH_LEVEL_TIME:
+		p_owner->_high_level_1us = value;
+		break;
+
+	default:
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+	return TRUE;
 }
 
 void pifPulse_ResetMeasureValue(PifPulse* p_owner)
@@ -253,10 +315,16 @@ void pifPulse_sigEdge(PifPulse* p_owner, PifPulseEdge edge)
 	p_owner->__trigger_edge = edge;
 }
 
-void pifTimer_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, void* p_issuer)
+void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, void* p_issuer)
 {
 	p_owner->__evt_edge = evt_edge;
 	p_owner->__p_edge_issuer = p_issuer;
+}
+
+PifTask* pifPulse_AttachTask(PifPulse* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
+{
+	p_owner->__p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, start);
+	return p_owner->__p_task;
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__

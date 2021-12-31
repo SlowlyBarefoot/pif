@@ -82,7 +82,7 @@ void pifTask_SetPeriod(PifTask* p_owner, uint16_t period);
 
 /**
  * @fn pifTask_DelayMs
- * @brief Task를 일정 시간 정지시킨다.
+ * @brief ms단위의 일정 시간동안 Task를 정지시킨다.
  * @param p_owner Task 자신
  * @param 정지시킬 시
  */

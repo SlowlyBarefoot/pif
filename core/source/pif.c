@@ -107,9 +107,6 @@ void pif_Loop()
 #endif
 
 	if (pif_log_flag.bt.performance) {
-		if (pif_act_timer1us) {
-			pif_cumulative_timer1us = (*pif_act_timer1us)();
-		}
 		pif_performance._count++;
 		if (pif_performance.__state) {
         	uint32_t value = 1000000L / pif_performance._count;
@@ -121,7 +118,6 @@ void pif_Loop()
 #ifdef __PIF_DEBUG__
     else {
     	if (pif_act_timer1us) {
-    		pif_cumulative_timer1us = (*pif_act_timer1us)();
     		if (!first) {
     			gap = pif_cumulative_timer1us - pretime;
     			if (gap > pif_performance.__max_loop_time1us) {
@@ -136,10 +132,6 @@ void pif_Loop()
     	}
 	}
 #endif
-#else
-	if (pif_act_timer1us) {
-		pif_cumulative_timer1us = (*pif_act_timer1us)();
-	}
 #endif
 
     pifTaskManager_Loop();

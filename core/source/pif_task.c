@@ -60,10 +60,10 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 	case TM_PERIOD_US:
 		gap = pif_cumulative_timer1us - p_owner->__pretime;
 		if (gap > p_owner->_period) {
+			p_owner->__pretime = pif_cumulative_timer1us;
 			p_owner->__running = TRUE;
 			(*p_owner->__evt_loop)(p_owner);
 			p_owner->__running = FALSE;
-			p_owner->__pretime = pif_cumulative_timer1us;
 		}
 		break;
 
@@ -71,21 +71,21 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 		time = 1000L * pif_timer1sec + pif_timer1ms;
 		gap = time - p_owner->__pretime;
 		if (gap > p_owner->_period) {
+			p_owner->__pretime = time;
 			p_owner->__running = TRUE;
 			(*p_owner->__evt_loop)(p_owner);
 			p_owner->__running = FALSE;
-			p_owner->__pretime = time;
 		}
 		break;
 
 	case TM_CHANGE_US:
 		gap = pif_cumulative_timer1us - p_owner->__pretime;
 		if (gap > p_owner->_period) {
+			p_owner->__pretime = pif_cumulative_timer1us;
 			p_owner->__running = TRUE;
 			period = (*p_owner->__evt_loop)(p_owner);
 			p_owner->__running = FALSE;
 			if (period > 0) p_owner->_period = period;
-			p_owner->__pretime = pif_cumulative_timer1us;
 		}
 		break;
 
@@ -93,11 +93,11 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 		time = 1000L * pif_timer1sec + pif_timer1ms;
 		gap = time - p_owner->__pretime;
 		if (gap > p_owner->_period) {
+			p_owner->__pretime = time;
 			p_owner->__running = TRUE;
 			period = (*p_owner->__evt_loop)(p_owner);
 			p_owner->__running = FALSE;
 			if (period > 0) p_owner->_period = period;
-			p_owner->__pretime = time;
 		}
 		break;
 
@@ -327,6 +327,10 @@ void pifTaskManager_Loop()
 
 	PifFixListIterator it = s_it_current ? s_it_current : pifFixList_Begin(&s_tasks);
 	while (it) {
+		if (pif_act_timer1us) {
+			pif_cumulative_timer1us = (*pif_act_timer1us)();
+		}
+
 		s_it_current = it;
 		PifTask* p_owner = (PifTask*)it->data;
 		_processing(p_owner, s_table[s_number] & (1 << p_owner->__table_number));
@@ -350,6 +354,10 @@ void pifTaskManager_Loop()
 void pifTaskManager_Yield()
 {
 	if (!pifFixList_Count(&s_tasks)) return;
+
+	if (pif_act_timer1us) {
+		pif_cumulative_timer1us = (*pif_act_timer1us)();
+	}
 
 	s_it_current = pifFixList_Next(s_it_current);
 	if (!s_it_current) {

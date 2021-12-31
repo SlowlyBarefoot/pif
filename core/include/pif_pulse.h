@@ -5,7 +5,9 @@
 #include "pif_task.h"
 
 
-#define PIF_PULSE_DATA_SIZE			16
+#ifndef PIF_PULSE_DATA_SIZE
+#define PIF_PULSE_DATA_SIZE			8
+#endif
 #define PIF_PULSE_DATA_MASK			(PIF_PULSE_DATA_SIZE - 1)
 
 #define PIF_PMM_PERIOD				0x01
@@ -84,6 +86,11 @@ struct StPifPulse
 	PifPulseEdge __trigger_edge;
 	PifPulseData __data[PIF_PULSE_DATA_SIZE];
 	uint8_t __ptr;
+	struct {
+		BOOL check		: 1;
+		uint32_t min	: 31;
+		uint32_t max	: 32;
+	} __valid_range[3];
 	PifTask* __p_task;
 	void* __p_edge_issuer;
 
@@ -132,6 +139,27 @@ void pifPulse_SetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
 void pifPulse_ResetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
 
 /**
+ * @fn pifPulse_SetValidRange
+ * @brief
+ * @param p_owner
+ * @param measure_mode
+ * @param min
+ * @param max
+ * @return
+ */
+BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint32_t min, uint32_t max);
+
+/**
+ * @fn pifPulse_SetInitValue
+ * @brief
+ * @param p_owner
+ * @param measure_mode
+ * @param value
+ * @return
+ */
+BOOL pifPulse_SetInitValue(PifPulse* p_owner, uint8_t measure_mode, uint32_t value);
+
+/**
  * @fn pifPulse_ResetMeasureValue
  * @brief
  * @param p_owner
@@ -171,13 +199,24 @@ double pifPulse_GetHighLevelDuty(PifPulse* p_owner);
 void pifPulse_sigEdge(PifPulse* p_owner, PifPulseEdge edge);
 
 /**
- * @fn pifTimer_AttachEvtEdge
+ * @fn pifPulse_AttachEvtEdge
  * @brief
  * @param p_owner Pulse 포인터
  * @param evt_edge
  * @param p_issuer 이벤트 발생시 전달할 발행자
  */
-void pifTimer_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, void* p_issuer);
+void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, void* p_issuer);
+
+/**
+ * @fn pifPulse_AttachTask
+ * @brief
+ * @param p_owner Pulse 포인터
+ * @param mode
+ * @param period
+ * @param start
+ * @return
+ */
+PifTask* pifPulse_AttachTask(PifPulse* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
