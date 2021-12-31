@@ -154,8 +154,9 @@ BOOL pifStorage_Read(PifStorage* p_owner, PifStorageDataInfo* p_data_info, uint8
  * @fn pifStorage_PrintInfo
  * @brief
  * @param p_owner
+ * @param human
  */
-void pifStorage_PrintInfo(PifStorage* p_owner);
+void pifStorage_PrintInfo(PifStorage* p_owner, BOOL human);
 
 #endif
 

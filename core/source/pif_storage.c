@@ -67,6 +67,9 @@ BOOL pifStorage_Init(PifStorage* p_owner, PifId id, PifActStorageRead act_read, 
             p_info->magin_code[2] != 'f' || p_info->magin_code[3] != 's') {
         goto set;
     }
+    if (p_info->max_data_info_count < min_data_info_count) {
+        goto set;
+    }
     if (p_info->crc_16 != pifCrc16(p_owner->__p_info_buffer, sizeof(PifStorageInfo) - 6)) {
         goto set;
     }
@@ -137,6 +140,11 @@ PifStorageDataInfo* pifStorage_Alloc(PifStorage* p_owner, uint16_t id, uint16_t 
 	PifStorageDataInfo* p_new_data;
 	uint16_t cur_node, new_node, last, sector_size = p_info->sector_size;
 	uint16_t sectors = (size + sector_size - 1) / sector_size;
+
+    if (!p_owner || id == 0xFF) {
+    	pif_error = E_INVALID_PARAM;
+	    return NULL;
+    }
 
 	if (!p_owner->_is_format) {
 		pif_error = E_IS_NOT_FORMATED;
@@ -330,25 +338,39 @@ BOOL pifStorage_Read(PifStorage* p_owner, PifStorageDataInfo* p_data_info, uint8
 
 #if defined(__PIF_DEBUG__) && !defined(__PIF_NO_LOG__)
 
-void pifStorage_PrintInfo(PifStorage* p_owner)
+void pifStorage_PrintInfo(PifStorage* p_owner, BOOL human)
 {
 	uint16_t i, b, p = 0;
 
-	pifLog_Printf(LT_NONE, "\nis_format: %d", p_owner->_is_format);
-	pifLog_Printf(LT_NONE, "\ninfo_bytes: %lu", p_owner->__info_bytes);
-	pifLog_Printf(LT_NONE, "\ninfo_sectors: %u", p_owner->__info_sectors);
-	pifLog_Printf(LT_NONE, "\n\n%04X: ", 0);
-	for (i = 0; i < sizeof(PifStorageInfo); i++, p++) {
-		pifLog_Printf(LT_NONE, "%02X ", p_owner->__p_info_buffer[p]);
-	}
+	pifLog_Printf(LT_NONE, "\nIs Format: %d", p_owner->_is_format);
+	pifLog_Printf(LT_NONE, "\nInfo Bytes: %lu", p_owner->__info_bytes);
+	pifLog_Printf(LT_NONE, "\nInfo Sectors: %u\n", p_owner->__info_sectors);
+	if (human) {
+		pifLog_Printf(LT_NONE, "\nVerion: %u", p_owner->_p_info->verion);
+		pifLog_Printf(LT_NONE, "\nMax Data Info Count: %u", p_owner->_p_info->max_data_info_count);
+		pifLog_Printf(LT_NONE, "\nSector Size: %u", p_owner->_p_info->sector_size);
+		pifLog_Printf(LT_NONE, "\nMax Sector Count: %u\n", p_owner->_p_info->max_sector_count);
 
-	for (i = 0; i < p_owner->_p_info->max_data_info_count; i++) {
-		pifLog_Printf(LT_NONE, "\n%04X: ", p);
-		for (b = 0; b < sizeof(PifStorageDataInfo); b++, p++) {
-			pifLog_Printf(LT_NONE, "%02X ", p_owner->__p_info_buffer[p]);
+		for (i = 0; i < p_owner->_p_info->max_data_info_count; i++) {
+			if (p_owner->__p_data_info[i].id < 0xFF) {
+				pifLog_Printf(LT_NONE, "\n Id: %2Xh Size: %u", p_owner->__p_data_info[i].id, p_owner->__p_data_info[i].size);
+			}
 		}
 	}
-	pifLog_Printf(LT_NONE, "\n");
+	else {
+		pifLog_Printf(LT_NONE, "\n%04X: ", 0);
+		for (i = 0; i < sizeof(PifStorageInfo); i++, p++) {
+			pifLog_Printf(LT_NONE, "%02X ", p_owner->__p_info_buffer[p]);
+		}
+
+		for (i = 0; i < p_owner->_p_info->max_data_info_count; i++) {
+			pifLog_Printf(LT_NONE, "\n%04X: ", p);
+			for (b = 0; b < sizeof(PifStorageDataInfo); b++, p++) {
+				pifLog_Printf(LT_NONE, "%02X ", p_owner->__p_info_buffer[p]);
+			}
+		}
+		pifLog_Printf(LT_NONE, "\n");
+	}
 }
 
 #endif
