@@ -6,7 +6,7 @@
 
 
 #ifndef PIF_PULSE_DATA_SIZE
-#define PIF_PULSE_DATA_SIZE			8
+#define PIF_PULSE_DATA_SIZE			4
 #endif
 #define PIF_PULSE_DATA_MASK			(PIF_PULSE_DATA_SIZE - 1)
 
@@ -19,17 +19,9 @@
 
 typedef enum EnPifPulseEdge
 {
-    PE_UNKNOWN		= 0,
-    PE_FALLING		= 1,
-    PE_RISING		= 2
+    PE_FALLING		= 0,
+    PE_RISING		= 1
 } PifPulseEdge;
-
-
-typedef void (*PifEvtPulseEdge)(PifPulseEdge edge, void* p_issuer);
-
-
-struct StPifPulse;
-typedef struct StPifPulse PifPulse;
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -61,15 +53,15 @@ typedef struct
  */
 typedef struct StPifPulsData
 {
-	uint8_t edge;
-	uint32_t timer1us;
+	uint32_t rising;
+	uint32_t falling;
 } PifPulseData;
 
 /**
  * @struct StPifPulse
  * @brief Pulse를 관리하기 위한 구조체
  */
-struct StPifPulse
+typedef struct StPifPulse
 {
 	// Public Member Variable
 	volatile uint32_t rising_count;
@@ -83,24 +75,21 @@ struct StPifPulse
 	volatile uint32_t _high_level_1us;
 
 	// Private Member Variable
-	PifPulseEdge __trigger_edge;
 	PifPulseData __data[PIF_PULSE_DATA_SIZE];
 	uint8_t __ptr;
+	uint8_t __count;
 	struct {
 		BOOL check		: 1;
 		uint32_t min	: 31;
 		uint32_t max	: 32;
 	} __valid_range[3];
-	PifTask* __p_task;
-	void* __p_edge_issuer;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	PifPulseColSig* __p_colsig;
 #endif
 
 	// Private Event Function
-	PifEvtPulseEdge __evt_edge;
-};
+} PifPulse;
 
 
 #ifdef __cplusplus
@@ -167,12 +156,28 @@ BOOL pifPulse_SetInitValue(PifPulse* p_owner, uint8_t measure_mode, uint32_t val
 void pifPulse_ResetMeasureValue(PifPulse* p_owner);
 
 /**
+ * @fn pifPulse_GetPeriod
+ * @brief
+ * @param p_owner
+ * @return
+ */
+BOOL pifPulse_GetPeriod(PifPulse* p_owner);
+
+/**
  * @fn pifPulse_GetFrequency
  * @brief
  * @param p_owner
  * @return
  */
 double pifPulse_GetFrequency(PifPulse* p_owner);
+
+/**
+ * @fn pifPulse_GetLowLevelTime
+ * @brief
+ * @param p_owner
+ * @return
+ */
+BOOL pifPulse_GetLowLevelTime(PifPulse* p_owner);
 
 /**
  * @fn pifPulse_GetLowLevelDuty
@@ -183,6 +188,14 @@ double pifPulse_GetFrequency(PifPulse* p_owner);
 double pifPulse_GetLowLevelDuty(PifPulse* p_owner);
 
 /**
+ * @fn pifPulse_GetHighLevelTime
+ * @brief
+ * @param p_owner
+ * @return
+ */
+BOOL pifPulse_GetHighLevelTime(PifPulse* p_owner);
+
+/**
  * @fn pifPulse_GetHighLevelDuty
  * @brief
  * @param p_owner
@@ -191,32 +204,21 @@ double pifPulse_GetLowLevelDuty(PifPulse* p_owner);
 double pifPulse_GetHighLevelDuty(PifPulse* p_owner);
 
 /**
+ * @fn pifPulse_sigEdgeTime
+ * @brief
+ * @param p_owner
+ * @param edge
+ * @param time_us
+ */
+void pifPulse_sigEdgeTime(PifPulse* p_owner, PifPulseEdge edge, uint32_t time_us);
+
+/**
  * @fn pifPulse_sigEdge
  * @brief
  * @param p_owner
  * @param edge
  */
 void pifPulse_sigEdge(PifPulse* p_owner, PifPulseEdge edge);
-
-/**
- * @fn pifPulse_AttachEvtEdge
- * @brief
- * @param p_owner Pulse 포인터
- * @param evt_edge
- * @param p_issuer 이벤트 발생시 전달할 발행자
- */
-void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, void* p_issuer);
-
-/**
- * @fn pifPulse_AttachTask
- * @brief
- * @param p_owner Pulse 포인터
- * @param mode
- * @param period
- * @param start
- * @return
- */
-PifTask* pifPulse_AttachTask(PifPulse* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
