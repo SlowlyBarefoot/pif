@@ -29,8 +29,8 @@ typedef struct StPifI2cDevice PifI2cDevice;
 struct StPifI2cPort;
 typedef struct StPifI2cPort PifI2cPort;
 
-typedef PifI2cReturn (*PifActI2cRead)(PifI2cDevice* p_owner, uint16_t size);
-typedef PifI2cReturn (*PifActI2cWrite)(PifI2cDevice* p_owner, uint16_t size);
+typedef PifI2cReturn (*PifActI2cRead)(uint8_t addr, uint32_t iaddr, uint8_t isize, uint8_t* p_data, uint16_t size);
+typedef PifI2cReturn (*PifActI2cWrite)(uint8_t addr, uint32_t iaddr, uint8_t isize, uint8_t* p_data, uint16_t size);
 
 /**
  * @class StPifI2cDevice
@@ -40,8 +40,6 @@ struct StPifI2cDevice
 {
 	// Public Member Variable
     uint8_t addr;
-	uint8_t data_size;
-	uint8_t* p_data;
 
 	// Read-only Member Variable
 	volatile PifI2cState _state;
@@ -67,6 +65,7 @@ typedef struct StPifI2cPort
 
 	// Private Member Variable
     PifFixList __devices;
+    uint16_t __max_transfer_size;
     volatile PifI2cDevice* __use_device;
 } PifI2cPort;
 
@@ -80,10 +79,11 @@ extern "C" {
  * @brief
  * @param p_owner
  * @param id
- * @param size
+ * @param device_count
+ * @param max_transfer_size
  * @return
  */
-BOOL pifI2cPort_Init(PifI2cPort* p_owner, PifId id, uint8_t size);
+BOOL pifI2cPort_Init(PifI2cPort* p_owner, PifId id, uint8_t device_count, uint16_t max_transfer_size);
 
 /**
  * @fn pifI2cPort_Clear
@@ -96,10 +96,9 @@ void pifI2cPort_Clear(PifI2cPort* p_owner);
  * @fn pifI2cPort_AddDevice
  * @brief
  * @param p_owner
- * @param data_size
  * @return
  */
-PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, uint16_t data_size);
+PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner);
 
 /**
  * @fn pifI2cPort_RemoveDevice
@@ -124,19 +123,13 @@ void pifI2cPort_ScanAddress(PifI2cPort* p_owner);
  * @fn pifI2cDevice_Read
  * @brief
  * @param p_owner
+ * @param iaddr
+ * @param isize
+ * @param p_data
  * @param size
  * @return
  */
-BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint8_t size);
-
-/**
- * @fn pifI2cDevice_Write
- * @brief
- * @param p_owner
- * @param size
- * @return
- */
-BOOL pifI2cDevice_Write(PifI2cDevice* p_owner,  uint8_t size);
+BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
 
 /**
  * @fn pifI2cDevice_ReadRegByte
@@ -167,7 +160,7 @@ BOOL pifI2cDevice_ReadRegWord(PifI2cDevice* p_owner, uint8_t reg, uint16_t* p_da
  * @param size
  * @return
  */
-BOOL pifI2cDevice_ReadRegBytes(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_data, uint8_t size);
+BOOL pifI2cDevice_ReadRegBytes(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
 
 /**
  * @fn pifI2cDevice_ReadRegBit8
@@ -190,6 +183,18 @@ BOOL pifI2cDevice_ReadRegBit8(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegField
  * @return
  */
 BOOL pifI2cDevice_ReadRegBit16(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegField field, uint16_t* p_data);
+
+/**
+ * @fn pifI2cDevice_Write
+ * @brief
+ * @param p_owner
+ * @param iaddr
+ * @param isize
+ * @param p_data
+ * @param size
+ * @return
+ */
+BOOL pifI2cDevice_Write(PifI2cDevice* p_owner,  uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
 
 /**
  * @fn pifI2cDevice_WriteRegByte
@@ -220,7 +225,7 @@ BOOL pifI2cDevice_WriteRegWord(PifI2cDevice* p_owner, uint8_t reg, uint16_t data
  * @param size
  * @return
  */
-BOOL pifI2cDevice_WriteRegBytes(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_data, uint8_t size);
+BOOL pifI2cDevice_WriteRegBytes(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
 
 /**
  * @fn pifI2cDevice_WriteRegBit8

@@ -62,9 +62,11 @@ BOOL pifPulse_Init(PifPulse* p_owner, PifId id)
 #endif
     return TRUE;
 
+#ifdef __PIF_COLLECT_SIGNAL__
 fail:
 	pifPulse_Clear(p_owner);
     return FALSE;
+#endif
 }
 
 void pifPulse_Clear(PifPulse* p_owner)
@@ -83,6 +85,8 @@ void pifPulse_Clear(PifPulse* p_owner)
 		pifCollectSignal_Detach(CSF_PULSE);
 	}
 	p_owner->__p_colsig = NULL;
+#else
+	(void)p_owner;
 #endif
 }
 
@@ -267,6 +271,10 @@ void pifPulse_sigEdgeTime(PifPulse* p_owner, PifPulseEdge edge, uint32_t time_us
 	}
 	if (p_owner->__count < PIF_PMM_FALLING_COUNT) p_owner->__count++;
 
+	if (p_owner->__evt_edge) {
+		(*p_owner->__evt_edge)(edge, p_owner->__p_edge_issuer);
+	}
+
 #ifdef __PIF_COLLECT_SIGNAL__
 	if (p_owner->__p_colsig->flag & PL_CSF_STATE_BIT) {
 		pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[PL_CSF_STATE_IDX], edge);
@@ -282,6 +290,12 @@ void pifPulse_sigEdge(PifPulse* p_owner, PifPulseEdge edge)
 	else {
 		pifPulse_sigEdgeTime(p_owner, edge, pif_cumulative_timer1ms * 1000);
 	}
+}
+
+void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, void* p_issuer)
+{
+	p_owner->__evt_edge = evt_edge;
+	p_owner->__p_edge_issuer = p_issuer;
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__

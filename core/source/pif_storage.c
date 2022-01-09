@@ -21,8 +21,39 @@ static uint16_t _getNewDataNode(PifStorage* p_owner)
 	return node;
 }
 
-BOOL pifStorage_Init(PifStorage* p_owner, PifId id, PifActStorageRead act_read, PifActStorageWrite act_write, 
-		uint8_t min_data_info_count, uint16_t sector_size, uint32_t storage_volume)
+static BOOL _readData(PifStorage* p_owner, uint8_t* dst, uint32_t src, size_t size, uint16_t sector_size)
+{
+	uint32_t ptr, len;
+
+	ptr = 0;
+	while (size) {
+		len = size > sector_size ? sector_size : size;
+		if (!(*p_owner->__act_read)(dst + ptr, src + ptr, len, p_owner->__p_issuer)) return FALSE;
+
+		ptr += len;
+		size -= len;
+	}
+	return TRUE;
+}
+
+static BOOL _writeData(PifStorage* p_owner, uint32_t dst, uint8_t* src, size_t size)
+{
+	uint16_t sector_size = p_owner->_p_info->sector_size;
+	uint32_t ptr, len;
+
+	ptr = 0;
+	while (size) {
+		len = size > sector_size ? sector_size : size;
+		if (!(*p_owner->__act_write)(dst + ptr, src + ptr, len, p_owner->__p_issuer)) return FALSE;
+
+		ptr += len;
+		size -= len;
+	}
+	return TRUE;
+}
+
+BOOL pifStorage_Init(PifStorage* p_owner, PifId id, uint8_t min_data_info_count, uint16_t sector_size, uint32_t storage_volume,
+		PifActStorageRead act_read, PifActStorageWrite act_write, void* p_issuer)
 {
     PifStorageInfo* p_info;
 
@@ -53,8 +84,9 @@ BOOL pifStorage_Init(PifStorage* p_owner, PifId id, PifActStorageRead act_read, 
 
 	p_owner->__act_read = act_read;
 	p_owner->__act_write = act_write;
+	p_owner->__p_issuer = p_issuer;
 
-    if (!(*p_owner->__act_read)(p_owner->__p_info_buffer, 0, p_owner->__info_bytes)) {
+    if (!_readData(p_owner, p_owner->__p_info_buffer, 0, p_owner->__info_bytes, 16)) {
     	pif_error = E_ACCESS_FAILED;
     	goto fail;
     }
@@ -104,6 +136,7 @@ BOOL pifStorage_Format(PifStorage* p_owner)
 {
     PifStorageInfo* p_info = p_owner->_p_info;
     PifStorageDataInfo* p_data_info;
+    uint8_t ptr, remain, k, len, data[16];
 
     if (!p_owner) {
     	pif_error = E_INVALID_PARAM;
@@ -124,9 +157,27 @@ BOOL pifStorage_Format(PifStorage* p_owner)
 	p_data_info = &p_owner->__p_data_info[p_info->max_data_info_count - 1];
 	p_data_info->crc_16 = pifCrc16((uint8_t*)p_data_info, sizeof(PifStorageDataInfo) - 6);
 
-    if (!(*p_owner->__act_write)(0, p_owner->__p_info_buffer, p_owner->__info_bytes)) {
+    if (!_writeData(p_owner, 0, p_owner->__p_info_buffer, p_owner->__info_bytes)) {
     	pif_error = E_ACCESS_FAILED;
         return FALSE;
+    }
+
+    ptr = 0;
+    remain = p_owner->__info_bytes;
+    while (remain) {
+    	len = remain > 16 ? 16 : remain;
+        if (!(*p_owner->__act_read)(data, ptr, len, p_owner->__p_issuer)) {
+        	pif_error = E_ACCESS_FAILED;
+            return FALSE;
+        }
+        for (k = 0; k < len; k++) {
+        	if (p_owner->__p_info_buffer[ptr + k] != data[k]) {
+            	pif_error = E_IS_NOT_FORMATED;
+        		return FALSE;
+        	}
+        }
+        ptr += len;
+        remain -= len;
     }
 
     p_owner->_is_format = TRUE;
@@ -152,10 +203,14 @@ PifStorageDataInfo* pifStorage_Alloc(PifStorage* p_owner, uint16_t id, uint16_t 
 	}
 
 	if (p_info->first_node == DATA_NODE_NULL) {
+		if (sectors > p_owner->_p_info->max_sector_count) {
+			pif_error = E_OVERFLOW_BUFFER;
+			return NULL;
+		}
+
 		last = p_owner->__info_sectors;
 
 		new_node = _getNewDataNode(p_owner);
-		if (new_node == DATA_NODE_NULL) return NULL;
 
 		p_new_data = &p_owner->__p_data_info[new_node];
 		p_new_data->next_node = p_info->first_node;
@@ -224,7 +279,7 @@ save:
 	p_new_data->first_sector = last;
 	p_new_data->crc_16 = pifCrc16((uint8_t*)p_new_data, sizeof(PifStorageDataInfo) - 6);
 
-    if (!(*p_owner->__act_write)(0, p_owner->__p_info_buffer, p_owner->__info_bytes)) {
+    if (!_writeData(p_owner, 0, p_owner->__p_info_buffer, p_owner->__info_bytes)) {
     	pif_error = E_ACCESS_FAILED;
         return NULL;
     }
@@ -261,7 +316,7 @@ BOOL pifStorage_Free(PifStorage* p_owner, uint16_t id)
 			p_data_info->crc_16 = pifCrc16((uint8_t*)p_data_info, sizeof(PifStorageDataInfo) - 6);
 			p_info->free_node = node;
 
-			if (!(*p_owner->__act_write)(0, p_owner->__p_info_buffer, p_owner->__info_bytes)) {
+			if (!_writeData(p_owner, 0, p_owner->__p_info_buffer, p_owner->__info_bytes)) {
 		    	pif_error = E_ACCESS_FAILED;
 				return FALSE;
 			}
@@ -300,40 +355,25 @@ PifStorageDataInfo* pifStorage_GetDataInfo(PifStorage* p_owner, uint16_t id)
 	return NULL;
 }
 
-BOOL pifStorage_Write(PifStorage* p_owner, PifStorageDataInfo* p_data_info, uint8_t* p_data)
-{
-	uint16_t i, sector_size = p_owner->_p_info->sector_size;
-
-	if (!p_owner->_is_format) {
-		pif_error = E_IS_NOT_FORMATED;
-		return FALSE;
-	}
-
-	for (i = 0; i < (p_data_info->size + sector_size - 1) / sector_size; i++) {
-		if (!(*p_owner->__act_write)((p_data_info->first_sector + i) * sector_size, p_data + i * sector_size, p_data_info->size)) {
-	    	pif_error = E_ACCESS_FAILED;
-			return FALSE;
-		}
-	}
-	return TRUE;
-}
-
 BOOL pifStorage_Read(PifStorage* p_owner, PifStorageDataInfo* p_data_info, uint8_t* p_data)
 {
-	uint16_t i, sector_size = p_owner->_p_info->sector_size;
-
 	if (!p_owner->_is_format) {
 		pif_error = E_IS_NOT_FORMATED;
 		return FALSE;
 	}
 
-	for (i = 0; i < (p_data_info->size + sector_size - 1) / sector_size; i++) {
-		if (!(*p_owner->__act_read)(p_data + i * sector_size, (p_data_info->first_sector + i) * sector_size, p_data_info->size)) {
-	    	pif_error = E_ACCESS_FAILED;
-			return FALSE;
-		}
+	return _readData(p_owner, p_data, p_data_info->first_sector * p_owner->_p_info->sector_size, p_data_info->size,
+			p_owner->_p_info->sector_size);
+}
+
+BOOL pifStorage_Write(PifStorage* p_owner, PifStorageDataInfo* p_data_info, uint8_t* p_data)
+{
+	if (!p_owner->_is_format) {
+		pif_error = E_IS_NOT_FORMATED;
+		return FALSE;
 	}
-	return TRUE;
+
+	return _writeData(p_owner, p_data_info->first_sector * p_owner->_p_info->sector_size, p_data, p_data_info->size);
 }
 
 #if defined(__PIF_DEBUG__) && !defined(__PIF_NO_LOG__)
@@ -353,7 +393,8 @@ void pifStorage_PrintInfo(PifStorage* p_owner, BOOL human)
 
 		for (i = 0; i < p_owner->_p_info->max_data_info_count; i++) {
 			if (p_owner->__p_data_info[i].id < 0xFF) {
-				pifLog_Printf(LT_NONE, "\n Id: %2Xh Size: %u", p_owner->__p_data_info[i].id, p_owner->__p_data_info[i].size);
+				pifLog_Printf(LT_NONE, "\n Id: %2d Size: %u FS: %d", p_owner->__p_data_info[i].id,
+						p_owner->__p_data_info[i].size, p_owner->__p_data_info[i].first_sector);
 			}
 		}
 	}
@@ -370,6 +411,23 @@ void pifStorage_PrintInfo(PifStorage* p_owner, BOOL human)
 			}
 		}
 		pifLog_Printf(LT_NONE, "\n");
+	}
+}
+
+void pifStorage_Dump(PifStorage* p_owner, uint32_t pos, uint32_t length)
+{
+	uint32_t i;
+	uint8_t b, data[16];
+
+	for (i = 0; i < length;) {
+		if (!(*p_owner->__act_read)(data, pos + i, 16, p_owner->__p_issuer)) {
+	    	pif_error = E_ACCESS_FAILED;
+			return;
+		}
+		pifLog_Printf(LT_NONE, "\n%08X: ", pos + i);
+		for (b = 0; b < 16; b++, i++) {
+			pifLog_Printf(LT_NONE, "%02X ", data[b]);
+		}
 	}
 }
 

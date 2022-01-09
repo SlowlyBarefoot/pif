@@ -24,6 +24,13 @@ typedef enum EnPifPulseEdge
 } PifPulseEdge;
 
 
+typedef void (*PifEvtPulseEdge)(PifPulseEdge edge, void* p_issuer);
+
+
+struct StPifPulse;
+typedef struct StPifPulse PifPulse;
+
+
 #ifdef __PIF_COLLECT_SIGNAL__
 
 typedef enum EnPifGpioCsFlag
@@ -61,7 +68,7 @@ typedef struct StPifPulsData
  * @struct StPifPulse
  * @brief Pulse를 관리하기 위한 구조체
  */
-typedef struct StPifPulse
+struct StPifPulse
 {
 	// Public Member Variable
 	volatile uint32_t rising_count;
@@ -83,13 +90,15 @@ typedef struct StPifPulse
 		uint32_t min	: 31;
 		uint32_t max	: 32;
 	} __valid_range[3];
+	void* __p_edge_issuer;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	PifPulseColSig* __p_colsig;
 #endif
 
 	// Private Event Function
-} PifPulse;
+	PifEvtPulseEdge __evt_edge;
+};
 
 
 #ifdef __cplusplus
@@ -219,6 +228,15 @@ void pifPulse_sigEdgeTime(PifPulse* p_owner, PifPulseEdge edge, uint32_t time_us
  * @param edge
  */
 void pifPulse_sigEdge(PifPulse* p_owner, PifPulseEdge edge);
+
+/**
+ * @fn pifPulse_AttachEvtEdge
+ * @brief
+ * @param p_owner Pulse 포인터
+ * @param evt_edge
+ * @param p_issuer 이벤트 발생시 전달할 발행자
+ */
+void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, void* p_issuer);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 

@@ -66,7 +66,7 @@ BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cP
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, 4);
+	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port);
     if (!p_owner->_p_i2c) return FALSE;
 
     p_owner->_p_i2c->addr = addr;

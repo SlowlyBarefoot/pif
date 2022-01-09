@@ -246,7 +246,7 @@ BOOL pifDutyMotorPos_Init(PifDutyMotorPos* p_owner, PifId id, PifTimerManager* p
 #else
     pifPulse_SetMeasureMode(p_encoder, PIF_PMM_FALLING_COUNT);
 #endif
-    pifTimer_AttachEvtEdge(p_encoder, _evtPulseEdge, p_owner);
+    pifPulse_AttachEvtEdge(p_encoder, _evtPulseEdge, p_owner);
     return TRUE;
 
 fail:

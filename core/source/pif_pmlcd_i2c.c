@@ -53,8 +53,8 @@
 
 static BOOL _expanderWrite(PifPmlcdI2c* p_owner, uint8_t data)
 {
-	p_owner->_p_i2c->p_data[0] = data | p_owner->__backlight_val;
-	return pifI2cDevice_Write(p_owner->_p_i2c, 1);
+	uint8_t tmp = data | p_owner->__backlight_val;
+	return pifI2cDevice_Write(p_owner->_p_i2c, 0, 0, &tmp, 1);
 }
 
 static BOOL _pulseEnable(PifPmlcdI2c* p_owner, uint8_t data)
@@ -98,7 +98,7 @@ BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, 2);
+	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port);
     if (!p_owner->_p_i2c) goto fail;
 
     p_owner->_p_i2c->addr = addr;
@@ -114,10 +114,6 @@ fail:
 void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner)
 {
 	if (p_owner->_p_i2c) {
-		if (p_owner->_p_i2c->p_data) {
-			free(p_owner->_p_i2c->p_data);
-			p_owner->_p_i2c->p_data = NULL;
-		}
 		pifI2cPort_RemoveDevice(p_owner->_p_i2c->__p_port, p_owner->_p_i2c);
 	}
 }
