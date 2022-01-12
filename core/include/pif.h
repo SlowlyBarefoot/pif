@@ -214,6 +214,8 @@ typedef struct StPifPerformance
 
 typedef uint32_t (*PifActTimer1us)();
 
+typedef SWITCH (*PifActGpioRead)(uint16_t port);
+typedef void (*PifActGpioWrite)(uint16_t port, SWITCH state);
 
 extern PifError pif_error;
 
@@ -229,6 +231,9 @@ extern PifPerformance pif_performance;
 extern PifId pif_id;
 
 extern PifActTimer1us pif_act_timer1us;
+
+extern PifActGpioRead pif_act_gpio_read;
+extern PifActGpioWrite pif_act_gpio_write;
 
 extern const char* kPifMonth3[12];
 

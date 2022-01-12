@@ -30,6 +30,9 @@ PifId pif_id = 1;
 
 PifActTimer1us pif_act_timer1us = NULL;
 
+PifActGpioRead pif_act_gpio_read = NULL;
+PifActGpioWrite pif_act_gpio_write = NULL;
+
 const char* kPifMonth3[12] = { "Jan", "Fab", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
 const char* kPifHexUpperChar = "0123456789ABCDEF";
