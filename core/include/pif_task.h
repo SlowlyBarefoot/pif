@@ -87,8 +87,9 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period);
  * @brief Task의 주기를 변경한다.
  * @param p_owner Task 자신
  * @param period Task 주기 (ms, us)
+ * @return 성공 여부를 반환한다.
  */
-void pifTask_ChangePeriod(PifTask* p_owner, uint16_t period);
+BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period);
 
 /**
  * @fn pifTask_DelayMs

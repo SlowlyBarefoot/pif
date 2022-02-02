@@ -211,7 +211,7 @@ BOOL pifCollectSignal_SetTransferPeriod(uint16_t period1ms)
 	}
 
 	s_collect_signal.transfer_period_1ms = period1ms;
-   	pifTask_SetPeriod(s_collect_signal.p_task, s_collect_signal.transfer_period_1ms);
+   	pifTask_ChangePeriod(s_collect_signal.p_task, s_collect_signal.transfer_period_1ms);
 	return TRUE;
 }
 

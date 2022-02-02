@@ -256,7 +256,7 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period)
     return TRUE;
 }
 
-void pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
+BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
 {
 	switch (p_owner->_mode) {
 	case TM_PERIOD_MS:
@@ -265,11 +265,10 @@ void pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
 		break;
 
 	default:
-#ifndef __PIF_NO_LOG__
-		pifLog_Printf(LT_WARN, "Task:ChangePeriod(P:%u)", period);
-#endif
-		break;
+		pif_error = E_CANNOT_USE;
+		return FALSE;
 	}
+	return TRUE;
 }
 
 void pifTask_DelayMs(PifTask* p_owner, uint16_t delay)

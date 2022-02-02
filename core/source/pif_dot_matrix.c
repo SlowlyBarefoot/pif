@@ -269,10 +269,10 @@ BOOL pifDotMatrix_SetPeriodPerRow(PifDotMatrix* p_owner, uint16_t period1ms)
 
 	p_owner->__period_per_row_1ms = period1ms;
     if (pif_act_timer1us) {
-    	pifTask_SetPeriod(p_owner->__p_task, p_owner->__period_per_row_1ms * 1000L / p_owner->__row_size);
+    	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__period_per_row_1ms * 1000L / p_owner->__row_size);
     }
     else {
-    	pifTask_SetPeriod(p_owner->__p_task, p_owner->__period_per_row_1ms / p_owner->__row_size);
+    	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__period_per_row_1ms / p_owner->__row_size);
     }
 	return TRUE;
 }

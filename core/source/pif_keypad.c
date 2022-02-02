@@ -195,7 +195,7 @@ BOOL pifKeypad_SetControlPeriod(PifKeypad* p_owner, uint16_t period1ms)
 	}
 
 	p_owner->__control_period_1ms = period1ms;
-   	pifTask_SetPeriod(p_owner->__p_task, p_owner->__control_period_1ms);
+   	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__control_period_1ms);
 	return TRUE;
 }
 

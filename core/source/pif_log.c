@@ -426,7 +426,7 @@ BOOL pifLog_SetCmdParsingPeriod(uint16_t period1ms)
 
 	s_log.cmd_parsing_period_1ms = period1ms;
 
-   	pifTask_SetPeriod(s_log.p_task, s_log.cmd_parsing_period_1ms);
+   	pifTask_ChangePeriod(s_log.p_task, s_log.cmd_parsing_period_1ms);
 	return TRUE;
 }
 

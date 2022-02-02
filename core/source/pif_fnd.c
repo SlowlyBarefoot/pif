@@ -126,10 +126,10 @@ BOOL pifFnd_SetPeriodPerDigit(PifFnd* p_owner, uint16_t period1ms)
 
 	p_owner->__period_per_digit_1ms = period1ms;
     if (pif_act_timer1us) {
-    	pifTask_SetPeriod(p_owner->__p_task, p_owner->__period_per_digit_1ms * 1000L / p_owner->_digit_size);
+    	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__period_per_digit_1ms * 1000L / p_owner->_digit_size);
     }
     else {
-    	pifTask_SetPeriod(p_owner->__p_task, p_owner->__period_per_digit_1ms / p_owner->_digit_size);
+    	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__period_per_digit_1ms / p_owner->_digit_size);
     }
 	return TRUE;
 }
