@@ -73,12 +73,22 @@ extern "C" {
 void pifTask_Init(PifTask* p_owner);
 
 /**
- * @fn pifTask_SetPeriod
- * @brief Task의 주기를 설정한다.
+ * @fn pifTask_ChangeMode
+ * @brief Task의 Mode를 변경한다.
+ * @param p_owner Task 자신
+ * @param mode Task의 Mode를 설정한다.
+ * @param period Task 주기 (ms, us)
+ * @return 성공 여부를 반환한다.
+ */
+BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period);
+
+/**
+ * @fn pifTask_ChangePeriod
+ * @brief Task의 주기를 변경한다.
  * @param p_owner Task 자신
  * @param period Task 주기 (ms, us)
  */
-void pifTask_SetPeriod(PifTask* p_owner, uint16_t period);
+void pifTask_ChangePeriod(PifTask* p_owner, uint16_t period);
 
 /**
  * @fn pifTask_DelayMs
@@ -169,6 +179,12 @@ void pifTaskManager_YieldPeriod(PifTask* p_owner);
  * @brief Task 할당 정보를 출력한다.
  */
 void pifTaskManager_Print();
+
+/**
+ * @fn pifTaskManager_PrintRatioTable
+ * @brief Task의 Ratio Table을 출력한다.
+ */
+void pifTaskManager_PrintRatioTable();
 
 #endif
 

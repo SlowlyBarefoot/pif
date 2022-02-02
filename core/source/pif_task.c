@@ -25,6 +25,53 @@ static uint32_t s_table[PIF_TASK_TABLE_SIZE];
 static uint8_t s_number = 0;
 
 
+static int _setTable(uint16_t period, PifTaskMode* p_mode)
+{
+	uint32_t count, gap, index, bit;
+	static int base = 0;
+	int i, num = -1;
+
+	for (i = 0; i < PIF_TASK_TABLE_SIZE; i++) {
+		if (!(s_table_number & (1 << i))) {
+			num = i;
+			break;
+		}
+	}
+	if (num == -1) {
+		pif_error = E_OVERFLOW_BUFFER;
+		return -1;
+	}
+	bit = 1 << num;
+	s_table_number |= bit;
+
+	count = PIF_TASK_TABLE_SIZE * period;
+	gap = 10000L * PIF_TASK_TABLE_SIZE / count;
+	if (gap > 100) {
+		index = 100 * base;
+		for (uint16_t i = 0; i < count / 100; i++) {
+			s_table[(index / 100) & PIF_TASK_TABLE_MASK] |= bit;
+			index += gap;
+		}
+		base++;
+	}
+	else {
+		*p_mode = TM_ALWAYS;
+	}
+	return num;
+}
+
+static void _resetTable(int number)
+{
+	int i;
+	uint32_t mask;
+
+	mask = ~((uint32_t)1 << number);
+	for (i = 0; i < PIF_TASK_TABLE_SIZE; i++) {
+		s_table[i] &= mask;
+	}
+	s_table_number &= mask;
+}
+
 static void _processing(PifTask* p_owner, BOOL ratio)
 {
 	uint16_t period;
@@ -134,7 +181,82 @@ void pifTask_Init(PifTask* p_owner)
     p_owner->_id = pif_id;
 }
 
-void pifTask_SetPeriod(PifTask* p_owner, uint16_t period)
+BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period)
+{
+	int num = -1;
+
+	switch (mode) {
+    case TM_RATIO:
+    	if (!period || period > 100) {
+    		pif_error = E_INVALID_PARAM;
+		    return FALSE;
+    	}
+    	break;
+
+    case TM_ALWAYS:
+    	break;
+
+    case TM_PERIOD_MS:
+    case TM_CHANGE_MS:
+    	if (!period) {
+    		pif_error = E_INVALID_PARAM;
+		    return FALSE;
+    	}
+    	break;
+
+    case TM_PERIOD_US:
+    case TM_CHANGE_US:
+    	if (!period) {
+    		pif_error = E_INVALID_PARAM;
+		    return FALSE;
+    	}
+
+    	if (!pif_act_timer1us) {
+    		pif_error = E_CANNOT_USE;
+		    return FALSE;
+        }
+    	break;
+    }
+
+	switch (p_owner->_mode) {
+	case TM_RATIO:
+	case TM_ALWAYS:
+		_resetTable(p_owner->__table_number);
+		break;
+
+	default:
+		break;
+	}
+
+    switch (mode) {
+    case TM_RATIO:
+    	num = _setTable(period, &mode);
+    	if (num == -1) return FALSE;
+    	if (mode == TM_ALWAYS) period = 100;
+    	p_owner->__table_number = num;
+    	break;
+
+    case TM_ALWAYS:
+    	period = 100;
+    	break;
+
+    case TM_PERIOD_MS:
+    case TM_CHANGE_MS:
+    	p_owner->__pretime = 1000L * pif_timer1sec + pif_timer1ms;
+    	break;
+
+    case TM_PERIOD_US:
+    case TM_CHANGE_US:
+    	p_owner->__pretime = (*pif_act_timer1us)();
+    	break;
+    }
+
+    p_owner->_mode = mode;
+    p_owner->_period = period;
+    return TRUE;
+}
+
+void pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
 {
 	switch (p_owner->_mode) {
 	case TM_PERIOD_MS:
@@ -182,9 +304,7 @@ void pifTaskManager_Clear()
 
 PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start)
 {
-	uint32_t count, gap, index, bit;
-	static int base = 0;
-	int i, num = -1;
+	int num = -1;
 
 	if (!evt_loop) {
         pif_error = E_INVALID_PARAM;
@@ -224,52 +344,19 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
     	break;
     }
 
-    switch (mode) {
-    case TM_RATIO:
-    	for (i = 0; i < PIF_TASK_TABLE_SIZE; i++) {
-    		if (!(s_table_number & (1 << i))) {
-    			num = i;
-    			break;
-    		}
-    	}
-    	if (i >= PIF_TASK_TABLE_SIZE) {
-    		pif_error = E_OVERFLOW_BUFFER;
-		    return NULL;
-    	}
-    	bit = 1 << num;
-    	s_table_number |= bit;
-
-		count = (PIF_TASK_TABLE_SIZE - 1) * period + 100;
-		gap = 10000L * PIF_TASK_TABLE_SIZE / count;
-		if (gap > 100) {
-			index = 100 * base;
-			for (uint16_t i = 0; i < count / 100; i++) {
-				s_table[(index / 100) & PIF_TASK_TABLE_MASK] |= bit;
-				index += gap;
-			}
-			base++;
-		}
-		else {
-			mode = TM_ALWAYS;
-			period = 100;
-		}
-    	break;
-
-    case TM_ALWAYS:
-    	mode = TM_ALWAYS;
-    	period = 100;
-    	break;
-
-    default:
-    	break;
-    }
-
 	PifTask* p_owner = (PifTask*)pifFixList_AddFirst(&s_tasks);
 	if (!p_owner) return NULL;
 
     switch (mode) {
     case TM_RATIO:
+    	num = _setTable(period, &mode);
+    	if (num == -1) goto fail;
+    	if (mode == TM_ALWAYS) period = 100;
     	p_owner->__table_number = num;
+    	break;
+
+    case TM_ALWAYS:
+    	period = 100;
     	break;
 
     case TM_PERIOD_MS:
@@ -285,27 +372,27 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
     default:
     	break;
     }
+
     p_owner->_mode = mode;
     p_owner->_period = period;
     p_owner->__evt_loop = evt_loop;
     p_owner->_p_client = p_client;
     p_owner->pause = !start;
     return p_owner;
+
+fail:
+	if (p_owner) {
+		pifFixList_Remove(&s_tasks, p_owner);
+	}
+	return NULL;
 }
 
 void pifTaskManager_Remove(PifTask* p_task)
 {
-	int i;
-	uint32_t mask;
-
 	switch (p_task->_mode) {
 	case TM_RATIO:
 	case TM_ALWAYS:
-		mask = ~((uint32_t)1 << p_task->__table_number);
-		for (i = 0; i < PIF_TASK_TABLE_SIZE; i++) {
-			s_table[i] &= mask;
-		}
-		s_table_number &= mask;
+		_resetTable(p_task->__table_number);
 		break;
 
 	default:
@@ -458,6 +545,16 @@ void pifTaskManager_Print()
 #endif
 		}
 		it = pifFixList_Next(it);
+	}
+}
+
+void pifTaskManager_PrintRatioTable()
+{
+	int i;
+
+	pifLog_Printf(LT_INFO, "Task Ratio Table Size=%d", PIF_TASK_TABLE_SIZE);
+	for (i = 0; i < PIF_TASK_TABLE_SIZE; i++) {
+		pifLog_Printf(LT_NONE, "\n %3d : %8lX", i, s_table[i]);
 	}
 }
 
