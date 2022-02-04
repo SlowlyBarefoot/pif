@@ -5,16 +5,14 @@
 #include "pif_task.h"
 
 
-#ifndef PIF_PULSE_DATA_SIZE
 #define PIF_PULSE_DATA_SIZE			4
-#endif
-#define PIF_PULSE_DATA_MASK			(PIF_PULSE_DATA_SIZE - 1)
 
 #define PIF_PMM_PERIOD				0x01
-#define PIF_PMM_LOW_LEVEL_TIME		0x02
-#define PIF_PMM_HIGH_LEVEL_TIME		0x04
-#define PIF_PMM_RISING_COUNT		0x08
-#define PIF_PMM_FALLING_COUNT		0x10
+#define PIF_PMM_LOW_WIDTH			0x02
+#define PIF_PMM_HIGH_WIDTH			0x04
+#define PIF_PMM_POSITION			0x08
+#define PIF_PMM_RISING_COUNT		0x10
+#define PIF_PMM_FALLING_COUNT		0x20
 
 
 typedef enum EnPifPulseEdge
@@ -77,20 +75,21 @@ struct StPifPulse
 	// Read-only Member Variable
 	PifId _id;
 	uint8_t	_measure_mode;		// PIF_PMM_XXX
-	volatile uint32_t _period_1us;
-	volatile uint32_t _low_level_1us;
-	volatile uint32_t _high_level_1us;
 
 	// Private Member Variable
-	PifPulseData __data[PIF_PULSE_DATA_SIZE];
+	PifPulseData* __p_data;
+	uint8_t __data_size;
+	uint8_t __data_mask;
 	uint8_t __ptr;
 	uint8_t __count;
 	struct {
 		BOOL check		: 1;
 		uint32_t min	: 31;
 		uint32_t max	: 32;
-	} __valid_range[3];
+	} __valid_range[4];
 	void* __p_edge_issuer;
+	uint8_t __channels;
+	uint16_t __threshold_1us;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	PifPulseColSig* __p_colsig;
@@ -137,6 +136,16 @@ void pifPulse_SetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
 void pifPulse_ResetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
 
 /**
+ * @fn pifPulse_SetPositionModulation
+ * @brief
+ * @param p_owner
+ * @param channels
+ * @param threshold_1us
+ * @return
+ */
+BOOL pifPulse_SetPositionModulation(PifPulse* p_owner, uint8_t channels, uint16_t threshold_1us);
+
+/**
  * @fn pifPulse_SetValidRange
  * @brief
  * @param p_owner
@@ -146,16 +155,6 @@ void pifPulse_ResetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
  * @return
  */
 BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint32_t min, uint32_t max);
-
-/**
- * @fn pifPulse_SetInitValue
- * @brief
- * @param p_owner
- * @param measure_mode
- * @param value
- * @return
- */
-BOOL pifPulse_SetInitValue(PifPulse* p_owner, uint8_t measure_mode, uint32_t value);
 
 /**
  * @fn pifPulse_ResetMeasureValue
@@ -170,47 +169,32 @@ void pifPulse_ResetMeasureValue(PifPulse* p_owner);
  * @param p_owner
  * @return
  */
-BOOL pifPulse_GetPeriod(PifPulse* p_owner);
+uint16_t pifPulse_GetPeriod(PifPulse* p_owner);
 
 /**
- * @fn pifPulse_GetFrequency
+ * @fn pifPulse_GetLowWidth
  * @brief
  * @param p_owner
  * @return
  */
-double pifPulse_GetFrequency(PifPulse* p_owner);
+uint16_t pifPulse_GetLowWidth(PifPulse* p_owner);
 
 /**
- * @fn pifPulse_GetLowLevelTime
+ * @fn pifPulse_GetHighWidth
  * @brief
  * @param p_owner
  * @return
  */
-BOOL pifPulse_GetLowLevelTime(PifPulse* p_owner);
+uint16_t pifPulse_GetHighWidth(PifPulse* p_owner);
 
 /**
- * @fn pifPulse_GetLowLevelDuty
+ * @fn pifPulse_GetPositionModulation
  * @brief
  * @param p_owner
+ * @param p_value
  * @return
  */
-double pifPulse_GetLowLevelDuty(PifPulse* p_owner);
-
-/**
- * @fn pifPulse_GetHighLevelTime
- * @brief
- * @param p_owner
- * @return
- */
-BOOL pifPulse_GetHighLevelTime(PifPulse* p_owner);
-
-/**
- * @fn pifPulse_GetHighLevelDuty
- * @brief
- * @param p_owner
- * @return
- */
-double pifPulse_GetHighLevelDuty(PifPulse* p_owner);
+BOOL pifPulse_GetPositionModulation(PifPulse* p_owner, uint16_t* p_value);
 
 /**
  * @fn pifPulse_sigEdgeTime

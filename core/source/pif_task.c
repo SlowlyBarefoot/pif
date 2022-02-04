@@ -72,7 +72,7 @@ static void _resetTable(int number)
 	s_table_number &= mask;
 }
 
-static void _processing(PifTask* p_owner, BOOL ratio)
+static void _processing(PifTask* p_owner)
 {
 	uint16_t period;
 	uint32_t time, gap;
@@ -155,7 +155,7 @@ static void _processing(PifTask* p_owner, BOOL ratio)
 				p_owner->__delay_ms = 0;
 			}
 		}
-		else if (ratio) {
+		else if (s_table[s_number] & (1 << p_owner->__table_number)) {
 #ifdef __PIF_DEBUG__
 			time = pif_timer1sec;
 			if (time != pretime) {
@@ -419,7 +419,7 @@ void pifTaskManager_Loop()
 
 		s_it_current = it;
 		PifTask* p_owner = (PifTask*)it->data;
-		_processing(p_owner, s_table[s_number] & (1 << p_owner->__table_number));
+		_processing(p_owner);
 #ifdef __PIF_DEBUG__
 	    if (pif_act_task_loop) (*pif_act_task_loop)();
 #endif
@@ -453,7 +453,7 @@ void pifTaskManager_Yield()
 
 	PifTask* p_owner = (PifTask*)s_it_current->data;
 	if (!p_owner->__running) {
-		_processing(p_owner, s_table[s_number] & (1 << p_owner->__table_number));
+		_processing(p_owner);
 
 #ifdef __PIF_DEBUG__
 		if (pif_act_task_yield) (*pif_act_task_yield)();

@@ -48,6 +48,14 @@ BOOL pifPulse_Init(PifPulse* p_owner, PifId id)
 
 	memset(p_owner, 0, sizeof(PifPulse));
 
+	p_owner->__p_data = calloc(sizeof(PifPulseData), PIF_PULSE_DATA_SIZE);
+    if (!p_owner->__p_data) {
+        pif_error = E_OUT_OF_HEAP;
+		goto fail;
+    }
+    p_owner->__data_size = PIF_PULSE_DATA_SIZE;
+    p_owner->__data_mask = PIF_PULSE_DATA_SIZE - 1;
+
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
 
@@ -62,11 +70,9 @@ BOOL pifPulse_Init(PifPulse* p_owner, PifId id)
 #endif
     return TRUE;
 
-#ifdef __PIF_COLLECT_SIGNAL__
 fail:
 	pifPulse_Clear(p_owner);
     return FALSE;
-#endif
 }
 
 void pifPulse_Clear(PifPulse* p_owner)
@@ -85,9 +91,11 @@ void pifPulse_Clear(PifPulse* p_owner)
 		pifCollectSignal_Detach(CSF_PULSE);
 	}
 	p_owner->__p_colsig = NULL;
-#else
-	(void)p_owner;
 #endif
+	if (p_owner->__p_data) {
+		free(p_owner->__p_data);
+		p_owner->__p_data = NULL;
+	}
 }
 
 void pifPulse_SetMeasureMode(PifPulse* p_owner, uint8_t measure_mode)
@@ -100,6 +108,31 @@ void pifPulse_ResetMeasureMode(PifPulse* p_owner, uint8_t measure_mode)
 	p_owner->_measure_mode &= ~measure_mode;
 }
 
+BOOL pifPulse_SetPositionModulation(PifPulse* p_owner, uint8_t channels, uint16_t threshold_1us)
+{
+	uint8_t size;
+	PifPulseData* p_tmp;
+
+	size = PIF_PULSE_DATA_SIZE;
+	while (size < PIF_PULSE_DATA_SIZE + channels) {
+		size <<= 1;
+	}
+	p_tmp = calloc(sizeof(PifPulseData), size);
+    if (!p_tmp) {
+        pif_error = E_OUT_OF_HEAP;
+        return FALSE;
+    }
+
+    free(p_owner->__p_data);
+    p_owner->__p_data = p_tmp;
+    p_owner->__data_size = size;
+    p_owner->__data_mask = size - 1;
+    p_owner->__channels = channels;
+    p_owner->__threshold_1us = threshold_1us;
+    p_owner->_measure_mode |= PIF_PMM_POSITION;
+    return TRUE;
+}
+
 BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint32_t min, uint32_t max)
 {
 	int index = -1;
@@ -109,12 +142,16 @@ BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint32_t mi
 		index = 0;
 		break;
 
-	case PIF_PMM_LOW_LEVEL_TIME:
+	case PIF_PMM_LOW_WIDTH:
 		index = 1;
 		break;
 
-	case PIF_PMM_HIGH_LEVEL_TIME:
+	case PIF_PMM_HIGH_WIDTH:
 		index = 2;
+		break;
+
+	case PIF_PMM_POSITION:
+		index = 3;
 		break;
 	}
 	if (index < 0) {
@@ -127,149 +164,121 @@ BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint32_t mi
 	return TRUE;
 }
 
-BOOL pifPulse_SetInitValue(PifPulse* p_owner, uint8_t measure_mode, uint32_t value)
-{
-	switch (measure_mode) {
-	case PIF_PMM_PERIOD:
-		p_owner->_period_1us = value;
-		break;
-
-	case PIF_PMM_LOW_LEVEL_TIME:
-		p_owner->_low_level_1us = value;
-		break;
-
-	case PIF_PMM_HIGH_LEVEL_TIME:
-		p_owner->_high_level_1us = value;
-		break;
-
-	default:
-		pif_error = E_INVALID_PARAM;
-		return FALSE;
-	}
-	return TRUE;
-}
-
 void pifPulse_ResetMeasureValue(PifPulse* p_owner)
 {
 	p_owner->rising_count = 0UL;
 	p_owner->falling_count = 0UL;
-	p_owner->_period_1us = 0UL;
-	p_owner->_low_level_1us = 0UL;
-	p_owner->_high_level_1us = 0UL;
 
-	memset(p_owner->__data, 0, sizeof(p_owner->__data));
+	memset(p_owner->__p_data, 0, sizeof(PifPulseData) * p_owner->__data_size);
 	p_owner->__ptr = 0;
 	p_owner->__count = 0;
 }
 
-BOOL pifPulse_GetPeriod(PifPulse* p_owner)
+uint16_t pifPulse_GetPeriod(PifPulse* p_owner)
 {
 	uint8_t curr, prev;
-	uint32_t value;
+	uint16_t value = 0;
 
-	if (p_owner->__count < PIF_PMM_FALLING_COUNT) return FALSE;
+	if (p_owner->__count < p_owner->__data_size) return 0;
 
-	curr = (p_owner->__ptr + PIF_PULSE_DATA_MASK) & PIF_PULSE_DATA_MASK;
-	prev = (curr + PIF_PULSE_DATA_MASK) & PIF_PULSE_DATA_MASK;
-	value = p_owner->__data[curr].falling - p_owner->__data[prev].falling;
+	curr = (p_owner->__ptr + p_owner->__data_mask) & p_owner->__data_mask;
+	prev = (curr + p_owner->__data_mask) & p_owner->__data_mask;
+	value = p_owner->__p_data[curr].falling - p_owner->__p_data[prev].falling;
 	if (p_owner->__valid_range[0].check) {
 		if (value >= p_owner->__valid_range[0].min && value <= p_owner->__valid_range[0].max) {
-			p_owner->_period_1us = value;
-			return TRUE;
+			return value;
 		}
 	}
-	else {
-		p_owner->_period_1us = value;
-		return TRUE;
-	}
-	return FALSE;
+	return value;
 }
 
-double pifPulse_GetFrequency(PifPulse* p_owner)
-{
-	if ((p_owner->_measure_mode & PIF_PMM_PERIOD) && p_owner->_period_1us) {
-		return 1000000.0 / p_owner->_period_1us;
-	}
-	return 0;
-}
-
-BOOL pifPulse_GetLowLevelTime(PifPulse* p_owner)
+uint16_t pifPulse_GetLowWidth(PifPulse* p_owner)
 {
 	uint8_t curr, prev;
-	uint32_t value;
+	uint16_t value = 0;
 
-	if (p_owner->__count < PIF_PMM_FALLING_COUNT) return FALSE;
+	if (p_owner->__count < p_owner->__data_size) return 0;
 
-	curr = (p_owner->__ptr + PIF_PULSE_DATA_MASK) & PIF_PULSE_DATA_MASK;
-	prev = (curr + PIF_PULSE_DATA_MASK) & PIF_PULSE_DATA_MASK;
-	value = p_owner->__data[curr].rising - p_owner->__data[prev].falling;
+	curr = (p_owner->__ptr + p_owner->__data_mask) & p_owner->__data_mask;
+	prev = (curr + p_owner->__data_mask) & p_owner->__data_mask;
+	value = p_owner->__p_data[curr].rising - p_owner->__p_data[prev].falling;
 	if (p_owner->__valid_range[1].check) {
 		if (value >= p_owner->__valid_range[1].min && value <= p_owner->__valid_range[1].max) {
-			p_owner->_low_level_1us = value;
-			return TRUE;
+			return value;
 		}
 	}
-	else {
-		p_owner->_low_level_1us = value;
-		return TRUE;
-	}
-	return FALSE;
+	return value;
 }
 
-double pifPulse_GetLowLevelDuty(PifPulse* p_owner)
-{
-	if ((p_owner->_measure_mode & PIF_PMM_PERIOD) && (p_owner->_measure_mode & PIF_PMM_LOW_LEVEL_TIME) && p_owner->_period_1us) {
-		return 100.0 * p_owner->_low_level_1us / p_owner->_period_1us;
-	}
-	return 0;
-}
-
-BOOL pifPulse_GetHighLevelTime(PifPulse* p_owner)
+uint16_t pifPulse_GetHighWidth(PifPulse* p_owner)
 {
 	uint8_t curr;
-	uint32_t value;
+	uint16_t value = 0;
 
-	if (p_owner->__count < PIF_PMM_FALLING_COUNT) return FALSE;
+	if (p_owner->__count < p_owner->__data_size) return 0;
 
-	curr = (p_owner->__ptr + PIF_PULSE_DATA_MASK) & PIF_PULSE_DATA_MASK;
-	value = p_owner->__data[curr].falling - p_owner->__data[curr].rising;
+	curr = (p_owner->__ptr + p_owner->__data_mask) & p_owner->__data_mask;
+	value = p_owner->__p_data[curr].falling - p_owner->__p_data[curr].rising;
 	if (p_owner->__valid_range[2].check) {
 		if (value >= p_owner->__valid_range[2].min && value <= p_owner->__valid_range[2].max) {
-			p_owner->_high_level_1us = value;
-			return TRUE;
+			return value;
 		}
 	}
-	else {
-		p_owner->_high_level_1us = value;
-		return TRUE;
-	}
-	return FALSE;
+	return value;
 }
 
-double pifPulse_GetHighLevelDuty(PifPulse* p_owner)
+BOOL pifPulse_GetPositionModulation(PifPulse* p_owner, uint16_t* p_value)
 {
-	if ((p_owner->_measure_mode & PIF_PMM_PERIOD) && (p_owner->_measure_mode & PIF_PMM_HIGH_LEVEL_TIME) && p_owner->_period_1us) {
-		return 100.0 * p_owner->_high_level_1us / p_owner->_period_1us;
+	uint8_t i, curr, next, count;
+	uint16_t value = 0;
+
+	if (p_owner->__count < p_owner->__data_size) return FALSE;
+
+	count = 0;
+	curr = (p_owner->__ptr + 1) & p_owner->__data_mask;
+	while (1) {
+		next = (curr + 1) & p_owner->__data_mask;
+		value = p_owner->__p_data[next].falling - p_owner->__p_data[curr].falling;
+		curr = next;
+		if (value > p_owner->__threshold_1us) break;
+		count++;
 	}
-	return 0;
+	if (count >= p_owner->__channels) {
+		curr = (p_owner->__ptr + 1) & p_owner->__data_mask;
+	}
+
+	for (i = 0; i < p_owner->__channels; i++) {
+		next = (curr + 1) & p_owner->__data_mask;
+		value = p_owner->__p_data[next].falling - p_owner->__p_data[curr].falling;
+		if (p_owner->__valid_range[3].check) {
+			if (value >= p_owner->__valid_range[3].min && value <= p_owner->__valid_range[3].max) {
+				p_value[i] = value;
+			}
+		}
+		else {
+			p_value[i] = value;
+		}
+		curr = next;
+	}
+	return value;
 }
 
 void pifPulse_sigEdgeTime(PifPulse* p_owner, PifPulseEdge edge, uint32_t time_us)
 {
 	if (edge == PE_RISING) {
-		p_owner->__data[p_owner->__ptr].rising = time_us;
+		p_owner->__p_data[p_owner->__ptr].rising = time_us;
 		if (p_owner->_measure_mode & PIF_PMM_RISING_COUNT) {
 			p_owner->rising_count++;
 		}
 	}
 	else {
-		p_owner->__data[p_owner->__ptr].falling = time_us;
-		p_owner->__ptr = (p_owner->__ptr + 1) & PIF_PULSE_DATA_MASK;
+		p_owner->__p_data[p_owner->__ptr].falling = time_us;
+		p_owner->__ptr = (p_owner->__ptr + 1) & p_owner->__data_mask;
 		if (p_owner->_measure_mode & PIF_PMM_FALLING_COUNT) {
 			p_owner->falling_count++;
 		}
 	}
-	if (p_owner->__count < PIF_PMM_FALLING_COUNT) p_owner->__count++;
+	if (p_owner->__count < p_owner->__data_size) p_owner->__count++;
 
 	if (p_owner->__evt_edge) {
 		(*p_owner->__evt_edge)(edge, p_owner->__p_edge_issuer);
