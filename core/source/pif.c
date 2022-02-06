@@ -520,13 +520,13 @@ uint8_t pifCrc7_Result()
 
 uint16_t pifCrc16(uint8_t* p_data, uint16_t length)
 {
-	uint16_t i;
+	uint16_t i, n;
 	uint32_t crc16 = 0;
 	uint32_t temp;
 
 	for (i = 0; i < length; i++) {
 		crc16 ^= (uint16_t)p_data[i] << 8;
-		for (int i = 0; i < 8; i++) {
+		for (n = 0; n < 8; n++) {
 			temp = crc16 << 1;
 			if (crc16 & 0x8000) temp ^= 0x1021;
 			crc16 = temp;

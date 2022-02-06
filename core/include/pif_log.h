@@ -51,11 +51,11 @@ typedef union StPifLogFlag
 {
 	uint32_t all;
 	struct {
-		uint32_t performance		: 1;
-		uint32_t task				: 1;
-		uint32_t collect_signal		: 1;
-		uint32_t duty_motor			: 1;
-		uint32_t step_motor			: 1;
+		uint8_t performance			: 1;
+		uint8_t task				: 1;
+		uint8_t collect_signal		: 1;
+		uint8_t duty_motor			: 1;
+		uint8_t step_motor			: 1;
 	} bt;
 } PifLogFlag;
 

@@ -83,9 +83,9 @@ struct StPifPulse
 	uint8_t __ptr;
 	uint8_t __count;
 	struct {
-		BOOL check		: 1;
+		uint8_t check	: 1;
 		uint32_t min	: 31;
-		uint32_t max	: 32;
+		uint32_t max;
 	} __valid_range[4];
 	void* __p_edge_issuer;
 	uint8_t __channels;

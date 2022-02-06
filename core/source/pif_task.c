@@ -27,7 +27,8 @@ static uint8_t s_number = 0;
 
 static int _setTable(uint16_t period, PifTaskMode* p_mode)
 {
-	uint32_t count, gap, index, bit;
+	uint16_t count;
+	uint32_t gap, index, bit;
 	static int base = 0;
 	int i, num = -1;
 
@@ -48,7 +49,7 @@ static int _setTable(uint16_t period, PifTaskMode* p_mode)
 	gap = 10000L * PIF_TASK_TABLE_SIZE / count;
 	if (gap > 100) {
 		index = 100 * base;
-		for (uint16_t i = 0; i < count / 100; i++) {
+		for (i = 0; i < count / 100; i++) {
 			s_table[(index / 100) & PIF_TASK_TABLE_MASK] |= bit;
 			index += gap;
 		}
