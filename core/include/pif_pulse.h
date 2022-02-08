@@ -6,12 +6,13 @@
 
 
 #define PIF_PULSE_DATA_SIZE			4
+#define PIF_PULSE_DATA_MASK			(PIF_PULSE_DATA_SIZE - 1)
 
 #define PIF_PMM_PERIOD				0x01
 #define PIF_PMM_LOW_WIDTH			0x02
 #define PIF_PMM_HIGH_WIDTH			0x04
-#define PIF_PMM_POSITION			0x08
-#define PIF_PMM_RISING_COUNT		0x10
+#define PIF_PMM_RISING_POSITION		0x08
+#define PIF_PMM_FALLING_POSITION	0x10
 #define PIF_PMM_FALLING_COUNT		0x20
 
 
@@ -69,7 +70,6 @@ typedef struct StPifPulsData
 struct StPifPulse
 {
 	// Public Member Variable
-	volatile uint32_t rising_count;
 	volatile uint32_t falling_count;
 
 	// Read-only Member Variable
@@ -77,10 +77,8 @@ struct StPifPulse
 	uint8_t	_measure_mode;		// PIF_PMM_XXX
 
 	// Private Member Variable
-	PifPulseData* __p_data;
-	uint8_t __data_size;
-	uint8_t __data_mask;
-	uint8_t __ptr;
+	PifPulseData __data[PIF_PULSE_DATA_SIZE];
+	uint8_t __ptr, __last_ptr;
 	uint8_t __count;
 	struct {
 		uint8_t check	: 1;
@@ -89,7 +87,9 @@ struct StPifPulse
 	} __valid_range[4];
 	void* __p_edge_issuer;
 	uint8_t __channels;
+	uint8_t __channel_index;
 	uint16_t __threshold_1us;
+	uint16_t* __p_position;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	PifPulseColSig* __p_colsig;
@@ -136,14 +136,24 @@ void pifPulse_SetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
 void pifPulse_ResetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
 
 /**
- * @fn pifPulse_SetPositionModulation
+ * @fn pifPulse_SetRisingPositionMode
  * @brief
  * @param p_owner
  * @param channels
  * @param threshold_1us
- * @return
+ * @param p_value
  */
-BOOL pifPulse_SetPositionModulation(PifPulse* p_owner, uint8_t channels, uint16_t threshold_1us);
+void pifPulse_SetRisingPositionMode(PifPulse* p_owner, uint8_t channels, uint16_t threshold_1us, uint16_t* p_value);
+
+/**
+ * @fn pifPulse_SetFallingPositionMode
+ * @brief
+ * @param p_owner
+ * @param channels
+ * @param threshold_1us
+ * @param p_value
+ */
+void pifPulse_SetFallingPositionMode(PifPulse* p_owner, uint8_t channels, uint16_t threshold_1us, uint16_t* p_value);
 
 /**
  * @fn pifPulse_SetValidRange
@@ -186,15 +196,6 @@ uint16_t pifPulse_GetLowWidth(PifPulse* p_owner);
  * @return
  */
 uint16_t pifPulse_GetHighWidth(PifPulse* p_owner);
-
-/**
- * @fn pifPulse_GetPositionModulation
- * @brief
- * @param p_owner
- * @param p_value
- * @return
- */
-BOOL pifPulse_GetPositionModulation(PifPulse* p_owner, uint16_t* p_value);
 
 /**
  * @fn pifPulse_sigEdgeTime

@@ -403,7 +403,7 @@ void* pifFixList_AddFirst(PifFixList* p_owner)
 
 void pifFixList_Remove(PifFixList* p_owner, void* p_data)
 {
-	PifFixListIterator p_node = (uint8_t*)p_data - 2 * sizeof(PifFixListIterator);
+	PifFixListIterator p_node = (PifFixListIterator)((uint8_t*)p_data - 2 * sizeof(PifFixListIterator));
 
 	if (p_node->p_prev) {
 		p_node->p_prev->p_next = p_node->p_next;
