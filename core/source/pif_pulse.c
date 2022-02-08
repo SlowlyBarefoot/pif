@@ -13,6 +13,26 @@
 #endif
 
 
+static void _calcuratePositionModulation(PifPulse* p_owner, uint16_t diff)
+{
+	if (diff < p_owner->__threshold_1us) {
+		if (p_owner->__channel_index < p_owner->__channels) {
+			if (p_owner->__valid_range[3].check) {
+				if (diff >= p_owner->__valid_range[3].min && diff <= p_owner->__valid_range[3].max) {
+					p_owner->__p_position[p_owner->__channel_index] = diff;
+				}
+			}
+			else {
+				p_owner->__p_position[p_owner->__channel_index] = diff;
+			}
+		}
+		p_owner->__channel_index++;
+	}
+	else {
+		p_owner->__channel_index = 0;
+	}
+}
+
 #ifdef __PIF_COLLECT_SIGNAL__
 
 static void _addDeviceInCollectSignal()
@@ -211,26 +231,10 @@ uint16_t pifPulse_GetHighWidth(PifPulse* p_owner)
 
 void pifPulse_sigEdgeTime(PifPulse* p_owner, PifPulseEdge edge, uint32_t time_us)
 {
-	uint16_t diff;
-
 	if (edge == PE_RISING) {
 		p_owner->__data[p_owner->__ptr].rising = time_us;
 		if (p_owner->_measure_mode & PIF_PMM_RISING_POSITION) {
-			diff = p_owner->__data[p_owner->__ptr].rising - p_owner->__data[p_owner->__last_ptr].rising;
-			if (diff < p_owner->__threshold_1us) {
-				if (p_owner->__valid_range[3].check) {
-					if (diff >= p_owner->__valid_range[3].min && diff <= p_owner->__valid_range[3].max) {
-						p_owner->__p_position[p_owner->__channel_index] = diff;
-					}
-				}
-				else {
-					p_owner->__p_position[p_owner->__channel_index] = diff;
-				}
-				p_owner->__channel_index++;
-			}
-			else {
-				p_owner->__channel_index = 0;
-			}
+			_calcuratePositionModulation(p_owner, p_owner->__data[p_owner->__ptr].rising - p_owner->__data[p_owner->__last_ptr].rising);
 		}
 	}
 	else {
@@ -239,21 +243,7 @@ void pifPulse_sigEdgeTime(PifPulse* p_owner, PifPulseEdge edge, uint32_t time_us
 			p_owner->falling_count++;
 		}
 		if (p_owner->_measure_mode & PIF_PMM_FALLING_POSITION) {
-			diff = p_owner->__data[p_owner->__ptr].falling - p_owner->__data[p_owner->__last_ptr].falling;
-			if (diff < p_owner->__threshold_1us) {
-				if (p_owner->__valid_range[3].check) {
-					if (diff >= p_owner->__valid_range[3].min && diff <= p_owner->__valid_range[3].max) {
-						p_owner->__p_position[p_owner->__channel_index] = diff;
-					}
-				}
-				else {
-					p_owner->__p_position[p_owner->__channel_index] = diff;
-				}
-				p_owner->__channel_index++;
-			}
-			else {
-				p_owner->__channel_index = 0;
-			}
+			_calcuratePositionModulation(p_owner, p_owner->__data[p_owner->__ptr].falling - p_owner->__data[p_owner->__last_ptr].falling);
 		}
 		p_owner->__last_ptr = p_owner->__ptr;
 		p_owner->__ptr = (p_owner->__ptr + 1) & PIF_PULSE_DATA_MASK;

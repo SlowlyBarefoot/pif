@@ -82,8 +82,8 @@ struct StPifPulse
 	uint8_t __count;
 	struct {
 		uint8_t check	: 1;
-		uint32_t min	: 31;
-		uint32_t max;
+		uint16_t min	: 15;
+		uint16_t max;
 	} __valid_range[4];
 	void* __p_edge_issuer;
 	uint8_t __channels;
