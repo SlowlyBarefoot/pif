@@ -21,8 +21,8 @@ typedef struct StPifRingBuffer
 	// Read-only Member Variable
 	PifId _id;
 	struct {
-		uint8_t is_static	: 1;
-		uint8_t chop_off	: 2;	// RB_CHOP_OFF_
+		unsigned int is_static	: 1;
+		unsigned int chop_off	: 2;	// RB_CHOP_OFF_
 	} _bt;
     uint16_t _size;
 

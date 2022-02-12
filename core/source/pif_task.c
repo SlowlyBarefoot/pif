@@ -27,10 +27,9 @@ static uint8_t s_number = 0;
 
 static int _setTable(uint16_t period, PifTaskMode* p_mode)
 {
-	uint16_t count;
 	uint32_t gap, index, bit;
 	static int base = 0;
-	int i, num = -1;
+	int i, count, num = -1;
 
 	for (i = 0; i < PIF_TASK_TABLE_SIZE; i++) {
 		if (!(s_table_number & (1 << i))) {
