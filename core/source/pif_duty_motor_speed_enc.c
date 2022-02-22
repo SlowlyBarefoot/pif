@@ -194,7 +194,7 @@ static uint16_t _doTask(PifTask* p_task)
 		if (p_parent->_state == MS_CONST) {
 			pifLog_Printf(LT_INFO, "DMSE(%u) %s D:%u->%u(%u%%) ENC:%u E:%d P:%luus", p_parent->_id, kMotorState[p_parent->_state],
 					pre_duty, tmp_duty, (uint16_t)(100 * tmp_duty / p_parent->_max_duty), tmp_enc, p_parent->__error,
-					p_owner->__p_encoder->_period_1us);
+					pifPulse_GetPeriod(p_owner->__p_encoder));
 		}
 		else {
 			pifLog_Printf(LT_INFO, "DMSE(%u) %s D:%u->%u(%u%%) ENC:%u E:%d", p_parent->_id, kMotorState[p_parent->_state],
@@ -260,7 +260,7 @@ BOOL pifDutyMotorSpeedEnc_Init(PifDutyMotorSpeedEnc* p_owner, PifId id, PifTimer
 
 	p_owner->__p_encoder = p_encoder;
 #ifndef __PIF_NO_LOG__
-    pifPulse_SetMeasureMode(p_encoder, PIF_PMM_FALLING_COUNT | PIF_PMM_PERIOD);
+    pifPulse_SetMeasureMode(p_encoder, PIF_PMM_COMMON_COUNT | PIF_PMM_COMMON_PERIOD);
 #else
     pifPulse_SetMeasureMode(p_encoder, PIF_PMM_FALLING_COUNT);
 #endif

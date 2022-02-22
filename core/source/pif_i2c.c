@@ -2,6 +2,7 @@
 #ifndef __PIF_NO_LOG__
 	#include "pif_log.h"
 #endif
+#include "pif_task.h"
 
 
 BOOL pifI2cPort_Init(PifI2cPort* p_owner, PifId id, uint8_t device_count,  uint16_t max_transfer_size)

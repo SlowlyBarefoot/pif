@@ -93,7 +93,7 @@ static void _processing(PifTask* p_owner)
 	case TM_ALWAYS:
 		if (p_owner->__delay_ms) {
 			gap = pif_cumulative_timer1ms - p_owner->__pretime;
-			if (gap > p_owner->__delay_ms) {
+			if (gap >= p_owner->__delay_ms) {
 				p_owner->__delay_ms = 0;
 			}
 		}
@@ -106,7 +106,7 @@ static void _processing(PifTask* p_owner)
 
 	case TM_PERIOD_US:
 		gap = pif_cumulative_timer1us - p_owner->__pretime;
-		if (gap > p_owner->_period) {
+		if (gap >= p_owner->_period) {
 			p_owner->__pretime = pif_cumulative_timer1us;
 			p_owner->__running = TRUE;
 			(*p_owner->__evt_loop)(p_owner);
@@ -117,7 +117,7 @@ static void _processing(PifTask* p_owner)
 	case TM_PERIOD_MS:
 		time = 1000L * pif_timer1sec + pif_timer1ms;
 		gap = time - p_owner->__pretime;
-		if (gap > p_owner->_period) {
+		if (gap >= p_owner->_period) {
 			p_owner->__pretime = time;
 			p_owner->__running = TRUE;
 			(*p_owner->__evt_loop)(p_owner);
@@ -127,7 +127,7 @@ static void _processing(PifTask* p_owner)
 
 	case TM_CHANGE_US:
 		gap = pif_cumulative_timer1us - p_owner->__pretime;
-		if (gap > p_owner->_period) {
+		if (gap >= p_owner->_period) {
 			p_owner->__pretime = pif_cumulative_timer1us;
 			p_owner->__running = TRUE;
 			period = (*p_owner->__evt_loop)(p_owner);
@@ -139,7 +139,7 @@ static void _processing(PifTask* p_owner)
 	case TM_CHANGE_MS:
 		time = 1000L * pif_timer1sec + pif_timer1ms;
 		gap = time - p_owner->__pretime;
-		if (gap > p_owner->_period) {
+		if (gap >= p_owner->_period) {
 			p_owner->__pretime = time;
 			p_owner->__running = TRUE;
 			period = (*p_owner->__evt_loop)(p_owner);
@@ -151,7 +151,7 @@ static void _processing(PifTask* p_owner)
 	default:
 		if (p_owner->__delay_ms) {
 			gap = pif_cumulative_timer1ms - p_owner->__pretime;
-			if (gap > p_owner->__delay_ms) {
+			if (gap >= p_owner->__delay_ms) {
 				p_owner->__delay_ms = 0;
 			}
 		}

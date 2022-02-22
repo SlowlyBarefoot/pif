@@ -18,7 +18,7 @@ static double _convertVoltage(PifAds1x1x* p_owner)
 static uint32_t _conversionDelay(PifAds1x1x* p_owner)
 {
 	uint16_t data_rate = 0;
-	uint32_t delay;
+	uint32_t delay = 0;
 
     if (p_owner->__resolution == 12) {
         switch (p_owner->_config.bit.dr) {
@@ -50,9 +50,8 @@ static uint32_t _conversionDelay(PifAds1x1x* p_owner)
 		else {
 			delay = (1000UL - 1) / data_rate + 1;
 		}
-		return delay > 0 ? delay : 1;
     }
-    return 0;
+    return delay;
 }
 
 BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, PifAds1x1xAddr addr)

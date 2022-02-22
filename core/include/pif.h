@@ -162,7 +162,8 @@ typedef enum EnPifError
 	E_ACCESS_FAILED				= 0x0D,
 	E_CANNOT_FOUND				= 0x0E,
 	E_IS_NOT_FORMATED			= 0x0F,
-	E_RECEIVE_NACK				= 0x10
+	E_RECEIVE_NACK				= 0x10,
+	E_INVALID_ID				= 0x11
 } PifError;
 
 
