@@ -80,14 +80,14 @@ static void _processing(PifTask* p_owner)
 	static uint32_t pretime;
 #endif
 
-	if (p_owner->pause) return;
-	else if (p_owner->immediate) {
+	if (p_owner->immediate) {
 		p_owner->__running = TRUE;
 		(*p_owner->__evt_loop)(p_owner);
 		p_owner->__running = FALSE;
 		p_owner->immediate = FALSE;
 		return;
 	}
+	else if (p_owner->pause) return;
 
 	switch (p_owner->_mode) {
 	case TM_ALWAYS:

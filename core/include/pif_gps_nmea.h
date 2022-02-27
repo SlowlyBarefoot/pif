@@ -66,6 +66,7 @@ typedef struct StPifGpsNmeaTxt
 } PifGpsNmeaTxt;
 
 typedef void (*PifEvtGpsNmeaText)(PifGpsNmeaTxt* p_txt);
+typedef void (*PifEvtGpsNmeaFrame)(char* p_frame);
 
 /**
  * @class StPifGpsNmea
@@ -77,6 +78,7 @@ typedef struct StPifGpsNmea
 
 	// Public Event Variable
     PifEvtGpsNmeaText evt_text;
+    PifEvtGpsNmeaFrame evt_frame;
 
 	// Read-only Member Variable
     PifGps _gps;

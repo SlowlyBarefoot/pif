@@ -188,6 +188,11 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 			param = 0;
 			offset = 0;
 			parity = 0;
+			if (p_owner->evt_frame) {
+				string[0] = c;
+				string[1] = 0;
+				(p_owner->evt_frame)(string);
+			}
 		}
 		else if (c == ',' || c == '*') {
 			string[offset] = 0;
@@ -303,9 +308,14 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 				}
 			}
 			param++;
-			offset = 0;
 			if (c == '*') checksum_param = 1;
 			else parity ^= c;
+			if (p_owner->evt_frame) {
+				string[offset++] = c;
+				string[offset++] = 0;
+				(p_owner->evt_frame)(string);
+			}
+			offset = 0;
 		}
 		else if (c == '\r' || c == '\n') {
 			if (message_id && checksum_param) { //parity checksum
@@ -327,6 +337,12 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 #endif
 			}
 			checksum_param = 0;
+			if (p_owner->evt_frame) {
+				string[offset++] = c;
+				string[offset++] = 0;
+				(p_owner->evt_frame)(string);
+			}
+			offset = 0;
 		}
 		else {
 			if (offset < PIF_GPS_NMEA_VALUE_SIZE) string[offset++] = c;
