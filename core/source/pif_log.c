@@ -527,8 +527,12 @@ BOOL pifLog_AttachComm(PifComm* p_comm)
     if (!s_log.p_tx_buffer) return FALSE;
 
 	s_log.p_comm = p_comm;
-	pifComm_AttachClient(p_comm, &s_log);
-	p_comm->evt_parsing = _evtParsing;
-	p_comm->evt_sending = _evtSending;
+	pifComm_AttachClient(p_comm, &s_log, _evtParsing, _evtSending);
     return TRUE;
+}
+
+void pifMsp_DetachComm()
+{
+	pifComm_DetachClient(s_log.p_comm);
+	s_log.p_comm = NULL;
 }

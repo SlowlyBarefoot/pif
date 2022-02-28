@@ -422,9 +422,13 @@ void pifGpsNmea_Clear(PifGpsNmea* p_owner)
 void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* p_comm)
 {
 	p_owner->__p_comm = p_comm;
-	pifComm_AttachClient(p_comm, p_owner);
-	p_comm->evt_parsing = _evtParsing;
-	p_comm->evt_sending = _evtSending;
+	pifComm_AttachClient(p_comm, p_owner, _evtParsing, _evtSending);
+}
+
+void pifGpsNmea_DetachComm(PifGpsNmea* p_owner)
+{
+	pifComm_DetachClient(p_owner->__p_comm);
+	p_owner->__p_comm = NULL;
 }
 
 BOOL pifGpsNmea_SetProcessMessageId(PifGpsNmea* p_owner, int count, ...)

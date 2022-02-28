@@ -558,9 +558,13 @@ BOOL pifProtocol_ResizeTxResponse(PifProtocol* p_owner, uint16_t tx_response_siz
 void pifProtocol_AttachComm(PifProtocol* p_owner, PifComm* p_comm)
 {
 	p_owner->__p_comm = p_comm;
-	pifComm_AttachClient(p_comm, p_owner);
-	p_comm->evt_parsing = _evtParsing;
-	p_comm->evt_sending = _evtSending;
+	pifComm_AttachClient(p_comm, p_owner, _evtParsing, _evtSending);
+}
+
+void pifProtocol_DetachComm(PifProtocol* p_owner)
+{
+	pifComm_DetachClient(p_owner->__p_comm);
+	p_owner->__p_comm = NULL;
 }
 
 BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_request, uint8_t* p_data, uint16_t data_size)

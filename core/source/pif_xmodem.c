@@ -396,9 +396,13 @@ void pifXmodem_SetReceiveTimeout(PifXmodem* p_owner, uint16_t receive_timeout)
 void pifXmodem_AttachComm(PifXmodem* p_owner, PifComm* p_comm)
 {
 	p_owner->__p_comm = p_comm;
-	pifComm_AttachClient(p_comm, p_owner);
-	p_comm->evt_parsing = _evtParsing;
-	p_comm->evt_sending = _evtSending;
+	pifComm_AttachClient(p_comm, p_owner, _evtParsing, _evtSending);
+}
+
+void pifXmodem_DetachComm(PifXmodem* p_owner)
+{
+	pifComm_DetachClient(p_owner->__p_comm);
+	p_owner->__p_comm = NULL;
 }
 
 void pifXmodem_AttachEvtTxReceive(PifXmodem* p_owner, PifEvtXmodemTxReceive evt_tx_receive)

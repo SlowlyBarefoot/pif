@@ -21,10 +21,10 @@ static uint16_t _actSendData(PifComm* p_owner, uint8_t* p_buffer, uint16_t size)
 static void _sendData(PifComm* p_owner)
 {
 	if (p_owner->act_send_data) {
-		(*p_owner->evt_sending)(p_owner->__p_client, p_owner->act_send_data);
+		(*p_owner->__evt_sending)(p_owner->__p_client, p_owner->act_send_data);
 	}
 	else if (p_owner->_p_tx_buffer) {
-		if ((*p_owner->evt_sending)(p_owner->__p_client, _actSendData)) {
+		if ((*p_owner->__evt_sending)(p_owner->__p_client, _actSendData)) {
 			if (p_owner->__state == CTS_IDLE) {
 				p_owner->__state = CTS_SENDING;
 				if (p_owner->act_start_transfer) {
@@ -81,9 +81,18 @@ BOOL pifComm_AllocTxBuffer(PifComm* p_owner, uint16_t tx_size)
 	return TRUE;
 }
 
-void pifComm_AttachClient(PifComm* p_owner, void* p_client)
+void pifComm_AttachClient(PifComm* p_owner, void* p_client, PifEvtCommParsing evt_parsing, PifEvtCommSending evt_sending)
 {
 	p_owner->__p_client = p_client;
+	p_owner->__evt_parsing = evt_parsing;
+	p_owner->__evt_sending = evt_sending;
+}
+
+void pifComm_DetachClient(PifComm* p_owner)
+{
+	p_owner->__p_client = NULL;
+	p_owner->__evt_parsing = NULL;
+	p_owner->__evt_sending = NULL;
 }
 
 uint16_t pifComm_GetRemainSizeOfRxBuffer(PifComm* p_owner)
@@ -153,23 +162,23 @@ void pifComm_FinishTransfer(PifComm* p_owner)
 
 void pifComm_ForceSendData(PifComm* p_owner)
 {
-	if (p_owner->evt_sending) _sendData(p_owner);
+	if (p_owner->__evt_sending) _sendData(p_owner);
 }
 
 static uint16_t _doTask(PifTask* p_task)
 {
 	PifComm *p_owner = p_task->_p_client;
 
-	if (p_owner->evt_parsing) {
+	if (p_owner->__evt_parsing) {
 		if (p_owner->act_receive_data) {
-			(*p_owner->evt_parsing)(p_owner->__p_client, p_owner->act_receive_data);
+			(*p_owner->__evt_parsing)(p_owner->__p_client, p_owner->act_receive_data);
 		}
 		else if (p_owner->_p_rx_buffer) {
-			(*p_owner->evt_parsing)(p_owner->__p_client, _actReceiveData);
+			(*p_owner->__evt_parsing)(p_owner->__p_client, _actReceiveData);
 		}
 	}
 
-	if (p_owner->evt_sending) _sendData(p_owner);
+	if (p_owner->__evt_sending) _sendData(p_owner);
 	return 0;
 }
 

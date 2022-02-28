@@ -75,10 +75,6 @@ struct StPifComm
     PifActCommSendData act_send_data;
     PifActCommStartTransfer act_start_transfer;
 
-    // Public Event Function
-    PifEvtCommParsing evt_parsing;
-    PifEvtCommSending evt_sending;
-
 	// Read-only Member Variable
     PifId _id;
     PifRingBuffer* _p_tx_buffer;
@@ -88,6 +84,10 @@ struct StPifComm
 	// Private Member Variable
     void* __p_client;
     PifCommTxState __state;
+
+    // Public Event Function
+    PifEvtCommParsing __evt_parsing;
+    PifEvtCommSending __evt_sending;
 };
 
 
@@ -134,8 +134,17 @@ BOOL pifComm_AllocTxBuffer(PifComm* p_owner, uint16_t tx_size);
  * @brief
  * @param p_owner
  * @param p_client
+ * @param evt_parsing
+ * @param evt_sending
  */
-void pifComm_AttachClient(PifComm* p_owner, void* p_client);
+void pifComm_AttachClient(PifComm* p_owner, void* p_client, PifEvtCommParsing evt_parsing, PifEvtCommSending evt_sending);
+
+/**
+ * @fn pifComm_DetachClient
+ * @brief
+ * @param p_owner
+ */
+void pifComm_DetachClient(PifComm* p_owner);
 
 /**
  * @fn pifComm_GetRemainSizeOfRxBuffer
