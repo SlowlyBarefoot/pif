@@ -251,6 +251,13 @@ BOOL pifProtocol_ResizeTxResponse(PifProtocol* p_owner, uint16_t tx_response_siz
 void pifProtocol_AttachComm(PifProtocol* p_owner, PifComm* p_comm);
 
 /**
+ * @fn pifMProtocol_DetachComm
+ * @brief
+ * @param p_owner
+ */
+void pifMProtocol_DetachComm(PifProtocol* p_owner);
+
+/**
  * @fn pifProtocol_MakeRequest
  * @brief
  * @param p_owner

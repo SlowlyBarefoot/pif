@@ -150,6 +150,13 @@ void pifXmodem_SetReceiveTimeout(PifXmodem* p_owner, uint16_t receive_timeout);
 void pifXmodem_AttachComm(PifXmodem* p_owner, PifComm* p_comm);
 
 /**
+ * @fn pifXmodem_DetachComm
+ * @brief
+ * @param p_owner
+ */
+void pifXmodem_DetachComm(PifXmodem* p_owner);
+
+/**
  * @fn pifXmodem_AttachEvtTxReceive
  * @brief
  * @param p_owner

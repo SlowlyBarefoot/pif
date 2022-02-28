@@ -121,6 +121,13 @@ void pifGpsNmea_Clear(PifGpsNmea* p_owner);
 void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* pstComm);
 
 /**
+ * @fn pifGpsNmea_DetachComm
+ * @brief
+ * @param p_owner
+ */
+void pifGpsNmea_DetachComm(PifGpsNmea* p_owner);
+
+/**
  * @fn pifGpsNmea_SetProcessMessageId
  * @brief
  * @param p_owner

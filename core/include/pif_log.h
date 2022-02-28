@@ -181,6 +181,12 @@ PifTask* pifLog_GetCommTask();
  */
 BOOL pifLog_AttachComm(PifComm* p_comm);
 
+/**
+ * @fn pifLog_DetachComm
+ * @brief
+ */
+void pifLog_DetachComm();
+
 #ifdef __cplusplus
 }
 #endif
