@@ -28,7 +28,7 @@ static void _sendData(PifComm* p_owner)
 			if (p_owner->__state == CTS_IDLE) {
 				p_owner->__state = CTS_SENDING;
 				if (p_owner->act_start_transfer) {
-					if (!(*p_owner->act_start_transfer)()) p_owner->__state = CTS_IDLE;
+					if (!(*p_owner->act_start_transfer)(p_owner)) p_owner->__state = CTS_IDLE;
 				}
 			}
 		}

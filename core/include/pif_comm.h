@@ -51,11 +51,10 @@ typedef struct StPifComm PifComm;
 
 typedef BOOL (*PifActCommReceiveData)(PifComm* p_comm, uint8_t* p_data);
 typedef uint16_t (*PifActCommSendData)(PifComm* p_comm, uint8_t* p_buffer, uint16_t size);
+typedef BOOL (*PifActCommStartTransfer)(PifComm* p_comm);
 
 typedef void (*PifEvtCommParsing)(void* p_client, PifActCommReceiveData act_receive_data);
 typedef BOOL (*PifEvtCommSending)(void* p_client, PifActCommSendData act_send_data);
-
-typedef BOOL (*PifActCommStartTransfer)();
 
 typedef enum EnPifCommTxState
 {
