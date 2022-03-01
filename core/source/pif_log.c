@@ -531,7 +531,7 @@ BOOL pifLog_AttachComm(PifComm* p_comm)
     return TRUE;
 }
 
-void pifMsp_DetachComm()
+void pifLog_DetachComm()
 {
 	pifComm_DetachClient(s_log.p_comm);
 	s_log.p_comm = NULL;
