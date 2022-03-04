@@ -108,21 +108,6 @@ void pifLog_Clear();
  */
 BOOL pifLog_UseCommand(const PifLogCmdEntry* p_cmd_table, const char* p_prompt);
 
-/**
- * @fn pifLog_GetCmdParsingPeriod
- * @brief
- * @return
- */
-uint16_t pifLog_GetCmdParsingPeriod();
-
-/**
- * @fn pifLog_SetCmdParsingPeriod
- * @brief
- * @param period1ms
- * @return
- */
-BOOL pifLog_SetCmdParsingPeriod(uint16_t period1ms);
-
 #endif
 
 /**
@@ -150,7 +135,7 @@ BOOL pifLog_IsEmpty();
  * @param type
  * @param p_string
  */
-void pifLog_Print(PifLogType type, char* p_string);
+void pifLog_Print(PifLogType type, const char* p_string);
 
 /**
  * @fn pifLog_Printf

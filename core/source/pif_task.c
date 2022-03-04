@@ -316,6 +316,9 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
     		pif_error = E_INVALID_PARAM;
 		    return NULL;
     	}
+    	else if (period == 100) {
+    		mode = TM_ALWAYS;
+    	}
     	break;
 
     case TM_ALWAYS:
