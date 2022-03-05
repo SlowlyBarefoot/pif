@@ -51,6 +51,10 @@ BOOL pifComm_Init(PifComm* p_owner, PifId id)
 
 void pifComm_Clear(PifComm* p_owner)
 {
+	if (p_owner->_p_task) {
+		pifTaskManager_Remove(p_owner->_p_task);
+		p_owner->_p_task = NULL;
+	}
 	if (p_owner->_p_rx_buffer) pifRingBuffer_Destroy(&p_owner->_p_rx_buffer);
 	if (p_owner->_p_tx_buffer) pifRingBuffer_Destroy(&p_owner->_p_tx_buffer);
 }
