@@ -48,6 +48,7 @@ static uint16_t _doTask(PifTask* p_task)
 	case BS_STOP:
 		(*p_owner->__act_action)(p_owner->_id, OFF);
 		p_owner->_state = BS_IDLE;
+		if (p_owner->evt_finish) (*p_owner->evt_finish)(p_owner->_id);
 		delay = 1;
 		p_task->pause = TRUE;
 		break;
@@ -84,13 +85,16 @@ void pifBuzzer_Clear(PifBuzzer* p_owner)
 	}
 }
 
-void pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sound_10ms)
+BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sound_10ms)
 {
+	if (!p_owner->_p_task) return FALSE;
+
 	p_owner->__p_sound_10ms = p_sound_10ms;
 	p_owner->__pos = 0;
 	p_owner->__repeat = 0;
 	p_owner->_state = BS_START;
 	p_owner->_p_task->pause = FALSE;
+	return TRUE;
 }
 
 void pifBuzzer_Stop(PifBuzzer* p_owner)

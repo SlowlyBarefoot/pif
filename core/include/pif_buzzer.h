@@ -6,6 +6,7 @@
 
 
 typedef void (*PifActBuzzerAction)(PifId id, BOOL action);
+typedef void (*PifEvtBuzzerFinish)(PifId id);
 
 typedef enum EnPifBuzzerState
 {
@@ -23,6 +24,9 @@ typedef enum EnPifBuzzerState
 typedef struct StPifBuzzer
 {
 	// Public Member Variable
+
+	// Private Event Function
+	PifEvtBuzzerFinish evt_finish;
 
 	// Read-only Member Variable
     PifId _id;
@@ -65,8 +69,9 @@ void pifBuzzer_Clear(PifBuzzer* p_owner);
  * @brief
  * @param p_owner
  * @param p_sound_10ms
+ * @return
  */
-void pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sound_10ms);
+BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sound_10ms);
 
 /**
  * @fn pifBuzzer_Stop
