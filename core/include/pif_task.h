@@ -22,6 +22,8 @@ typedef struct StPifTask PifTask;
 typedef uint16_t (*PifEvtTaskLoop)(PifTask* p_task);
 typedef void (*PifActTaskMeasure)();
 
+typedef void (*PifTaskProcessing)(PifTask* p_owner);
+
 
 /**
  * @struct StPifTask
@@ -40,6 +42,7 @@ struct StPifTask
 	void *_p_client;
 
 	// Private Member Variable
+	PifTaskProcessing __processing;
 	int __table_number;
 	BOOL __running;
 	uint32_t __pretime;

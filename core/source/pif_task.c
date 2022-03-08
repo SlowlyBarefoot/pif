@@ -72,124 +72,123 @@ static void _resetTable(int number)
 	s_table_number &= mask;
 }
 
-static void _processing(PifTask* p_owner)
+static void _processingAlways(PifTask* p_owner)
 {
-	uint16_t period;
-	uint32_t time, gap;
-#ifdef __PIF_DEBUG__
-	static uint32_t pretime;
-#endif
+	uint32_t gap;
 
-	if (p_owner->immediate) {
+	if (p_owner->__delay_ms) {
+		gap = pif_cumulative_timer1ms - p_owner->__pretime;
+		if (gap >= p_owner->__delay_ms) {
+			p_owner->__delay_ms = 0;
+		}
+	}
+	else {
 		p_owner->__running = TRUE;
 		(*p_owner->__evt_loop)(p_owner);
 		p_owner->__running = FALSE;
-		p_owner->immediate = FALSE;
-		return;
-	}
-	else if (p_owner->pause) return;
-
-	switch (p_owner->_mode) {
-	case TM_ALWAYS:
-		if (p_owner->__delay_ms) {
-			gap = pif_cumulative_timer1ms - p_owner->__pretime;
-			if (gap >= p_owner->__delay_ms) {
-				p_owner->__delay_ms = 0;
-			}
-		}
-		else {
-			p_owner->__running = TRUE;
-			(*p_owner->__evt_loop)(p_owner);
-			p_owner->__running = FALSE;
-		}
-		break;
-
-	case TM_PERIOD_US:
-		gap = pif_cumulative_timer1us - p_owner->__pretime;
-		if (gap >= p_owner->_period) {
-			p_owner->__pretime = pif_cumulative_timer1us;
-			p_owner->__running = TRUE;
-			(*p_owner->__evt_loop)(p_owner);
-			p_owner->__running = FALSE;
-		}
-		break;
-
-	case TM_PERIOD_MS:
-		time = 1000L * pif_timer1sec + pif_timer1ms;
-		gap = time - p_owner->__pretime;
-		if (gap >= p_owner->_period) {
-			p_owner->__pretime = time;
-			p_owner->__running = TRUE;
-			(*p_owner->__evt_loop)(p_owner);
-			p_owner->__running = FALSE;
-		}
-		break;
-
-	case TM_CHANGE_US:
-		gap = pif_cumulative_timer1us - p_owner->__pretime;
-		if (gap >= p_owner->_period) {
-			p_owner->__pretime = pif_cumulative_timer1us;
-			p_owner->__running = TRUE;
-			period = (*p_owner->__evt_loop)(p_owner);
-			p_owner->__running = FALSE;
-			if (period > 0) p_owner->_period = period;
-		}
-		break;
-
-	case TM_CHANGE_MS:
-		time = 1000L * pif_timer1sec + pif_timer1ms;
-		gap = time - p_owner->__pretime;
-		if (gap >= p_owner->_period) {
-			p_owner->__pretime = time;
-			p_owner->__running = TRUE;
-			period = (*p_owner->__evt_loop)(p_owner);
-			p_owner->__running = FALSE;
-			if (period > 0) p_owner->_period = period;
-		}
-		break;
-
-	default:
-		if (p_owner->__delay_ms) {
-			gap = pif_cumulative_timer1ms - p_owner->__pretime;
-			if (gap >= p_owner->__delay_ms) {
-				p_owner->__delay_ms = 0;
-			}
-		}
-		else if (s_table[s_number] & (1 << p_owner->__table_number)) {
-#ifdef __PIF_DEBUG__
-			time = pif_timer1sec;
-			if (time != pretime) {
-				p_owner->__period = 1000000.0 / p_owner->__count;
-				p_owner->__count = 0;
-				pretime = time;
-			}
-#endif
-			p_owner->__running = TRUE;
-			(*p_owner->__evt_loop)(p_owner);
-			p_owner->__running = FALSE;
-#ifdef __PIF_DEBUG__
-			p_owner->__count++;
-#endif
-		}
-		break;
 	}
 }
 
-void pifTask_Init(PifTask* p_owner)
+static void _processingPeriodUs(PifTask* p_owner)
 {
-    pif_id++;
-    p_owner->_id = pif_id;
+	uint32_t gap;
+
+	gap = pif_cumulative_timer1us - p_owner->__pretime;
+	if (gap >= p_owner->_period) {
+		p_owner->__pretime = pif_cumulative_timer1us;
+		p_owner->__running = TRUE;
+		(*p_owner->__evt_loop)(p_owner);
+		p_owner->__running = FALSE;
+	}
 }
 
-BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period)
+static void _processingPeriodMs(PifTask* p_owner)
 {
-	int num = -1;
+	uint32_t time, gap;
 
+	time = 1000L * pif_timer1sec + pif_timer1ms;
+	gap = time - p_owner->__pretime;
+	if (gap >= p_owner->_period) {
+		p_owner->__pretime = time;
+		p_owner->__running = TRUE;
+		(*p_owner->__evt_loop)(p_owner);
+		p_owner->__running = FALSE;
+	}
+}
+
+static void _processingChangeUs(PifTask* p_owner)
+{
+	uint16_t period;
+	uint32_t gap;
+
+	gap = pif_cumulative_timer1us - p_owner->__pretime;
+	if (gap >= p_owner->_period) {
+		p_owner->__pretime = pif_cumulative_timer1us;
+		p_owner->__running = TRUE;
+		period = (*p_owner->__evt_loop)(p_owner);
+		p_owner->__running = FALSE;
+		if (period > 0) p_owner->_period = period;
+	}
+}
+
+static void _processingChangeMs(PifTask* p_owner)
+{
+	uint16_t period;
+	uint32_t time, gap;
+
+	time = 1000L * pif_timer1sec + pif_timer1ms;
+	gap = time - p_owner->__pretime;
+	if (gap >= p_owner->_period) {
+		p_owner->__pretime = time;
+		p_owner->__running = TRUE;
+		period = (*p_owner->__evt_loop)(p_owner);
+		p_owner->__running = FALSE;
+		if (period > 0) p_owner->_period = period;
+	}
+}
+
+static void _processingRatio(PifTask* p_owner)
+{
+	uint32_t gap;
+#ifdef __PIF_DEBUG__
+	uint32_t time;
+	static uint32_t pretime;
+#endif
+
+	if (p_owner->__delay_ms) {
+		gap = pif_cumulative_timer1ms - p_owner->__pretime;
+		if (gap >= p_owner->__delay_ms) {
+			p_owner->__delay_ms = 0;
+		}
+	}
+	else if (s_table[s_number] & (1 << p_owner->__table_number)) {
+#ifdef __PIF_DEBUG__
+		time = pif_timer1sec;
+		if (time != pretime) {
+			p_owner->__period = 1000000.0 / p_owner->__count;
+			p_owner->__count = 0;
+			pretime = time;
+		}
+#endif
+		p_owner->__running = TRUE;
+		(*p_owner->__evt_loop)(p_owner);
+		p_owner->__running = FALSE;
+#ifdef __PIF_DEBUG__
+		p_owner->__count++;
+#endif
+	}
+}
+
+static BOOL _checkParam(PifTaskMode mode, uint16_t period)
+{
 	switch (mode) {
     case TM_RATIO:
     	if (!period || period > 100) {
     		pif_error = E_INVALID_PARAM;
 		    return FALSE;
+    	}
+    	else if (period == 100) {
+    		mode = TM_ALWAYS;
     	}
     	break;
 
@@ -217,6 +216,66 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period)
         }
     	break;
     }
+	return TRUE;
+}
+
+static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
+{
+	int num = -1;
+
+    switch (mode) {
+    case TM_RATIO:
+    	num = _setTable(period, &mode);
+    	if (num == -1) return FALSE;
+    	if (mode == TM_ALWAYS) period = 100;
+    	p_owner->__table_number = num;
+    	p_owner->__processing = _processingRatio;
+    	break;
+
+    case TM_ALWAYS:
+    	period = 100;
+    	p_owner->__processing = _processingAlways;
+    	break;
+
+    case TM_PERIOD_MS:
+    	p_owner->__pretime = 1000L * pif_timer1sec + pif_timer1ms;
+    	p_owner->__processing = _processingPeriodMs;
+    	break;
+
+    case TM_CHANGE_MS:
+    	p_owner->__pretime = 1000L * pif_timer1sec + pif_timer1ms;
+    	p_owner->__processing = _processingChangeMs;
+    	break;
+
+    case TM_PERIOD_US:
+    	p_owner->__pretime = (*pif_act_timer1us)();
+    	p_owner->__processing = _processingPeriodUs;
+    	break;
+
+    case TM_CHANGE_US:
+    	p_owner->__pretime = (*pif_act_timer1us)();
+    	p_owner->__processing = _processingChangeUs;
+    	break;
+
+    default:
+    	break;
+    }
+
+    p_owner->_mode = mode;
+    p_owner->_period = period;
+	return TRUE;
+}
+
+
+void pifTask_Init(PifTask* p_owner)
+{
+    pif_id++;
+    p_owner->_id = pif_id;
+}
+
+BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period)
+{
+	if (!_checkParam(mode, period)) return FALSE;
 
 	switch (p_owner->_mode) {
 	case TM_RATIO:
@@ -228,31 +287,8 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period)
 		break;
 	}
 
-    switch (mode) {
-    case TM_RATIO:
-    	num = _setTable(period, &mode);
-    	if (num == -1) return FALSE;
-    	if (mode == TM_ALWAYS) period = 100;
-    	p_owner->__table_number = num;
-    	break;
+	if (!_setParam(p_owner, mode, period)) return FALSE;
 
-    case TM_ALWAYS:
-    	period = 100;
-    	break;
-
-    case TM_PERIOD_MS:
-    case TM_CHANGE_MS:
-    	p_owner->__pretime = 1000L * pif_timer1sec + pif_timer1ms;
-    	break;
-
-    case TM_PERIOD_US:
-    case TM_CHANGE_US:
-    	p_owner->__pretime = (*pif_act_timer1us)();
-    	break;
-    }
-
-    p_owner->_mode = mode;
-    p_owner->_period = period;
     return TRUE;
 }
 
@@ -303,80 +339,18 @@ void pifTaskManager_Clear()
 
 PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start)
 {
-	int num = -1;
-
 	if (!evt_loop) {
         pif_error = E_INVALID_PARAM;
 	    return NULL;
 	}
 
-	switch (mode) {
-    case TM_RATIO:
-    	if (!period || period > 100) {
-    		pif_error = E_INVALID_PARAM;
-		    return NULL;
-    	}
-    	else if (period == 100) {
-    		mode = TM_ALWAYS;
-    	}
-    	break;
-
-    case TM_ALWAYS:
-    	break;
-
-    case TM_PERIOD_MS:
-    case TM_CHANGE_MS:
-    	if (!period) {
-    		pif_error = E_INVALID_PARAM;
-		    return NULL;
-    	}
-    	break;
-
-    case TM_PERIOD_US:
-    case TM_CHANGE_US:
-    	if (!period) {
-    		pif_error = E_INVALID_PARAM;
-		    return NULL;
-    	}
-
-    	if (!pif_act_timer1us) {
-    		pif_error = E_CANNOT_USE;
-		    return NULL;
-        }
-    	break;
-    }
+	if (!_checkParam(mode, period)) return NULL;
 
 	PifTask* p_owner = (PifTask*)pifFixList_AddFirst(&s_tasks);
 	if (!p_owner) return NULL;
 
-    switch (mode) {
-    case TM_RATIO:
-    	num = _setTable(period, &mode);
-    	if (num == -1) goto fail;
-    	if (mode == TM_ALWAYS) period = 100;
-    	p_owner->__table_number = num;
-    	break;
+	if (!_setParam(p_owner, mode, period)) goto fail;
 
-    case TM_ALWAYS:
-    	period = 100;
-    	break;
-
-    case TM_PERIOD_MS:
-    case TM_CHANGE_MS:
-    	p_owner->__pretime = 1000L * pif_timer1sec + pif_timer1ms;
-    	break;
-
-    case TM_PERIOD_US:
-    case TM_CHANGE_US:
-    	p_owner->__pretime = (*pif_act_timer1us)();
-    	break;
-
-    default:
-    	break;
-    }
-
-    p_owner->_mode = mode;
-    p_owner->_period = period;
     p_owner->__evt_loop = evt_loop;
     p_owner->_p_client = p_client;
     p_owner->pause = !start;
@@ -422,7 +396,13 @@ void pifTaskManager_Loop()
 
 		s_it_current = it;
 		PifTask* p_owner = (PifTask*)it->data;
-		_processing(p_owner);
+		if (p_owner->immediate) {
+			p_owner->__running = TRUE;
+			(*p_owner->__evt_loop)(p_owner);
+			p_owner->__running = FALSE;
+			p_owner->immediate = FALSE;
+		}
+		else if (!p_owner->pause) (*p_owner->__processing)(p_owner);
 #ifdef __PIF_DEBUG__
 	    if (pif_act_task_loop) (*pif_act_task_loop)();
 #endif
@@ -456,7 +436,13 @@ void pifTaskManager_Yield()
 
 	PifTask* p_owner = (PifTask*)s_it_current->data;
 	if (!p_owner->__running) {
-		_processing(p_owner);
+		if (p_owner->immediate) {
+			p_owner->__running = TRUE;
+			(*p_owner->__evt_loop)(p_owner);
+			p_owner->__running = FALSE;
+			p_owner->immediate = FALSE;
+		}
+		else if (!p_owner->pause) (*p_owner->__processing)(p_owner);
 
 #ifdef __PIF_DEBUG__
 		if (pif_act_task_yield) (*pif_act_task_yield)();
