@@ -55,6 +55,7 @@ struct StPifI2cDevice
 typedef struct StPifI2cPort
 {
 	// Public Member Variable
+	uint16_t error_count;
 
 	// Public Action Function
 	PifActI2cRead act_read;

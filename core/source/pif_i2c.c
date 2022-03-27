@@ -108,6 +108,7 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 
 fail:
 	p_port->__use_device = NULL;
+	p_port->error_count++;
 	p_owner->_state = IS_IDLE;
 	pif_error = E_TRANSFER_FAILED;
 	return FALSE;
@@ -195,6 +196,7 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 
 fail:
 	p_port->__use_device = NULL;
+	p_port->error_count++;
 	p_owner->_state = IS_IDLE;
 	pif_error = E_TRANSFER_FAILED;
 	return FALSE;

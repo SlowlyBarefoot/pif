@@ -387,6 +387,8 @@ void pifFixList_Clear(PifFixList* p_owner, PifEvtFixListClear evt_clear)
 
 void* pifFixList_AddFirst(PifFixList* p_owner)
 {
+	char* p;
+
 	if (p_owner->p_free == NULL) return NULL;
 
 	PifFixListIterator p_node = p_owner->p_free;
@@ -398,7 +400,10 @@ void* pifFixList_AddFirst(PifFixList* p_owner)
 	}
 	p_owner->p_first = p_node;
 	p_owner->count++;
-    return (char*)p_node + 2 * sizeof(PifFixListIterator);
+
+	p = (char*)p_node + 2 * sizeof(PifFixListIterator);
+	memset(p, 0, p_owner->size);
+    return p;
 }
 
 void pifFixList_Remove(PifFixList* p_owner, void* p_data)

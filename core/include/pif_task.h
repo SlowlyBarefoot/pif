@@ -34,6 +34,7 @@ struct StPifTask
 	// Public Member Variable
 	BOOL pause;
 	BOOL immediate;
+	BOOL disallow_yield;
 
 	// Read-only Member Variable
 	PifId _id;

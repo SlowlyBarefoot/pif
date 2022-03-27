@@ -435,6 +435,7 @@ void pifTaskManager_Yield()
 	}
 
 	PifTask* p_owner = (PifTask*)s_it_current->data;
+	if (p_owner->disallow_yield) return;
 	if (!p_owner->__running) {
 		if (p_owner->immediate) {
 			p_owner->__running = TRUE;
