@@ -104,12 +104,11 @@ static void _processingPeriodUs(PifTask* p_owner)
 
 static void _processingPeriodMs(PifTask* p_owner)
 {
-	uint32_t time, gap;
+	uint32_t gap;
 
-	time = 1000L * pif_timer1sec + pif_timer1ms;
-	gap = time - p_owner->__pretime;
+	gap = pif_cumulative_timer1ms - p_owner->__pretime;
 	if (gap >= p_owner->_period) {
-		p_owner->__pretime = time;
+		p_owner->__pretime = pif_cumulative_timer1ms;
 		p_owner->__running = TRUE;
 		(*p_owner->__evt_loop)(p_owner);
 		p_owner->__running = FALSE;
@@ -134,12 +133,11 @@ static void _processingChangeUs(PifTask* p_owner)
 static void _processingChangeMs(PifTask* p_owner)
 {
 	uint16_t period;
-	uint32_t time, gap;
+	uint32_t gap;
 
-	time = 1000L * pif_timer1sec + pif_timer1ms;
-	gap = time - p_owner->__pretime;
+	gap = pif_cumulative_timer1ms - p_owner->__pretime;
 	if (gap >= p_owner->_period) {
-		p_owner->__pretime = time;
+		p_owner->__pretime = pif_cumulative_timer1ms;
 		p_owner->__running = TRUE;
 		period = (*p_owner->__evt_loop)(p_owner);
 		p_owner->__running = FALSE;
@@ -179,16 +177,16 @@ static void _processingRatio(PifTask* p_owner)
 	}
 }
 
-static BOOL _checkParam(PifTaskMode mode, uint16_t period)
+static BOOL _checkParam(PifTaskMode* p_mode, uint16_t period)
 {
-	switch (mode) {
+	switch (*p_mode) {
     case TM_RATIO:
     	if (!period || period > 100) {
     		pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
     	else if (period == 100) {
-    		mode = TM_ALWAYS;
+    		*p_mode = TM_ALWAYS;
     	}
     	break;
 
@@ -238,12 +236,12 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
     	break;
 
     case TM_PERIOD_MS:
-    	p_owner->__pretime = 1000L * pif_timer1sec + pif_timer1ms;
+    	p_owner->__pretime = pif_cumulative_timer1ms;
     	p_owner->__processing = _processingPeriodMs;
     	break;
 
     case TM_CHANGE_MS:
-    	p_owner->__pretime = 1000L * pif_timer1sec + pif_timer1ms;
+    	p_owner->__pretime = pif_cumulative_timer1ms;
     	p_owner->__processing = _processingChangeMs;
     	break;
 
@@ -275,7 +273,7 @@ void pifTask_Init(PifTask* p_owner)
 
 BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period)
 {
-	if (!_checkParam(mode, period)) return FALSE;
+	if (!_checkParam(&mode, period)) return FALSE;
 
 	switch (p_owner->_mode) {
 	case TM_RATIO:
@@ -313,7 +311,7 @@ void pifTask_DelayMs(PifTask* p_owner, uint16_t delay)
 	case TM_RATIO:
 	case TM_ALWAYS:
 		p_owner->__delay_ms = delay;
-    	p_owner->__pretime = 1000L * pif_timer1sec + pif_timer1ms;
+    	p_owner->__pretime = pif_cumulative_timer1ms;
 		break;
 
 	default:
@@ -344,7 +342,7 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
 	    return NULL;
 	}
 
-	if (!_checkParam(mode, period)) return NULL;
+	if (!_checkParam(&mode, period)) return NULL;
 
 	PifTask* p_owner = (PifTask*)pifFixList_AddFirst(&s_tasks);
 	if (!p_owner) return NULL;
@@ -422,11 +420,11 @@ void pifTaskManager_Loop()
 
 void pifTaskManager_Yield()
 {
-	if (!pifFixList_Count(&s_tasks)) return;
-
 	if (pif_act_timer1us) {
 		pif_cumulative_timer1us = (*pif_act_timer1us)();
 	}
+
+	if (!pifFixList_Count(&s_tasks)) return;
 
 	s_it_current = pifFixList_Next(s_it_current);
 	if (!s_it_current) {
@@ -453,25 +451,20 @@ void pifTaskManager_Yield()
 
 void pifTaskManager_YieldMs(uint32_t time)
 {
-    uint32_t start = 1000L * pif_timer1sec + pif_timer1ms;
-    uint32_t current;
+    uint32_t start = pif_cumulative_timer1ms;
 
-	if (!pifFixList_Count(&s_tasks)) return;
     if (!time) return;
 
     do {
 		pifTaskManager_Yield();
-        current = 1000L * pif_timer1sec + pif_timer1ms;
-    } while (current - start <= time);
+    } while (pif_cumulative_timer1ms - start <= time);
 }
 
 void pifTaskManager_YieldUs(uint32_t time)
 {
     uint32_t start;
-    uint32_t current;
     uint32_t delay;
 
-	if (!pifFixList_Count(&s_tasks)) return;
     if (!time) return;
 
     if (!pif_act_timer1us) {
@@ -482,8 +475,7 @@ void pifTaskManager_YieldUs(uint32_t time)
     	start = (*pif_act_timer1us)();
 		do {
 			pifTaskManager_Yield();
-			current = (*pif_act_timer1us)();
-		} while (current - start <= time);
+		} while ((*pif_act_timer1us)() - start <= time);
     }
 }
 

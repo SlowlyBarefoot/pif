@@ -11,7 +11,7 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 		if (button == ON) {
 			p_key->pressed = FALSE;
 			p_key->long_released = FALSE;
-			p_key->pressed_time = pif_timer1sec * 1000 + pif_timer1ms;
+			p_key->pressed_time = pif_cumulative_timer1ms;
 			if (p_owner->evt_double_pressed) {
 				if (!p_key->first_time) {
 					p_key->first_time = p_key->pressed_time;
@@ -27,7 +27,7 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 			p_key->state = KS_PRESSED;
 		}
 		else if (p_key->short_clicked) {
-			time = pif_timer1sec * 1000 + pif_timer1ms - p_key->pressed_time;
+			time = pif_cumulative_timer1ms - p_key->pressed_time;
 			if (time >= p_owner->_double_time1ms) {
 				if (p_owner->evt_pressed)  {
 					(*p_owner->evt_pressed)(p_owner->__p_user_keymap[idx]);
@@ -50,7 +50,7 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 			else p_key->state = KS_IDLE;
 		}
 		else {
-			time = pif_timer1sec * 1000 + pif_timer1ms - p_key->pressed_time;
+			time = pif_cumulative_timer1ms - p_key->pressed_time;
 			if (time >= p_owner->_hold_time1ms) {
 				p_key->state = KS_HOLD;
 			}
@@ -59,7 +59,7 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 
 	case KS_HOLD:
 		if (!p_key->double_pressed) {
-			time = pif_timer1sec * 1000 + pif_timer1ms - p_key->pressed_time;
+			time = pif_cumulative_timer1ms - p_key->pressed_time;
 			if (time >= p_owner->_long_time1ms) {
 				if (!p_key->long_released) {
 					if (p_owner->evt_long_released)  {
@@ -99,7 +99,7 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 
 	case KS_RELEASED:
 		if (!p_key->long_released && p_owner->evt_released)  {
-			time = pif_timer1sec * 1000 + pif_timer1ms - p_key->pressed_time;
+			time = pif_cumulative_timer1ms - p_key->pressed_time;
 			(*p_owner->evt_released)(p_owner->__p_user_keymap[idx], time);
 		}
 		p_key->state = KS_IDLE;

@@ -203,7 +203,8 @@ void pif_sigTimer1ms()
 
 void pif_Delay1ms(uint16_t delay)
 {
-	uint32_t start, diff;
+	uint32_t start;
+	uint16_t diff;
 
 	start = pif_cumulative_timer1ms;
 	do {
@@ -213,7 +214,8 @@ void pif_Delay1ms(uint16_t delay)
 
 void pif_Delay1us(uint16_t delay)
 {
-	uint32_t start, diff;
+	uint32_t start;
+	uint16_t diff;
 
 	start = (*pif_act_timer1us)();
 	do {
