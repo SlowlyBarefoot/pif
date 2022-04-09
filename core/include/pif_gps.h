@@ -13,6 +13,7 @@
 typedef struct StPifGps PifGps;
 
 typedef void (*PifEvtGpsReceive)(PifGps* p_owner);
+typedef void (*PifEvtGpsTimeout)(PifGps* p_owner);
 
 typedef double PifDeg;
 
@@ -56,6 +57,7 @@ struct StPifGps
 	PifTimer* __p_timer;
 
     // Private Event Function
+	PifEvtGpsTimeout __evt_timeout;
 };
 
 
@@ -77,8 +79,9 @@ BOOL pifGps_Init(PifGps* p_owner, PifId id);
  * @param p_owner
  * @param p_timer_manager
  * @param timeout
+ * @param evt_timeout
  */
-BOOL pifGps_SetTimeout(PifGps* p_owner, PifTimerManager* p_timer_manager, uint32_t timeout);
+BOOL pifGps_SetTimeout(PifGps* p_owner, PifTimerManager* p_timer_manager, uint32_t timeout, PifEvtGpsTimeout evt_timeout);
 
 /**
  * @fn pifGps_AttachEvent

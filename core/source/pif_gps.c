@@ -8,7 +8,7 @@ static void _evtTimerFinish(void* p_issuer)
 	p_owner->_connect = FALSE;
     p_owner->_fix = FALSE;
     p_owner->_num_sat = 0;
-	if (p_owner->evt_receive) (*p_owner->evt_receive)(p_owner);
+	if (p_owner->__evt_timeout) (*p_owner->__evt_timeout)(p_owner);
 }
 
 BOOL pifGps_Init(PifGps* p_owner, PifId id)
@@ -25,12 +25,13 @@ BOOL pifGps_Init(PifGps* p_owner, PifId id)
 	return TRUE;
 }
 
-BOOL pifGps_SetTimeout(PifGps* p_owner, PifTimerManager* p_timer_manager, uint32_t timeout)
+BOOL pifGps_SetTimeout(PifGps* p_owner, PifTimerManager* p_timer_manager, uint32_t timeout, PifEvtGpsTimeout evt_timeout)
 {
 	p_owner->__p_timer = pifTimerManager_Add(p_timer_manager, TT_ONCE);
 	if (!p_owner->__p_timer) return FALSE;
 	pifTimer_AttachEvtFinish(p_owner->__p_timer, _evtTimerFinish, p_owner);
     if (!pifTimer_Start(p_owner->__p_timer, timeout)) return FALSE;
+    p_owner->__evt_timeout = evt_timeout;
     return TRUE;
 }
 
