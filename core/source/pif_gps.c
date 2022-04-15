@@ -85,8 +85,3 @@ void pifGps_ConvertLongitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_
 	second = (minute - p_deg_min_sec->minute) * 60;
 	p_deg_min_sec->second = second;
 }
-
-double pifGps_ConvertKnots2MpS(double knots)
-{
-	return knots * 0.514444;		// m/s = 1 knots * 0.514444
-}

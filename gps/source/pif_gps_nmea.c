@@ -112,7 +112,7 @@ static double _convertString2Degrees(char* s)
 			if (isdigit((int)*q)) frac_min += *q++ - '0';
 		}
 	}
-	return deg + min / 60.0 + frac_min / 600000.0;
+	return deg + (min * 10000UL + frac_min) / 600000.0;
 }
 
 static uint8_t _convertAscii2Hex(char n)    // convert '0'..'9','A'..'F' to 0..15
@@ -198,26 +198,26 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 			string[offset] = 0;
 			if (param == 0) { //frame identification
 				message_id = NMEA_MESSAGE_ID_NONE;
-				if (p_owner->__tx.state != GPTS_IDLE) {
+				if (p_owner->__tx.state != GNTS_IDLE) {
 					pifRingBuffer_Remove(&p_owner->__tx.buffer, 4 + p_owner->__tx.ui.st.length);
-					p_owner->__tx.state = GPTS_IDLE;
+					p_owner->__tx.state = GNTS_IDLE;
 				}
 				else {
-					if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_DTM)) && string[2] == 'D' && string[3] == 'T' && string[4] == 'M') message_id = NMEA_MESSAGE_ID_DTM;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_GBS)) && string[2] == 'G' && string[3] == 'B' && string[4] == 'S') message_id = NMEA_MESSAGE_ID_GBS;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_GGA)) && string[2] == 'G' && string[3] == 'G' && string[4] == 'A') message_id = NMEA_MESSAGE_ID_GGA;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_GLL)) && string[2] == 'G' && string[3] == 'L' && string[4] == 'L') message_id = NMEA_MESSAGE_ID_GLL;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_GNS)) && string[2] == 'G' && string[3] == 'N' && string[4] == 'S') message_id = NMEA_MESSAGE_ID_GNS;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_GRS)) && string[2] == 'G' && string[3] == 'R' && string[4] == 'S') message_id = NMEA_MESSAGE_ID_GRS;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_GSA)) && string[2] == 'G' && string[3] == 'S' && string[4] == 'A') message_id = NMEA_MESSAGE_ID_GSA;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_GST)) && string[2] == 'G' && string[3] == 'S' && string[4] == 'T') message_id = NMEA_MESSAGE_ID_GST;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_GSV)) && string[2] == 'G' && string[3] == 'S' && string[4] == 'V') message_id = NMEA_MESSAGE_ID_GSV;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_RMC)) && string[2] == 'R' && string[3] == 'M' && string[4] == 'C') message_id = NMEA_MESSAGE_ID_RMC;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_THS)) && string[2] == 'T' && string[3] == 'H' && string[4] == 'S') message_id = NMEA_MESSAGE_ID_THS;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_TXT)) && string[2] == 'T' && string[3] == 'X' && string[4] == 'T') message_id = NMEA_MESSAGE_ID_TXT;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_VLW)) && string[2] == 'V' && string[3] == 'L' && string[4] == 'W') message_id = NMEA_MESSAGE_ID_VLW;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_VTG)) && string[2] == 'V' && string[3] == 'T' && string[4] == 'G') message_id = NMEA_MESSAGE_ID_VTG;
-					else if ((p_owner->__process_message_id & (1 << NMEA_MESSAGE_ID_ZDA)) && string[2] == 'Z' && string[3] == 'D' && string[4] == 'A') message_id = NMEA_MESSAGE_ID_ZDA;
+					if (string[2] == 'D' && string[3] == 'T' && string[4] == 'M') message_id = NMEA_MESSAGE_ID_DTM;
+					else if (string[2] == 'G' && string[3] == 'B' && string[4] == 'S') message_id = NMEA_MESSAGE_ID_GBS;
+					else if (string[2] == 'G' && string[3] == 'G' && string[4] == 'A') message_id = NMEA_MESSAGE_ID_GGA;
+					else if (string[2] == 'G' && string[3] == 'L' && string[4] == 'L') message_id = NMEA_MESSAGE_ID_GLL;
+					else if (string[2] == 'G' && string[3] == 'N' && string[4] == 'S') message_id = NMEA_MESSAGE_ID_GNS;
+					else if (string[2] == 'G' && string[3] == 'R' && string[4] == 'S') message_id = NMEA_MESSAGE_ID_GRS;
+					else if (string[2] == 'G' && string[3] == 'S' && string[4] == 'A') message_id = NMEA_MESSAGE_ID_GSA;
+					else if (string[2] == 'G' && string[3] == 'S' && string[4] == 'T') message_id = NMEA_MESSAGE_ID_GST;
+					else if (string[2] == 'G' && string[3] == 'S' && string[4] == 'V') message_id = NMEA_MESSAGE_ID_GSV;
+					else if (string[2] == 'R' && string[3] == 'M' && string[4] == 'C') message_id = NMEA_MESSAGE_ID_RMC;
+					else if (string[2] == 'T' && string[3] == 'H' && string[4] == 'S') message_id = NMEA_MESSAGE_ID_THS;
+					else if (string[2] == 'T' && string[3] == 'X' && string[4] == 'T') message_id = NMEA_MESSAGE_ID_TXT;
+					else if (string[2] == 'V' && string[3] == 'L' && string[4] == 'W') message_id = NMEA_MESSAGE_ID_VLW;
+					else if (string[2] == 'V' && string[3] == 'T' && string[4] == 'G') message_id = NMEA_MESSAGE_ID_VTG;
+					else if (string[2] == 'Z' && string[3] == 'D' && string[4] == 'A') message_id = NMEA_MESSAGE_ID_ZDA;
 				}
 			}
 			else if (offset) {
@@ -275,7 +275,7 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 					else if (param == 4 && string[0] == 'S') p_parent->_coord_deg[GPS_LAT] = -p_parent->_coord_deg[GPS_LAT];
 					else if (param == 5) p_parent->_coord_deg[GPS_LON] = _convertString2Degrees(string);
 					else if (param == 6 && string[0] == 'W') p_parent->_coord_deg[GPS_LON] = -p_parent->_coord_deg[GPS_LON];
-					else if (param == 7) p_parent->_speed_n = _convertString2Float(string);
+					else if (param == 7) p_parent->_ground_speed = _convertString2Float(string) * 51444L;	// knots -> cm/s
 					else if (param == 8) p_parent->_ground_course = _convertString2Float(string);
 					else if (param == 9) _convertString2Date(string, &p_parent->_date_time);
 					break;
@@ -284,10 +284,12 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 					break;
 
 				case NMEA_MESSAGE_ID_TXT:
-					if (param == 1) p_owner->__p_txt->total = _convertString2Interger(string);
-					else if (param == 2) p_owner->__p_txt->num = _convertString2Interger(string);
-					else if (param == 3) p_owner->__p_txt->type = _convertString2Interger(string);
-					else if (param == 4) strncpy(p_owner->__p_txt->text, string, PIF_GPS_NMEA_VALUE_SIZE - 1);
+					if (p_owner->__evt_text) {
+						if (param == 1) p_owner->__p_txt->total = _convertString2Interger(string);
+						else if (param == 2) p_owner->__p_txt->num = _convertString2Interger(string);
+						else if (param == 3) p_owner->__p_txt->type = _convertString2Interger(string);
+						else if (param == 4) strncpy(p_owner->__p_txt->text, string, PIF_GPS_NMEA_VALUE_SIZE - 1);
+					}
 					break;
 
 				case NMEA_MESSAGE_ID_VLW:
@@ -295,8 +297,7 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 
 				case NMEA_MESSAGE_ID_VTG:
 					if (param == 1) p_parent->_ground_course = _convertString2Float(string);
-					else if (param == 5) p_parent->_speed_n = _convertString2Float(string);
-					else if (param == 7) p_parent->_speed_k = _convertString2Float(string);
+					else if (param == 5) p_parent->_ground_speed = _convertString2Float(string) * 51444L;	// knots -> cm/s
 					break;
 
 				case NMEA_MESSAGE_ID_ZDA:
@@ -325,8 +326,8 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 				if (checksum == parity) {
 					checksum_param = 0;
 					if (p_owner->__event_message_id && message_id == p_owner->__event_message_id) frame_ok = 1;
-					if (message_id == NMEA_MESSAGE_ID_TXT && p_owner->evt_text) {
-						(p_owner->evt_text)(p_owner->__p_txt);
+					if (message_id == NMEA_MESSAGE_ID_TXT && p_owner->__evt_text) {
+						(p_owner->__evt_text)(p_owner->__p_txt);
 					}
 					break;
 				}
@@ -360,27 +361,27 @@ BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 	uint16_t length;
 
 	switch (p_owner->__tx.state) {
-	case GPTS_IDLE:
+	case GNTS_IDLE:
 		if (!pifRingBuffer_IsEmpty(&p_owner->__tx.buffer)) {
 			pifRingBuffer_CopyToArray(p_owner->__tx.ui.info, 4, &p_owner->__tx.buffer, 0);
 			p_owner->__tx.pos = 4;
-			p_owner->__tx.state = GPTS_SENDING;
+			p_owner->__tx.state = GNTS_SENDING;
 		}
 		break;
 
-	case GPTS_SENDING:
+	case GNTS_SENDING:
 		length = (*act_send_data)(p_owner->__p_comm, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, p_owner->__tx.pos),
 				pifRingBuffer_GetLinerSize(&p_owner->__tx.buffer, p_owner->__tx.pos));
 		p_owner->__tx.pos += length;
 		if (p_owner->__tx.pos >= 4 + p_owner->__tx.ui.st.length) {
-			p_owner->__tx.state = GPTS_WAIT_SENDED;
+			p_owner->__tx.state = GNTS_WAIT_SENDED;
 		}
 		return TRUE;
 
-	case GPTS_WAIT_SENDED:
+	case GNTS_WAIT_SENDED:
 		if (!p_owner->__tx.ui.st.response) {
 			pifRingBuffer_Remove(&p_owner->__tx.buffer, 4 + p_owner->__tx.ui.st.length);
-			p_owner->__tx.state = GPTS_IDLE;
+			p_owner->__tx.state = GNTS_IDLE;
 		}
 		break;
 
@@ -417,6 +418,7 @@ void pifGpsNmea_Clear(PifGpsNmea* p_owner)
 		free(p_owner->__p_txt);
 		p_owner->__p_txt = NULL;
 	}
+	p_owner->__evt_text = NULL;
 }
 
 void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* p_comm)
@@ -431,47 +433,21 @@ void pifGpsNmea_DetachComm(PifGpsNmea* p_owner)
 	p_owner->__p_comm = NULL;
 }
 
-BOOL pifGpsNmea_SetProcessMessageId(PifGpsNmea* p_owner, int count, ...)
-{
-	va_list ap;
-	int i, arg;
-
-	va_start(ap, count);
-
-	p_owner->__process_message_id = 0UL;
-	for (i = 0; i < count; i++) {
-		arg = va_arg(ap, int);
-		p_owner->__process_message_id |= 1UL << arg;
-
-		if (arg == NMEA_MESSAGE_ID_TXT && !p_owner->__p_txt) {
-			p_owner->__p_txt = calloc(PIF_GPS_NMEA_VALUE_SIZE, 1);
-			if (!p_owner->__p_txt) {
-				pif_error = E_OUT_OF_HEAP;
-				return FALSE;
-			}
-		}
-	}
-
-	va_end(ap);
-
-	for (i = 1; i <= NMEA_MESSAGE_ID_MAX; i++) {
-		if (!(p_owner->__process_message_id & (1UL << i))) {
-			switch (i) {
-			case NMEA_MESSAGE_ID_TXT:
-				if (p_owner->__p_txt) {
-					free(p_owner->__p_txt);
-					p_owner->__p_txt = NULL;
-				}
-				break;
-			}
-		}
-	}
-	return TRUE;
-}
-
 void pifGpsNmea_SetEventMessageId(PifGpsNmea* p_owner, PifGpsNmeaMessageId message_id)
 {
 	p_owner->__event_message_id = message_id;
+}
+
+BOOL pifGpsNmea_SetEventText(PifGpsNmea* p_owner, PifEvtGpsNmeaText evt_text)
+{
+	p_owner->__p_txt = (PifGpsNmeaTxt*)calloc(sizeof(PifGpsNmeaTxt), 1);
+	if (!p_owner->__p_txt) {
+		pif_error = E_OUT_OF_HEAP;
+		return FALSE;
+	}
+
+	p_owner->__evt_text = evt_text;
+	return TRUE;
 }
 
 BOOL pifGpsNmea_PollRequestGBQ(PifGpsNmea* p_owner, const char* p_mag_id)
@@ -484,7 +460,7 @@ BOOL pifGpsNmea_PollRequestGBQ(PifGpsNmea* p_owner, const char* p_mag_id)
 		return FALSE;
 	}
 
-	if (p_owner->__tx.state != GPTS_IDLE) {
+	if (p_owner->__tx.state != GNTS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
@@ -509,7 +485,7 @@ BOOL pifGpsNmea_PollRequestGLQ(PifGpsNmea* p_owner, const char* p_mag_id)
 		return FALSE;
 	}
 
-	if (p_owner->__tx.state != GPTS_IDLE) {
+	if (p_owner->__tx.state != GNTS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
@@ -534,7 +510,7 @@ BOOL pifGpsNmea_PollRequestGNQ(PifGpsNmea* p_owner, const char* p_mag_id)
 		return FALSE;
 	}
 
-	if (p_owner->__tx.state != GPTS_IDLE) {
+	if (p_owner->__tx.state != GNTS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
@@ -559,7 +535,7 @@ BOOL pifGpsNmea_PollRequestGPQ(PifGpsNmea* p_owner, const char* p_mag_id)
 		return FALSE;
 	}
 
-	if (p_owner->__tx.state != GPTS_IDLE) {
+	if (p_owner->__tx.state != GNTS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}

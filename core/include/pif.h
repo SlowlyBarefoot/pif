@@ -22,16 +22,6 @@
 
 //#define __PIF_COLLECT_SIGNAL__
 
-// -------- pifGpsNmea ---------------------------
-
-#ifndef PIF_GPS_NMEA_TX_SIZE
-#define PIF_GPS_NMEA_TX_SIZE			32
-#endif
-
-#ifndef PIF_GPS_NMEA_VALUE_SIZE
-#define PIF_GPS_NMEA_VALUE_SIZE			32
-#endif
-
 // -------- pifKeypad ----------------------------
 
 #ifndef PIF_KEYPAD_DEFAULT_HOLD_TIME

@@ -261,6 +261,7 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 static uint16_t _doTask(PifTask* p_task)
 {
     int status = PIF_LOG_CMD_NO_ERROR;
+    char msg[40];
 
     (void)p_task;
 
@@ -300,7 +301,8 @@ static uint16_t _doTask(PifTask* p_task)
 	    // Otherwise the command was executed.  Print the error
 	    // code if one was returned.
 	    else if (status != PIF_LOG_CMD_NO_ERROR) {
-	    	while (!pifRingBuffer_PutString(s_log.p_tx_buffer, "Command returned error code\n")) {
+	    	pif_Printf(msg, "Command returned error code: %d\n", status);
+	    	while (!pifRingBuffer_PutString(s_log.p_tx_buffer, msg)) {
         		pifTaskManager_Yield();
 	    	}
 	    }

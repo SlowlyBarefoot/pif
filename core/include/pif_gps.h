@@ -44,11 +44,19 @@ struct StPifGps
     // Read-only Member Variable
 	PifId _id;
     PifDateTime _date_time;
-	PifDeg _coord_deg[2];		// latitude, longitude	- unit: degree
-	double _altitude;       	// altitude      		- unit: meter
-	double _speed_n;          	// speed         		- unit: knots
-	double _speed_k;          	// speed         		- unit: km/h
-	double _ground_course;		//                   	- unit: degree
+	PifDeg _coord_deg[2];			// latitude, longitude	- unit: degree
+	double _altitude;       		// altitude      		- unit: meter
+	double _ground_speed;      		// ground speed         - unit: cm/s
+	double _ground_course;			//                   	- unit: degree
+	uint32_t _horizontal_acc;       // Horizontal accuracy estimate (mm)
+	uint32_t _vertical_acc;         // Vertical accuracy estimate (mm)
+	uint8_t _numCh;                 // Number of channels
+	uint8_t _svinfo_chn[32];        // Channel number
+	uint8_t _svinfo_svid[32];       // Satellite ID
+	uint8_t _svinfo_quality[32];	// Bitfield Qualtity
+	uint8_t _svinfo_cno[32];        // Carrier to Noise Ratio (Signal Strength)
+	uint32_t _update_rate[2];       // GPS coordinates updating rate (column 0 = last update time, 1 = current update ms)
+	uint32_t _svinfo_rate[2];       // GPS svinfo updating rate (column 0 = last update time, 1 = current update ms)
 	uint8_t _num_sat;
 	BOOL _fix		: 1;
 	BOOL _connect	: 1;
@@ -129,14 +137,6 @@ void pifGps_ConvertLatitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_s
  * @param p_deg_min_sec
  */
 void pifGps_ConvertLongitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_sec);
-
-/**
- * @fn pifGps_ConvertKnots2MpS
- * @brief
- * @param knots
- * @return
- */
-double pifGps_ConvertKnots2MpS(double knots);
 
 #ifdef __cplusplus
 }
