@@ -6,9 +6,35 @@
 #include "pif_timer.h"
 
 
-#define GPS_LAT  0		// Latitude (위도)
-#define GPS_LON  1		// Longitude (경도)
+#ifndef PIF_GPS_NMEA_VALUE_SIZE
+#define PIF_GPS_NMEA_VALUE_SIZE			32
+#endif
 
+#define PIF_GPS_LAT  	0		// Latitude (위도)
+#define PIF_GPS_LON  	1		// Longitude (경도)
+
+#define PIF_GPS_NMEA_MSG_ID_NONE	0
+
+#define PIF_GPS_NMEA_MSG_ID_DTM		1
+#define PIF_GPS_NMEA_MSG_ID_GBS		2
+#define PIF_GPS_NMEA_MSG_ID_GGA		3
+#define PIF_GPS_NMEA_MSG_ID_GLL		4
+#define PIF_GPS_NMEA_MSG_ID_GNS		5
+#define PIF_GPS_NMEA_MSG_ID_GRS		6
+#define PIF_GPS_NMEA_MSG_ID_GSA		7
+#define PIF_GPS_NMEA_MSG_ID_GST		8
+#define PIF_GPS_NMEA_MSG_ID_GSV		9
+#define PIF_GPS_NMEA_MSG_ID_RMC		10
+#define PIF_GPS_NMEA_MSG_ID_THS		11
+#define PIF_GPS_NMEA_MSG_ID_TXT		12
+#define PIF_GPS_NMEA_MSG_ID_VLW		13
+#define PIF_GPS_NMEA_MSG_ID_VTG		14
+#define PIF_GPS_NMEA_MSG_ID_ZDA		15
+
+#define PIF_GPS_NMEA_MSG_ID_MAX		15
+
+
+typedef uint8_t PifGpsNmeaMsgId;
 
 typedef struct StPifGps PifGps;
 
@@ -37,6 +63,7 @@ typedef struct StPifDegMinSec
 struct StPifGps
 {
 	// Public Member Variable
+    PifGpsNmeaMsgId evt_nmea_msg_id;
 
     // Private Event Function
 	PifEvtGpsReceive evt_receive;
@@ -90,14 +117,6 @@ BOOL pifGps_Init(PifGps* p_owner, PifId id);
  * @param evt_timeout
  */
 BOOL pifGps_SetTimeout(PifGps* p_owner, PifTimerManager* p_timer_manager, uint32_t timeout, PifEvtGpsTimeout evt_timeout);
-
-/**
- * @fn pifGps_AttachEvent
- * @brief
- * @param p_owner
- * @param evt_receive
- */
-void pifGps_AttachEvent(PifGps* p_owner, PifEvtGpsReceive evt_receive);
 
 /**
  * @fn pifGps_SendEvent

@@ -46,7 +46,7 @@ void pifGps_ConvertLatitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min)
 {
 	double degree, minute;
 
-	degree = p_owner->_coord_deg[GPS_LAT];
+	degree = p_owner->_coord_deg[PIF_GPS_LAT];
 	p_deg_min->degree = degree;
 	minute = (degree - p_deg_min->degree) * 60;
 	p_deg_min->minute = minute;
@@ -56,7 +56,7 @@ void pifGps_ConvertLongitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min)
 {
 	double degree, minute;
 
-	degree = p_owner->_coord_deg[GPS_LON];
+	degree = p_owner->_coord_deg[PIF_GPS_LON];
 	p_deg_min->degree = degree;
 	minute = (degree - p_deg_min->degree) * 60;
 	p_deg_min->minute = minute;
@@ -66,7 +66,7 @@ void pifGps_ConvertLatitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_s
 {
 	double degree, minute, second;
 
-	degree = p_owner->_coord_deg[GPS_LAT];
+	degree = p_owner->_coord_deg[PIF_GPS_LAT];
 	p_deg_min_sec->degree = degree;
 	minute = (degree - p_deg_min_sec->degree) * 60;
 	p_deg_min_sec->minute = minute;
@@ -78,7 +78,7 @@ void pifGps_ConvertLongitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_
 {
 	double degree, minute, second;
 
-	degree = p_owner->_coord_deg[GPS_LON];
+	degree = p_owner->_coord_deg[PIF_GPS_LON];
 	p_deg_min_sec->degree = degree;
 	minute = (degree - p_deg_min_sec->degree) * 60;
 	p_deg_min_sec->minute = minute;

@@ -123,44 +123,6 @@ static uint8_t _convertAscii2Hex(char n)    // convert '0'..'9','A'..'F' to 0..1
 	return n;
 }
 
-static BOOL _makePacket(PifGpsNmea* p_owner, char* p_data)
-{
-	uint8_t aucHeader[4];
-	uint8_t parity = 0;
-	int i;
-
-	i = 1;
-	while (TRUE) {
-		if (p_data[i] == '*') {
-			i++;
-			break;
-		}
-		else {
-			parity ^= p_data[i];
-			i++;
-		}
-	}
-	p_data[i] = kPifHexUpperChar[(parity >> 4) & 0x0F]; i++;
-	p_data[i] = kPifHexUpperChar[parity & 0x0F]; i++;
-	p_data[i] = '\r'; i++;
-	p_data[i] = '\n'; i++;
-	p_data[i] = 0;
-
-	pifRingBuffer_BackupHead(&p_owner->__tx.buffer);
-
-	aucHeader[0] = i;
-	aucHeader[1] = 0;
-	aucHeader[2] = 0;
-	aucHeader[3] = 0;
-	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, aucHeader, 4)) goto fail;
-	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, (uint8_t *)p_data, aucHeader[0])) goto fail;
-	return TRUE;
-
-fail:
-	pifRingBuffer_RestoreHead(&p_owner->__tx.buffer);
-	return FALSE;
-}
-
 /* This is a light implementation of a GPS frame decoding
    This should work with most of modern GPS devices configured to output NMEA frames.
    It assumes there are some NMEA GGA frames to decode on the serial bus
@@ -181,7 +143,7 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 	static uint8_t param = 0, offset = 0, parity = 0;
 	static char string[PIF_GPS_NMEA_VALUE_SIZE];
 	static uint8_t checksum_param = 0;
-	static uint16_t message_id = NMEA_MESSAGE_ID_NONE;
+	static uint16_t msg_id = PIF_GPS_NMEA_MSG_ID_NONE;
 
 	while ((*act_receive_data)(p_owner->__p_comm, &c)) {
 		if (c == '$') {
@@ -197,110 +159,104 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 		else if (c == ',' || c == '*') {
 			string[offset] = 0;
 			if (param == 0) { //frame identification
-				message_id = NMEA_MESSAGE_ID_NONE;
-				if (p_owner->__tx.state != GNTS_IDLE) {
-					pifRingBuffer_Remove(&p_owner->__tx.buffer, 4 + p_owner->__tx.ui.st.length);
-					p_owner->__tx.state = GNTS_IDLE;
-				}
-				else {
-					if (string[2] == 'D' && string[3] == 'T' && string[4] == 'M') message_id = NMEA_MESSAGE_ID_DTM;
-					else if (string[2] == 'G' && string[3] == 'B' && string[4] == 'S') message_id = NMEA_MESSAGE_ID_GBS;
-					else if (string[2] == 'G' && string[3] == 'G' && string[4] == 'A') message_id = NMEA_MESSAGE_ID_GGA;
-					else if (string[2] == 'G' && string[3] == 'L' && string[4] == 'L') message_id = NMEA_MESSAGE_ID_GLL;
-					else if (string[2] == 'G' && string[3] == 'N' && string[4] == 'S') message_id = NMEA_MESSAGE_ID_GNS;
-					else if (string[2] == 'G' && string[3] == 'R' && string[4] == 'S') message_id = NMEA_MESSAGE_ID_GRS;
-					else if (string[2] == 'G' && string[3] == 'S' && string[4] == 'A') message_id = NMEA_MESSAGE_ID_GSA;
-					else if (string[2] == 'G' && string[3] == 'S' && string[4] == 'T') message_id = NMEA_MESSAGE_ID_GST;
-					else if (string[2] == 'G' && string[3] == 'S' && string[4] == 'V') message_id = NMEA_MESSAGE_ID_GSV;
-					else if (string[2] == 'R' && string[3] == 'M' && string[4] == 'C') message_id = NMEA_MESSAGE_ID_RMC;
-					else if (string[2] == 'T' && string[3] == 'H' && string[4] == 'S') message_id = NMEA_MESSAGE_ID_THS;
-					else if (string[2] == 'T' && string[3] == 'X' && string[4] == 'T') message_id = NMEA_MESSAGE_ID_TXT;
-					else if (string[2] == 'V' && string[3] == 'L' && string[4] == 'W') message_id = NMEA_MESSAGE_ID_VLW;
-					else if (string[2] == 'V' && string[3] == 'T' && string[4] == 'G') message_id = NMEA_MESSAGE_ID_VTG;
-					else if (string[2] == 'Z' && string[3] == 'D' && string[4] == 'A') message_id = NMEA_MESSAGE_ID_ZDA;
-				}
+				msg_id = PIF_GPS_NMEA_MSG_ID_NONE;
+				if (string[2] == 'D' && string[3] == 'T' && string[4] == 'M') msg_id = PIF_GPS_NMEA_MSG_ID_DTM;
+				else if (string[2] == 'G' && string[3] == 'B' && string[4] == 'S') msg_id = PIF_GPS_NMEA_MSG_ID_GBS;
+				else if (string[2] == 'G' && string[3] == 'G' && string[4] == 'A') msg_id = PIF_GPS_NMEA_MSG_ID_GGA;
+				else if (string[2] == 'G' && string[3] == 'L' && string[4] == 'L') msg_id = PIF_GPS_NMEA_MSG_ID_GLL;
+				else if (string[2] == 'G' && string[3] == 'N' && string[4] == 'S') msg_id = PIF_GPS_NMEA_MSG_ID_GNS;
+				else if (string[2] == 'G' && string[3] == 'R' && string[4] == 'S') msg_id = PIF_GPS_NMEA_MSG_ID_GRS;
+				else if (string[2] == 'G' && string[3] == 'S' && string[4] == 'A') msg_id = PIF_GPS_NMEA_MSG_ID_GSA;
+				else if (string[2] == 'G' && string[3] == 'S' && string[4] == 'T') msg_id = PIF_GPS_NMEA_MSG_ID_GST;
+				else if (string[2] == 'G' && string[3] == 'S' && string[4] == 'V') msg_id = PIF_GPS_NMEA_MSG_ID_GSV;
+				else if (string[2] == 'R' && string[3] == 'M' && string[4] == 'C') msg_id = PIF_GPS_NMEA_MSG_ID_RMC;
+				else if (string[2] == 'T' && string[3] == 'H' && string[4] == 'S') msg_id = PIF_GPS_NMEA_MSG_ID_THS;
+				else if (string[2] == 'T' && string[3] == 'X' && string[4] == 'T') msg_id = PIF_GPS_NMEA_MSG_ID_TXT;
+				else if (string[2] == 'V' && string[3] == 'L' && string[4] == 'W') msg_id = PIF_GPS_NMEA_MSG_ID_VLW;
+				else if (string[2] == 'V' && string[3] == 'T' && string[4] == 'G') msg_id = PIF_GPS_NMEA_MSG_ID_VTG;
+				else if (string[2] == 'Z' && string[3] == 'D' && string[4] == 'A') msg_id = PIF_GPS_NMEA_MSG_ID_ZDA;
 			}
 			else if (offset) {
-				switch (message_id) {
-				case NMEA_MESSAGE_ID_DTM:
+				switch (msg_id) {
+				case PIF_GPS_NMEA_MSG_ID_DTM:
 					break;
 
-				case NMEA_MESSAGE_ID_GBS:
+				case PIF_GPS_NMEA_MSG_ID_GBS:
 					break;
 
-				case NMEA_MESSAGE_ID_GGA:
+				case PIF_GPS_NMEA_MSG_ID_GGA:
 					if (param == 1) _convertString2Time(string, &p_parent->_date_time);
-					else if (param == 2) p_parent->_coord_deg[GPS_LAT] = _convertString2Degrees(string);
-					else if (param == 3 && string[0] == 'S') p_parent->_coord_deg[GPS_LAT] = -p_parent->_coord_deg[GPS_LAT];
-					else if (param == 4) p_parent->_coord_deg[GPS_LON] = _convertString2Degrees(string);
-					else if (param == 5 && string[0] == 'W') p_parent->_coord_deg[GPS_LON] = -p_parent->_coord_deg[GPS_LON];
+					else if (param == 2) p_parent->_coord_deg[PIF_GPS_LAT] = _convertString2Degrees(string);
+					else if (param == 3 && string[0] == 'S') p_parent->_coord_deg[PIF_GPS_LAT] = -p_parent->_coord_deg[PIF_GPS_LAT];
+					else if (param == 4) p_parent->_coord_deg[PIF_GPS_LON] = _convertString2Degrees(string);
+					else if (param == 5 && string[0] == 'W') p_parent->_coord_deg[PIF_GPS_LON] = -p_parent->_coord_deg[PIF_GPS_LON];
 					else if (param == 6) p_parent->_fix = (string[0]  > '0');
 					else if (param == 7) p_parent->_num_sat = _convertString2Interger(string);
 					else if (param == 9) p_parent->_altitude = _convertString2Float(string);
 					break;
 
-				case NMEA_MESSAGE_ID_GLL:
-					if (param == 1) p_parent->_coord_deg[GPS_LAT] = _convertString2Degrees(string);
-					else if (param == 2 && string[0] == 'S') p_parent->_coord_deg[GPS_LAT] = -p_parent->_coord_deg[GPS_LAT];
-					else if (param == 3) p_parent->_coord_deg[GPS_LON] = _convertString2Degrees(string);
-					else if (param == 4 && string[0] == 'W') p_parent->_coord_deg[GPS_LON] = -p_parent->_coord_deg[GPS_LON];
+				case PIF_GPS_NMEA_MSG_ID_GLL:
+					if (param == 1) p_parent->_coord_deg[PIF_GPS_LAT] = _convertString2Degrees(string);
+					else if (param == 2 && string[0] == 'S') p_parent->_coord_deg[PIF_GPS_LAT] = -p_parent->_coord_deg[PIF_GPS_LAT];
+					else if (param == 3) p_parent->_coord_deg[PIF_GPS_LON] = _convertString2Degrees(string);
+					else if (param == 4 && string[0] == 'W') p_parent->_coord_deg[PIF_GPS_LON] = -p_parent->_coord_deg[PIF_GPS_LON];
 					else if (param == 5) _convertString2Time(string, &p_parent->_date_time);
 					break;
 
-				case NMEA_MESSAGE_ID_GNS:
+				case PIF_GPS_NMEA_MSG_ID_GNS:
 					if (param == 1) _convertString2Time(string, &p_parent->_date_time);
-					else if (param == 2) p_parent->_coord_deg[GPS_LAT] = _convertString2Degrees(string);
-					else if (param == 3 && string[0] == 'S') p_parent->_coord_deg[GPS_LAT] = -p_parent->_coord_deg[GPS_LAT];
-					else if (param == 4) p_parent->_coord_deg[GPS_LON] = _convertString2Degrees(string);
-					else if (param == 5 && string[0] == 'W') p_parent->_coord_deg[GPS_LON] = -p_parent->_coord_deg[GPS_LON];
+					else if (param == 2) p_parent->_coord_deg[PIF_GPS_LAT] = _convertString2Degrees(string);
+					else if (param == 3 && string[0] == 'S') p_parent->_coord_deg[PIF_GPS_LAT] = -p_parent->_coord_deg[PIF_GPS_LAT];
+					else if (param == 4) p_parent->_coord_deg[PIF_GPS_LON] = _convertString2Degrees(string);
+					else if (param == 5 && string[0] == 'W') p_parent->_coord_deg[PIF_GPS_LON] = -p_parent->_coord_deg[PIF_GPS_LON];
 					else if (param == 7) p_parent->_num_sat = _convertString2Interger(string);
 					else if (param == 9) p_parent->_altitude = _convertString2Float(string);
 					break;
 
-				case NMEA_MESSAGE_ID_GRS:
+				case PIF_GPS_NMEA_MSG_ID_GRS:
 					break;
 
-				case NMEA_MESSAGE_ID_GSA:
+				case PIF_GPS_NMEA_MSG_ID_GSA:
 					break;
 
-				case NMEA_MESSAGE_ID_GST:
+				case PIF_GPS_NMEA_MSG_ID_GST:
 					break;
 
-				case NMEA_MESSAGE_ID_GSV:
+				case PIF_GPS_NMEA_MSG_ID_GSV:
 					break;
 
-				case NMEA_MESSAGE_ID_RMC:
+				case PIF_GPS_NMEA_MSG_ID_RMC:
 					if (param == 1) _convertString2Time(string, &p_parent->_date_time);
-					else if (param == 3) p_parent->_coord_deg[GPS_LAT] = _convertString2Degrees(string);
-					else if (param == 4 && string[0] == 'S') p_parent->_coord_deg[GPS_LAT] = -p_parent->_coord_deg[GPS_LAT];
-					else if (param == 5) p_parent->_coord_deg[GPS_LON] = _convertString2Degrees(string);
-					else if (param == 6 && string[0] == 'W') p_parent->_coord_deg[GPS_LON] = -p_parent->_coord_deg[GPS_LON];
+					else if (param == 3) p_parent->_coord_deg[PIF_GPS_LAT] = _convertString2Degrees(string);
+					else if (param == 4 && string[0] == 'S') p_parent->_coord_deg[PIF_GPS_LAT] = -p_parent->_coord_deg[PIF_GPS_LAT];
+					else if (param == 5) p_parent->_coord_deg[PIF_GPS_LON] = _convertString2Degrees(string);
+					else if (param == 6 && string[0] == 'W') p_parent->_coord_deg[PIF_GPS_LON] = -p_parent->_coord_deg[PIF_GPS_LON];
 					else if (param == 7) p_parent->_ground_speed = _convertString2Float(string) * 51444L;	// knots -> cm/s
 					else if (param == 8) p_parent->_ground_course = _convertString2Float(string);
 					else if (param == 9) _convertString2Date(string, &p_parent->_date_time);
 					break;
 
-				case NMEA_MESSAGE_ID_THS:
+				case PIF_GPS_NMEA_MSG_ID_THS:
 					break;
 
-				case NMEA_MESSAGE_ID_TXT:
+				case PIF_GPS_NMEA_MSG_ID_TXT:
 					if (p_owner->__evt_text) {
 						if (param == 1) p_owner->__p_txt->total = _convertString2Interger(string);
 						else if (param == 2) p_owner->__p_txt->num = _convertString2Interger(string);
 						else if (param == 3) p_owner->__p_txt->type = _convertString2Interger(string);
-						else if (param == 4) strncpy(p_owner->__p_txt->text, string, PIF_GPS_NMEA_VALUE_SIZE - 1);
+						else if (param == 4) strncpy(p_owner->__p_txt->text, string, PIF_GPS_NMEA_TEXT_SIZE - 1);
 					}
 					break;
 
-				case NMEA_MESSAGE_ID_VLW:
+				case PIF_GPS_NMEA_MSG_ID_VLW:
 					break;
 
-				case NMEA_MESSAGE_ID_VTG:
+				case PIF_GPS_NMEA_MSG_ID_VTG:
 					if (param == 1) p_parent->_ground_course = _convertString2Float(string);
 					else if (param == 5) p_parent->_ground_speed = _convertString2Float(string) * 51444L;	// knots -> cm/s
 					break;
 
-				case NMEA_MESSAGE_ID_ZDA:
+				case PIF_GPS_NMEA_MSG_ID_ZDA:
 					if (param == 1) _convertString2Time(string, &p_parent->_date_time);
 					else if (param == 2) p_parent->_date_time.day = _convertString2Interger(string);
 					else if (param == 3) p_parent->_date_time.month = _convertString2Interger(string);
@@ -319,21 +275,19 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 			offset = 0;
 		}
 		else if (c == '\r' || c == '\n') {
-			if (message_id && checksum_param) { //parity checksum
+			if (msg_id && checksum_param) { //parity checksum
 				uint8_t checksum = _convertAscii2Hex(string[0]);
 				checksum <<= 4;
 				checksum += _convertAscii2Hex(string[1]);
 				if (checksum == parity) {
-					checksum_param = 0;
-					if (p_owner->__event_message_id && message_id == p_owner->__event_message_id) frame_ok = 1;
-					if (message_id == NMEA_MESSAGE_ID_TXT && p_owner->__evt_text) {
+					if (msg_id == p_parent->evt_nmea_msg_id) frame_ok = 1;
+					if (msg_id == PIF_GPS_NMEA_MSG_ID_TXT && p_owner->__evt_text) {
 						(p_owner->__evt_text)(p_owner->__p_txt);
 					}
-					break;
 				}
 #ifndef __PIF_NO_LOG__
 				else {
-					pifLog_Printf(LT_ERROR, "GN(%u): MagId=%u checksum=%x:%x", __LINE__, message_id, checksum, parity);
+					pifLog_Printf(LT_ERROR, "GN(%u): MagId=%u checksum=%x:%x", __LINE__, msg_id, checksum, parity);
 				}
 #endif
 			}
@@ -344,51 +298,15 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 				(p_owner->evt_frame)(string);
 			}
 			offset = 0;
+			if (frame_ok) {
+				pifGps_SendEvent(p_parent);
+			}
 		}
 		else {
 			if (offset < PIF_GPS_NMEA_VALUE_SIZE) string[offset++] = c;
 			if (!checksum_param) parity ^= c;
 		}
 	}
-	if (frame_ok) {
-		pifGps_SendEvent(p_parent);
-	}
-}
-
-BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
-{
-	PifGpsNmea *p_owner = (PifGpsNmea *)p_client;
-	uint16_t length;
-
-	switch (p_owner->__tx.state) {
-	case GNTS_IDLE:
-		if (!pifRingBuffer_IsEmpty(&p_owner->__tx.buffer)) {
-			pifRingBuffer_CopyToArray(p_owner->__tx.ui.info, 4, &p_owner->__tx.buffer, 0);
-			p_owner->__tx.pos = 4;
-			p_owner->__tx.state = GNTS_SENDING;
-		}
-		break;
-
-	case GNTS_SENDING:
-		length = (*act_send_data)(p_owner->__p_comm, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, p_owner->__tx.pos),
-				pifRingBuffer_GetLinerSize(&p_owner->__tx.buffer, p_owner->__tx.pos));
-		p_owner->__tx.pos += length;
-		if (p_owner->__tx.pos >= 4 + p_owner->__tx.ui.st.length) {
-			p_owner->__tx.state = GNTS_WAIT_SENDED;
-		}
-		return TRUE;
-
-	case GNTS_WAIT_SENDED:
-		if (!p_owner->__tx.ui.st.response) {
-			pifRingBuffer_Remove(&p_owner->__tx.buffer, 4 + p_owner->__tx.ui.st.length);
-			p_owner->__tx.state = GNTS_IDLE;
-		}
-		break;
-
-	default:
-		break;
-	}
-	return FALSE;
 }
 
 BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId id)
@@ -401,9 +319,6 @@ BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId id)
 	memset(p_owner, 0, sizeof(PifGpsNmea));
 
     if (!pifGps_Init(&p_owner->_gps, id)) goto fail;
-
-    if (!pifRingBuffer_InitHeap(&p_owner->__tx.buffer, PIF_ID_AUTO, PIF_GPS_NMEA_TX_SIZE)) goto fail;
-    pifRingBuffer_SetName(&p_owner->__tx.buffer, "TxB");
     return TRUE;
 
 fail:
@@ -413,7 +328,6 @@ fail:
 
 void pifGpsNmea_Clear(PifGpsNmea* p_owner)
 {
-	pifRingBuffer_Clear(&p_owner->__tx.buffer);
 	if (p_owner->__p_txt) {
 		free(p_owner->__p_txt);
 		p_owner->__p_txt = NULL;
@@ -424,18 +338,13 @@ void pifGpsNmea_Clear(PifGpsNmea* p_owner)
 void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* p_comm)
 {
 	p_owner->__p_comm = p_comm;
-	pifComm_AttachClient(p_comm, p_owner, _evtParsing, _evtSending);
+	pifComm_AttachClient(p_comm, p_owner, _evtParsing, NULL);
 }
 
 void pifGpsNmea_DetachComm(PifGpsNmea* p_owner)
 {
 	pifComm_DetachClient(p_owner->__p_comm);
 	p_owner->__p_comm = NULL;
-}
-
-void pifGpsNmea_SetEventMessageId(PifGpsNmea* p_owner, PifGpsNmeaMessageId message_id)
-{
-	p_owner->__event_message_id = message_id;
 }
 
 BOOL pifGpsNmea_SetEventText(PifGpsNmea* p_owner, PifEvtGpsNmeaText evt_text)
@@ -448,104 +357,4 @@ BOOL pifGpsNmea_SetEventText(PifGpsNmea* p_owner, PifEvtGpsNmeaText evt_text)
 
 	p_owner->__evt_text = evt_text;
 	return TRUE;
-}
-
-BOOL pifGpsNmea_PollRequestGBQ(PifGpsNmea* p_owner, const char* p_mag_id)
-{
-	char data[16] = "$GBGBQ,";
-	int i;
-
-	if (!p_owner->__p_comm->act_send_data) {
-		pif_error = E_TRANSFER_FAILED;
-		return FALSE;
-	}
-
-	if (p_owner->__tx.state != GNTS_IDLE) {
-		pif_error = E_INVALID_STATE;
-		return FALSE;
-	}
-
-	i = 0;
-	while (p_mag_id[i]) {
-		data[7 + i] = p_mag_id[i];
-		i++;
-	}
-	data[7 + i] = '*';
-
-	return _makePacket(p_owner, data);
-}
-
-BOOL pifGpsNmea_PollRequestGLQ(PifGpsNmea* p_owner, const char* p_mag_id)
-{
-	char data[16] = "$GLGLQ,";
-	int i;
-
-	if (!p_owner->__p_comm->act_send_data) {
-		pif_error = E_TRANSFER_FAILED;
-		return FALSE;
-	}
-
-	if (p_owner->__tx.state != GNTS_IDLE) {
-		pif_error = E_INVALID_STATE;
-		return FALSE;
-	}
-
-	i = 0;
-	while (p_mag_id[i]) {
-		data[7 + i] = p_mag_id[i];
-		i++;
-	}
-	data[7 + i] = '*';
-
-	return _makePacket(p_owner, data);
-}
-
-BOOL pifGpsNmea_PollRequestGNQ(PifGpsNmea* p_owner, const char* p_mag_id)
-{
-	char data[16] = "$GNGNQ,";
-	int i;
-
-	if (!p_owner->__p_comm->act_send_data) {
-		pif_error = E_TRANSFER_FAILED;
-		return FALSE;
-	}
-
-	if (p_owner->__tx.state != GNTS_IDLE) {
-		pif_error = E_INVALID_STATE;
-		return FALSE;
-	}
-
-	i = 0;
-	while (p_mag_id[i]) {
-		data[7 + i] = p_mag_id[i];
-		i++;
-	}
-	data[7 + i] = '*';
-
-	return _makePacket(p_owner, data);
-}
-
-BOOL pifGpsNmea_PollRequestGPQ(PifGpsNmea* p_owner, const char* p_mag_id)
-{
-	char data[16] = "$GPGPQ,";
-	int i;
-
-	if (!p_owner->__p_comm->act_send_data) {
-		pif_error = E_TRANSFER_FAILED;
-		return FALSE;
-	}
-
-	if (p_owner->__tx.state != GNTS_IDLE) {
-		pif_error = E_INVALID_STATE;
-		return FALSE;
-	}
-
-	i = 0;
-	while (p_mag_id[i]) {
-		data[7 + i] = p_mag_id[i];
-		i++;
-	}
-	data[7 + i] = '*';
-
-	return _makePacket(p_owner, data);
 }
