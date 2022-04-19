@@ -10,6 +10,10 @@
 #define PIF_GPS_NMEA_VALUE_SIZE			32
 #endif
 
+#ifndef PIF_GPS_NMEA_TEXT_SIZE
+#define PIF_GPS_NMEA_TEXT_SIZE			64
+#endif
+
 #define PIF_GPS_LAT  	0		// Latitude (위도)
 #define PIF_GPS_LON  	1		// Longitude (경도)
 
@@ -34,12 +38,23 @@
 #define PIF_GPS_NMEA_MSG_ID_MAX		15
 
 
+typedef struct StPifGpsNmeaTxt
+{
+	uint8_t total;
+	uint8_t num;
+	uint8_t type;
+	char text[PIF_GPS_NMEA_TEXT_SIZE];
+} PifGpsNmeaTxt;
+
 typedef uint8_t PifGpsNmeaMsgId;
 
 typedef struct StPifGps PifGps;
 
 typedef void (*PifEvtGpsReceive)(PifGps* p_owner);
 typedef void (*PifEvtGpsTimeout)(PifGps* p_owner);
+
+typedef void (*PifEvtGpsNmeaText)(PifGpsNmeaTxt* p_txt);
+typedef void (*PifEvtGpsNmeaFrame)(char* p_frame);
 
 typedef double PifDeg;
 
@@ -67,6 +82,7 @@ struct StPifGps
 
     // Private Event Function
 	PifEvtGpsReceive evt_receive;
+    PifEvtGpsNmeaFrame evt_frame;
 
     // Read-only Member Variable
 	PifId _id;
@@ -90,9 +106,11 @@ struct StPifGps
 
 	// Private Member Variable
 	PifTimer* __p_timer;
+    PifGpsNmeaTxt* __p_txt;
 
     // Private Event Function
 	PifEvtGpsTimeout __evt_timeout;
+    PifEvtGpsNmeaText __evt_text;
 };
 
 
@@ -105,8 +123,16 @@ extern "C" {
  * @brief
  * @param p_owner
  * @param id
+ * @return
  */
 BOOL pifGps_Init(PifGps* p_owner, PifId id);
+
+/**
+ * @fn pifGps_Clear
+ * @brief
+ * @param p_owner
+ */
+void pifGps_Clear(PifGps* p_owner);
 
 /**
  * @fn pifGps_SetTimeout
@@ -115,8 +141,18 @@ BOOL pifGps_Init(PifGps* p_owner, PifId id);
  * @param p_timer_manager
  * @param timeout
  * @param evt_timeout
+ * @return
  */
 BOOL pifGps_SetTimeout(PifGps* p_owner, PifTimerManager* p_timer_manager, uint32_t timeout, PifEvtGpsTimeout evt_timeout);
+
+/**
+ * @fn pifGps_SetEventNmeaText
+ * @brief
+ * @param p_owner
+ * @param evt_text
+ * @return
+ */
+BOOL pifGps_SetEventNmeaText(PifGps* p_owner, PifEvtGpsNmeaText evt_text);
 
 /**
  * @fn pifGps_SendEvent
@@ -124,6 +160,15 @@ BOOL pifGps_SetTimeout(PifGps* p_owner, PifTimerManager* p_timer_manager, uint32
  * @param p_owner
  */
 void pifGps_SendEvent(PifGps* p_owner);
+
+/**
+ * @fn pifGps_ParsingNmea
+ * @brief
+ * @param p_owner
+ * @param p_owner
+ * @return
+ */
+BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c);
 
 /**
  * @fn pifGps_ConvertLatitude2DegMin
