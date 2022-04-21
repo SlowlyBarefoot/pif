@@ -93,13 +93,7 @@ struct StPifGps
 	double _ground_course;			//                   	- unit: degree
 	uint32_t _horizontal_acc;       // Horizontal accuracy estimate (mm)
 	uint32_t _vertical_acc;         // Vertical accuracy estimate (mm)
-	uint8_t _numCh;                 // Number of channels
-	uint8_t _svinfo_chn[32];        // Channel number
-	uint8_t _svinfo_svid[32];       // Satellite ID
-	uint8_t _svinfo_quality[32];	// Bitfield Qualtity
-	uint8_t _svinfo_cno[32];        // Carrier to Noise Ratio (Signal Strength)
 	uint32_t _update_rate[2];       // GPS coordinates updating rate (column 0 = last update time, 1 = current update ms)
-	uint32_t _svinfo_rate[2];       // GPS svinfo updating rate (column 0 = last update time, 1 = current update ms)
 	uint8_t _num_sat;
 	BOOL _fix		: 1;
 	BOOL _connect	: 1;
