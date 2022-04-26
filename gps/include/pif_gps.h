@@ -86,7 +86,7 @@ struct StPifGps
 
     // Read-only Member Variable
 	PifId _id;
-    PifDateTime _date_time;
+    PifDateTime _utc;
 	PifDeg _coord_deg[2];			// latitude, longitude	- unit: degree
 	double _altitude;       		// altitude      		- unit: meter
 	double _ground_speed;      		// ground speed         - unit: cm/s

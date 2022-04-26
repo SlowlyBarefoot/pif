@@ -163,7 +163,7 @@ typedef enum EnPifError
  */
 typedef struct StPifDateTime
 {
-    uint8_t year;
+    uint8_t year;				// 2000년 기준
     uint8_t month;
     uint8_t day;
     uint8_t hour;

@@ -234,7 +234,7 @@ BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 				break;
 
 			case PIF_GPS_NMEA_MSG_ID_GGA:
-				if (param == 1) _convertString2Time(string, &p_owner->_date_time);
+				if (param == 1) _convertString2Time(string, &p_owner->_utc);
 				else if (param == 2) p_owner->_coord_deg[PIF_GPS_LAT] = _convertString2Degrees(string);
 				else if (param == 3 && string[0] == 'S') p_owner->_coord_deg[PIF_GPS_LAT] = -p_owner->_coord_deg[PIF_GPS_LAT];
 				else if (param == 4) p_owner->_coord_deg[PIF_GPS_LON] = _convertString2Degrees(string);
@@ -249,11 +249,11 @@ BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 				else if (param == 2 && string[0] == 'S') p_owner->_coord_deg[PIF_GPS_LAT] = -p_owner->_coord_deg[PIF_GPS_LAT];
 				else if (param == 3) p_owner->_coord_deg[PIF_GPS_LON] = _convertString2Degrees(string);
 				else if (param == 4 && string[0] == 'W') p_owner->_coord_deg[PIF_GPS_LON] = -p_owner->_coord_deg[PIF_GPS_LON];
-				else if (param == 5) _convertString2Time(string, &p_owner->_date_time);
+				else if (param == 5) _convertString2Time(string, &p_owner->_utc);
 				break;
 
 			case PIF_GPS_NMEA_MSG_ID_GNS:
-				if (param == 1) _convertString2Time(string, &p_owner->_date_time);
+				if (param == 1) _convertString2Time(string, &p_owner->_utc);
 				else if (param == 2) p_owner->_coord_deg[PIF_GPS_LAT] = _convertString2Degrees(string);
 				else if (param == 3 && string[0] == 'S') p_owner->_coord_deg[PIF_GPS_LAT] = -p_owner->_coord_deg[PIF_GPS_LAT];
 				else if (param == 4) p_owner->_coord_deg[PIF_GPS_LON] = _convertString2Degrees(string);
@@ -275,14 +275,14 @@ BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 				break;
 
 			case PIF_GPS_NMEA_MSG_ID_RMC:
-				if (param == 1) _convertString2Time(string, &p_owner->_date_time);
+				if (param == 1) _convertString2Time(string, &p_owner->_utc);
 				else if (param == 3) p_owner->_coord_deg[PIF_GPS_LAT] = _convertString2Degrees(string);
 				else if (param == 4 && string[0] == 'S') p_owner->_coord_deg[PIF_GPS_LAT] = -p_owner->_coord_deg[PIF_GPS_LAT];
 				else if (param == 5) p_owner->_coord_deg[PIF_GPS_LON] = _convertString2Degrees(string);
 				else if (param == 6 && string[0] == 'W') p_owner->_coord_deg[PIF_GPS_LON] = -p_owner->_coord_deg[PIF_GPS_LON];
 				else if (param == 7) p_owner->_ground_speed = _convertString2Float(string) * 51444L;	// knots -> cm/s
 				else if (param == 8) p_owner->_ground_course = _convertString2Float(string);
-				else if (param == 9) _convertString2Date(string, &p_owner->_date_time);
+				else if (param == 9) _convertString2Date(string, &p_owner->_utc);
 				break;
 
 			case PIF_GPS_NMEA_MSG_ID_THS:
@@ -306,10 +306,10 @@ BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 				break;
 
 			case PIF_GPS_NMEA_MSG_ID_ZDA:
-				if (param == 1) _convertString2Time(string, &p_owner->_date_time);
-				else if (param == 2) p_owner->_date_time.day = _convertString2Interger(string);
-				else if (param == 3) p_owner->_date_time.month = _convertString2Interger(string);
-				else if (param == 4) p_owner->_date_time.year = _convertString2Interger(string) - 2000;
+				if (param == 1) _convertString2Time(string, &p_owner->_utc);
+				else if (param == 2) p_owner->_utc.day = _convertString2Interger(string);
+				else if (param == 3) p_owner->_utc.month = _convertString2Interger(string);
+				else if (param == 4) p_owner->_utc.year = _convertString2Interger(string) - 2000;
 				break;
 			}
 		}

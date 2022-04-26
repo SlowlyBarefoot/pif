@@ -105,7 +105,7 @@ static void _parsingPacket(PifGpsUblox *p_owner, PifActCommReceiveData act_recei
 			break;
 
 		case GURS_ID:
-			p_packet->message_id = data;
+			p_packet->msg_id = data;
 			p_owner->__rx.state = GURS_LENGTH_LOW;
 			break;
 
@@ -174,7 +174,7 @@ fail:
 #ifndef __PIF_NO_LOG__
 	if (p_owner->__rx.state) {
 		pifLog_Printf(LT_ERROR, "GU:%u(%u) %s D:%xh RS:%u CID:%u MID:%u Len:%u", line, p_owner->_gps._id, kPktErr[pkt_err], data,
-				p_owner->__rx.state, p_packet->class_id, p_packet->message_id, p_packet->length);
+				p_owner->__rx.state, p_packet->class_id, p_packet->msg_id, p_packet->length);
 	}
 	else {
 		pifLog_Printf(LT_ERROR, "GU:%u(%u) %s D:%xh", line, p_owner->_gps._id, kPktErr[pkt_err], data);
@@ -208,7 +208,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
     if (p_owner->__rx.state == GURS_DONE) {
 #ifndef __PIF_NO_LOG__
 #ifdef __DEBUG_PACKET__
-    	pifLog_Printf(LT_NONE, "\n%u> %x %x %x %x %x %x %x %x", p_owner->_id, p_packet->class_id, p_packet->message_id, p_packet->length,
+    	pifLog_Printf(LT_NONE, "\n%u> %x %x %x %x %x %x %x %x", p_owner->_gps._id, p_packet->class_id, p_packet->msg_id, p_packet->length,
     			p_packet->payload.bytes[0], p_packet->payload.bytes[1], p_packet->payload.bytes[2], p_packet->payload.bytes[3], p_packet->payload.bytes[4]);
 #endif
 #endif
@@ -218,19 +218,35 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
         	break;
 
         case GUCI_NAV:
-            switch (p_packet->message_id) {
+            switch (p_packet->msg_id) {
                 case GUMI_NAV_POSLLH:
-                    //i2c_dataset.time                = _buffer.posllh.time;
-                	p_parent->_coord_deg[PIF_GPS_LON] = p_packet->payload.posllh.longitude / 10000000.0;
-                	p_parent->_coord_deg[PIF_GPS_LAT] = p_packet->payload.posllh.latitude / 10000000.0;
-                	p_parent->_altitude = p_packet->payload.posllh.altitude_msl / 1000.0;
-                	p_parent->_horizontal_acc = p_packet->payload.posllh.horizontal_accuracy;
-                	p_parent->_vertical_acc = p_packet->payload.posllh.vertical_accuracy;
+                	p_parent->_coord_deg[PIF_GPS_LON] = p_packet->payload.posllh.lon / 10000000.0;
+                	p_parent->_coord_deg[PIF_GPS_LAT] = p_packet->payload.posllh.lat / 10000000.0;
+                	p_parent->_altitude = p_packet->payload.posllh.h_msl / 1000.0;
+                	p_parent->_horizontal_acc = p_packet->payload.posllh.h_acc;
+                	p_parent->_vertical_acc = p_packet->payload.posllh.v_acc;
                     p_parent->_fix = next_fix;
                     _new_position = TRUE;
                     // Update GPS update rate table.
                     p_parent->_update_rate[0] = p_parent->_update_rate[1];
                     p_parent->_update_rate[1] = pif_cumulative_timer1ms;
+                    break;
+
+                case GUMI_NAV_PVT:
+                	p_parent->_utc.year = 20 + p_packet->payload.pvt.year - 2000;
+                	p_parent->_utc.month = p_packet->payload.pvt.month;
+                	p_parent->_utc.day = p_packet->payload.pvt.day;
+                	p_parent->_utc.hour = p_packet->payload.pvt.hour;
+                	p_parent->_utc.minute = p_packet->payload.pvt.min;
+                	p_parent->_utc.second = p_packet->payload.pvt.sec;
+                	p_parent->_utc.millisecond = p_packet->payload.pvt.nano / 1000000UL;
+                    break;
+
+                case GUMI_NAV_SOL:
+                    next_fix = (p_packet->payload.sol.flags & NAV_STATUS_FIX_VALID) && (p_packet->payload.sol.gps_fix == FIX_3D);
+                    if (!next_fix)
+                    	p_parent->_fix = FALSE;
+                    p_parent->_num_sat = p_packet->payload.sol.num_sv;
                     break;
 
                 case GUMI_NAV_STATUS:
@@ -239,52 +255,57 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
                     	p_parent->_fix = FALSE;
                     break;
 
-                case GUMI_NAV_SOL:
-                    next_fix = (p_packet->payload.solution.flags & NAV_STATUS_FIX_VALID) && (p_packet->payload.solution.gps_fix == FIX_3D);
-                    if (!next_fix)
-                    	p_parent->_fix = FALSE;
-                    p_parent->_num_sat = p_packet->payload.solution.satellites;
-                    // GPS_hdop                        = _buffer.solution.position_DOP;
-                    break;
-
-                case GUMI_NAV_VELNED:
-                    // speed_3d                        = _buffer.velned.speed_3d;  // cm/s
-                	p_parent->_ground_speed = p_packet->payload.velned.speed_2d;
-                	p_parent->_ground_course = p_packet->payload.velned.heading_2d / 100000.0;
-                    _new_speed = TRUE;
-                    break;
-
                 case GUMI_NAV_SVINFO:
-                	p_owner->_numCh = p_packet->payload.svinfo.numCh;
-                    if (p_owner->_numCh > 32)
-                    	p_owner->_numCh = 32;
-                    for (i = 0; i < p_owner->_numCh; i++) {
-                    	p_owner->_svinfo_chn[i] = p_packet->payload.svinfo.channel[i].chn;
-                    	p_owner->_svinfo_svid[i] = p_packet->payload.svinfo.channel[i].svid;
-                    	p_owner->_svinfo_quality[i] = p_packet->payload.svinfo.channel[i].quality;
-                    	p_owner->_svinfo_cno[i] = p_packet->payload.svinfo.channel[i].cno;
+                	p_owner->_num_ch = p_packet->payload.sv_info.num_ch;
+                    if (p_owner->_num_ch > 16)
+                    	p_owner->_num_ch = 16;
+                    for (i = 0; i < p_owner->_num_ch; i++) {
+                    	p_owner->_svinfo_chn[i] = p_packet->payload.sv_info.channel[i].chn;
+                    	p_owner->_svinfo_svid[i] = p_packet->payload.sv_info.channel[i].svid;
+                    	p_owner->_svinfo_quality[i] = p_packet->payload.sv_info.channel[i].quality;
+                    	p_owner->_svinfo_cno[i] = p_packet->payload.sv_info.channel[i].cno;
                     }
                     // Update GPS SVIFO update rate table.
                     p_owner->_svinfo_rate[0] = p_owner->_svinfo_rate[1];
                     p_owner->_svinfo_rate[1] = pif_cumulative_timer1ms;
                     break;
 
+                case GUMI_NAV_TIMEUTC:
+                	if (p_packet->payload.time_utc.valid & 4) {
+						p_parent->_utc.year = p_packet->payload.time_utc.year - 2000;
+						p_parent->_utc.month = p_packet->payload.time_utc.month;
+						p_parent->_utc.day = p_packet->payload.time_utc.day;
+						p_parent->_utc.hour = p_packet->payload.time_utc.hour;
+						p_parent->_utc.minute = p_packet->payload.time_utc.min;
+						p_parent->_utc.second = p_packet->payload.time_utc.sec;
+						p_parent->_utc.millisecond = p_packet->payload.time_utc.nano / 1000000UL;
+                	}
+                	break;
+
+                case GUMI_NAV_VELNED:
+                	p_parent->_ground_speed = p_packet->payload.velned.speed;
+                	p_parent->_ground_course = p_packet->payload.velned.heading / 100000.0;
+                    _new_speed = TRUE;
+                    break;
+
                 default:
                 	error = TRUE;
-            		pifLog_Printf(LT_ERROR, "GU:%u(%u) %s CID:%x MID:%x", __LINE__, p_owner->_gps._id,
-            				kPktErr[PKT_ERR_UNKNOWE_ID], p_packet->class_id, p_packet->message_id);
+#ifndef __PIF_NO_LOG__
+            		pifLog_Printf(LT_ERROR, "GU:%u(%u) %s CID:%x MID:%x", __LINE__, p_owner->_gps._id, kPktErr[PKT_ERR_UNKNOWE_ID], p_packet->class_id, p_packet->msg_id);
+#endif
                     break;
             }
         	break;
 
 		default:
         	error = TRUE;
-			pifLog_Printf(LT_ERROR, "GU:%u(%u) %s CID:%x", __LINE__, p_owner->_gps._id,
-					kPktErr[PKT_ERR_UNKNOWE_ID], p_packet->class_id);
+#ifndef __PIF_NO_LOG__
+			pifLog_Printf(LT_ERROR, "GU:%u(%u) %s CID:%x", __LINE__, p_owner->_gps._id, kPktErr[PKT_ERR_UNKNOWE_ID], p_packet->class_id);
+#endif
 			break;
         }
 
-    	if (!error && p_owner->evt_ubx_receive) (*p_owner->evt_ubx_receive)(&p_owner->__rx.packet);
+    	if (!error && p_owner->evt_ubx_receive) (*p_owner->evt_ubx_receive)(p_packet);
 
         if (_new_position && _new_speed) {
 			pifGps_SendEvent(&p_owner->_gps);
@@ -296,7 +317,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 
 static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, BOOL blocking)
 {
-	uint8_t aucHeader[4];
+	uint8_t header[4];
 	uint8_t parity = 0;
 	int i;
 
@@ -325,12 +346,12 @@ static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, BOOL blocking)
 
 	pifRingBuffer_BackupHead(&p_owner->__tx.buffer);
 
-	aucHeader[0] = i;
-	aucHeader[1] = 0;
-	aucHeader[2] = 0;
-	aucHeader[3] = 0;
-	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, aucHeader, 4)) goto fail;
-	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, (uint8_t *)p_data, aucHeader[0])) goto fail;
+	header[0] = i;
+	header[1] = 0;
+	header[2] = 0;
+	header[3] = 0;
+	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, header, 4)) goto fail;
+	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, (uint8_t *)p_data, header[0])) goto fail;
 	return TRUE;
 
 fail:
@@ -452,11 +473,6 @@ BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
 	char data[16] = "$GBGBQ,";
 	int i;
 
-	if (!p_owner->__p_comm->act_send_data) {
-		pif_error = E_TRANSFER_FAILED;
-		return FALSE;
-	}
-
 	if (p_owner->__tx.state != GUTS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -476,11 +492,6 @@ BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
 {
 	char data[16] = "$GLGLQ,";
 	int i;
-
-	if (!p_owner->__p_comm->act_send_data) {
-		pif_error = E_TRANSFER_FAILED;
-		return FALSE;
-	}
 
 	if (p_owner->__tx.state != GUTS_IDLE) {
 		pif_error = E_INVALID_STATE;
@@ -502,11 +513,6 @@ BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
 	char data[16] = "$GNGNQ,";
 	int i;
 
-	if (!p_owner->__p_comm->act_send_data) {
-		pif_error = E_TRANSFER_FAILED;
-		return FALSE;
-	}
-
 	if (p_owner->__tx.state != GUTS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -527,11 +533,6 @@ BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
 	char data[16] = "$GPGPQ,";
 	int i;
 
-	if (!p_owner->__p_comm->act_send_data) {
-		pif_error = E_TRANSFER_FAILED;
-		return FALSE;
-	}
-
 	if (p_owner->__tx.state != GUTS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -551,11 +552,6 @@ BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t i
 {
 	char data[40];
 
-	if (!p_owner->__p_comm->act_send_data) {
-		pif_error = E_TRANSFER_FAILED;
-		return FALSE;
-	}
-
 	if (p_owner->__tx.state != GUTS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -570,11 +566,6 @@ BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t
 {
 	char data[40];
 
-	if (!p_owner->__p_comm->act_send_data) {
-		pif_error = E_TRANSFER_FAILED;
-		return FALSE;
-	}
-
 	if (p_owner->__tx.state != GUTS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -588,11 +579,6 @@ BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t
 BOOL pifGpsUblox_SendUbxMsg(PifGpsUblox* p_owner, uint8_t class_id, uint8_t msg_id, uint16_t length, uint8_t* payload, BOOL blocking)
 {
 	uint8_t header[6] = { 0xB5, 0x62 };
-
-	if (!p_owner->__p_comm->act_send_data) {
-		pif_error = E_TRANSFER_FAILED;
-		return FALSE;
-	}
 
 	if (p_owner->__tx.state != GUTS_IDLE) {
 		pif_error = E_INVALID_STATE;

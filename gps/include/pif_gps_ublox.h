@@ -9,7 +9,7 @@
 
 
 #ifndef PIF_GPS_UBLOX_TX_SIZE
-#define PIF_GPS_UBLOX_TX_SIZE				128
+#define PIF_GPS_UBLOX_TX_SIZE				64
 #endif
 
 //#define __DEBUG_PACKET__
@@ -199,6 +199,32 @@ typedef enum EnPifGpsUbxMessageId
 	GUMI_TIM_VRFY			= 0x06,
 
 	GUMI_UPD_SOS			= 0x14,
+
+	GUMI_NMEA_DTM			= 0x0A,
+	GUMI_NMEA_GBQ			= 0x44,
+	GUMI_NMEA_GBS			= 0x09,
+	GUMI_NMEA_GGA			= 0x00,
+	GUMI_NMEA_GLL			= 0x01,
+	GUMI_NMEA_GLQ			= 0x43,
+	GUMI_NMEA_GNQ			= 0x42,
+	GUMI_NMEA_GNS			= 0x0D,
+	GUMI_NMEA_GPQ			= 0x40,
+	GUMI_NMEA_GRS			= 0x06,
+	GUMI_NMEA_GSA			= 0x02,
+	GUMI_NMEA_GST			= 0x07,
+	GUMI_NMEA_GSV			= 0x03,
+	GUMI_NMEA_RMC			= 0x04,
+	GUMI_NMEA_THS			= 0x0E,
+	GUMI_NMEA_TXT			= 0x41,
+	GUMI_NMEA_VLW			= 0x0F,
+	GUMI_NMEA_VTG			= 0x05,
+	GUMI_NMEA_ZDA			= 0x08,
+
+	GUMI_NMEA_CONFIG		= 0x41,
+	GUMI_NMEA_POSITION		= 0x00,
+	GUMI_NMEA_RATE			= 0x40,
+	GUMI_NMEA_SVSTATUS		= 0x03,
+	GUMI_NMEA_TIME			= 0x04
 } PifGpsUbxMessageId;
 
 typedef enum EnPifGpsUbxRxState
@@ -226,75 +252,124 @@ typedef enum EnPifGpsUbloxTxState
 
 
 typedef struct {
-    uint32_t time;              // GPS msToW
-    int32_t longitude;
-    int32_t latitude;
-    int32_t altitude_ellipsoid;
-    int32_t altitude_msl;
-    uint32_t horizontal_accuracy;
-    uint32_t vertical_accuracy;
+    uint32_t i_tow;			// ms, GPS time of week of the navigation epoch
+    int32_t lon;			// 1e-7 deg, Longitude
+    int32_t lat;			// 1e-7 deg, Latitude
+    int32_t height;			// mm, Height above ellipsoid
+    int32_t h_msl;			// mm, Height above mean sea level
+    uint32_t h_acc;			// mm, Horizontal accuracy estimate
+    uint32_t v_acc;			// mm, Vertical accuracy estimate
 } PifGpsUbxNavPosllh;
 
 typedef struct {
-    uint32_t time;              // iTOW
-    uint8_t gps_fix;
-    uint8_t flags;
-    uint8_t fix_stat;
-    uint8_t flags2;
-    uint32_t ttff;				// time_to_first_fix
-    uint32_t uptime;            // milliseconds
+	uint32_t i_tow;			// 1ms, GPS time of week of the navigation epoch
+	uint16_t year;			// Year (UTC)
+	uint8_t month;			// Month, range 1..12 (UTC)
+	uint8_t day;			// Day of month, range 1..31 (UTC)
+	uint8_t hour;			// Hour of day, range 0..23 (UTC)
+	uint8_t min;			// Minute of hour, range 0..59 (UTC)
+	uint8_t sec;			// Seconds of minute, range 0..60 (UTC)
+	uint8_t valid;			// Validity flags (see graphic below)
+	uint32_t t_acc;			// ms, Time accuracy estimate (UTC)
+	int32_t nano;			// ns, Fraction of second, range -1e9 .. 1e9 (UTC)
+	uint8_t fix_type;		// GNSSfix Type:
+	uint8_t flags;			// Fix status flags
+	uint8_t flags2;			// Additional flags
+	uint8_t num_sv;			// Number of satellites used in Nav Solution
+	int32_t lon;			// 1e-7 deg, Longitude
+	int32_t lat;			// 1e-7 deg, Latitude
+	int32_t height;			// mm, Height above ellipsoid
+	int32_t h_msl;			// mm, Height above mean sea level
+	uint32_t h_acc;			// mm, Horizontal accuracy estimate
+	uint32_t v_acc;			// mm, Vertical accuracy estimate
+	int32_t val_n;			// mm/s, NED north velocity
+	int32_t val_e;			// mm/s, NED east velocity
+	int32_t val_d;			// mm/s, NED down velocity
+	int32_t g_speed;		// mm/s, Ground Speed (2-D)
+	int32_t head_mot;		// 1e-5 deg, Heading of motion (2-D)
+	uint32_t s_acc;			// mm/s, Speed accuracy estimate
+	uint32_t head_acc;		// 1e-5 deg, Heading accuracy estimate (both motion and vehicle)
+	uint16_t p_dop;			// 0.01, Position DOP
+	uint16_t flag3;			// Additional flags
+	uint32_t reserved1;
+	int32_t head_veh;		// 1e-5 deg, Heading of vehicle (2-D), this is only valid when headVehValid is set, otherwise the output is set to the heading of motion
+	int16_t mag_dec;		// 1e-2 deg, Magnetic declination. Only supported in ADR 4.10 and later.
+	uint16_t mag_acc;		// 1e-2 deg, Magnetic declination accuracy. Only supported in ADR 4.10 and later.
+} PifGpsUbxNavPvt;
+
+typedef struct {
+    uint32_t i_tow;			// ms, GPS time of week of the navigation epoch
+    int32_t f_tow;			// ns, Fractional part of iTOW (range: +/-500000).
+    int16_t week;			// GPS week number of the navigation epoch
+    uint8_t gps_fix;		// GPSfix Type, range 0..5
+    uint8_t flags;			// Fix Status Flags
+    int32_t ecef_x;			// cm, ECEF X coordinate
+    int32_t ecef_y;			// cm, ECEF Y coordinate
+    int32_t ecef_z;			// cm, ECEF Z coordinate
+    uint32_t p_acc;			// cm, 3D Position Accuracy Estimate
+    int32_t ecef_vx;		// cm/s, ECEF X velocity
+    int32_t ecef_vy;		// cm/s, ECEF Y velocity
+    int32_t ecef_vz;		// cm/s, ECEF Z velocity
+    uint32_t s_acc;			// cm/s, Speed Accuracy Estimate
+    uint16_t p_dop;			// 0.01, Position DOP
+    uint8_t reserved1;
+    uint8_t num_sv;			// Number of SVs used in Nav Solution
+    uint32_t reserved2;
+} PifGpsUbxNavSol;
+
+typedef struct {
+    uint32_t i_tow;			// ms, GPS time of week of the navigation epoch
+    uint8_t gps_fix;		// GPSfix Type, this value does not qualify a fix as valid and within the limits.
+    uint8_t flags;			// Navigation Status Flags
+    uint8_t fix_stat;		// Fix Status Information
+    uint8_t flags2;			// further information about navigation output
+    uint32_t ttff;			// ms, Time to first fix (millisecond time tag)
+    uint32_t uptime;		// ms, Milliseconds since Startup / Reset
 } PifGpsUbxNavStatus;
 
 typedef struct {
-    uint32_t time;
-    int32_t time_nsec;
-    int16_t week;
-    uint8_t gps_fix;
-    uint8_t flags;
-    int32_t ecef_x;
-    int32_t ecef_y;
-    int32_t ecef_z;
-    uint32_t position_accuracy_3d;
-    int32_t ecef_x_velocity;
-    int32_t ecef_y_velocity;
-    int32_t ecef_z_velocity;
-    uint32_t speed_accuracy;
-    uint16_t position_DOP;
-    uint8_t res1;
-    uint8_t satellites;
-    uint32_t res2;
-} PifGpsUbxNavSolution;
+    uint8_t chn;            // Channel number, 255 for SVx not assigned to channel
+    uint8_t svid;           // Satellite ID
+    uint8_t flags;          // Bitmask
+    uint8_t quality;        // Bitfield
+    uint8_t cno;            // dBHz, Carrier to Noise Ratio (Signal Strength)
+    int8_t elev;            // deg, Elevation in integer degrees
+    int16_t azim;           // deg, Azimuth in integer degrees
+    int32_t prRes;          // cm, Pseudo range residual in centimetres
+} PifGpsUbxNavSvInfoChannel;
 
 typedef struct {
-    uint32_t time;              // GPS msToW
-    int32_t ned_north;
-    int32_t ned_east;
-    int32_t ned_down;
-    uint32_t speed_3d;
-    uint32_t speed_2d;
-    int32_t heading_2d;
-    uint32_t speed_accuracy;
-    uint32_t heading_accuracy;
+    uint32_t i_tow;         // ms, GPS time of week of the navigation epoch
+    uint8_t num_ch;         // Number of channels
+    uint8_t global_flags;   // Bitmask, Chip hardware generation 0:Antaris, 1:u-blox 5, 2:u-blox 6
+    uint16_t reserved1;
+    PifGpsUbxNavSvInfoChannel channel[16];	// 16 satellites * 12 byte
+} PifGpsUbxNavSvInfo;
+
+typedef struct {
+    uint32_t i_tow;			// ms, GPS time of week of the navigation epoch
+    uint32_t t_acc;			// ns, Time accuracy estimate (UTC)
+    int32_t nano;			// ns, Fraction of second, range -1e9 .. 1e9 (UTC)
+    uint16_t year;			// Year, range 1999..2099 (UTC)
+    uint8_t month;			// Month, range 1..12 (UTC)
+    uint8_t day;			// Day of month, range 1..31 (UTC)
+    uint8_t hour;			// Hour of day, range 0..23 (UTC)
+    uint8_t min;			// Minute of hour, range 0..59 (UTC)
+    uint8_t sec;			// Seconds of minute, range 0..60 (UTC)
+    uint8_t valid;			// Validity Flags
+} PifGpsUbxNavTimeUtc;
+
+typedef struct {
+    uint32_t i_tow;			// ms, GPS time of week of the navigation epoch
+    int32_t val_n;			// cm/s, North velocity component
+    int32_t val_e;			// cm/s, East velocity component
+    int32_t val_d;			// cm/s, Down velocity component
+    uint32_t speed;			// cm/s, Speed (3-D)
+    uint32_t g_speed;		// cm/s, Ground speed (2-D)
+    int32_t heading;		// 1e-5 deg, Heading of motion 2-D
+    uint32_t s_acc;			// cm/s, Speed accuracy Estimate
+    uint32_t c_acc;			// 1e-5 deg, Course / Heading accuracy estimate
 } PifGpsUbxNavVelned;
-
-typedef struct {
-    uint8_t chn;                // Channel number, 255 for SVx not assigned to channel
-    uint8_t svid;               // Satellite ID
-    uint8_t flags;              // Bitmask
-    uint8_t quality;            // Bitfield
-    uint8_t cno;                // Carrier to Noise Ratio (Signal Strength)
-    uint8_t elev;               // Elevation in integer degrees
-    int16_t azim;               // Azimuth in integer degrees
-    int32_t prRes;              // Pseudo range residual in centimetres
-} PifGpsUbxNavSvinfoChannel;
-
-typedef struct {
-    uint32_t time;              // GPS Millisecond time of week
-    uint8_t numCh;              // Number of channels
-    uint8_t globalFlags;        // Bitmask, Chip hardware generation 0:Antaris, 1:u-blox 5, 2:u-blox 6
-    uint16_t reserved2;         // Reserved
-    PifGpsUbxNavSvinfoChannel channel[16];         // 16 satellites * 12 byte
-} PifGpsUbxNavSvinfo;
 
 /**
  * @class StPifGpsUbxPacket
@@ -303,14 +378,16 @@ typedef struct {
 typedef struct StPifGpsUbxPacket
 {
 	uint8_t class_id;
-	uint8_t message_id;
+	uint8_t msg_id;
 	uint16_t length;
 	union {
 	    PifGpsUbxNavPosllh posllh;
+	    PifGpsUbxNavPvt pvt;
+	    PifGpsUbxNavSol sol;
 	    PifGpsUbxNavStatus status;
-	    PifGpsUbxNavSolution solution;
-	    PifGpsUbxNavVelned velned;
-	    PifGpsUbxNavSvinfo svinfo;
+	    PifGpsUbxNavSvInfo sv_info;
+	    PifGpsUbxNavTimeUtc time_utc;
+		PifGpsUbxNavVelned velned;
 	    uint8_t bytes[1];
 	} payload;
 } PifGpsUbxPacket;
@@ -360,11 +437,11 @@ typedef struct StPifGpsUblox
 
 	// Read-only Member Variable
     PifGps _gps;
-	uint8_t _numCh;                 // Number of channels
-	uint8_t _svinfo_chn[32];        // Channel number
-	uint8_t _svinfo_svid[32];       // Satellite ID
-	uint8_t _svinfo_quality[32];	// Bitfield Qualtity
-	uint8_t _svinfo_cno[32];        // Carrier to Noise Ratio (Signal Strength)
+	uint8_t _num_ch;                // Number of channels
+	uint8_t _svinfo_chn[16];        // Channel number
+	uint8_t _svinfo_svid[16];       // Satellite ID
+	uint8_t _svinfo_quality[16];	// Bitfield Qualtity
+	uint8_t _svinfo_cno[16];        // Carrier to Noise Ratio (Signal Strength)
 	uint32_t _svinfo_rate[2];       // GPS svinfo updating rate (column 0 = last update time, 1 = current update ms)
 
 	// Private Member Variable

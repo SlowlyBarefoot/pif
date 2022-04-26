@@ -98,6 +98,7 @@ static int _cmdSetStatus(int argc, char* argv[])
 
 	if (argc == 1) {
 	   	pifLog_Printf(LT_NONE, "Task count: %d\n", pifTaskManager_Count());
+	   	pifLog_Printf(LT_NONE, "Error: %d\n", pif_error);
 	   	pifLog_Printf(LT_NONE, "Flag:\n");
 	   	i = 0;
 		while (c_log_flags[i].p_name) {
