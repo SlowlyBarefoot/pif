@@ -158,11 +158,18 @@ void pifGps_Clear(PifGps* p_owner)
 
 BOOL pifGps_SetTimeout(PifGps* p_owner, PifTimerManager* p_timer_manager, uint32_t timeout, PifEvtGpsTimeout evt_timeout)
 {
-	p_owner->__p_timer = pifTimerManager_Add(p_timer_manager, TT_ONCE);
-	if (!p_owner->__p_timer) return FALSE;
-	pifTimer_AttachEvtFinish(p_owner->__p_timer, _evtTimerFinish, p_owner);
-    if (!pifTimer_Start(p_owner->__p_timer, timeout)) return FALSE;
-    p_owner->__evt_timeout = evt_timeout;
+	if (timeout > 0) {
+		if (!p_owner->__p_timer) {
+			p_owner->__p_timer = pifTimerManager_Add(p_timer_manager, TT_ONCE);
+			if (!p_owner->__p_timer) return FALSE;
+			pifTimer_AttachEvtFinish(p_owner->__p_timer, _evtTimerFinish, p_owner);
+		    p_owner->__evt_timeout = evt_timeout;
+		}
+	    if (!pifTimer_Start(p_owner->__p_timer, timeout)) return FALSE;
+	}
+	else {
+	    pifTimer_Stop(p_owner->__p_timer);
+	}
     return TRUE;
 }
 

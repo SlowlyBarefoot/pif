@@ -15,6 +15,7 @@
 #define PKT_ERR_INVALID_DATA    1
 #define PKT_ERR_WRONG_CRC    	2
 #define PKT_ERR_UNKNOWE_ID   	3
+#define PKT_ERR_NONE		   	4
 
 
 enum {
@@ -66,6 +67,7 @@ static void _parsingPacket(PifGpsUblox *p_owner, PifActCommReceiveData act_recei
 #ifndef __PIF_NO_LOG__
 	uint8_t pkt_err;
 	int line;
+	static uint8_t pre_err = PKT_ERR_NONE;
 #endif
 
 	while ((*act_receive_data)(p_owner->__p_comm, &data)) {
@@ -73,9 +75,15 @@ static void _parsingPacket(PifGpsUblox *p_owner, PifActCommReceiveData act_recei
 		case GURS_SYNC_CHAR_1:
 			if (data == 0xB5) {
 				p_owner->__rx.state = GURS_SYNC_CHAR_2;
+#ifndef __PIF_NO_LOG__
+				pre_err = PKT_ERR_NONE;
+#endif
 			}
 			else if (pifGps_ParsingNmea(&p_owner->_gps, data)) {
 				p_owner->__rx.state = GURS_NMEA;
+#ifndef __PIF_NO_LOG__
+				pre_err = PKT_ERR_NONE;
+#endif
 			}
 			else if (data != '\r' && data != '\n') {
 #ifndef __PIF_NO_LOG__
@@ -172,12 +180,15 @@ static void _parsingPacket(PifGpsUblox *p_owner, PifActCommReceiveData act_recei
 
 fail:
 #ifndef __PIF_NO_LOG__
-	if (p_owner->__rx.state) {
-		pifLog_Printf(LT_ERROR, "GU:%u(%u) %s D:%xh RS:%u CID:%u MID:%u Len:%u", line, p_owner->_gps._id, kPktErr[pkt_err], data,
-				p_owner->__rx.state, p_packet->class_id, p_packet->msg_id, p_packet->length);
-	}
-	else {
-		pifLog_Printf(LT_ERROR, "GU:%u(%u) %s D:%xh", line, p_owner->_gps._id, kPktErr[pkt_err], data);
+	if (pkt_err != pre_err) {
+		if (p_owner->__rx.state) {
+			pifLog_Printf(LT_ERROR, "GU:%u(%u) %s D:%xh RS:%u CID:%u MID:%u Len:%u", line, p_owner->_gps._id, kPktErr[pkt_err], data,
+					p_owner->__rx.state, p_packet->class_id, p_packet->msg_id, p_packet->length);
+		}
+		else {
+			pifLog_Printf(LT_ERROR, "GU:%u(%u) %s D:%xh", line, p_owner->_gps._id, kPktErr[pkt_err], data);
+		}
+		pre_err = pkt_err;
 	}
 #ifdef __DEBUG_PACKET__
 	pifLog_Printf(LT_NONE, "\n%x %x %x %x %x %x %x %x", p_packet->payload.bytes[0], p_packet->payload.bytes[1],	p_packet->payload.bytes[2],
@@ -383,7 +394,9 @@ static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t len
 	info[3] = 0;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, info, 4)) goto fail;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, p_header, 6)) goto fail;
-	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, p_payload, length)) goto fail;
+	if (length > 0) {
+		if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, p_payload, length)) goto fail;
+	}
 	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, tailer, 2)) goto fail;
 	return TRUE;
 

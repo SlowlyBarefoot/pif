@@ -40,6 +40,7 @@ struct StPifI2cDevice
 {
 	// Public Member Variable
     uint8_t addr;
+    uint8_t timeout;
 
 	// Read-only Member Variable
 	volatile PifI2cState _state;

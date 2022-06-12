@@ -19,6 +19,7 @@ PifActTaskMeasure pif_act_task_yield = NULL;
 
 static PifFixList s_tasks;
 static PifFixListIterator s_it_current;
+static PifTask* s_current_task;
 
 static uint32_t s_table_number;
 static uint32_t s_table[PIF_TASK_TABLE_SIZE];
@@ -91,57 +92,61 @@ static void _processingAlways(PifTask* p_owner)
 
 static void _processingPeriodUs(PifTask* p_owner)
 {
-	uint32_t gap;
+	uint32_t current, gap;
 
-	gap = pif_cumulative_timer1us - p_owner->__pretime;
+	current = (*pif_act_timer1us)();
+	gap = current - p_owner->__pretime;
 	if (gap >= p_owner->_period) {
-		p_owner->__pretime = pif_cumulative_timer1us;
 		p_owner->__running = TRUE;
 		(*p_owner->__evt_loop)(p_owner);
 		p_owner->__running = FALSE;
+		p_owner->__pretime = current;
 	}
 }
 
 static void _processingPeriodMs(PifTask* p_owner)
 {
-	uint32_t gap;
+	uint32_t current, gap;
 
-	gap = pif_cumulative_timer1ms - p_owner->__pretime;
+	current = pif_cumulative_timer1ms;
+	gap = current - p_owner->__pretime;
 	if (gap >= p_owner->_period) {
-		p_owner->__pretime = pif_cumulative_timer1ms;
 		p_owner->__running = TRUE;
 		(*p_owner->__evt_loop)(p_owner);
 		p_owner->__running = FALSE;
+		p_owner->__pretime = current;
 	}
 }
 
 static void _processingChangeUs(PifTask* p_owner)
 {
 	uint16_t period;
-	uint32_t gap;
+	uint32_t current, gap;
 
-	gap = pif_cumulative_timer1us - p_owner->__pretime;
+	current = (*pif_act_timer1us)();
+	gap = current - p_owner->__pretime;
 	if (gap >= p_owner->_period) {
-		p_owner->__pretime = pif_cumulative_timer1us;
 		p_owner->__running = TRUE;
 		period = (*p_owner->__evt_loop)(p_owner);
 		p_owner->__running = FALSE;
 		if (period > 0) p_owner->_period = period;
+		p_owner->__pretime = current;
 	}
 }
 
 static void _processingChangeMs(PifTask* p_owner)
 {
 	uint16_t period;
-	uint32_t gap;
+	uint32_t current, gap;
 
-	gap = pif_cumulative_timer1ms - p_owner->__pretime;
+	current = pif_cumulative_timer1ms;
+	gap = current - p_owner->__pretime;
 	if (gap >= p_owner->_period) {
-		p_owner->__pretime = pif_cumulative_timer1ms;
 		p_owner->__running = TRUE;
 		period = (*p_owner->__evt_loop)(p_owner);
 		p_owner->__running = FALSE;
 		if (period > 0) p_owner->_period = period;
+		p_owner->__pretime = current;
 	}
 }
 
@@ -382,18 +387,15 @@ int pifTaskManager_Count()
 
 void pifTaskManager_Loop()
 {
-#ifdef __PIF_DEBUG__
+#if !defined(__PIF_NO_LOG__) && defined(__PIF_DEBUG__)
 	static uint8_t sec = 0;
 #endif
 
 	PifFixListIterator it = s_it_current ? s_it_current : pifFixList_Begin(&s_tasks);
 	while (it) {
-		if (pif_act_timer1us) {
-			pif_cumulative_timer1us = (*pif_act_timer1us)();
-		}
-
 		s_it_current = it;
 		PifTask* p_owner = (PifTask*)it->data;
+		s_current_task = p_owner;
 		if (p_owner->immediate) {
 			p_owner->__running = TRUE;
 			(*p_owner->__evt_loop)(p_owner);
@@ -401,6 +403,7 @@ void pifTaskManager_Loop()
 			p_owner->immediate = FALSE;
 		}
 		else if (!p_owner->pause) (*p_owner->__processing)(p_owner);
+		s_current_task = NULL;
 #ifdef __PIF_DEBUG__
 	    if (pif_act_task_loop) (*pif_act_task_loop)();
 #endif
@@ -410,7 +413,7 @@ void pifTaskManager_Loop()
 	s_number = (s_number + 1) & PIF_TASK_TABLE_MASK;
 	s_it_current = NULL;
 
-#ifdef __PIF_DEBUG__
+#if !defined(__PIF_NO_LOG__) && defined(__PIF_DEBUG__)
     if (sec != pif_datetime.second) {
     	pifTaskManager_Print();
     	sec = pif_datetime.second;
@@ -420,10 +423,6 @@ void pifTaskManager_Loop()
 
 void pifTaskManager_Yield()
 {
-	if (pif_act_timer1us) {
-		pif_cumulative_timer1us = (*pif_act_timer1us)();
-	}
-
 	if (!pifFixList_Count(&s_tasks)) return;
 
 	s_it_current = pifFixList_Next(s_it_current);
@@ -433,8 +432,8 @@ void pifTaskManager_Yield()
 	}
 
 	PifTask* p_owner = (PifTask*)s_it_current->data;
-	if (p_owner->disallow_yield) return;
 	if (!p_owner->__running) {
+		if (s_current_task->disallow_yield_id && s_current_task->disallow_yield_id == p_owner->disallow_yield_id) return;
 		if (p_owner->immediate) {
 			p_owner->__running = TRUE;
 			(*p_owner->__evt_loop)(p_owner);
@@ -508,7 +507,7 @@ void pifTaskManager_YieldPeriod(PifTask *p_owner)
 	}
 }
 
-#ifdef __PIF_DEBUG__
+#if !defined(__PIF_NO_LOG__) && defined(__PIF_DEBUG__)
 
 void pifTaskManager_Print()
 {

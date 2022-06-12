@@ -41,6 +41,7 @@ PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner)
     if (!p_device) return FALSE;
 
     p_device->__p_port = p_owner;
+    p_device->timeout = 10;		// 10ms
     return p_device;
 }
 
@@ -74,10 +75,16 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 {
 	PifI2cPort* p_port = p_owner->__p_port;
 	uint8_t len;
+	uint32_t timer1ms;
 	size_t ptr, remain;
 
-	if (!p_port->act_read) goto fail;
-	if (p_port->__use_device) return FALSE;
+	if (!p_port->act_read) return FALSE;
+	if (p_port->__use_device) {
+#ifndef __PIF_NO_LOG__
+		pifLog_Printf(LT_INFO, "I2CR:%u Addr:%Xh Use Addr:%Xh", __LINE__, p_owner->addr, p_port->__use_device->addr);
+#endif
+		return FALSE;
+	}
 
 	p_port->__use_device = p_owner;
 	p_owner->_state = IS_RUN;
@@ -87,8 +94,10 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 		len = remain > p_port->__max_transfer_size ? p_port->__max_transfer_size : remain;
 		switch ((*p_port->act_read)(p_owner->addr, iaddr + ptr, isize, p_data + ptr, len)) {
 		case IR_WAIT:
+			timer1ms = pif_cumulative_timer1ms;
 			while (p_owner->_state == IS_RUN) {
 				pifTaskManager_Yield();
+				if (pif_cumulative_timer1ms - timer1ms > p_owner->timeout) goto fail;
 			}
 			if (p_owner->_state == IS_ERROR) goto fail;
 			break;
@@ -162,10 +171,16 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 {
 	PifI2cPort* p_port = p_owner->__p_port;
 	uint8_t len;
+	uint32_t timer1ms;
 	size_t ptr, remain;
 
-	if (!p_port->act_write) goto fail;
-	if (p_port->__use_device) return FALSE;
+	if (!p_port->act_write) return FALSE;
+	if (p_port->__use_device) {
+#ifndef __PIF_NO_LOG__
+		pifLog_Printf(LT_INFO, "I2CW:%u Addr:%Xh Use Addr:%Xh", __LINE__, p_owner->addr, p_port->__use_device->addr);
+#endif
+		return FALSE;
+	}
 
 	p_port->__use_device = p_owner;
 	p_owner->_state = IS_RUN;
@@ -175,8 +190,10 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 		len = remain > p_port->__max_transfer_size ? p_port->__max_transfer_size : remain;
 		switch ((*p_port->act_write)(p_owner->addr, iaddr, isize, p_data, size)) {
 		case IR_WAIT:
+			timer1ms = pif_cumulative_timer1ms;
 			while (p_owner->_state == IS_RUN) {
 				pifTaskManager_Yield();
+				if (pif_cumulative_timer1ms - timer1ms > p_owner->timeout) goto fail;
 			}
 			if (p_owner->_state == IS_ERROR) goto fail;
 			break;

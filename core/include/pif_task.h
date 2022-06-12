@@ -34,7 +34,7 @@ struct StPifTask
 	// Public Member Variable
 	BOOL pause;
 	BOOL immediate;
-	BOOL disallow_yield;
+	uint8_t disallow_yield_id;		// 0 : 모두 허용, 1->255 : 해당 id는 허용하지 않음.
 
 	// Read-only Member Variable
 	PifId _id;

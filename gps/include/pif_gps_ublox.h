@@ -335,7 +335,7 @@ typedef struct {
     uint8_t cno;            // dBHz, Carrier to Noise Ratio (Signal Strength)
     int8_t elev;            // deg, Elevation in integer degrees
     int16_t azim;           // deg, Azimuth in integer degrees
-    int32_t prRes;          // cm, Pseudo range residual in centimetres
+    int32_t pr_res;         // cm, Pseudo range residual in centimetres
 } PifGpsUbxNavSvInfoChannel;
 
 typedef struct {
@@ -343,7 +343,7 @@ typedef struct {
     uint8_t num_ch;         // Number of channels
     uint8_t global_flags;   // Bitmask, Chip hardware generation 0:Antaris, 1:u-blox 5, 2:u-blox 6
     uint16_t reserved1;
-    PifGpsUbxNavSvInfoChannel channel[16];	// 16 satellites * 12 byte
+    PifGpsUbxNavSvInfoChannel channel[32];	// 16 satellites * 12 byte
 } PifGpsUbxNavSvInfo;
 
 typedef struct {
