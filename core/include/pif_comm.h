@@ -49,6 +49,7 @@
 struct StPifComm;
 typedef struct StPifComm PifComm;
 
+typedef void (*PifActCommSetBaudRate)(PifComm* p_comm, uint32_t baudrate);
 typedef BOOL (*PifActCommReceiveData)(PifComm* p_comm, uint8_t* p_data);
 typedef uint16_t (*PifActCommSendData)(PifComm* p_comm, uint8_t* p_buffer, uint16_t size);
 typedef BOOL (*PifActCommStartTransfer)(PifComm* p_comm);
@@ -71,6 +72,7 @@ struct StPifComm
 	// Public Member Variable
 
 	// Public Action Function
+    PifActCommSetBaudRate act_set_baudrate;
 	PifActCommReceiveData act_receive_data;
     PifActCommSendData act_send_data;
     PifActCommStartTransfer act_start_transfer;

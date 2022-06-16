@@ -113,14 +113,18 @@ BOOL pifComm_ReceiveData(PifComm* p_owner, uint8_t data)
 {
 	if (!p_owner->_p_rx_buffer) return FALSE;
 
-	return pifRingBuffer_PutByte(p_owner->_p_rx_buffer, data);
+	if (!pifRingBuffer_PutByte(p_owner->_p_rx_buffer, data)) return FALSE;
+	p_owner->_p_task->immediate = TRUE;
+	return TRUE;
 }
 
 BOOL pifComm_ReceiveDatas(PifComm* p_owner, uint8_t* p_data, uint16_t length)
 {
 	if (!p_owner->_p_rx_buffer) return FALSE;
 
-	return pifRingBuffer_PutData(p_owner->_p_rx_buffer, p_data, length);
+	if (!pifRingBuffer_PutData(p_owner->_p_rx_buffer, p_data, length)) return FALSE;
+	p_owner->_p_task->immediate = TRUE;
+	return TRUE;
 }
 
 uint8_t pifComm_SendData(PifComm* p_owner, uint8_t* p_data)
