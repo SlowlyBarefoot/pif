@@ -74,6 +74,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 	PifProtocolPacket* p_packet = &p_owner->__rx.packet;
 	uint8_t data;
 	uint8_t pkt_err;
+	static uint8_t crc7;
 
 	while ((*act_receive_data)(p_owner->__p_comm, &data)) {
 		switch (p_owner->__rx.state)	{
@@ -82,7 +83,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 				p_owner->__rx.p_packet[0] = data;
 				p_owner->__rx.header_count = 1;
 				p_owner->__rx.state = PRS_GET_HEADER;
-				pifCrc7_Init();
+				crc7 = 0;
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
 				if (p_owner->__tx.state == PTS_IDLE) {
 					pifTimer_Start(p_owner->__rx.p_timer, PIF_PROTOCOL_RECEIVE_TIMEOUT);
@@ -111,7 +112,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 
 		case PRS_GET_HEADER:
 			if (data >= 0x20) {
-				pifCrc7_Calcurate(data);
+				crc7 = pifCrc7_Add(crc7, data);
 				p_owner->__rx.p_packet[p_owner->__rx.header_count] = data;
 				p_owner->__rx.header_count++;
 				if (p_owner->__rx.header_count >= p_owner->__header_size) {
@@ -151,7 +152,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 			break;
 
 		case PRS_GET_DATA:
-			pifCrc7_Calcurate(data);
+			crc7 = pifCrc7_Add(crc7, data);
 			if (data >= 0x20) {
 				if (p_owner->__rx.data_link_escape) {
 					p_owner->__rx.data_link_escape = FALSE;
@@ -175,7 +176,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 		case PRS_GET_CRC:
 			if (data >= 0x20) {
 				p_packet->crc = data;
-				if (p_packet->crc == (0x80 | pifCrc7_Result())) {
+				if (p_packet->crc == (0x80 | pifCrc7_Result(crc7))) {
 					p_owner->__rx.state = PRS_GET_TAILER;
 				}
 				else {
@@ -574,6 +575,7 @@ BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_r
 	uint8_t header[13];
 	uint8_t tailer[10];
 	uint8_t packet_id = 0, data, lack;
+	uint8_t crc7 = 0;
 
 	if (p_owner->__tx.state != PTS_IDLE) {
 		pif_error = E_INVALID_STATE;
@@ -590,8 +592,6 @@ BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_r
 	for (i = 0; i < data_size; i++) {
 		if (p_owner->__tx.p_data[i] < 0x20) usCount++;
 	}
-
-	pifCrc7_Init();
 
 	header[5] = ASCII_STX;
 	header[6] = PF_ALWAYS | p_request->flags;
@@ -624,21 +624,21 @@ BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_r
 	header[4] = p_request->retry;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.request_buffer, header, 5 + p_owner->__header_size)) goto fail;
 	for (i = 1; i < p_owner->__header_size; i++) {
-		pifCrc7_Calcurate(header[5 + i]);
+		crc7 = pifCrc7_Add(crc7, header[5 + i]);
 	}
 
 	for (i = 0; i < data_size; i++) {
 		data = p_owner->__tx.p_data[i];
 		if (data < 0x20) {
-			pifCrc7_Calcurate(ASCII_DLE);
+			crc7 = pifCrc7_Add(crc7, ASCII_DLE);
 			if (!pifRingBuffer_PutByte(&p_owner->__tx.request_buffer, ASCII_DLE)) goto fail;
 			data |= 0x80;
 		}
-		pifCrc7_Calcurate(data);
+		crc7 = pifCrc7_Add(crc7, data);
 		if (!pifRingBuffer_PutByte(&p_owner->__tx.request_buffer, data)) goto fail;
 	}
 
-	tailer[0] = 0x80 | pifCrc7_Result();
+	tailer[0] = 0x80 | pifCrc7_Result(crc7);
 	tailer[1] = ASCII_ETX;
 	for (i = 0; i < lack; i++) tailer[2 + i] = 0;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.request_buffer, tailer, 2 + lack)) goto fail;
@@ -667,11 +667,10 @@ BOOL pifProtocol_MakeAnswer(PifProtocol* p_owner, PifProtocolPacket* p_question,
 	uint8_t header[8];
 	uint8_t tailer[10];
 	uint8_t packet_id = 0, data, lack;
+	uint8_t crc7 = 0;
 	uint16_t length;
 
 	pifRingBuffer_BackupHead(&p_owner->__tx.answer_buffer);
-
-	pifCrc7_Init();
 
 	header[0] = ASCII_STX;
 	header[1] = PF_ALWAYS | PF_TYPE_ANSWER | flags;
@@ -690,24 +689,24 @@ BOOL pifProtocol_MakeAnswer(PifProtocol* p_owner, PifProtocolPacket* p_question,
 	}
 	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, header, p_owner->__header_size)) goto fail;
 	for (i = 1; i < p_owner->__header_size; i++) {
-		pifCrc7_Calcurate(header[i]);
+		crc7 = pifCrc7_Add(crc7, header[i]);
 	}
 	length = p_owner->__header_size;
 
 	for (i = 0; i < data_size; i++) {
 		data = p_data[i];
 		if (data < 0x20) {
-			pifCrc7_Calcurate(ASCII_DLE);
+			crc7 = pifCrc7_Add(crc7, ASCII_DLE);
 			if (!pifRingBuffer_PutByte(&p_owner->__tx.answer_buffer, ASCII_DLE)) goto fail;
 			data |= 0x80;
 			length++;
 		}
-		pifCrc7_Calcurate(data);
+		crc7 = pifCrc7_Add(crc7, data);
 		if (!pifRingBuffer_PutByte(&p_owner->__tx.answer_buffer, data)) goto fail;
 		length++;
 	}
 
-	tailer[0] = 0x80 | pifCrc7_Result();
+	tailer[0] = 0x80 | pifCrc7_Result(crc7);
 	tailer[1] = ASCII_ETX;
 	length += 2;
 	if (p_owner->_frame_size > 1) {

@@ -339,46 +339,64 @@ void pif_PrintFormat(char* p_buffer, va_list* data, const char* p_format);
 void pif_Printf(char* p_buffer, const char* p_format, ...);
 
 /**
- * @fn pifCrc7_Init
- * @brief 7비트 CRC 계산을 위한 변수를 초기화한다.
+ * @fn pifCrc7_Add
+ * @brief 이전 7비트 CRC값에 데이타를 추가한다.
+ * @param crc 7비트 CRC의 이전값.
+ * @param data 7비트 CRC할 데이터.
+ * @return 데이타를 추가한 7비트 CRC값.
  */
-void pifCrc7_Init();
-
-/**
- * @fn pifCrc7_Calcurate
- * @brief 7비트 CRC를 계산한다.
- * @param data 7비트 CRC 계산에 이 데이터를 추가한다.
- */
-void pifCrc7_Calcurate(uint8_t data);
+uint8_t pifCrc7_Add(uint8_t crc, uint8_t data);
 
 /**
  * @fn pifCrc7_Result
  * @brief 계산된 7비트 CRC 결과를 반환한다.
- * @return 7비트 CRC 결과
+ * @param crc 7비트 CRC의 이전값.
+ * @return 7비트 CRC 결과값.
  */
-uint8_t pifCrc7_Result();
+uint8_t pifCrc7_Result(uint8_t crc);
+
+/**
+ * @fn pifCrc7
+ * @brief Buffer에 있는 데이타의 7비트 CRC 결과를 반환한다.
+ * @param p_data 7비트 CRC할 데이터의 시작 포인터.
+ * @param length 7비트 CRC할 데이터의 크기.
+ * @return 7비트 CRC 결과값.
+ */
+uint8_t pifCrc7(uint8_t* p_data, uint16_t length);
+
+/**
+ * @fn pifCrc16_Add
+ * @brief 이전 16비트 CRC값에 데이타를 추가한다.
+ * @param crc 16비트 CRC의 이전값.
+ * @param data 16비트 CRC할 데이터.
+ * @return 데이타를 추가한 16비트 CRC값.
+ */
+uint16_t pifCrc16_Add(uint16_t crc, uint8_t data);
 
 /**
  * @fn pifCrc16
- * @brief 16비트 CRC를 계산한 결과를 반환한다.
- * @param p_data 16비트 CRC 계산할 데이터.
- * @param length 16비트 CRC 계산할 데이터의 크기.
+ * @brief Buffer에 있는 데이타의 16비트 CRC 결과를 반환한다.
+ * @param p_data 16비트 CRC할 데이터의 시작 포인터.
+ * @param length 16비트 CRC할 데이터의 크기.
+ * @return 데이타를 추가한 16비트 CRC값.
  */
 uint16_t pifCrc16(uint8_t* p_data, uint16_t length);
 
 /**
  * @fn pifCheckSum
- * @brief Byte 단위로 합산한 결과를 반환한다.
- * @param p_data Checksum할 데이터.
+ * @brief Buffer에서의 byte 단위로 합산한 결과를 반환한다.
+ * @param p_data Checksum할 데이터의 시작 포인터.
  * @param length Checksum할 데이터의 크기.
+ * @return 데이타를 추가한 16비트 CRC값.
  */
-uint8_t pifCheckSum(uint8_t* p_data, uint16_t length);
+uint32_t pifCheckSum(uint8_t* p_data, uint16_t length);
 
 /**
  * @fn pifCheckXor
- * @brief Byte 단위로 Xor한 결과를 반환한다.
- * @param p_data CheckXor할 데이터.
+ * @brief Buffer에서의 byte 단위로 Xor한 결과를 반환한다.
+ * @param p_data CheckXor할 데이터의 시작 포인터.
  * @param length CheckXor할 데이터의 크기.
+ * @return 데이타를 추가한 16비트 CRC값.
  */
 uint8_t pifCheckXor(uint8_t* p_data, uint16_t length);
 

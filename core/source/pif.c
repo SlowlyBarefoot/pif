@@ -39,8 +39,6 @@ const char* kPifHexLowerChar = "0123456789abcdef";
 
 const uint8_t kDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
-static uint8_t s_crc7;
-
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
@@ -499,52 +497,65 @@ void pif_Printf(char* p_buffer, const char* p_format, ...)
 	va_end(data);
 }
 
-void pifCrc7_Init()
+uint8_t pifCrc7_Add(uint8_t crc, uint8_t data)
 {
-	s_crc7 = 0;
-}
+    uint16_t i;
 
-void pifCrc7_Calcurate(uint8_t data)
-{
-	for (int i = 0; i < 8; i++) {
-		s_crc7 <<= 1;
-		if ((data & 0x80) ^ (s_crc7 & 0x80)) s_crc7 ^=0x09;
+	for (i = 0; i < 8; i++) {
+		crc <<= 1;
+		if ((data & 0x80) ^ (crc & 0x80)) crc ^=0x09;
 		data <<= 1;
 	}
+    return crc;
 }
 
-uint8_t pifCrc7_Result()
+uint8_t pifCrc7_Result(uint8_t crc)
 {
-	s_crc7 = (s_crc7 << 1) | 1;
-	return s_crc7;
+	return (crc << 1) | 1;
+}
+
+uint8_t pifCrc7(uint8_t* p_data, uint16_t length)
+{
+	uint16_t i;
+	uint8_t crc = 0;
+
+	for (i = 0; i < length; i++) {
+		crc = pifCrc7_Add(crc, p_data[i]);
+	}
+	return pifCrc7_Result(crc);
+}
+
+uint16_t pifCrc16_Add(uint16_t crc, uint8_t data)
+{
+	uint16_t i;
+
+    crc ^= (uint16_t)data << 8;
+    for (i = 0; i < 8; i++) {
+        if (crc & 0x8000) crc = (crc << 1) ^ 0x1021;
+        else crc <<= 1;
+    }
+	return crc;
 }
 
 uint16_t pifCrc16(uint8_t* p_data, uint16_t length)
 {
-	uint16_t i, n;
-	uint32_t crc16 = 0;
-	uint32_t temp;
+	uint16_t i, crc = 0;
 
 	for (i = 0; i < length; i++) {
-		crc16 ^= (uint16_t)p_data[i] << 8;
-		for (n = 0; n < 8; n++) {
-			temp = crc16 << 1;
-			if (crc16 & 0x8000) temp ^= 0x1021;
-			crc16 = temp;
-		}
+		crc = pifCrc16_Add(crc, p_data[i]);
 	}
-	return crc16 & 0xFFFF;
+	return crc;
 }
 
-uint8_t pifCheckSum(uint8_t* p_data, uint16_t length)
+uint32_t pifCheckSum(uint8_t* p_data, uint16_t length)
 {
 	uint16_t i;
-	uint8_t sum = 0;
+	uint32_t sum = 0UL;
 
 	for (i = 0; i < length; i++) {
 		sum += p_data[i];
 	}
-	return sum & 0xFF;
+	return sum;
 }
 
 uint8_t pifCheckXor(uint8_t* p_data, uint16_t length)
@@ -555,7 +566,7 @@ uint8_t pifCheckXor(uint8_t* p_data, uint16_t length)
 	for (i = 0; i < length; i++) {
 		xor ^= p_data[i];
 	}
-	return xor & 0xFF;
+	return xor;
 }
 
 void pifPidControl_Init(PifPidControl* p_owner, float kp, float ki, float kd, float max_integration)
