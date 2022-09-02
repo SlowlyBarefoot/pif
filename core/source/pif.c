@@ -95,48 +95,6 @@ void pif_Exit()
 #endif
 }
 
-void pif_Loop()
-{
-    extern void pifTaskManager_Loop();
-
-#ifndef __PIF_NO_LOG__
-#ifdef __PIF_DEBUG__
-	static BOOL first = TRUE;
-	static uint32_t pretime;
-	uint32_t gap;
-#endif
-
-	if (pif_log_flag.bt.performance) {
-		pif_performance._count++;
-		if (pif_performance.__state) {
-        	uint32_t value = 1000000L / pif_performance._count;
-        	pifLog_Printf(LT_INFO, "Performance: %lur/s, %uns", pif_performance._count, value);
-        	pif_performance._count = 0;
-    		pif_performance.__state = FALSE;
-        }
-    }
-#ifdef __PIF_DEBUG__
-    else {
-    	if (pif_act_timer1us) {
-    		if (!first) {
-    			gap = (*pif_act_timer1us)() - pretime;
-    			if (gap > pif_performance.__max_loop_time1us) {
-    				pif_performance.__max_loop_time1us = gap;
-    				pifLog_Printf(LT_NONE, "\nMLT: %luus", pif_performance.__max_loop_time1us);
-    			}
-    		}
-    		else {
-    			first = FALSE;
-    		}
-    		pretime = (*pif_act_timer1us)();
-    	}
-	}
-#endif
-#endif
-
-    pifTaskManager_Loop();
-}
-
 void pif_sigTimer1ms()
 {
 	uint8_t days;

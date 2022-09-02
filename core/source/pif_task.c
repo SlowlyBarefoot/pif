@@ -269,6 +269,45 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
 	return TRUE;
 }
 
+#ifndef __PIF_NO_LOG__
+
+static void _checkLoopTime(BOOL yield)
+{
+#ifdef __PIF_DEBUG__
+	static int step = 0;
+	static uint32_t pretime;
+	uint32_t gap;
+
+	if (pif_act_timer1us) {
+		if (!step) {
+			if (!yield) step = 1;
+		}
+		else {
+			gap = (*pif_act_timer1us)() - pretime;
+			if (gap > pif_performance.__max_loop_time1us) {
+				pif_performance.__max_loop_time1us = gap;
+				pifLog_Printf(LT_NONE, "\nMLT: %luus", pif_performance.__max_loop_time1us);
+			}
+		}
+		pretime = (*pif_act_timer1us)();
+	}
+#else
+	(void)yield;
+#endif
+
+	if (pif_log_flag.bt.performance) {
+		pif_performance._count++;
+		if (pif_performance.__state) {
+        	uint32_t value = 1000000L / pif_performance._count;
+        	pifLog_Printf(LT_INFO, "Performance: %lur/s, %uns", pif_performance._count, value);
+        	pif_performance._count = 0;
+    		pif_performance.__state = FALSE;
+        }
+    }
+}
+
+#endif
+
 
 void pifTask_Init(PifTask* p_owner)
 {
@@ -419,6 +458,10 @@ void pifTaskManager_Loop()
     	sec = pif_datetime.second;
     }
 #endif
+
+#ifndef __PIF_NO_LOG__
+    _checkLoopTime(FALSE);
+#endif
 }
 
 void pifTaskManager_Yield()
@@ -446,6 +489,10 @@ void pifTaskManager_Yield()
 		if (pif_act_task_yield) (*pif_act_task_yield)();
 #endif
 	}
+
+#ifndef __PIF_NO_LOG__
+    _checkLoopTime(TRUE);
+#endif
 }
 
 void pifTaskManager_YieldMs(uint32_t time)

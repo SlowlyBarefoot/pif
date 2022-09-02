@@ -249,12 +249,6 @@ void pif_Init(PifActTimer1us act_timer1us);
 void pif_Exit();
 
 /**
- * @fn pif_Loop
- * @brief Main loop에서 수행해야 하는 pif 함수이다.
- */
-void pif_Loop();
-
-/**
  * @fn pif_sigTimer1ms
  * @brief 1ms 타이머 인터럽트에서 실행할 pif 함수이다.
  */
