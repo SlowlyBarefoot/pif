@@ -5,6 +5,14 @@
 #include "pif_task.h"
 
 
+typedef enum EnPifHcSr04State
+{
+	HSS_READY		= 0,
+	HSS_TRIGGER		= 1,
+	HSS_HIGH		= 2,
+	HSS_LOW			= 3
+} PifHcSr04State;
+
 typedef void (*PifActHcSr04Trigger)(SWITCH state);
 
 typedef void (*PifEvtHcSr04Distance)(int32_t distance);		// distance unit : cm
@@ -23,10 +31,14 @@ typedef struct StPifHcSr04
 	// Read-only Member Variable
 	PifId _id;
     PifTask* _p_task;
+    float _transform_const;
 
 	// Private Member Variable
+    PifHcSr04State __state;
+    int16_t __period;
+    int16_t __timer;
     uint32_t __tigger_time_us;
-    float __transform_const;
+	int32_t __distance;
 } PifHcSr04;
 
 
@@ -44,11 +56,34 @@ extern "C" {
 BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id);
 
 /**
+ * @fn pifHcSr04_Clear
+ * @brief
+ * @param p_owner
+ */
+void pifHcSr04_Clear(PifHcSr04* p_owner);
+
+/**
  * @fn pifHcSr04_Trigger
  * @brief
  * @param p_owner
  */
 void pifHcSr04_Trigger(PifHcSr04* p_owner);
+
+/**
+ * @fn pifHcSr04_StartTrigger
+ * @brief
+ * @param p_owner
+ * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @return
+ */
+BOOL pifHcSr04_StartTrigger(PifHcSr04* p_owner, uint16_t period);
+
+/**
+ * @fn pifHcSr04_StopTrigger
+ * @brief
+ * @param p_owner
+ */
+void pifHcSr04_StopTrigger(PifHcSr04* p_owner);
 
 /**
  * @fn pifHcSr04_SetTemperature
@@ -57,16 +92,6 @@ void pifHcSr04_Trigger(PifHcSr04* p_owner);
  * @param temperature
  */
 void pifHcSr04_SetTemperature(PifHcSr04* p_owner, float temperature);
-
-/**
- * @fn pifHcSr04_AttachTask
- * @brief Task를 추가한다.
- * @param p_owner
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
- */
-PifTask* pifHcSr04_AttachTask(PifHcSr04* p_owner, uint16_t period, BOOL start);
 
 /**
  * @fn pifHcSr04_sigReceiveEcho
