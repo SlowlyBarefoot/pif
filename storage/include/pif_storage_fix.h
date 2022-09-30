@@ -124,7 +124,7 @@ BOOL pifStorageFix_Format(PifStorage* p_parent);
  * @param size
  * @return
  */
-PifStorageDataInfo* pifStorageFix_Create(PifStorage* p_parent, uint16_t id, uint16_t size);
+PifStorageDataInfoP pifStorageFix_Create(PifStorage* p_parent, uint16_t id, uint16_t size);
 
 /**
  * @fn pifStorageFix_Delete
@@ -142,7 +142,7 @@ BOOL pifStorageFix_Delete(PifStorage* p_parent, uint16_t id);
  * @param id
  * @return
  */
-PifStorageDataInfo* pifStorageFix_Open(PifStorage* p_parent, uint16_t id);
+PifStorageDataInfoP pifStorageFix_Open(PifStorage* p_parent, uint16_t id);
 
 /**
  * @fn pifStorageFix_Read
@@ -153,7 +153,7 @@ PifStorageDataInfo* pifStorageFix_Open(PifStorage* p_parent, uint16_t id);
  * @param size
  * @return
  */
-BOOL pifStorageFix_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfo* p_src, size_t size);
+BOOL pifStorageFix_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size);
 
 /**
  * @fn pifStorageFix_Write
@@ -164,7 +164,7 @@ BOOL pifStorageFix_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfo
  * @param size
  * @return
  */
-BOOL pifStorageFix_Write(PifStorage* p_parent, PifStorageDataInfo* p_dst, uint8_t* p_src, size_t size);
+BOOL pifStorageFix_Write(PifStorage* p_parent, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size);
 
 #ifdef __cplusplus
 }

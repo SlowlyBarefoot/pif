@@ -6,7 +6,7 @@ static uint16_t _doTask(PifTask* p_task)
 {
 	PifHcSr04* p_owner = (PifHcSr04*)p_task->_p_client;
 
-	if (p_owner->__timer > 10) p_owner->__timer -= 10; else p_owner->__timer = 0;
+	if (p_owner->__timer) p_owner->__timer--; else p_owner->__timer = 0;
 	if (p_owner->__period > -1 && !p_owner->__timer) {
 		if (p_owner->__state == HSS_HIGH) {
 			if (p_owner->evt_distance) (*p_owner->evt_distance)(p_owner->__period * 1000L / p_owner->_transform_const);
@@ -36,7 +36,7 @@ BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id)
 
 	memset(p_owner, 0, sizeof(PifHcSr04));
 
-	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, 10, _doTask, p_owner, TRUE);
+	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, 1, _doTask, p_owner, TRUE);
 	if (!p_owner->_p_task) return FALSE;
 
 	if (id == PIF_ID_AUTO) id = pif_id++;

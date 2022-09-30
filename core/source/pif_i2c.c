@@ -5,7 +5,7 @@
 #include "pif_task.h"
 
 
-BOOL pifI2cPort_Init(PifI2cPort* p_owner, PifId id, uint8_t device_count,  uint16_t max_transfer_size)
+BOOL pifI2cPort_Init(PifI2cPort* p_owner, PifId id, uint8_t device_count, uint16_t max_transfer_size)
 {
 	if (!p_owner || !device_count || !max_transfer_size) {
 		pif_error = E_INVALID_PARAM;
@@ -76,7 +76,7 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 	PifI2cPort* p_port = p_owner->__p_port;
 	uint8_t len;
 	uint32_t timer1ms;
-	size_t ptr, remain;
+	size_t ptr;
 
 	if (!p_port->act_read) return FALSE;
 	if (p_port->__use_device) {
@@ -89,9 +89,8 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 	p_port->__use_device = p_owner;
 	p_owner->_state = IS_RUN;
 	ptr = 0;
-	remain = size;
-	while (remain) {
-		len = remain > p_port->__max_transfer_size ? p_port->__max_transfer_size : remain;
+	while (size) {
+		len = size > p_port->__max_transfer_size ? p_port->__max_transfer_size : size;
 		switch ((*p_port->act_read)(p_owner->addr, iaddr + ptr, isize, p_data + ptr, len)) {
 		case IR_WAIT:
 			timer1ms = pif_cumulative_timer1ms;
@@ -109,7 +108,7 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 			goto fail;
 		}
 		ptr += len;
-		remain -= len;
+		size -= len;
 	}
 	p_port->__use_device = NULL;
 	p_owner->_state = IS_IDLE;
@@ -172,7 +171,7 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 	PifI2cPort* p_port = p_owner->__p_port;
 	uint8_t len;
 	uint32_t timer1ms;
-	size_t ptr, remain;
+	size_t ptr;
 
 	if (!p_port->act_write) return FALSE;
 	if (p_port->__use_device) {
@@ -185,10 +184,9 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 	p_port->__use_device = p_owner;
 	p_owner->_state = IS_RUN;
 	ptr = 0;
-	remain = size;
-	while (remain) {
-		len = remain > p_port->__max_transfer_size ? p_port->__max_transfer_size : remain;
-		switch ((*p_port->act_write)(p_owner->addr, iaddr, isize, p_data, size)) {
+	while (size) {
+		len = size > p_port->__max_transfer_size ? p_port->__max_transfer_size : size;
+		switch ((*p_port->act_write)(p_owner->addr, iaddr + ptr, isize, p_data + ptr, len)) {
 		case IR_WAIT:
 			timer1ms = pif_cumulative_timer1ms;
 			while (p_owner->_state == IS_RUN) {
@@ -205,7 +203,7 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 			goto fail;
 		}
 		ptr += len;
-		remain -= len;
+		size -= len;
 	}
 	p_port->__use_device = NULL;
 	p_owner->_state = IS_IDLE;

@@ -28,7 +28,7 @@ static BOOL _readData(PifStorageVar* p_owner, uint8_t* dst, uint32_t src, size_t
 	ptr = 0;
 	while (size) {
 		len = size > sector_size ? sector_size : size;
-		if (!(*p_owner->parent.__act_read)(dst + ptr, src + ptr, len, p_owner->parent.__p_issuer)) return FALSE;
+		if (!(*p_owner->parent.__act_read)(&p_owner->parent, dst + ptr, src + ptr, len)) return FALSE;
 
 		ptr += len;
 		size -= len;
@@ -44,7 +44,7 @@ static BOOL _writeData(PifStorageVar* p_owner, uint32_t dst, uint8_t* src, size_
 	ptr = 0;
 	while (size) {
 		len = size > sector_size ? sector_size : size;
-		if (!(*p_owner->parent.__act_write)(dst + ptr, src + ptr, len, p_owner->parent.__p_issuer)) return FALSE;
+		if (!(*p_owner->parent.__act_write)(&p_owner->parent, dst + ptr, src + ptr, len)) return FALSE;
 
 		ptr += len;
 		size -= len;
@@ -208,7 +208,7 @@ BOOL pifStorageVar_Format(PifStorage* p_parent)
     remain = p_owner->__info_bytes;
     while (remain) {
     	len = remain > 16 ? 16 : remain;
-        if (!(*p_owner->parent.__act_read)(data, ptr, len, p_owner->parent.__p_issuer)) {
+        if (!(*p_owner->parent.__act_read)(p_parent, data, ptr, len)) {
         	pif_error = E_ACCESS_FAILED;
             return FALSE;
         }
@@ -226,7 +226,7 @@ BOOL pifStorageVar_Format(PifStorage* p_parent)
 	return TRUE;
 }
 
-PifStorageDataInfo* pifStorageVar_Create(PifStorage* p_parent, uint16_t id, uint16_t size)
+PifStorageDataInfoP pifStorageVar_Create(PifStorage* p_parent, uint16_t id, uint16_t size)
 {
 	PifStorageVar* p_owner = (PifStorageVar*)p_parent;
 	PifStorageVarInfo* p_info = p_owner->_p_info;
@@ -326,7 +326,7 @@ save:
     	pif_error = E_ACCESS_FAILED;
         return NULL;
     }
-	return (PifStorageDataInfo*)p_new_data;
+	return (PifStorageDataInfoP)p_new_data;
 }
 
 BOOL pifStorageVar_Delete(PifStorage* p_parent, uint16_t id)
@@ -372,7 +372,7 @@ BOOL pifStorageVar_Delete(PifStorage* p_parent, uint16_t id)
 	return FALSE;
 }
 
-PifStorageDataInfo* pifStorageVar_Open(PifStorage* p_parent, uint16_t id)
+PifStorageDataInfoP pifStorageVar_Open(PifStorage* p_parent, uint16_t id)
 {
 	PifStorageVar* p_owner = (PifStorageVar*)p_parent;
 	PifStorageVarInfo* p_info = p_owner->_p_info;
@@ -392,7 +392,7 @@ PifStorageDataInfo* pifStorageVar_Open(PifStorage* p_parent, uint16_t id)
 		        pif_error = E_MISMATCH_CRC;
 				return NULL;
 			}
-			return (PifStorageDataInfo*)p_data_info;
+			return (PifStorageDataInfoP)p_data_info;
 		}
 		node = p_data_info->next_node;
 	}
@@ -400,7 +400,7 @@ PifStorageDataInfo* pifStorageVar_Open(PifStorage* p_parent, uint16_t id)
 	return NULL;
 }
 
-BOOL pifStorageVar_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfo* p_src, size_t size)
+BOOL pifStorageVar_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size)
 {
 	PifStorageVar* p_owner = (PifStorageVar*)p_parent;
 
@@ -412,7 +412,7 @@ BOOL pifStorageVar_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfo
 	return _readData(p_owner, p_dst, ((PifStorageVarDataInfo*)p_src)->first_sector * p_owner->_p_info->sector_size, size, p_owner->_p_info->sector_size);
 }
 
-BOOL pifStorageVar_Write(PifStorage* p_parent, PifStorageDataInfo* p_dst, uint8_t* p_src, size_t size)
+BOOL pifStorageVar_Write(PifStorage* p_parent, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size)
 {
 	PifStorageVar* p_owner = (PifStorageVar*)p_parent;
 
@@ -468,7 +468,7 @@ void pifStorageVar_Dump(PifStorageVar* p_owner, uint32_t pos, uint32_t length)
 	uint8_t b, data[16];
 
 	for (i = 0; i < length;) {
-		if (!(*p_owner->parent.__act_read)(data, pos + i, 16, p_owner->parent.__p_issuer)) {
+		if (!(*p_owner->parent.__act_read)(&p_owner->parent, data, pos + i, 16)) {
 	    	pif_error = E_ACCESS_FAILED;
 			return;
 		}

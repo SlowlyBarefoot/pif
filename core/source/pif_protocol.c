@@ -73,7 +73,9 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 {
 	PifProtocolPacket* p_packet = &p_owner->__rx.packet;
 	uint8_t data;
+#ifndef __PIF_NO_LOG__
 	uint8_t pkt_err;
+#endif
 	static uint8_t crc7;
 
 	while ((*act_receive_data)(p_owner->__p_comm, &data)) {
@@ -134,7 +136,9 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 						p_packet->data_count = 0;
 					}
 					else if (p_packet->length > p_owner->__rx.packet_size - 10) {
+#ifndef __PIF_NO_LOG__
 						pkt_err = PKT_ERR_BIG_LENGHT;
+#endif
 						goto fail;
 					}
 					else {
@@ -146,7 +150,9 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 				}
 			}
 			else {
+#ifndef __PIF_NO_LOG__
 				pkt_err = PKT_ERR_INVALID_DATA;
+#endif
 				goto fail;
 			}
 			break;
@@ -168,7 +174,9 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 				p_owner->__rx.data_link_escape = TRUE;
 			}
 			else {
+#ifndef __PIF_NO_LOG__
 				pkt_err = PKT_ERR_INVALID_DATA;
+#endif
 				goto fail;
 			}
 			break;
@@ -180,12 +188,16 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 					p_owner->__rx.state = PRS_GET_TAILER;
 				}
 				else {
+#ifndef __PIF_NO_LOG__
 					pkt_err = PKT_ERR_WRONG_CRC;
+#endif
 					goto fail;
 				}
 			}
 			else {
+#ifndef __PIF_NO_LOG__
 				pkt_err = PKT_ERR_INVALID_DATA;
+#endif
 				goto fail;
 			}
 			break;
@@ -199,7 +211,9 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 	            return;
 			}
 			else {
+#ifndef __PIF_NO_LOG__
 				pkt_err = PKT_ERR_WRONG_ETX;
+#endif
 				goto fail;
 			}
 			break;

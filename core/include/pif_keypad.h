@@ -49,10 +49,10 @@ typedef struct StPifKeypad
 	// Public Member Variable
 
 	// Public Event Function
-	PifEvtKeypadPressed evt_pressed;				// Default: NULL
-	PifEvtKeypadReleased evt_released;				// Default: NULL
-	PifEvtKeypadLongReleased evt_long_released;		// Default: NULL
-	PifEvtKeypadDoublePressed evt_double_pressed;	// Default: NULL
+	PifEvtKeypadPressed evt_pressed;
+	PifEvtKeypadReleased evt_released;
+	PifEvtKeypadLongReleased evt_long_released;
+	PifEvtKeypadDoublePressed evt_double_pressed;
 
 	// Read-only Member Variable
 	PifId _id;
@@ -70,7 +70,7 @@ typedef struct StPifKeypad
     uint16_t __control_period_1ms;					// PIF_KEYPAD_CONTROL_PERIOD
 
 	// Private Action Function
-	PifActKeypadAcquire __act_acquire;				// Default: NULL
+	PifActKeypadAcquire __act_acquire;
 } PifKeypad;
 
 

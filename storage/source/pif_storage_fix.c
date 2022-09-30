@@ -94,7 +94,7 @@ BOOL pifStorageFix_Format(PifStorage* p_parent)
 	return TRUE;
 }
 
-PifStorageDataInfo* pifStorageFix_Create(PifStorage* p_parent, uint16_t id, uint16_t size)
+PifStorageDataInfoP pifStorageFix_Create(PifStorage* p_parent, uint16_t id, uint16_t size)
 {
 	(void)size;
 
@@ -109,7 +109,7 @@ BOOL pifStorageFix_Delete(PifStorage* p_parent, uint16_t id)
 	return TRUE;
 }
 
-PifStorageDataInfo* pifStorageFix_Open(PifStorage* p_parent, uint16_t id)
+PifStorageDataInfoP pifStorageFix_Open(PifStorage* p_parent, uint16_t id)
 {
 	PifStorageFix* p_owner = (PifStorageFix*)p_parent;
 
@@ -118,19 +118,19 @@ PifStorageDataInfo* pifStorageFix_Open(PifStorage* p_parent, uint16_t id)
 		return NULL;
 	}
 
-	return (PifStorageDataInfo*)(p_owner->__p_data_info + id);
+	return (PifStorageDataInfoP)(p_owner->__p_data_info + id);
 }
 
-BOOL pifStorageFix_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfo* p_src, size_t size)
+BOOL pifStorageFix_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size)
 {
 	PifStorageFix* p_owner = (PifStorageFix*)p_parent;
 
-	return (*p_owner->parent.__act_read)(p_dst, ((PifStorageFixDataInfo*)p_src)->id * p_owner->__sector_size, size, p_owner->parent.__p_issuer);
+	return (*p_owner->parent.__act_read)(p_parent, p_dst, ((PifStorageFixDataInfo*)p_src)->id * p_owner->__sector_size, size);
 }
 
-BOOL pifStorageFix_Write(PifStorage* p_parent, PifStorageDataInfo* p_dst, uint8_t* p_src, size_t size)
+BOOL pifStorageFix_Write(PifStorage* p_parent, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size)
 {
 	PifStorageFix* p_owner = (PifStorageFix*)p_parent;
 
-	return (*p_owner->parent.__act_write)(((PifStorageFixDataInfo*)p_dst)->id * p_owner->__sector_size, p_src, size, p_owner->parent.__p_issuer);
+	return (*p_owner->parent.__act_write)(p_parent, ((PifStorageFixDataInfo*)p_dst)->id * p_owner->__sector_size, p_src, size);
 }
