@@ -26,8 +26,8 @@ typedef enum EnPifPulseEdge
 } PifPulseEdge;
 
 
-typedef void (*PifEvtPulseEdge)(PifPulseEdge edge, void* p_issuer);
-typedef void (*PifEvtPulseTick)(void* p_issuer);
+typedef void (*PifEvtPulseEdge)(PifPulseEdge edge, PifIssueP p_issuer);
+typedef void (*PifEvtPulseTick)(PifIssueP p_issuer);
 
 
 struct StPifPulse;
@@ -90,7 +90,7 @@ struct StPifPulse
 		unsigned int min	: 15;
 		uint16_t max;
 	} __valid_range[4];
-	void* __p_issuer;
+	PifIssueP __p_issuer;
 	uint8_t __channel_count;
 	uint16_t __threshold_1us;
 	uint16_t* __p_position;
@@ -219,7 +219,7 @@ uint8_t pifPulse_sigTick(PifPulse* p_owner, uint32_t time_us);
  * @param evt_edge
  * @param p_issuer 이벤트 발생시 전달할 발행자
  */
-void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, void* p_issuer);
+void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssueP p_issuer);
 
 /**
  * @fn pifPulse_AttachEvtTick
@@ -228,7 +228,7 @@ void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, void* p
  * @param evt_tick
  * @param p_issuer 이벤트 발생시 전달할 발행자
  */
-void pifPulse_AttachEvtTick(PifPulse* p_owner, PifEvtPulseTick evt_tick, void* p_issuer);
+void pifPulse_AttachEvtTick(PifPulse* p_owner, PifEvtPulseTick evt_tick, PifIssueP p_issuer);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 

@@ -4,7 +4,7 @@
 #endif
 
 
-static void _evtTimerDelayFinish(void* p_issuer)
+static void _evtTimerDelayFinish(PifIssueP p_issuer)
 {
     PifDutyMotor* p_parent = (PifDutyMotor*)p_issuer;
 
@@ -141,7 +141,7 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, void* p_issuer)
+static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, PifIssueP p_issuer)
 {
 	PifDutyMotorSpeed* p_motor = (PifDutyMotorSpeed*)p_issuer;
 

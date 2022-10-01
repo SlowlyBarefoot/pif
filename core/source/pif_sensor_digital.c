@@ -45,7 +45,7 @@ static void _addDeviceInCollectSignal()
 
 #endif	// __PIF_COLLECT_SIGNAL__
 
-BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifActSensorAcquire act_acquire, void* p_issuer)
+BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifActSensorAcquire act_acquire, PifIssueP p_issuer)
 {
     if (!p_owner) {
 		pif_error = E_INVALID_PARAM;

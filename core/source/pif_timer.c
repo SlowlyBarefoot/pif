@@ -188,13 +188,13 @@ void pifTimerManager_sigTick(PifTimerManager* p_manager)
 	if (p_remove) pifFixList_Remove(&p_manager->__timers, p_remove);
 }
 
-void pifTimer_AttachEvtFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, void* p_issuer)
+void pifTimer_AttachEvtFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssueP p_issuer)
 {
 	p_owner->__evt_finish = evt_finish;
 	p_owner->__p_finish_issuer = p_issuer;
 }
 
-void pifTimer_AttachEvtIntFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, void* p_issuer)
+void pifTimer_AttachEvtIntFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssueP p_issuer)
 {
 	p_owner->__evt_int_finish = evt_finish;
 	p_owner->__p_int_finish_issuer = p_issuer;

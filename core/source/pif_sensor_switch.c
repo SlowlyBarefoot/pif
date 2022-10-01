@@ -45,7 +45,7 @@ static void _addDeviceInCollectSignal()
 
 #endif	// __PIF_COLLECT_SIGNAL__
 
-BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state, PifActSensorAcquire act_acquire, void* p_issuer)
+BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state, PifActSensorAcquire act_acquire, PifIssueP p_issuer)
 {
     memset(p_owner, 0, sizeof(PifSensorSwitch));
 

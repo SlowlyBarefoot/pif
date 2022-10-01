@@ -123,7 +123,7 @@ static uint8_t _convertAscii2Hex(char n)    // convert '0'..'9','A'..'F' to 0..1
 	return n;
 }
 
-static void _evtTimerFinish(void* p_issuer)
+static void _evtTimerFinish(PifIssueP p_issuer)
 {
     PifGps* p_owner = (PifGps*)p_issuer;
 

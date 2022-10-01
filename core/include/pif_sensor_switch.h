@@ -69,7 +69,7 @@ extern "C" {
  * @param p_issuer
  * @return 
  */
-BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state, PifActSensorAcquire act_acquire, void* p_issuer);
+BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state, PifActSensorAcquire act_acquire, PifIssueP p_issuer);
 
 /**
  * @fn pifSensorSwitch_Clear

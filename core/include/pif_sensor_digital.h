@@ -72,7 +72,7 @@ extern "C" {
  * @param p_issuer
  * @return 
  */
-BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifActSensorAcquire act_acquire, void* p_issuer);
+BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifActSensorAcquire act_acquire, PifIssueP p_issuer);
 
 /**
  * @fn pifSensorDigital_Clear

@@ -16,7 +16,7 @@
 #define PIF_XMODEM_RECEIVE_TIMEOUT		300
 
 
-static void _evtTimerRxTimeout(void* p_issuer)
+static void _evtTimerRxTimeout(PifIssueP p_issuer)
 {
 	PifXmodem* p_owner = (PifXmodem*)p_issuer;
 
@@ -32,7 +32,7 @@ static void _evtTimerRxTimeout(void* p_issuer)
 	}
 }
 
-static void _evtTimerTxTimeout(void* p_issuer)
+static void _evtTimerTxTimeout(PifIssueP p_issuer)
 {
 	PifXmodem* p_owner = (PifXmodem*)p_issuer;
 

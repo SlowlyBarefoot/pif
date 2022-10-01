@@ -8,7 +8,7 @@
 
 typedef void (*PifActTimerPwm)(SWITCH value);
 
-typedef void (*PifEvtTimerFinish)(void* p_issuer);
+typedef void (*PifEvtTimerFinish)(PifIssueP p_issuer);
 
 
 typedef enum EnPifTimerType
@@ -44,8 +44,8 @@ typedef struct StPifTimer
 
 	// Private Member Variable
     uint32_t __current;
-    void* __p_finish_issuer;
-    void* __p_int_finish_issuer;
+    PifIssueP __p_finish_issuer;
+    PifIssueP __p_int_finish_issuer;
     uint32_t __pwm_duty;
 	BOOL __event;
 
@@ -178,7 +178,7 @@ void pifTimerManager_sigTick(PifTimerManager* p_manager);
  * @param evt_finish 연결시킬 이벤트
  * @param p_issuer 이벤트 발생시 전달할 발행자
  */
-void pifTimer_AttachEvtFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, void* p_issuer);
+void pifTimer_AttachEvtFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssueP p_issuer);
 
 /**
  * @fn pifTimer_AttachEvtIntFinish
@@ -187,7 +187,7 @@ void pifTimer_AttachEvtFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, v
  * @param evt_finish 연결시킬 이벤트
  * @param p_issuer 이벤트 발생시 전달할 발행자
  */
-void pifTimer_AttachEvtIntFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, void* p_issuer);
+void pifTimer_AttachEvtIntFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssueP p_issuer);
 
 #ifdef __cplusplus
 }

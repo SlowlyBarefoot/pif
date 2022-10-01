@@ -4,7 +4,7 @@
 #include "pif_step_motor_pos.h"
 
 
-static void _evtTimerDelayFinish(void* p_issuer)
+static void _evtTimerDelayFinish(PifIssueP p_issuer)
 {
     PifStepMotor* p_parent = (PifStepMotor*)p_issuer;
 
@@ -164,7 +164,7 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, void* p_issuer)
+static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, PifIssueP p_issuer)
 {
 	PifStepMotorPos* p_motor = (PifStepMotorPos*)p_issuer;
 
@@ -178,7 +178,7 @@ static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorVa
 	}
 }
 
-static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, void* p_issuer)
+static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, PifIssueP p_issuer)
 {
 	PifStepMotor* p_motor = (PifStepMotor*)p_issuer;
 

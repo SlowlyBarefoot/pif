@@ -53,14 +53,14 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-static void _evtTimerBlinkFinish(void* p_issuer)
+static void _evtTimerBlinkFinish(PifIssueP p_issuer)
 {
     PifDotMatrix* p_owner = (PifDotMatrix*)p_issuer;
 
     if (p_owner->__bt.blink) p_owner->__bt.led ^= 1;
 }
 
-static void _evtTimerShiftFinish(void* p_issuer)
+static void _evtTimerShiftFinish(PifIssueP p_issuer)
 {
     PifDotMatrix* p_owner = (PifDotMatrix*)p_issuer;
 

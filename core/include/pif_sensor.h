@@ -11,7 +11,7 @@ struct StPifSensor;
 typedef struct StPifSensor PifSensor;
 
 typedef uint16_t (*PifActSensorAcquire)(PifSensor* p_owner);
-typedef void (*PifEvtSensorChange)(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, void* p_issuer);
+typedef void (*PifEvtSensorChange)(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, PifIssueP p_issuer);
 
 
 /**
@@ -28,7 +28,7 @@ struct StPifSensor
     SWITCH _curr_state;						// Default: _init_state
 
 	// Private Member Variable
-    void* __p_issuer;
+    PifIssueP __p_issuer;
 
 	// Private Action Function
 	PifActSensorAcquire __act_acquire;
