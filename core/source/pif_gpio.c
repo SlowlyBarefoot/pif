@@ -37,7 +37,7 @@ static void _addDeviceInCollectSignal()
 	}
 }
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count)
 {
@@ -272,4 +272,4 @@ void pifGpioColSig_ResetFlag(PifGpioCsFlag flag)
 	}
 }
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__

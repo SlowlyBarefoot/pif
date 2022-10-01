@@ -13,33 +13,10 @@
 #endif
 
 
-static void _evtTimerPeriodFinish(void* p_issuer)
+static uint16_t _doTaskAcquire(PifTask* p_task)
 {
-    PifSensorDigital* p_owner = (PifSensorDigital*)p_issuer;
-
-    if (p_owner->__evt_period) {
-        (*p_owner->__evt_period)(p_owner->parent._id, p_owner->__curr_level);
-    }
-}
-
-static uint16_t _evtFilterAverage(uint16_t level, PifSensorDigitalFilter* p_filter)
-{
-    uint8_t pos;
-
-    pos = p_filter->pos + 1;
-    if (pos >= p_filter->size) pos = 0;
-
-    if (p_filter->sum < p_filter->p_buffer[pos]) {
-    	p_filter->sum = 0L;
-    }
-    else {
-    	p_filter->sum -= p_filter->p_buffer[pos];
-    }
-    p_filter->sum += level;
-    p_filter->p_buffer[pos] = level;
-    p_filter->pos = pos;
-
-    return p_filter->sum / p_filter->size;
+	pifSensorDigital_ProcessAcquire((PifSensorDigital*)p_task->_p_client);
+	return 0;
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -66,22 +43,23 @@ static void _addDeviceInCollectSignal()
 	}
 }
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
-BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifTimerManager *p_timer_manager)
+BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifActSensorAcquire act_acquire, void* p_issuer)
 {
-    if (!p_timer_manager) {
+    if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
     memset(p_owner, 0, sizeof(PifSensorDigital));
 
-    p_owner->__p_timer_manager = p_timer_manager;
 	p_owner->parent._curr_state = OFF;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->parent._id = id;
+	p_owner->parent.__act_acquire = act_acquire;
+	p_owner->parent.__p_issuer = p_issuer;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	if (!pifDList_Size(&s_cs_list)) {
@@ -96,7 +74,7 @@ BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifTimerManager 
 
 #ifdef __PIF_COLLECT_SIGNAL__
 fail:
-	pifSensorDigital_Destroy((PifSensor**)&p_owner);
+	pifSensorDigital_Clear(p_owner);
 	return FALSE;
 #endif
 }
@@ -109,18 +87,9 @@ void pifSensorDigital_Clear(PifSensorDigital* p_owner)
 		pifCollectSignal_Detach(CSF_SENSOR_DIGITAL);
 	}
 	p_owner->__p_colsig = NULL;
+#else
+	(void)p_owner;
 #endif
-
-	if (p_owner->__filter_method) {
-		PifSensorDigitalFilter* p_filter = p_owner->__p_filter;
-		if (p_filter->p_buffer) {
-			free(p_filter->p_buffer);
-			p_filter->p_buffer = NULL;
-		}
-	}
-	if (p_owner->__ui.period.p_timer) {
-		pifTimerManager_Remove(p_owner->__ui.period.p_timer);
-	}
 }
 
 void pifSensorDigital_InitialState(PifSensorDigital* p_owner)
@@ -131,152 +100,62 @@ void pifSensorDigital_InitialState(PifSensorDigital* p_owner)
 	p_owner->__curr_level = p_parent->_init_state ? 0xFFFF : 0;
 }
 
-BOOL pifSensorDigital_AttachEvtPeriod(PifSensorDigital* p_owner, PifEvtSensorDigitalPeriod evt_period)
+void pifSensorDigital_SetThreshold(PifSensorDigital* p_owner, uint16_t low_threshold, uint16_t high_threshold)
 {
-	p_owner->__ui.period.p_timer = pifTimerManager_Add(p_owner->__p_timer_manager, TT_REPEAT);
-    if (!p_owner->__ui.period.p_timer) return FALSE;
-    pifTimer_AttachEvtFinish(p_owner->__ui.period.p_timer, _evtTimerPeriodFinish, p_owner);
-    p_owner->__event_type = SDET_PERIOD;
-    p_owner->__evt_period = evt_period;
-	return TRUE;
-}
-
-BOOL pifSensorDigital_StartPeriod(PifSensorDigital* p_owner, uint16_t period)
-{
-	return pifTimer_Start(p_owner->__ui.period.p_timer, period);
-}
-
-void pifSensorDigital_StopPeriod(PifSensorDigital* p_owner)
-{
-	pifTimer_Stop(p_owner->__ui.period.p_timer);
-}
-
-void pifSensorDigital_SetEventThreshold1P(PifSensorDigital* p_owner, uint16_t threshold)
-{
-	p_owner->__event_type = SDET_THRESHOLD_1P;
-	p_owner->__ui.threshold1p = threshold;
-}
-
-void pifSensorDigital_SetEventThreshold2P(PifSensorDigital* p_owner, uint16_t threshold_low, uint16_t threshold_high)
-{
-	p_owner->__event_type = SDET_THRESHOLD_2P;
-    p_owner->__ui.threshold2p.low = threshold_low;
-    p_owner->__ui.threshold2p.high = threshold_high;
-}
-
-BOOL pifSensorDigital_AttachFilter(PifSensorDigital* p_owner, uint8_t filter_method, uint8_t filter_size,
-		PifSensorDigitalFilter* p_filter, BOOL init_filter)
-{
-    if (!filter_method || !filter_size || !p_filter) {
-		pif_error = E_INVALID_PARAM;
-	    return FALSE;
-	}
-
-    if (init_filter) {
-    	p_filter->p_buffer = NULL;
-    }
-    else {
-        pifSensorDigital_DetachFilter(p_owner);
-    }
-
-    p_filter->size = filter_size;
-    p_filter->p_buffer = calloc(sizeof(uint16_t), filter_size);
-	if (!p_filter->p_buffer) {
-		pif_error = E_OUT_OF_HEAP;
-	    return FALSE;
-	}
-
-	switch (filter_method) {
-    case PIF_SENSOR_DIGITAL_FILTER_AVERAGE:
-    	p_filter->evt_filter = _evtFilterAverage;
-        break;
-
-    default:
-        break;
-    }
-
-	p_owner->__filter_method = filter_method;
-	p_owner->__p_filter = p_filter;
-    return TRUE;
-}
-
-void pifSensorDigital_DetachFilter(PifSensorDigital* p_owner)
-{
-	PifSensorDigitalFilter* p_filter;
-
-	p_filter = p_owner->__p_filter;
-	if (p_filter->p_buffer) {
-		free(p_filter->p_buffer);
-		p_filter->p_buffer = NULL;
-	}
-	p_filter->size = 0;
-	p_filter->evt_filter = NULL;
-
-	p_owner->__filter_method = PIF_SENSOR_DIGITAL_FILTER_NONE;
-	p_owner->__p_filter = NULL;
+	p_owner->__low_threshold = low_threshold;
+	p_owner->__high_threshold = high_threshold;
 }
 
 void pifSensorDigital_sigData(PifSensorDigital* p_owner, uint16_t level)
 {
 	p_owner->__prev_level = p_owner->__curr_level;
 
-	if (p_owner->__filter_method) {
-    	PifSensorDigitalFilter *p_filter = p_owner->__p_filter;
-    	p_owner->__curr_level = (*p_filter->evt_filter)(level, p_filter);
+	if (p_owner->p_filter) {
+    	p_owner->__curr_level = *(uint16_t*)pifNoiseFilter_Process(p_owner->p_filter, &level);
     }
     else {
     	p_owner->__curr_level = level;
     }
 }
 
-static uint16_t _doTask(PifTask* p_task)
+uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner)
 {
-	PifSensorDigital* p_owner = (PifSensorDigital*)p_task->_p_client;
 	PifSensor* p_parent = &p_owner->parent;
-	SWITCH state;
 
 	if (p_parent->__act_acquire) {
-		pifSensorDigital_sigData(p_owner, (*p_parent->__act_acquire)(p_parent->_id));
+		pifSensorDigital_sigData(p_owner, (*p_parent->__act_acquire)(p_parent));
 	}
 
-   	switch (p_owner->__event_type) {
-   	case SDET_THRESHOLD_1P:
-   		state = p_owner->__curr_level >= p_owner->__ui.threshold1p;
-   		break;
-
-   	case SDET_THRESHOLD_2P:
-   		if (p_owner->__curr_level <= p_owner->__ui.threshold2p.low) {
-   			state = OFF;
-   		}
-   		else if (p_owner->__curr_level >= p_owner->__ui.threshold2p.high) {
-   			state = ON;
-   		}
-   		else {
-   			state = p_parent->_curr_state;
-   		}
-   		break;
-
-   	default:
-   		return 0;
-   	}
-
-	if (state != p_parent->_curr_state) {
-		if (p_parent->__evt_change) {
-			(*p_parent->__evt_change)(p_parent->_id, state, p_parent->__p_change_issuer);
+	if (p_parent->__evt_change) {
+		if (p_parent->_curr_state) {
+			if (p_owner->__curr_level <= p_owner->__low_threshold) {
+				p_parent->_curr_state = OFF;
+				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, &p_owner->__curr_level, p_parent->__p_issuer);
 #ifdef __PIF_COLLECT_SIGNAL__
-			if (p_owner->__p_colsig->flag & SD_CSF_STATE_BIT) {
-				pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SD_CSF_STATE_IDX], state);
-			}
+				if (p_owner->__p_colsig->flag & SD_CSF_STATE_BIT) {
+					pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SD_CSF_STATE_IDX], p_parent->_curr_state);
+				}
 #endif
+			}
 		}
-		p_parent->_curr_state = state;
+		else {
+			if (p_owner->__curr_level >= p_owner->__high_threshold) {
+				p_parent->_curr_state = ON;
+				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, &p_owner->__curr_level, p_parent->__p_issuer);
+#ifdef __PIF_COLLECT_SIGNAL__
+				if (p_owner->__p_colsig->flag & SD_CSF_STATE_BIT) {
+					pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SD_CSF_STATE_IDX], p_parent->_curr_state);
+				}
+#endif
+			}
+		}
 	}
-    return 0;
+	return 0;
 }
 
-PifTask* pifSensorDigital_AttachTask(PifSensorDigital* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
+PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
-	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
+	return pifTaskManager_Add(mode, period, _doTaskAcquire, p_owner, start);
 }
 
 
@@ -322,4 +201,4 @@ void pifSensorDigitalColSig_ResetFlag(PifSensorDigitalCsFlag flag)
 	}
 }
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__

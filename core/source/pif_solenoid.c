@@ -133,7 +133,7 @@ static void _addDeviceInCollectSignal()
 	}
 }
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifTimerManager* p_timer_manager, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control)
@@ -308,4 +308,4 @@ void pifSolenoidColSig_ResetFlag(PifSolenoidCsFlag flag)
 	}
 }
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__

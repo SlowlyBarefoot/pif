@@ -62,7 +62,7 @@ typedef struct StPifSolenoidColSig
     void* p_device[SN_CSF_COUNT];
 } PifSolenoidColSig;
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 /**
  * @class StPifSolenoid
@@ -205,7 +205,7 @@ void pifSolenoidColSig_SetFlag(PifSolenoidCsFlag flag);
  */
 void pifSolenoidColSig_ResetFlag(PifSolenoidCsFlag flag);
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 #ifdef __cplusplus
 }

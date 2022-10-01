@@ -55,7 +55,7 @@ typedef struct
     void* p_device[PL_CSF_COUNT];
 } PifPulseColSig;
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 /**
  * @struct StPifPulseData
@@ -262,7 +262,7 @@ void pifPulseColSig_SetFlag(PifPulseCsFlag flag);
  */
 void pifPulseColSig_ResetFlag(PifPulseCsFlag flag);
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 #ifdef __cplusplus
 }

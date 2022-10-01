@@ -118,7 +118,7 @@ static void _addDeviceInCollectSignal()
 	}
 }
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t control_period1ms,
 		const PifSequencePhase* p_phase_list, void* p_param)
@@ -243,4 +243,4 @@ void pifSequenceColSig_ResetFlag(PifSequenceCsFlag flag)
 	}
 }
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__

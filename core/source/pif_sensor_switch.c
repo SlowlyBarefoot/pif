@@ -13,56 +13,10 @@
 #endif
 
 
-static SWITCH _evtFilterCount(SWITCH state, PifSensorSwitchFilter* p_filter)
+static uint16_t _doTaskAcquire(PifTask* p_task)
 {
-    if (p_filter->list & p_filter->msb) {
-    	p_filter->list &= ~p_filter->msb;
-    	p_filter->count--;
-    }
-    p_filter->list <<= 1;
-    if (state) {
-    	p_filter->list |= 1;
-    	p_filter->count++;
-    }
-    return p_filter->count >= p_filter->half;
-}
-
-static SWITCH _evtFilterContinue(SWITCH state, PifSensorSwitchFilter* p_filter)
-{
-	int i, count;
-	SWITCH sw;
-	uint32_t mask;
-
-	sw = p_filter->list & 1;
-	if (sw != state) {
-		count = 1;
-		mask = 1L;
-		for (i = 1; i < p_filter->size; i++) {
-			if (((p_filter->list >> i) & 1) != sw) break;
-			count++;
-			mask |= 1L << i;
-	    }
-		if (count <= p_filter->half) {
-			if (sw) {
-				p_filter->list &= ~mask;
-				p_filter->count -= count;
-			}
-			else {
-				p_filter->list |= mask;
-				p_filter->count += count;
-			}
-		}
-	}
-    if (p_filter->list & p_filter->msb) {
-    	p_filter->list &= ~p_filter->msb;
-    	p_filter->count--;
-    }
-    p_filter->list <<= 1;
-	if (state) {
-		p_filter->list |= 1;
-		p_filter->count++;
-	}
-    return (p_filter->list >> p_filter->half) & 1;
+	pifSensorSwitch_ProcessAcquire((PifSensorSwitch*)p_task->_p_client);
+	return 0;
 }
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -89,9 +43,9 @@ static void _addDeviceInCollectSignal()
 	}
 }
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
-BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state)
+BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state, PifActSensorAcquire act_acquire, void* p_issuer)
 {
     memset(p_owner, 0, sizeof(PifSensorSwitch));
 
@@ -101,6 +55,8 @@ BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state)
     p_parent->_id = id;
     p_parent->_init_state = init_state;
     p_parent->_curr_state = init_state;
+	p_parent->__act_acquire = act_acquire;
+	p_parent->__p_issuer = p_issuer;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	if (!pifDList_Size(&s_cs_list)) {
@@ -145,57 +101,10 @@ void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner)
 	p_owner->__state = p_parent->_init_state;
 }
 
-BOOL pifSensorSwitch_AttachFilter(PifSensorSwitch* p_owner, uint8_t filter_method, uint8_t filter_size, PifSensorSwitchFilter* p_filter)
-{
-    if (!filter_method || filter_size < 3 || filter_size >= 32 || !p_filter) {
-		pif_error = E_INVALID_PARAM;
-	    return FALSE;
-	}
-
-    pifSensorSwitch_DetachFilter(p_owner);
-
-    p_filter->size = filter_size;
-    p_filter->half = filter_size / 2;
-    p_filter->msb = 1L << (filter_size - 1);
-    p_filter->count = 0;
-    p_filter->list = 0L;
-	switch (filter_method) {
-    case PIF_SENSOR_SWITCH_FILTER_COUNT:
-    	p_filter->evt_filter = _evtFilterCount;
-        break;
-
-    case PIF_SENSOR_SWITCH_FILTER_CONTINUE:
-    	p_filter->evt_filter = _evtFilterContinue;
-        break;
-
-    default:
-        break;
-    }
-
-	p_owner->__filter_method = filter_method;
-	p_owner->__p_filter = p_filter;
-    return TRUE;
-}
-
-void pifSensorSwitch_DetachFilter(PifSensorSwitch* p_owner)
-{
-	PifSensorSwitchFilter* p_filter;
-
-	if (p_owner->__filter_method) {
-		p_filter = p_owner->__p_filter;
-		p_filter->size = 0;
-		p_filter->evt_filter = NULL;
-	}
-
-	p_owner->__filter_method = PIF_SENSOR_SWITCH_FILTER_NONE;
-	p_owner->__p_filter = NULL;
-}
-
 void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state)
 {
-	if (p_owner->__filter_method) {
-    	PifSensorSwitchFilter* p_filter = p_owner->__p_filter;
-    	p_owner->__state = (*p_filter->evt_filter)(state, p_filter);
+	if (p_owner->p_filter) {
+    	p_owner->__state = *(SWITCH*)pifNoiseFilter_Process(p_owner->p_filter, &state);
     }
 	else {
 		p_owner->__state = state;
@@ -211,18 +120,17 @@ void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state)
 #endif
 }
 
-static uint16_t _doTask(PifTask* p_task)
+uint16_t pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner)
 {
-	PifSensorSwitch* p_owner = (PifSensorSwitch*)p_task->_p_client;
 	PifSensor* p_parent = &p_owner->parent;
 
 	if (p_parent->__act_acquire) {
-		pifSensorSwitch_sigData(p_owner, (*p_parent->__act_acquire)(p_parent->_id));
+		pifSensorSwitch_sigData(p_owner, (*p_parent->__act_acquire)(p_parent));
 	}
 
 	if (p_owner->__state != p_parent->_curr_state) {
 		if (p_parent->__evt_change) {
-			(*p_parent->__evt_change)(p_parent->_id, p_owner->__state, p_parent->__p_change_issuer);
+			(*p_parent->__evt_change)(p_parent, p_owner->__state, NULL, p_parent->__p_issuer);
 #ifdef __PIF_COLLECT_SIGNAL__
 			if (p_owner->__p_colsig->flag & SS_CSF_FILTER_BIT) {
 				pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SS_CSF_FILTER_IDX], p_owner->__state);
@@ -231,12 +139,12 @@ static uint16_t _doTask(PifTask* p_task)
 		}
 		p_parent->_curr_state = p_owner->__state;
 	}
-    return 0;
+	return 0;
 }
 
-PifTask* pifSensorSwitch_AttachTask(PifSensorSwitch* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
+PifTask* pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
-	return pifTaskManager_Add(mode, period, _doTask, p_owner, start);
+	return pifTaskManager_Add(mode, period, _doTaskAcquire, p_owner, start);
 }
 
 
@@ -282,4 +190,4 @@ void pifSensorSwitchColSig_ResetFlag(PifSensorSwitchCsFlag flag)
 	}
 }
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__

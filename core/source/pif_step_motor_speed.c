@@ -140,32 +140,34 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-static void _evtSwitchReduceChange(PifId id, uint16_t level, void* p_issuer)
+static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, void* p_issuer)
 {
-	PifStepMotorSpeed* p_owner = (PifStepMotorSpeed*)p_issuer;
+	PifStepMotorSpeed* p_motor = (PifStepMotorSpeed*)p_issuer;
 
-	(void)id;
+	(void)p_owner;
+	(void)p_value;
 
-	if (p_owner->parent._state >= MS_REDUCE) return;
+	if (p_motor->parent._state >= MS_REDUCE) return;
 
-	if (level) {
-		pifStepMotorSpeed_Stop(p_owner);
+	if (state) {
+		pifStepMotorSpeed_Stop(p_motor);
 	}
 }
 
-static void _evtSwitchStopChange(PifId id, uint16_t level, void* p_issuer)
+static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, void* p_issuer)
 {
-	PifStepMotor* p_parent = (PifStepMotor*)p_issuer;
+	PifStepMotor* p_motor = (PifStepMotor*)p_issuer;
 
-	(void)id;
+	(void)p_owner;
+	(void)p_value;
 
-	if (p_parent->_state >= MS_BREAK) return;
+	if (p_motor->_state >= MS_BREAK) return;
 
-	if (level) {
+	if (state) {
 #ifndef __PIF_NO_LOG__
-		pifStepMotor_SetState(p_parent, MS_BREAK, "SMS");
+		pifStepMotor_SetState(p_motor, MS_BREAK, "SMS");
 #else
-		pifStepMotor_SetState(p_parent, MS_BREAK);
+		pifStepMotor_SetState(p_motor, MS_BREAK);
 #endif
 	}
 }
@@ -280,11 +282,11 @@ BOOL pifStepMotorSpeed_Start(PifStepMotorSpeed* p_owner, uint8_t stage_index, ui
     p_owner->_stage_index = stage_index;
 
     if (p_stage->p_reduce_sensor) {
-        pifSensor_AttachEvtChange(p_stage->p_reduce_sensor, _evtSwitchReduceChange, p_owner);
+        pifSensor_AttachEvtChange(p_stage->p_reduce_sensor, _evtSwitchReduceChange);
     }
 
     if (p_stage->p_stop_sensor) {
-        pifSensor_AttachEvtChange(p_stage->p_stop_sensor, _evtSwitchStopChange, p_parent);
+        pifSensor_AttachEvtChange(p_stage->p_stop_sensor, _evtSwitchStopChange);
     }
 
     p_parent->_direction = (p_stage->mode & MM_D_MASK) >> MM_D_SHIFT;

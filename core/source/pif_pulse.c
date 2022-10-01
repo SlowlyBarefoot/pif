@@ -62,7 +62,7 @@ static void _addDeviceInCollectSignal()
 	}
 }
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 BOOL pifPulse_Init(PifPulse* p_owner, PifId id)
 {
@@ -348,4 +348,4 @@ void pifPulseColSig_ResetFlag(PifPulseCsFlag flag)
 	}
 }
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__

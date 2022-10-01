@@ -2,47 +2,14 @@
 #define PIF_SENSOR_DIGITAL_H
 
 
+#include "pif_noise_filter.h"
 #include "pif_sensor.h"
 #include "pif_timer.h"
-
-
-#define PIF_SENSOR_DIGITAL_FILTER_NONE		0
-#define PIF_SENSOR_DIGITAL_FILTER_AVERAGE	1
-
-
-typedef enum EnPifSensorDigitalEventType
-{
-	SDET_NONE			= 0,
-	SDET_PERIOD			= 1,
-	SDET_THRESHOLD_1P	= 2,
-	SDET_THRESHOLD_2P	= 3
-} PifSensorDigitalEventType;
 
 
 struct StPifSensorDigital;
 typedef struct StPifSensorDigital PifSensorDigital;
 
-struct StPifSensorDigitalFilter;
-typedef struct StPifSensorDigitalFilter PifSensorDigitalFilter;
-
-typedef void (*PifEvtSensorDigitalPeriod)(PifId id, uint16_t level);
-typedef uint16_t (*PifEvtSensorDigitalFilter)(uint16_t level, PifSensorDigitalFilter* p_filter);
-
-
-/**
- * @class StPifSensorDigitalFilter
- * @brief 
- */
-struct StPifSensorDigitalFilter
-{
-    uint8_t size;
-    uint8_t pos;
-    uint16_t* p_buffer;
-    uint32_t sum;
-    void* p_param;
-
-	PifEvtSensorDigitalFilter evt_filter;
-};
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
@@ -65,7 +32,7 @@ typedef struct StPifSensorDigitalColSig
     void* p_device[SD_CSF_COUNT];
 } PifSensorDigitalColSig;
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 /**
  * @class StPifSensorDigital
@@ -75,32 +42,20 @@ struct StPifSensorDigital
 {
 	PifSensor parent;
 
+	// Public Member Variable
+    PifNoiseFilter* p_filter;
+
 	// Private Member Variable
-	PifTimerManager* __p_timer_manager;
-    PifSensorDigitalEventType __event_type;
-    union {
-    	struct {
-    		uint16_t time;
-    	    PifTimer* p_timer;
-    	} period;
-		uint16_t threshold1p;
-    	struct {
-			uint16_t low;
-			uint16_t high;
-    	} threshold2p;
-    } __ui;
+	uint16_t __low_threshold;
+	uint16_t __high_threshold;
     uint16_t __curr_level;
     uint16_t __prev_level;
-
-    uint8_t __filter_method;					// Default: PIF_SENSOR_DIGITAL_FILTER_NONE
-    PifSensorDigitalFilter* __p_filter;			// Default: NULL
 
 #ifdef __PIF_COLLECT_SIGNAL__
     PifSensorDigitalColSig* __p_colsig;
 #endif
 
 	// Private Event Function
-    PifEvtSensorDigitalPeriod __evt_period;		// Default: NULL
 };
 
 
@@ -113,10 +68,11 @@ extern "C" {
  * @brief 
  * @param p_owner
  * @param id
- * @param p_timer_manager
+ * @param act_acquire
+ * @param p_issuer
  * @return 
  */
-BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifTimerManager* p_timer_manager);
+BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifActSensorAcquire act_acquire, void* p_issuer);
 
 /**
  * @fn pifSensorDigital_Clear
@@ -133,66 +89,13 @@ void pifSensorDigital_Clear(PifSensorDigital* p_owner);
 void pifSensorDigital_InitialState(PifSensorDigital* p_owner);
 
 /**
- * @fn pifSensorDigital_AttachEvtPeriod
+ * @fn pifSensorDigital_SetThreshold
  * @brief
  * @param p_owner
- * @param evt_period
- * @return
+ * @param low_threshold
+ * @param high_threshold
  */
-BOOL pifSensorDigital_AttachEvtPeriod(PifSensorDigital* p_owner, PifEvtSensorDigitalPeriod evt_period);
-
-/**
- * @fn pifSensorDigital_StartPeriod
- * @brief
- * @param p_owner
- * @param period
- * @return
- */
-BOOL pifSensorDigital_StartPeriod(PifSensorDigital* p_owner, uint16_t period);
-
-/**
- * @fn pifSensorDigital_StopPeriod
- * @brief
- * @param p_owner
- */
-void pifSensorDigital_StopPeriod(PifSensorDigital* p_owner);
-
-/**
- * @fn pifSensorDigital_SetEventThreshold1P
- * @brief
- * @param p_owner
- * @param threshold
- */
-void pifSensorDigital_SetEventThreshold1P(PifSensorDigital* p_owner, uint16_t threshold);
-
-/**
- * @fn pifSensorDigital_SetEventThreshold2P
- * @brief
- * @param p_owner
- * @param threshold_low
- * @param threshold_high
- */
-void pifSensorDigital_SetEventThreshold2P(PifSensorDigital* p_owner, uint16_t threshold_low, uint16_t threshold_high);
-
-/**
- * @fn pifSensorDigital_AttachFilter
- * @brief 
- * @param p_owner
- * @param filter_method
- * @param filter_size
- * @param p_filter
- * @param init_filter
- * @return 
- */
-BOOL pifSensorDigital_AttachFilter(PifSensorDigital* p_owner, uint8_t filter_method, uint8_t filter_size,
-		PifSensorDigitalFilter* p_filter, BOOL init_filter);
-
-/**
- * @fn pifSensorDigital_DetachFilter
- * @brief
- * @param p_owner
- */
-void pifSensorDigital_DetachFilter(PifSensorDigital* p_owner);
+void pifSensorDigital_SetThreshold(PifSensorDigital* p_owner, uint16_t low_threshold, uint16_t high_threshold);
 
 /**
  * @fn pifSensorDigital_sigData
@@ -203,7 +106,15 @@ void pifSensorDigital_DetachFilter(PifSensorDigital* p_owner);
 void pifSensorDigital_sigData(PifSensorDigital* p_owner, uint16_t level);
 
 /**
- * @fn pifSensorDigital_AttachTask
+ * @fn pifSensorDigital_ProcessAcquire
+ * @brief
+ * @param p_owner
+ * @return
+ */
+uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner);
+
+/**
+ * @fn pifSensorDigital_AttachTaskAcquire
  * @brief Task를 추가한다.
  * @param p_owner
  * @param mode Task의 Mode를 설정한다.
@@ -211,7 +122,7 @@ void pifSensorDigital_sigData(PifSensorDigital* p_owner, uint16_t level);
  * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifSensorDigital_AttachTask(PifSensorDigital* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
+PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 
 #ifdef __PIF_COLLECT_SIGNAL__
@@ -246,7 +157,7 @@ void pifSensorDigitalColSig_SetFlag(PifSensorDigitalCsFlag flag);
  */
 void pifSensorDigitalColSig_ResetFlag(PifSensorDigitalCsFlag flag);
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 #ifdef __cplusplus
 }

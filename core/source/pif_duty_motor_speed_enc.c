@@ -207,33 +207,35 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-static void _evtSwitchReduceChange(PifId id, uint16_t level, void* p_issuer)
+static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, void* p_issuer)
 {
-	PifDutyMotorSpeedEnc* p_owner = (PifDutyMotorSpeedEnc*)p_issuer;
+	PifDutyMotorSpeedEnc* p_motor = (PifDutyMotorSpeedEnc*)p_issuer;
 
-	(void)id;
+	(void)p_owner;
+	(void)p_value;
 
-	if (p_owner->parent._state >= MS_REDUCE) return;
+	if (p_motor->parent._state >= MS_REDUCE) return;
 
-	if (level) {
-		pifDutyMotorSpeedEnc_Stop(p_owner);
+	if (state) {
+		pifDutyMotorSpeedEnc_Stop(p_motor);
 	}
 }
 
-static void _evtSwitchStopChange(PifId id, uint16_t level, void* p_issuer)
+static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, void* p_issuer)
 {
-	PifDutyMotor* p_parent = (PifDutyMotor*)p_issuer;
+	PifDutyMotor* p_motor = (PifDutyMotor*)p_issuer;
 
-	(void)id;
+	(void)p_owner;
+	(void)p_value;
 
-	if (p_parent->_state >= MS_BREAK) return;
+	if (p_motor->_state >= MS_BREAK) return;
 
-	if (level) {
-		p_parent->_current_duty = 0;
+	if (state) {
+		p_motor->_current_duty = 0;
 #ifndef __PIF_NO_LOG__
-		pifDutyMotor_SetState(p_parent, MS_BREAK, "DMSE");
+		pifDutyMotor_SetState(p_motor, MS_BREAK, "DMSE");
 #else
-		pifDutyMotor_SetState(p_parent, MS_BREAK);
+		pifDutyMotor_SetState(p_motor, MS_BREAK);
 #endif
 	}
 }
@@ -353,11 +355,11 @@ BOOL pifDutyMotorSpeedEnc_Start(PifDutyMotorSpeedEnc* p_owner, uint8_t stage_ind
     p_owner->_stage_index = stage_index;
 
     if (p_stage->p_reduce_sensor) {
-        pifSensor_AttachEvtChange(p_stage->p_reduce_sensor, _evtSwitchReduceChange, p_owner);
+        pifSensor_AttachEvtChange(p_stage->p_reduce_sensor, _evtSwitchReduceChange);
     }
 
     if (p_stage->p_stop_sensor) {
-        pifSensor_AttachEvtChange(p_stage->p_stop_sensor, _evtSwitchStopChange, p_parent);
+        pifSensor_AttachEvtChange(p_stage->p_stop_sensor, _evtSwitchStopChange);
     }
 
     if (p_parent->act_set_direction) (*p_parent->act_set_direction)((p_stage->mode & MM_D_MASK) >> MM_D_SHIFT);

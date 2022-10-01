@@ -38,7 +38,7 @@ typedef struct
     void* p_device[GP_CSF_COUNT];
 } PifGpioColSig;
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 /**
  * @class StPifGpio
@@ -197,7 +197,7 @@ void pifGpioColSig_SetFlag(PifGpioCsFlag flag);
  */
 void pifGpioColSig_ResetFlag(PifGpioCsFlag flag);
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 #ifdef __cplusplus
 }

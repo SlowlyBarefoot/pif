@@ -53,7 +53,7 @@ typedef struct StPifSequenceColSig
     void* p_device[SQ_CSF_COUNT];
 } PifSequenceColSig;
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 struct StPifSequence
 {
@@ -156,7 +156,7 @@ void pifSequenceColSig_SetFlag(PifSequenceCsFlag flag);
  */
 void pifSequenceColSig_ResetFlag(PifSequenceCsFlag flag);
 
-#endif
+#endif	// __PIF_COLLECT_SIGNAL__
 
 #ifdef __cplusplus
 }
