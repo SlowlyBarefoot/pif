@@ -4,7 +4,7 @@
 #include "motor/pif_duty_motor_pos.h"
 
 
-static void _evtTimerDelayFinish(PifIssueP p_issuer)
+static void _evtTimerDelayFinish(PifIssuerP p_issuer)
 {
     PifDutyMotor* p_parent = (PifDutyMotor*)p_issuer;
 
@@ -172,7 +172,7 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, PifIssueP p_issuer)
+static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, PifIssuerP p_issuer)
 {
 	PifDutyMotorPos* p_motor = (PifDutyMotorPos*)p_issuer;
 
@@ -186,7 +186,7 @@ static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorVa
 	}
 }
 
-static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, PifIssueP p_issuer)
+static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, PifIssuerP p_issuer)
 {
 	PifDutyMotor* p_motor = (PifDutyMotor*)p_issuer;
 
@@ -205,7 +205,7 @@ static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValu
 	}
 }
 
-static void _evtPulseEdge(PifPulseEdge edge, PifIssueP p_issuer)
+static void _evtPulseEdge(PifPulseEdge edge, PifIssuerP p_issuer)
 {
 	PifDutyMotorPos* p_owner = (PifDutyMotorPos*)p_issuer;
 	PifDutyMotor* p_parent = &p_owner->parent;

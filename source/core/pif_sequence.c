@@ -86,7 +86,7 @@ fail:
 	return 0;
 }
 
-static void _evtTimerTimeoutFinish(PifIssueP p_issuer)
+static void _evtTimerTimeoutFinish(PifIssuerP p_issuer)
 {
     PifSequence* p_owner = (PifSequence*)p_issuer;
 

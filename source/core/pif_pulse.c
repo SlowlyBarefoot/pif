@@ -294,13 +294,13 @@ uint8_t pifPulse_sigTick(PifPulse* p_owner, uint32_t time_us)
 	return rtn;
 }
 
-void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssueP p_issuer)
+void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssuerP p_issuer)
 {
 	p_owner->__evt.edge = evt_edge;
 	p_owner->__p_issuer = p_issuer;
 }
 
-void pifPulse_AttachEvtTick(PifPulse* p_owner, PifEvtPulseTick evt_tick, PifIssueP p_issuer)
+void pifPulse_AttachEvtTick(PifPulse* p_owner, PifEvtPulseTick evt_tick, PifIssuerP p_issuer)
 {
 	p_owner->__evt.tick = evt_tick;
 	p_owner->__p_issuer = p_issuer;

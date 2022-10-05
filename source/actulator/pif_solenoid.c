@@ -52,7 +52,7 @@ static void _actionOn(PifSolenoid *p_owner, uint16_t delay, PifSolenoidDir dir)
 	}
 }
 
-static void _evtTimerDelayFinish(PifIssueP p_issuer)
+static void _evtTimerDelayFinish(PifIssuerP p_issuer)
 {
     PifSolenoid* p_owner = (PifSolenoid*)p_issuer;
 
@@ -78,14 +78,14 @@ static void _evtTimerDelayFinish(PifIssueP p_issuer)
 	}
 }
 
-static void _evtTimerOnFinish(PifIssueP p_issuer)
+static void _evtTimerOnFinish(PifIssuerP p_issuer)
 {
     PifSolenoid* p_owner = (PifSolenoid*)p_issuer;
 
     if (p_owner->evt_off) (*p_owner->evt_off)(p_owner);
 }
 
-static void _evtTimerOnIntFinish(PifIssueP p_issuer)
+static void _evtTimerOnIntFinish(PifIssuerP p_issuer)
 {
     PifSolenoid* p_owner = (PifSolenoid*)p_issuer;
 

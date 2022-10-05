@@ -6,7 +6,7 @@
 
 #if PIF_PROTOCOL_RECEIVE_TIMEOUT
 
-static void _evtTimerRxTimeout(PifIssueP p_issuer)
+static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 {
 	PifProtocol* p_owner = (PifProtocol*)p_issuer;
 
@@ -26,7 +26,7 @@ static void _evtTimerRxTimeout(PifIssueP p_issuer)
 
 #endif
 
-static void _evtTimerTxTimeout(PifIssueP p_issuer)
+static void _evtTimerTxTimeout(PifIssuerP p_issuer)
 {
 	PifProtocol* p_owner = (PifProtocol*)p_issuer;
 

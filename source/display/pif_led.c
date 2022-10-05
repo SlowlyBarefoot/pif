@@ -1,7 +1,7 @@
 #include "display/pif_led.h"
 
 
-static void _evtTimerSBlinkFinish(PifIssueP p_issuer)
+static void _evtTimerSBlinkFinish(PifIssuerP p_issuer)
 {
     PifLed* p_owner = (PifLed*)p_issuer;
 	PifLedBlink* p_blink = &p_owner->__p_blinks[0];
@@ -21,7 +21,7 @@ static void _evtTimerSBlinkFinish(PifIssueP p_issuer)
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
-static void _evtTimerMBlinkFinish(PifIssueP p_issuer)
+static void _evtTimerMBlinkFinish(PifIssuerP p_issuer)
 {
     PifLed* p_owner = (PifLed*)p_issuer;
 	PifLedBlink* p_blink;

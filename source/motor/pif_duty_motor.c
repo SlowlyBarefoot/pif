@@ -32,7 +32,7 @@ void pifDutyMotor_Control(PifDutyMotor* p_owner)
 	}
 }
 
-static void _evtTimerBreakFinish(PifIssueP p_issuer)
+static void _evtTimerBreakFinish(PifIssuerP p_issuer)
 {
     PifDutyMotor* p_owner = (PifDutyMotor*)p_issuer;
 

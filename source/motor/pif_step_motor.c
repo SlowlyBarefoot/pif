@@ -72,7 +72,7 @@ static void _setStep(PifStepMotor* p_owner)
 	(*p_owner->act_set_step)(p_owner->__p_phase_operation[p_owner->__current_step]);
 }
 
-static void _evtTimerStepFinish(PifIssueP p_issuer)
+static void _evtTimerStepFinish(PifIssuerP p_issuer)
 {
     PifStepMotor* p_owner = (PifStepMotor*)p_issuer;
 

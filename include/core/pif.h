@@ -132,7 +132,7 @@
 
 
 typedef uint16_t PifId;
-typedef void* PifIssueP;
+typedef void* PifIssuerP;
 
 
 typedef enum EnPifError

@@ -43,7 +43,7 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-static void _evtTimerBlinkFinish(PifIssueP p_issuer)
+static void _evtTimerBlinkFinish(PifIssuerP p_issuer)
 {
     PifFnd* p_owner = (PifFnd*)p_issuer;
 
