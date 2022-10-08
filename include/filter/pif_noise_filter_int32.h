@@ -11,7 +11,6 @@
  */
 typedef struct StPifNoiseFilterAverage
 {
-	int8_t before;
 	int32_t sum;
 } PifNoiseFilterAverage;
 
@@ -33,9 +32,6 @@ typedef struct StPifNoiseFilterNoiseCancel
 {
 	int8_t before;
 	int16_t* diff;
-	uint32_t invalid;
-	int16_t diff_max;
-	int16_t sum_min;
 } PifNoiseFilterNoiseCancel;
 
 /**
@@ -96,11 +92,9 @@ BOOL pifNoiseFilterInt32_SetWeightFactor(PifNoiseFilterInt32* p_owner, ...);
  * @fn pifNoiseFilterInt32_SetNoiseCancel
  * @brief
  * @param p_owner
- * @param diff_max
- * @param sum_min
  * @return
  */
-BOOL pifNoiseFilterInt32_SetNoiseCancel(PifNoiseFilterInt32* p_owner, uint16_t diff_max, uint16_t sum_min);
+BOOL pifNoiseFilterInt32_SetNoiseCancel(PifNoiseFilterInt32* p_owner);
 
 #ifdef __cplusplus
 }

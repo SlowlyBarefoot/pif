@@ -62,36 +62,49 @@ static PifNoiseFilterValueP _processNoiseCancel(PifNoiseFilter* p_parent, PifNoi
 	int32_t sum;
 	int16_t* p_current;
 	int16_t* p_before;
+	int16_t current[3];
 
-	p_owner->__nc.before = p_owner->__current;
-	p_owner->__current = (p_owner->__current + 1) % p_owner->_size;
-	p_owner->__buffer[p_owner->__current] = *(uint16_t*)p_value;
+	p_before = p_owner->__nc.diff + p_owner->__current * 3;
 
-	p_current = p_owner->__nc.diff + p_owner->__current * 3;
-	p_before = p_owner->__nc.diff + p_owner->__nc.before * 3;
+	current[0] = *(uint16_t*)p_value - p_owner->__buffer[p_owner->__current];
 
-	p_current[0] = p_owner->__buffer[p_owner->__current] - p_owner->__buffer[p_owner->__nc.before];
+	current[1] = current[0] - p_before[0];
+	if (current[1] < 0) current[1] = -current[1];
 
-	p_current[1] = p_current[0] - p_before[0];
-	if (p_current[1] < 0) p_current[1] = -p_current[1];
+	current[2] = current[0] + p_before[0];
+	if (current[2] < 0) current[2] = -current[2];
 
-	p_current[2] = p_current[0] + p_before[0];
-	if (p_current[2] < 0) p_current[2] = -p_current[2];
+	if (current[1] > current[2]) {
+		p_owner->__buffer[p_owner->__current] = *(uint16_t*)p_value;
 
-	if (p_current[1] > p_owner->__nc.diff_max && p_current[2] < p_owner->__nc.sum_min) {
-		p_owner->__nc.invalid |= 1 << p_owner->__nc.before;
+		p_current = p_before;
+		p_before = p_owner->__nc.diff + p_owner->__nc.before * 3;
+
+		p_current[0] = p_owner->__buffer[p_owner->__current] - p_owner->__buffer[p_owner->__nc.before];
+
+		p_current[1] = p_current[0] - p_before[0];
+		if (p_current[1] < 0) p_current[1] = -p_current[1];
+
+		p_current[2] = p_current[0] + p_before[0];
+		if (p_current[2] < 0) p_current[2] = -p_current[2];
 	}
 	else {
-		p_owner->__nc.invalid &= ~(1 << p_owner->__nc.before);
+		p_owner->__nc.before = p_owner->__current;
+		p_owner->__current = (p_owner->__current + 1) % p_owner->_size;
+		p_owner->__buffer[p_owner->__current] = *(uint16_t*)p_value;
+
+		p_current = p_owner->__nc.diff + p_owner->__current * 3;
+
+		p_current[0] = current[0];
+		p_current[1] = current[1];
+		p_current[2] = current[2];
 	}
 
 	sum = 0;
 	count = 0;
 	for (i = 0; i < p_owner->_size; i++) {
-		if (!(p_owner->__nc.invalid & (1 << i))) {
-			sum += p_owner->__buffer[i];
-			count++;
-		}
+		sum += p_owner->__buffer[i];
+		count++;
 	}
 	if (count > 0) {
 		p_owner->_result = sum / count;
@@ -164,11 +177,11 @@ BOOL pifNoiseFilterUint16_SetWeightFactor(PifNoiseFilterUint16* p_owner, ...)
 	return TRUE;
 }
 
-BOOL pifNoiseFilterUint16_SetNoiseCancel(PifNoiseFilterUint16* p_owner, uint16_t diff_max, uint16_t sum_min)
+BOOL pifNoiseFilterUint16_SetNoiseCancel(PifNoiseFilterUint16* p_owner)
 {
 	_clear(p_owner);
 
-	if (p_owner->_size > 32) {
+	if (p_owner->_size < 3 || p_owner->_size > 32) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -180,8 +193,6 @@ BOOL pifNoiseFilterUint16_SetNoiseCancel(PifNoiseFilterUint16* p_owner, uint16_t
 	}
 
 	p_owner->__nc.before = 0;
-	p_owner->__nc.diff_max = diff_max;
-	p_owner->__nc.sum_min = sum_min;
 
 	p_owner->parent._type = NFT_NOISE_CANCEL;
 	p_owner->parent.__fn_process = _processNoiseCancel;
