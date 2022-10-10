@@ -57,15 +57,25 @@ void pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device)
 
 void pifI2cPort_ScanAddress(PifI2cPort* p_owner)
 {
-	int i;
+	uint8_t data;
+	int i, count = 0;
 	PifI2cDevice device;
 
 	device.__p_port = p_owner;
 	for (i = 0; i < 127; i++) {
 		device.addr = i;
-		if (pifI2cDevice_Write(&device, 0, 0, NULL, 0)) {
-			pifLog_Printf(LT_INFO, "I2C:%u Addr:%xh OK", __LINE__, i);
+		device._state = IS_IDLE;
+		data = 0xFF;
+		if (pifI2cDevice_Write(&device, 0, 0, &data, 1)) {
+			pifLog_Printf(LT_INFO, "I2C Addr:%Xh OK", i);
+			count++;
 		}
+	}
+	if (count) {
+		pifLog_Printf(LT_INFO, "I2C %d found", count);
+	}
+	else {
+		pifLog_Print(LT_INFO, "I2C Not found");
 	}
 }
 
