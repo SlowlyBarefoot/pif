@@ -165,51 +165,71 @@ uint16_t pifComm_GetRemainSizeOfRxBuffer(PifComm* p_owner);
 uint16_t pifComm_GetFillSizeOfTxBuffer(PifComm* p_owner);
 
 /**
- * @fn pifComm_ReceiveData
+ * @fn pifComm_PutRxByte
  * @brief
  * @param p_owner
  * @param data
  * @return 
  */
-BOOL pifComm_ReceiveData(PifComm* p_owner, uint8_t data);
+BOOL pifComm_PutRxByte(PifComm* p_owner, uint8_t data);
 
 /**
- * @fn pifComm_ReceiveDatas
+ * @fn pifComm_PutRxData
  * @brief
  * @param p_owner
  * @param p_data
  * @param length
  * @return
  */
-BOOL pifComm_ReceiveDatas(PifComm* p_owner, uint8_t* p_data, uint16_t length);
+BOOL pifComm_PutRxData(PifComm* p_owner, uint8_t* p_data, uint16_t length);
 
 /**
- * @fn pifComm_SendData
+ * @fn pifComm_GetTxByte
  * @brief
  * @param p_owner
  * @param p_data
  * @return
  */
-uint8_t pifComm_SendData(PifComm* p_owner, uint8_t* p_data);
+uint8_t pifComm_GetTxByte(PifComm* p_owner, uint8_t* p_data);
 
 /**
- * @fn pifComm_StartSendDatas
+ * @fn pifComm_StartGetTxData
  * @brief
  * @param p_owner
  * @param pp_data
  * @param p_length
  * @return
  */
-uint8_t pifComm_StartSendDatas(PifComm* p_owner, uint8_t** pp_data, uint16_t *p_length);
+uint8_t pifComm_StartGetTxData(PifComm* p_owner, uint8_t** pp_data, uint16_t *p_length);
 
 /**
- * @fn pifComm_EndSendDatas
+ * @fn pifComm_EndGetTxData
  * @brief
  * @param p_owner
  * @param length
  * @return
  */
-uint8_t pifComm_EndSendDatas(PifComm* p_owner, uint16_t length);
+uint8_t pifComm_EndGetTxData(PifComm* p_owner, uint16_t length);
+
+/**
+ * @fn pifComm_ReceiveRxData
+ * @brief
+ * @param p_owner
+ * @param p_data
+ * @param length
+ * @return
+ */
+uint16_t pifComm_ReceiveRxData(PifComm* p_owner, uint8_t* p_data, uint16_t length);
+
+/**
+ * @fn pifComm_SendTxData
+ * @brief
+ * @param p_owner
+ * @param p_data
+ * @param length
+ * @return
+ */
+BOOL pifComm_SendTxData(PifComm* p_owner, uint8_t* p_data, uint16_t length);
 
 /**
  * @fn pifComm_FinishTransfer

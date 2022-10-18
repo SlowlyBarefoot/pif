@@ -109,7 +109,7 @@ uint16_t pifComm_GetFillSizeOfTxBuffer(PifComm* p_owner)
 	return pifRingBuffer_GetFillSize(p_owner->_p_tx_buffer);
 }
 
-BOOL pifComm_ReceiveData(PifComm* p_owner, uint8_t data)
+BOOL pifComm_PutRxByte(PifComm* p_owner, uint8_t data)
 {
 	if (!p_owner->_p_rx_buffer) return FALSE;
 
@@ -118,7 +118,7 @@ BOOL pifComm_ReceiveData(PifComm* p_owner, uint8_t data)
 	return TRUE;
 }
 
-BOOL pifComm_ReceiveDatas(PifComm* p_owner, uint8_t* p_data, uint16_t length)
+BOOL pifComm_PutRxData(PifComm* p_owner, uint8_t* p_data, uint16_t length)
 {
 	if (!p_owner->_p_rx_buffer) return FALSE;
 
@@ -127,7 +127,7 @@ BOOL pifComm_ReceiveDatas(PifComm* p_owner, uint8_t* p_data, uint16_t length)
 	return TRUE;
 }
 
-uint8_t pifComm_SendData(PifComm* p_owner, uint8_t* p_data)
+uint8_t pifComm_GetTxByte(PifComm* p_owner, uint8_t* p_data)
 {
 	uint8_t ucState = PIF_COMM_SEND_DATA_STATE_INIT;
 
@@ -143,7 +143,7 @@ uint8_t pifComm_SendData(PifComm* p_owner, uint8_t* p_data)
 	return ucState;
 }
 
-uint8_t pifComm_StartSendDatas(PifComm* p_owner, uint8_t** pp_data, uint16_t* p_length)
+uint8_t pifComm_StartGetTxData(PifComm* p_owner, uint8_t** pp_data, uint16_t* p_length)
 {
 	uint16_t usLength;
 
@@ -156,10 +156,39 @@ uint8_t pifComm_StartSendDatas(PifComm* p_owner, uint8_t** pp_data, uint16_t* p_
 	return PIF_COMM_SEND_DATA_STATE_DATA;
 }
 
-uint8_t pifComm_EndSendDatas(PifComm* p_owner, uint16_t length)
+uint8_t pifComm_EndGetTxData(PifComm* p_owner, uint16_t length)
 {
     pifRingBuffer_Remove(p_owner->_p_tx_buffer, length);
 	return pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer) << 1;
+}
+
+uint16_t pifComm_ReceiveRxData(PifComm* p_owner, uint8_t* p_data, uint16_t length)
+{
+	uint16_t i = 0;
+
+	if (p_owner->act_receive_data) {
+		i = 0;
+		while (i < length) {
+			if (!(*p_owner->act_receive_data)(p_owner, p_data + i)) break;
+			i++;
+		}
+		return i;
+	}
+	else if (p_owner->_p_rx_buffer) {
+		return pifRingBuffer_CopyToArray(p_data, length, p_owner->_p_rx_buffer, 0);
+	}
+	return 0;
+}
+
+BOOL pifComm_SendTxData(PifComm* p_owner, uint8_t* p_data, uint16_t length)
+{
+	if (p_owner->act_send_data) {
+		return (*p_owner->act_send_data)(p_owner, p_data, length) == length;
+	}
+	else if (p_owner->_p_tx_buffer) {
+		return pifRingBuffer_PutData(p_owner->_p_tx_buffer, p_data, length);
+	}
+	return FALSE;
 }
 
 void pifComm_FinishTransfer(PifComm* p_owner)
