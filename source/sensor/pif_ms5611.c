@@ -122,7 +122,7 @@ static uint16_t _doTask(PifTask* p_task)
 	return delay;
 }
 
-BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, PifMs5611Addr addr)
+BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr)
 {
 	int i;
 

@@ -4,10 +4,10 @@
 #include <math.h>
 
 
-static BOOL _changeFsSel(PifImuSensor* p_imu_sensor, PifMpu6500FsSel fs_sel)
+static BOOL _changeFsSel(PifImuSensor* p_imu_sensor, PifMpu6500GyroFsSel gyro_fs_sel)
 {
 	if (!p_imu_sensor) return FALSE;
-	p_imu_sensor->_gyro_gain = 131.0 / (1 << fs_sel);
+	p_imu_sensor->_gyro_gain = 131.0 / (1 << gyro_fs_sel);
 	return TRUE;
 }
 
@@ -18,7 +18,7 @@ static BOOL _changeAccelFsSel(PifImuSensor* p_imu_sensor, PifMpu6500AccelFsSel a
 	return TRUE;
 }
 
-BOOL pifMpu6500_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, PifMpu6500Addr addr, PifImuSensor* p_imu_sensor)
+BOOL pifMpu6500_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor)
 {
 #ifndef __PIF_NO_LOG__	
 	const char ident[] = "MPU6500 Ident: ";
@@ -53,7 +53,7 @@ BOOL pifMpu6500_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, PifMpu650
 	}
 #endif
 
-    if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU6500_REG_GYRO_CONFIG, MPU6500_GYRO_CONFIG_FS_SEL, &data)) goto fail;
+    if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU6500_REG_GYRO_CONFIG, MPU6500_GYRO_CONFIG_GYRO_FS_SEL, &data)) goto fail;
     if (!_changeFsSel(p_imu_sensor, data)) goto fail;
 
     if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU6500_REG_ACCEL_CONFIG, MPU6500_ACCEL_CONFIG_ACCEL_FS_SEL, &data)) goto fail;
@@ -120,14 +120,14 @@ void pifMpu6500_Clear(PifMpu6500* p_owner)
 BOOL pifMpu6500_SetGyroConfig(PifMpu6500* p_owner, PifMpu6500GyroConfig gyro_config)
 {
     if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU6500_REG_GYRO_CONFIG, gyro_config.byte)) return FALSE;
-    _changeFsSel(p_owner->__p_imu_sensor, gyro_config.bit.fs_sel);
+    _changeFsSel(p_owner->__p_imu_sensor, gyro_config.bit.gyro_fs_sel);
 	return TRUE;
 }
 
-BOOL pifMpu6500_SetFsSel(PifMpu6500* p_owner, PifMpu6500FsSel fs_sel)
+BOOL pifMpu6500_SetGyroFsSel(PifMpu6500* p_owner, PifMpu6500GyroFsSel gyro_fs_sel)
 {
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, MPU6500_REG_GYRO_CONFIG, MPU6500_GYRO_CONFIG_FS_SEL, fs_sel)) return FALSE;
-    _changeFsSel(p_owner->__p_imu_sensor, fs_sel);
+    if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, MPU6500_REG_GYRO_CONFIG, MPU6500_GYRO_CONFIG_GYRO_FS_SEL, gyro_fs_sel)) return FALSE;
+    _changeFsSel(p_owner->__p_imu_sensor, gyro_fs_sel);
 	return TRUE;
 }
 

@@ -6,10 +6,7 @@
 #include "sensor/pif_imu_sensor.h"
 
 
-typedef enum EnPifMpu30x0Addr
-{
-	MPU30X0_I2C_ADDR				= 0x68
-} PifMpu30x0Addr;
+#define MPU30X0_I2C_ADDR			0x68
 
 
 typedef enum EnPifMpu30x0Reg
@@ -321,7 +318,7 @@ extern "C" {
  * @param p_imu_sensor
  * @return
  */
-BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, PifMpu30x0Addr addr, PifImuSensor* p_imu_sensor);
+BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu30x0_Clear

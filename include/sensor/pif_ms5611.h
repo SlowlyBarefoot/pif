@@ -6,11 +6,8 @@
 #include "core/pif_task.h"
 
 
-typedef enum EnPifMs5611Addr
-{
-	MS5611_I2C_ADDR_CSB_LOW		= 0x77,		// Default
-	MS5611_I2C_ADDR_CSB_HIGH	= 0x76
-} PifMs5611Addr;
+#define	MS5611_I2C_ADDR(N)		(0x76 + (N))
+
 
 typedef enum EnPifMs5611Reg
 {
@@ -83,7 +80,7 @@ extern "C" {
  * @param addr
  * @return
  */
-BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, PifMs5611Addr addr);
+BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr);
 
 /**
  * @fn pifMs5611_Clear

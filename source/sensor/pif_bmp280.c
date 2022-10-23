@@ -99,7 +99,7 @@ static uint16_t _doTask(PifTask* p_task)
 	return delay;
 }
 
-BOOL pifBmp280_Init(PifBmp280* p_owner, PifId id, PifI2cPort* p_i2c, PifBmp280Addr addr)
+BOOL pifBmp280_Init(PifBmp280* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr)
 {
 	uint8_t data;
 	PifBmp280CtrlMeas ctrl_meas;

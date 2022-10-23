@@ -54,7 +54,7 @@ static uint32_t _conversionDelay(PifAds1x1x* p_owner)
     return delay;
 }
 
-BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, PifAds1x1xAddr addr)
+BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, uint8_t addr)
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;

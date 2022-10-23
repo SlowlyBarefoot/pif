@@ -18,7 +18,7 @@ static BOOL _changeAfsSel(PifImuSensor* p_imu_sensor, PifMpu60x0AfsSel afs_sel)
 	return TRUE;
 }
 
-BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, PifMpu60x0Addr addr, PifImuSensor* p_imu_sensor)
+BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor)
 {
 #ifndef __PIF_NO_LOG__	
 	const char ident[] = "MPU60X0 Ident: ";

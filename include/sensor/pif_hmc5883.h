@@ -6,7 +6,7 @@
 #include "sensor/pif_imu_sensor.h"
 
 
-#define HMC5883_I2C_ADDR			0x1E	// Default
+#define HMC5883_I2C_ADDR			0x1E
 
 
 typedef enum EnPifHmc5883Reg

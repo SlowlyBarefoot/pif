@@ -25,7 +25,7 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSensor* p
 
 	memset(p_owner, 0, sizeof(PifGy86));
 
-    if (!pifMpu60x0_Init(&p_owner->_mpu6050, PIF_ID_AUTO, p_i2c, MPU60X0_I2C_ADDR_AD0_LOW, p_imu_sensor)) goto fail;
+    if (!pifMpu60x0_Init(&p_owner->_mpu6050, PIF_ID_AUTO, p_i2c, MPU60X0_I2C_ADDR(0), p_imu_sensor)) goto fail;
 
     if (!pifI2cDevice_WriteRegByte(p_owner->_mpu6050._p_i2c, MPU60X0_REG_SMPLRT_DIV, 0)) goto fail;
 
@@ -92,7 +92,7 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSensor* p
     if (!pifI2cDevice_WriteRegByte(p_owner->_mpu6050._p_i2c, MPU60X0_REG_I2C_SLV0_CTRL, i2c_slv_ctrl.byte)) goto fail;
 
     if (p_config && p_config->ms5611_evt_read) {
-    	if (!pifMs5611_Init(&p_owner->_ms5611, PIF_ID_AUTO, p_i2c, MS5611_I2C_ADDR_CSB_LOW)) goto fail;
+    	if (!pifMs5611_Init(&p_owner->_ms5611, PIF_ID_AUTO, p_i2c, MS5611_I2C_ADDR(1))) goto fail;
 
         pifMs5611_SetOverSamplingRate(&p_owner->_ms5611, p_config->ms5611_osr);
 

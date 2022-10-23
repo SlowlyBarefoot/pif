@@ -6,11 +6,8 @@
 #include "core/pif_task.h"
 
 
-typedef enum EnPifBmp280Addr
-{
-	BMP280_I2C_ADDR_SDO_LOW		= 0x76,
-	BMP280_I2C_ADDR_SDO_HIGH	= 0x77
-} PifBmp280Addr;
+#define BMP280_I2C_ADDR(N)		(0x76 + (N))
+
 
 typedef enum EnPifBmp280Reg
 {
@@ -167,7 +164,7 @@ extern "C" {
  * @param addr
  * @return
  */
-BOOL pifBmp280_Init(PifBmp280* p_owner, PifId id, PifI2cPort* p_i2c, PifBmp280Addr addr);
+BOOL pifBmp280_Init(PifBmp280* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr);
 
 /**
  * @fn pifBmp280_Clear

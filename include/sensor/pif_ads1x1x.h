@@ -5,6 +5,9 @@
 #include "core/pif_i2c.h"
 
 
+#define ADS1X1X_I2C_ADDR(N)		(0x48 + (N))
+
+
 typedef enum EnPifAds1x1xType
 {
 	ADS1X1X_TYPE_1115		= 0,
@@ -14,14 +17,6 @@ typedef enum EnPifAds1x1xType
 	ADS1X1X_TYPE_1014		= 4,
 	ADS1X1X_TYPE_1013		= 5
 } PifAds1x1xType;
-
-typedef enum EnPifAds1x1xAddr
-{
-	ADS1X1X_I2C_ADDR_0	= 0x48,		// Default
-	ADS1X1X_I2C_ADDR_1	= 0x49,
-	ADS1X1X_I2C_ADDR_2	= 0x4A,
-	ADS1X1X_I2C_ADDR_3	= 0x4B
-} PifAds1x1xAddr;
 
 typedef enum EnPifAds1x1xReg
 {
@@ -174,7 +169,7 @@ extern "C" {
  * @param addr
  * @return
  */
-BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, PifAds1x1xAddr addr);
+BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, uint8_t addr);
 
 /**
  * @fn pifAds1x1x_Clear

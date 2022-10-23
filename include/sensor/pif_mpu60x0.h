@@ -6,11 +6,7 @@
 #include "sensor/pif_imu_sensor.h"
 
 
-typedef enum EnPifMpu60x0Addr
-{
-	MPU60X0_I2C_ADDR_AD0_LOW		= 0x68,	// Default
-	MPU60X0_I2C_ADDR_AD0_HIGH		= 0x69
-} PifMpu60x0Addr;
+#define MPU60X0_I2C_ADDR(N)			(0x68 + (N))
 
 
 typedef enum EnPifMpu60x0Reg
@@ -291,7 +287,7 @@ typedef union StPifMpu60x0I2cMstCtrl
 		uint8_t i2c_mst_p_nsr				: 1;
 		uint8_t slv3_fifo_en				: 1;
 		uint8_t wait_for_es					: 1;
-		uint8_t multi_mst_en				: 1;	// MSB
+		uint8_t mult_mst_en					: 1;	// MSB
 	} bit;
 } PifMpu60x0I2cMstCtrl;
 
@@ -590,7 +586,7 @@ extern "C" {
  * @param p_imu_sensor
  * @return
  */
-BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, PifMpu60x0Addr addr, PifImuSensor* p_imu_sensor);
+BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu60x0_Clear
