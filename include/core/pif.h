@@ -130,6 +130,8 @@
 #define PIF_CHECK_ELAPSE_TIME_1MS(START, ELAPSE)	(pif_cumulative_timer1ms - (START) >= (ELAPSE))
 #define PIF_CHECK_ELAPSE_TIME_1US(START, ELAPSE)	((*pif_act_timer1us)() - (START) >= (ELAPSE))
 
+#define REG_VALUE(V, SM)			((V) << ((SM) >> 8))
+
 
 typedef uint16_t PifId;
 typedef void* PifIssuerP;

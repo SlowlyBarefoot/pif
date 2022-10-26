@@ -62,14 +62,15 @@ void pifI2cPort_ScanAddress(PifI2cPort* p_owner)
 	PifI2cDevice device;
 
 	device.__p_port = p_owner;
-	for (i = 0; i < 127; i++) {
+	for (i = 1; i < 127; i++) {
 		device.addr = i;
 		device._state = IS_IDLE;
 		data = 0xFF;
 		if (pifI2cDevice_Write(&device, 0, 0, &data, 1)) {
-			pifLog_Printf(LT_INFO, "I2C Addr:%Xh OK", i);
+			pifLog_Printf(LT_INFO, "I2C Addr:%Xh %u", i, data);
 			count++;
 		}
+		pif_Delay1ms(10);
 	}
 	if (count) {
 		pifLog_Printf(LT_INFO, "I2C %d found", count);
