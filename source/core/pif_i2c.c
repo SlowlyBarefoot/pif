@@ -116,6 +116,9 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 			break;
 
 		case IR_ERROR:
+#ifndef __PIF_NO_LOG__
+			pifLog_Printf(LT_INFO, "I2CR:%u A:%Xh R:%Xh E:%u", __LINE__, p_owner->addr, iaddr, pif_error);
+#endif
 			goto fail;
 		}
 		ptr += len;
@@ -211,6 +214,9 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 			break;
 
 		case IR_ERROR:
+#ifndef __PIF_NO_LOG__
+			pifLog_Printf(LT_INFO, "I2CW:%u Error A:%Xh R:%Xh E:%u", __LINE__, p_owner->addr, iaddr, pif_error);
+#endif
 			goto fail;
 		}
 		ptr += len;
