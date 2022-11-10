@@ -106,7 +106,7 @@ static void _parsingPacket(PifMsp *p_owner, PifActCommReceiveData act_receive_da
 			break;
 
 		case MRS_DIRECTION:
-			if (data < 6 + PIF_MSP_RX_PACKET_SIZE) {
+			if (data < PIF_MSP_RX_PACKET_SIZE - 3) {
 				p_packet->data_count = data;
 				p_owner->__rx.p_packet[0] = data;
 				p_owner->__rx.packet_count = 1;

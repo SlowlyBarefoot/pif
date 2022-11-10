@@ -28,7 +28,7 @@ typedef struct StPifStorageVarInfo
 {
 	uint8_t magin_code[4];			// "pifs"
 	uint8_t verion;					// 1 ~
-	uint8_t max_data_info_count;
+	uint8_t data_info_count;
 	uint16_t sector_size;
 	uint16_t max_sector_count;
 
@@ -121,10 +121,10 @@ void pifStorageVar_Clear(PifStorageVar* p_owner);
  * @param p_owner
  * @param sector_size
  * @param storage_volume
- * @param min_data_info_count
+ * @param data_info_count
  * @return
  */
-BOOL pifStorageVar_SetMedia(PifStorageVar* p_owner, uint16_t sector_size, uint32_t storage_volume, uint8_t min_data_info_count);
+BOOL pifStorageVar_SetMedia(PifStorageVar* p_owner, uint16_t sector_size, uint32_t storage_volume, uint8_t data_info_count);
 
 /**
  * @fn pifStorageVar_IsFormat

@@ -497,10 +497,11 @@ void pifTaskManager_Yield()
 
 void pifTaskManager_YieldMs(uint32_t time)
 {
-    uint32_t start = pif_cumulative_timer1ms;
+    uint32_t start;
 
     if (!time) return;
 
+    start = pif_cumulative_timer1ms;
     do {
 		pifTaskManager_Yield();
     } while (pif_cumulative_timer1ms - start <= time);
@@ -509,13 +510,14 @@ void pifTaskManager_YieldMs(uint32_t time)
 void pifTaskManager_YieldUs(uint32_t time)
 {
     uint32_t start;
-    uint32_t delay;
 
     if (!time) return;
 
     if (!pif_act_timer1us) {
-    	delay = (time + 999) / 1000;
-    	pifTaskManager_YieldMs(delay > 0 ? delay : 1);
+        start = pif_cumulative_timer1ms * 1000;
+        do {
+    		pifTaskManager_Yield();
+		} while (pif_cumulative_timer1ms * 1000 - start <= time);
     }
     else {
     	start = (*pif_act_timer1us)();
@@ -523,35 +525,6 @@ void pifTaskManager_YieldUs(uint32_t time)
 			pifTaskManager_Yield();
 		} while ((*pif_act_timer1us)() - start <= time);
     }
-}
-
-void pifTaskManager_YieldPeriod(PifTask *p_owner)
-{
-	PifFixListIterator it;
-
-	switch (p_owner->_mode) {
-	case TM_RATIO:
-	case TM_ALWAYS:
-		it = pifFixList_Begin(&s_tasks);
-		while (it) {
-			pifTaskManager_Yield();
-			it = pifFixList_Next(it);
-		}
-		break;
-
-	case TM_PERIOD_MS:
-	case TM_CHANGE_MS:
-		pifTaskManager_YieldMs(p_owner->_period);
-		break;
-
-	case TM_PERIOD_US:
-	case TM_CHANGE_US:
-		pifTaskManager_YieldUs(p_owner->_period);
-		break;
-
-	default:
-		break;
-	}
 }
 
 #if !defined(__PIF_NO_LOG__) && defined(__PIF_DEBUG__)

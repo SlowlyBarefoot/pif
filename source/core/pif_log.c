@@ -381,7 +381,7 @@ BOOL pifLog_Init()
 
 	s_log.enable = TRUE;
 #ifdef __PIF_LOG_COMMAND__
-	s_log.p_task = pifTaskManager_Add(TM_ALWAYS, 100, _doTask, &s_log, FALSE);
+	s_log.p_task = pifTaskManager_Add(TM_PERIOD_MS, 1, _doTask, &s_log, FALSE);
 	if (!s_log.p_task) return FALSE;
 #endif
    	return TRUE;
@@ -523,7 +523,7 @@ void pifLog_PrintInBuffer()
 
 	while (!pifRingBuffer_IsEmpty(&s_log.buffer)) {
 		while (!pifRingBuffer_IsEmpty(s_log.p_tx_buffer)) {
-			pifTaskManager_YieldPeriod(s_log.p_comm->_p_task);
+			pifTaskManager_Yield();
 		}
 		length = pifRingBuffer_CopyAll(s_log.p_tx_buffer, &s_log.buffer, 0);
 		pifRingBuffer_Remove(&s_log.buffer, length);
@@ -552,4 +552,11 @@ void pifLog_DetachComm()
 	s_log.p_comm = NULL;
 
 	pifRingBuffer_Destroy(&s_log.p_tx_buffer);
+}
+
+void pifLog_SendAndExit()
+{
+	while (pifRingBuffer_GetFillSize(s_log.p_tx_buffer)) {
+		s_log.p_comm->_p_task->__evt_loop(s_log.p_comm->_p_task);
+	}
 }

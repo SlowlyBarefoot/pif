@@ -167,6 +167,12 @@ PifTask* pifLog_GetCommTask();
 BOOL pifLog_AttachComm(PifComm* p_comm);
 
 /**
+ * @fn pifLog_SendAndExit
+ * @brief
+ */
+void pifLog_SendAndExit();
+
+/**
  * @fn pifLog_DetachComm
  * @brief
  */

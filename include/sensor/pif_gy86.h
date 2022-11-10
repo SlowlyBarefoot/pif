@@ -16,6 +16,8 @@
  */
 typedef struct StPifGy86Config
 {
+	uint8_t disallow_yield_id;
+
 	PifMpu60x0AfsSel mpu60x0_afs_sel;
 	PifMpu60x0Clksel mpu60x0_clksel;
 	PifMpu60x0DlpfCfg mpu60x0_dlpf_cfg;

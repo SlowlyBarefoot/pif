@@ -60,7 +60,6 @@ typedef struct StPifImuSensor
 	PifImuSensorInfo __gyro_info;
 	PifImuSensorInfo __accel_info;
 	PifImuSensorInfo __mag_info;
-	PifImuSensorInfo __temp_info;
 	int16_t __delta_gyro[3];
 	int16_t __threshold_gyro[3];
 	int16_t __threshold[3];

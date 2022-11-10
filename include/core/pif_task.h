@@ -170,13 +170,6 @@ void pifTaskManager_YieldMs(uint32_t time);
  */
 void pifTaskManager_YieldUs(uint32_t time);
 
-/**
- * @fn pifTaskManager_YieldPeriod
- * @brief loop내에서 지정된 주기동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
- * @param p_owner
- */
-void pifTaskManager_YieldPeriod(PifTask* p_owner);
-
 #ifdef __PIF_DEBUG__
 
 /**

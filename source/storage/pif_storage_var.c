@@ -89,11 +89,11 @@ void pifStorageVar_Clear(PifStorageVar* p_owner)
 	p_owner->parent.__fn_write = NULL;
 }
 
-BOOL pifStorageVar_SetMedia(PifStorageVar* p_owner, uint16_t sector_size, uint32_t storage_volume, uint8_t min_data_info_count)
+BOOL pifStorageVar_SetMedia(PifStorageVar* p_owner, uint16_t sector_size, uint32_t storage_volume, uint8_t data_info_count)
 {
     PifStorageVarInfo* p_info;
 
-    if (!p_owner || sector_size < 16 || !storage_volume || !min_data_info_count) {
+    if (!p_owner || sector_size < 16 || !storage_volume || !data_info_count) {
     	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
@@ -104,7 +104,7 @@ BOOL pifStorageVar_SetMedia(PifStorageVar* p_owner, uint16_t sector_size, uint32
 	    return FALSE;
     }
 
-	p_owner->__info_sectors = (sizeof(PifStorageVarInfo) + sizeof(PifStorageVarDataInfo) * min_data_info_count + sector_size - 1) / sector_size;
+	p_owner->__info_sectors = (sizeof(PifStorageVarInfo) + sizeof(PifStorageVarDataInfo) * data_info_count + sector_size - 1) / sector_size;
 	p_owner->__info_bytes = p_owner->__info_sectors * sector_size;
 
     p_owner->__p_info_buffer = calloc(1, p_owner->__info_bytes);
@@ -113,7 +113,7 @@ BOOL pifStorageVar_SetMedia(PifStorageVar* p_owner, uint16_t sector_size, uint32
         return FALSE;
 	}
 
-    if (!_readData(p_owner, p_owner->__p_info_buffer, 0, p_owner->__info_bytes, 16)) {
+    if (!_readData(p_owner, p_owner->__p_info_buffer, 0, p_owner->__info_bytes, sector_size)) {
     	pif_error = E_ACCESS_FAILED;
     	goto fail;
     }
@@ -126,7 +126,7 @@ BOOL pifStorageVar_SetMedia(PifStorageVar* p_owner, uint16_t sector_size, uint32
             p_info->magin_code[2] != 'f' || p_info->magin_code[3] != 's') {
         goto set;
     }
-    if (p_info->max_data_info_count < min_data_info_count) {
+    if (p_info->data_info_count != data_info_count) {
         goto set;
     }
     if (p_info->crc_16 != pifCrc16(p_owner->__p_info_buffer, sizeof(PifStorageVarInfo) - 6)) {
@@ -141,7 +141,7 @@ set:
 	p_info->magin_code[2] = 'f';
 	p_info->magin_code[3] = 's';
 	p_info->verion = 1;
-	p_info->max_data_info_count = (p_owner->__info_bytes - sizeof(PifStorageVarInfo)) / sizeof(PifStorageVarDataInfo);
+	p_info->data_info_count = data_info_count;
 	p_info->sector_size = sector_size;
 	p_info->max_sector_count = max_sector_count;
 	return TRUE;
@@ -191,12 +191,12 @@ BOOL pifStorageVar_Format(PifStorage* p_parent)
 
     memset(p_owner->__p_info_buffer + sizeof(PifStorageVarInfo), 0xFF, p_owner->__info_bytes - sizeof(PifStorageVarInfo));
 
-    for (int i = 0; i < p_info->max_data_info_count - 1; i++) {
+    for (int i = 0; i < p_info->data_info_count - 1; i++) {
     	p_data_info = &p_owner->__p_data_info[i];
     	p_data_info->next_node = i + 1;
     	p_data_info->crc_16 = pifCrc16((uint8_t*)p_data_info, sizeof(PifStorageVarDataInfo) - 6);
 	}
-	p_data_info = &p_owner->__p_data_info[p_info->max_data_info_count - 1];
+	p_data_info = &p_owner->__p_data_info[p_info->data_info_count - 1];
 	p_data_info->crc_16 = pifCrc16((uint8_t*)p_data_info, sizeof(PifStorageVarDataInfo) - 6);
 
     if (!_writeData(p_owner, 0, p_owner->__p_info_buffer, p_owner->__info_bytes)) {
@@ -435,11 +435,11 @@ void pifStorageVar_PrintInfo(PifStorageVar* p_owner, BOOL human)
 	pifLog_Printf(LT_NONE, "\nInfo Sectors: %u\n", p_owner->__info_sectors);
 	if (human) {
 		pifLog_Printf(LT_NONE, "\nVerion: %u", p_owner->_p_info->verion);
-		pifLog_Printf(LT_NONE, "\nMax Data Info Count: %u", p_owner->_p_info->max_data_info_count);
+		pifLog_Printf(LT_NONE, "\nData Info Count: %u", p_owner->_p_info->data_info_count);
 		pifLog_Printf(LT_NONE, "\nSector Size: %u", p_owner->_p_info->sector_size);
 		pifLog_Printf(LT_NONE, "\nMax Sector Count: %u\n", p_owner->_p_info->max_sector_count);
 
-		for (i = 0; i < p_owner->_p_info->max_data_info_count; i++) {
+		for (i = 0; i < p_owner->_p_info->data_info_count; i++) {
 			if (p_owner->__p_data_info[i].id < 0xFF) {
 				pifLog_Printf(LT_NONE, "\n Id: %2d Size: %u FS: %d", p_owner->__p_data_info[i].id,
 						p_owner->__p_data_info[i].size, p_owner->__p_data_info[i].first_sector);
@@ -452,7 +452,7 @@ void pifStorageVar_PrintInfo(PifStorageVar* p_owner, BOOL human)
 			pifLog_Printf(LT_NONE, "%02X ", p_owner->__p_info_buffer[p]);
 		}
 
-		for (i = 0; i < p_owner->_p_info->max_data_info_count; i++) {
+		for (i = 0; i < p_owner->_p_info->data_info_count; i++) {
 			pifLog_Printf(LT_NONE, "\n%04X: ", p);
 			for (b = 0; b < sizeof(PifStorageVarDataInfo); b++, p++) {
 				pifLog_Printf(LT_NONE, "%02X ", p_owner->__p_info_buffer[p]);

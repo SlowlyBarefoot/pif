@@ -88,9 +88,6 @@ BOOL pifMpu6500_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
 	p_imu_sensor->__accel_info.read = (PifImuSensorRead)pifMpu6500_ReadAccel;
 	p_imu_sensor->__accel_info.p_issuer = p_owner;
 
-	p_imu_sensor->__temp_info.read = (PifImuSensorRead)pifMpu6500_ReadTemperature;
-	p_imu_sensor->__temp_info.p_issuer = p_owner;
-
     // Reset calibrate values
     p_imu_sensor->__delta_gyro[AXIS_X] = 0;
     p_imu_sensor->__delta_gyro[AXIS_Y] = 0;

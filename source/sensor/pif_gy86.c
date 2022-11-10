@@ -1,8 +1,5 @@
 #include "core/pif_log.h"
-#include "core/pif_task.h"
 #include "sensor/pif_gy86.h"
-
-#include <math.h>
 
 
 BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSensor* p_imu_sensor, PifGy86Config* p_config)
@@ -97,6 +94,7 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSensor* p
         pifMs5611_SetOverSamplingRate(&p_owner->_ms5611, p_config->ms5611_osr);
 
         if (!pifMs5611_AddTaskForReading(&p_owner->_ms5611, p_config->ms5611_read_period, p_config->ms5611_evt_read)) goto fail;
+        p_owner->_ms5611._p_task->disallow_yield_id = p_config->disallow_yield_id;
     }
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
