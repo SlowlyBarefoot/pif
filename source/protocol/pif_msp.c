@@ -312,6 +312,7 @@ BOOL pifMsp_MakeAnswer(PifMsp* p_owner, PifMspPacket* p_question, uint8_t* p_dat
 		check_xor ^= pifCheckXor(p_data, data_size);
 	}
 	if (!pifRingBuffer_PutByte(&p_owner->__tx.answer_buffer, check_xor)) goto fail;
+	p_owner->__p_comm->_p_task->immediate = TRUE;
 
 #ifdef __DEBUG_PACKET__
 	pifLog_Printf(LT_NONE, "\n%u< %x %x %x %x %x : %x", p_owner->_id,
@@ -341,6 +342,7 @@ BOOL pifMsp_MakeError(PifMsp* p_owner, PifMspPacket* p_question)
 	header[4] = p_question->command;
 	header[5] = header[3] ^ header[4];
 	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, header, 6)) goto fail;
+	p_owner->__p_comm->_p_task->immediate = TRUE;
 
 #ifndef __PIF_NO_LOG__
 #ifdef __DEBUG_PACKET__

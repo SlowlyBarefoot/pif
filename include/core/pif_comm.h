@@ -86,6 +86,7 @@ struct StPifComm
 	// Private Member Variable
     void* __p_client;
     PifCommTxState __state;
+    uint16_t __rx_threshold;
 
     // Public Event Function
     PifEvtCommParsing __evt_parsing;
@@ -117,10 +118,11 @@ void pifComm_Clear(PifComm* p_owner);
  * @fn pifComm_AllocRxBuffer
  * @brief
  * @param p_owner
- * @param rx_Size
+ * @param rx_size
+ * @param threshold
  * @return
  */
-BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_size);
+BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_size, uint8_t threshold);
 
 /**
  * @fn pifComm_AllocTxBuffer

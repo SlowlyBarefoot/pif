@@ -436,10 +436,10 @@ void pifTaskManager_Loop()
 		PifTask* p_owner = (PifTask*)it->data;
 		s_current_task = p_owner;
 		if (p_owner->immediate) {
+			p_owner->immediate = FALSE;
 			p_owner->__running = TRUE;
 			(*p_owner->__evt_loop)(p_owner);
 			p_owner->__running = FALSE;
-			p_owner->immediate = FALSE;
 		}
 		else if (!p_owner->pause) (*p_owner->__processing)(p_owner);
 		s_current_task = NULL;
@@ -478,10 +478,10 @@ void pifTaskManager_Yield()
 	if (!p_owner->__running) {
 		if (s_current_task->disallow_yield_id && s_current_task->disallow_yield_id == p_owner->disallow_yield_id) return;
 		if (p_owner->immediate) {
+			p_owner->immediate = FALSE;
 			p_owner->__running = TRUE;
 			(*p_owner->__evt_loop)(p_owner);
 			p_owner->__running = FALSE;
-			p_owner->immediate = FALSE;
 		}
 		else if (!p_owner->pause) (*p_owner->__processing)(p_owner);
 

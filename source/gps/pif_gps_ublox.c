@@ -85,13 +85,6 @@ static void _parsingPacket(PifGpsUblox *p_owner, PifActCommReceiveData act_recei
 				pre_err = PKT_ERR_NONE;
 #endif
 			}
-			else if (data != '\r' && data != '\n') {
-#ifndef __PIF_NO_LOG__
-				pkt_err = PKT_ERR_INVALID_DATA;
-				line = __LINE__;
-#endif
-				goto fail;
-			}
 			break;
 
 		case GURS_SYNC_CHAR_2:
@@ -226,6 +219,19 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 
         switch (p_packet->class_id) {
         case GUCI_ACK:
+        	switch (p_packet->msg_id) {
+        	case GUMI_ACK_ACK:
+        	case GUMI_ACK_NAK:
+        		if (p_owner->evt_ubx_cfg_result) (*p_owner->evt_ubx_cfg_result)(p_owner, p_packet->msg_id);
+        		break;
+
+            default:
+            	error = TRUE;
+#ifndef __PIF_NO_LOG__
+        		pifLog_Printf(LT_ERROR, "GU:%u(%u) %s CID:%x MID:%x", __LINE__, p_owner->_gps._id, kPktErr[PKT_ERR_UNKNOWE_ID], p_packet->class_id, p_packet->msg_id);
+#endif
+                break;
+        	}
         	break;
 
         case GUCI_NAV:
@@ -363,6 +369,7 @@ static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, BOOL blocking)
 	header[3] = 0;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, header, 4)) goto fail;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, (uint8_t *)p_data, header[0])) goto fail;
+	p_owner->__p_comm->_p_task->immediate = TRUE;
 	return TRUE;
 
 fail:

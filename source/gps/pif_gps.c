@@ -168,7 +168,7 @@ BOOL pifGps_SetTimeout(PifGps* p_owner, PifTimerManager* p_timer_manager, uint32
 	    if (!pifTimer_Start(p_owner->__p_timer, timeout)) return FALSE;
 	}
 	else {
-	    pifTimer_Stop(p_owner->__p_timer);
+		if (p_owner->__p_timer) pifTimer_Stop(p_owner->__p_timer);
 	}
     return TRUE;
 }
@@ -343,7 +343,7 @@ BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 			}
 #ifndef __PIF_NO_LOG__
 			else {
-				pifLog_Printf(LT_ERROR, "GN(%u): MagId=%u checksum=%x:%x", __LINE__, msg_id, checksum, parity);
+				pifLog_Printf(LT_ERROR, "GN(%u): MsgId=%u CS=%x:%x", __LINE__, msg_id, checksum, parity);
 			}
 #endif
 			rtn = TRUE;

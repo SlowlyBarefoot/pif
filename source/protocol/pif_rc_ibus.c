@@ -100,7 +100,6 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 			// we only process the length==1 commands (=message length is 4 bytes incl overhead) to prevent the case the
 			// return messages from the UART TX port loop back to the RX port and are processed again. This is extra
 			// precaution as it will also be prevented by the IBUS_TIMEGAP required
-			pif_Delay1us(100);
 			p_sensor = &p_owner->__sensors[adr - 1];
 			switch (p_owner->__rx_buffer[0] & 0x0f0) {
 			case IBUS_COMMAND_DISCOVER:

@@ -59,15 +59,18 @@ void pifComm_Clear(PifComm* p_owner)
 	if (p_owner->_p_tx_buffer) pifRingBuffer_Destroy(&p_owner->_p_tx_buffer);
 }
 
-BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_Size)
+BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_size, uint8_t threshold)
 {
-    if (!rx_Size) {
+    if (!rx_size) {
     	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
-    p_owner->_p_rx_buffer = pifRingBuffer_CreateHeap(PIF_ID_AUTO, rx_Size);
+    p_owner->_p_rx_buffer = pifRingBuffer_CreateHeap(PIF_ID_AUTO, rx_size);
     if (!p_owner->_p_rx_buffer) return FALSE;
+    if (threshold > 100) threshold = 100;
+    p_owner->__rx_threshold = rx_size * 100 / threshold;
+    if (p_owner->__rx_threshold == 0) p_owner->__rx_threshold = 1;
     pifRingBuffer_SetName(p_owner->_p_rx_buffer, "RB");
     return TRUE;
 }
@@ -114,7 +117,7 @@ BOOL pifComm_PutRxByte(PifComm* p_owner, uint8_t data)
 	if (!p_owner->_p_rx_buffer) return FALSE;
 
 	if (!pifRingBuffer_PutByte(p_owner->_p_rx_buffer, data)) return FALSE;
-	p_owner->_p_task->immediate = TRUE;
+	if (pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) >= p_owner->__rx_threshold) p_owner->_p_task->immediate = TRUE;
 	return TRUE;
 }
 
@@ -123,7 +126,7 @@ BOOL pifComm_PutRxData(PifComm* p_owner, uint8_t* p_data, uint16_t length)
 	if (!p_owner->_p_rx_buffer) return FALSE;
 
 	if (!pifRingBuffer_PutData(p_owner->_p_rx_buffer, p_data, length)) return FALSE;
-	p_owner->_p_task->immediate = TRUE;
+	if (pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) >= p_owner->__rx_threshold) p_owner->_p_task->immediate = TRUE;
 	return TRUE;
 }
 
@@ -164,7 +167,7 @@ uint8_t pifComm_EndGetTxData(PifComm* p_owner, uint16_t length)
 
 uint16_t pifComm_ReceiveRxData(PifComm* p_owner, uint8_t* p_data, uint16_t length)
 {
-	uint16_t i = 0;
+	uint16_t i = 0, len;
 
 	if (p_owner->act_receive_data) {
 		i = 0;
@@ -175,7 +178,9 @@ uint16_t pifComm_ReceiveRxData(PifComm* p_owner, uint8_t* p_data, uint16_t lengt
 		return i;
 	}
 	else if (p_owner->_p_rx_buffer) {
-		return pifRingBuffer_CopyToArray(p_data, length, p_owner->_p_rx_buffer, 0);
+		len = pifRingBuffer_CopyToArray(p_data, length, p_owner->_p_rx_buffer, 0);
+		if (pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) >= p_owner->__rx_threshold) p_owner->_p_task->immediate = TRUE;
+		return len;
 	}
 	return 0;
 }

@@ -396,6 +396,7 @@ typedef struct StPifGpsUbxPacket
 struct StPifGpsUblox;
 typedef struct StPifGpsUblox PifGpsUblox;
 
+typedef void (*PifEvtGpsUbloxCfgResult)(PifGpsUblox* p_owner, BOOL result);
 typedef void (*PifEvtGpsUbxReceive)(PifGpsUbxPacket* p_packet);
 typedef void (*PifEvtGpsUbloxError)(PifId id);
 typedef void (*PifEvtGpsUbloxOtherPacket)(PifGpsUblox* p_owner, uint8_t data);
@@ -432,6 +433,7 @@ typedef struct StPifGpsUblox
 	// Public Member Variable
 
     // Public Event Function
+	PifEvtGpsUbloxCfgResult evt_ubx_cfg_result;
 	PifEvtGpsUbxReceive evt_ubx_receive;
 	PifEvtGpsUbloxOtherPacket evt_other_packet;
 
