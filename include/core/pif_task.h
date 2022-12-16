@@ -12,7 +12,8 @@ typedef enum EnPifTaskMode
 	TM_PERIOD_MS	= 2,
 	TM_PERIOD_US	= 3,
 	TM_CHANGE_MS	= 4,
-	TM_CHANGE_US	= 5
+	TM_CHANGE_US	= 5,
+	TM_NEED			= 6
 } PifTaskMode;
 
 
@@ -22,7 +23,7 @@ typedef struct StPifTask PifTask;
 typedef uint16_t (*PifEvtTaskLoop)(PifTask* p_task);
 typedef void (*PifActTaskMeasure)();
 
-typedef void (*PifTaskProcessing)(PifTask* p_owner);
+typedef PifTask* (*PifTaskProcessing)(PifTask* p_owner);
 
 
 /**

@@ -125,7 +125,8 @@
 #define ON      1
 #endif
 
-#define PIF_ID_AUTO		0
+#define PIF_ID_AUTO			0x0000
+#define PIF_ID_USER			0x0100
 
 #define PIF_CHECK_ELAPSE_TIME_1MS(START, ELAPSE)	(pif_cumulative_timer1ms - (START) >= (ELAPSE))
 #define PIF_CHECK_ELAPSE_TIME_1US(START, ELAPSE)	((*pif_act_timer1us)() - (START) >= (ELAPSE))
@@ -197,6 +198,7 @@ typedef struct StPifPerformance
 
 	// Read-only Member Variable
 	volatile uint32_t _count;
+	uint8_t _use_rate;
 
 	// Private Member Variable
 	BOOL __state;

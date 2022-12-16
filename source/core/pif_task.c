@@ -19,11 +19,14 @@ PifActTaskMeasure pif_act_task_yield = NULL;
 
 static PifFixList s_tasks;
 static PifFixListIterator s_it_current;
-static PifTask* s_current_task;
+static PifTask* s_task_stack[5];
+static int s_task_stack_ptr = 0;
 
 static uint32_t s_table_number;
 static uint32_t s_table[PIF_TASK_TABLE_SIZE];
 static uint8_t s_number = 0;
+
+static uint32_t s_loop_count = 0UL, s_pass_count = 0UL;
 
 
 static int _setTable(uint16_t period, PifTaskMode* p_mode)
@@ -73,7 +76,7 @@ static void _resetTable(int number)
 	s_table_number &= mask;
 }
 
-static void _processingAlways(PifTask* p_owner)
+static PifTask* _processingAlways(PifTask* p_owner)
 {
 	uint32_t gap;
 
@@ -82,75 +85,38 @@ static void _processingAlways(PifTask* p_owner)
 		if (gap >= p_owner->__delay_ms) {
 			p_owner->__delay_ms = 0;
 		}
+		return NULL;
 	}
-	else {
-		p_owner->__running = TRUE;
-		(*p_owner->__evt_loop)(p_owner);
-		p_owner->__running = FALSE;
-	}
+	return p_owner;
 }
 
-static void _processingPeriodUs(PifTask* p_owner)
+static PifTask* _processingPeriodUs(PifTask* p_owner)
 {
 	uint32_t current, gap;
 
 	current = (*pif_act_timer1us)();
 	gap = current - p_owner->__pretime;
 	if (gap >= p_owner->_period) {
-		p_owner->__running = TRUE;
-		(*p_owner->__evt_loop)(p_owner);
-		p_owner->__running = FALSE;
 		p_owner->__pretime = current;
+		return p_owner;
 	}
+	return NULL;
 }
 
-static void _processingPeriodMs(PifTask* p_owner)
+static PifTask* _processingPeriodMs(PifTask* p_owner)
 {
 	uint32_t current, gap;
 
 	current = pif_cumulative_timer1ms;
 	gap = current - p_owner->__pretime;
 	if (gap >= p_owner->_period) {
-		p_owner->__running = TRUE;
-		(*p_owner->__evt_loop)(p_owner);
-		p_owner->__running = FALSE;
 		p_owner->__pretime = current;
+		return p_owner;
 	}
+	return NULL;
 }
 
-static void _processingChangeUs(PifTask* p_owner)
-{
-	uint16_t period;
-	uint32_t current, gap;
-
-	current = (*pif_act_timer1us)();
-	gap = current - p_owner->__pretime;
-	if (gap >= p_owner->_period) {
-		p_owner->__running = TRUE;
-		period = (*p_owner->__evt_loop)(p_owner);
-		p_owner->__running = FALSE;
-		if (period > 0) p_owner->_period = period;
-		p_owner->__pretime = current;
-	}
-}
-
-static void _processingChangeMs(PifTask* p_owner)
-{
-	uint16_t period;
-	uint32_t current, gap;
-
-	current = pif_cumulative_timer1ms;
-	gap = current - p_owner->__pretime;
-	if (gap >= p_owner->_period) {
-		p_owner->__running = TRUE;
-		period = (*p_owner->__evt_loop)(p_owner);
-		p_owner->__running = FALSE;
-		if (period > 0) p_owner->_period = period;
-		p_owner->__pretime = current;
-	}
-}
-
-static void _processingRatio(PifTask* p_owner)
+static PifTask* _processingRatio(PifTask* p_owner)
 {
 	uint32_t gap;
 #ifdef __PIF_DEBUG__
@@ -172,14 +138,11 @@ static void _processingRatio(PifTask* p_owner)
 			p_owner->__count = 0;
 			pretime = time;
 		}
-#endif
-		p_owner->__running = TRUE;
-		(*p_owner->__evt_loop)(p_owner);
-		p_owner->__running = FALSE;
-#ifdef __PIF_DEBUG__
 		p_owner->__count++;
 #endif
+		return p_owner;
 	}
+	return NULL;
 }
 
 static BOOL _checkParam(PifTaskMode* p_mode, uint16_t period)
@@ -193,9 +156,6 @@ static BOOL _checkParam(PifTaskMode* p_mode, uint16_t period)
     	else if (period == 100) {
     		*p_mode = TM_ALWAYS;
     	}
-    	break;
-
-    case TM_ALWAYS:
     	break;
 
     case TM_PERIOD_MS:
@@ -217,6 +177,9 @@ static BOOL _checkParam(PifTaskMode* p_mode, uint16_t period)
     		pif_error = E_CANNOT_USE;
 		    return FALSE;
         }
+    	break;
+    	
+    default:
     	break;
     }
 	return TRUE;
@@ -241,23 +204,20 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
     	break;
 
     case TM_PERIOD_MS:
+    case TM_CHANGE_MS:
     	p_owner->__pretime = pif_cumulative_timer1ms;
     	p_owner->__processing = _processingPeriodMs;
     	break;
 
-    case TM_CHANGE_MS:
-    	p_owner->__pretime = pif_cumulative_timer1ms;
-    	p_owner->__processing = _processingChangeMs;
-    	break;
-
     case TM_PERIOD_US:
+    case TM_CHANGE_US:
     	p_owner->__pretime = (*pif_act_timer1us)();
     	p_owner->__processing = _processingPeriodUs;
     	break;
 
-    case TM_CHANGE_US:
-    	p_owner->__pretime = (*pif_act_timer1us)();
-    	p_owner->__processing = _processingChangeUs;
+    case TM_NEED:
+    	period = 0;
+    	p_owner->__processing = NULL;
     	break;
 
     default:
@@ -267,6 +227,29 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
     p_owner->_mode = mode;
     p_owner->_period = period;
 	return TRUE;
+}
+
+static void _processingTask(PifTask* p_owner)
+{
+	uint16_t period;
+
+	s_task_stack[s_task_stack_ptr] = p_owner;
+	s_task_stack_ptr++;
+	p_owner->__running = TRUE;
+	period = (*p_owner->__evt_loop)(p_owner);
+	p_owner->__running = FALSE;
+	s_task_stack_ptr--;
+	s_task_stack[s_task_stack_ptr] = NULL;
+
+	switch (p_owner->_mode) {
+	case TM_CHANGE_MS:
+	case TM_CHANGE_US:
+		if (period > 0) p_owner->_period = period;
+		break;
+
+	default:
+		break;
+	}
 }
 
 #ifndef __PIF_NO_LOG__
@@ -391,11 +374,14 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
 	PifTask* p_owner = (PifTask*)pifFixList_AddFirst(&s_tasks);
 	if (!p_owner) return NULL;
 
+	pifTask_Init(p_owner);
+
 	if (!_setParam(p_owner, mode, period)) goto fail;
 
     p_owner->__evt_loop = evt_loop;
     p_owner->_p_client = p_client;
-    p_owner->pause = !start;
+    p_owner->pause = (mode != TM_NEED) ? !start : TRUE;
+    if (!s_it_current) s_it_current = pifFixList_Begin(&s_tasks);
     return p_owner;
 
 fail:
@@ -407,6 +393,8 @@ fail:
 
 void pifTaskManager_Remove(PifTask* p_task)
 {
+	if (p_task == (PifTask*)s_it_current->data) s_it_current = NULL;
+
 	switch (p_task->_mode) {
 	case TM_RATIO:
 	case TM_ALWAYS:
@@ -417,6 +405,9 @@ void pifTaskManager_Remove(PifTask* p_task)
 		break;
 	}
 	pifFixList_Remove(&s_tasks, p_task);
+
+	if (!pifFixList_Count(&s_tasks)) s_it_current = NULL;
+	else if (!s_it_current) s_it_current = pifFixList_Begin(&s_tasks);
 }
 
 int pifTaskManager_Count()
@@ -426,38 +417,61 @@ int pifTaskManager_Count()
 
 void pifTaskManager_Loop()
 {
-#if !defined(__PIF_NO_LOG__) && defined(__PIF_DEBUG__)
-	static uint8_t sec = 0;
+	PifTask* p_owner;
+	PifTask* p_select = NULL;
+	int i, count;
+	static uint32_t sec = 0L;
+#ifndef __PIF_NO_LOG__
+	static uint8_t use_rate = 0;
 #endif
 
-	PifFixListIterator it = s_it_current ? s_it_current : pifFixList_Begin(&s_tasks);
-	while (it) {
-		s_it_current = it;
-		PifTask* p_owner = (PifTask*)it->data;
-		s_current_task = p_owner;
+	if (!s_it_current) {
+		if (!pifFixList_Count(&s_tasks)) return;
+		s_it_current = pifFixList_Begin(&s_tasks);
+	}
+
+	count = pifFixList_Count(&s_tasks);
+	s_loop_count += count;
+	for (i = 0; i < count && !p_select; i++) {
+		p_owner = (PifTask*)s_it_current->data;
+
 		if (p_owner->immediate) {
 			p_owner->immediate = FALSE;
-			p_owner->__running = TRUE;
-			(*p_owner->__evt_loop)(p_owner);
-			p_owner->__running = FALSE;
+			p_select = p_owner;
 		}
-		else if (!p_owner->pause) (*p_owner->__processing)(p_owner);
-		s_current_task = NULL;
+		else if (!p_owner->pause) {
+			if (p_owner->__processing) {
+				p_select = (*p_owner->__processing)(p_owner);
+			}
+		}
+
+		s_it_current = pifFixList_Next(s_it_current);
+		if (!s_it_current) {
+			s_it_current = pifFixList_Begin(&s_tasks);
+		}
+	}
+	s_pass_count += i;
+
+	if (p_select) {
 #ifdef __PIF_DEBUG__
 	    if (pif_act_task_loop) (*pif_act_task_loop)();
 #endif
-		it = pifFixList_Next(it);
+
+	    _processingTask(p_select);
 	}
 
-	s_number = (s_number + 1) & PIF_TASK_TABLE_MASK;
-	s_it_current = NULL;
-
-#if !defined(__PIF_NO_LOG__) && defined(__PIF_DEBUG__)
-    if (sec != pif_datetime.second) {
-    	pifTaskManager_Print();
-    	sec = pif_datetime.second;
-    }
+	if (sec != pif_timer1sec) {
+		sec = pif_timer1sec;
+		pif_performance._use_rate = 100 - 100 * s_pass_count / s_loop_count;
+		s_loop_count = 0UL;
+		s_pass_count = 0UL;
+#ifndef __PIF_NO_LOG__
+		if (use_rate != pif_performance._use_rate) {
+			use_rate = pif_performance._use_rate;
+	    	pifLog_Printf(LT_INFO, "Use Rate: %u%%", use_rate);
+		}
 #endif
+	}
 
 #ifndef __PIF_NO_LOG__
     _checkLoopTime(FALSE);
@@ -466,28 +480,50 @@ void pifTaskManager_Loop()
 
 void pifTaskManager_Yield()
 {
-	if (!pifFixList_Count(&s_tasks)) return;
+	PifTask* p_owner;
+	PifTask* p_select = NULL;
+	int i, k, count;
 
-	s_it_current = pifFixList_Next(s_it_current);
 	if (!s_it_current) {
-		s_number = (s_number + 1) & PIF_TASK_TABLE_MASK;
+		if (!pifFixList_Count(&s_tasks)) return;
 		s_it_current = pifFixList_Begin(&s_tasks);
 	}
 
-	PifTask* p_owner = (PifTask*)s_it_current->data;
-	if (!p_owner->__running) {
-		if (s_current_task->disallow_yield_id && s_current_task->disallow_yield_id == p_owner->disallow_yield_id) return;
+	count = pifFixList_Count(&s_tasks);
+	s_loop_count += count;
+	for (i = 0; i < count && !p_select; i++) {
+		p_owner = (PifTask*)s_it_current->data;
+
+		if (p_owner->__running) continue;
+		if (s_task_stack_ptr) {
+			for (k = 0; k < s_task_stack_ptr; k++) {
+				if (s_task_stack[k]->disallow_yield_id && s_task_stack[k]->disallow_yield_id == p_owner->disallow_yield_id) continue;
+			}
+		}
+
 		if (p_owner->immediate) {
 			p_owner->immediate = FALSE;
-			p_owner->__running = TRUE;
-			(*p_owner->__evt_loop)(p_owner);
-			p_owner->__running = FALSE;
+			p_select = p_owner;
 		}
-		else if (!p_owner->pause) (*p_owner->__processing)(p_owner);
+		else if (!p_owner->pause) {
+			if (p_owner->__processing) {
+				p_select = (*p_owner->__processing)(p_owner);
+			}
+		}
 
+		s_it_current = pifFixList_Next(s_it_current);
+		if (!s_it_current) {
+			s_it_current = pifFixList_Begin(&s_tasks);
+		}
+	}
+	s_pass_count += i;
+
+	if (p_select) {
 #ifdef __PIF_DEBUG__
 		if (pif_act_task_yield) (*pif_act_task_yield)();
 #endif
+
+	    _processingTask(p_select);
 	}
 
 #ifndef __PIF_NO_LOG__

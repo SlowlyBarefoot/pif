@@ -27,7 +27,6 @@ static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 			p_owner->__rx.p_packet[6], p_owner->__rx.p_packet[7]);
 #endif
 #endif
-	pifRingBuffer_PutByte(&p_owner->__tx.answer_buffer, ASCII_NAK);
 	p_owner->__rx.state = MRS_IDLE;
 }
 

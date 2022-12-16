@@ -50,5 +50,9 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+#
+*.bak
 .hg
 .hgignore
+.vscode
