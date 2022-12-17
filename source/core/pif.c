@@ -99,17 +99,6 @@ void pif_sigTimer1ms()
 {
 	uint8_t days;
 	uint16_t year;
-#ifndef __PIF_NO_LOG__
-	static uint16_t usTimerPerform = 0;
-
-    if (pif_log_flag.bt.performance) {
-		usTimerPerform++;
-		if (usTimerPerform >= 1000) {
-			usTimerPerform = 0;
-			pif_performance.__state = TRUE;
-		}
-    }
-#endif
 
 	pif_cumulative_timer1ms++;
     pif_timer1ms++;
@@ -119,11 +108,6 @@ void pif_sigTimer1ms()
         pif_timer1sec++;
     	pif_datetime.second++;
     	if (pif_datetime.second >= 60) {
-#ifdef __PIF_DEBUG__
-#ifndef __PIF_NO_LOG__
-    		pif_performance.__max_loop_time1us = 0UL;
-#endif
-#endif
     		pif_datetime.second = 0;
     		pif_datetime.minute++;
     		if (pif_datetime.minute >= 60) {
@@ -152,7 +136,11 @@ void pif_sigTimer1ms()
     				}
     			}
     		}
+
+        	pif_performance.__state = 2;
     	}
+
+    	if (!pif_performance.__state) pif_performance.__state = 1;
     }
 }
 

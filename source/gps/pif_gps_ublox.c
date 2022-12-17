@@ -357,7 +357,7 @@ static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, BOOL blocking)
 
 	if (blocking) {
 		while (!pifRingBuffer_IsEmpty(&p_owner->__tx.buffer)) {
-			pifTaskManager_Yield();
+			if (!pifTaskManager_Yield()) break;
 		}
 	}
 
@@ -389,7 +389,7 @@ static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t len
 
 	if (blocking) {
 		while (!pifRingBuffer_IsEmpty(&p_owner->__tx.buffer)) {
-			pifTaskManager_Yield();
+			if (!pifTaskManager_Yield()) break;
 		}
 	}
 

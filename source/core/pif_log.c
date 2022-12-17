@@ -153,7 +153,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_d
         case '\b':
             if (p_owner->char_idx > 0) {
             	while (!pifRingBuffer_PutString(p_owner->p_tx_buffer, "\b \b")) {
-            		pifTaskManager_Yield();
+            		if (!pifTaskManager_Yield()) break;
             	}
                 p_owner->char_idx--;
                 p_owner->p_rx_buffer[p_owner->char_idx] = 0;
@@ -181,7 +181,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_d
         default:
             if (p_owner->char_idx < p_owner->rx_buffer_size - 3) {
                 while (!pifRingBuffer_PutByte(p_owner->p_tx_buffer, tmp_char)) {
-                    pifTaskManager_Yield();
+                	if (!pifTaskManager_Yield()) break;
                 }
                 p_owner->p_rx_buffer[p_owner->char_idx] = tmp_char;
                 p_owner->char_idx++;
@@ -192,7 +192,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_d
         if (str_get_done_flag == TRUE) {
         	p_owner->p_rx_buffer[p_owner->char_idx] = 0;
         	while (!pifRingBuffer_PutByte(p_owner->p_tx_buffer, '\n')) {
-        		pifTaskManager_Yield();
+        		if (!pifTaskManager_Yield()) break;
         	}
         }
     }
@@ -281,21 +281,21 @@ static uint16_t _doTask(PifTask* p_task)
 	    // Handle the case of bad command.
 	    if (status == PIF_LOG_CMD_BAD_CMD) {
 	    	while (!pifRingBuffer_PutString(s_log.p_tx_buffer, "Not defined command!\n")) {
-        		pifTaskManager_Yield();
+	    		if (!pifTaskManager_Yield()) break;
 	    	}
 	    }
 
 	    // Handle the case of too many arguments.
 	    else if (status == PIF_LOG_CMD_TOO_MANY_ARGS) {
 	    	while (!pifRingBuffer_PutString(s_log.p_tx_buffer, "Too many arguments for command!\n")) {
-        		pifTaskManager_Yield();
+	    		if (!pifTaskManager_Yield()) break;
 	    	}
 	    }
 
 	    // Handle the case of too few arguments.
 	    else if (status == PIF_LOG_CMD_TOO_FEW_ARGS) {
 	    	while (!pifRingBuffer_PutString(s_log.p_tx_buffer, "Too few arguments for command!\n")) {
-        		pifTaskManager_Yield();
+	    		if (!pifTaskManager_Yield()) break;
 	    	}
 	    }
 
@@ -304,7 +304,7 @@ static uint16_t _doTask(PifTask* p_task)
 	    else if (status != PIF_LOG_CMD_NO_ERROR) {
 	    	pif_Printf(msg, "Command returned error code: %d\n", status);
 	    	while (!pifRingBuffer_PutString(s_log.p_tx_buffer, msg)) {
-        		pifTaskManager_Yield();
+	    		if (!pifTaskManager_Yield()) break;
 	    	}
 	    }
 
@@ -312,7 +312,7 @@ static uint16_t _doTask(PifTask* p_task)
 	}
 
 	while (!pifRingBuffer_PutString(s_log.p_tx_buffer, (char *)s_log.p_prompt)) {
-		pifTaskManager_Yield();
+		if (!pifTaskManager_Yield()) break;
 	}
 
 	return 0;
@@ -350,7 +350,7 @@ static void _printLog(char* p_string, BOOL vcd)
 
 	if (s_log.enable || vcd) {
         while (!pifRingBuffer_PutString(s_log.p_tx_buffer, p_string)) {
-        	pifTaskManager_Yield();
+        	if (!pifTaskManager_Yield()) break;
         }
 	}
 }
@@ -523,7 +523,7 @@ void pifLog_PrintInBuffer()
 
 	while (!pifRingBuffer_IsEmpty(&s_log.buffer)) {
 		while (!pifRingBuffer_IsEmpty(s_log.p_tx_buffer)) {
-			pifTaskManager_Yield();
+			if (!pifTaskManager_Yield()) break;
 		}
 		length = pifRingBuffer_CopyAll(s_log.p_tx_buffer, &s_log.buffer, 0);
 		pifRingBuffer_Remove(&s_log.buffer, length);
