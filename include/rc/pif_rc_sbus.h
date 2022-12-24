@@ -3,7 +3,7 @@
 
 
 #include "core/pif_comm.h"
-#include "protocol/pif_rc.h"
+#include "rc/pif_rc.h"
 
 
 #define PIF_SBUS_CHANNEL_COUNT 	18
@@ -17,12 +17,10 @@
  */
 typedef struct StPifRcSbus
 {
+	// Must be at the front
 	PifRc parent;
 
 	// Public Member Variable
-
-    // Public Event Function
-	PifEvtRcReceive evt_receive;
 
 	// Read-only Member Variable
 

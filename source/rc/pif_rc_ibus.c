@@ -1,5 +1,5 @@
 #include "core/pif_log.h"
-#include "protocol/pif_rc_ibus.h"
+#include "rc/pif_rc_ibus.h"
 
 
 #define IBUS_OVERHEAD 			3		// packet is <len><cmd><data....><chkl><chkh>, overhead=cmd+chk bytes
@@ -46,11 +46,11 @@ static void _ParsingPacket(PifRcIbus *p_owner, PifActCommReceiveData act_receive
 		case IRS_GET_CHKSUMH:
 			// Validate checksum
 			if (chksum == ((uint16_t)data << 8) + lchksum) {
-				p_owner->parent.good_frames++;
+				p_owner->parent._good_frames++;
 				p_owner->__rx_state = IRS_DONE;
 			}
 			else {
-				p_owner->parent.error_frames++;
+				p_owner->parent._error_frames++;
 				p_owner->__rx_state = IRS_GET_LENGTH;
 			}
 			break;
@@ -71,7 +71,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 	uint16_t channel[PIF_IBUS_CHANNEL_COUNT]; 	// servo data received
 	uint16_t chksum;
 
-    if (!p_owner->evt_receive) return;
+    if (!p_owner->parent.__evt_receive) return;
 
 	if (pif_cumulative_timer1ms - p_owner->__last_time >= IBUS_RETRY_TIMEOUT) {
 		p_owner->__rx_state = IRS_GET_LENGTH;
@@ -83,7 +83,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
     }
 
     if (p_owner->__rx_state == IRS_DONE) {
-		p_owner->parent.last_frame_time = pif_cumulative_timer1ms;
+		p_owner->parent._last_frame_time = pif_cumulative_timer1ms;
 
 		// Checksum is all fine Execute command - 
 		uint8_t adr = p_owner->__rx_buffer[0] & 0x0f;
@@ -93,7 +93,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 				channel[i / 2] = p_owner->__rx_buffer[i] | (p_owner->__rx_buffer[i + 1] << 8);
 			}
 
-	    	if (p_owner->evt_receive) (*p_owner->evt_receive)(&p_owner->parent, channel);
+	    	if (p_owner->parent.__evt_receive) (*p_owner->parent.__evt_receive)(&p_owner->parent, channel, p_owner->parent.__p_issuer);
 		} 
 		else if (p_owner->__p_comm->_p_tx_buffer && adr <= p_owner->_number_sensors && adr > 0 && p_owner->__rx_length == 1) {
 			// all sensor data commands go here
@@ -155,9 +155,9 @@ BOOL pifRcIbus_Init(PifRcIbus* p_owner, PifId id)
 	memset(p_owner, 0, sizeof(PifRcIbus));
 
     if (id == PIF_ID_AUTO) id = pif_id++;
-    p_owner->parent.id = id;
-	p_owner->parent.channel_count = PIF_IBUS_CHANNEL_COUNT;
-	p_owner->parent.failsafe = FALSE;
+    p_owner->parent._id = id;
+	p_owner->parent._channel_count = PIF_IBUS_CHANNEL_COUNT;
+	p_owner->parent._failsafe = FALSE;
     return TRUE;
 }
 

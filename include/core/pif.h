@@ -161,6 +161,16 @@ typedef enum EnPifError
 	E_INVALID_ID				= 0x11
 } PifError;
 
+typedef enum EnPifPulseState
+{
+    PS_LOW_LEVEL	= 0,
+    PS_FALLING_EDGE	= 1,
+    PS_RISING_EDGE	= 2,
+    PS_HIGH_LEVEL	= 3,
+
+    PS_LEVEL_MASK	= 1,
+    PS_EDGE_MASK	= 2
+} PifPulseState;
 
 /**
  * @struct StPifDateTime

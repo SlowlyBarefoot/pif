@@ -12,32 +12,6 @@
 	static PifDList s_cs_list;
 #endif
 
-
-static BOOL _calcuratePositionModulation(PifPulse* p_owner, uint16_t diff)
-{
-	BOOL rtn = FALSE;
-
-	if (diff < p_owner->__threshold_1us) {
-		p_owner->_channel++;
-		if (p_owner->_channel < p_owner->__channel_count) {
-			if (p_owner->__valid_range[3].check) {
-				if (diff >= p_owner->__valid_range[3].min && diff <= p_owner->__valid_range[3].max) {
-					p_owner->__p_position[p_owner->_channel] = diff;
-					rtn = TRUE;
-				}
-			}
-			else {
-				p_owner->__p_position[p_owner->_channel] = diff;
-				rtn = TRUE;
-			}
-		}
-	}
-	else {
-		p_owner->_channel = -1;
-	}
-	return rtn;
-}
-
 #ifdef __PIF_COLLECT_SIGNAL__
 
 static void _addDeviceInCollectSignal()
@@ -117,11 +91,7 @@ void pifPulse_Clear(PifPulse* p_owner)
 
 BOOL pifPulse_SetMeasureMode(PifPulse* p_owner, uint8_t measure_mode)
 {
-	uint8_t mask = 0;
-
-	if (measure_mode & PIF_PMM_EDGE_MASK) mask |= 1;
-	if (measure_mode & PIF_PMM_TICK_MASK) mask |= 2;
-	if (mask == 3) {
+	if (measure_mode == 0 || measure_mode > 0x0F) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -134,39 +104,21 @@ void pifPulse_ResetMeasureMode(PifPulse* p_owner, uint8_t measure_mode)
 	p_owner->_measure_mode &= ~measure_mode;
 }
 
-BOOL pifPulse_SetPositionMode(PifPulse* p_owner, uint8_t channel_count, uint16_t threshold_1us, uint16_t* p_value)
-{
-    if (p_owner->_measure_mode & PIF_PMM_EDGE_MASK) {
-		pif_error = E_INVALID_PARAM;
-		return FALSE;
-    }
-
-	p_owner->__channel_count = channel_count;
-    p_owner->__threshold_1us = threshold_1us;
-    p_owner->__p_position = p_value;
-    p_owner->_measure_mode |= PIF_PMM_TICK_POSITION;
-    return TRUE;
-}
-
 BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint32_t min, uint32_t max)
 {
 	int index = -1;
 
 	switch (measure_mode) {
-	case PIF_PMM_COMMON_PERIOD:
+	case PIF_PMM_PERIOD:
 		index = 0;
 		break;
 
-	case PIF_PMM_EDGE_LOW_WIDTH:
+	case PIF_PMM_LOW_WIDTH:
 		index = 1;
 		break;
 
-	case PIF_PMM_EDGE_HIGH_WIDTH:
+	case PIF_PMM_HIGH_WIDTH:
 		index = 2;
-		break;
-
-	case PIF_PMM_TICK_POSITION:
-		index = 3;
 		break;
 	}
 	if (index < 0) {
@@ -241,26 +193,27 @@ uint16_t pifPulse_GetHighWidth(PifPulse* p_owner)
 	return value;
 }
 
-uint8_t pifPulse_sigEdge(PifPulse* p_owner, PifPulseEdge edge, uint32_t time_us)
+BOOL pifPulse_sigEdge(PifPulse* p_owner, PifPulseState state, uint32_t time_us)
 {
-	uint8_t rtn = 0;
+	BOOL rtn = FALSE;
 
-	if (edge == PE_RISING) {
+	if (state == PS_RISING_EDGE) {
 		p_owner->__data[p_owner->__ptr].rising = time_us;
 	}
 	else {
 		p_owner->__data[p_owner->__ptr].falling = time_us;
-		if (p_owner->_measure_mode & PIF_PMM_COMMON_COUNT) {
+		if (p_owner->_measure_mode & PIF_PMM_COUNT) {
 			p_owner->falling_count++;
 		}
 		p_owner->__last_ptr = p_owner->__ptr;
 		p_owner->__ptr = (p_owner->__ptr + 1) & PIF_PULSE_DATA_MASK;
+
+		if (p_owner->__evt_edge) {
+			(*p_owner->__evt_edge)(state, p_owner->__p_issuer);
+		}
+		rtn = TRUE;
 	}
 	if (p_owner->__count < PIF_PULSE_DATA_SIZE) p_owner->__count++;
-
-	if (p_owner->__evt.edge) {
-		(*p_owner->__evt.edge)(edge, p_owner->__p_issuer);
-	}
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	if (p_owner->__p_colsig->flag & PL_CSF_STATE_BIT) {
@@ -271,38 +224,9 @@ uint8_t pifPulse_sigEdge(PifPulse* p_owner, PifPulseEdge edge, uint32_t time_us)
 	return rtn;
 }
 
-uint8_t pifPulse_sigTick(PifPulse* p_owner, uint32_t time_us)
-{
-	uint8_t rtn = 0;
-
-	p_owner->__data[p_owner->__ptr].falling = time_us;
-	if (p_owner->_measure_mode & PIF_PMM_COMMON_COUNT) {
-		p_owner->falling_count++;
-	}
-	if (p_owner->_measure_mode & PIF_PMM_TICK_POSITION) {
-		rtn |= _calcuratePositionModulation(p_owner, p_owner->__data[p_owner->__ptr].falling - p_owner->__data[p_owner->__last_ptr].falling) << 4;
-	}
-	p_owner->__last_ptr = p_owner->__ptr;
-	p_owner->__ptr = (p_owner->__ptr + 1) & PIF_PULSE_DATA_MASK;
-
-	if (p_owner->__count < PIF_PULSE_DATA_SIZE) p_owner->__count++;
-
-	if (p_owner->__evt.tick) {
-		(*p_owner->__evt.tick)(p_owner->__p_issuer);
-	}
-
-	return rtn;
-}
-
 void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssuerP p_issuer)
 {
-	p_owner->__evt.edge = evt_edge;
-	p_owner->__p_issuer = p_issuer;
-}
-
-void pifPulse_AttachEvtTick(PifPulse* p_owner, PifEvtPulseTick evt_tick, PifIssuerP p_issuer)
-{
-	p_owner->__evt.tick = evt_tick;
+	p_owner->__evt_edge = evt_edge;
 	p_owner->__p_issuer = p_issuer;
 }
 

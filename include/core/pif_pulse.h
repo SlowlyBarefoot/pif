@@ -8,26 +8,13 @@
 #define PIF_PULSE_DATA_SIZE			4
 #define PIF_PULSE_DATA_MASK			(PIF_PULSE_DATA_SIZE - 1)
 
-#define PIF_PMM_COMMON_PERIOD		0x01
-#define PIF_PMM_COMMON_COUNT		0x02
-
-#define PIF_PMM_EDGE_MASK			0x30
-#define PIF_PMM_EDGE_LOW_WIDTH		0x10
-#define PIF_PMM_EDGE_HIGH_WIDTH		0x20
-
-#define PIF_PMM_TICK_MASK			0xC0
-#define PIF_PMM_TICK_POSITION		0x40
+#define PIF_PMM_PERIOD				1
+#define PIF_PMM_COUNT				2
+#define PIF_PMM_LOW_WIDTH			4
+#define PIF_PMM_HIGH_WIDTH			8
 
 
-typedef enum EnPifPulseEdge
-{
-    PE_FALLING		= 0,
-    PE_RISING		= 1
-} PifPulseEdge;
-
-
-typedef void (*PifEvtPulseEdge)(PifPulseEdge edge, PifIssuerP p_issuer);
-typedef void (*PifEvtPulseTick)(PifIssuerP p_issuer);
+typedef void (*PifEvtPulseEdge)(PifPulseState state, PifIssuerP p_issuer);
 
 
 struct StPifPulse;
@@ -79,7 +66,6 @@ struct StPifPulse
 	// Read-only Member Variable
 	PifId _id;
 	uint8_t	_measure_mode;		// PIF_PMM_XXX
-	int8_t _channel;
 
 	// Private Member Variable
 	PifPulseData __data[PIF_PULSE_DATA_SIZE];
@@ -89,21 +75,15 @@ struct StPifPulse
 		unsigned int check	: 1;
 		unsigned int min	: 15;
 		uint16_t max;
-	} __valid_range[4];
+	} __valid_range[3];
 	PifIssuerP __p_issuer;
-	uint8_t __channel_count;
-	uint16_t __threshold_1us;
-	uint16_t* __p_position;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	PifPulseColSig* __p_colsig;
 #endif
 
 	// Private Event Function
-	union {
-		PifEvtPulseEdge edge;
-		PifEvtPulseTick tick;
-	} __evt;
+	PifEvtPulseEdge __evt_edge;
 };
 
 
@@ -142,17 +122,6 @@ BOOL pifPulse_SetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
  * @param measure_mode
  */
 void pifPulse_ResetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
-
-/**
- * @fn pifPulse_SetPositionMode
- * @brief
- * @param p_owner
- * @param channel_count
- * @param threshold_1us
- * @param p_value
- * @return
- */
-BOOL pifPulse_SetPositionMode(PifPulse* p_owner, uint8_t channel_count, uint16_t threshold_1us, uint16_t* p_value);
 
 /**
  * @fn pifPulse_SetValidRange
@@ -198,19 +167,12 @@ uint16_t pifPulse_GetHighWidth(PifPulse* p_owner);
 
 /**
  * @fn pifPulse_sigEdge
- * @param time_us
- * @return
- */
-uint8_t pifPulse_sigEdge(PifPulse* p_owner, PifPulseEdge edge, uint32_t time_us);
-
-/**
- * @fn pifPulse_sigTick
- * @brief
  * @param p_owner
+ * @param state	PS_RISING_EDGE, PS_FALLING_EDGE
  * @param time_us
  * @return
  */
-uint8_t pifPulse_sigTick(PifPulse* p_owner, uint32_t time_us);
+BOOL pifPulse_sigEdge(PifPulse* p_owner, PifPulseState state, uint32_t time_us);
 
 /**
  * @fn pifPulse_AttachEvtEdge
@@ -220,15 +182,6 @@ uint8_t pifPulse_sigTick(PifPulse* p_owner, uint32_t time_us);
  * @param p_issuer 이벤트 발생시 전달할 발행자
  */
 void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssuerP p_issuer);
-
-/**
- * @fn pifPulse_AttachEvtTick
- * @brief
- * @param p_owner Pulse 포인터
- * @param evt_tick
- * @param p_issuer 이벤트 발생시 전달할 발행자
- */
-void pifPulse_AttachEvtTick(PifPulse* p_owner, PifEvtPulseTick evt_tick, PifIssuerP p_issuer);
 
 #ifdef __PIF_COLLECT_SIGNAL__
 

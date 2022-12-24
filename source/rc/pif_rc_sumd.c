@@ -1,4 +1,4 @@
-#include "protocol/pif_rc_sumd.h"
+#include "rc/pif_rc_sumd.h"
 
 
 #define SUMD_VENDOR_ID         	0xA8
@@ -18,7 +18,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 	uint16_t crc;
 	int index;
 
-    if (!p_owner->evt_receive) return;
+    if (!p_owner->parent.__evt_receive) return;
 
 	if (pif_cumulative_timer1ms - p_owner->__last_time >= SUMD_RETRY_TIMEOUT) {
 		p_owner->__index = 0;
@@ -39,44 +39,44 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 		}
 		else if (p_owner->__index == 2) {
 			if (p_buffer[1] != SUMD_STATUS_VALID && p_buffer[1] != SUMD_STATUS_FAILSAFE) {
-				p_owner->parent.error_frames++;
+				p_owner->parent._error_frames++;
 				p_owner->__index = 0;
 				continue;
 			}
 			else {
-				p_owner->parent.failsafe = (p_buffer[1] == SUMD_STATUS_FAILSAFE);
+				p_owner->parent._failsafe = (p_buffer[1] == SUMD_STATUS_FAILSAFE);
 			}
 		}
 		else if (p_owner->__index == 3) {
 			if (p_buffer[2] < 2 || p_buffer[2] > PIF_SUMD_CHANNEL_COUNT) {		// 2 < channels < PIF_SUMD_CHANNEL_COUNT
-				p_owner->parent.error_frames++;
+				p_owner->parent._error_frames++;
 				p_owner->__index = 0;
 				continue;
 			}
 			else {
-				p_owner->parent.channel_count = p_buffer[2];
+				p_owner->parent._channel_count = p_buffer[2];
 			}
 		}
 		else if (p_owner->__index >= SUMD_HEADER_SIZE + p_buffer[2] * 2 + SUMD_CRC_SIZE) {
 			//compute CRC with header and data
-			crc = pifCrc16(p_buffer, SUMD_HEADER_SIZE + 2 * p_owner->parent.channel_count + SUMD_CRC_SIZE);
+			crc = pifCrc16(p_buffer, SUMD_HEADER_SIZE + 2 * p_owner->parent._channel_count + SUMD_CRC_SIZE);
 			//if frame is valid
 			if (crc == 0) {
-				p_owner->parent.good_frames++;
+				p_owner->parent._good_frames++;
 
 				//update channel output values
-				for (index = 0; index < p_owner->parent.channel_count; index++) {
+				for (index = 0; index < p_owner->parent._channel_count; index++) {
 					channel[index] = ((p_buffer[SUMD_HEADER_SIZE + 2 * index] << 8) + p_buffer[SUMD_HEADER_SIZE + 2 * index + 1]) / 8;
 				}
-				p_owner->parent.last_frame_time = pif_cumulative_timer1ms;
+				p_owner->parent._last_frame_time = pif_cumulative_timer1ms;
 
 				//forgot decoded bytes from the ring buffer
 				p_owner->__index = 0;
 
-		    	if (p_owner->evt_receive) (*p_owner->evt_receive)(&p_owner->parent, channel);
+		    	if (p_owner->parent.__evt_receive) (*p_owner->parent.__evt_receive)(&p_owner->parent, channel, p_owner->parent.__p_issuer);
 			}
 			else {
-				p_owner->parent.error_frames++;
+				p_owner->parent._error_frames++;
 				p_owner->__index = 0;
 			}
 		}
@@ -93,10 +93,10 @@ BOOL pifRcSumd_Init(PifRcSumd* p_owner, PifId id)
 	memset(p_owner, 0, sizeof(PifRcSumd));
 
     if (id == PIF_ID_AUTO) id = pif_id++;
-    p_owner->parent.id = id;
-	p_owner->parent.channel_count = PIF_SUMD_CHANNEL_COUNT;
-	p_owner->parent.failsafe = TRUE;
-	p_owner->parent.max_frame_period = SUMD_MAX_FRAME_PERIOD;
+    p_owner->parent._id = id;
+	p_owner->parent._channel_count = PIF_SUMD_CHANNEL_COUNT;
+	p_owner->parent._failsafe = TRUE;
+	p_owner->parent._max_frame_period = SUMD_MAX_FRAME_PERIOD;
     return TRUE;
 }
 

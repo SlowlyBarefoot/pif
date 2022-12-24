@@ -542,7 +542,7 @@ float pifPidControl_Calcurate(PifPidControl* p_owner, float err)
 	// Compute the integral output
 	ui = p_owner->ki * p_owner->err_sum;
 	if (ui > p_owner->max_integration) 					ui = p_owner->max_integration;
-	else if (ui < (-1.0 * p_owner->max_integration))	ui = -1.0 * p_owner->max_integration;
+	else if (ui < (-1.0f * p_owner->max_integration))	ui = -1.0f * p_owner->max_integration;
 
 	// Compute the derivative output
 	ed = err - p_owner->err_prev;

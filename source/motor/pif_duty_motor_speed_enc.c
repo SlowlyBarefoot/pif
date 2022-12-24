@@ -262,7 +262,7 @@ BOOL pifDutyMotorSpeedEnc_Init(PifDutyMotorSpeedEnc* p_owner, PifId id, PifTimer
 
 	p_owner->__p_encoder = p_encoder;
 #ifndef __PIF_NO_LOG__
-    pifPulse_SetMeasureMode(p_encoder, PIF_PMM_COMMON_COUNT | PIF_PMM_COMMON_PERIOD);
+    pifPulse_SetMeasureMode(p_encoder, PIF_PMM_COUNT | PIF_PMM_PERIOD);
 #else
     pifPulse_SetMeasureMode(p_encoder, PIF_PMM_FALLING_COUNT);
 #endif

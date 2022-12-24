@@ -205,12 +205,12 @@ static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValu
 	}
 }
 
-static void _evtPulseEdge(PifPulseEdge edge, PifIssuerP p_issuer)
+static void _evtPulseEdge(PifPulseState state, PifIssuerP p_issuer)
 {
 	PifDutyMotorPos* p_owner = (PifDutyMotorPos*)p_issuer;
 	PifDutyMotor* p_parent = &p_owner->parent;
 
-	if (edge != PE_FALLING) return;
+	if (state != PS_FALLING_EDGE) return;
 
 	if (p_owner->__p_current_stage->mode & MM_PC_MASK) {
 		if (p_parent->_state && p_parent->_state < MS_STOP) {
@@ -244,7 +244,7 @@ BOOL pifDutyMotorPos_Init(PifDutyMotorPos* p_owner, PifId id, PifTimerManager* p
 
 	p_owner->__p_encoder = p_encoder;
 #ifndef __PIF_NO_LOG__
-    pifPulse_SetMeasureMode(p_encoder, PIF_PMM_COMMON_COUNT | PIF_PMM_COMMON_PERIOD);
+    pifPulse_SetMeasureMode(p_encoder, PIF_PMM_COUNT | PIF_PMM_PERIOD);
 #else
     pifPulse_SetMeasureMode(p_encoder, PIF_PMM_FALLING_COUNT);
 #endif

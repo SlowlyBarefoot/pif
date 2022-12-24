@@ -13,7 +13,8 @@ typedef enum EnPifTaskMode
 	TM_PERIOD_US	= 3,
 	TM_CHANGE_MS	= 4,
 	TM_CHANGE_US	= 5,
-	TM_NEED			= 6
+	TM_NEED			= 6,
+	TM_IDLE_MS		= 7		// If at least one TM_ALWAYS task exists, the TM_IDLE task is not executed.
 } PifTaskMode;
 
 
@@ -40,15 +41,16 @@ struct StPifTask
 	// Read-only Member Variable
 	PifId _id;
 	PifTaskMode _mode;
+	BOOL _running;
 	uint16_t _period;
 	void *_p_client;
 
 	// Private Member Variable
 	PifTaskProcessing __processing;
 	int __table_number;
-	BOOL __running;
-	uint32_t __pretime;
 	uint16_t __delay_ms;
+	uint32_t __pretime;
+	uint32_t __last_execute_time;
 #ifdef __PIF_DEBUG__
 	uint32_t __count;
 	float __period;
@@ -102,6 +104,14 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period);
  * @param 정지시킬 시
  */
 void pifTask_DelayMs(PifTask* p_owner, uint16_t delay);
+
+/**
+ * @fn pifTask_GetDeltaTime
+ * @brief 
+ * @param p_owner Task 자신
+ * @return
+ */
+uint32_t pifTask_GetDeltaTime(PifTask* p_owner);
 
 
 /**

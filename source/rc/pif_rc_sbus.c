@@ -1,4 +1,4 @@
-#include "protocol/pif_rc_sbus.h"
+#include "rc/pif_rc_sbus.h"
 
 
 #define SBUS_STARTBYTE         	0x0F
@@ -14,7 +14,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 	uint8_t* p_buffer;
 	uint16_t channels[PIF_SBUS_CHANNEL_COUNT]; 	// servo data received
 
-    if (!p_owner->evt_receive) return;
+    if (!p_owner->parent.__evt_receive) return;
 
 	if (pif_cumulative_timer1ms - p_owner->__last_time >= SBUS_RETRY_TIMEOUT) {
 		p_owner->__index = 0;
@@ -34,11 +34,11 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 			p_owner->__index = 0;
 			if (p_buffer[24] != SBUS_ENDBYTE) {
 				//incorrect end byte, out of sync
-				p_owner->parent.error_frames++;
+				p_owner->parent._error_frames++;
 				continue;
 			}
 
-			p_owner->parent.last_frame_time = pif_cumulative_timer1ms;
+			p_owner->parent._last_frame_time = pif_cumulative_timer1ms;
 
 			channels[0]  = (p_buffer[1]       | p_buffer[2] << 8)                       & 0x07FF;
 			channels[1]  = (p_buffer[2] >> 3  | p_buffer[3] << 5)                 	    & 0x07FF;
@@ -61,20 +61,20 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 			channels[17] = ((p_buffer[23] >> 1) & 0x0001) ? 2047 : 0;
 
 			if ((p_buffer[23] >> 3) & 0x0001) {
-				p_owner->parent.failsafe = FAILSAFE_ACTIVE;
+				p_owner->parent._failsafe = TRUE;
 			} else {
-				p_owner->parent.failsafe = FAILSAFE_INACTIVE;
+				p_owner->parent._failsafe = FALSE;
 			}
 
 			if ((p_buffer[23] >> 2) & 0x0001) {
-				p_owner->parent.lost_frames++;
+				p_owner->parent._lost_frames++;
 			}
 			else {
-				p_owner->parent.good_frames++;
+				p_owner->parent._good_frames++;
 				for (i = 0; i < PIF_SBUS_CHANNEL_COUNT; i++) {
 					channels[i] = 0.625f * channels[i] + 880;
 				}
-		    	if (p_owner->evt_receive) (*p_owner->evt_receive)(&p_owner->parent, channels);
+		    	if (p_owner->parent.__evt_receive) (*p_owner->parent.__evt_receive)(&p_owner->parent, channels, p_owner->parent.__p_issuer);
 			}
 			break;
 		}
@@ -91,9 +91,9 @@ BOOL pifRcSbus_Init(PifRcSbus* p_owner, PifId id)
 	memset(p_owner, 0, sizeof(PifRcSbus));
 
     if (id == PIF_ID_AUTO) id = pif_id++;
-    p_owner->parent.id = id;
-	p_owner->parent.channel_count = PIF_SBUS_CHANNEL_COUNT;
-	p_owner->parent.failsafe = TRUE;
+    p_owner->parent._id = id;
+	p_owner->parent._channel_count = PIF_SBUS_CHANNEL_COUNT;
+	p_owner->parent._failsafe = TRUE;
     return TRUE;
 }
 
