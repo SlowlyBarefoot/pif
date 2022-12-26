@@ -7,14 +7,15 @@
 
 typedef enum EnPifTaskMode
 {
-	TM_RATIO		= 0,
-	TM_ALWAYS		= 1,
-	TM_PERIOD_MS	= 2,
-	TM_PERIOD_US	= 3,
-	TM_CHANGE_MS	= 4,
-	TM_CHANGE_US	= 5,
-	TM_NEED			= 6,
-	TM_IDLE_MS		= 7		// If at least one TM_ALWAYS task exists, the TM_IDLE task is not executed.
+	TM_RATIO,
+	TM_ALWAYS,
+	TM_PERIOD_MS,
+	TM_PERIOD_US,
+	TM_CHANGE_MS,
+	TM_CHANGE_US,
+	TM_NEED,
+	TM_TIMER,			// Do not use it for other purposes because it is a mode used by the timer.
+	TM_IDLE_MS			// If at least one TM_ALWAYS task exists, the TM_IDLE task is not executed.
 } PifTaskMode;
 
 
@@ -44,6 +45,9 @@ struct StPifTask
 	BOOL _running;
 	uint16_t _period;
 	void *_p_client;
+    uint32_t _max_execution_time;
+    uint32_t _total_execution_time;		// total time consumed by task since boot
+	uint32_t _execution_count;
 
 	// Private Member Variable
 	PifTaskProcessing __processing;
@@ -109,9 +113,10 @@ void pifTask_DelayMs(PifTask* p_owner, uint16_t delay);
  * @fn pifTask_GetDeltaTime
  * @brief 
  * @param p_owner Task 자신
+ * @param reset
  * @return
  */
-uint32_t pifTask_GetDeltaTime(PifTask* p_owner);
+uint32_t pifTask_GetDeltaTime(PifTask* p_owner, BOOL reset);
 
 
 /**

@@ -9,6 +9,7 @@
 
 PifError pif_error = E_SUCCESS;
 
+uint32_t pif_timer1us = 0L;
 volatile uint16_t pif_timer1ms = 0;
 volatile uint32_t pif_timer1sec = 0L;
 volatile PifDateTime pif_datetime;

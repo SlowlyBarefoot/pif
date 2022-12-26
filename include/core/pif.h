@@ -224,6 +224,7 @@ typedef void (*PifActGpioWrite)(uint16_t port, SWITCH state);
 
 extern PifError pif_error;
 
+extern uint32_t pif_timer1us;
 extern volatile uint16_t pif_timer1ms;
 extern volatile uint32_t pif_timer1sec;
 extern volatile PifDateTime pif_datetime;

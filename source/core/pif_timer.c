@@ -34,7 +34,7 @@ BOOL pifTimerManager_Init(PifTimerManager* p_manager, PifId id, uint32_t period1
     if (!pifFixList_Init(&p_manager->__timers, sizeof(PifTimer), max_count)) goto fail;
     p_manager->_period1us = period1us;
 
-    p_manager->__p_task = pifTaskManager_Add(TM_ALWAYS, 100, _doTask, p_manager, TRUE);
+    p_manager->__p_task = pifTaskManager_Add(TM_TIMER, 0, _doTask, p_manager, TRUE);
     if (!p_manager->__p_task) goto fail;
     return TRUE;
 
