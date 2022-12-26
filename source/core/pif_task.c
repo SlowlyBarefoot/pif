@@ -517,7 +517,7 @@ void pifTaskManager_Loop()
 	PifTask* p_owner;
 	PifTask* p_select = NULL;
 	PifTask* p_idle = NULL;
-	int i, n = 0, t, count = pifFixList_Count(&s_tasks);
+	int i, n, t, count = pifFixList_Count(&s_tasks);
 
 	if (*pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
 
@@ -527,7 +527,7 @@ void pifTaskManager_Loop()
 	}
 
 	s_loop_count += count;
-	for (i = 0; i < count && !p_select; i++) {
+	for (i = t = n = 0; i < count && !p_select; i++) {
 		p_owner = (PifTask*)s_it_current->data;
 
 		if (p_owner->_mode == TM_TIMER) {
@@ -573,7 +573,7 @@ BOOL pifTaskManager_Yield()
 	PifTask* p_owner;
 	PifTask* p_select = NULL;
 	PifTask* p_idle = NULL;
-	int i, k, n = 0, t, count = pifFixList_Count(&s_tasks);
+	int i, k, n, t, count = pifFixList_Count(&s_tasks);
 	BOOL rtn = TRUE;
 
 	if (*pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
@@ -584,7 +584,7 @@ BOOL pifTaskManager_Yield()
 	}
 
 	s_loop_count += count;
-	for (i = 0; i < count && !p_select; i++) {
+	for (i = t = n = 0; i < count && !p_select; i++) {
 		p_owner = (PifTask*)s_it_current->data;
 
 		if (p_owner->_running) goto next;
