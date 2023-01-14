@@ -82,7 +82,7 @@ void pifHcSr04_StopTrigger(PifHcSr04* p_owner)
 
 void pifHcSr04_SetTemperature(PifHcSr04* p_owner, float temperature)
 {
-	p_owner->_transform_const = 2.0 / ((331.6 + 0.6 * temperature) / 10000.0);		// 2 : 왕복, 10000 : m/s -> cm/ms
+	p_owner->_transform_const = 2.0f / ((331.6f + 0.6f * temperature) / 10000.0f);		// 2 : 왕복, 10000 : m/s -> cm/ms
 }
 
 void pifHcSr04_sigReceiveEcho(PifHcSr04* p_owner, SWITCH state)

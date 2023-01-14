@@ -125,6 +125,10 @@
 #define ON      1
 #endif
 
+#define PIF_PI		3.14159265358979323846f
+
+#define PIF_RAD		(PIF_PI / 180.0f)
+
 #define PIF_ID_AUTO			0x0000
 #define PIF_ID_USER			0x0100
 

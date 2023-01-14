@@ -53,7 +53,7 @@ struct StPifI2cDevice
  * @class StPifI2cPort
  * @brief
  */
-typedef struct StPifI2cPort
+struct StPifI2cPort
 {
 	// Public Member Variable
 	uint16_t error_count;
@@ -69,7 +69,7 @@ typedef struct StPifI2cPort
     PifFixList __devices;
     uint16_t __max_transfer_size;
     volatile PifI2cDevice* __use_device;
-} PifI2cPort;
+};
 
 
 #ifdef __cplusplus

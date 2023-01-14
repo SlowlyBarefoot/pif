@@ -438,8 +438,10 @@ uint32_t pifTask_GetDeltaTime(PifTask* p_owner, BOOL reset)
 		currect = (*pif_act_timer1us)();
 	}
 	delta = currect - p_owner->__last_execute_time;
-	if (reset) p_owner->__last_execute_time = currect;
-
+	if (reset) {
+		if (p_owner->__last_execute_time) p_owner->_total_period_time += delta;
+		p_owner->__last_execute_time = currect;
+	}
 	return delta;
 }
 
@@ -530,23 +532,25 @@ void pifTaskManager_Loop()
 	for (i = t = n = 0; i < count && !p_select; i++) {
 		p_owner = (PifTask*)s_it_current->data;
 
-		if (p_owner->_mode == TM_TIMER) {
-			(*p_owner->__evt_loop)(p_owner);
-			t++;
-		}
-		else if (p_owner->immediate) {
+		if (p_owner->immediate) {
 			p_owner->immediate = FALSE;
 			p_select = p_owner;
 		}
-		else if (!p_owner->pause && p_owner->__processing) {
-			if (p_owner->_mode == TM_IDLE_MS) {
-				if (!p_idle) {
-					p_idle = (*p_owner->__processing)(p_owner);
-					n = i;
-				}
+		else if (!p_owner->pause) {
+			if (p_owner->_mode == TM_TIMER) {
+				(*p_owner->__evt_loop)(p_owner);
+				t++;
 			}
-			else {
-				p_select = (*p_owner->__processing)(p_owner);
+			else if (p_owner->__processing) {
+				if (p_owner->_mode == TM_IDLE_MS) {
+					if (!p_idle) {
+						p_idle = (*p_owner->__processing)(p_owner);
+						n = i;
+					}
+				}
+				else {
+					p_select = (*p_owner->__processing)(p_owner);
+				}
 			}
 		}
 
@@ -595,23 +599,25 @@ BOOL pifTaskManager_Yield()
 			if (k < s_task_stack_ptr) goto next;
 		}
 
-		if (p_owner->_mode == TM_TIMER) {
-			(*p_owner->__evt_loop)(p_owner);
-			t++;
-		}
-		else if (p_owner->immediate) {
+		if (p_owner->immediate) {
 			p_owner->immediate = FALSE;
 			p_select = p_owner;
 		}
-		else if (!p_owner->pause && p_owner->__processing) {
-			if (p_owner->_mode == TM_IDLE_MS) {
-				if (!p_idle) {
-					p_idle = (*p_owner->__processing)(p_owner);
-					n = i;
-				}
+		else if (!p_owner->pause) {
+			if (p_owner->_mode == TM_TIMER) {
+				(*p_owner->__evt_loop)(p_owner);
+				t++;
 			}
-			else {
-				p_select = (*p_owner->__processing)(p_owner);
+			else if (p_owner->__processing) {
+				if (p_owner->_mode == TM_IDLE_MS) {
+					if (!p_idle) {
+						p_idle = (*p_owner->__processing)(p_owner);
+						n = i;
+					}
+				}
+				else {
+					p_select = (*p_owner->__processing)(p_owner);
+				}
 			}
 		}
 
