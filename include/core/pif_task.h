@@ -5,6 +5,9 @@
 #include "core/pif.h"
 
 
+#define DISALLOW_YIELD_ID_NONE		0
+
+
 typedef enum EnPifTaskMode
 {
 	TM_RATIO,
@@ -47,8 +50,9 @@ struct StPifTask
 	void *_p_client;
     uint32_t _max_execution_time;
     uint32_t _total_execution_time;		// total time consumed by task since boot
-	uint32_t _total_period_time;
 	uint32_t _execution_count;
+	uint32_t _total_period_time;
+	uint32_t _period_count;
 
 	// Private Member Variable
 	PifTaskProcessing __processing;

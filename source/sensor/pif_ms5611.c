@@ -37,7 +37,7 @@ static BOOL _checkPromCrc(PifMs5611* p_owner)
     return FALSE;
 }
 
-static void _calcurateBarometric(PifMs5611* p_owner, int32_t* p_pressure, float* p_temperature)
+static void _calcurateBarometric(PifMs5611* p_owner, float* p_pressure, float* p_temperature)
 {
 	int32_t dT;
 	int64_t temp;
@@ -66,8 +66,8 @@ static void _calcurateBarometric(PifMs5611* p_owner, int32_t* p_pressure, float*
 		}
 	}
 
-    *p_temperature = temp / 100;
-	*p_pressure = ((((int64_t)p_owner->__D1 * sens) >> 21) - off) >> 15;
+    *p_temperature = temp / 100.0;
+	*p_pressure = (float)(((((int64_t)p_owner->__D1 * sens) >> 21) - off) >> 15);
 }
 
 static uint16_t _doTask(PifTask* p_task)
@@ -75,43 +75,48 @@ static uint16_t _doTask(PifTask* p_task)
 	PifMs5611* p_owner = p_task->_p_client;
 	uint8_t value[3];
 	uint16_t delay = 1;
-	static uint32_t start_time;
-	int32_t pressure;
+	uint16_t gap;
+	float pressure;
 	float temperature;
 
 	switch (p_owner->__state) {
 	case MS5611_STATE_TEMPERATURE_START:
-		start_time = pif_cumulative_timer1ms;
+		p_owner->__start_time = pif_cumulative_timer1ms;
 		value[0] = MS5611_REG_CONV_D2 + p_owner->_over_sampling_rate;
-		if (!pifI2cDevice_Write(p_owner->_p_i2c, 0, 0, value, 1)) return 1;
-		p_owner->__state = MS5611_STATE_TEMPERATURE_WAIT;
-		delay = p_owner->_conversion_time;
+		if (pifI2cDevice_Write(p_owner->_p_i2c, 0, 0, value, 1)) {
+			p_owner->__state = MS5611_STATE_TEMPERATURE_WAIT;
+			delay = p_owner->_conversion_time;
+		}
 		break;
 
 	case MS5611_STATE_TEMPERATURE_WAIT:
-		if (!pifI2cDevice_ReadRegBytes(p_owner->_p_i2c, MS5611_REG_ADC_READ, value, 3)) return 1;
-		p_owner->__D2 = ((uint32_t)value[0] << 16) + (value[1] << 8) + value[2];
-		p_owner->__state = MS5611_STATE_PRESSURE_START;
+		if (pifI2cDevice_ReadRegBytes(p_owner->_p_i2c, MS5611_REG_ADC_READ, value, 3)) {
+			p_owner->__D2 = ((uint32_t)value[0] << 16) + (value[1] << 8) + value[2];
+			p_owner->__state = MS5611_STATE_PRESSURE_START;
+		}
 		break;
 
 	case MS5611_STATE_PRESSURE_START:
 		value[0] = MS5611_REG_CONV_D1 + p_owner->_over_sampling_rate;
-		if (!pifI2cDevice_Write(p_owner->_p_i2c, 0, 0, value, 1)) return 1;
-		p_owner->__state = MS5611_STATE_PRESSURE_WAIT;
-		delay = p_owner->_conversion_time;
+		if (pifI2cDevice_Write(p_owner->_p_i2c, 0, 0, value, 1)) {
+			p_owner->__state = MS5611_STATE_PRESSURE_WAIT;
+			delay = p_owner->_conversion_time;
+		}
 		break;
 
 	case MS5611_STATE_PRESSURE_WAIT:
-		if (!pifI2cDevice_ReadRegBytes(p_owner->_p_i2c, MS5611_REG_ADC_READ, value, 3)) return 1;
-		p_owner->__D1 = ((uint32_t)value[0] << 16) + (value[1] << 8) + value[2];
-		p_owner->__state = MS5611_STATE_CALCURATE;
+		if (pifI2cDevice_ReadRegBytes(p_owner->_p_i2c, MS5611_REG_ADC_READ, value, 3)) {
+			p_owner->__D1 = ((uint32_t)value[0] << 16) + (value[1] << 8) + value[2];
+			p_owner->__state = MS5611_STATE_CALCURATE;
+		}
 		break;
 
 	case MS5611_STATE_CALCURATE:
 		_calcurateBarometric(p_owner, &pressure, &temperature);
 		if (p_owner->__evt_read) (*p_owner->__evt_read)(pressure, temperature);
-		if (pif_cumulative_timer1ms - start_time < p_owner->__read_period) {
-			delay = p_owner->__read_period - (pif_cumulative_timer1ms - start_time);
+		gap = pif_cumulative_timer1ms - p_owner->__start_time;
+		if (gap < p_owner->__read_period) {
+			delay = p_owner->__read_period - gap;
 		}
 		p_owner->__state = MS5611_STATE_TEMPERATURE_START;
 		break;
@@ -209,7 +214,7 @@ BOOL pifMs5611_ReadRawPressure(PifMs5611* p_owner, uint32_t* p_data)
 	return TRUE;
 }
 
-BOOL pifMs5611_ReadBarometric(PifMs5611* p_owner, int32_t* p_pressure, float* p_temperature)
+BOOL pifMs5611_ReadBarometric(PifMs5611* p_owner, float* p_pressure, float* p_temperature)
 {
 	if (!pifMs5611_ReadRawTemperature(p_owner, &p_owner->__D2)) return FALSE;
 	if (!pifMs5611_ReadRawPressure(p_owner, &p_owner->__D1)) return FALSE;
@@ -217,9 +222,9 @@ BOOL pifMs5611_ReadBarometric(PifMs5611* p_owner, int32_t* p_pressure, float* p_
 	return TRUE;
 }
 
-BOOL pifMs5611_AddTaskForReading(PifMs5611* p_owner, uint16_t read_period, PifEvtMs5611Read evt_read)
+BOOL pifMs5611_AddTaskForReading(PifMs5611* p_owner, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start)
 {
-	p_owner->_p_task = pifTaskManager_Add(TM_CHANGE_MS, 10, _doTask, p_owner, FALSE);
+	p_owner->_p_task = pifTaskManager_Add(TM_CHANGE_MS, read_period, _doTask, p_owner, start);
     if (!p_owner->_p_task) return FALSE;
 
     p_owner->__read_period = read_period;

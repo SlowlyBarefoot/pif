@@ -93,7 +93,7 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSensor* p
 
         pifMs5611_SetOverSamplingRate(&p_owner->_ms5611, p_config->ms5611_osr);
 
-        if (!pifMs5611_AddTaskForReading(&p_owner->_ms5611, p_config->ms5611_read_period, p_config->ms5611_evt_read)) goto fail;
+        if (!pifMs5611_AddTaskForReading(&p_owner->_ms5611, p_config->ms5611_read_period, p_config->ms5611_evt_read, FALSE)) goto fail;
         p_owner->_ms5611._p_task->disallow_yield_id = p_config->disallow_yield_id;
     }
 

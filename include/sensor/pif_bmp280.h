@@ -4,6 +4,7 @@
 
 #include "core/pif_i2c.h"
 #include "core/pif_task.h"
+#include "sensor/pif_baro_sensor.h"
 
 
 #define BMP280_I2C_ADDR(N)		(0x76 + (N))
@@ -123,9 +124,6 @@ typedef struct StPifBmp280CalibParam
 } PifBmp280CalibParam;
 
 
-typedef void (*PifEvtBmp280Read)(int32_t pressure, float temperature);
-
-
 /**
  * @class StPifBmp280
  * @brief
@@ -139,15 +137,18 @@ typedef struct StPifBmp280
 	PifI2cDevice* _p_i2c;
 	uint8_t _osrs_p;
 	uint8_t _osrs_t;
+	PifTask* _p_task;
 
 	// Private Member Variable
 	PifBmp280CalibParam __calib_param;
-	PifTask* __p_task;
 	uint16_t __read_period;
 	PifBmp280State __state;
+	uint32_t __start_time;
+	int32_t __raw_pressure;
+	int32_t __raw_temperature;
 
 	// Private Event Function
-	PifEvtBmp280Read __evt_read;
+	PifEvtBaroRead __evt_read;
 } PifBmp280;
 
 
@@ -200,7 +201,7 @@ BOOL pifBmp280_ReadRawData(PifBmp280* p_owner, int32_t* p_pressure, int32_t* p_t
  * @param p_temperature
  * @return
  */
-BOOL pifBmp280_ReadBarometric(PifBmp280* p_owner, int32_t* p_pressure, float* p_temperature);
+BOOL pifBmp280_ReadBarometric(PifBmp280* p_owner, float* p_pressure, float* p_temperature);
 
 /**
  * @fn pifBmp280_AddTaskForReading
@@ -208,9 +209,10 @@ BOOL pifBmp280_ReadBarometric(PifBmp280* p_owner, int32_t* p_pressure, float* p_
  * @param p_owner
  * @param read_period
  * @param evt_read
+ * @param start
  * @return
  */
-BOOL pifBmp280_AddTaskForReading(PifBmp280* p_owner, uint16_t read_period, PifEvtBmp280Read evt_read);
+BOOL pifBmp280_AddTaskForReading(PifBmp280* p_owner, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
 
 #ifdef __cplusplus
 }

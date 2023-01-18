@@ -8,6 +8,7 @@
 #define AXIS_X		0
 #define AXIS_Y		1
 #define AXIS_Z		2
+#define AXIS_COUNT	3
 
 #define IMU_MEASURE_GYROSCOPE			0x01
 #define IMU_MEASURE_ACCELERO			0x02
@@ -60,9 +61,9 @@ typedef struct StPifImuSensor
 	PifImuSensorInfo __gyro_info;
 	PifImuSensorInfo __accel_info;
 	PifImuSensorInfo __mag_info;
-	int16_t __delta_gyro[3];
-	int16_t __threshold_gyro[3];
-	int16_t __threshold[3];
+	int16_t __delta_gyro[AXIS_COUNT];
+	int16_t __threshold_gyro[AXIS_COUNT];
+	int16_t __threshold[AXIS_COUNT];
 	BOOL __use_calibrate;
 	float __actual_threshold;
 	BOOL __board_alignment;		// board orientation correction
@@ -100,22 +101,40 @@ void pifImuSensor_InitBoardAlignment(PifImuSensor* p_owner, int16_t board_align_
 void pifImuSensor_SetGyroAlign(PifImuSensor* p_owner, PifImuSensorAlign align);
 
 /**
- * @fn pifImuSensor_ReadGyro
+ * @fn pifImuSensor_ReadGyro2
  * @brief
  * @param p_owner
  * @param p_gyro
  * @return
  */
-BOOL pifImuSensor_ReadGyro(PifImuSensor* p_owner, int16_t* p_gyro);
+BOOL pifImuSensor_ReadGyro2(PifImuSensor* p_owner, int16_t* p_gyro);
 
 /**
- * @fn pifImuSensor_ReadNormalizeGyro
+ * @fn pifImuSensor_ReadGyro4
  * @brief
  * @param p_owner
  * @param p_gyro
  * @return
  */
-BOOL pifImuSensor_ReadNormalizeGyro(PifImuSensor* p_owner, float* p_gyro);
+BOOL pifImuSensor_ReadGyro4(PifImuSensor* p_owner, int32_t* p_gyro);
+
+/**
+ * @fn pifImuSensor_ReadNormalizeGyro2
+ * @brief
+ * @param p_owner
+ * @param p_gyro
+ * @return
+ */
+BOOL pifImuSensor_ReadNormalizeGyro2(PifImuSensor* p_owner, float* p_gyro);
+
+/**
+ * @fn pifImuSensor_ReadNormalizeGyro4
+ * @brief
+ * @param p_owner
+ * @param p_gyro
+ * @return
+ */
+BOOL pifImuSensor_ReadNormalizeGyro4(PifImuSensor* p_owner, float* p_gyro);
 
 /**
  * @fn pifImuSensor_SetAccelAlign
@@ -126,22 +145,40 @@ BOOL pifImuSensor_ReadNormalizeGyro(PifImuSensor* p_owner, float* p_gyro);
 void pifImuSensor_SetAccelAlign(PifImuSensor* p_owner, PifImuSensorAlign align);
 
 /**
- * @fn pifImuSensor_ReadAccel
+ * @fn pifImuSensor_ReadAccel2
  * @brief
  * @param p_owner
  * @param p_accel
  * @return
  */
-BOOL pifImuSensor_ReadAccel(PifImuSensor* p_owner, int16_t* p_accel);
+BOOL pifImuSensor_ReadAccel2(PifImuSensor* p_owner, int16_t* p_accel);
 
 /**
- * @fn pifImuSensor_ReadNormalizeAccel
+ * @fn pifImuSensor_ReadAccel4
  * @brief
  * @param p_owner
  * @param p_accel
  * @return
  */
-BOOL pifImuSensor_ReadNormalizeAccel(PifImuSensor* p_owner, float* p_accel);
+BOOL pifImuSensor_ReadAccel4(PifImuSensor* p_owner, int32_t* p_accel);
+
+/**
+ * @fn pifImuSensor_ReadNormalizeAccel2
+ * @brief
+ * @param p_owner
+ * @param p_accel
+ * @return
+ */
+BOOL pifImuSensor_ReadNormalizeAccel2(PifImuSensor* p_owner, float* p_accel);
+
+/**
+ * @fn pifImuSensor_ReadNormalizeAccel4
+ * @brief
+ * @param p_owner
+ * @param p_accel
+ * @return
+ */
+BOOL pifImuSensor_ReadNormalizeAccel4(PifImuSensor* p_owner, float* p_accel);
 
 /**
  * @fn pifImuSensor_SetMagAlign
@@ -152,13 +189,22 @@ BOOL pifImuSensor_ReadNormalizeAccel(PifImuSensor* p_owner, float* p_accel);
 void pifImuSensor_SetMagAlign(PifImuSensor* p_owner, PifImuSensorAlign align);
 
 /**
- * @fn pifImuSensor_ReadMag
+ * @fn pifImuSensor_ReadMag2
  * @brief
  * @param p_owner
  * @param p_mag
  * @return
  */
-BOOL pifImuSensor_ReadMag(PifImuSensor* p_owner, int16_t* p_mag);
+BOOL pifImuSensor_ReadMag2(PifImuSensor* p_owner, int16_t* p_mag);
+
+/**
+ * @fn pifImuSensor_ReadMag4
+ * @brief
+ * @param p_owner
+ * @param p_mag
+ * @return
+ */
+BOOL pifImuSensor_ReadMag4(PifImuSensor* p_owner, int32_t* p_mag);
 
 #ifdef __cplusplus
 }

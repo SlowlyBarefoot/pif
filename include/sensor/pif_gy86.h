@@ -31,7 +31,7 @@ typedef struct StPifGy86Config
 
 	PifMs5611Osr ms5611_osr;
 	uint16_t ms5611_read_period;
-	PifEvtMs5611Read ms5611_evt_read;
+	PifEvtBaroRead ms5611_evt_read;
 } PifGy86Config;
 
 /**

@@ -243,23 +243,9 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
 static BOOL _processingTask(PifTask* p_owner)
 {
 	uint16_t period;
-	uint32_t current, start_time, execute_time;
+	uint32_t start_time, execute_time;
 
 	if (s_task_stack_ptr >= PIF_TASK_STACK_SIZE) return FALSE;
-
-	switch (p_owner->_mode) {
-	case TM_CHANGE_MS:
-		current = pif_cumulative_timer1ms;
-		break;
-
-	case TM_CHANGE_US:
-		current = (*pif_act_timer1us)();
-		break;
-
-	default:
-		current = 0UL;
-		break;
-	}
 
 #ifdef __PIF_DEBUG__
     if (pif_act_task_signal) (*pif_act_task_signal)(TRUE);
@@ -289,10 +275,16 @@ static BOOL _processingTask(PifTask* p_owner)
 
 	switch (p_owner->_mode) {
 	case TM_CHANGE_MS:
+		if (period > 0) {
+			p_owner->_period = period;
+			p_owner->__pretime = pif_cumulative_timer1ms;
+		}
+		break;
+
 	case TM_CHANGE_US:
 		if (period > 0) {
 			p_owner->_period = period;
-			p_owner->__pretime = current;
+			p_owner->__pretime = (*pif_act_timer1us)();
 		}
 		break;
 
@@ -439,7 +431,10 @@ uint32_t pifTask_GetDeltaTime(PifTask* p_owner, BOOL reset)
 	}
 	delta = currect - p_owner->__last_execute_time;
 	if (reset) {
-		if (p_owner->__last_execute_time) p_owner->_total_period_time += delta;
+		if (p_owner->__last_execute_time) {
+			p_owner->_total_period_time += delta;
+			p_owner->_period_count++;
+		}
 		p_owner->__last_execute_time = currect;
 	}
 	return delta;

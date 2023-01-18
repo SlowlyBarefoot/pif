@@ -4,6 +4,7 @@
 
 #include "core/pif_i2c.h"
 #include "core/pif_task.h"
+#include "sensor/pif_baro_sensor.h"
 
 
 #define	MS5611_I2C_ADDR(N)		(0x76 + (N))
@@ -38,9 +39,6 @@ typedef enum EnPifMs5611State
 } PifMs5611State;
 
 
-typedef void (*PifEvtMs5611Read)(int32_t pressure, float temperature);
-
-
 /**
  * @class StPifMs5611
  * @brief
@@ -61,9 +59,10 @@ typedef struct StPifMs5611
 	uint16_t __read_period;
 	PifMs5611State __state;
 	uint32_t __D1, __D2;
+	uint32_t __start_time;
 
 	// Private Event Function
-	PifEvtMs5611Read __evt_read;
+	PifEvtBaroRead __evt_read;
 } PifMs5611;
 
 
@@ -123,7 +122,7 @@ BOOL pifMs5611_ReadRawPressure(PifMs5611* p_owner, uint32_t* p_data);
  * @param p_temperature
  * @return
  */
-BOOL pifMs5611_ReadBarometric(PifMs5611* p_owner, int32_t* p_pressure, float* p_temperature);
+BOOL pifMs5611_ReadBarometric(PifMs5611* p_owner, float* p_pressure, float* p_temperature);
 
 /**
  * @fn pifMs5611_AddTaskForReading
@@ -131,9 +130,10 @@ BOOL pifMs5611_ReadBarometric(PifMs5611* p_owner, int32_t* p_pressure, float* p_
  * @param p_owner
  * @param read_period
  * @param evt_read
+ * @param start
  * @return
  */
-BOOL pifMs5611_AddTaskForReading(PifMs5611* p_owner, uint16_t read_period, PifEvtMs5611Read evt_read);
+BOOL pifMs5611_AddTaskForReading(PifMs5611* p_owner, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
 
 #ifdef __cplusplus
 }
