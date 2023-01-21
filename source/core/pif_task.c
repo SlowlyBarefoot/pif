@@ -514,6 +514,7 @@ void pifTaskManager_Loop()
 	PifTask* p_owner;
 	PifTask* p_select = NULL;
 	PifTask* p_idle = NULL;
+	PifFixListIterator it_idle;
 	int i, n, t, count = pifFixList_Count(&s_tasks);
 
 	if (*pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
@@ -540,7 +541,10 @@ void pifTaskManager_Loop()
 				if (p_owner->_mode == TM_IDLE_MS) {
 					if (!p_idle) {
 						p_idle = (*p_owner->__processing)(p_owner);
-						n = i;
+						if (p_idle) {
+							it_idle = pifFixList_Next(s_it_current);
+							n = i;
+						}
 					}
 				}
 				else {
@@ -561,6 +565,12 @@ void pifTaskManager_Loop()
 	else if (p_idle) {
 		i = n;
 	    _processingTask(p_idle);
+		if (!it_idle) {
+			s_it_current = pifFixList_Begin(&s_tasks);
+		}
+		else {
+			s_it_current = it_idle;
+		}
 	}
 	s_pass_count += i - t;
 
@@ -572,6 +582,7 @@ BOOL pifTaskManager_Yield()
 	PifTask* p_owner;
 	PifTask* p_select = NULL;
 	PifTask* p_idle = NULL;
+	PifFixListIterator it_idle;
 	int i, k, n, t, count = pifFixList_Count(&s_tasks);
 	BOOL rtn = TRUE;
 
@@ -607,7 +618,10 @@ BOOL pifTaskManager_Yield()
 				if (p_owner->_mode == TM_IDLE_MS) {
 					if (!p_idle) {
 						p_idle = (*p_owner->__processing)(p_owner);
-						n = i;
+						if (p_idle) {
+							it_idle = pifFixList_Next(s_it_current);
+							n = i;
+						}
 					}
 				}
 				else {
@@ -629,6 +643,12 @@ next:
 	else if (p_idle) {
 		i = n;
 	    rtn = _processingTask(p_idle);
+		if (!it_idle) {
+			s_it_current = pifFixList_Begin(&s_tasks);
+		}
+		else {
+			s_it_current = it_idle;
+		}
 	}
 	s_pass_count += i - t;
 
