@@ -4,7 +4,7 @@
 
 #include "core/pif_i2c.h"
 #include "core/pif_task.h"
-#include "sensor/pif_baro_sensor.h"
+#include "sensor/pif_sensor_event.h"
 
 
 #define	MS5611_I2C_ADDR(N)		(0x76 + (N))

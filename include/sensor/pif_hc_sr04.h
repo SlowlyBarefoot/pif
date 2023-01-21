@@ -3,6 +3,7 @@
 
 
 #include "core/pif_task.h"
+#include "sensor/pif_sensor_event.h"
 
 
 typedef enum EnPifHcSr04State
@@ -15,8 +16,6 @@ typedef enum EnPifHcSr04State
 
 typedef void (*PifActHcSr04Trigger)(SWITCH state);
 
-typedef void (*PifEvtHcSr04Distance)(int32_t distance);		// distance unit : cm
-
 
 /**
  * @class StPifHcSr04
@@ -26,7 +25,7 @@ typedef struct StPifHcSr04
 {
 	// Public Member Variable
 	PifActHcSr04Trigger act_trigger;
-	PifEvtHcSr04Distance evt_distance;
+	PifEvtSonarRead evt_read;
 
 	// Read-only Member Variable
 	PifId _id;
@@ -35,8 +34,6 @@ typedef struct StPifHcSr04
 
 	// Private Member Variable
     PifHcSr04State __state;
-    int16_t __period;
-    int16_t __timer;
     uint32_t __tigger_time_us;
 	int32_t __distance;
 } PifHcSr04;

@@ -6,19 +6,19 @@ static uint16_t _doTask(PifTask* p_task)
 {
 	PifHcSr04* p_owner = (PifHcSr04*)p_task->_p_client;
 
-	if (p_owner->__timer) p_owner->__timer--; else p_owner->__timer = 0;
-	if (p_owner->__period > -1 && !p_owner->__timer) {
-		if (p_owner->__state == HSS_HIGH) {
-			if (p_owner->evt_distance) (*p_owner->evt_distance)(p_owner->__period * 1000L / p_owner->_transform_const);
-	    }
+	switch (p_owner->__state) {
+	case HSS_READY:
 		pifHcSr04_Trigger(p_owner);
-		p_owner->__timer = p_owner->__period;
-	}
+		break;
 
-	if (p_owner->__state == HSS_LOW) {
-		if (p_owner->evt_distance) (*p_owner->evt_distance)(p_owner->__distance);
+	case HSS_LOW:
+		if (p_owner->evt_read) (*p_owner->evt_read)(p_owner->__distance);
 		p_owner->__state = HSS_READY;
-    }
+		break;
+
+	default:
+		break;
+	}
 	return 0;
 }
 
@@ -36,7 +36,7 @@ BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id)
 
 	memset(p_owner, 0, sizeof(PifHcSr04));
 
-	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, 1, _doTask, p_owner, TRUE);
+	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, 50, _doTask, p_owner, FALSE);
 	if (!p_owner->_p_task) return FALSE;
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
@@ -58,7 +58,7 @@ void pifHcSr04_Clear(PifHcSr04* p_owner)
 void pifHcSr04_Trigger(PifHcSr04* p_owner)
 {
 	(*p_owner->act_trigger)(ON);
-	pif_Delay1us(10);
+	pif_Delay1us(11);
 	(*p_owner->act_trigger)(OFF);
 	p_owner->__state = HSS_TRIGGER;
 }
@@ -70,14 +70,14 @@ BOOL pifHcSr04_StartTrigger(PifHcSr04* p_owner, uint16_t period)
     	return FALSE;
 	}
 
-	p_owner->__period = period;
-	p_owner->__timer = 0;
+	pifTask_ChangePeriod(p_owner->_p_task, period);
+	p_owner->_p_task->pause = FALSE;
 	return TRUE;
 }
 
 void pifHcSr04_StopTrigger(PifHcSr04* p_owner)
 {
-	p_owner->__period = -1;
+	p_owner->_p_task->pause = TRUE;
 }
 
 void pifHcSr04_SetTemperature(PifHcSr04* p_owner, float temperature)
@@ -99,6 +99,7 @@ void pifHcSr04_sigReceiveEcho(PifHcSr04* p_owner, SWITCH state)
 		if (!state) {
 			p_owner->__distance = ((*pif_act_timer1us)() - p_owner->__tigger_time_us) / p_owner->_transform_const;
 			p_owner->__state = HSS_LOW;
+			p_owner->_p_task->immediate = TRUE;
 		}
 		break;
 
