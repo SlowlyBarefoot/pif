@@ -542,7 +542,7 @@ void pifTaskManager_Loop()
 					if (!p_idle) {
 						p_idle = (*p_owner->__processing)(p_owner);
 						if (p_idle) {
-							it_idle = pifFixList_Next(s_it_current);
+							it_idle = s_it_current;
 							n = i;
 						}
 					}
@@ -564,13 +564,14 @@ void pifTaskManager_Loop()
 	}
 	else if (p_idle) {
 		i = n;
-	    _processingTask(p_idle);
+		it_idle = pifFixList_Next(it_idle);
 		if (!it_idle) {
 			s_it_current = pifFixList_Begin(&s_tasks);
 		}
 		else {
 			s_it_current = it_idle;
 		}
+	    _processingTask(p_idle);
 	}
 	s_pass_count += i - t;
 
@@ -619,7 +620,7 @@ BOOL pifTaskManager_Yield()
 					if (!p_idle) {
 						p_idle = (*p_owner->__processing)(p_owner);
 						if (p_idle) {
-							it_idle = pifFixList_Next(s_it_current);
+							it_idle = s_it_current;
 							n = i;
 						}
 					}
@@ -642,13 +643,14 @@ next:
 	}
 	else if (p_idle) {
 		i = n;
-	    rtn = _processingTask(p_idle);
+		it_idle = pifFixList_Next(it_idle);
 		if (!it_idle) {
 			s_it_current = pifFixList_Begin(&s_tasks);
 		}
 		else {
 			s_it_current = it_idle;
 		}
+	    rtn = _processingTask(p_idle);
 	}
 	s_pass_count += i - t;
 
