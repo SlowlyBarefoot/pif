@@ -317,8 +317,7 @@ static void _checkLoopTime()
 
 	pif_performance._count++;
 
-	switch (pif_performance.__state) {
-	case 1:
+	if (pif_performance.__state & 1) {		// 1ms
 		pif_performance._use_rate = 100 - 100 * s_pass_count / s_loop_count;
 		s_loop_count = 0UL;
 		s_pass_count = 0UL;
@@ -328,7 +327,9 @@ static void _checkLoopTime()
 	    	pifLog_Printf(LT_INFO, "Use Rate: %u%%", use_rate);
 		}
 #endif
+	}
 
+	if (pif_performance.__state & 2) {		// 1sec
 #ifdef __PIF_DEBUG__
 		if (pif_performance.__max_loop_time1us > max_loop) max_loop = pif_performance.__max_loop_time1us;
 	#ifndef __PIF_NO_LOG__
@@ -347,20 +348,18 @@ static void _checkLoopTime()
 	#endif
 #endif
     	pif_performance._count = 0;
-		pif_performance.__state = FALSE;
-		break;
+	}
 
-	case 2:
 #ifdef __PIF_DEBUG__
+	if (pif_performance.__state & 4) {		// 1min
 	#ifndef __PIF_NO_LOG__
     	pifLog_Printf(LT_INFO, "MLT=%luus", max_loop);
 	#endif
 		max_loop = 0UL;
-#endif
-    	pif_performance._count = 0;
-		pif_performance.__state = FALSE;
-		break;
     }
+#endif
+
+	pif_performance.__state = 0;
 }
 
 
@@ -556,6 +555,7 @@ void pifTaskManager_Loop()
 		s_it_current = pifFixList_Next(s_it_current);
 		if (!s_it_current) {
 			s_it_current = pifFixList_Begin(&s_tasks);
+		    _checkLoopTime();
 		}
 	}
 
@@ -574,8 +574,6 @@ void pifTaskManager_Loop()
 	    _processingTask(p_idle);
 	}
 	s_pass_count += i - t;
-
-    _checkLoopTime();
 }
 
 BOOL pifTaskManager_Yield()
@@ -635,6 +633,7 @@ next:
 		s_it_current = pifFixList_Next(s_it_current);
 		if (!s_it_current) {
 			s_it_current = pifFixList_Begin(&s_tasks);
+			if (s_task_stack_ptr) _checkLoopTime();
 		}
 	}
 
@@ -653,8 +652,6 @@ next:
 	    rtn = _processingTask(p_idle);
 	}
 	s_pass_count += i - t;
-
-    _checkLoopTime();
     return rtn;
 }
 

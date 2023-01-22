@@ -215,7 +215,7 @@ typedef struct StPifPerformance
 	uint8_t _use_rate;
 
 	// Private Member Variable
-	uint8_t __state;	// 0 : nomal, 1 : second, 2: minute
+	uint8_t __state;	// 0 : nomal, 1 : 1 ms, 2 : 1 second, 4: 1 minute
 #ifdef __PIF_DEBUG__
 	uint32_t __max_loop_time1us;
 #endif

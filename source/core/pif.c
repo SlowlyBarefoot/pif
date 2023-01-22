@@ -138,11 +138,15 @@ void pif_sigTimer1ms()
     			}
     		}
 
-        	pif_performance.__state = 2;
+#ifdef __PIF_DEBUG__
+        	pif_performance.__state |= 4;
+#endif			
     	}
 
-    	if (!pif_performance.__state) pif_performance.__state = 1;
+    	pif_performance.__state |= 2;
     }
+
+   	pif_performance.__state |= 1;
 }
 
 void pif_Delay1ms(uint16_t delay)
