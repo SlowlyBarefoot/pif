@@ -586,6 +586,12 @@ typedef union StPifMpu6500UserCtrl
 
 // Register : PWR_MGMT_1
 
+typedef enum EnPifMpu6500Clksel
+{
+    MPU6500_CLKSEL_INTERNAL,
+    MPU6500_CLKSEL_PLL
+} PifMpu6500Clksel;
+
 #define MPU6500_PWR_MGMT_1_CLKSEL			0x0003
 #define MPU6500_PWR_MGMT_1_TEMP_DIS			0x0301
 #define MPU6500_PWR_MGMT_1_GYRO_STANDBY		0x0401

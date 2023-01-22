@@ -135,7 +135,7 @@ BOOL pifMpu30x0_ReadTemperature(PifMpu30x0* p_owner, float* p_temperature)
 	uint8_t data[2];
 
     if (!pifI2cDevice_ReadRegBytes(p_owner->_p_i2c, MPU30X0_REG_TEMP_OUT_H, data, 2)) return FALSE;
-    *p_temperature = ((data[0] << 8) + data[1]) / 340 + 36.53;
+    *p_temperature = 35.0f + (((data[0] << 8) + data[1]) + 13200.0f) / 280.0f;
 	return TRUE;
 }
 
