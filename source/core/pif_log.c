@@ -254,7 +254,7 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
     if (p_owner->cmd_done == FALSE) {
         if (_getDebugString(p_owner, act_receive_data)) {
         	p_owner->cmd_done = TRUE;
-        	p_owner->p_task->immediate = TRUE;
+        	pifTask_SetImmediate(p_owner->p_task);
         }
     }
 }

@@ -369,7 +369,7 @@ static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, BOOL blocking)
 	header[3] = 0;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, header, 4)) goto fail;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, (uint8_t *)p_data, header[0])) goto fail;
-	p_owner->__p_comm->_p_task->immediate = TRUE;
+	pifTask_SetImmediate(p_owner->__p_comm->_p_task);
 	return TRUE;
 
 fail:

@@ -404,6 +404,16 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
 	return TRUE;
 }
 
+BOOL pifTask_SetImmediate(PifTask* p_owner)
+{
+	if (p_owner && !p_owner->_running) {
+		if (pif_act_timer1us) p_owner->__immediate_time = (*pif_act_timer1us)();
+		p_owner->__immediate = TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+
 void pifTask_DelayMs(PifTask* p_owner, uint16_t delay)
 {
 	switch (p_owner->_mode) {
@@ -513,10 +523,10 @@ void pifTaskManager_Loop()
 	PifTask* p_owner;
 	PifTask* p_select = NULL;
 	PifTask* p_idle = NULL;
-	PifFixListIterator it_idle;
+	PifFixListIterator it_idle = NULL;
 	int i, n, t, count = pifFixList_Count(&s_tasks);
 
-	if (*pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
+	if (pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
 
 	if (!s_it_current) {
 		if (!count) return;
@@ -527,8 +537,9 @@ void pifTaskManager_Loop()
 	for (i = t = n = 0; i < count && !p_select; i++) {
 		p_owner = (PifTask*)s_it_current->data;
 
-		if (p_owner->immediate) {
-			p_owner->immediate = FALSE;
+		if (p_owner->__immediate) {
+			if (pif_act_timer1us) p_owner->_immediate_delay = (*pif_act_timer1us)() - p_owner->__immediate_time;
+			p_owner->__immediate = FALSE;
 			p_select = p_owner;
 		}
 		else if (!p_owner->pause) {
@@ -581,11 +592,11 @@ BOOL pifTaskManager_Yield()
 	PifTask* p_owner;
 	PifTask* p_select = NULL;
 	PifTask* p_idle = NULL;
-	PifFixListIterator it_idle;
+	PifFixListIterator it_idle = NULL;
 	int i, k, n, t, count = pifFixList_Count(&s_tasks);
 	BOOL rtn = TRUE;
 
-	if (*pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
+	if (pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
 
 	if (!s_it_current) {
 		if (!count) return FALSE;
@@ -604,8 +615,9 @@ BOOL pifTaskManager_Yield()
 			if (k < s_task_stack_ptr) goto next;
 		}
 
-		if (p_owner->immediate) {
-			p_owner->immediate = FALSE;
+		if (p_owner->__immediate) {
+			if (pif_act_timer1us) p_owner->_immediate_delay = (*pif_act_timer1us)() - p_owner->__immediate_time;
+			p_owner->__immediate = FALSE;
 			p_select = p_owner;
 		}
 		else if (!p_owner->pause) {

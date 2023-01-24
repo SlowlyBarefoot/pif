@@ -39,7 +39,6 @@ struct StPifTask
 {
 	// Public Member Variable
 	BOOL pause;
-	BOOL immediate;
 	uint8_t disallow_yield_id;		// 0 : 모두 허용, 1->255 : 해당 id는 허용하지 않음.
 
 	// Read-only Member Variable
@@ -53,13 +52,16 @@ struct StPifTask
 	uint32_t _execution_count;
 	uint32_t _total_period_time;
 	uint32_t _period_count;
+	int16_t _immediate_delay;
 
 	// Private Member Variable
 	PifTaskProcessing __processing;
+	volatile BOOL __immediate;
 	int __table_number;
 	uint16_t __delay_ms;
 	uint32_t __pretime;
 	uint32_t __last_execute_time;
+	volatile uint32_t __immediate_time;
 #ifdef __PIF_DEBUG__
 	uint32_t __count;
 	float __period;
@@ -105,6 +107,14 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period);
  * @return 성공 여부를 반환한다.
  */
 BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period);
+
+/**
+ * @fn pifTask_SetImmediate
+ * @brief ms단위의 일정 시간동안 Task를 정지시킨다.
+ * @param p_owner Task 자신
+ * @return 
+ */
+BOOL pifTask_SetImmediate(PifTask* p_owner);
 
 /**
  * @fn pifTask_DelayMs

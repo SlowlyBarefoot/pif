@@ -74,7 +74,7 @@ static uint16_t _doTask(PifTask* p_task)
 		if (pifI2cDevice_ReadRegByte(p_owner->_p_i2c, BMP280_REG_STATUS, data)) {
 			if (data[0] & 8) {
 				p_owner->__state = BMP280_STATE_READ;
-				p_task->immediate = TRUE;
+				pifTask_SetImmediate(p_task);
 			}
 		}
 		break;
@@ -84,7 +84,7 @@ static uint16_t _doTask(PifTask* p_task)
 			p_owner->__raw_pressure = (int32_t)((((uint32_t)(data[0])) << 12) | (((uint32_t)(data[1])) << 4) | ((uint32_t)data[2] >> 4));
 			p_owner->__raw_temperature = (int32_t)((((uint32_t)(data[3])) << 12) | (((uint32_t)(data[4])) << 4) | ((uint32_t)data[5] >> 4));
 			p_owner->__state = BMP280_STATE_CALCURATE;
-			p_task->immediate = TRUE;
+			pifTask_SetImmediate(p_task);
 		}
 		break;
 
@@ -99,7 +99,7 @@ static uint16_t _doTask(PifTask* p_task)
 			delay = p_owner->__read_period - gap;
 		}
 		else {
-			p_task->immediate = TRUE;
+			pifTask_SetImmediate(p_task);
 		}
 		p_owner->__state = BMP280_STATE_START;
 		break;
