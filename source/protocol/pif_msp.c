@@ -192,7 +192,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 #endif
 
     	if (p_owner->evt_receive) (*p_owner->evt_receive)(p_owner, &p_owner->__rx.packet);
-    	pifTask_SetImmediate(p_owner->__p_comm->_p_task);
+    	pifTask_SetTrigger(p_owner->__p_comm->_p_task);
     	p_owner->__rx.state = MRS_IDLE;
     }
 }
@@ -210,7 +210,7 @@ static BOOL _evtSending(void *p_client, PifActCommSendData act_send_data)
 			p_owner->__tx.length = pifRingBuffer_GetFillSize(&p_owner->__tx.answer_buffer);
 			p_owner->__tx.pos = 0;
 			p_owner->__tx.state = MTS_SENDING;
-			pifTask_SetImmediate(p_owner->__p_comm->_p_task);
+			pifTask_SetTrigger(p_owner->__p_comm->_p_task);
 		}
 		break;
 
@@ -311,7 +311,7 @@ BOOL pifMsp_MakeAnswer(PifMsp* p_owner, PifMspPacket* p_question, uint8_t* p_dat
 		check_xor ^= pifCheckXor(p_data, data_size);
 	}
 	if (!pifRingBuffer_PutByte(&p_owner->__tx.answer_buffer, check_xor)) goto fail;
-	pifTask_SetImmediate(p_owner->__p_comm->_p_task);
+	pifTask_SetTrigger(p_owner->__p_comm->_p_task);
 
 #ifdef __DEBUG_PACKET__
 	pifLog_Printf(LT_NONE, "\n%u< %x %x %x %x %x : %x", p_owner->_id,
@@ -341,7 +341,7 @@ BOOL pifMsp_MakeError(PifMsp* p_owner, PifMspPacket* p_question)
 	header[4] = p_question->command;
 	header[5] = header[3] ^ header[4];
 	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, header, 6)) goto fail;
-	pifTask_SetImmediate(p_owner->__p_comm->_p_task);
+	pifTask_SetTrigger(p_owner->__p_comm->_p_task);
 
 #ifndef __PIF_NO_LOG__
 #ifdef __DEBUG_PACKET__

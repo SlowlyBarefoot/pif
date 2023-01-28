@@ -16,7 +16,8 @@ typedef enum EnPifTaskMode
 	TM_PERIOD_US,
 	TM_CHANGE_MS,
 	TM_CHANGE_US,
-	TM_NEED,
+	TM_EXTERNAL_CUTIN,	// After an external trigger occurs, it is executed as soon as the currently running task ends. However, this mode is set to only one task per program.
+	TM_EXTERNAL_ORDER,
 	TM_TIMER,			// Do not use it for other purposes because it is a mode used by the timer.
 	TM_IDLE_MS			// If at least one TM_ALWAYS task exists, the TM_IDLE task is not executed.
 } PifTaskMode;
@@ -52,16 +53,18 @@ struct StPifTask
 	uint32_t _execution_count;
 	uint32_t _total_period_time;
 	uint32_t _period_count;
-	int16_t _immediate_delay;
+	uint32_t _max_trigger_delay;
+	uint32_t _total_trigger_delay;
+	uint16_t _trigger_delay;
 
 	// Private Member Variable
 	PifTaskProcessing __processing;
-	volatile BOOL __immediate;
+	volatile BOOL __trigger;
 	int __table_number;
 	uint16_t __delay_ms;
 	uint32_t __pretime;
 	uint32_t __last_execute_time;
-	volatile uint32_t __immediate_time;
+	volatile uint32_t __trigger_time;
 #ifdef __PIF_DEBUG__
 	uint32_t __count;
 	float __period;
@@ -109,12 +112,12 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period);
 BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period);
 
 /**
- * @fn pifTask_SetImmediate
- * @brief ms단위의 일정 시간동안 Task를 정지시킨다.
+ * @fn pifTask_SetTrigger
+ * @brief 
  * @param p_owner Task 자신
  * @return 
  */
-BOOL pifTask_SetImmediate(PifTask* p_owner);
+BOOL pifTask_SetTrigger(PifTask* p_owner);
 
 /**
  * @fn pifTask_DelayMs

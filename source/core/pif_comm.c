@@ -118,7 +118,7 @@ BOOL pifComm_PutRxByte(PifComm* p_owner, uint8_t data)
 
 	if (!pifRingBuffer_PutByte(p_owner->_p_rx_buffer, data)) return FALSE;
 	if (pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) >= p_owner->__rx_threshold) {
-		pifTask_SetImmediate(p_owner->_p_task);
+		pifTask_SetTrigger(p_owner->_p_task);
 	}
 	return TRUE;
 }
@@ -129,7 +129,7 @@ BOOL pifComm_PutRxData(PifComm* p_owner, uint8_t* p_data, uint16_t length)
 
 	if (!pifRingBuffer_PutData(p_owner->_p_rx_buffer, p_data, length)) return FALSE;
 	if (pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) >= p_owner->__rx_threshold) {
-		pifTask_SetImmediate(p_owner->_p_task);
+		pifTask_SetTrigger(p_owner->_p_task);
 	}
 	return TRUE;
 }
@@ -184,7 +184,7 @@ uint16_t pifComm_ReceiveRxData(PifComm* p_owner, uint8_t* p_data, uint16_t lengt
 	else if (p_owner->_p_rx_buffer) {
 		len = pifRingBuffer_CopyToArray(p_data, length, p_owner->_p_rx_buffer, 0);
 		if (pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) >= p_owner->__rx_threshold) {
-			pifTask_SetImmediate(p_owner->_p_task);
+			pifTask_SetTrigger(p_owner->_p_task);
 		}
 		return len;
 	}
@@ -205,7 +205,7 @@ BOOL pifComm_SendTxData(PifComm* p_owner, uint8_t* p_data, uint16_t length)
 void pifComm_FinishTransfer(PifComm* p_owner)
 {
 	p_owner->__state = CTS_IDLE;
-	pifTask_SetImmediate(p_owner->_p_task);
+	pifTask_SetTrigger(p_owner->_p_task);
 }
 
 void pifComm_ForceSendData(PifComm* p_owner)

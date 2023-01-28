@@ -21,6 +21,7 @@ static PifFixList s_tasks;
 static PifFixListIterator s_it_current;
 static PifTask* s_task_stack[PIF_TASK_STACK_SIZE];
 static int s_task_stack_ptr = 0;
+static PifTask* s_task_cutin = NULL;
 
 static uint32_t s_table_number;
 static uint32_t s_table[PIF_TASK_TABLE_SIZE];
@@ -180,9 +181,13 @@ static BOOL _checkParam(PifTaskMode* p_mode, uint16_t period)
         }
     	break;
     	
+	case TM_EXTERNAL_CUTIN:
+		if (s_task_cutin) return FALSE;
+    	break;
+
 	case TM_TIMER:
 	case TM_ALWAYS:
-	case TM_NEED:
+	case TM_EXTERNAL_ORDER:
 		break;
 
     default:
@@ -225,8 +230,14 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
     	p_owner->__processing = _processingPeriodUs;
     	break;
 
+	case TM_EXTERNAL_CUTIN:
+		s_task_cutin = p_owner;
+    	period = 0;
+    	p_owner->__processing = NULL;
+		break;
+
 	case TM_TIMER:
-    case TM_NEED:
+    case TM_EXTERNAL_ORDER:
     	period = 0;
     	p_owner->__processing = NULL;
     	break;
@@ -371,6 +382,10 @@ void pifTask_Init(PifTask* p_owner)
 
 BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period)
 {
+	if (mode == p_owner->_mode) return TRUE;
+
+	if (p_owner->_mode == TM_EXTERNAL_CUTIN) s_task_cutin = NULL;
+
 	if (!_checkParam(&mode, period)) return FALSE;
 
 	switch (p_owner->_mode) {
@@ -404,11 +419,12 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
 	return TRUE;
 }
 
-BOOL pifTask_SetImmediate(PifTask* p_owner)
+BOOL pifTask_SetTrigger(PifTask* p_owner)
 {
 	if (p_owner && !p_owner->_running) {
-		if (pif_act_timer1us) p_owner->__immediate_time = (*pif_act_timer1us)();
-		p_owner->__immediate = TRUE;
+		if (pif_act_timer1us) p_owner->__trigger_time = (*pif_act_timer1us)();
+		else p_owner->__trigger_time = pif_cumulative_timer1ms;
+		p_owner->__trigger = TRUE;
 		return TRUE;
 	}
 	return FALSE;
@@ -483,7 +499,7 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
 
     p_owner->__evt_loop = evt_loop;
     p_owner->_p_client = p_client;
-    p_owner->pause = (mode != TM_NEED) ? !start : TRUE;
+    p_owner->pause = (mode != TM_EXTERNAL_ORDER && mode != TM_EXTERNAL_CUTIN) ? !start : TRUE;
     if (!s_it_current) s_it_current = pifFixList_Begin(&s_tasks);
     return p_owner;
 
@@ -524,7 +540,8 @@ void pifTaskManager_Loop()
 	PifTask* p_select = NULL;
 	PifTask* p_idle = NULL;
 	PifFixListIterator it_idle = NULL;
-	int i, n, t, count = pifFixList_Count(&s_tasks);
+	int i, n, t = 0, count = pifFixList_Count(&s_tasks);
+	BOOL trigger = FALSE;
 
 	if (pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
 
@@ -534,43 +551,57 @@ void pifTaskManager_Loop()
 	}
 
 	s_loop_count += count;
-	for (i = t = n = 0; i < count && !p_select; i++) {
-		p_owner = (PifTask*)s_it_current->data;
+	if (s_task_cutin && s_task_cutin->__trigger) {
+		s_task_cutin->__trigger = FALSE;
+		p_select = s_task_cutin;
+		trigger = TRUE;
+		i = 1;
+	}
+	else {
+		for (i = n = 0; i < count && !p_select; i++) {
+			p_owner = (PifTask*)s_it_current->data;
 
-		if (p_owner->__immediate) {
-			if (pif_act_timer1us) p_owner->_immediate_delay = (*pif_act_timer1us)() - p_owner->__immediate_time;
-			p_owner->__immediate = FALSE;
-			p_select = p_owner;
-		}
-		else if (!p_owner->pause) {
-			if (p_owner->_mode == TM_TIMER) {
-				(*p_owner->__evt_loop)(p_owner);
-				t++;
+			if (p_owner->__trigger) {
+				p_owner->__trigger = FALSE;
+				p_select = p_owner;
+				trigger = TRUE;
 			}
-			else if (p_owner->__processing) {
-				if (p_owner->_mode == TM_IDLE_MS) {
-					if (!p_idle) {
-						p_idle = (*p_owner->__processing)(p_owner);
-						if (p_idle) {
-							it_idle = s_it_current;
-							n = i;
+			else if (!p_owner->pause) {
+				if (p_owner->_mode == TM_TIMER) {
+					(*p_owner->__evt_loop)(p_owner);
+					t++;
+				}
+				else if (p_owner->__processing) {
+					if (p_owner->_mode == TM_IDLE_MS) {
+						if (!p_idle) {
+							p_idle = (*p_owner->__processing)(p_owner);
+							if (p_idle) {
+								it_idle = s_it_current;
+								n = i;
+							}
 						}
 					}
-				}
-				else {
-					p_select = (*p_owner->__processing)(p_owner);
+					else {
+						p_select = (*p_owner->__processing)(p_owner);
+					}
 				}
 			}
-		}
 
-		s_it_current = pifFixList_Next(s_it_current);
-		if (!s_it_current) {
-			s_it_current = pifFixList_Begin(&s_tasks);
-		    _checkLoopTime();
+			s_it_current = pifFixList_Next(s_it_current);
+			if (!s_it_current) {
+				s_it_current = pifFixList_Begin(&s_tasks);
+				_checkLoopTime();
+			}
 		}
 	}
 
 	if (p_select) {
+		if (trigger) {
+			if (pif_act_timer1us) p_select->_trigger_delay = (*pif_act_timer1us)() - p_select->__trigger_time;
+			else p_select->_trigger_delay = pif_cumulative_timer1ms - p_select->__trigger_time;
+			if (p_select->_trigger_delay > p_select->_max_trigger_delay) p_select->_max_trigger_delay = p_select->_trigger_delay;
+			p_select->_total_trigger_delay += p_select->_trigger_delay;
+		}
 	    _processingTask(p_select);
 	}
 	else if (p_idle) {
@@ -593,7 +624,8 @@ BOOL pifTaskManager_Yield()
 	PifTask* p_select = NULL;
 	PifTask* p_idle = NULL;
 	PifFixListIterator it_idle = NULL;
-	int i, k, n, t, count = pifFixList_Count(&s_tasks);
+	int i, k, n, t = 0, count = pifFixList_Count(&s_tasks);
+	BOOL trigger = FALSE;
 	BOOL rtn = TRUE;
 
 	if (pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
@@ -604,52 +636,66 @@ BOOL pifTaskManager_Yield()
 	}
 
 	s_loop_count += count;
-	for (i = t = n = 0; i < count && !p_select; i++) {
-		p_owner = (PifTask*)s_it_current->data;
+	if (s_task_cutin && s_task_cutin->__trigger && !s_task_cutin->_running) {
+		s_task_cutin->__trigger = FALSE;
+		p_select = s_task_cutin;
+		trigger = TRUE;
+		i = 1;
+	}
+	else {
+		for (i = n = 0; i < count && !p_select; i++) {
+			p_owner = (PifTask*)s_it_current->data;
 
-		if (p_owner->_running) goto next;
-		if (s_task_stack_ptr) {
-			for (k = 0; k < s_task_stack_ptr; k++) {
-				if (s_task_stack[k]->disallow_yield_id && s_task_stack[k]->disallow_yield_id == p_owner->disallow_yield_id) break;
+			if (p_owner->_running) goto next;
+			if (s_task_stack_ptr) {
+				for (k = 0; k < s_task_stack_ptr; k++) {
+					if (s_task_stack[k]->disallow_yield_id && s_task_stack[k]->disallow_yield_id == p_owner->disallow_yield_id) break;
+				}
+				if (k < s_task_stack_ptr) goto next;
 			}
-			if (k < s_task_stack_ptr) goto next;
-		}
 
-		if (p_owner->__immediate) {
-			if (pif_act_timer1us) p_owner->_immediate_delay = (*pif_act_timer1us)() - p_owner->__immediate_time;
-			p_owner->__immediate = FALSE;
-			p_select = p_owner;
-		}
-		else if (!p_owner->pause) {
-			if (p_owner->_mode == TM_TIMER) {
-				(*p_owner->__evt_loop)(p_owner);
-				t++;
+			if (p_owner->__trigger) {
+				p_owner->__trigger = FALSE;
+				p_select = p_owner;
+				trigger = TRUE;
 			}
-			else if (p_owner->__processing) {
-				if (p_owner->_mode == TM_IDLE_MS) {
-					if (!p_idle) {
-						p_idle = (*p_owner->__processing)(p_owner);
-						if (p_idle) {
-							it_idle = s_it_current;
-							n = i;
+			else if (!p_owner->pause) {
+				if (p_owner->_mode == TM_TIMER) {
+					(*p_owner->__evt_loop)(p_owner);
+					t++;
+				}
+				else if (p_owner->__processing) {
+					if (p_owner->_mode == TM_IDLE_MS) {
+						if (!p_idle) {
+							p_idle = (*p_owner->__processing)(p_owner);
+							if (p_idle) {
+								it_idle = s_it_current;
+								n = i;
+							}
 						}
 					}
-				}
-				else {
-					p_select = (*p_owner->__processing)(p_owner);
+					else {
+						p_select = (*p_owner->__processing)(p_owner);
+					}
 				}
 			}
-		}
 
 next:
-		s_it_current = pifFixList_Next(s_it_current);
-		if (!s_it_current) {
-			s_it_current = pifFixList_Begin(&s_tasks);
-			if (s_task_stack_ptr) _checkLoopTime();
+			s_it_current = pifFixList_Next(s_it_current);
+			if (!s_it_current) {
+				s_it_current = pifFixList_Begin(&s_tasks);
+				if (s_task_stack_ptr) _checkLoopTime();
+			}
 		}
 	}
 
 	if (p_select) {
+		if (trigger && s_task_stack_ptr) {
+			if (pif_act_timer1us) p_select->_trigger_delay = (*pif_act_timer1us)() - p_select->__trigger_time;
+			else p_select->_trigger_delay = pif_cumulative_timer1ms - p_select->__trigger_time;
+			if (p_select->_trigger_delay > p_select->_max_trigger_delay) p_select->_max_trigger_delay = p_select->_trigger_delay;
+			p_select->_total_trigger_delay += p_select->_trigger_delay;
+		}
 	    rtn = _processingTask(p_select);
 	}
 	else if (p_idle) {
