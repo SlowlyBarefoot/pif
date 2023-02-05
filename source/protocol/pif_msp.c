@@ -66,8 +66,8 @@ static void _parsingPacket(PifMsp *p_owner, PifActCommReceiveData act_receive_da
 				pifTimer_Start(p_owner->__rx.p_timer, PIF_MSP_RECEIVE_TIMEOUT);
 #endif
 			}
-			else if (pre_error == PKT_ERR_NONE && p_owner->evt_other_packet) {
-				(*p_owner->evt_other_packet)(p_owner, data);
+			else if (pre_error == PKT_ERR_NONE && p_owner->__evt_other_packet) {
+				(*p_owner->__evt_other_packet)(p_owner, data, p_owner->__p_issuer);
 			}
 			else {
 				pkt_err = PKT_ERR_INVALID_DATA;
@@ -191,7 +191,8 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 #endif
 #endif
 
-    	if (p_owner->evt_receive) (*p_owner->evt_receive)(p_owner, &p_owner->__rx.packet);
+		p_owner->__rx.packet.p_pointer = p_owner->__rx.packet.p_data;
+    	if (p_owner->__evt_receive) (*p_owner->__evt_receive)(p_owner, &p_owner->__rx.packet, p_owner->__p_issuer);
     	pifTask_SetTrigger(p_owner->__p_comm->_p_task);
     	p_owner->__rx.state = MRS_IDLE;
     }
@@ -293,69 +294,182 @@ void pifMsp_DetachComm(PifMsp* p_owner)
 	p_owner->__p_comm = NULL;
 }
 
-BOOL pifMsp_MakeAnswer(PifMsp* p_owner, PifMspPacket* p_question, uint8_t* p_data, uint16_t data_size)
+void pifMsp_AttachEvtReceive(PifMsp* p_owner, PifEvtMspReceive evt_receive, PifEvtMspOtherPacket evt_other_packet, PifIssuerP p_issuer)
 {
-	uint8_t header[5], check_xor;
+	p_owner->__evt_receive = evt_receive;
+	p_owner->__evt_other_packet = evt_other_packet;
+	p_owner->__p_issuer = p_issuer;
+}
 
-	pifRingBuffer_BackupHead(&p_owner->__tx.answer_buffer);
+uint8_t pifMsp_ReadData8(PifMspPacket* p_packet)
+{
+	uint8_t data;
+
+	data = p_packet->p_pointer[0];
+	p_packet->p_pointer++;
+	return data;
+}
+
+uint16_t pifMsp_ReadData16(PifMspPacket* p_packet)
+{
+	uint16_t data;
+
+	data = p_packet->p_pointer[0] | (p_packet->p_pointer[1] << 8);
+	p_packet->p_pointer += 2;
+	return data;
+}
+
+uint32_t pifMsp_ReadData32(PifMspPacket* p_packet)
+{
+	uint32_t data;
+
+	data = p_packet->p_pointer[0] | (p_packet->p_pointer[1] << 8) | (p_packet->p_pointer[2] << 16) | (p_packet->p_pointer[3] << 24);
+	p_packet->p_pointer += 4;
+	return data;
+}
+
+void pifMsp_ReadData(PifMspPacket* p_packet, uint8_t* p_data, uint16_t size)
+{
+	uint16_t i;
+
+	for (i = 0; i < size; i++) {
+		p_data[i] = p_packet->p_pointer[i];
+	}
+	p_packet->p_pointer += size;
+}
+
+BOOL pifMsp_MakeAnswer(PifMsp* p_owner, PifMspPacket* p_question)
+{
+	uint8_t header[5];
+
+	pifRingBuffer_BeginPutting(&p_owner->__tx.answer_buffer);
 
 	header[0] = '$';
 	header[1] = 'M';
 	header[2] = '>';
-	header[3] = data_size;
+	header[3] = 0;
 	header[4] = p_question->command;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, header, 5)) goto fail;
-	check_xor = header[3] ^ header[4];
-	if (data_size > 0) {
-		if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, p_data, data_size)) goto fail;
-		check_xor ^= pifCheckXor(p_data, data_size);
-	}
-	if (!pifRingBuffer_PutByte(&p_owner->__tx.answer_buffer, check_xor)) goto fail;
-	pifTask_SetTrigger(p_owner->__p_comm->_p_task);
-
-#ifdef __DEBUG_PACKET__
-	pifLog_Printf(LT_NONE, "\n%u< %x %x %x %x %x : %x", p_owner->_id,
-			header[0], header[1], header[2], header[3], header[4], check_xor);
-#endif
+	p_owner->__check_xor = header[4];
+	p_owner->__data_size = 0;
 	return TRUE;
 
 fail:
-	pifRingBuffer_RestoreHead(&p_owner->__tx.answer_buffer);
+	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
 	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
 #ifndef __PIF_NO_LOG__
-	pifLog_Printf(LT_ERROR, "MWP:%u(%u) C:%u D:%u EC:%d", __LINE__, p_owner->_id, p_question->command, data_size, pif_error);
+	pifLog_Printf(LT_ERROR, "MWP:%u(%u) C:%u EC:%d", __LINE__, p_owner->_id, p_question->command, pif_error);
+#endif
+	return FALSE;
+}
+
+BOOL pifMsp_AddAnswer8(PifMsp* p_owner, uint8_t data)
+{
+	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, &data, 1)) goto fail;
+	p_owner->__check_xor ^= data;
+	p_owner->__data_size += 1;
+	return TRUE;
+
+fail:
+	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
+	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, p_owner->_id, pif_error);
+#endif
+	return FALSE;
+}
+
+BOOL pifMsp_AddAnswer16(PifMsp* p_owner, uint16_t data)
+{
+	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, (uint8_t*)&data, 2)) goto fail;
+	p_owner->__check_xor ^= pifCheckXor((uint8_t*)&data, 2);
+	p_owner->__data_size += 2;
+	return TRUE;
+
+fail:
+	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
+	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, p_owner->_id, pif_error);
+#endif
+	return FALSE;
+}
+
+BOOL pifMsp_AddAnswer32(PifMsp* p_owner, uint32_t data)
+{
+	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, (uint8_t*)&data, 4)) goto fail;
+	p_owner->__check_xor ^= pifCheckXor((uint8_t*)&data, 4);
+	p_owner->__data_size += 4;
+	return TRUE;
+
+fail:
+	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
+	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, p_owner->_id, pif_error);
+#endif
+	return FALSE;
+}
+
+BOOL pifMsp_AddAnswer(PifMsp* p_owner, uint8_t* p_data, uint16_t size)
+{
+	if (size > 0) {
+		if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, p_data, size)) goto fail;
+		p_owner->__check_xor ^= pifCheckXor(p_data, size);
+		p_owner->__data_size += size;
+	}
+	return TRUE;
+
+fail:
+	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
+	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, p_owner->_id, pif_error);
 #endif
 	return FALSE;
 }
 
 BOOL pifMsp_MakeError(PifMsp* p_owner, PifMspPacket* p_question)
 {
-	uint8_t header[6];
+	uint8_t header[5];
 
-	pifRingBuffer_BackupHead(&p_owner->__tx.answer_buffer);
+	pifRingBuffer_BeginPutting(&p_owner->__tx.answer_buffer);
 
 	header[0] = '$';
 	header[1] = 'M';
 	header[2] = '!';
 	header[3] = 0;
 	header[4] = p_question->command;
-	header[5] = header[3] ^ header[4];
-	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, header, 6)) goto fail;
-	pifTask_SetTrigger(p_owner->__p_comm->_p_task);
-
-#ifndef __PIF_NO_LOG__
-#ifdef __DEBUG_PACKET__
-	pifLog_Printf(LT_NONE, "\n%u< %x %x %x %x %x : %x", p_owner->_id,
-			header[0], header[1], header[2], header[3], header[4], header[5]);
-#endif
-#endif
+	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, header, 5)) goto fail;
+	p_owner->__check_xor = header[4];
+	p_owner->__data_size = 0;
 	return TRUE;
 
 fail:
-	pifRingBuffer_RestoreHead(&p_owner->__tx.answer_buffer);
+	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
 	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
 #ifndef __PIF_NO_LOG__
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) C:%u EC:%d", __LINE__, p_owner->_id, p_question->command, pif_error);
+#endif
+	return FALSE;
+}
+
+BOOL pifMsp_SendAnswer(PifMsp* p_owner)
+{
+	*pifRingBuffer_GetPointerPutting(&p_owner->__tx.answer_buffer, 3) = p_owner->__data_size;
+	p_owner->__check_xor ^= p_owner->__data_size;
+	if (!pifRingBuffer_PutByte(&p_owner->__tx.answer_buffer, p_owner->__check_xor)) goto fail;
+
+	pifRingBuffer_CommitPutting(&p_owner->__tx.answer_buffer);
+
+	pifTask_SetTrigger(p_owner->__p_comm->_p_task);
+	return TRUE;
+
+fail:
+	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
+	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
+#ifndef __PIF_NO_LOG__
+	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, p_owner->_id, pif_error);
 #endif
 	return FALSE;
 }

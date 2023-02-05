@@ -361,7 +361,7 @@ static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, BOOL blocking)
 		}
 	}
 
-	pifRingBuffer_BackupHead(&p_owner->__tx.buffer);
+	pifRingBuffer_BeginPutting(&p_owner->__tx.buffer);
 
 	header[0] = i;
 	header[1] = 0;
@@ -369,11 +369,14 @@ static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, BOOL blocking)
 	header[3] = 0;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, header, 4)) goto fail;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, (uint8_t *)p_data, header[0])) goto fail;
+
+	pifRingBuffer_CommitPutting(&p_owner->__tx.buffer);
+
 	pifTask_SetTrigger(p_owner->__p_comm->_p_task);
 	return TRUE;
 
 fail:
-	pifRingBuffer_RestoreHead(&p_owner->__tx.buffer);
+	pifRingBuffer_RollbackPutting(&p_owner->__tx.buffer);
 	return FALSE;
 }
 
@@ -393,7 +396,7 @@ static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t len
 		}
 	}
 
-	pifRingBuffer_BackupHead(&p_owner->__tx.buffer);
+	pifRingBuffer_BeginPutting(&p_owner->__tx.buffer);
 
 	info[0] = length + 8;
 	info[1] = 0;
@@ -405,10 +408,14 @@ static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t len
 		if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, p_payload, length)) goto fail;
 	}
 	if (!pifRingBuffer_PutData(&p_owner->__tx.buffer, tailer, 2)) goto fail;
+
+	pifRingBuffer_CommitPutting(&p_owner->__tx.buffer);
+
+	pifTask_SetTrigger(p_owner->__p_comm->_p_task);
 	return TRUE;
 
 fail:
-	pifRingBuffer_RestoreHead(&p_owner->__tx.buffer);
+	pifRingBuffer_RollbackPutting(&p_owner->__tx.buffer);
 	return FALSE;
 }
 

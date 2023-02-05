@@ -53,15 +53,16 @@ typedef struct StPifMspPacket
 	uint8_t command;
 	uint8_t data_count;
 	uint8_t* p_data;
+	uint8_t* p_pointer;
 } PifMspPacket;
 
 
 struct StPifMsp;
 typedef struct StPifMsp PifMsp;
 
-typedef void (*PifEvtMspReceive)(PifMsp* p_owner, PifMspPacket* p_packet);
+typedef void (*PifEvtMspReceive)(PifMsp* p_owner, PifMspPacket* p_packet, PifIssuerP p_issuer);
 typedef void (*PifEvtMspError)(PifId id);
-typedef void (*PifEvtMspOtherPacket)(PifMsp* p_owner, uint8_t data);
+typedef void (*PifEvtMspOtherPacket)(PifMsp* p_owner, uint8_t data, PifIssuerP p_issuer);
 
 typedef struct StPifMspRx
 {
@@ -86,13 +87,9 @@ typedef struct StPifMspTx
  * @class StPifMsp
  * @brief
  */
-typedef struct StPifMsp
+struct StPifMsp
 {
 	// Public Member Variable
-
-    // Public Event Function
-	PifEvtMspReceive evt_receive;
-	PifEvtMspOtherPacket evt_other_packet;
 
 	// Read-only Member Variable
     PifId _id;
@@ -101,7 +98,14 @@ typedef struct StPifMsp
 	PifComm* __p_comm;
     PifMspRx __rx;
     PifMspTx __tx;
-} PifMsp;
+	uint8_t __check_xor;
+	uint16_t __data_size;
+	PifIssuerP __p_issuer;
+
+    // Private Event Function
+	PifEvtMspReceive __evt_receive;
+	PifEvtMspOtherPacket __evt_other_packet;
+};
 
 
 #ifdef __cplusplus
@@ -141,15 +145,93 @@ void pifMsp_AttachComm(PifMsp* p_owner, PifComm* p_comm);
 void pifMsp_DetachComm(PifMsp* p_owner);
 
 /**
+ * @fn pifMsp_AttachEvtReceive
+ * @brief
+ * @param p_owner PifMsp 포인터
+ * @param evt_receive
+ * @param evt_other_packet
+ * @param p_issuer 이벤트 발생시 전달할 발행자
+ */
+void pifMsp_AttachEvtReceive(PifMsp* p_owner, PifEvtMspReceive evt_receive, PifEvtMspOtherPacket evt_other_packet, PifIssuerP p_issuer);
+
+/**
+ * @fn pifMsp_ReadData8
+ * @brief
+ * @param p_packet
+ * @return
+ */
+uint8_t pifMsp_ReadData8(PifMspPacket* p_packet);
+
+/**
+ * @fn pifMsp_ReadData16
+ * @brief
+ * @param p_packet
+ * @return
+ */
+uint16_t pifMsp_ReadData16(PifMspPacket* p_packet);
+
+/**
+ * @fn pifMsp_ReadData32
+ * @brief
+ * @param p_packet
+ * @return
+ */
+uint32_t pifMsp_ReadData32(PifMspPacket* p_packet);
+
+/**
+ * @fn pifMsp_ReadData
+ * @brief
+ * @param p_packet
+ * @param p_data
+ * @param size
+ */
+void pifMsp_ReadData(PifMspPacket* p_packet, uint8_t* p_data, uint16_t size);
+
+/**
  * @fn pifMsp_MakeAnswer
  * @brief
  * @param p_owner
  * @param p_question
- * @param p_data
- * @param data_size
  * @return
  */
-BOOL pifMsp_MakeAnswer(PifMsp* p_owner, PifMspPacket* p_question, uint8_t* p_data, uint16_t data_size);
+BOOL pifMsp_MakeAnswer(PifMsp* p_owner, PifMspPacket* p_question);
+
+/**
+ * @fn pifMsp_AddAnswer8
+ * @brief
+ * @param p_owner
+ * @param data
+ * @return
+ */
+BOOL pifMsp_AddAnswer8(PifMsp* p_owner, uint8_t data);
+
+/**
+ * @fn pifMsp_AddAnswer16
+ * @brief
+ * @param p_owner
+ * @param data
+ * @return
+ */
+BOOL pifMsp_AddAnswer16(PifMsp* p_owner, uint16_t data);
+
+/**
+ * @fn pifMsp_AddAnswer32
+ * @brief
+ * @param p_owner
+ * @param data
+ * @return
+ */
+BOOL pifMsp_AddAnswer32(PifMsp* p_owner, uint32_t data);
+
+/**
+ * @fn pifMsp_AddAnswer
+ * @brief
+ * @param p_owner
+ * @param p_data
+ * @param size
+ * @return
+ */
+BOOL pifMsp_AddAnswer(PifMsp* p_owner, uint8_t* p_data, uint16_t size);
 
 /**
  * @fn pifMsp_MakeError
@@ -159,6 +241,14 @@ BOOL pifMsp_MakeAnswer(PifMsp* p_owner, PifMspPacket* p_question, uint8_t* p_dat
  * @return
  */
 BOOL pifMsp_MakeError(PifMsp* p_owner, PifMspPacket* p_question);
+
+/**
+ * @fn pifMsp_SendAnswer
+ * @brief
+ * @param p_owner
+ * @return
+ */
+BOOL pifMsp_SendAnswer(PifMsp* p_owner);
 
 #ifdef __cplusplus
 }

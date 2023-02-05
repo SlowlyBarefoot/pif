@@ -600,7 +600,7 @@ BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_r
 	p_owner->__tx.p_data = p_data;
 	p_owner->__tx.data_size = data_size;
 
-	pifRingBuffer_BackupHead(&p_owner->__tx.request_buffer);
+	pifRingBuffer_BeginPutting(&p_owner->__tx.request_buffer);
 
 	uint16_t usCount = 0;
 	for (i = 0; i < data_size; i++) {
@@ -657,6 +657,8 @@ BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_r
 	for (i = 0; i < lack; i++) tailer[2 + i] = 0;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.request_buffer, tailer, 2 + lack)) goto fail;
 
+	pifRingBuffer_CommitPutting(&p_owner->__tx.buffer);
+
 #ifndef __PIF_NO_LOG__
 	if (p_request->flags & PF_LOG_PRINT_MASK) {
 		pifLog_Printf(LT_COMM, "PTC(%u) Rq:%xh F:%xh P:%d L:%d=%d CRC:%xh", p_owner->_id, p_request->command,
@@ -670,7 +672,7 @@ BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_r
 	return TRUE;
 
 fail:
-	pifRingBuffer_RestoreHead(&p_owner->__tx.request_buffer);
+	pifRingBuffer_RollbackPutting(&p_owner->__tx.request_buffer);
 	return FALSE;
 }
 
@@ -684,7 +686,7 @@ BOOL pifProtocol_MakeAnswer(PifProtocol* p_owner, PifProtocolPacket* p_question,
 	uint8_t crc7 = 0;
 	uint16_t length;
 
-	pifRingBuffer_BackupHead(&p_owner->__tx.answer_buffer);
+	pifRingBuffer_BeginPutting(&p_owner->__tx.answer_buffer);
 
 	header[0] = ASCII_STX;
 	header[1] = PF_ALWAYS | PF_TYPE_ANSWER | flags;
@@ -731,6 +733,8 @@ BOOL pifProtocol_MakeAnswer(PifProtocol* p_owner, PifProtocolPacket* p_question,
 	else lack = 0;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, tailer, 2 + lack)) goto fail;
 
+	pifRingBuffer_CommitPutting(&p_owner->__tx.buffer);
+
 #ifndef __PIF_NO_LOG__
 	if (flags & PF_LOG_PRINT_MASK) {
 		pifLog_Printf(LT_COMM, "PTC(%u) As:%xh F:%xh P:%d L:%d=%d CRC:%xh", p_owner->_id, p_question->command,
@@ -744,6 +748,6 @@ BOOL pifProtocol_MakeAnswer(PifProtocol* p_owner, PifProtocolPacket* p_question,
 	return TRUE;
 
 fail:
-	pifRingBuffer_RestoreHead(&p_owner->__tx.answer_buffer);
+	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
 	return FALSE;
 }

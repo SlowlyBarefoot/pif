@@ -102,6 +102,7 @@ BOOL pifRingBuffer_InitHeap(PifRingBuffer* p_owner, PifId id, uint16_t size)
 	if (id == PIF_ID_AUTO) id = pif_id++;
 	p_owner->_id = id;
     p_owner->_size = size;
+	p_owner->__backup_head = size;
     return TRUE;
 
 fail:
@@ -124,6 +125,7 @@ BOOL pifRingBuffer_InitStatic(PifRingBuffer* p_owner, PifId id, uint16_t size, u
 	p_owner->_id = id;
     p_owner->_bt.is_static = TRUE;
     p_owner->_size = size;
+	p_owner->__backup_head = size;
     return TRUE;
 }
 
@@ -231,14 +233,28 @@ uint16_t pifRingBuffer_GetRemainSize(PifRingBuffer* p_owner)
     return remain - 1;
 }
 
-void pifRingBuffer_BackupHead(PifRingBuffer* p_owner)
+void pifRingBuffer_BeginPutting(PifRingBuffer* p_owner)
 {
+	if (p_owner->__backup_head < p_owner->_size) {
+		p_owner->__head = p_owner->__backup_head;
+	}
 	p_owner->__backup_head = p_owner->__head;
 }
 
-void pifRingBuffer_RestoreHead(PifRingBuffer* p_owner)
+void pifRingBuffer_CommitPutting(PifRingBuffer* p_owner)
+{
+	p_owner->__backup_head = p_owner->_size;
+}
+
+void pifRingBuffer_RollbackPutting(PifRingBuffer* p_owner)
 {
 	p_owner->__head = p_owner->__backup_head;
+	p_owner->__backup_head = p_owner->_size;
+}
+
+uint8_t* pifRingBuffer_GetPointerPutting(PifRingBuffer* p_owner, uint16_t pos)
+{
+	return &p_owner->__p_buffer[(p_owner->__backup_head + pos) % p_owner->_size];
 }
 
 BOOL pifRingBuffer_PutByte(PifRingBuffer* p_owner, uint8_t data)

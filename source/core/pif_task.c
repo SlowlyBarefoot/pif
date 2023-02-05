@@ -421,7 +421,7 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
 
 BOOL pifTask_SetTrigger(PifTask* p_owner)
 {
-	if (p_owner && !p_owner->_running) {
+	if (p_owner) {
 		if (pif_act_timer1us) p_owner->__trigger_time = (*pif_act_timer1us)();
 		else p_owner->__trigger_time = pif_cumulative_timer1ms;
 		p_owner->__trigger = TRUE;

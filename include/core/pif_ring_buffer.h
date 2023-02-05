@@ -188,18 +188,34 @@ uint16_t pifRingBuffer_GetLinerSize(PifRingBuffer* p_owner, uint16_t pos);
 uint16_t pifRingBuffer_GetRemainSize(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_BackupHead
+ * @fn pifRingBuffer_BeginPutting
  * @brief
  * @param p_owner
  */
-void pifRingBuffer_BackupHead(PifRingBuffer* p_owner);
+void pifRingBuffer_BeginPutting(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_RestoreHead
+ * @fn pifRingBuffer_CommitPutting
  * @brief
  * @param p_owner
  */
-void pifRingBuffer_RestoreHead(PifRingBuffer* p_owner);
+void pifRingBuffer_CommitPutting(PifRingBuffer* p_owner);
+
+/**
+ * @fn pifRingBuffer_RollbackPutting
+ * @brief
+ * @param p_owner
+ */
+void pifRingBuffer_RollbackPutting(PifRingBuffer* p_owner);
+
+/**
+ * @fn pifRingBuffer_GetPointerPutting
+ * @brief
+ * @param p_owner
+ * @param pos
+ * @return
+ */
+uint8_t* pifRingBuffer_GetPointerPutting(PifRingBuffer* p_owner, uint16_t pos);
 
 /**
  * @fn pifRingBuffer_PutByte
