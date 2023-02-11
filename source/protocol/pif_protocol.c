@@ -657,7 +657,7 @@ BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_r
 	for (i = 0; i < lack; i++) tailer[2 + i] = 0;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.request_buffer, tailer, 2 + lack)) goto fail;
 
-	pifRingBuffer_CommitPutting(&p_owner->__tx.buffer);
+	pifRingBuffer_CommitPutting(&p_owner->__tx.request_buffer);
 
 #ifndef __PIF_NO_LOG__
 	if (p_request->flags & PF_LOG_PRINT_MASK) {
@@ -733,7 +733,7 @@ BOOL pifProtocol_MakeAnswer(PifProtocol* p_owner, PifProtocolPacket* p_question,
 	else lack = 0;
 	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, tailer, 2 + lack)) goto fail;
 
-	pifRingBuffer_CommitPutting(&p_owner->__tx.buffer);
+	pifRingBuffer_CommitPutting(&p_owner->__tx.answer_buffer);
 
 #ifndef __PIF_NO_LOG__
 	if (flags & PF_LOG_PRINT_MASK) {

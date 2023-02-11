@@ -25,7 +25,7 @@ typedef enum EnPifLogType
 	LT_COMM		= 5
 } PifLogType;
 
-typedef int (*PifLogCmd)(int argc, char* argv[]);
+typedef void (*PifEvtLogControlChar)(char ch);
 
 /**
  * @class StPifLogCmdEntry
@@ -37,10 +37,13 @@ typedef struct StPifLogCmdEntry
     const char* p_name;
 
     //! A function pointer to the implementation of the command.
-    PifLogCmd processor;
+    int (*processor)(int argc, char* argv[]);
 
     //! A pointer to a string of brief help text for the command.
     const char* p_help;
+
+    //! A pointer to a string of brief help text for the arguments.
+    const char* p_args;
 } PifLogCmdEntry;
 
 /**
@@ -107,6 +110,13 @@ void pifLog_Clear();
  * @return
  */
 BOOL pifLog_UseCommand(const PifLogCmdEntry* p_cmd_table, const char* p_prompt);
+
+/**
+ * @fn pifLog_AttachEvent
+ * @brief
+ * @param evt_control_char
+ */
+void pifLog_AttachEvent(PifEvtLogControlChar evt_control_char);
 
 #endif
 
@@ -177,6 +187,39 @@ void pifLog_SendAndExit();
  * @brief
  */
 void pifLog_DetachComm();
+
+/**
+ * @fn pifLog_CmdHelp
+ * @brief
+ * @param argc
+ * @param argv
+ * @return
+ */
+int pifLog_CmdHelp(int argc, char *argv[]);
+
+/**
+ * @fn pifLog_CmdPrintVersion
+ * @param argc
+ * @param argv
+ * @return
+ */
+int pifLog_CmdPrintVersion(int argc, char* argv[]);
+
+/**
+ * @fn pifLog_CmdPrintTask
+ * @param argc
+ * @param argv
+ * @return
+ */
+int pifLog_CmdPrintTask(int argc, char* argv[]);
+
+/**
+ * @fn pifLog_CmdSetStatus
+ * @param argc
+ * @param argv
+ * @return
+ */
+int pifLog_CmdSetStatus(int argc, char* argv[]);
 
 #ifdef __cplusplus
 }

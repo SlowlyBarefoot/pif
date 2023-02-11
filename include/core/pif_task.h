@@ -206,13 +206,13 @@ BOOL pifTaskManager_YieldMs(uint32_t time);
  */
 BOOL pifTaskManager_YieldUs(uint32_t time);
 
-#ifdef __PIF_DEBUG__
-
 /**
  * @fn pifTaskManager_Print
  * @brief Task 할당 정보를 출력한다.
  */
 void pifTaskManager_Print();
+
+#ifdef __PIF_DEBUG__
 
 /**
  * @fn pifTaskManager_PrintRatioTable
@@ -220,7 +220,7 @@ void pifTaskManager_Print();
  */
 void pifTaskManager_PrintRatioTable();
 
-#endif
+#endif	// __PIF_DEBUG__
 
 #ifdef __cplusplus
 }

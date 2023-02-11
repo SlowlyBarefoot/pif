@@ -19,8 +19,9 @@ typedef struct StPifLog
     uint8_t rx_buffer_size;
     char* p_rx_buffer;
 	char* p_argv[PIF_LOG_CMD_MAX_ARGS + 1];
-	const PifLogCmdEntry* p_cmd_table[2];
+	const PifLogCmdEntry* p_cmd_table;
 	const char* p_prompt;
+	PifEvtLogControlChar evt_control_char;
 #endif
 } PifLog;
 
@@ -46,43 +47,33 @@ const char type_ch[] = { 'I', 'W', 'E', 'C' };
 
 #ifdef __PIF_LOG_COMMAND__
 
-static int _cmdHelp(int argc, char *argv[]);
-static int _cmdPrintVersion(int argc, char* argv[]);
-static int _cmdSetStatus(int argc, char* argv[]);
 
-const PifLogCmdEntry c_cmd_table[] = {
-		{ "help", _cmdHelp, "This command" },
-		{ "pifversion", _cmdPrintVersion, "Print version" },
-		{ "pifstatus", _cmdSetStatus, "Set and print status" },
-
-		{ NULL, NULL, NULL }
-};
-
-
-static int _cmdHelp(int argc, char *argv[])
+int pifLog_CmdHelp(int argc, char *argv[])
 {
     int i;
+    const PifLogCmdEntry* p_entry;
 
     (void)argc;
     (void)argv;
 
-    pifLog_Print(LT_NONE, "Available PIF commands:\n");
+    pifLog_Print(LT_NONE, "Available commands:\n");
     i = 0;
-    while (c_cmd_table[i].p_name) {
-        pifLog_Printf(LT_NONE, "  %s\t%s\n", c_cmd_table[i].p_name, c_cmd_table[i].p_help);
-        i++;
-    }
+    while (1) {
+        p_entry = &s_log.p_cmd_table[i];
+        if (!p_entry->p_name) break;
 
-    pifLog_Print(LT_NONE, "\nAvailable user commands:\n");
-    i = 0;
-    while (s_log.p_cmd_table[1][i].p_name) {
-        pifLog_Printf(LT_NONE, "  %s\t%s\n", s_log.p_cmd_table[1][i].p_name, s_log.p_cmd_table[1][i].p_help);
+    	if (p_entry->p_args) {
+            pifLog_Printf(LT_NONE, "  %s - %s\n\t%s\n", p_entry->p_name, p_entry->p_help, p_entry->p_args);
+    	}
+    	else {
+            pifLog_Printf(LT_NONE, "  %s - %s\n", p_entry->p_name, p_entry->p_help);
+    	}
         i++;
     }
 	return PIF_LOG_CMD_NO_ERROR;
 }
 
-static int _cmdPrintVersion(int argc, char* argv[])
+int pifLog_CmdPrintVersion(int argc, char* argv[])
 {
 	(void)argc;
 	(void)argv;
@@ -91,13 +82,22 @@ static int _cmdPrintVersion(int argc, char* argv[])
 	return PIF_LOG_CMD_NO_ERROR;
 }
 
-static int _cmdSetStatus(int argc, char* argv[])
+int pifLog_CmdPrintTask(int argc, char* argv[])
+{
+	(void)argc;
+	(void)argv;
+
+	pifTaskManager_Print();
+	return PIF_LOG_CMD_NO_ERROR;
+}
+
+int pifLog_CmdSetStatus(int argc, char* argv[])
 {
 	BOOL value;
 	int i;
 
 	if (argc == 1) {
-	   	pifLog_Printf(LT_NONE, "Task count: %d\n", pifTaskManager_Count());
+    	pifLog_Printf(LT_NONE, "Use Rate: %u%%\n", pif_performance._use_rate);
 	   	pifLog_Printf(LT_NONE, "Error: %d\n", pif_error);
 	   	pifLog_Printf(LT_NONE, "Flag:\n");
 	   	i = 0;
@@ -126,7 +126,7 @@ static int _cmdSetStatus(int argc, char* argv[])
 		}
 		i = 0;
 		while (c_log_flags[i].p_name) {
-			if (!strcmp(argv[1], c_log_flags[i].p_command)) {
+			if (!strcasecmp(argv[1], c_log_flags[i].p_command)) {
 				if (value) {
 					pif_log_flag.all |= 1L << i;
 				}
@@ -145,54 +145,123 @@ static int _cmdSetStatus(int argc, char* argv[])
 static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_data)
 {
     char tmp_char;
+    uint8_t i;
     BOOL str_get_done_flag = FALSE;
-    static BOOL last_cr = FALSE;
+    uint8_t enter;
+    static uint8_t pre_enter = 0;
+    const PifLogCmdEntry *cmd, *pstart, *pend;
 
 	while ((*act_receive_data)(p_owner->p_comm, (uint8_t*)&tmp_char)) {
-        switch (tmp_char) {
-        case '\b':
-            if (p_owner->char_idx > 0) {
-            	while (!pifRingBuffer_PutString(p_owner->p_tx_buffer, "\b \b")) {
-            		if (!pifTaskManager_Yield()) break;
-            	}
-                p_owner->char_idx--;
-                p_owner->p_rx_buffer[p_owner->char_idx] = 0;
+		if (tmp_char >= 32 && tmp_char <= 126) {
+			if (!p_owner->char_idx && tmp_char == ' ') continue;
+			if (p_owner->char_idx < p_owner->rx_buffer_size - 3) {
+				pifRingBuffer_PutByte(p_owner->p_tx_buffer, tmp_char);
+				pifTask_SetTrigger(p_owner->p_comm->_p_task);
+				p_owner->p_rx_buffer[p_owner->char_idx] = tmp_char;
+				p_owner->char_idx++;
             }
-            break;
+		}
+		else {
+			switch (tmp_char) {
+			case '\b':		// 0x08 / Backspace / CTRL-H
+			case 0x7F:		// Delete
+				if (p_owner->char_idx) {
+					p_owner->char_idx--;
+					p_owner->p_rx_buffer[p_owner->char_idx] = 0;
+					pifRingBuffer_PutString(p_owner->p_tx_buffer, "\b \b");
+					pifTask_SetTrigger(p_owner->p_comm->_p_task);
+				}
+				break;
 
-        case '\r':
-        	last_cr = TRUE;
-            str_get_done_flag = TRUE;
-            break;
+			case '\t':		// 0x09 / Horizontal Tab / CTRL-I
+	            // do tab completion
+			    pstart = NULL;
+			    pend = NULL;
+	            i = p_owner->char_idx;
+	            cmd = p_owner->p_cmd_table;
+	            while (cmd->p_name) {
+	                if (!(p_owner->char_idx && (strncasecmp(p_owner->p_rx_buffer, cmd->p_name, p_owner->char_idx) != 0))) {
+						if (!pstart)
+							pstart = cmd;
+						pend = cmd;
+	                }
+	                cmd++;
+	            }
+	            if (pstart) {    /* Buffer matches one or more commands */
+	                for (; ; p_owner->char_idx++) {
+	                	if (!pstart->p_name[p_owner->char_idx]) break;
+	                    if (pstart->p_name[p_owner->char_idx] != pend->p_name[p_owner->char_idx])
+	                        break;
+	                    if (!pstart->p_name[p_owner->char_idx] && p_owner->char_idx < p_owner->rx_buffer_size - 2) {
+	                        /* Unambiguous -- append a space */
+	                    	p_owner->p_rx_buffer[p_owner->char_idx++] = ' ';
+	                        p_owner->p_rx_buffer[p_owner->char_idx] = '\0';
+	                        break;
+	                    }
+	                    p_owner->p_rx_buffer[p_owner->char_idx] = pstart->p_name[p_owner->char_idx];
+	                }
+	            }
+	            if (!p_owner->char_idx || pstart != pend) {
+	                /* Print list of ambiguous matches */
+	            	pifRingBuffer_PutString(p_owner->p_tx_buffer, "\r\033[K");
+	                for (cmd = pstart; cmd <= pend; cmd++) {
+	                	pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)cmd->p_name);
+	                	pifRingBuffer_PutByte(p_owner->p_tx_buffer, '\t');
+	                }
+					pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)s_log.p_prompt);
+	                i = 0;    /* Redraw prompt */
+	            }
+	            for (; i < p_owner->char_idx; i++)
+	            	pifRingBuffer_PutByte(p_owner->p_tx_buffer, p_owner->p_rx_buffer[i]);
+				pifTask_SetTrigger(p_owner->p_comm->_p_task);
+				break;
 
-        case '\n':
-            if (last_cr == TRUE) {
-            	last_cr = FALSE;
-            }
-            else {
-            	str_get_done_flag = TRUE;
-            }
-            break;
+			case '\n':		// 0x0A / Line Feed / CTRL-J
+				enter = 1;
+				break;
 
-        case 0x1b:  // ESC-Key pressed
-            str_get_done_flag = TRUE;
-            break;
+			case '\r':		// 0x0D / Carriage Return / CTRL-M
+				enter = 2;
+				break;
 
-        default:
-            if (p_owner->char_idx < p_owner->rx_buffer_size - 3) {
-                while (!pifRingBuffer_PutByte(p_owner->p_tx_buffer, tmp_char)) {
-                	if (!pifTaskManager_Yield()) break;
-                }
-                p_owner->p_rx_buffer[p_owner->char_idx] = tmp_char;
-                p_owner->char_idx++;
-            }
-            break;
+			case 0x0C:		// Form Feed, New Page / CTRL-L
+				pifRingBuffer_PutString(p_owner->p_tx_buffer, "\033[2J\033[1;1H");
+				pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)s_log.p_prompt);
+				pifTask_SetTrigger(p_owner->p_comm->_p_task);
+				break;
+
+			default:
+				if (p_owner->evt_control_char) (*p_owner->evt_control_char)(tmp_char);
+            	break;
+			}
         }
 
+		if (enter) {
+			if (p_owner->char_idx) {
+				str_get_done_flag = TRUE;
+				pre_enter = enter;
+			}
+			else if (!pre_enter || enter == pre_enter) {
+				pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)s_log.p_prompt);
+				pifTask_SetTrigger(p_owner->p_comm->_p_task);
+				pre_enter = enter;
+			}
+			enter = 0;
+		}
+
         if (str_get_done_flag == TRUE) {
-        	p_owner->p_rx_buffer[p_owner->char_idx] = 0;
-        	while (!pifRingBuffer_PutByte(p_owner->p_tx_buffer, '\n')) {
-        		if (!pifTaskManager_Yield()) break;
+        	// Strip trailing whitespace
+            while (p_owner->char_idx > 0 && p_owner->p_rx_buffer[p_owner->char_idx - 1] == ' ') {
+            	p_owner->char_idx--;
+            }
+            if (p_owner->char_idx) {
+				p_owner->p_rx_buffer[p_owner->char_idx] = 0;
+				pifRingBuffer_PutByte(p_owner->p_tx_buffer, '\n');
+				pifTask_SetTrigger(p_owner->p_comm->_p_task);
+	        	break;
+            }
+            else {
+            	str_get_done_flag = FALSE;
         	}
         }
     }
@@ -232,15 +301,13 @@ static int _processDebugCmd(PifLog* p_owner)
     }
 
     if (argc) {
-    	for (int i = 0; i < 2; i++) {
-    		p_cmd_entry = p_owner->p_cmd_table[i];
-            while (p_cmd_entry->p_name) {
-                if (!strcmp(p_owner->p_argv[0], p_cmd_entry->p_name)) {
-                    return p_cmd_entry->processor(argc, p_owner->p_argv);
-                }
-
-                p_cmd_entry++;
+		p_cmd_entry = p_owner->p_cmd_table;
+		while (p_cmd_entry->p_name) {
+			if (!strcasecmp(p_owner->p_argv[0], p_cmd_entry->p_name)) {
+				return p_cmd_entry->processor(argc, p_owner->p_argv);
             }
+
+			p_cmd_entry++;
     	}
         return PIF_LOG_CMD_BAD_CMD;
     }
@@ -266,55 +333,51 @@ static uint16_t _doTask(PifTask* p_task)
 
     (void)p_task;
 
-	if (s_log.cmd_done == TRUE) {
-		status = _processDebugCmd(&s_log);
+	status = _processDebugCmd(&s_log);
 
-	    while (s_log.char_idx) {
-	    	s_log.p_rx_buffer[s_log.char_idx] = 0;
-	    	s_log.char_idx--;
-	    }
-
-	    for (int i = 0; i < PIF_LOG_CMD_MAX_ARGS; i++) {
-	    	s_log.p_argv[i] = 0;
-	    }
-
-	    // Handle the case of bad command.
-	    if (status == PIF_LOG_CMD_BAD_CMD) {
-	    	while (!pifRingBuffer_PutString(s_log.p_tx_buffer, "Not defined command!\n")) {
-	    		if (!pifTaskManager_Yield()) break;
-	    	}
-	    }
-
-	    // Handle the case of too many arguments.
-	    else if (status == PIF_LOG_CMD_TOO_MANY_ARGS) {
-	    	while (!pifRingBuffer_PutString(s_log.p_tx_buffer, "Too many arguments for command!\n")) {
-	    		if (!pifTaskManager_Yield()) break;
-	    	}
-	    }
-
-	    // Handle the case of too few arguments.
-	    else if (status == PIF_LOG_CMD_TOO_FEW_ARGS) {
-	    	while (!pifRingBuffer_PutString(s_log.p_tx_buffer, "Too few arguments for command!\n")) {
-	    		if (!pifTaskManager_Yield()) break;
-	    	}
-	    }
-
-	    // Otherwise the command was executed.  Print the error
-	    // code if one was returned.
-	    else if (status != PIF_LOG_CMD_NO_ERROR) {
-	    	pif_Printf(msg, "Command returned error code: %d\n", status);
-	    	while (!pifRingBuffer_PutString(s_log.p_tx_buffer, msg)) {
-	    		if (!pifTaskManager_Yield()) break;
-	    	}
-	    }
-
-		s_log.cmd_done = FALSE;
+	while (s_log.char_idx) {
+		s_log.p_rx_buffer[s_log.char_idx] = 0;
+		s_log.char_idx--;
 	}
 
-	while (!pifRingBuffer_PutString(s_log.p_tx_buffer, (char *)s_log.p_prompt)) {
-		if (!pifTaskManager_Yield()) break;
+	for (int i = 0; i < PIF_LOG_CMD_MAX_ARGS; i++) {
+		s_log.p_argv[i] = 0;
 	}
 
+	switch (status) {
+	case PIF_LOG_CMD_BAD_CMD:
+		// Handle the case of bad command.
+		pifRingBuffer_PutString(s_log.p_tx_buffer, "Not defined command!\n");
+		pifTask_SetTrigger(s_log.p_comm->_p_task);
+		break;
+
+	case PIF_LOG_CMD_TOO_MANY_ARGS:
+		// Handle the case of too many arguments.
+		pifRingBuffer_PutString(s_log.p_tx_buffer, "Too many arguments for command!\n");
+		pifTask_SetTrigger(s_log.p_comm->_p_task);
+		break;
+
+	case PIF_LOG_CMD_TOO_FEW_ARGS:
+		// Handle the case of too few arguments.
+		pifRingBuffer_PutString(s_log.p_tx_buffer, "Too few arguments for command!\n");
+		pifTask_SetTrigger(s_log.p_comm->_p_task);
+		break;
+
+	default:
+		// Otherwise the command was executed.  Print the error
+		// code if one was returned.
+		if (status != PIF_LOG_CMD_NO_ERROR) {
+			pif_Printf(msg, "Command returned error code: %d\n", status);
+			pifRingBuffer_PutString(s_log.p_tx_buffer, msg);
+			pifTask_SetTrigger(s_log.p_comm->_p_task);
+		}
+		break;
+	}
+
+	pifRingBuffer_PutString(s_log.p_tx_buffer, (char *)s_log.p_prompt);
+	pifTask_SetTrigger(s_log.p_comm->_p_task);
+
+	s_log.cmd_done = FALSE;
 	return 0;
 }
 
@@ -381,7 +444,7 @@ BOOL pifLog_Init()
 
 	s_log.enable = TRUE;
 #ifdef __PIF_LOG_COMMAND__
-	s_log.p_task = pifTaskManager_Add(TM_PERIOD_MS, 1, _doTask, &s_log, FALSE);
+	s_log.p_task = pifTaskManager_Add(TM_EXTERNAL_ORDER, 0, _doTask, &s_log, FALSE);
 	if (!s_log.p_task) return FALSE;
 #endif
    	return TRUE;
@@ -439,10 +502,14 @@ BOOL pifLog_UseCommand(const PifLogCmdEntry* p_cmd_table, const char* p_prompt)
     }
     s_log.rx_buffer_size = PIF_LOG_RX_BUFFER_SIZE;
 
-    s_log.p_cmd_table[0] = c_cmd_table;
-    s_log.p_cmd_table[1] = p_cmd_table;
+    s_log.p_cmd_table = p_cmd_table;
     s_log.p_prompt = p_prompt;
     return TRUE;
+}
+
+void pifLog_AttachEvent(PifEvtLogControlChar evt_control_char)
+{
+	s_log.evt_control_char = evt_control_char;
 }
 
 #endif

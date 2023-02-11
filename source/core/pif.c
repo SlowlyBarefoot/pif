@@ -171,6 +171,17 @@ void pif_Delay1us(uint16_t delay)
 	} while (diff < delay);
 }
 
+void PIF_WEAK pif_ChangeStatusLed(int num, BOOL state)
+{
+	(void)num;
+	(void)state;
+}
+
+void PIF_WEAK pif_ToggleStatusLed(int num)
+{
+	(void)num;
+}
+
 void pif_ClearError()
 {
 	pif_error = E_SUCCESS;

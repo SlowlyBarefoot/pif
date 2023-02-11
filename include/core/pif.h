@@ -288,6 +288,21 @@ void pif_Delay1ms(uint16_t delay);
 void pif_Delay1us(uint16_t delay);
 
 /**
+ * @fn pif_ChangeStatusLed
+ * @brief 
+ * @param num
+ * @param state
+ */
+void PIF_WEAK pif_ChangeStatusLed(int num, BOOL state);
+
+/**
+ * @fn pif_ToggleStatusLed
+ * @brief 
+ * @param num
+ */
+void PIF_WEAK pif_ToggleStatusLed(int num);
+
+/**
  * @fn pif_ClearError
  * @brief Error를 정리하다.
  */
