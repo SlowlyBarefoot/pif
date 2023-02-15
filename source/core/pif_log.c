@@ -446,6 +446,7 @@ BOOL pifLog_Init()
 #ifdef __PIF_LOG_COMMAND__
 	s_log.p_task = pifTaskManager_Add(TM_EXTERNAL_ORDER, 0, _doTask, &s_log, FALSE);
 	if (!s_log.p_task) return FALSE;
+	s_log.p_task->name = "Log";
 #endif
    	return TRUE;
 }

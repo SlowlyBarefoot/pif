@@ -144,7 +144,11 @@ uint16_t pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner)
 
 PifTask* pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
 {
-	return pifTaskManager_Add(mode, period, _doTaskAcquire, p_owner, start);
+	PifTask* p_task;
+
+	p_task = pifTaskManager_Add(mode, period, _doTaskAcquire, p_owner, start);
+	if (p_task) p_task->name = "SensorSwitch";
+	return p_task;
 }
 
 

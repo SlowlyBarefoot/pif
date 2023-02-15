@@ -38,6 +38,7 @@ BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id)
 
 	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, 50, _doTask, p_owner, FALSE);
 	if (!p_owner->_p_task) return FALSE;
+	p_owner->_p_task->name = "HC_SR04";
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;

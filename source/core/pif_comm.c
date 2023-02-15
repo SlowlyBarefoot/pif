@@ -230,9 +230,13 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
+PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, BOOL start, const char* name)
 {
 	p_owner->_p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, start);
+	if (p_owner->_p_task) {
+		if (name) p_owner->_p_task->name = name;
+		else p_owner->_p_task->name = "Comm";
+	}
 	return p_owner->_p_task;
 }
 

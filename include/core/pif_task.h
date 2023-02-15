@@ -39,6 +39,7 @@ typedef PifTask* (*PifTaskProcessing)(PifTask* p_owner);
 struct StPifTask
 {
 	// Public Member Variable
+	const char* name;
 	BOOL pause;
 	uint8_t disallow_yield_id;		// 0 : 모두 허용, 1->255 : 해당 id는 허용하지 않음.
 

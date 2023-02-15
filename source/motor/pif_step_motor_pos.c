@@ -234,6 +234,7 @@ BOOL pifStepMotorPos_Init(PifStepMotorPos* p_owner, PifId id, PifTimerManager* p
 
     p_parent->__p_task = pifTaskManager_Add(TM_PERIOD_MS, period1ms, _doTask, p_owner, FALSE);
 	if (!p_parent->__p_task) goto fail;
+	p_parent->__p_task->name = "StepMotorPos";
     return TRUE;
 
 fail:

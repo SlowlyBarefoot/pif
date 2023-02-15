@@ -192,6 +192,7 @@ BOOL pifDutyMotorSpeed_Init(PifDutyMotorSpeed* p_owner, PifId id, PifTimerManage
 
     p_parent->__p_task = pifTaskManager_Add(TM_PERIOD_MS, period1ms, _doTask, p_owner, FALSE);
 	if (!p_parent->__p_task) goto fail;
+	p_parent->__p_task->name = "DutyMotorSpeed";
     return TRUE;
 
 fail:

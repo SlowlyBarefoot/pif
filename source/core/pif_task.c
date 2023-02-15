@@ -1,7 +1,5 @@
 #include "core/pif_list.h"
-#ifndef __PIF_NO_LOG__
-	#include "core/pif_log.h"
-#endif
+#include "core/pif_log.h"
 #include "core/pif_task.h"
 
 #include <string.h>
@@ -307,6 +305,7 @@ static BOOL _processingTask(PifTask* p_owner)
 
 static void _checkLoopTime()
 {
+	static uint8_t timer_10ms = 0;
 #if defined(__PIF_DEBUG__) || !defined(__PIF_NO_LOG__)
 	uint32_t value;
 #endif
@@ -326,9 +325,14 @@ static void _checkLoopTime()
 	pif_performance._count++;
 
 	if (pif_performance.__state & 1) {		// 1ms
-		pif_performance._use_rate = 100 - 100 * s_pass_count / s_loop_count;
-		s_loop_count = 0UL;
-		s_pass_count = 0UL;
+		if (timer_10ms) timer_10ms--;
+		else {
+			timer_10ms = 9;
+
+			pif_performance._use_rate = 100 - 100 * s_pass_count / s_loop_count;
+			s_loop_count = 0UL;
+			s_pass_count = 0UL;
+		}
 	}
 
 	if (pif_performance.__state & 2) {		// 1sec
@@ -740,26 +744,30 @@ BOOL pifTaskManager_YieldUs(uint32_t time)
 
 void pifTaskManager_Print()
 {
-#ifndef __PIF_NO_LOG__
 	PifFixListIterator it;
-	const char* mode[] = { "Ratio   ", "Always  ", "PeriodMs", "PeriodMs", "ChangeMs", "ChangeUs", "ExtCutin", "ExtOrder", "Timer   ", "Idle Ms " };
+	const char* mode[] = { "Ratio", "Always", "PeriodMs", "PeriodUs", "ChangeMs", "ChangeUs", "ExtCutin", "ExtOrder", "Timer", "IdleMs" };
 
    	pifLog_Printf(LT_NONE, "Task count: %d\n", pifFixList_Count(&s_tasks));
 	it = pifFixList_Begin(&s_tasks);
 	while (it) {
 		PifTask* p_owner = (PifTask*)it->data;
-		pifLog_Printf(LT_NONE, "  %d: %s, max=%dus, avg=%dus total=%dms", p_owner->_id, mode[p_owner->_mode],
+		if (p_owner->name) {
+			pifLog_Printf(LT_NONE, "  %s", p_owner->name);
+		}
+		else {
+			pifLog_Print(LT_NONE, "  ---");
+		}
+		pifLog_Printf(LT_NONE, " (%d): %s-%d,  proc: M=%dus, A=%dus T=%dms", p_owner->_id, mode[p_owner->_mode], p_owner->_period,
 				p_owner->_max_execution_time, p_owner->_total_execution_time / p_owner->_execution_count, p_owner->_total_execution_time / 1000);
 		if (p_owner->_total_period_time) {
-			pifLog_Printf(LT_NONE, ", period=%dus", p_owner->_total_period_time / p_owner->_period_count);
+			pifLog_Printf(LT_NONE, ",  period: %dus", p_owner->_total_period_time / p_owner->_period_count);
 		}
 		if (p_owner->_total_trigger_delay) {
-			pifLog_Printf(LT_NONE, ", delay: max=%d avg=%d us", p_owner->_max_trigger_delay, p_owner->_total_trigger_delay / p_owner->_execution_count);
+			pifLog_Printf(LT_NONE, ",  delay: M=%dus A=%dus", p_owner->_max_trigger_delay, p_owner->_total_trigger_delay / p_owner->_execution_count);
 		}
 		pifLog_Print(LT_NONE, "\n");
 		it = pifFixList_Next(it);
 	}
-#endif
 }
 
 #ifdef __PIF_DEBUG__

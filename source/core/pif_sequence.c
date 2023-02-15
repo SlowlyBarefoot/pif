@@ -145,6 +145,7 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_m
 
     p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_MS, control_period1ms, _doTask, p_owner, TRUE);
 	if (!p_owner->__p_task) goto fail;
+	p_owner->__p_task->name = "Sequence";
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	if (!pifDList_Size(&s_cs_list)) {

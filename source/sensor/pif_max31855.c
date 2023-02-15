@@ -179,6 +179,7 @@ BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period, PifEvtM
 
 	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, period, _doTask, p_owner, TRUE);
 	if (!p_owner->_p_task) return FALSE;
+	p_owner->_p_task->name = "MAX31855";
 
 	p_owner->__evt_measure = evt_measure;
 	return TRUE;

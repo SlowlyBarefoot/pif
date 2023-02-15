@@ -159,6 +159,7 @@ BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num, const char* p_use
 
 	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_MS, p_owner->__control_period_1ms, _doTask, p_owner, TRUE);
 	if (!p_owner->__p_task) goto fail;
+	p_owner->__p_task->name = "Keypad";
     return TRUE;
 
 fail:

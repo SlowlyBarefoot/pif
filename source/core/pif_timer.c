@@ -36,6 +36,7 @@ BOOL pifTimerManager_Init(PifTimerManager* p_manager, PifId id, uint32_t period1
 
     p_manager->__p_task = pifTaskManager_Add(TM_TIMER, 0, _doTask, p_manager, TRUE);
     if (!p_manager->__p_task) goto fail;
+    p_manager->__p_task->name = "Timer";
     return TRUE;
 
 fail:

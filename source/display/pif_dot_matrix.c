@@ -187,6 +187,7 @@ BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifTimerManager* p_timer
     			_doTask, p_owner, FALSE);
     }
     if (!p_owner->__p_task) goto fail;
+	p_owner->__p_task->name = "DotMatrix";
     return TRUE;
 
 fail:

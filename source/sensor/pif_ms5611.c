@@ -226,6 +226,7 @@ BOOL pifMs5611_AddTaskForReading(PifMs5611* p_owner, uint16_t read_period, PifEv
 {
 	p_owner->_p_task = pifTaskManager_Add(TM_CHANGE_MS, read_period, _doTask, p_owner, start);
     if (!p_owner->_p_task) return FALSE;
+    p_owner->_p_task->name = "MS5611";
 
     p_owner->__read_period = read_period;
     p_owner->__evt_read = evt_read;

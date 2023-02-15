@@ -241,6 +241,7 @@ BOOL pifDutyMotorPos_Init(PifDutyMotorPos* p_owner, PifId id, PifTimerManager* p
 
     p_parent->__p_task = pifTaskManager_Add(TM_PERIOD_MS, period1ms, _doTask, p_owner, FALSE);
 	if (!p_parent->__p_task) goto fail;
+	p_parent->__p_task->name = "DutyMotorPos";
 
 	p_owner->__p_encoder = p_encoder;
 #ifndef __PIF_NO_LOG__

@@ -89,6 +89,7 @@ BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifTimerManager* p_timer_manager, ui
     			_doTask, p_owner, FALSE);
     }
     if (!p_owner->__p_task) goto fail;
+	p_owner->__p_task->name = "FND";
     return TRUE;
 
 fail:
