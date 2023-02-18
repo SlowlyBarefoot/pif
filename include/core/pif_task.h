@@ -60,12 +60,12 @@ struct StPifTask
 
 	// Private Member Variable
 	PifTaskProcessing __processing;
-	volatile BOOL __trigger;
+	BOOL __trigger;
 	int __table_number;
 	uint16_t __delay_ms;
 	uint32_t __pretime;
 	uint32_t __last_execute_time;
-	volatile uint32_t __trigger_time;
+	uint32_t __trigger_time;
 #ifdef __PIF_DEBUG__
 	uint32_t __count;
 	float __period;

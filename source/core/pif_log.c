@@ -96,7 +96,7 @@ int pifLog_CmdSetStatus(int argc, char* argv[])
 	BOOL value;
 	int i;
 
-	if (argc == 1) {
+	if (argc == 0) {
     	pifLog_Printf(LT_NONE, "Use Rate: %u%%\n", pif_performance._use_rate);
 	   	pifLog_Printf(LT_NONE, "Error: %d\n", pif_error);
 	   	pifLog_Printf(LT_NONE, "Flag:\n");
@@ -107,8 +107,8 @@ int pifLog_CmdSetStatus(int argc, char* argv[])
 		}
 		return PIF_LOG_CMD_NO_ERROR;
 	}
-	else if (argc > 2) {
-		switch (argv[2][0]) {
+	else if (argc > 1) {
+		switch (argv[1][0]) {
 		case '0':
 		case 'F':
 		case 'f':
@@ -126,7 +126,7 @@ int pifLog_CmdSetStatus(int argc, char* argv[])
 		}
 		i = 0;
 		while (c_log_flags[i].p_name) {
-			if (!strcasecmp(argv[1], c_log_flags[i].p_command)) {
+			if (!strcasecmp(argv[0], c_log_flags[i].p_command)) {
 				if (value) {
 					pif_log_flag.all |= 1L << i;
 				}
@@ -304,7 +304,7 @@ static int _processDebugCmd(PifLog* p_owner)
 		p_cmd_entry = p_owner->p_cmd_table;
 		while (p_cmd_entry->p_name) {
 			if (!strcasecmp(p_owner->p_argv[0], p_cmd_entry->p_name)) {
-				return p_cmd_entry->processor(argc, p_owner->p_argv);
+				return p_cmd_entry->processor(argc - 1, &p_owner->p_argv[1]);
             }
 
 			p_cmd_entry++;
