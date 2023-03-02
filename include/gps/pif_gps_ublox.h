@@ -427,7 +427,7 @@ typedef struct StPifGpsUbloxTx
  * @class StPifGpsUblox
  * @brief
  */
-typedef struct StPifGpsUblox
+struct StPifGpsUblox
 {
 	// Public Member Variable
 
@@ -448,7 +448,7 @@ typedef struct StPifGpsUblox
 	PifComm* __p_comm;
     PifGpsUbxRx __rx;
 	PifGpsUbloxTx __tx;
-} PifGpsUblox;
+};
 
 
 #ifdef __cplusplus
