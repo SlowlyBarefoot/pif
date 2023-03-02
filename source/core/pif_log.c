@@ -62,11 +62,9 @@ int pifLog_CmdHelp(int argc, char *argv[])
         p_entry = &s_log.p_cmd_table[i];
         if (!p_entry->p_name) break;
 
+        pifLog_Printf(LT_NONE, "  %s - %s\n", p_entry->p_name, p_entry->p_help);
     	if (p_entry->p_args) {
-            pifLog_Printf(LT_NONE, "  %s - %s\n\t%s\n", p_entry->p_name, p_entry->p_help, p_entry->p_args);
-    	}
-    	else {
-            pifLog_Printf(LT_NONE, "  %s - %s\n", p_entry->p_name, p_entry->p_help);
+            pifLog_Printf(LT_NONE, "\t%s\n", p_entry->p_args);
     	}
         i++;
     }
@@ -353,20 +351,25 @@ static uint16_t _doTask(PifTask* p_task)
 
 	case PIF_LOG_CMD_TOO_MANY_ARGS:
 		// Handle the case of too many arguments.
-		pifRingBuffer_PutString(s_log.p_tx_buffer, "Too many arguments for command!\n");
+		pifRingBuffer_PutString(s_log.p_tx_buffer, "Too many arguments!\n");
 		pifTask_SetTrigger(s_log.p_comm->_p_task);
 		break;
 
 	case PIF_LOG_CMD_TOO_FEW_ARGS:
 		// Handle the case of too few arguments.
-		pifRingBuffer_PutString(s_log.p_tx_buffer, "Too few arguments for command!\n");
+		pifRingBuffer_PutString(s_log.p_tx_buffer, "Too few arguments!\n");
+		pifTask_SetTrigger(s_log.p_comm->_p_task);
+		break;
+
+	case PIF_LOG_CMD_INVALID_ARG:
+		pifRingBuffer_PutString(s_log.p_tx_buffer, "Invalid arguments!\n");
 		pifTask_SetTrigger(s_log.p_comm->_p_task);
 		break;
 
 	default:
 		// Otherwise the command was executed.  Print the error
 		// code if one was returned.
-		if (status != PIF_LOG_CMD_NO_ERROR) {
+		if (status < PIF_LOG_CMD_NO_ERROR && status > PIF_LOG_CMD_USER_ERROR) {
 			pif_Printf(msg, "Command returned error code: %d\n", status);
 			pifRingBuffer_PutString(s_log.p_tx_buffer, msg);
 			pifTask_SetTrigger(s_log.p_comm->_p_task);

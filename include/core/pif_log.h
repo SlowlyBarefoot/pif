@@ -13,6 +13,7 @@
 #define PIF_LOG_CMD_TOO_MANY_ARGS   (-2)
 #define PIF_LOG_CMD_TOO_FEW_ARGS   	(-3)
 #define PIF_LOG_CMD_INVALID_ARG		(-4)
+#define PIF_LOG_CMD_USER_ERROR		(-10)	// User defined error
 
 
 typedef enum EnPifLogType

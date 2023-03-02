@@ -198,10 +198,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 	PifGpsUbxPacket* p_packet = &p_owner->__rx.packet;
 	PifGps *p_parent = &p_owner->_gps;
     int i;
-    static BOOL _new_position = FALSE;
     static BOOL next_fix = FALSE;
-    static BOOL _new_speed = FALSE;
-    BOOL error = FALSE;
 
     if (!p_owner->_gps.evt_receive) return;
 
@@ -222,11 +219,9 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
         	switch (p_packet->msg_id) {
         	case GUMI_ACK_ACK:
         	case GUMI_ACK_NAK:
-        		if (p_owner->evt_ubx_cfg_result) (*p_owner->evt_ubx_cfg_result)(p_owner, p_packet->msg_id);
         		break;
 
             default:
-            	error = TRUE;
 #ifndef __PIF_NO_LOG__
         		pifLog_Printf(LT_ERROR, "GU:%u(%u) %s CID:%x MID:%x", __LINE__, p_owner->_gps._id, kPktErr[PKT_ERR_UNKNOWE_ID], p_packet->class_id, p_packet->msg_id);
 #endif
@@ -243,7 +238,6 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
                 	p_parent->_horizontal_acc = p_packet->payload.posllh.h_acc;
                 	p_parent->_vertical_acc = p_packet->payload.posllh.v_acc;
                     p_parent->_fix = next_fix;
-                    _new_position = TRUE;
                     // Update GPS update rate table.
                     p_parent->_update_rate[0] = p_parent->_update_rate[1];
                     p_parent->_update_rate[1] = pif_cumulative_timer1ms;
@@ -302,11 +296,9 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
                 case GUMI_NAV_VELNED:
                 	p_parent->_ground_speed = p_packet->payload.velned.speed;
                 	p_parent->_ground_course = p_packet->payload.velned.heading / 100000.0;
-                    _new_speed = TRUE;
                     break;
 
                 default:
-                	error = TRUE;
 #ifndef __PIF_NO_LOG__
             		pifLog_Printf(LT_ERROR, "GU:%u(%u) %s CID:%x MID:%x", __LINE__, p_owner->_gps._id, kPktErr[PKT_ERR_UNKNOWE_ID], p_packet->class_id, p_packet->msg_id);
 #endif
@@ -315,19 +307,16 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
         	break;
 
 		default:
-        	error = TRUE;
 #ifndef __PIF_NO_LOG__
 			pifLog_Printf(LT_ERROR, "GU:%u(%u) %s CID:%x", __LINE__, p_owner->_gps._id, kPktErr[PKT_ERR_UNKNOWE_ID], p_packet->class_id);
 #endif
 			break;
         }
 
-    	if (!error && p_owner->evt_ubx_receive) (*p_owner->evt_ubx_receive)(p_packet);
+		if (p_owner->evt_ubx_receive) {
+			if ((*p_owner->evt_ubx_receive)(p_owner, p_packet)) pifGps_SendEvent(&p_owner->_gps);
+		}
 
-        if (_new_position && _new_speed) {
-			pifGps_SendEvent(&p_owner->_gps);
-            _new_speed = _new_position = FALSE;
-        }
     	p_owner->__rx.state = GURS_SYNC_CHAR_1;
     }
 }

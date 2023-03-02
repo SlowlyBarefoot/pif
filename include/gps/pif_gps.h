@@ -37,6 +37,10 @@
 
 #define PIF_GPS_NMEA_MSG_ID_MAX		15
 
+#ifndef PIF_GPS_SV_MAXSATS
+#define PIF_GPS_SV_MAXSATS			16
+#endif
+
 
 typedef struct StPifGpsNmeaTxt
 {
@@ -50,6 +54,7 @@ typedef uint8_t PifGpsNmeaMsgId;
 
 typedef struct StPifGps PifGps;
 
+typedef BOOL (*PifEvtGpsNmeaReceive)(PifGps* p_owner, PifGpsNmeaMsgId msg_id);
 typedef void (*PifEvtGpsReceive)(PifGps* p_owner);
 typedef void (*PifEvtGpsTimeout)(PifGps* p_owner);
 
@@ -78,10 +83,10 @@ typedef struct StPifDegMinSec
 struct StPifGps
 {
 	// Public Member Variable
-    PifGpsNmeaMsgId evt_nmea_msg_id;
 
     // Private Event Function
-	PifEvtGpsReceive evt_receive;
+    PifEvtGpsNmeaReceive evt_nmea_receive;
+    PifEvtGpsReceive evt_receive;
     PifEvtGpsNmeaFrame evt_frame;
 
     // Read-only Member Variable
@@ -97,10 +102,17 @@ struct StPifGps
 	uint8_t _num_sat;
 	BOOL _fix		: 1;
 	BOOL _connect	: 1;
+	uint8_t _sv_num_sv;
+	uint8_t _sv_chn[PIF_GPS_SV_MAXSATS];     // Channel number
+	uint8_t _sv_svid[PIF_GPS_SV_MAXSATS];    // Satellite ID
+	uint8_t _sv_quality[PIF_GPS_SV_MAXSATS]; // Bitfield Qualtity
+	uint8_t _sv_cno[PIF_GPS_SV_MAXSATS];     // Carrier to Noise Ratio (Signal Strength)
+	uint32_t _sv_received_count;
 
 	// Private Member Variable
 	PifTimer* __p_timer;
     PifGpsNmeaTxt* __p_txt;
+	uint8_t __sv_msg_num;
 
     // Private Event Function
 	PifEvtGpsTimeout __evt_timeout;
