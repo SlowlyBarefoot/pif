@@ -50,7 +50,7 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSen
 #endif
 
     if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, HMC5883_REG_CONFIG_B, HMC5883_CONFIG_B_GAIN, data)) goto fail;
-    _changeGain(p_imu_sensor, (PifHmc5883Gain)data);
+    _changeGain(p_imu_sensor, (PifHmc5883Gain)data[0]);
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
