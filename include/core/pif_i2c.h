@@ -98,9 +98,10 @@ void pifI2cPort_Clear(PifI2cPort* p_owner);
  * @fn pifI2cPort_AddDevice
  * @brief
  * @param p_owner
+ * @param addr
  * @return
  */
-PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner);
+PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, uint8_t addr);
 
 /**
  * @fn pifI2cPort_RemoveDevice
@@ -109,6 +110,15 @@ PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner);
  * @param p_device
  */
 void pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device);
+
+/**
+ * @fn pifI2cPort_TemporaryDevice
+ * @brief
+ * @param p_owner
+ * @param addr
+ * @return
+ */
+PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr);
 
 #ifndef __PIF_NO_LOG__
 

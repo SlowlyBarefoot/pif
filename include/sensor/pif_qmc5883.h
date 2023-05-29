@@ -132,6 +132,14 @@ extern "C" {
 #endif
 
 /**
+ * @fn pifQmc5883_Detect
+ * @brief
+ * @param p_i2c
+ * @return
+ */
+BOOL pifQmc5883_Detect(PifI2cPort* p_i2c);
+
+/**
  * @fn pifQmc5883_Init
  * @brief
  * @param p_owner

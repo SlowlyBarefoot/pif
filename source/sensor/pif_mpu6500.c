@@ -18,11 +18,31 @@ static BOOL _changeAccelFsSel(PifImuSensor* p_imu_sensor, PifMpu6500AccelFsSel a
 	return TRUE;
 }
 
-BOOL pifMpu6500_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor)
+BOOL pifMpu6500_Detect(PifI2cPort* p_i2c, uint8_t addr)
 {
 #ifndef __PIF_NO_LOG__	
 	const char ident[] = "MPU6500 Ident: ";
 #endif	
+	uint8_t data;
+	PifI2cDevice* p_device;
+
+    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr);
+
+	if (!pifI2cDevice_ReadRegByte(p_device, MPU6500_REG_WHO_AM_I, &data)) return FALSE;
+	if (data != 0x70) return FALSE;
+#ifndef __PIF_NO_LOG__	
+	if (data < 32) {
+		pifLog_Printf(LT_INFO, "%s%Xh", ident, data >> 1);
+	}
+	else {
+		pifLog_Printf(LT_INFO, "%s%c", ident, data >> 1);
+	}
+#endif
+	return TRUE;
+}
+
+BOOL pifMpu6500_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor)
+{
 	uint8_t data;
 	BOOL change;
 	PifMpu6500PwrMgmt1 pwr_mgmt_1;
@@ -34,24 +54,8 @@ BOOL pifMpu6500_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
 
 	memset(p_owner, 0, sizeof(PifMpu6500));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, addr);
     if (!p_owner->_p_i2c) return FALSE;
-
-    p_owner->_p_i2c->addr = addr;
-
-	if (!pifI2cDevice_ReadRegByte(p_owner->_p_i2c, MPU6500_REG_WHO_AM_I, &data)) goto fail;
-	if (data != 0x70) {
-		pif_error = E_INVALID_ID;
-		goto fail;
-	}
-#ifndef __PIF_NO_LOG__	
-	if (data < 32) {
-		pifLog_Printf(LT_INFO, "%s%Xh", ident, data >> 1);
-	}
-	else {
-		pifLog_Printf(LT_INFO, "%s%c", ident, data >> 1);
-	}
-#endif
 
     if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU6500_REG_GYRO_CONFIG, MPU6500_GYRO_CONFIG_GYRO_FS_SEL, &data)) goto fail;
     if (!_changeFsSel(p_imu_sensor, data)) goto fail;

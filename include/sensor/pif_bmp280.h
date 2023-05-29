@@ -157,6 +157,17 @@ extern "C" {
 #endif
 
 /**
+ * @fn pifBmp280_Detect
+ * @brief
+ * @param p_owner
+ * @param id
+ * @param p_i2c
+ * @param addr
+ * @return
+ */
+BOOL pifBmp280_Detect(PifI2cPort* p_i2c, uint8_t addr);
+
+/**
  * @fn pifBmp280_Init
  * @brief
  * @param p_owner

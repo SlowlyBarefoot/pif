@@ -127,7 +127,7 @@ static uint16_t _doTask(PifTask* p_task)
 	return delay;
 }
 
-BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr)
+BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifMs5611Param* p_param)
 {
 	int i;
 
@@ -138,10 +138,8 @@ BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t add
 
 	memset(p_owner, 0, sizeof(PifMs5611));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, addr);
     if (!p_owner->_p_i2c) return FALSE;
-
-    p_owner->_p_i2c->addr = addr;
 
 	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MS5611_REG_RESET, 0)) goto fail;
 	pifTaskManager_YieldMs(100);
@@ -151,7 +149,15 @@ BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t add
 	}
 	if (!_checkPromCrc(p_owner)) goto fail;
 
-    pifMs5611_SetOverSamplingRate(p_owner, MS5611_OSR_1024);
+	if (p_param) {
+		pifMs5611_SetOverSamplingRate(p_owner, p_param->osr);
+
+		if (!pifMs5611_AddTaskForReading(p_owner, p_param->read_period, p_param->evt_read, FALSE)) goto fail;
+		p_owner->_p_task->disallow_yield_id = p_param->disallow_yield_id;
+	}
+	else {
+		pifMs5611_SetOverSamplingRate(p_owner, MS5611_OSR_1024);
+	}
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;

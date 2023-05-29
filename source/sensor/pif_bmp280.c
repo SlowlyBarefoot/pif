@@ -110,9 +110,20 @@ static uint16_t _doTask(PifTask* p_task)
 	return delay;
 }
 
-BOOL pifBmp280_Init(PifBmp280* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr)
+BOOL pifBmp280_Detect(PifI2cPort* p_i2c, uint8_t addr)
 {
 	uint8_t data;
+	PifI2cDevice* p_device;
+
+    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr);
+
+	if (!pifI2cDevice_ReadRegByte(p_device, BMP280_REG_ID, &data)) return FALSE;
+	if (data != 0x58) return FALSE;
+	return TRUE;
+}
+
+BOOL pifBmp280_Init(PifBmp280* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr)
+{
 	PifBmp280CtrlMeas ctrl_meas;
 
 	if (!p_owner) {
@@ -122,16 +133,8 @@ BOOL pifBmp280_Init(PifBmp280* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t add
 
 	memset(p_owner, 0, sizeof(PifBmp280));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, addr);
     if (!p_owner->_p_i2c) return FALSE;
-
-    p_owner->_p_i2c->addr = addr;
-
-	if (!pifI2cDevice_ReadRegByte(p_owner->_p_i2c, BMP280_REG_ID, &data)) goto fail;
-	if (data != 0x58) {
-		pif_error = E_INVALID_ID;
-		goto fail;
-	}
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;

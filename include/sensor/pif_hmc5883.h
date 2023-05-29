@@ -33,7 +33,9 @@ typedef enum EnPifHmc5883MeasureMode
 {
     HMC5883_MEASURE_MODE_NORMAL,		// Default
     HMC5883_MEASURE_MODE_POS_BIAS,
-    HMC5883_MEASURE_MODE_NEG_BIAS
+    HMC5883_MEASURE_MODE_NEG_BIAS,
+
+    HMC5883_MEASURE_MODE_DEFAULT	= 0
 } PifHmc5883MeasureMode;
 
 typedef enum EnPifHmc5883DataRate
@@ -44,7 +46,9 @@ typedef enum EnPifHmc5883DataRate
     HMC5883_DATARATE_7_5HZ,
     HMC5883_DATARATE_15HZ,				// Default
     HMC5883_DATARATE_30HZ,
-    HMC5883_DATARATE_75HZ
+    HMC5883_DATARATE_75HZ,
+
+	HMC5883_DATARATE_DEFAULT	= 4
 } PifHmc5883DataRate;
 
 typedef enum EnPifHmc5883Samples
@@ -83,6 +87,8 @@ typedef enum EnPifHmc5883Gain
 	HMC5883_GAIN_4_7GA,
 	HMC5883_GAIN_5_6GA,
 	HMC5883_GAIN_8_1GA,
+
+	HMC5883_GAIN_DEFAULT	= 1
 } PifHmc5883Gain;
 
 #define HMC5883_CONFIG_B_GAIN		0x0503		// Use pifHmc5883_SetGain to change this value.
@@ -103,7 +109,9 @@ typedef enum EnPifHmc5883Mode
 {
     HMC5883_MODE_CONTINOUS,
     HMC5883_MODE_SINGLE,			// Default
-    HMC5883_MODE_IDLE
+    HMC5883_MODE_IDLE,
+
+    HMC5883_MODE_DEFAULT	= 1
 } PifHmc5883Mode;
 
 #define HMC5883_MODE_MODE			0x0002
@@ -119,6 +127,18 @@ typedef union StPifHmc5883ModeReg
 	} bit;
 } PifHmc5883ModeReg;
 
+
+/**
+ * @class StPifHmc5883Param
+ * @brief
+ */
+typedef struct StPifHmc5883Param
+{
+	PifHmc5883DataRate data_rate;
+	PifHmc5883Gain gain;
+	PifHmc5883Mode mode;
+	PifHmc5883Samples samples;
+} PifHmc5883Param;
 
 /**
  * @class StPifHmc5883
@@ -143,15 +163,24 @@ extern "C" {
 #endif
 
 /**
+ * @fn pifHmc5883_Detect
+ * @brief
+ * @param p_i2c
+ * @return
+ */
+BOOL pifHmc5883_Detect(PifI2cPort* p_i2c);
+
+/**
  * @fn pifHmc5883_Init
  * @brief
  * @param p_owner
  * @param id
  * @param p_i2c
+ * @param p_param
  * @param p_imu_sensor
  * @return
  */
-BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSensor* p_imu_sensor);
+BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifHmc5883Param* p_param, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifHmc5883_Clear

@@ -30,7 +30,7 @@ void pifI2cPort_Clear(PifI2cPort* p_owner)
 	pifFixList_Clear(&p_owner->__devices, NULL);
 }
 
-PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner)
+PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, uint8_t addr)
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -41,6 +41,7 @@ PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner)
     if (!p_device) return FALSE;
 
     p_device->__p_port = p_owner;
+	p_device->addr = addr;
     p_device->timeout = 10;		// 10ms
     return p_device;
 }
@@ -51,6 +52,16 @@ void pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device)
 		pifFixList_Remove(&p_owner->__devices, p_device);
 		p_device = NULL;
 	}
+}
+
+PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr)
+{
+	static PifI2cDevice device;
+
+	device.__p_port = p_owner;
+	device.addr = addr;
+	device._state = IS_IDLE;
+	return &device;
 }
 
 #ifndef __PIF_NO_LOG__

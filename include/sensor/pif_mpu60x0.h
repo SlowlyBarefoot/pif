@@ -553,6 +553,19 @@ typedef union StPifMpu60x0PwrMgmt2
 
 
 /**
+ * @class StPifMpu60x0Param
+ * @brief
+ */
+typedef struct StPifMpu60x0Param
+{
+	uint8_t smplrt_div;
+	PifMpu60x0DlpfCfg dlpf_cfg;
+	PifMpu60x0FsSel fs_sel;
+	PifMpu60x0AfsSel afs_sel;
+	PifMpu60x0Clksel clksel;
+} PifMpu60x0Param;
+
+/**
  * @class StPifMpu60x0
  * @brief
  */
@@ -577,16 +590,26 @@ extern "C" {
 #endif
 
 /**
+ * @fn pifMpu60x0_Detect
+ * @brief
+ * @param p_i2c
+ * @param addr
+ * @return
+ */
+BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr);
+
+/**
  * @fn pifMpu60x0_Init
  * @brief
  * @param p_owner
  * @param id
  * @param p_i2c
  * @param addr
+ * @param p_param
  * @param p_imu_sensor
  * @return
  */
-BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor);
+BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifMpu60x0Param* p_param, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu60x0_Clear

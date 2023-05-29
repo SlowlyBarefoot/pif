@@ -65,10 +65,9 @@ BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cP
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port);
+	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, addr);
     if (!p_owner->_p_i2c) return FALSE;
 
-    p_owner->_p_i2c->addr = addr;
     switch (type) {
     case ADS1X1X_TYPE_1115: p_owner->__resolution = 16; p_owner->__channels = 4; break;
     case ADS1X1X_TYPE_1114: p_owner->__resolution = 16; p_owner->__channels = 1; break;

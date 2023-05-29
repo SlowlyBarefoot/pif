@@ -671,6 +671,15 @@ extern "C" {
 #endif
 
 /**
+ * @fn pifMpu6500_Detect
+ * @brief
+ * @param p_i2c
+ * @param addr
+ * @return
+ */
+BOOL pifMpu6500_Detect(PifI2cPort* p_i2c, uint8_t addr);
+
+/**
  * @fn pifMpu6500_Init
  * @brief
  * @param p_owner

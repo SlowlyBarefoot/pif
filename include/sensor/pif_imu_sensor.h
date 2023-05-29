@@ -53,9 +53,9 @@ typedef struct StPifImuSensor
 
 	// Read-only Member Variable
 	uint8_t	_measure;			// IMU_MEASURE_XXX
-	double _gyro_gain;			// LSB/degree/s
-	uint16_t _accel_gain;		// LSB/g
-	uint16_t _mag_gain;			// LSB/Gauss
+	float _gyro_gain;			// LSB/degree/s
+	float _accel_gain;			// LSB/g
+	float _mag_gain;			// LSB/Gauss
 
 	// Private Member Variable
 	PifImuSensorInfo __gyro_info;
@@ -101,40 +101,22 @@ void pifImuSensor_InitBoardAlignment(PifImuSensor* p_owner, int16_t board_align_
 void pifImuSensor_SetGyroAlign(PifImuSensor* p_owner, PifImuSensorAlign align);
 
 /**
- * @fn pifImuSensor_ReadGyro2
+ * @fn pifImuSensor_ReadRawGyro
  * @brief
  * @param p_owner
  * @param p_gyro
  * @return
  */
-BOOL pifImuSensor_ReadGyro2(PifImuSensor* p_owner, int16_t* p_gyro);
+BOOL pifImuSensor_ReadRawGyro(PifImuSensor* p_owner, float* p_gyro);
 
 /**
- * @fn pifImuSensor_ReadGyro4
+ * @fn pifImuSensor_ReadGyro
  * @brief
  * @param p_owner
  * @param p_gyro
  * @return
  */
-BOOL pifImuSensor_ReadGyro4(PifImuSensor* p_owner, int32_t* p_gyro);
-
-/**
- * @fn pifImuSensor_ReadNormalizeGyro2
- * @brief
- * @param p_owner
- * @param p_gyro
- * @return
- */
-BOOL pifImuSensor_ReadNormalizeGyro2(PifImuSensor* p_owner, float* p_gyro);
-
-/**
- * @fn pifImuSensor_ReadNormalizeGyro4
- * @brief
- * @param p_owner
- * @param p_gyro
- * @return
- */
-BOOL pifImuSensor_ReadNormalizeGyro4(PifImuSensor* p_owner, float* p_gyro);
+BOOL pifImuSensor_ReadGyro(PifImuSensor* p_owner, float* p_gyro);
 
 /**
  * @fn pifImuSensor_SetAccelAlign
@@ -145,40 +127,22 @@ BOOL pifImuSensor_ReadNormalizeGyro4(PifImuSensor* p_owner, float* p_gyro);
 void pifImuSensor_SetAccelAlign(PifImuSensor* p_owner, PifImuSensorAlign align);
 
 /**
- * @fn pifImuSensor_ReadAccel2
+ * @fn pifImuSensor_ReadRawAccel
  * @brief
  * @param p_owner
  * @param p_accel
  * @return
  */
-BOOL pifImuSensor_ReadAccel2(PifImuSensor* p_owner, int16_t* p_accel);
+BOOL pifImuSensor_ReadRawAccel(PifImuSensor* p_owner, float* p_accel);
 
 /**
- * @fn pifImuSensor_ReadAccel4
+ * @fn pifImuSensor_ReadAccel
  * @brief
  * @param p_owner
  * @param p_accel
  * @return
  */
-BOOL pifImuSensor_ReadAccel4(PifImuSensor* p_owner, int32_t* p_accel);
-
-/**
- * @fn pifImuSensor_ReadNormalizeAccel2
- * @brief
- * @param p_owner
- * @param p_accel
- * @return
- */
-BOOL pifImuSensor_ReadNormalizeAccel2(PifImuSensor* p_owner, float* p_accel);
-
-/**
- * @fn pifImuSensor_ReadNormalizeAccel4
- * @brief
- * @param p_owner
- * @param p_accel
- * @return
- */
-BOOL pifImuSensor_ReadNormalizeAccel4(PifImuSensor* p_owner, float* p_accel);
+BOOL pifImuSensor_ReadAccel(PifImuSensor* p_owner, float* p_accel);
 
 /**
  * @fn pifImuSensor_SetMagAlign
@@ -189,22 +153,22 @@ BOOL pifImuSensor_ReadNormalizeAccel4(PifImuSensor* p_owner, float* p_accel);
 void pifImuSensor_SetMagAlign(PifImuSensor* p_owner, PifImuSensorAlign align);
 
 /**
- * @fn pifImuSensor_ReadMag2
+ * @fn pifImuSensor_ReadRawMag
  * @brief
  * @param p_owner
  * @param p_mag
  * @return
  */
-BOOL pifImuSensor_ReadMag2(PifImuSensor* p_owner, int16_t* p_mag);
+BOOL pifImuSensor_ReadRawMag(PifImuSensor* p_owner, float* p_mag);
 
 /**
- * @fn pifImuSensor_ReadMag4
+ * @fn pifImuSensor_ReadMag
  * @brief
  * @param p_owner
  * @param p_mag
  * @return
  */
-BOOL pifImuSensor_ReadMag4(PifImuSensor* p_owner, int32_t* p_mag);
+BOOL pifImuSensor_ReadMag(PifImuSensor* p_owner, float* p_mag);
 
 #ifdef __cplusplus
 }
