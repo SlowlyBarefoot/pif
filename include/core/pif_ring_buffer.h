@@ -98,6 +98,13 @@ BOOL pifRingBuffer_InitStatic(PifRingBuffer* p_owner, PifId id, uint16_t size, u
 void pifRingBuffer_Clear(PifRingBuffer* p_owner);
 
 /**
+ * @fn pifRingBuffer_Empty
+ * @brief
+ * @param p_owner
+ */
+void pifRingBuffer_Empty(PifRingBuffer* p_owner);
+
+/**
  * @fn pifRingBuffer_ResizeHeap
  * @brief
  * @param p_owner
@@ -122,6 +129,15 @@ void pifRingBuffer_SetName(PifRingBuffer* p_owner, const char* p_name);
  * @return
  */
 uint8_t* pifRingBuffer_GetTailPointer(PifRingBuffer* p_owner, uint16_t pos);
+
+/**
+ * @fn pifRingBuffer_MoveHeadForLinear
+ * @brief
+ * @param p_owner
+ * @param size
+ * @return
+ */
+BOOL pifRingBuffer_MoveHeadForLinear(PifRingBuffer* p_owner, uint16_t size);
 
 /**
  * @fn pifRingBuffer_ChopsOffNone

@@ -56,6 +56,7 @@ typedef BOOL (*PifActCommStartTransfer)(PifComm* p_comm);
 
 typedef void (*PifEvtCommParsing)(void* p_client, PifActCommReceiveData act_receive_data);
 typedef BOOL (*PifEvtCommSending)(void* p_client, PifActCommSendData act_send_data);
+typedef void (*PifEvtCommAbortRx)(void* p_client);
 
 typedef enum EnPifCommTxState
 {
@@ -77,6 +78,9 @@ struct StPifComm
     PifActCommSendData act_send_data;
     PifActCommStartTransfer act_start_transfer;
 
+    // Public Event Function
+    PifEvtCommAbortRx evt_abort_rx;
+
 	// Read-only Member Variable
     PifId _id;
     PifRingBuffer* _p_tx_buffer;
@@ -88,7 +92,7 @@ struct StPifComm
     PifCommTxState __state;
     uint16_t __rx_threshold;
 
-    // Public Event Function
+    // Private Event Function
     PifEvtCommParsing __evt_parsing;
     PifEvtCommSending __evt_sending;
 };
@@ -246,6 +250,13 @@ void pifComm_FinishTransfer(PifComm* p_owner);
  * @param p_owner
  */
 void pifComm_ForceSendData(PifComm* p_owner);
+
+/**
+ * @fn pifComm_AbortRx
+ * @brief
+ * @param p_owner
+ */
+void pifComm_AbortRx(PifComm* p_owner);
 
 /**
  * @fn pifComm_AttachTask

@@ -16,12 +16,21 @@
  */
 typedef struct StPifGy86Param
 {
-	PifMpu60x0Param mpu60x0;
+	PifMpu60x0AfsSel mpu60x0_afs_sel;
+	PifMpu60x0Clksel mpu60x0_clksel;
+	PifMpu60x0DlpfCfg mpu60x0_dlpf_cfg;
+	PifMpu60x0FsSel mpu60x0_fs_sel;
 	PifMpu60x0I2cMstClk mpu60x0_i2c_mst_clk;
 
-	PifHmc5883Param hmc5883;
+	PifHmc5883DataRate hmc5883_data_rate;
+	PifHmc5883Gain hmc5883_gain;
+	PifHmc5883Mode hmc5883_mode;
+	PifHmc5883Samples hmc5883_samples;
 
-	PifMs5611Param ms5611;
+	PifMs5611Osr ms5611_osr;
+	uint16_t ms5611_read_period;
+	PifEvtBaroRead ms5611_evt_read;
+	uint8_t disallow_yield_id;
 } PifGy86Param;
 
 /**
@@ -46,6 +55,13 @@ typedef struct StPifGy86
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @fn pifGy86_InitParam
+ * @brief
+ * @return
+ */
+PifGy86Param* pifGy86_InitParam();
 
 /**
  * @fn pifGy86_Detect

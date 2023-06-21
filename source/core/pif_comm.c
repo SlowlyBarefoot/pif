@@ -213,6 +213,12 @@ void pifComm_ForceSendData(PifComm* p_owner)
 	if (p_owner->__evt_sending) _sendData(p_owner);
 }
 
+void pifComm_AbortRx(PifComm* p_owner)
+{
+	pifRingBuffer_Empty(p_owner->_p_rx_buffer);
+	if (p_owner->evt_abort_rx) (*p_owner->evt_abort_rx)(p_owner->__p_client);
+}
+
 static uint16_t _doTask(PifTask* p_task)
 {
 	PifComm *p_owner = p_task->_p_client;

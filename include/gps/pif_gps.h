@@ -113,6 +113,10 @@ struct StPifGps
 	PifTimer* __p_timer;
     PifGpsNmeaTxt* __p_txt;
 	uint8_t __sv_msg_num;
+	PifGpsNmeaMsgId __msg_id;
+	uint8_t __param, __offset, __parity;
+	char __string[PIF_GPS_NMEA_VALUE_SIZE];
+	uint8_t __checksum_param;
 
     // Private Event Function
 	PifEvtGpsTimeout __evt_timeout;
@@ -171,10 +175,9 @@ void pifGps_SendEvent(PifGps* p_owner);
  * @fn pifGps_ParsingNmea
  * @brief
  * @param p_owner
- * @param p_owner
- * @return
+ * @param c
  */
-BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c);
+void pifGps_ParsingNmea(PifGps* p_owner, uint8_t c);
 
 /**
  * @fn pifGps_ConvertLatitude2DegMin

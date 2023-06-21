@@ -249,12 +249,12 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
 	return TRUE;
 }
 
-static BOOL _processingTask(PifTask* p_owner)
+static void _processingTask(PifTask* p_owner)
 {
 	uint16_t period;
 	uint32_t start_time, execute_time;
 
-	if (s_task_stack_ptr >= PIF_TASK_STACK_SIZE) return FALSE;
+	if (s_task_stack_ptr >= PIF_TASK_STACK_SIZE) return;
 
 #ifdef __PIF_DEBUG__
     if (pif_act_task_signal) (*pif_act_task_signal)(TRUE);
@@ -300,7 +300,6 @@ static BOOL _processingTask(PifTask* p_owner)
 	default:
 		break;
 	}
-	return TRUE;
 }
 
 static void _checkLoopTime()
@@ -613,7 +612,7 @@ void pifTaskManager_Loop()
 	s_pass_count += i - t;
 }
 
-BOOL pifTaskManager_Yield()
+void pifTaskManager_Yield()
 {
 	PifTask* p_owner;
 	PifTask* p_select = NULL;
@@ -621,12 +620,11 @@ BOOL pifTaskManager_Yield()
 	PifFixListIterator it_idle = NULL;
 	int i, k, n, t = 0, count = pifFixList_Count(&s_tasks);
 	BOOL trigger = FALSE;
-	BOOL rtn = TRUE;
 
 	if (pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
 
 	if (!s_it_current) {
-		if (!count) return FALSE;
+		if (!count) return;
 		s_it_current = pifFixList_Begin(&s_tasks);
 	}
 
@@ -691,7 +689,7 @@ next:
 			if (p_select->_trigger_delay > p_select->_max_trigger_delay) p_select->_max_trigger_delay = p_select->_trigger_delay;
 			p_select->_total_trigger_delay += p_select->_trigger_delay;
 		}
-	    rtn = _processingTask(p_select);
+	    _processingTask(p_select);
 	}
 	else if (p_idle) {
 		i = n;
@@ -702,44 +700,88 @@ next:
 		else {
 			s_it_current = it_idle;
 		}
-	    rtn = _processingTask(p_idle);
+	    _processingTask(p_idle);
 	}
 	s_pass_count += i - t;
-    return rtn;
 }
 
-BOOL pifTaskManager_YieldMs(uint32_t time)
+void pifTaskManager_YieldMs(uint32_t time)
 {
     uint32_t start;
 
-    if (!time) return FALSE;
+    if (!time) return;
 
     start = pif_cumulative_timer1ms;
     do {
-		if (!pifTaskManager_Yield()) return FALSE;
+		pifTaskManager_Yield();
     } while (pif_cumulative_timer1ms - start <= time);
-    return TRUE;
 }
 
-BOOL pifTaskManager_YieldUs(uint32_t time)
+void pifTaskManager_YieldUs(uint32_t time)
 {
     uint32_t start;
 
-    if (!time) return FALSE;
+    if (!time) return;
 
     if (!pif_act_timer1us) {
         start = pif_cumulative_timer1ms * 1000;
         do {
-    		if (!pifTaskManager_Yield()) return FALSE;
+    		pifTaskManager_Yield();
 		} while (pif_cumulative_timer1ms * 1000 - start <= time);
     }
     else {
     	start = (*pif_act_timer1us)();
 		do {
-			if (!pifTaskManager_Yield()) return FALSE;
+			pifTaskManager_Yield();
 		} while ((*pif_act_timer1us)() - start <= time);
     }
-    return TRUE;
+}
+
+void pifTaskManager_YieldAbort(PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer)
+{
+    if (!p_check_abort) return;
+
+    while (1) {
+		pifTaskManager_Yield();
+		if ((*p_check_abort)(p_issuer)) break;
+    }
+}
+
+void pifTaskManager_YieldAbortMs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer)
+{
+    uint32_t start;
+
+    if (!time) return;
+    if (!p_check_abort) return;
+
+    start = pif_cumulative_timer1ms;
+    do {
+		pifTaskManager_Yield();
+		if ((*p_check_abort)(p_issuer)) break;
+    } while (pif_cumulative_timer1ms - start <= time);
+}
+
+void pifTaskManager_YieldAbortUs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer)
+{
+    uint32_t start;
+
+    if (!time) return;
+    if (!p_check_abort) return;
+
+    if (!pif_act_timer1us) {
+        start = pif_cumulative_timer1ms * 1000;
+        do {
+    		pifTaskManager_Yield();
+   			if ((*p_check_abort)(p_issuer)) break;
+		} while (pif_cumulative_timer1ms * 1000 - start <= time);
+    }
+    else {
+    	start = (*pif_act_timer1us)();
+		do {
+			pifTaskManager_Yield();
+			if ((*p_check_abort)(p_issuer)) break;
+		} while ((*pif_act_timer1us)() - start <= time);
+    }
 }
 
 void pifTaskManager_Print()

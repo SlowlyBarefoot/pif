@@ -56,7 +56,9 @@ typedef enum EnPifHmc5883Samples
     HMC5883_SAMPLES_1,					// Default
     HMC5883_SAMPLES_2,
     HMC5883_SAMPLES_4,
-    HMC5883_SAMPLES_8
+    HMC5883_SAMPLES_8,
+
+	HMC5883_SAMPLES_DEFAULT	= 0
 } PifHmc5883Samples;
 
 #define HMC5883_CONFIG_A_MEASURE_MODE		0x0002
@@ -129,18 +131,6 @@ typedef union StPifHmc5883ModeReg
 
 
 /**
- * @class StPifHmc5883Param
- * @brief
- */
-typedef struct StPifHmc5883Param
-{
-	PifHmc5883DataRate data_rate;
-	PifHmc5883Gain gain;
-	PifHmc5883Mode mode;
-	PifHmc5883Samples samples;
-} PifHmc5883Param;
-
-/**
  * @class StPifHmc5883
  * @brief
  */
@@ -176,11 +166,10 @@ BOOL pifHmc5883_Detect(PifI2cPort* p_i2c);
  * @param p_owner
  * @param id
  * @param p_i2c
- * @param p_param
  * @param p_imu_sensor
  * @return
  */
-BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifHmc5883Param* p_param, PifImuSensor* p_imu_sensor);
+BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifHmc5883_Clear

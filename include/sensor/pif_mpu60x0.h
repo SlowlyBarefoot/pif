@@ -172,10 +172,12 @@ typedef union StPifMpu60x0Config
 
 typedef enum EnPifMpu60x0FsSel
 {
-    MPU60X0_FS_SEL_250DPS,
+    MPU60X0_FS_SEL_250DPS,		// Default
     MPU60X0_FS_SEL_500DPS,
     MPU60X0_FS_SEL_1000DPS,
-    MPU60X0_FS_SEL_2000DPS
+    MPU60X0_FS_SEL_2000DPS,
+
+    MPU60X0_FS_SEL_DEFAULT	 = 0
 } PifMpu60x0FsSel;
 
 #define MPU60X0_GYRO_CONFIG_FS_SEL		0x0302		// Use pifMpu60x0_SetGyroConfig or pifMpu60x0_SetFsSel to change this value.
@@ -200,10 +202,12 @@ typedef union StPifMpu60x0GyroConfig
 
 typedef enum EnPifMpu60x0AfsSel
 {
-    MPU60X0_AFS_SEL_2G,
+    MPU60X0_AFS_SEL_2G,		// Default
     MPU60X0_AFS_SEL_4G,
     MPU60X0_AFS_SEL_8G,
-    MPU60X0_AFS_SEL_16G
+    MPU60X0_AFS_SEL_16G,
+
+    MPU60X0_AFS_SEL_DEFAULT	= 0
 } PifMpu60x0AfsSel;
 
 #define MPU60X0_ACCEL_CONFIG_AFS_SEL	0x0302		// Use pifMpu60x0_SetAccelConfig or pifMpu60x0_SetAfsSel to change this value.
@@ -255,7 +259,7 @@ typedef union StPifMpu60x0FifoEn
 
 typedef enum EnPifMpu60x0I2cMstClk
 {
-    MPU60X0_I2C_MST_CLK_348KHZ,
+    MPU60X0_I2C_MST_CLK_348KHZ,		// Default
     MPU60X0_I2C_MST_CLK_333KHZ,
     MPU60X0_I2C_MST_CLK_320KHZ,
     MPU60X0_I2C_MST_CLK_308KHZ,
@@ -270,7 +274,9 @@ typedef enum EnPifMpu60x0I2cMstClk
     MPU60X0_I2C_MST_CLK_421KHZ,
     MPU60X0_I2C_MST_CLK_400KHZ,
     MPU60X0_I2C_MST_CLK_381KHZ,
-    MPU60X0_I2C_MST_CLK_364KHZ
+    MPU60X0_I2C_MST_CLK_364KHZ,
+
+    MPU60X0_I2C_MST_CLK_DEFAULT	= 0
 } PifMpu60x0I2cMstClk;
 
 #define MPU60X0_I2C_MST_CTRL_I2C_MST_CLK	0x0004
@@ -553,19 +559,6 @@ typedef union StPifMpu60x0PwrMgmt2
 
 
 /**
- * @class StPifMpu60x0Param
- * @brief
- */
-typedef struct StPifMpu60x0Param
-{
-	uint8_t smplrt_div;
-	PifMpu60x0DlpfCfg dlpf_cfg;
-	PifMpu60x0FsSel fs_sel;
-	PifMpu60x0AfsSel afs_sel;
-	PifMpu60x0Clksel clksel;
-} PifMpu60x0Param;
-
-/**
  * @class StPifMpu60x0
  * @brief
  */
@@ -605,11 +598,10 @@ BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr);
  * @param id
  * @param p_i2c
  * @param addr
- * @param p_param
  * @param p_imu_sensor
  * @return
  */
-BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifMpu60x0Param* p_param, PifImuSensor* p_imu_sensor);
+BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu60x0_Clear

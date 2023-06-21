@@ -40,18 +40,6 @@ typedef enum EnPifMs5611State
 
 
 /**
- * @class StPifMs5611Param
- * @brief
- */
-typedef struct StPifMs5611Param
-{
-	PifMs5611Osr osr;
-	uint16_t read_period;
-	PifEvtBaroRead evt_read;
-	uint8_t disallow_yield_id;
-} PifMs5611Param;
-
-/**
  * @class StPifMs5611
  * @brief
  */
@@ -89,10 +77,9 @@ extern "C" {
  * @param id
  * @param p_i2c
  * @param addr
- * @param p_param
  * @return
  */
-BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifMs5611Param* p_param);
+BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr);
 
 /**
  * @fn pifMs5611_Clear

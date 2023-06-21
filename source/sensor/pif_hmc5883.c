@@ -46,7 +46,7 @@ BOOL pifHmc5883_Detect(PifI2cPort* p_i2c)
     return TRUE;
 }
 
-BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifHmc5883Param* p_param, PifImuSensor* p_imu_sensor)
+BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSensor* p_imu_sensor)
 {
 	uint8_t data[4];
 	PifHmc5883ConfigA config_a;
@@ -132,17 +132,6 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifHmc588
 #ifndef __PIF_NO_LOG__
     pifLog_Printf(LT_INFO, "Mag scale: X=%f Y=%f Z=%f", p_owner->scale[AXIS_X], p_owner->scale[AXIS_Y], p_owner->scale[AXIS_Z]);
 #endif
-
-    if (p_param) {
-        config_a.bit.measure_mode = HMC5883_MEASURE_MODE_NORMAL;
-   		config_a.bit.samples = p_param->samples;
-   		config_a.bit.data_rate = p_param->data_rate;
-        if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, HMC5883_REG_CONFIG_A, config_a.byte)) goto fail;
-
-        if (!pifHmc5883_SetGain(p_owner, p_param->gain)) goto fail;
-
-        if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, HMC5883_REG_MODE, HMC5883_MODE_MODE, p_param->mode)) goto fail;
-    }
 
 	p_imu_sensor->_measure |= IMU_MEASURE_MAGNETO;
 

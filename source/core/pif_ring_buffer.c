@@ -137,6 +137,11 @@ void pifRingBuffer_Clear(PifRingBuffer* p_owner)
     p_owner->__p_buffer = NULL;
 }
 
+void pifRingBuffer_Empty(PifRingBuffer* p_owner)
+{
+	p_owner->__tail = p_owner->__head;
+}
+
 BOOL pifRingBuffer_ResizeHeap(PifRingBuffer* p_owner, uint16_t size)
 {
     if (p_owner->_bt.is_static) {
@@ -166,6 +171,14 @@ void pifRingBuffer_SetName(PifRingBuffer* p_owner, const char* p_name)
 uint8_t *pifRingBuffer_GetTailPointer(PifRingBuffer* p_owner, uint16_t pos)
 {
 	return &p_owner->__p_buffer[(p_owner->__tail + pos) % p_owner->_size];
+}
+
+BOOL pifRingBuffer_MoveHeadForLinear(PifRingBuffer* p_owner, uint16_t size)
+{
+	if (size >= p_owner->_size) return FALSE;
+	if (p_owner->__head != p_owner->__tail) return FALSE;
+	if (p_owner->_size - p_owner->__head < size) p_owner->__head = p_owner->__tail = 0;
+	return TRUE;
 }
 
 void pifRingBuffer_ChopsOffNone(PifRingBuffer* p_owner)

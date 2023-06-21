@@ -41,11 +41,9 @@ BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr)
 	return TRUE;
 }
 
-BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifMpu60x0Param* p_param, PifImuSensor* p_imu_sensor)
+BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor)
 {
-	uint8_t data;
     PifMpu60x0AccelConfig accel_config;
-    PifMpu60x0Config config;
     PifMpu60x0GyroConfig gyro_config;
 	PifMpu60x0PwrMgmt1 pwr_mgmt_1;
 
@@ -64,37 +62,11 @@ BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
 	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_PWR_MGMT_1, pwr_mgmt_1.byte)) goto fail;
 	pifTaskManager_YieldMs(100);
 
-    if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU60X0_REG_GYRO_CONFIG, MPU60X0_GYRO_CONFIG_FS_SEL, &data)) goto fail;
-    if (!_changeFsSel(p_imu_sensor, data)) goto fail;
+    if (!pifI2cDevice_ReadRegByte(p_owner->_p_i2c, MPU60X0_REG_GYRO_CONFIG, &gyro_config.byte)) goto fail;
+    if (!_changeFsSel(p_imu_sensor, gyro_config.bit.fs_sel)) goto fail;
 
-    if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU60X0_REG_ACCEL_CONFIG, MPU60X0_ACCEL_CONFIG_AFS_SEL, &data)) goto fail;
-    if (!_changeAfsSel(p_imu_sensor, data)) goto fail;
-
-    pwr_mgmt_1.byte = 0;
-    if (p_param) {
-        if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_SMPLRT_DIV, p_param->smplrt_div)) goto fail;
-
-        pwr_mgmt_1.bit.clksel = p_param->clksel;
-        if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_PWR_MGMT_1, pwr_mgmt_1.byte)) goto fail;
-
-    	config.byte = 0;
-    		config.bit.dlpf_cfg = p_param->dlpf_cfg;
-    	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_CONFIG, config.byte)) goto fail;
-
-        gyro_config.byte = 0;
-        gyro_config.bit.fs_sel = p_param->fs_sel;
-        pifMpu60x0_SetGyroConfig(p_owner, gyro_config);
-
-        accel_config.byte = 0;
-        accel_config.bit.afs_sel = p_param->afs_sel;
-        pifMpu60x0_SetAccelConfig(p_owner, accel_config);
-    }
-    else {
-        if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_SMPLRT_DIV, 0)) goto fail;
-
-        pwr_mgmt_1.bit.clksel = MPU60X0_CLKSEL_PLL_ZGYRO;
-        if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_PWR_MGMT_1, pwr_mgmt_1.byte)) goto fail;
-    }
+    if (!pifI2cDevice_ReadRegByte(p_owner->_p_i2c, MPU60X0_REG_ACCEL_CONFIG, &accel_config.byte)) goto fail;
+    if (!_changeAfsSel(p_imu_sensor, accel_config.bit.afs_sel)) goto fail;
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;

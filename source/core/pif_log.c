@@ -145,7 +145,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_d
     char tmp_char;
     uint8_t i;
     BOOL str_get_done_flag = FALSE;
-    uint8_t enter;
+    uint8_t enter = 0;
     static uint8_t pre_enter = 0;
     const PifLogCmdEntry *cmd, *pstart, *pend;
 
@@ -416,7 +416,7 @@ static void _printLog(char* p_string, BOOL vcd)
 
 	if (s_log.enable || vcd) {
         while (!pifRingBuffer_PutString(s_log.p_tx_buffer, p_string)) {
-        	if (!pifTaskManager_Yield()) break;
+        	pifTaskManager_Yield();
         }
 	}
 }
@@ -594,7 +594,7 @@ void pifLog_PrintInBuffer()
 
 	while (!pifRingBuffer_IsEmpty(&s_log.buffer)) {
 		while (!pifRingBuffer_IsEmpty(s_log.p_tx_buffer)) {
-			if (!pifTaskManager_Yield()) break;
+			pifTaskManager_Yield();
 		}
 		length = pifRingBuffer_CopyAll(s_log.p_tx_buffer, &s_log.buffer, 0);
 		pifRingBuffer_Remove(&s_log.buffer, length);

@@ -3,6 +3,7 @@
 
 
 #include "core/pif_comm.h"
+#include "core/pif_i2c.h"
 #include "gps/pif_gps.h"
 
 
@@ -18,11 +19,15 @@ typedef struct StPifGpsNmea
 
 	// Read-only Member Variable
     PifGps _gps;
+    PifTask* _p_task;
 
 	// Private Member Variable
 	PifComm* __p_comm;
+	PifI2cPort* __p_i2c_port;
+	PifI2cDevice* __p_i2c_device;
 
 	// Private Event Variable
+    uint16_t __length;
 } PifGpsNmea;
 
 
@@ -60,6 +65,26 @@ void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* pstComm);
  * @param p_owner
  */
 void pifGpsNmea_DetachComm(PifGpsNmea* p_owner);
+
+/**
+ * @fn pifGpsNmea_AttachI2c
+ * @brief
+ * @param p_owner
+ * @param p_i2c
+ * @param addr
+ * @param period
+ * @param start
+ * @param name
+ * @return
+ */
+BOOL pifGpsNmea_AttachI2c(PifGpsNmea* p_owner, PifI2cPort* p_i2c, uint8_t addr, uint16_t period, BOOL start, const char* name);
+
+/**
+ * @fn pifGpsNmea_DetachI2c
+ * @brief
+ * @param p_owner
+ */
+void pifGpsNmea_DetachI2c(PifGpsNmea* p_owner);
 
 #ifdef __cplusplus
 }

@@ -3,6 +3,7 @@
 
 
 #include "core/pif_comm.h"
+#include "core/pif_i2c.h"
 #include "core/pif_ring_buffer.h"
 #include "core/pif_timer.h"
 #include "gps/pif_gps.h"
@@ -238,17 +239,26 @@ typedef enum EnPifGpsUbxRxState
 	GURS_PAYLOAD		= 6,
 	GURS_CK_A			= 7,
 	GURS_CK_B			= 8,
-	GURS_NMEA			= 9,
-	GURS_DONE			= 10
+	GURS_DONE			= 9
 } PifGpsUbxRxState;
 
-typedef enum EnPifGpsUbloxTxState
+typedef enum EnPifGpsUbxTxState
 {
 	GUTS_IDLE			= 0,
 	GUTS_SENDING		= 1,
 	GUTS_WAIT_SENDED	= 2,
 	GUTS_WAIT_RESPONSE	= 3
-} PifGpsUbloxTxState;
+} PifGpsUbxTxState;
+
+typedef enum EnPifGpsUbxRequestState
+{
+	GURS_NONE			= 0,
+	GURS_SEND			= 1,
+	GURS_NAK			= 2,
+	GURS_ACK			= 3,
+	GURS_TIMEOUT		= 4,
+	GURS_FAILURE		= 5
+} PifGpsUbxRequestState;
 
 
 typedef struct {
@@ -403,7 +413,7 @@ typedef void (*PifEvtGpsUbloxOtherPacket)(PifGpsUblox* p_owner, uint8_t data);
 typedef struct StPifGpsUbxRx
 {
 	PifGpsUbxRxState state;
-	uint8_t payload_count;
+	uint16_t payload_count;
 	PifGpsUbxPacket packet;
 	uint16_t checksum;
 } PifGpsUbxRx;
@@ -411,7 +421,7 @@ typedef struct StPifGpsUbxRx
 typedef struct StPifGpsUbloxTx
 {
     PifRingBuffer buffer;
-    PifGpsUbloxTxState state;
+    volatile PifGpsUbxTxState state;
 	union {
 		uint8_t info[4];
 		struct {
@@ -437,6 +447,8 @@ struct StPifGpsUblox
 
 	// Read-only Member Variable
     PifGps _gps;
+    PifTask* _p_task;
+    volatile PifGpsUbxRequestState _request_state;
 	uint8_t _num_ch;                // Number of channels
 	uint8_t _svinfo_chn[16];        // Channel number
 	uint8_t _svinfo_svid[16];       // Satellite ID
@@ -446,8 +458,13 @@ struct StPifGpsUblox
 
 	// Private Member Variable
 	PifComm* __p_comm;
+	PifI2cPort* __p_i2c_port;
+	PifI2cDevice* __p_i2c_device;
     PifGpsUbxRx __rx;
 	PifGpsUbloxTx __tx;
+	PifGpsUbxMessageId __cfg_msg_id;
+    BOOL __next_fix;
+    uint16_t __length;
 };
 
 
@@ -487,14 +504,35 @@ void pifGpsUblox_AttachComm(PifGpsUblox* p_owner, PifComm* p_comm);
 void pifGpsUblox_DetachComm(PifGpsUblox* p_owner);
 
 /**
+ * @fn pifGpsUblox_AttachI2c
+ * @brief
+ * @param p_owner
+ * @param p_i2c
+ * @param addr
+ * @param period
+ * @param start
+ * @param name
+ * @return
+ */
+BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr, uint16_t period, BOOL start, const char* name);
+
+/**
+ * @fn pifGpsUblox_DetachI2c
+ * @brief
+ * @param p_owner
+ */
+void pifGpsUblox_DetachI2c(PifGpsUblox* p_owner);
+
+/**
  * @fn pifGpsUblox_PollRequestGBQ
  * @brief
  * @param p_owner
  * @param p_mag_id
  * @param blocking
+ * @param waiting
  * @return
  */
-BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking);
+BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_PollRequestGLQ
@@ -502,9 +540,10 @@ BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
  * @param p_owner
  * @param p_mag_id
  * @param blocking
+ * @param waiting
  * @return
  */
-BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking);
+BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_PollRequestGNQ
@@ -512,9 +551,10 @@ BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
  * @param p_owner
  * @param p_mag_id
  * @param blocking
+ * @param waiting
  * @return
  */
-BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking);
+BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_PollRequestGPQ
@@ -522,9 +562,10 @@ BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
  * @param p_owner
  * @param p_mag_id
  * @param blocking
+ * @param waiting
  * @return
  */
-BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking);
+BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_SetPubxConfig
@@ -535,9 +576,10 @@ BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
  * @param out_proto
  * @param baudrate
  * @param blocking
+ * @param waiting
  * @return
  */
-BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t in_proto, uint16_t out_proto, uint32_t baudrate, BOOL blocking);
+BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t in_proto, uint16_t out_proto, uint32_t baudrate, BOOL blocking, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_SetPubxRate
@@ -550,9 +592,10 @@ BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t i
  * @param rusb
  * @param rspi
  * @param blocking
+ * @param waiting
  * @return
  */
-BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t rddc, uint8_t rus1, uint8_t rus2, uint8_t rusb, uint8_t rspi, BOOL blocking);
+BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t rddc, uint8_t rus1, uint8_t rus2, uint8_t rusb, uint8_t rspi, BOOL blocking, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_SendUbxMsg
@@ -563,9 +606,10 @@ BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t
  * @param length
  * @param payload
  * @param blocking
+ * @param waiting
  * @return
  */
-BOOL pifGpsUblox_SendUbxMsg(PifGpsUblox* p_owner, uint8_t class_id, uint8_t msg_id, uint16_t length, uint8_t* payload, BOOL blocking);
+BOOL pifGpsUblox_SendUbxMsg(PifGpsUblox* p_owner, uint8_t class_id, uint8_t msg_id, uint16_t length, uint8_t* payload, BOOL blocking, uint16_t waiting);
 
 #ifdef __cplusplus
 }

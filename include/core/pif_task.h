@@ -31,6 +31,8 @@ typedef void (*PifActTaskSignal)(BOOL state);
 
 typedef PifTask* (*PifTaskProcessing)(PifTask* p_owner);
 
+typedef BOOL (*PifTaskCheckAbort)(PifIssuerP p_issuer);
+
 
 /**
  * @struct StPifTask
@@ -187,25 +189,48 @@ void pifTaskManager_Loop();
 /**
  * @fn pifTaskManager_Yield
  * @brief Task내에서 대기중에 다른 Task를 호출하고자 할 경우에 사용하는 함수이다.
- * @return
  */
-BOOL pifTaskManager_Yield();
+void pifTaskManager_Yield();
 
 /**
  * @fn pifTaskManager_YieldMs
  * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
  * @param time
- * @return
  */
-BOOL pifTaskManager_YieldMs(uint32_t time);
+void pifTaskManager_YieldMs(uint32_t time);
 
 /**
  * @fn pifTaskManager_YieldUs
  * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
  * @param time
- * @return
  */
-BOOL pifTaskManager_YieldUs(uint32_t time);
+void pifTaskManager_YieldUs(uint32_t time);
+
+/**
+ * @fn pifTaskManager_YieldAbort
+ * @brief loop내에서 중단 조건 함수가 TRUE를 반환할 때까지 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
+ * @param p_check_abort
+ * @param p_issuer
+ */
+void pifTaskManager_YieldAbort(PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
+
+/**
+ * @fn pifTaskManager_YieldAbortMs
+ * @brief loop내에서 지정한 시간과 중단 조건 함수가 TRUE를 반환할 때까지 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
+ * @param time
+ * @param p_check_abort
+ * @param p_issuer
+ */
+void pifTaskManager_YieldAbortMs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
+
+/**
+ * @fn pifTaskManager_YieldAbortUs
+ * @brief loop내에서 지정한 시간과 중단 조건 함수가 TRUE를 반환할 때까지 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
+ * @param time
+ * @param p_check_abort
+ * @param p_issuer
+ */
+void pifTaskManager_YieldAbortUs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
 
 /**
  * @fn pifTaskManager_Print
