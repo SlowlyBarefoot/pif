@@ -22,6 +22,7 @@ STATEMENTS:
 	WHILE	CONDITION ... END WHILE
 	FOR	VAR=INIT TO FINAL ... END FOR
 	FORMAT	STRING [, EXPRESSION ...]
+    EXEC  PROGRAM [, EXPRESSION ...]
 	RESUME
 	BREAK
 	BYE
@@ -100,6 +101,11 @@ FOR:
 DIMENSIONS:
 	THE VALUE OF A DIM IS A POINTER
 	THE LENGTH OF THE DIM IS STORED IN THE FIRST CELL
+
+EXEC:
+    PROGRAM: The index of the external function, starting with number 1.
+    EXPRESSION: Up to four parameters of an external function are default values 
+        and can be changed by PIF_BASIC_EXEC_SIZE. It can also be expressed with a formula.
  *****************************************************************************/
 
 #ifndef PIF_BASIC_H
