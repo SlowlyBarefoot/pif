@@ -25,7 +25,6 @@ typedef BOOL (*PifActSpiWrite)(PifId id, uint32_t iaddr, uint8_t isize, uint8_t*
 struct StPifSpiDevice
 {
 	// Public Member Variable
-    uint8_t addr;
     uint8_t timeout;
 
 	// Read-only Member Variable

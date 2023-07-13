@@ -93,10 +93,14 @@ void pifComm_AttachClient(PifComm* p_owner, void* p_client, PifEvtCommParsing ev
 	p_owner->__p_client = p_client;
 	p_owner->__evt_parsing = evt_parsing;
 	p_owner->__evt_sending = evt_sending;
+	p_owner->_p_task->pause = FALSE;
 }
 
 void pifComm_DetachClient(PifComm* p_owner)
 {
+	p_owner->_p_task->pause = TRUE;
+	if (p_owner->_p_rx_buffer) pifRingBuffer_Empty(p_owner->_p_rx_buffer);
+	if (p_owner->_p_tx_buffer) pifRingBuffer_Empty(p_owner->_p_tx_buffer);
 	p_owner->__p_client = NULL;
 	p_owner->__evt_parsing = NULL;
 	p_owner->__evt_sending = NULL;
@@ -236,9 +240,9 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, BOOL start, const char* name)
+PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, const char* name)
 {
-	p_owner->_p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, start);
+	p_owner->_p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, FALSE);
 	if (p_owner->_p_task) {
 		if (name) p_owner->_p_task->name = name;
 		else p_owner->_p_task->name = "Comm";

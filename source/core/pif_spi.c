@@ -74,10 +74,10 @@ BOOL pifSpiDevice_Read(PifSpiDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 	while (remain) {
 		len = remain > p_port->__max_transfer_size ? p_port->__max_transfer_size : remain;
 		if (!ptr) {
-			if (!(*p_port->act_read)(p_owner->addr, iaddr, isize, p_data, len)) goto fail;
+			if (!(*p_port->act_read)(p_owner->_id, iaddr, isize, p_data, len)) goto fail;
 		}
 		else {
-			if (!(*p_port->act_read)(p_owner->addr, 0UL, 0, p_data + ptr, len)) goto fail;
+			if (!(*p_port->act_read)(p_owner->_id, 0UL, 0, p_data + ptr, len)) goto fail;
 		}
 
 		ptr += len;
@@ -148,10 +148,10 @@ BOOL pifSpiDevice_Write(PifSpiDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 	while (remain) {
 		len = remain > p_port->__max_transfer_size ? p_port->__max_transfer_size : remain;
 		if (!ptr) {
-			if (!(*p_port->act_write)(p_owner->addr, iaddr, isize, p_data, len)) goto fail;
+			if (!(*p_port->act_write)(p_owner->_id, iaddr, isize, p_data, len)) goto fail;
 		}
 		else {
-			if (!(*p_port->act_write)(p_owner->addr, 0UL, 0, p_data + ptr, len)) goto fail;
+			if (!(*p_port->act_write)(p_owner->_id, 0UL, 0, p_data + ptr, len)) goto fail;
 		}
 
 		ptr += len;

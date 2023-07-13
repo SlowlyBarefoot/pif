@@ -21,6 +21,30 @@ PIF는 플랫폼에 종속적인 코드와 application 사이에 존재한다. �
 
 https://github.com/SlowlyBarefoot/pif-example
 
+## 감사의 글
+
+이 프로젝트를 진행하기 위해 모든 기능을 알고 진행하기 어렵다.
+그래서 일부 기능은 이미 개발된 프로그램들을 참고하여 작성하였다. 이들 노력에 감사의 뜻을 표한다.
+
+Interpreter
+  * basic : https://github.com/jwillia3/BASIC ( Jerry Williams Jr )
+
+Protocol
+  * ibus : https://github.com/bmelink/IBusBM
+  * msp : https://github.com/multiwii/baseflight
+  * sbus : https://github.com/zendes/SBUS
+  * sumd : https://github.com/Benoit3/Sumd-for-Arduino
+  * spektrum : https://github.com/SpektrumRC/SRXL2
+
+Sensor
+  * bmp280 : https://github.com/MartinL1/BMP280_DEV
+  * bmp280외 : https://github.com/multiwii/baseflight
+
+Sound
+  * buzzer : https://github.com/multiwii/baseflight
+
+아쉽게도 위에 나열한 개발자외에도 더 많은 개발자가 있을 것 같은데 기억이 나질 않는 점 양해하시기 바랍니다.
+
 ---
 
 PIF (Platform-independent framework) is a framework that controls various devices, and consists of only code independent of the platform. So, it aims to be implemented so that it can be used on all platforms.

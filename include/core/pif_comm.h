@@ -264,11 +264,10 @@ void pifComm_AbortRx(PifComm* p_owner);
  * @param p_owner
  * @param mode Task의 Mode를 설정한다.
  * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
  * @param name task의 이름을 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, BOOL start, const char* name);
+PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, const char* name);
 
 #ifdef __cplusplus
 }

@@ -130,7 +130,7 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSen
     }
 
 #ifndef __PIF_NO_LOG__
-    pifLog_Printf(LT_INFO, "Mag scale: X=%f Y=%f Z=%f", p_owner->scale[AXIS_X], p_owner->scale[AXIS_Y], p_owner->scale[AXIS_Z]);
+    pifLog_Printf(LT_INFO, "Mag scale: X=%f Y=%f Z=%f", (double)p_owner->scale[AXIS_X], (double)p_owner->scale[AXIS_Y], (double)p_owner->scale[AXIS_Z]);
 #endif
 
 	p_imu_sensor->_measure |= IMU_MEASURE_MAGNETO;

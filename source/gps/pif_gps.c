@@ -466,16 +466,19 @@ void pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 			checksum += _convertAscii2Hex(p_owner->__string[1]);
 			if (checksum == p_owner->__parity) {
 				if (p_owner->evt_nmea_receive) {
-					if ((p_owner->evt_nmea_receive)(p_owner, p_owner->__msg_id)) pifGps_SendEvent(p_owner);
+					if ((*p_owner->evt_nmea_receive)(p_owner, p_owner->__msg_id)) pifGps_SendEvent(p_owner);
 				}
 				if (p_owner->__msg_id == PIF_GPS_NMEA_MSG_ID_TXT && p_owner->__evt_text) {
-					(p_owner->__evt_text)(p_owner->__p_txt);
+					(*p_owner->__evt_text)(p_owner->__p_txt);
 				}
 			}
 			else {
 #ifndef __PIF_NO_LOG__
 				pifLog_Printf(LT_ERROR, "GPS(%u): MsgId=%u CS=%x:%x", __LINE__, p_owner->__msg_id, checksum, p_owner->__parity);
 #endif
+				if (p_owner->evt_nmea_receive) {
+					(*p_owner->evt_nmea_receive)(p_owner, PIF_GPS_NMEA_MSG_ID_ERR);
+				}
 				p_owner->__msg_id = PIF_GPS_NMEA_MSG_ID_NONE;
 				p_owner->__param = 0;
 			}
