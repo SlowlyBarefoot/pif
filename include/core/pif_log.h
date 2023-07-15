@@ -2,7 +2,7 @@
 #define PIF_LOG_H
 
 
-#include "core/pif_comm.h"
+#include "communication/pif_uart.h"
 #include "core/pif_ring_buffer.h"
 
 
@@ -177,12 +177,12 @@ void pifLog_PrintInBuffer();
 PifTask* pifLog_GetCommTask();
 
 /**
- * @fn pifLog_AttachComm
+ * @fn pifLog_AttachUart
  * @brief
- * @param p_comm
+ * @param p_uart
  * @return
  */
-BOOL pifLog_AttachComm(PifComm* p_comm);
+BOOL pifLog_AttachUart(PifUart* p_uart);
 
 /**
  * @fn pifLog_SendAndExit
@@ -191,10 +191,10 @@ BOOL pifLog_AttachComm(PifComm* p_comm);
 void pifLog_SendAndExit();
 
 /**
- * @fn pifLog_DetachComm
+ * @fn pifLog_DetachUart
  * @brief
  */
-void pifLog_DetachComm();
+void pifLog_DetachUart();
 
 /**
  * @fn pifLog_CmdHelp

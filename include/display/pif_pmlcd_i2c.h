@@ -2,7 +2,7 @@
 #define PIF_PMLCD_I2C_H
 
 
-#include "core/pif_i2c.h"
+#include "communication/pif_i2c.h"
 
 
 #define PIF_PMLCD_DS_5x8			0x00

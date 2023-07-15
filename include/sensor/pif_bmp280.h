@@ -2,7 +2,7 @@
 #define PIF_BMP280_H
 
 
-#include "core/pif_i2c.h"
+#include "communication/pif_i2c.h"
 #include "core/pif_task.h"
 #include "sensor/pif_sensor_event.h"
 

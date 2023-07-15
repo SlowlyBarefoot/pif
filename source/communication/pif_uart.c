@@ -1,12 +1,12 @@
-#include "core/pif_comm.h"
+#include "communication/pif_uart.h"
 
 
-static BOOL _actReceiveData(PifComm* p_owner, uint8_t* p_data)
+static BOOL _actReceiveData(PifUart* p_owner, uint8_t* p_data)
 {
 	return pifRingBuffer_GetByte(p_owner->_p_rx_buffer, p_data);
 }
 
-static uint16_t _actSendData(PifComm* p_owner, uint8_t* p_buffer, uint16_t size)
+static uint16_t _actSendData(PifUart* p_owner, uint8_t* p_buffer, uint16_t size)
 {
 	uint16_t remain = pifRingBuffer_GetRemainSize(p_owner->_p_tx_buffer);
 
@@ -18,38 +18,38 @@ static uint16_t _actSendData(PifComm* p_owner, uint8_t* p_buffer, uint16_t size)
 	return 0;
 }
 
-static void _sendData(PifComm* p_owner)
+static void _sendData(PifUart* p_owner)
 {
 	if (p_owner->act_send_data) {
 		(*p_owner->__evt_sending)(p_owner->__p_client, p_owner->act_send_data);
 	}
 	else if (p_owner->_p_tx_buffer) {
 		if ((*p_owner->__evt_sending)(p_owner->__p_client, _actSendData)) {
-			if (p_owner->__state == CTS_IDLE) {
-				p_owner->__state = CTS_SENDING;
+			if (p_owner->__state == UTS_IDLE) {
+				p_owner->__state = UTS_SENDING;
 				if (p_owner->act_start_transfer) {
-					if (!(*p_owner->act_start_transfer)(p_owner)) p_owner->__state = CTS_IDLE;
+					if (!(*p_owner->act_start_transfer)(p_owner)) p_owner->__state = UTS_IDLE;
 				}
 			}
 		}
 	}
 }
 
-BOOL pifComm_Init(PifComm* p_owner, PifId id)
+BOOL pifUart_Init(PifUart* p_owner, PifId id)
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
-	memset(p_owner, 0, sizeof(PifComm));
+	memset(p_owner, 0, sizeof(PifUart));
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     return TRUE;
 }
 
-void pifComm_Clear(PifComm* p_owner)
+void pifUart_Clear(PifUart* p_owner)
 {
 	if (p_owner->_p_task) {
 		pifTaskManager_Remove(p_owner->_p_task);
@@ -59,7 +59,7 @@ void pifComm_Clear(PifComm* p_owner)
 	if (p_owner->_p_tx_buffer) pifRingBuffer_Destroy(&p_owner->_p_tx_buffer);
 }
 
-BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_size, uint8_t threshold)
+BOOL pifUart_AllocRxBuffer(PifUart* p_owner, uint16_t rx_size, uint8_t threshold)
 {
     if (!rx_size) {
     	pif_error = E_INVALID_PARAM;
@@ -75,7 +75,7 @@ BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_size, uint8_t threshold
     return TRUE;
 }
 
-BOOL pifComm_AllocTxBuffer(PifComm* p_owner, uint16_t tx_size)
+BOOL pifUart_AllocTxBuffer(PifUart* p_owner, uint16_t tx_size)
 {
 	if (!tx_size) {
     	pif_error = E_INVALID_PARAM;
@@ -88,7 +88,7 @@ BOOL pifComm_AllocTxBuffer(PifComm* p_owner, uint16_t tx_size)
 	return TRUE;
 }
 
-void pifComm_AttachClient(PifComm* p_owner, void* p_client, PifEvtCommParsing evt_parsing, PifEvtCommSending evt_sending)
+void pifUart_AttachClient(PifUart* p_owner, void* p_client, PifEvtUartParsing evt_parsing, PifEvtUartSending evt_sending)
 {
 	p_owner->__p_client = p_client;
 	p_owner->__evt_parsing = evt_parsing;
@@ -96,7 +96,7 @@ void pifComm_AttachClient(PifComm* p_owner, void* p_client, PifEvtCommParsing ev
 	p_owner->_p_task->pause = FALSE;
 }
 
-void pifComm_DetachClient(PifComm* p_owner)
+void pifUart_DetachClient(PifUart* p_owner)
 {
 	p_owner->_p_task->pause = TRUE;
 	if (p_owner->_p_rx_buffer) pifRingBuffer_Empty(p_owner->_p_rx_buffer);
@@ -106,17 +106,17 @@ void pifComm_DetachClient(PifComm* p_owner)
 	p_owner->__evt_sending = NULL;
 }
 
-uint16_t pifComm_GetRemainSizeOfRxBuffer(PifComm* p_owner)
+uint16_t pifUart_GetRemainSizeOfRxBuffer(PifUart* p_owner)
 {
 	return pifRingBuffer_GetRemainSize(p_owner->_p_rx_buffer);
 }
 
-uint16_t pifComm_GetFillSizeOfTxBuffer(PifComm* p_owner)
+uint16_t pifUart_GetFillSizeOfTxBuffer(PifUart* p_owner)
 {
 	return pifRingBuffer_GetFillSize(p_owner->_p_tx_buffer);
 }
 
-BOOL pifComm_PutRxByte(PifComm* p_owner, uint8_t data)
+BOOL pifUart_PutRxByte(PifUart* p_owner, uint8_t data)
 {
 	if (!p_owner->_p_rx_buffer) return FALSE;
 
@@ -127,7 +127,7 @@ BOOL pifComm_PutRxByte(PifComm* p_owner, uint8_t data)
 	return TRUE;
 }
 
-BOOL pifComm_PutRxData(PifComm* p_owner, uint8_t* p_data, uint16_t length)
+BOOL pifUart_PutRxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
 	if (!p_owner->_p_rx_buffer) return FALSE;
 
@@ -138,42 +138,42 @@ BOOL pifComm_PutRxData(PifComm* p_owner, uint8_t* p_data, uint16_t length)
 	return TRUE;
 }
 
-uint8_t pifComm_GetTxByte(PifComm* p_owner, uint8_t* p_data)
+uint8_t pifUart_GetTxByte(PifUart* p_owner, uint8_t* p_data)
 {
-	uint8_t ucState = PIF_COMM_SEND_DATA_STATE_INIT;
+	uint8_t ucState = PIF_UART_SEND_DATA_STATE_INIT;
 
     if (!p_owner->_p_tx_buffer) return ucState;
 
     ucState = pifRingBuffer_GetByte(p_owner->_p_tx_buffer, p_data);
 	if (ucState) {
 		if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) {
-			ucState |= PIF_COMM_SEND_DATA_STATE_EMPTY;
+			ucState |= PIF_UART_SEND_DATA_STATE_EMPTY;
 		}
 	}
-	else ucState |= PIF_COMM_SEND_DATA_STATE_EMPTY;
+	else ucState |= PIF_UART_SEND_DATA_STATE_EMPTY;
 	return ucState;
 }
 
-uint8_t pifComm_StartGetTxData(PifComm* p_owner, uint8_t** pp_data, uint16_t* p_length)
+uint8_t pifUart_StartGetTxData(PifUart* p_owner, uint8_t** pp_data, uint16_t* p_length)
 {
 	uint16_t usLength;
 
-    if (!p_owner->_p_tx_buffer) return PIF_COMM_SEND_DATA_STATE_INIT;
-    if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) return PIF_COMM_SEND_DATA_STATE_EMPTY;
+    if (!p_owner->_p_tx_buffer) return PIF_UART_SEND_DATA_STATE_INIT;
+    if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) return PIF_UART_SEND_DATA_STATE_EMPTY;
 
     *pp_data = pifRingBuffer_GetTailPointer(p_owner->_p_tx_buffer, 0);
     usLength = pifRingBuffer_GetLinerSize(p_owner->_p_tx_buffer, 0);
     if (!*p_length || usLength <= *p_length) *p_length = usLength;
-	return PIF_COMM_SEND_DATA_STATE_DATA;
+	return PIF_UART_SEND_DATA_STATE_DATA;
 }
 
-uint8_t pifComm_EndGetTxData(PifComm* p_owner, uint16_t length)
+uint8_t pifUart_EndGetTxData(PifUart* p_owner, uint16_t length)
 {
     pifRingBuffer_Remove(p_owner->_p_tx_buffer, length);
 	return pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer) << 1;
 }
 
-uint16_t pifComm_ReceiveRxData(PifComm* p_owner, uint8_t* p_data, uint16_t length)
+uint16_t pifUart_ReceiveRxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
 	uint16_t i = 0, len;
 
@@ -195,7 +195,7 @@ uint16_t pifComm_ReceiveRxData(PifComm* p_owner, uint8_t* p_data, uint16_t lengt
 	return 0;
 }
 
-BOOL pifComm_SendTxData(PifComm* p_owner, uint8_t* p_data, uint16_t length)
+BOOL pifUart_SendTxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
 	if (p_owner->act_send_data) {
 		return (*p_owner->act_send_data)(p_owner, p_data, length) == length;
@@ -206,18 +206,18 @@ BOOL pifComm_SendTxData(PifComm* p_owner, uint8_t* p_data, uint16_t length)
 	return FALSE;
 }
 
-void pifComm_FinishTransfer(PifComm* p_owner)
+void pifUart_FinishTransfer(PifUart* p_owner)
 {
-	p_owner->__state = CTS_IDLE;
+	p_owner->__state = UTS_IDLE;
 	pifTask_SetTrigger(p_owner->_p_task);
 }
 
-void pifComm_ForceSendData(PifComm* p_owner)
+void pifUart_ForceSendData(PifUart* p_owner)
 {
 	if (p_owner->__evt_sending) _sendData(p_owner);
 }
 
-void pifComm_AbortRx(PifComm* p_owner)
+void pifUart_AbortRx(PifUart* p_owner)
 {
 	pifRingBuffer_Empty(p_owner->_p_rx_buffer);
 	if (p_owner->evt_abort_rx) (*p_owner->evt_abort_rx)(p_owner->__p_client);
@@ -225,7 +225,7 @@ void pifComm_AbortRx(PifComm* p_owner)
 
 static uint16_t _doTask(PifTask* p_task)
 {
-	PifComm *p_owner = p_task->_p_client;
+	PifUart *p_owner = p_task->_p_client;
 
 	if (p_owner->__evt_parsing) {
 		if (p_owner->act_receive_data) {
@@ -240,12 +240,12 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, const char* name)
+PifTask* pifUart_AttachTask(PifUart* p_owner, PifTaskMode mode, uint16_t period, const char* name)
 {
 	p_owner->_p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, FALSE);
 	if (p_owner->_p_task) {
 		if (name) p_owner->_p_task->name = name;
-		else p_owner->_p_task->name = "Comm";
+		else p_owner->_p_task->name = "Uart";
 	}
 	return p_owner->_p_task;
 }

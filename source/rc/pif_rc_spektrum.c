@@ -4,7 +4,7 @@
 #define SPEKTRUM_RETRY_TIMEOUT		5	// 5ms
 
 
-static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
+static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifRcSpektrum *p_owner = (PifRcSpektrum *)p_client;
 	uint8_t data, id;
@@ -20,7 +20,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 
 	p_buffer = p_owner->__p_buffer;
 
-	while ((*act_receive_data)(p_owner->__p_comm, &data)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data)) {
 		p_buffer[p_owner->__index++] = data;
 
 		if (p_owner->__index == 2) {
@@ -99,16 +99,16 @@ BOOL pifRcSpektrum_Init(PifRcSpektrum* p_owner, PifId id, uint8_t protocol_id)
 	return TRUE;
 }
 
-void pifRcSpektrum_AttachComm(PifRcSpektrum* p_owner, PifComm *p_comm)
+void pifRcSpektrum_AttachUart(PifRcSpektrum* p_owner, PifUart *p_uart)
 {
-	p_owner->__p_comm = p_comm;
-	pifComm_AttachClient(p_comm, p_owner, _evtParsing, NULL);
+	p_owner->__p_uart = p_uart;
+	pifUart_AttachClient(p_uart, p_owner, _evtParsing, NULL);
 }
 
-void pifRcSpektrum_DetachComm(PifRcSpektrum* p_owner)
+void pifRcSpektrum_DetachUart(PifRcSpektrum* p_owner)
 {
-	pifComm_DetachClient(p_owner->__p_comm);
-	p_owner->__p_comm = NULL;
+	pifUart_DetachClient(p_owner->__p_uart);
+	p_owner->__p_uart = NULL;
 }
 
 BOOL pifRcSpektrum_SendFrame(PifRcSpektrum* p_owner, uint16_t* p_channel, uint8_t count)
@@ -129,5 +129,5 @@ BOOL pifRcSpektrum_SendFrame(PifRcSpektrum* p_owner, uint16_t* p_channel, uint8_
 		if (p_owner->parent._channel_count >= 8 && count >= 8) last_ch ^= 1;
 	}
 	
-	return pifComm_SendTxData(p_owner->__p_comm, buffer, p);
+	return pifUart_SendTxData(p_owner->__p_uart, buffer, p);
 }

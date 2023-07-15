@@ -2,7 +2,7 @@
 #define PIF_PROTOCOL_H
 
 
-#include "core/pif_comm.h"
+#include "communication/pif_uart.h"
 #include "core/pif_ring_buffer.h"
 #include "core/pif_timer.h"
 
@@ -173,7 +173,7 @@ typedef struct StPifProtocol
 
 	// Private Member Variable
     PifTimerManager* __p_timer_manager;
-	PifComm* __p_comm;
+	PifUart* __p_uart;
     const PifProtocolQuestion* __p_questions;
     PifProtocolRx __rx;
     PifProtocolTx __tx;
@@ -243,19 +243,19 @@ BOOL pifProtocol_ResizeTxRequest(PifProtocol* p_owner, uint16_t tx_request_size)
 BOOL pifProtocol_ResizeTxResponse(PifProtocol* p_owner, uint16_t tx_response_size);
 
 /**
- * @fn pifProtocol_AttachComm
+ * @fn pifProtocol_AttachUart
  * @brief
  * @param p_owner
- * @param p_comm
+ * @param p_uart
  */
-void pifProtocol_AttachComm(PifProtocol* p_owner, PifComm* p_comm);
+void pifProtocol_AttachUart(PifProtocol* p_owner, PifUart* p_uart);
 
 /**
- * @fn pifMProtocol_DetachComm
+ * @fn pifMProtocol_DetachUart
  * @brief
  * @param p_owner
  */
-void pifMProtocol_DetachComm(PifProtocol* p_owner);
+void pifMProtocol_DetachUart(PifProtocol* p_owner);
 
 /**
  * @fn pifProtocol_MakeRequest

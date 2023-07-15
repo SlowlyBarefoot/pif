@@ -4,12 +4,12 @@
 #include "gps/pif_gps_nmea.h"
 
 
-static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
+static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 {
 	PifGpsNmea *p_owner = (PifGpsNmea *)p_client;
 	uint8_t c;
 
-	while ((*act_receive_data)(p_owner->__p_comm, &c)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &c)) {
 		pifGps_ParsingNmea(&p_owner->_gps, c);
 	}
 }
@@ -96,16 +96,16 @@ void pifGpsNmea_Clear(PifGpsNmea* p_owner)
 	pifGps_Clear(&p_owner->_gps);
 }
 
-void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* p_comm)
+void pifGpsNmea_AttachUart(PifGpsNmea* p_owner, PifUart* p_uart)
 {
-	p_owner->__p_comm = p_comm;
-	pifComm_AttachClient(p_comm, p_owner, _evtParsing, NULL);
+	p_owner->__p_uart = p_uart;
+	pifUart_AttachClient(p_uart, p_owner, _evtParsing, NULL);
 }
 
-void pifGpsNmea_DetachComm(PifGpsNmea* p_owner)
+void pifGpsNmea_DetachUart(PifGpsNmea* p_owner)
 {
-	pifComm_DetachClient(p_owner->__p_comm);
-	p_owner->__p_comm = NULL;
+	pifUart_DetachClient(p_owner->__p_uart);
+	p_owner->__p_uart = NULL;
 }
 
 BOOL pifGpsNmea_AttachI2c(PifGpsNmea* p_owner, PifI2cPort* p_i2c, uint8_t addr, uint16_t period, BOOL start, const char* name)

@@ -2,7 +2,7 @@
 #define PIF_MAX31855_H
 
 
-#include "core/pif_spi.h"
+#include "communication/pif_spi.h"
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
 

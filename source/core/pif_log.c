@@ -8,7 +8,7 @@ typedef struct StPifLog
 {
 	BOOL enable;
 	PifRingBuffer buffer;
-	PifComm* p_comm;
+	PifUart* p_uart;
     PifRingBuffer* p_tx_buffer;
 
 #ifdef __PIF_LOG_COMMAND__
@@ -140,7 +140,7 @@ int pifLog_CmdSetStatus(int argc, char* argv[])
 	return PIF_LOG_CMD_TOO_FEW_ARGS;
 }
 
-static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_data)
+static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_data)
 {
     char tmp_char;
     uint8_t i;
@@ -149,12 +149,12 @@ static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_d
     static uint8_t pre_enter = 0;
     const PifLogCmdEntry *cmd, *pstart, *pend;
 
-	while ((*act_receive_data)(p_owner->p_comm, (uint8_t*)&tmp_char)) {
+	while ((*act_receive_data)(p_owner->p_uart, (uint8_t*)&tmp_char)) {
 		if (tmp_char >= 32 && tmp_char <= 126) {
 			if (!p_owner->char_idx && tmp_char == ' ') continue;
 			if (p_owner->char_idx < p_owner->rx_buffer_size - 3) {
 				pifRingBuffer_PutByte(p_owner->p_tx_buffer, tmp_char);
-				pifTask_SetTrigger(p_owner->p_comm->_p_task);
+				pifTask_SetTrigger(p_owner->p_uart->_p_task);
 				p_owner->p_rx_buffer[p_owner->char_idx] = tmp_char;
 				p_owner->char_idx++;
             }
@@ -167,7 +167,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_d
 					p_owner->char_idx--;
 					p_owner->p_rx_buffer[p_owner->char_idx] = 0;
 					pifRingBuffer_PutString(p_owner->p_tx_buffer, "\b \b");
-					pifTask_SetTrigger(p_owner->p_comm->_p_task);
+					pifTask_SetTrigger(p_owner->p_uart->_p_task);
 				}
 				break;
 
@@ -211,7 +211,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_d
 	            }
 	            for (; i < p_owner->char_idx; i++)
 	            	pifRingBuffer_PutByte(p_owner->p_tx_buffer, p_owner->p_rx_buffer[i]);
-				pifTask_SetTrigger(p_owner->p_comm->_p_task);
+				pifTask_SetTrigger(p_owner->p_uart->_p_task);
 				break;
 
 			case '\n':		// 0x0A / Line Feed / CTRL-J
@@ -225,7 +225,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_d
 			case 0x0C:		// Form Feed, New Page / CTRL-L
 				pifRingBuffer_PutString(p_owner->p_tx_buffer, "\033[2J\033[1;1H");
 				pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)s_log.p_prompt);
-				pifTask_SetTrigger(p_owner->p_comm->_p_task);
+				pifTask_SetTrigger(p_owner->p_uart->_p_task);
 				break;
 
 			default:
@@ -241,7 +241,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_d
 			}
 			else if (!pre_enter || enter == pre_enter) {
 				pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)s_log.p_prompt);
-				pifTask_SetTrigger(p_owner->p_comm->_p_task);
+				pifTask_SetTrigger(p_owner->p_uart->_p_task);
 				pre_enter = enter;
 			}
 			enter = 0;
@@ -255,7 +255,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActCommReceiveData act_receive_d
             if (p_owner->char_idx) {
 				p_owner->p_rx_buffer[p_owner->char_idx] = 0;
 				pifRingBuffer_PutByte(p_owner->p_tx_buffer, '\n');
-				pifTask_SetTrigger(p_owner->p_comm->_p_task);
+				pifTask_SetTrigger(p_owner->p_uart->_p_task);
 	        	break;
             }
             else {
@@ -312,7 +312,7 @@ static int _processDebugCmd(PifLog* p_owner)
     return PIF_LOG_CMD_NO_ERROR;
 }
 
-static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
+static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 {
 	PifLog* p_owner = (PifLog*)p_client;
 
@@ -373,7 +373,7 @@ static uint16_t _doTask(PifTask* p_task)
 	}
 
 	pifRingBuffer_PutString(s_log.p_tx_buffer, (char *)s_log.p_prompt);
-	pifTask_SetTrigger(s_log.p_comm->_p_task);
+	pifTask_SetTrigger(s_log.p_uart->_p_task);
 
 	s_log.cmd_done = FALSE;
 	return 0;
@@ -381,7 +381,7 @@ static uint16_t _doTask(PifTask* p_task)
 
 #else
 
-static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
+static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 {
     (void)p_client;
     (void)act_receive_data;
@@ -389,13 +389,13 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
 
 #endif
 
-static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
+static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 {
 	PifLog* p_owner = (PifLog*)p_client;
 	uint16_t length;
 
 	if (!pifRingBuffer_IsEmpty(p_owner->p_tx_buffer)) {
-		length = (*act_send_data)(p_owner->p_comm, pifRingBuffer_GetTailPointer(p_owner->p_tx_buffer, 0),
+		length = (*act_send_data)(p_owner->p_uart, pifRingBuffer_GetTailPointer(p_owner->p_tx_buffer, 0),
     			pifRingBuffer_GetLinerSize(p_owner->p_tx_buffer, 0));
 		pifRingBuffer_Remove(p_owner->p_tx_buffer, length);
 		return TRUE;
@@ -409,7 +409,7 @@ static void _printLog(char* p_string, BOOL vcd)
 		pifRingBuffer_PutString(&s_log.buffer, p_string);
 	}
 
-	if (s_log.p_comm && (s_log.enable || vcd)) {
+	if (s_log.p_uart && (s_log.enable || vcd)) {
         while (!pifRingBuffer_PutString(s_log.p_tx_buffer, p_string)) {
         	pifTaskManager_Yield();
         }
@@ -534,7 +534,7 @@ void pifLog_PrintChar(char ch)
 		pifRingBuffer_PutByte(&s_log.buffer, ch);
 	}
 
-	if (s_log.p_comm && s_log.enable) {
+	if (s_log.p_uart && s_log.enable) {
         while (!pifRingBuffer_PutByte(s_log.p_tx_buffer, ch)) {
         	pifTaskManager_Yield();
         }
@@ -598,7 +598,7 @@ void pifLog_PrintInBuffer()
 {
 	uint16_t length;
 
-	if (!s_log.p_comm || !s_log.p_comm->_p_task || !pifRingBuffer_IsBuffer(&s_log.buffer)) return;
+	if (!s_log.p_uart || !s_log.p_uart->_p_task || !pifRingBuffer_IsBuffer(&s_log.buffer)) return;
 
 	while (!pifRingBuffer_IsEmpty(&s_log.buffer)) {
 		while (!pifRingBuffer_IsEmpty(s_log.p_tx_buffer)) {
@@ -606,36 +606,36 @@ void pifLog_PrintInBuffer()
 		}
 		length = pifRingBuffer_CopyAll(s_log.p_tx_buffer, &s_log.buffer, 0);
 		pifRingBuffer_Remove(&s_log.buffer, length);
-		pifComm_ForceSendData(s_log.p_comm);
+		pifUart_ForceSendData(s_log.p_uart);
 	}
 }
 
 PifTask* pifLog_GetCommTask()
 {
-	if (!s_log.p_comm) return NULL;
+	if (!s_log.p_uart) return NULL;
 
-	return s_log.p_comm->_p_task;
+	return s_log.p_uart->_p_task;
 }
 
-BOOL pifLog_AttachComm(PifComm* p_comm)
+BOOL pifLog_AttachUart(PifUart* p_uart)
 {
     s_log.p_tx_buffer = pifRingBuffer_CreateHeap(PIF_ID_AUTO, PIF_LOG_TX_BUFFER_SIZE);
     if (!s_log.p_tx_buffer) return FALSE;
 
-	s_log.p_comm = p_comm;
-	pifComm_AttachClient(p_comm, &s_log, _evtParsing, _evtSending);
+	s_log.p_uart = p_uart;
+	pifUart_AttachClient(p_uart, &s_log, _evtParsing, _evtSending);
 
 #ifdef __PIF_LOG_COMMAND__
 	pifRingBuffer_PutString(s_log.p_tx_buffer, (char *)s_log.p_prompt);
-	pifTask_SetTrigger(s_log.p_comm->_p_task);
+	pifTask_SetTrigger(s_log.p_uart->_p_task);
 #endif
     return TRUE;
 }
 
-void pifLog_DetachComm()
+void pifLog_DetachUart()
 {
-	pifComm_DetachClient(s_log.p_comm);
-	s_log.p_comm = NULL;
+	pifUart_DetachClient(s_log.p_uart);
+	s_log.p_uart = NULL;
 
 	pifRingBuffer_Destroy(&s_log.p_tx_buffer);
 	s_log.p_tx_buffer = NULL;
@@ -643,9 +643,9 @@ void pifLog_DetachComm()
 
 void pifLog_SendAndExit()
 {
-	if (!s_log.p_comm) return;
+	if (!s_log.p_uart) return;
 
 	while (pifRingBuffer_GetFillSize(s_log.p_tx_buffer)) {
-		s_log.p_comm->_p_task->__evt_loop(s_log.p_comm->_p_task);
+		s_log.p_uart->_p_task->__evt_loop(s_log.p_uart->_p_task);
 	}
 }

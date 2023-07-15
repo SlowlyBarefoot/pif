@@ -9,7 +9,7 @@
 #define SUMD_RETRY_TIMEOUT		4		// 4ms
 
 
-static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
+static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifRcSumd *p_owner = (PifRcSumd *)p_client;
 	uint8_t data;
@@ -27,7 +27,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 
 	p_buffer = p_owner->__p_buffer;
 
-	while ((*act_receive_data)(p_owner->__p_comm, &data)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data)) {
 		//add byte to the ring buffer
 		p_buffer[p_owner->__index++] = data;
 
@@ -100,16 +100,16 @@ BOOL pifRcSumd_Init(PifRcSumd* p_owner, PifId id)
     return TRUE;
 }
 
-void pifRcSumd_AttachComm(PifRcSumd* p_owner, PifComm *p_comm)
+void pifRcSumd_AttachUart(PifRcSumd* p_owner, PifUart *p_uart)
 {
-	p_owner->__p_comm = p_comm;
-	pifComm_AttachClient(p_comm, p_owner, _evtParsing, NULL);
+	p_owner->__p_uart = p_uart;
+	pifUart_AttachClient(p_uart, p_owner, _evtParsing, NULL);
 }
 
-void pifRcSumd_DetachComm(PifRcSumd* p_owner)
+void pifRcSumd_DetachUart(PifRcSumd* p_owner)
 {
-	pifComm_DetachClient(p_owner->__p_comm);
-	p_owner->__p_comm = NULL;
+	pifUart_DetachClient(p_owner->__p_uart);
+	p_owner->__p_uart = NULL;
 }
 
 BOOL pifRcSumd_SendFrame(PifRcSumd* p_owner, uint16_t* p_channel, uint8_t count)
@@ -129,5 +129,5 @@ BOOL pifRcSumd_SendFrame(PifRcSumd* p_owner, uint16_t* p_channel, uint8_t count)
 	buffer[p++] = crc >> 8;
 	buffer[p++] = crc & 0xFF;
 	
-	return pifComm_SendTxData(p_owner->__p_comm, buffer, p);
+	return pifUart_SendTxData(p_owner->__p_uart, buffer, p);
 }

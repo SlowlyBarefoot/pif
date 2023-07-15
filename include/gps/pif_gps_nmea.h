@@ -2,8 +2,8 @@
 #define PIF_GPS_NMEA_H
 
 
-#include "core/pif_comm.h"
-#include "core/pif_i2c.h"
+#include "communication/pif_uart.h"
+#include "communication/pif_i2c.h"
 #include "gps/pif_gps.h"
 
 
@@ -22,7 +22,7 @@ typedef struct StPifGpsNmea
     PifTask* _p_task;
 
 	// Private Member Variable
-	PifComm* __p_comm;
+	PifUart* __p_uart;
 	PifI2cPort* __p_i2c_port;
 	PifI2cDevice* __p_i2c_device;
 
@@ -52,19 +52,19 @@ BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId usPifId);
 void pifGpsNmea_Clear(PifGpsNmea* p_owner);
 
 /**
- * @fn pifGpsNmea_AttachComm
+ * @fn pifGpsNmea_AttachUart
  * @brief
  * @param p_owner
- * @param p_comm
+ * @param p_uart
  */
-void pifGpsNmea_AttachComm(PifGpsNmea* p_owner, PifComm* pstComm);
+void pifGpsNmea_AttachUart(PifGpsNmea* p_owner, PifUart* p_uart);
 
 /**
- * @fn pifGpsNmea_DetachComm
+ * @fn pifGpsNmea_DetachUart
  * @brief
  * @param p_owner
  */
-void pifGpsNmea_DetachComm(PifGpsNmea* p_owner);
+void pifGpsNmea_DetachUart(PifGpsNmea* p_owner);
 
 /**
  * @fn pifGpsNmea_AttachI2c

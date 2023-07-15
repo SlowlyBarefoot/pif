@@ -12,14 +12,14 @@
 #define IBUS_RETRY_TIMEOUT		3		// 3ms, Packets are received very ~7ms so use ~half that for the gap
 
 
-static void _ParsingPacket(PifRcIbus *p_owner, PifActCommReceiveData act_receive_data)
+static void _ParsingPacket(PifRcIbus *p_owner, PifActUartReceiveData act_receive_data)
 {
 	uint8_t data;
 	static uint8_t ptr;                      // pointer in buffer
 	static uint16_t chksum;                  // checksum calculation
 	static uint8_t lchksum;                  // checksum lower byte received
 
-	while ((*act_receive_data)(p_owner->__p_comm, &data)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data)) {
 		switch (p_owner->__rx_state) {
 		case IRS_GET_LENGTH:
 			if (data <= IBUS_FRAME_SIZE && data > IBUS_OVERHEAD) {
@@ -61,7 +61,7 @@ static void _ParsingPacket(PifRcIbus *p_owner, PifActCommReceiveData act_receive
 	}
 }
 
-static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
+static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifRcIbus *p_owner = (PifRcIbus *)p_client;
 	PifRcIbusSensorinfo* p_sensor;
@@ -95,7 +95,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 
 	    	if (p_owner->parent.__evt_receive) (*p_owner->parent.__evt_receive)(&p_owner->parent, channel, p_owner->parent.__p_issuer);
 		} 
-		else if (p_owner->__p_comm->_p_tx_buffer && adr <= p_owner->_number_sensors && adr > 0 && p_owner->__rx_length == 1) {
+		else if (p_owner->__p_uart->_p_tx_buffer && adr <= p_owner->_number_sensors && adr > 0 && p_owner->__rx_length == 1) {
 			// all sensor data commands go here
 			// we only process the length==1 commands (=message length is 4 bytes incl overhead) to prevent the case the
 			// return messages from the UART TX port loop back to the RX port and are processed again. This is extra
@@ -137,7 +137,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 				tx_buffer[p++] = chksum & 0x0ff;
 				tx_buffer[p++] = chksum >> 8;
 
-				pifRingBuffer_PutData(p_owner->__p_comm->_p_tx_buffer, tx_buffer, p);
+				pifRingBuffer_PutData(p_owner->__p_uart->_p_tx_buffer, tx_buffer, p);
 			}
 		}
 
@@ -161,16 +161,16 @@ BOOL pifRcIbus_Init(PifRcIbus* p_owner, PifId id)
     return TRUE;
 }
 
-void pifRcIbus_AttachComm(PifRcIbus* p_owner, PifComm *p_comm)
+void pifRcIbus_AttachUart(PifRcIbus* p_owner, PifUart *p_uart)
 {
-	p_owner->__p_comm = p_comm;
-	pifComm_AttachClient(p_comm, p_owner, _evtParsing, NULL);
+	p_owner->__p_uart = p_uart;
+	pifUart_AttachClient(p_uart, p_owner, _evtParsing, NULL);
 }
 
-void pifRcIbus_DetachComm(PifRcIbus* p_owner)
+void pifRcIbus_DetachUart(PifRcIbus* p_owner)
 {
-	pifComm_DetachClient(p_owner->__p_comm);
-	p_owner->__p_comm = NULL;
+	pifUart_DetachClient(p_owner->__p_uart);
+	p_owner->__p_uart = NULL;
 }
 
 BOOL pifRcIbus_AddSensor(PifRcIbus* p_owner, uint8_t type, uint8_t len) 
@@ -223,5 +223,5 @@ BOOL pifRcIbus_SendFrame(PifRcIbus* p_owner, uint16_t* p_channel, uint8_t count)
 	buffer[p++] = crc & 0xFF;
 	buffer[p++] = crc >> 8;
 
-	return pifComm_SendTxData(p_owner->__p_comm, buffer, p);
+	return pifUart_SendTxData(p_owner->__p_uart, buffer, p);
 }

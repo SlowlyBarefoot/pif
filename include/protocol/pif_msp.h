@@ -2,7 +2,7 @@
 #define PIF_MSP_H
 
 
-#include "core/pif_comm.h"
+#include "communication/pif_uart.h"
 #include "core/pif_ring_buffer.h"
 #include "core/pif_timer.h"
 
@@ -95,7 +95,7 @@ struct StPifMsp
     PifId _id;
 
 	// Private Member Variable
-	PifComm* __p_comm;
+	PifUart* __p_uart;
     PifMspRx __rx;
     PifMspTx __tx;
 	uint8_t __check_xor;
@@ -130,19 +130,19 @@ BOOL pifMsp_Init(PifMsp* p_owner, PifTimerManager* p_timer, PifId id);
 void pifMsp_Clear(PifMsp* p_owner);
 
 /**
- * @fn pifMsp_AttachComm
+ * @fn pifMsp_AttachUart
  * @brief
  * @param p_owner
- * @param p_comm
+ * @param p_uart
  */
-void pifMsp_AttachComm(PifMsp* p_owner, PifComm* p_comm);
+void pifMsp_AttachUart(PifMsp* p_owner, PifUart* p_uart);
 
 /**
- * @fn pifMsp_DetachComm
+ * @fn pifMsp_DetachUart
  * @brief
  * @param p_owner
  */
-void pifMsp_DetachComm(PifMsp* p_owner);
+void pifMsp_DetachUart(PifMsp* p_owner);
 
 /**
  * @fn pifMsp_AttachEvtReceive

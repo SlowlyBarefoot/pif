@@ -2,7 +2,7 @@
 #define PIF_RC_SUMD_H
 
 
-#include "core/pif_comm.h"
+#include "communication/pif_uart.h"
 #include "rc/pif_rc.h"
 
 
@@ -30,7 +30,7 @@ typedef struct StPifRcSumd
 	// Read-only Member Variable
 
 	// Private Member Variable
-	PifComm* __p_comm;
+	PifUart* __p_uart;
     uint8_t __p_buffer[SUMD_FRAME_SIZE];  //buffer size : 2 Bytes per channel + synchro, failsafe, channel nb, chksum(2) and 1 extra byte for empty/full detection 
 	uint8_t __index;                            // message length
 	uint32_t __last_time;
@@ -51,19 +51,19 @@ extern "C" {
 BOOL pifRcSumd_Init(PifRcSumd* p_owner, PifId id);
 
 /**
- * @fn pifRcSumd_AttachComm
+ * @fn pifRcSumd_AttachUart
  * @brief
  * @param p_owner
- * @param p_comm
+ * @param p_uart
  */
-void pifRcSumd_AttachComm(PifRcSumd* p_owner, PifComm* p_comm);
+void pifRcSumd_AttachUart(PifRcSumd* p_owner, PifUart* p_uart);
 
 /**
- * @fn pifRcSumd_DetachComm
+ * @fn pifRcSumd_DetachUart
  * @brief
  * @param p_owner
  */
-void pifRcSumd_DetachComm(PifRcSumd* p_owner);
+void pifRcSumd_DetachUart(PifRcSumd* p_owner);
 
 /**
  * @fn pifRcSumd_CheckFailSafe

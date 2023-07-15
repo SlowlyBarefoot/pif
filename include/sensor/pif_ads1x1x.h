@@ -2,7 +2,7 @@
 #define PIF_ADS1X1X_H
 
 
-#include "core/pif_i2c.h"
+#include "communication/pif_i2c.h"
 
 
 #define ADS1X1X_I2C_ADDR(N)		(0x48 + (N))

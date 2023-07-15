@@ -300,12 +300,12 @@ fail:
 	p_owner->__rx.state = GURS_SYNC_CHAR_1;
 }
 
-static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
+static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifGpsUblox *p_owner = (PifGpsUblox *)p_client;
     uint8_t data;
 
-	while ((*act_receive_data)(p_owner->__p_comm, &data)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data)) {
 		_parsingPacket(p_owner, data);
 	}
 }
@@ -410,8 +410,8 @@ static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, uint16_t waiting
 
 	pifRingBuffer_CommitPutting(&p_owner->__tx.buffer);
 
-	if (p_owner->__p_comm) {
-		pifTask_SetTrigger(p_owner->__p_comm->_p_task);
+	if (p_owner->__p_uart) {
+		pifTask_SetTrigger(p_owner->__p_uart->_p_task);
 
 		pifTaskManager_YieldAbortMs(waiting, _checkAbortSerial, p_owner);
 	}
@@ -483,8 +483,8 @@ static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t len
 
 	pifRingBuffer_CommitPutting(&p_owner->__tx.buffer);
 
-	if (p_owner->__p_comm) {
-		pifTask_SetTrigger(p_owner->__p_comm->_p_task);
+	if (p_owner->__p_uart) {
+		pifTask_SetTrigger(p_owner->__p_uart->_p_task);
 
 		if (p_owner->_request_state == GURS_SEND) {
 			pifTaskManager_YieldAbortMs(waiting, _checkAbortSerialResponse, p_owner);
@@ -515,7 +515,7 @@ fail:
 	return FALSE;
 }
 
-static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
+static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 {
 	PifGpsUblox *p_owner = (PifGpsUblox *)p_client;
 	uint16_t length;
@@ -530,7 +530,7 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 		break;
 
 	case GUTS_SENDING:
-		length = (*act_send_data)(p_owner->__p_comm, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, p_owner->__tx.pos),
+		length = (*act_send_data)(p_owner->__p_uart, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, p_owner->__tx.pos),
 				pifRingBuffer_GetLinerSize(&p_owner->__tx.buffer, p_owner->__tx.pos));
 		p_owner->__tx.pos += length;
 		if (p_owner->__tx.pos >= 4 + p_owner->__tx.ui.st.length) {
@@ -604,17 +604,17 @@ void pifGpsUblox_Clear(PifGpsUblox* p_owner)
 	pifRingBuffer_Clear(&p_owner->__tx.buffer);
 }
 
-void pifGpsUblox_AttachComm(PifGpsUblox* p_owner, PifComm *p_comm)
+void pifGpsUblox_AttachUart(PifGpsUblox* p_owner, PifUart *p_uart)
 {
-	p_owner->__p_comm = p_comm;
-	pifComm_AttachClient(p_comm, p_owner, _evtParsing, _evtSending);
-	p_comm->evt_abort_rx = _evtAbortRx;
+	p_owner->__p_uart = p_uart;
+	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
+	p_uart->evt_abort_rx = _evtAbortRx;
 }
 
-void pifGpsUblox_DetachComm(PifGpsUblox* p_owner)
+void pifGpsUblox_DetachUart(PifGpsUblox* p_owner)
 {
-	pifComm_DetachClient(p_owner->__p_comm);
-	p_owner->__p_comm = NULL;
+	pifUart_DetachClient(p_owner->__p_uart);
+	p_owner->__p_uart = NULL;
 }
 
 BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr, uint16_t period, BOOL start, const char* name)

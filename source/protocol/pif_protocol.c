@@ -69,7 +69,7 @@ static const char* kPktErr[5] = {
 
 #endif
 
-static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_receive_data)
+static void _parsingPacket(PifProtocol* p_owner, PifActUartReceiveData act_receive_data)
 {
 	PifProtocolPacket* p_packet = &p_owner->__rx.packet;
 	uint8_t data;
@@ -78,7 +78,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActCommReceiveData act_recei
 #endif
 	static uint8_t crc7;
 
-	while ((*act_receive_data)(p_owner->__p_comm, &data)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data)) {
 		switch (p_owner->__rx.state)	{
 		case PRS_IDLE:
 			if (data == ASCII_STX) {
@@ -252,7 +252,7 @@ fail:
 	p_owner->__rx.state = PRS_IDLE;
 }
 
-static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
+static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 {
 	PifProtocol* p_owner = (PifProtocol*)p_client;
 	PifProtocolPacket* p_packet;
@@ -329,7 +329,7 @@ static void _evtParsing(void* p_client, PifActCommReceiveData act_receive_data)
     }
 }
 
-static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
+static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 {
 	PifProtocol* p_owner = (PifProtocol*)p_client;
 	uint16_t length;
@@ -347,7 +347,7 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 	    	break;
 
 	    case PTS_SENDING:
-	    	length = (*act_send_data)(p_owner->__p_comm, pifRingBuffer_GetTailPointer(&p_owner->__tx.answer_buffer, p_owner->__tx.pos),
+	    	length = (*act_send_data)(p_owner->__p_uart, pifRingBuffer_GetTailPointer(&p_owner->__tx.answer_buffer, p_owner->__tx.pos),
 	    			pifRingBuffer_GetLinerSize(&p_owner->__tx.answer_buffer, p_owner->__tx.pos));
 	    	if (!length) return FALSE;
 
@@ -373,7 +373,7 @@ static BOOL _evtSending(void* p_client, PifActCommSendData act_send_data)
 	    	break;
 
 	    case PTS_SENDING:
-	    	length = (*act_send_data)(p_owner->__p_comm, pifRingBuffer_GetTailPointer(&p_owner->__tx.request_buffer, p_owner->__tx.pos),
+	    	length = (*act_send_data)(p_owner->__p_uart, pifRingBuffer_GetTailPointer(&p_owner->__tx.request_buffer, p_owner->__tx.pos),
 	    			pifRingBuffer_GetLinerSize(&p_owner->__tx.request_buffer, p_owner->__tx.pos));
 	    	p_owner->__tx.pos += length;
 			if (p_owner->__tx.pos >= 5 + p_owner->__tx.ui.st.length) {
@@ -570,16 +570,16 @@ BOOL pifProtocol_ResizeTxResponse(PifProtocol* p_owner, uint16_t tx_response_siz
     return pifRingBuffer_ResizeHeap(&p_owner->__tx.answer_buffer, tx_response_size);
 }
 
-void pifProtocol_AttachComm(PifProtocol* p_owner, PifComm* p_comm)
+void pifProtocol_AttachUart(PifProtocol* p_owner, PifUart* p_uart)
 {
-	p_owner->__p_comm = p_comm;
-	pifComm_AttachClient(p_comm, p_owner, _evtParsing, _evtSending);
+	p_owner->__p_uart = p_uart;
+	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
 }
 
-void pifProtocol_DetachComm(PifProtocol* p_owner)
+void pifProtocol_DetachUart(PifProtocol* p_owner)
 {
-	pifComm_DetachClient(p_owner->__p_comm);
-	p_owner->__p_comm = NULL;
+	pifUart_DetachClient(p_owner->__p_uart);
+	p_owner->__p_uart = NULL;
 }
 
 BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_request, uint8_t* p_data, uint16_t data_size)

@@ -7,7 +7,7 @@
 #define SBUS_RETRY_TIMEOUT		3		// 3ms
 
 
-static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
+static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifRcSbus *p_owner = (PifRcSbus *)p_client;
 	uint8_t i, data;
@@ -23,7 +23,7 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 
 	p_buffer = p_owner->__buffer;
 
-	while ((*act_receive_data)(p_owner->__p_comm, &data)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data)) {
 		if (p_owner->__index == 0 && data != SBUS_STARTBYTE) {
 			continue;
 		}
@@ -97,16 +97,16 @@ BOOL pifRcSbus_Init(PifRcSbus* p_owner, PifId id)
     return TRUE;
 }
 
-void pifRcSbus_AttachComm(PifRcSbus* p_owner, PifComm *p_comm)
+void pifRcSbus_AttachUart(PifRcSbus* p_owner, PifUart *p_uart)
 {
-	p_owner->__p_comm = p_comm;
-	pifComm_AttachClient(p_comm, p_owner, _evtParsing, NULL);
+	p_owner->__p_uart = p_uart;
+	pifUart_AttachClient(p_uart, p_owner, _evtParsing, NULL);
 }
 
-void pifRcSbus_DetachComm(PifRcSbus* p_owner)
+void pifRcSbus_DetachUart(PifRcSbus* p_owner)
 {
-	pifComm_DetachClient(p_owner->__p_comm);
-	p_owner->__p_comm = NULL;
+	pifUart_DetachClient(p_owner->__p_uart);
+	p_owner->__p_uart = NULL;
 }
 
 BOOL pifRcSbus_SendFrame(PifRcSbus* p_owner, uint16_t* p_channel, uint8_t count)
@@ -162,5 +162,5 @@ next:
 	buffer[23] = 0x00;
 	buffer[24] = SBUS_ENDBYTE;
 
-	return pifComm_SendTxData(p_owner->__p_comm, buffer, 25);
+	return pifUart_SendTxData(p_owner->__p_uart, buffer, 25);
 }

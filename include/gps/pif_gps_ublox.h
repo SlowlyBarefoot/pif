@@ -2,8 +2,8 @@
 #define PIF_GPS_UBLOXX_H
 
 
-#include "core/pif_comm.h"
-#include "core/pif_i2c.h"
+#include "communication/pif_uart.h"
+#include "communication/pif_i2c.h"
 #include "core/pif_ring_buffer.h"
 #include "core/pif_timer.h"
 #include "gps/pif_gps.h"
@@ -457,7 +457,7 @@ struct StPifGpsUblox
 	uint32_t _svinfo_rate[2];       // GPS svinfo updating rate (column 0 = last update time, 1 = current update ms)
 
 	// Private Member Variable
-	PifComm* __p_comm;
+	PifUart* __p_uart;
 	PifI2cPort* __p_i2c_port;
 	PifI2cDevice* __p_i2c_device;
     PifGpsUbxRx __rx;
@@ -489,19 +489,19 @@ BOOL pifGpsUblox_Init(PifGpsUblox* p_owner, PifId id);
 void pifGpsUblox_Clear(PifGpsUblox* p_owner);
 
 /**
- * @fn pifGpsUblox_AttachComm
+ * @fn pifGpsUblox_AttachUart
  * @brief
  * @param p_owner
- * @param p_comm
+ * @param p_uart
  */
-void pifGpsUblox_AttachComm(PifGpsUblox* p_owner, PifComm* p_comm);
+void pifGpsUblox_AttachUart(PifGpsUblox* p_owner, PifUart* p_uart);
 
 /**
- * @fn pifGpsUblox_DetachComm
+ * @fn pifGpsUblox_DetachUart
  * @brief
  * @param p_owner
  */
-void pifGpsUblox_DetachComm(PifGpsUblox* p_owner);
+void pifGpsUblox_DetachUart(PifGpsUblox* p_owner);
 
 /**
  * @fn pifGpsUblox_AttachI2c

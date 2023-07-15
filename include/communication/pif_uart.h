@@ -1,5 +1,5 @@
-#ifndef PIF_COMM_H
-#define PIF_COMM_H
+#ifndef PIF_UART_H
+#define PIF_UART_H
 
 
 #include "core/pif_ring_buffer.h"
@@ -41,45 +41,45 @@
 #define ASCII_RS	30	// Record Separator
 #define ASCII_US	31	// Unit Separator
 
-#define PIF_COMM_SEND_DATA_STATE_INIT		0
-#define PIF_COMM_SEND_DATA_STATE_DATA		1
-#define PIF_COMM_SEND_DATA_STATE_EMPTY		2
+#define PIF_UART_SEND_DATA_STATE_INIT		0
+#define PIF_UART_SEND_DATA_STATE_DATA		1
+#define PIF_UART_SEND_DATA_STATE_EMPTY		2
 
 
-struct StPifComm;
-typedef struct StPifComm PifComm;
+struct StPifUart;
+typedef struct StPifUart PifUart;
 
-typedef BOOL (*PifActCommSetBaudRate)(PifComm* p_comm, uint32_t baudrate);
-typedef BOOL (*PifActCommReceiveData)(PifComm* p_comm, uint8_t* p_data);
-typedef uint16_t (*PifActCommSendData)(PifComm* p_comm, uint8_t* p_buffer, uint16_t size);
-typedef BOOL (*PifActCommStartTransfer)(PifComm* p_comm);
+typedef BOOL (*PifActUartSetBaudRate)(PifUart* p_uart, uint32_t baudrate);
+typedef BOOL (*PifActUartReceiveData)(PifUart* p_uart, uint8_t* p_data);
+typedef uint16_t (*PifActUartSendData)(PifUart* p_uart, uint8_t* p_buffer, uint16_t size);
+typedef BOOL (*PifActUartStartTransfer)(PifUart* p_uart);
 
-typedef void (*PifEvtCommParsing)(void* p_client, PifActCommReceiveData act_receive_data);
-typedef BOOL (*PifEvtCommSending)(void* p_client, PifActCommSendData act_send_data);
-typedef void (*PifEvtCommAbortRx)(void* p_client);
+typedef void (*PifEvtUartParsing)(void* p_client, PifActUartReceiveData act_receive_data);
+typedef BOOL (*PifEvtUartSending)(void* p_client, PifActUartSendData act_send_data);
+typedef void (*PifEvtUartAbortRx)(void* p_client);
 
-typedef enum EnPifCommTxState
+typedef enum EnPifUartTxState
 {
-	CTS_IDLE		= 0,
-	CTS_SENDING		= 1
-} PifCommTxState;
+	UTS_IDLE		= 0,
+	UTS_SENDING		= 1
+} PifUartTxState;
 
 /**
- * @class StPifComm
+ * @class StPifUart
  * @brief
  */
-struct StPifComm
+struct StPifUart
 {
 	// Public Member Variable
 
 	// Public Action Function
-    PifActCommSetBaudRate act_set_baudrate;
-	PifActCommReceiveData act_receive_data;
-    PifActCommSendData act_send_data;
-    PifActCommStartTransfer act_start_transfer;
+    PifActUartSetBaudRate act_set_baudrate;
+	PifActUartReceiveData act_receive_data;
+    PifActUartSendData act_send_data;
+    PifActUartStartTransfer act_start_transfer;
 
     // Public Event Function
-    PifEvtCommAbortRx evt_abort_rx;
+    PifEvtUartAbortRx evt_abort_rx;
 
 	// Read-only Member Variable
     PifId _id;
@@ -89,12 +89,12 @@ struct StPifComm
 
 	// Private Member Variable
     void* __p_client;
-    PifCommTxState __state;
+    PifUartTxState __state;
     uint16_t __rx_threshold;
 
     // Private Event Function
-    PifEvtCommParsing __evt_parsing;
-    PifEvtCommSending __evt_sending;
+    PifEvtUartParsing __evt_parsing;
+    PifEvtUartSending __evt_sending;
 };
 
 
@@ -103,163 +103,163 @@ extern "C" {
 #endif
 
 /**
- * @fn pifComm_Init
+ * @fn pifUart_Init
  * @brief
  * @param p_owner
  * @param id
  * @return
  */
-BOOL pifComm_Init(PifComm* p_owner, PifId id);
+BOOL pifUart_Init(PifUart* p_owner, PifId id);
 
 /**
- * @fn pifComm_Clear
+ * @fn pifUart_Clear
  * @brief
  * @param p_owner
  */
-void pifComm_Clear(PifComm* p_owner);
+void pifUart_Clear(PifUart* p_owner);
 
 /**
- * @fn pifComm_AllocRxBuffer
+ * @fn pifUart_AllocRxBuffer
  * @brief
  * @param p_owner
  * @param rx_size
  * @param threshold
  * @return
  */
-BOOL pifComm_AllocRxBuffer(PifComm* p_owner, uint16_t rx_size, uint8_t threshold);
+BOOL pifUart_AllocRxBuffer(PifUart* p_owner, uint16_t rx_size, uint8_t threshold);
 
 /**
- * @fn pifComm_AllocTxBuffer
+ * @fn pifUart_AllocTxBuffer
  * @brief
  * @param p_owner
  * @param tx_size
  * @return
  */
-BOOL pifComm_AllocTxBuffer(PifComm* p_owner, uint16_t tx_size);
+BOOL pifUart_AllocTxBuffer(PifUart* p_owner, uint16_t tx_size);
 
 /**
- * @fn pifComm_AttachClient
+ * @fn pifUart_AttachClient
  * @brief
  * @param p_owner
  * @param p_client
  * @param evt_parsing
  * @param evt_sending
  */
-void pifComm_AttachClient(PifComm* p_owner, void* p_client, PifEvtCommParsing evt_parsing, PifEvtCommSending evt_sending);
+void pifUart_AttachClient(PifUart* p_owner, void* p_client, PifEvtUartParsing evt_parsing, PifEvtUartSending evt_sending);
 
 /**
- * @fn pifComm_DetachClient
+ * @fn pifUart_DetachClient
  * @brief
  * @param p_owner
  */
-void pifComm_DetachClient(PifComm* p_owner);
+void pifUart_DetachClient(PifUart* p_owner);
 
 /**
- * @fn pifComm_GetRemainSizeOfRxBuffer
- * @brief
- * @param p_owner
- * @return
- */
-uint16_t pifComm_GetRemainSizeOfRxBuffer(PifComm* p_owner);
-
-/**
- * @fn pifComm_GetFillSizeOfTxBuffer
+ * @fn pifUart_GetRemainSizeOfRxBuffer
  * @brief
  * @param p_owner
  * @return
  */
-uint16_t pifComm_GetFillSizeOfTxBuffer(PifComm* p_owner);
+uint16_t pifUart_GetRemainSizeOfRxBuffer(PifUart* p_owner);
 
 /**
- * @fn pifComm_PutRxByte
+ * @fn pifUart_GetFillSizeOfTxBuffer
+ * @brief
+ * @param p_owner
+ * @return
+ */
+uint16_t pifUart_GetFillSizeOfTxBuffer(PifUart* p_owner);
+
+/**
+ * @fn pifUart_PutRxByte
  * @brief
  * @param p_owner
  * @param data
  * @return 
  */
-BOOL pifComm_PutRxByte(PifComm* p_owner, uint8_t data);
+BOOL pifUart_PutRxByte(PifUart* p_owner, uint8_t data);
 
 /**
- * @fn pifComm_PutRxData
+ * @fn pifUart_PutRxData
  * @brief
  * @param p_owner
  * @param p_data
  * @param length
  * @return
  */
-BOOL pifComm_PutRxData(PifComm* p_owner, uint8_t* p_data, uint16_t length);
+BOOL pifUart_PutRxData(PifUart* p_owner, uint8_t* p_data, uint16_t length);
 
 /**
- * @fn pifComm_GetTxByte
+ * @fn pifUart_GetTxByte
  * @brief
  * @param p_owner
  * @param p_data
  * @return
  */
-uint8_t pifComm_GetTxByte(PifComm* p_owner, uint8_t* p_data);
+uint8_t pifUart_GetTxByte(PifUart* p_owner, uint8_t* p_data);
 
 /**
- * @fn pifComm_StartGetTxData
+ * @fn pifUart_StartGetTxData
  * @brief
  * @param p_owner
  * @param pp_data
  * @param p_length
  * @return
  */
-uint8_t pifComm_StartGetTxData(PifComm* p_owner, uint8_t** pp_data, uint16_t *p_length);
+uint8_t pifUart_StartGetTxData(PifUart* p_owner, uint8_t** pp_data, uint16_t *p_length);
 
 /**
- * @fn pifComm_EndGetTxData
+ * @fn pifUart_EndGetTxData
  * @brief
  * @param p_owner
  * @param length
  * @return
  */
-uint8_t pifComm_EndGetTxData(PifComm* p_owner, uint16_t length);
+uint8_t pifUart_EndGetTxData(PifUart* p_owner, uint16_t length);
 
 /**
- * @fn pifComm_ReceiveRxData
+ * @fn pifUart_ReceiveRxData
  * @brief
  * @param p_owner
  * @param p_data
  * @param length
  * @return
  */
-uint16_t pifComm_ReceiveRxData(PifComm* p_owner, uint8_t* p_data, uint16_t length);
+uint16_t pifUart_ReceiveRxData(PifUart* p_owner, uint8_t* p_data, uint16_t length);
 
 /**
- * @fn pifComm_SendTxData
+ * @fn pifUart_SendTxData
  * @brief
  * @param p_owner
  * @param p_data
  * @param length
  * @return
  */
-BOOL pifComm_SendTxData(PifComm* p_owner, uint8_t* p_data, uint16_t length);
+BOOL pifUart_SendTxData(PifUart* p_owner, uint8_t* p_data, uint16_t length);
 
 /**
- * @fn pifComm_FinishTransfer
+ * @fn pifUart_FinishTransfer
  * @brief
  * @param p_owner
  */
-void pifComm_FinishTransfer(PifComm* p_owner);
+void pifUart_FinishTransfer(PifUart* p_owner);
 
 /**
- * @fn pifComm_ForceSendData
+ * @fn pifUart_ForceSendData
  * @brief
  * @param p_owner
  */
-void pifComm_ForceSendData(PifComm* p_owner);
+void pifUart_ForceSendData(PifUart* p_owner);
 
 /**
- * @fn pifComm_AbortRx
+ * @fn pifUart_AbortRx
  * @brief
  * @param p_owner
  */
-void pifComm_AbortRx(PifComm* p_owner);
+void pifUart_AbortRx(PifUart* p_owner);
 
 /**
- * @fn pifComm_AttachTask
+ * @fn pifUart_AttachTask
  * @brief Task를 추가한다.
  * @param p_owner
  * @param mode Task의 Mode를 설정한다.
@@ -267,11 +267,11 @@ void pifComm_AbortRx(PifComm* p_owner);
  * @param name task의 이름을 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifComm_AttachTask(PifComm* p_owner, PifTaskMode mode, uint16_t period, const char* name);
+PifTask* pifUart_AttachTask(PifUart* p_owner, PifTaskMode mode, uint16_t period, const char* name);
 
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif  // PIF_COMM_H
+#endif  // PIF_UART_H

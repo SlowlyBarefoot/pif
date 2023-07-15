@@ -1,4 +1,4 @@
-#include "core/pif_i2c.h"
+#include "communication/pif_i2c.h"
 #ifndef __PIF_NO_LOG__
 	#include "core/pif_log.h"
 #endif

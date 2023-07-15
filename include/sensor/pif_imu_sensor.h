@@ -2,7 +2,7 @@
 #define PIF_IMU_SENSOR_H
 
 
-#include "core/pif_i2c.h"
+#include "communication/pif_i2c.h"
 
 
 #define AXIS_X		0

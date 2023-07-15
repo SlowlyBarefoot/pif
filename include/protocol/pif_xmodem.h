@@ -2,7 +2,7 @@
 #define PIF_XMODEM_H
 
 
-#include "core/pif_comm.h"
+#include "communication/pif_uart.h"
 #include "core/pif_timer.h"
 
 
@@ -94,7 +94,7 @@ typedef struct StPifXmodem
 
 	// Private Member Variable
 	PifTimerManager* __p_timer_manager;
-	PifComm* __p_comm;
+	PifUart* __p_uart;
 	PifXmodemType __type;
 	uint16_t __packet_size;
 	PifXmodemTx __tx;
@@ -142,19 +142,19 @@ void pifXmodem_SetResponseTimeout(PifXmodem* p_owner, uint16_t response_timeout)
 void pifXmodem_SetReceiveTimeout(PifXmodem* p_owner, uint16_t receive_timeout);
 
 /**
- * @fn pifXmodem_AttachComm
+ * @fn pifXmodem_AttachUart
  * @brief
  * @param p_owner
- * @param p_comm
+ * @param p_uart
  */
-void pifXmodem_AttachComm(PifXmodem* p_owner, PifComm* p_comm);
+void pifXmodem_AttachUart(PifXmodem* p_owner, PifUart* p_uart);
 
 /**
- * @fn pifXmodem_DetachComm
+ * @fn pifXmodem_DetachUart
  * @brief
  * @param p_owner
  */
-void pifXmodem_DetachComm(PifXmodem* p_owner);
+void pifXmodem_DetachUart(PifXmodem* p_owner);
 
 /**
  * @fn pifXmodem_AttachEvtTxReceive

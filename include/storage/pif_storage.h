@@ -2,7 +2,7 @@
 #define PIF_STORAGE_H
 
 
-#include "core/pif_i2c.h"
+#include "communication/pif_i2c.h"
 
 
 typedef enum EnPifStorageI2cIAddrSize

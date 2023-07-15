@@ -47,7 +47,7 @@ static const char *kPktErr[] = {
 
 #endif
 
-static void _parsingPacket(PifMsp *p_owner, PifActCommReceiveData act_receive_data)
+static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_data)
 {
 	PifMspPacket* p_packet = &p_owner->__rx.packet;
 	uint8_t data;
@@ -57,7 +57,7 @@ static void _parsingPacket(PifMsp *p_owner, PifActCommReceiveData act_receive_da
 #endif
 	static uint8_t pre_error = PKT_ERR_NONE;
 
-	while ((*act_receive_data)(p_owner->__p_comm, &data)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data)) {
 		switch (p_owner->__rx.state) {
 		case MRS_IDLE:
 			if (data == '$') {
@@ -175,7 +175,7 @@ fail:
 	p_owner->__rx.state = MRS_IDLE;
 }
 
-static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
+static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifMsp *p_owner = (PifMsp *)p_client;
 
@@ -193,12 +193,12 @@ static void _evtParsing(void *p_client, PifActCommReceiveData act_receive_data)
 
 		p_owner->__rx.packet.p_pointer = p_owner->__rx.packet.p_data;
     	if (p_owner->__evt_receive) (*p_owner->__evt_receive)(p_owner, &p_owner->__rx.packet, p_owner->__p_issuer);
-    	pifTask_SetTrigger(p_owner->__p_comm->_p_task);
+    	pifTask_SetTrigger(p_owner->__p_uart->_p_task);
     	p_owner->__rx.state = MRS_IDLE;
     }
 }
 
-static BOOL _evtSending(void *p_client, PifActCommSendData act_send_data)
+static BOOL _evtSending(void *p_client, PifActUartSendData act_send_data)
 {
 	PifMsp *p_owner = (PifMsp *)p_client;
 	uint16_t length;
@@ -211,12 +211,12 @@ static BOOL _evtSending(void *p_client, PifActCommSendData act_send_data)
 			p_owner->__tx.length = pifRingBuffer_GetFillSize(&p_owner->__tx.answer_buffer);
 			p_owner->__tx.pos = 0;
 			p_owner->__tx.state = MTS_SENDING;
-			pifTask_SetTrigger(p_owner->__p_comm->_p_task);
+			pifTask_SetTrigger(p_owner->__p_uart->_p_task);
 		}
 		break;
 
 	case MTS_SENDING:
-		length = (*act_send_data)(p_owner->__p_comm, pifRingBuffer_GetTailPointer(&p_owner->__tx.answer_buffer, p_owner->__tx.pos),
+		length = (*act_send_data)(p_owner->__p_uart, pifRingBuffer_GetTailPointer(&p_owner->__tx.answer_buffer, p_owner->__tx.pos),
 				pifRingBuffer_GetLinerSize(&p_owner->__tx.answer_buffer, p_owner->__tx.pos));
 		if (!length) return FALSE;
 
@@ -282,16 +282,16 @@ void pifMsp_Clear(PifMsp* p_owner)
 #endif
 }
 
-void pifMsp_AttachComm(PifMsp* p_owner, PifComm *p_comm)
+void pifMsp_AttachUart(PifMsp* p_owner, PifUart *p_uart)
 {
-	p_owner->__p_comm = p_comm;
-	pifComm_AttachClient(p_comm, p_owner, _evtParsing, _evtSending);
+	p_owner->__p_uart = p_uart;
+	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
 }
 
-void pifMsp_DetachComm(PifMsp* p_owner)
+void pifMsp_DetachUart(PifMsp* p_owner)
 {
-	pifComm_DetachClient(p_owner->__p_comm);
-	p_owner->__p_comm = NULL;
+	pifUart_DetachClient(p_owner->__p_uart);
+	p_owner->__p_uart = NULL;
 }
 
 void pifMsp_AttachEvtReceive(PifMsp* p_owner, PifEvtMspReceive evt_receive, PifEvtMspOtherPacket evt_other_packet, PifIssuerP p_issuer)
@@ -462,7 +462,7 @@ BOOL pifMsp_SendAnswer(PifMsp* p_owner)
 
 	pifRingBuffer_CommitPutting(&p_owner->__tx.answer_buffer);
 
-	pifTask_SetTrigger(p_owner->__p_comm->_p_task);
+	pifTask_SetTrigger(p_owner->__p_uart->_p_task);
 	return TRUE;
 
 fail:

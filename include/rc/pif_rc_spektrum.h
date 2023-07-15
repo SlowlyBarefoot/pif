@@ -2,7 +2,7 @@
 #define PIF_RC_SPEKTRUM_H
 
 
-#include "core/pif_comm.h"
+#include "communication/pif_uart.h"
 #include "rc/pif_rc.h"
 
 
@@ -32,7 +32,7 @@ typedef struct StPifRcSpektrum
 	double _pos_factor;
 
 	// Private Member Variable
-	PifComm* __p_comm;
+	PifUart* __p_uart;
     uint8_t __p_buffer[SPEKTRUM_FRAME_SIZE];
 	uint8_t __index;                            // message length
 	uint8_t __id_mask;
@@ -58,19 +58,19 @@ extern "C" {
 BOOL pifRcSpektrum_Init(PifRcSpektrum* p_owner, PifId id, uint8_t protocol_id);
 
 /**
- * @fn pifRcSpektrum_AttachComm
+ * @fn pifRcSpektrum_AttachUart
  * @brief
  * @param p_owner
- * @param p_comm
+ * @param p_uart
  */
-void pifRcSpektrum_AttachComm(PifRcSpektrum* p_owner, PifComm* p_comm);
+void pifRcSpektrum_AttachUart(PifRcSpektrum* p_owner, PifUart* p_uart);
 
 /**
- * @fn pifRcSpektrum_DetachComm
+ * @fn pifRcSpektrum_DetachUart
  * @brief
  * @param p_owner
  */
-void pifRcSpektrum_DetachComm(PifRcSpektrum* p_owner);
+void pifRcSpektrum_DetachUart(PifRcSpektrum* p_owner);
 
 /**
  * @fn pifRcSpektrum_CheckFailSafe

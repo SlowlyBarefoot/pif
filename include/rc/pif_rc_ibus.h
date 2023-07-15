@@ -2,7 +2,7 @@
 #define PIF_RC_IBUS_H
 
 
-#include "core/pif_comm.h"
+#include "communication/pif_uart.h"
 #include "rc/pif_rc.h"
 
 
@@ -44,7 +44,7 @@ typedef struct StPifRcIbus
 	uint8_t _number_sensors;					// number of sensors
 
 	// Private Member Variable
-	PifComm* __p_comm;
+	PifUart* __p_uart;
 	PifRcIbusSensorinfo __sensors[PIF_IBUS_SENSOR_MAX];
 	PifRcIbusRxState __rx_state;
 	uint8_t __rx_length;                      	// rx message length
@@ -67,19 +67,19 @@ extern "C" {
 BOOL pifRcIbus_Init(PifRcIbus* p_owner, PifId id);
 
 /**
- * @fn pifRcIbus_AttachComm
+ * @fn pifRcIbus_AttachUart
  * @brief
  * @param p_owner
- * @param p_comm
+ * @param p_uart
  */
-void pifRcIbus_AttachComm(PifRcIbus* p_owner, PifComm* p_comm);
+void pifRcIbus_AttachUart(PifRcIbus* p_owner, PifUart* p_uart);
 
 /**
- * @fn pifRcIbus_DetachComm
+ * @fn pifRcIbus_DetachUart
  * @brief
  * @param p_owner
  */
-void pifRcIbus_DetachComm(PifRcIbus* p_owner);
+void pifRcIbus_DetachUart(PifRcIbus* p_owner);
 
 /**
  * @fn pifRcIbus_AddSensor

@@ -2,7 +2,7 @@
 #define PIF_MPU6500_H
 
 
-#include "core/pif_i2c.h"
+#include "communication/pif_i2c.h"
 #include "sensor/pif_imu_sensor.h"
 
 
