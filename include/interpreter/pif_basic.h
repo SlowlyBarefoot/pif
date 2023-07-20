@@ -167,6 +167,7 @@ struct StPifBasic
     char* __p_program;
     uint32_t __start_time;
     PifBasicProcess* __p_process;
+    int __opcode;
     int __process_size;
 
 	// Private Event Function
@@ -191,8 +192,9 @@ BOOL pifBasic_Init(PifBasicProcess* p_process, PifEvtBasicResult evt_result);
  * @fn pifBasic_Execute
  * @brief
  * @param p_program
+ * @param p_opcode
  */
-void pifBasic_Execute(char* p_program);
+void pifBasic_Execute(char* p_program, int opcode);
 
 #ifdef __cplusplus
 }

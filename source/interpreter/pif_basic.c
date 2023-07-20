@@ -868,12 +868,12 @@ static uint16_t _doTask(PifTask* p_task)
 		p_owner->_program_size = cpc;
 		p_owner->_string_count = stabp - stab;
 		p_owner->_parsing_time = pif_cumulative_timer1ms - p_owner->__start_time;
-		cnt = PIF_BASIC_OPCODE;
+		cnt = s_basic.__opcode;
 		while ((*pc++)()) {						/* RUN STATEMENT */
 			if (cnt) cnt--;
 			else {
 				pifTaskManager_Yield();
-				cnt = PIF_BASIC_OPCODE;
+				cnt = s_basic.__opcode;
 			}
 		}
 	}
@@ -883,12 +883,12 @@ static uint16_t _doTask(PifTask* p_task)
 	p_owner->_program_size = cpc;
 	p_owner->_string_count = stabp - stab;
 	p_owner->_parsing_time = pif_cumulative_timer1ms - p_owner->__start_time;
-	cnt = PIF_BASIC_OPCODE;
+	cnt = s_basic.__opcode;
 	while ((*pc++)()) {							/* RUN PROGRAM */
 		if (cnt) cnt--;
 		else {
 			pifTaskManager_Yield();
-			cnt = PIF_BASIC_OPCODE;
+			cnt = s_basic.__opcode;
 		}
 	}
 	p_owner->_result = TRUE;
@@ -917,8 +917,10 @@ BOOL pifBasic_Init(PifBasicProcess* p_process, PifEvtBasicResult evt_result)
 	return TRUE;
 }
 
-void pifBasic_Execute(char* p_program)
+void pifBasic_Execute(char* p_program, int opcode)
 {
 	s_basic.__p_program = p_program;
+	if (opcode > 0) s_basic.__opcode = opcode;
+	else s_basic.__opcode = PIF_BASIC_OPCODE;
 	pifTask_SetTrigger(s_basic._p_task);
 }
