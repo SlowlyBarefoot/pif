@@ -2,7 +2,7 @@
 #define PIF_SENSOR_H
 
 
-#include "core/pif_task.h"
+#include "core/pif.h"
 
 
 typedef void* PifSensorValueP;
@@ -21,41 +21,24 @@ typedef void (*PifEvtSensorChange)(PifSensor* p_owner, SWITCH state, PifSensorVa
 struct StPifSensor
 {
 	// Public Member Variable
+    PifIssuerP p_issuer;
+
+	// Public Event Function
+   	PifEvtSensorChange evt_change;
 
 	// Read-only Member Variable
 	PifId _id;
     SWITCH _init_state;
     SWITCH _curr_state;						// Default: _init_state
 
-	// Private Member Variable
-    PifIssuerP __p_issuer;
-
 	// Private Action Function
 	PifActSensorAcquire __act_acquire;
-
-	// Private Event Function
-   	PifEvtSensorChange __evt_change;
 };
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @fn pifSensor_AttachEvtChange
- * @brief
- * @param p_owner
- * @param evt_change
- */
-void pifSensor_AttachEvtChange(PifSensor* p_owner, PifEvtSensorChange evt_change);
-
-/**
- * @fn pifSensor_DetachEvtChange
- * @brief
- * @param p_owner
- */
-void pifSensor_DetachEvtChange(PifSensor* p_owner);
 
 #ifdef __cplusplus
 }

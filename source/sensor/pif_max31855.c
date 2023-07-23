@@ -20,11 +20,11 @@ static uint16_t _doTask(PifTask* p_task)
 
 	if (!pifMax31855_Measure(p_owner, &temperature, NULL)) return 0;
 
-	if (p_parent->__evt_change) {
+	if (p_parent->evt_change) {
 		if (p_parent->_curr_state) {
 			if (temperature < p_owner->__low_threshold) {
 				p_parent->_curr_state = OFF;
-				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->__p_issuer);
+				(*p_parent->evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->p_issuer);
 #ifdef __PIF_COLLECT_SIGNAL__
 				if (p_owner->__p_colsig->flag & M3_CSF_STATE_BIT) {
 					pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[M3_CSF_STATE_IDX], p_parent->_curr_state);
@@ -35,7 +35,7 @@ static uint16_t _doTask(PifTask* p_task)
 		else {
 			if (temperature >= p_owner->__high_threshold) {
 				p_parent->_curr_state = ON;
-				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->__p_issuer);
+				(*p_parent->evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->p_issuer);
 #ifdef __PIF_COLLECT_SIGNAL__
 				if (p_owner->__p_colsig->flag & M3_CSF_STATE_BIT) {
 					pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[M3_CSF_STATE_IDX], p_parent->_curr_state);
@@ -46,7 +46,7 @@ static uint16_t _doTask(PifTask* p_task)
 	}
 
 	if (p_owner->__evt_measure) {
-		(*p_owner->__evt_measure)(p_owner, temperature, p_parent->__p_issuer);
+		(*p_owner->__evt_measure)(p_owner, temperature, p_parent->p_issuer);
 	}
 	return 0;
 }
@@ -77,7 +77,7 @@ static void _addDeviceInCollectSignal()
 
 #endif	// __PIF_COLLECT_SIGNAL__
 
-BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, PifIssuerP p_issuer)
+BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port)
 {
 	if (!p_owner || !p_port) {
 		pif_error = E_INVALID_PARAM;
@@ -91,7 +91,6 @@ BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, PifIss
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->parent._id = id;
-    p_owner->parent.__p_issuer = p_issuer;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	if (!pifDList_Size(&s_cs_list)) {

@@ -125,46 +125,23 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num, const char* p_user_keymap)
+BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, PifActKeypadAcquire act_acquire)
 {
-	if (!p_owner || !num || !p_user_keymap) {
+	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
 	memset(p_owner, 0, sizeof(PifKeypad));
 
-    p_owner->__num_block = (num + 15) / 16;
-    p_owner->__num_cell = num < 16 ? num : 16;
-
-	p_owner->__p_key = calloc(sizeof(PifKey), num);
-	if (!p_owner->__p_key) {
-		pif_error = E_OUT_OF_HEAP;
-		goto fail;
-	}
-
-	p_owner->__p_state = calloc(sizeof(uint16_t), p_owner->__num_block);
-	if (!p_owner->__p_state) {
-		pif_error = E_OUT_OF_HEAP;
-		goto fail;
-	}
-
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-    p_owner->__p_user_keymap = p_user_keymap;
     p_owner->_hold_time1ms = PIF_KEYPAD_DEFAULT_HOLD_TIME;
     p_owner->_long_time1ms = PIF_KEYPAD_DEFAULT_LONG_TIME;
     p_owner->_double_time1ms = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
     p_owner->__control_period_1ms = PIF_KEYPAD_CONTROL_PERIOD;
-
-	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_MS, p_owner->__control_period_1ms, _doTask, p_owner, TRUE);
-	if (!p_owner->__p_task) goto fail;
-	p_owner->__p_task->name = "Keypad";
+	p_owner->__act_acquire = act_acquire;
     return TRUE;
-
-fail:
-	pifKeypad_Clear(p_owner);
-	return FALSE;
 }
 
 void pifKeypad_Clear(PifKeypad* p_owner)
@@ -200,9 +177,34 @@ BOOL pifKeypad_SetControlPeriod(PifKeypad* p_owner, uint16_t period1ms)
 	return TRUE;
 }
 
-void pifKeypad_AttachAction(PifKeypad* p_owner, PifActKeypadAcquire act_acquire)
+BOOL pifKeypad_SetKeymap(PifKeypad* p_owner, uint8_t num, const char* p_user_keymap)
 {
-	p_owner->__act_acquire = act_acquire;
+	if (!p_owner || !num || !p_user_keymap) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+    p_owner->__num_block = (num + 15) / 16;
+    p_owner->__num_cell = num < 16 ? num : 16;
+
+	p_owner->__p_key = calloc(sizeof(PifKey), num);
+	if (!p_owner->__p_key) {
+		pif_error = E_OUT_OF_HEAP;
+		goto fail;
+	}
+
+	p_owner->__p_state = calloc(sizeof(uint16_t), p_owner->__num_block);
+	if (!p_owner->__p_state) {
+		pif_error = E_OUT_OF_HEAP;
+		goto fail;
+	}
+
+	p_owner->__p_user_keymap = p_user_keymap;
+    return TRUE;
+
+fail:
+	pifKeypad_Clear(p_owner);
+	return FALSE;
 }
 
 BOOL pifKeypad_SetHoldTime(PifKeypad* p_owner, uint16_t hold_time1ms)
@@ -236,4 +238,25 @@ BOOL pifKeypad_SetDoubleTime(PifKeypad* p_owner, uint16_t double_time1ms)
 
 	p_owner->_double_time1ms = double_time1ms;
 	return TRUE;
+}
+
+BOOL pifKeypad_Start(PifKeypad* p_owner, const char* p_name)
+{
+	if (!p_owner->__p_state || !p_owner->__p_key) {
+		pif_error = E_CANNOT_USE;
+		return FALSE;
+	}
+
+	if (p_owner->__p_task) p_owner->__p_task->pause = FALSE;
+	else {
+		p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_MS, p_owner->__control_period_1ms, _doTask, p_owner, TRUE);
+		if (!p_owner->__p_task) return FALSE;
+		p_owner->__p_task->name = p_name ? p_name : "Keypad";
+	}
+	return TRUE;
+}
+
+void pifKeypad_Stop(PifKeypad* p_owner)
+{
+	if (p_owner->__p_task) p_owner->__p_task->pause = TRUE;
 }

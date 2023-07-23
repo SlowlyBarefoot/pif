@@ -83,11 +83,10 @@ extern "C" {
  * @brief
  * @param p_owner
  * @param id
- * @param num
- * @param p_user_keymap
+ * @param act_acquire
  * @return
  */
-BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, uint8_t num, const char* p_user_keymap);
+BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, PifActKeypadAcquire act_acquire);
 
 /**
  * @fn pifKeypad_Clear
@@ -114,12 +113,14 @@ uint16_t pifKeypad_GetControlPeriod(PifKeypad* p_owner);
 BOOL pifKeypad_SetControlPeriod(PifKeypad* p_owner, uint16_t period1ms);
 
 /**
- * @fn pifKeypad_AttachAction
+ * @fn pifKeypad_SetKeymap
  * @brief
  * @param p_owner
- * @param act_acquire
+ * @param num
+ * @param p_user_keymap
+ * @return
  */
-void pifKeypad_AttachAction(PifKeypad* p_owner, PifActKeypadAcquire act_acquire);
+BOOL pifKeypad_SetKeymap(PifKeypad* p_owner, uint8_t num, const char* p_user_keymap);
 
 /**
  * @fn pifKeypad_SetHoldTime
@@ -147,6 +148,22 @@ BOOL pifKeypad_SetLongTime(PifKeypad* p_owner, uint16_t long_time1ms);
  * @return
  */
 BOOL pifKeypad_SetDoubleTime(PifKeypad* p_owner, uint16_t double_time1ms);
+
+/**
+ * @fn pifKeypad_Start
+ * @brief
+ * @param p_owner
+ * @param p_name
+ * @return
+ */
+BOOL pifKeypad_Start(PifKeypad* p_owner, const char* p_name);
+
+/**
+ * @fn pifKeypad_Stop
+ * @brief
+ * @param p_owner
+ */
+void pifKeypad_Stop(PifKeypad* p_owner);
 
 #ifdef __cplusplus
 }

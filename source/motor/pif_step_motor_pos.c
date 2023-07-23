@@ -146,10 +146,10 @@ static uint16_t _doTask(PifTask* p_task)
 	    }
 
 		if (p_stage->p_reduce_sensor) {
-			pifSensor_DetachEvtChange(p_stage->p_reduce_sensor);
+			p_stage->p_reduce_sensor->evt_change = NULL;
 		}
 		if (p_stage->p_stop_sensor) {
-			pifSensor_DetachEvtChange(p_stage->p_stop_sensor);
+			p_stage->p_stop_sensor->evt_change = NULL;
 		}
     }
 
@@ -319,11 +319,11 @@ BOOL pifStepMotorPos_Start(PifStepMotorPos* p_owner, uint8_t stage_index, uint32
     p_owner->_stage_index = stage_index;
 
     if (pstStage->p_reduce_sensor) {
-        pifSensor_AttachEvtChange(pstStage->p_reduce_sensor, _evtSwitchReduceChange);
+        pstStage->p_reduce_sensor->evt_change = _evtSwitchReduceChange;
     }
 
     if (pstStage->p_stop_sensor) {
-        pifSensor_AttachEvtChange(pstStage->p_stop_sensor, _evtSwitchStopChange);
+        pstStage->p_stop_sensor->evt_change = _evtSwitchStopChange;
     }
 
     p_parent->_direction = (pstStage->mode & MM_D_MASK) >> MM_D_SHIFT;

@@ -45,7 +45,7 @@ static void _addDeviceInCollectSignal()
 
 #endif	// __PIF_COLLECT_SIGNAL__
 
-BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state, PifActSensorAcquire act_acquire, PifIssuerP p_issuer)
+BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state, PifActSensorAcquire act_acquire)
 {
     memset(p_owner, 0, sizeof(PifSensorSwitch));
 
@@ -56,7 +56,6 @@ BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state,
     p_parent->_init_state = init_state;
     p_parent->_curr_state = init_state;
 	p_parent->__act_acquire = act_acquire;
-	p_parent->__p_issuer = p_issuer;
 
 #ifdef __PIF_COLLECT_SIGNAL__
 	if (!pifDList_Size(&s_cs_list)) {
@@ -129,8 +128,8 @@ uint16_t pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner)
 	}
 
 	if (p_owner->__state != p_parent->_curr_state) {
-		if (p_parent->__evt_change) {
-			(*p_parent->__evt_change)(p_parent, p_owner->__state, NULL, p_parent->__p_issuer);
+		if (p_parent->evt_change) {
+			(*p_parent->evt_change)(p_parent, p_owner->__state, NULL, p_parent->p_issuer);
 #ifdef __PIF_COLLECT_SIGNAL__
 			if (p_owner->__p_colsig->flag & SS_CSF_FILTER_BIT) {
 				pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SS_CSF_FILTER_IDX], p_owner->__state);
