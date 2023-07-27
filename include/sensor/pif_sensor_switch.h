@@ -3,6 +3,7 @@
 
 
 #include "filter/pif_noise_filter.h"
+#include "core/pif_task.h"
 #include "sensor/pif_sensor.h"
 
 
