@@ -58,7 +58,7 @@ BOOL pifStorageFix_SetMedia(PifStorageFix* p_owner, uint32_t sector_size, uint32
 	}
 
 	p_owner->__sector_size = sector_size;
-	p_owner->__storage_volume = storage_volume;
+	p_owner->parent._storage_volume = storage_volume;
 	p_owner->__data_info_count = count;
 	for (i = 0; i < count; i++) {
 		p_owner->__p_data_info[i].id = i;

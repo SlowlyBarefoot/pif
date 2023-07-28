@@ -40,6 +40,7 @@ struct StPifStorage
 	// Read-only Member Variable
     PifId _id;
 	PifI2cDevice* _p_i2c;
+	uint32_t _storage_volume;
 
 	// Private Member Variable
 	uint8_t __addr;

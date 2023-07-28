@@ -29,7 +29,6 @@ typedef struct StPifStorageFix
 	// Private Member Variable
     uint16_t __data_info_count;
     uint32_t __sector_size;
-	uint32_t __storage_volume;
 	PifStorageFixDataInfo* __p_data_info;
 
 	// Private Action Function

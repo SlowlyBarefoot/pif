@@ -117,6 +117,7 @@ BOOL pifStorageVar_SetMedia(PifStorageVar* p_owner, uint16_t sector_size, uint32
     	pif_error = E_ACCESS_FAILED;
     	goto fail;
     }
+    p_owner->parent._storage_volume = storage_volume;
     p_owner->_p_info = (PifStorageVarInfo*)p_owner->__p_info_buffer;
     p_owner->__p_data_info = (PifStorageVarDataInfo*)(p_owner->__p_info_buffer + sizeof(PifStorageVarInfo));
 
