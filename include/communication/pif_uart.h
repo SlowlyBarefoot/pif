@@ -83,6 +83,7 @@ struct StPifUart
 
 	// Read-only Member Variable
     PifId _id;
+    uint8_t _frame_size;
     PifRingBuffer* _p_tx_buffer;
     PifRingBuffer* _p_rx_buffer;
     PifTask* _p_task;
@@ -136,6 +137,15 @@ BOOL pifUart_AllocRxBuffer(PifUart* p_owner, uint16_t rx_size, uint8_t threshold
  * @return
  */
 BOOL pifUart_AllocTxBuffer(PifUart* p_owner, uint16_t tx_size);
+
+/**
+ * @fn pifUart_SetFrameSize
+ * @brief
+ * @param pvOwner
+ * @param frame_size
+ * @return
+ */
+BOOL pifUart_SetFrameSize(PifUart* p_owner, uint8_t frame_size);
 
 /**
  * @fn pifUart_AttachClient

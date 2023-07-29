@@ -169,7 +169,6 @@ typedef struct StPifProtocol
 	// Read-only Member Variable
     PifId _id;
     PifProtocolType _type;
-    uint8_t _frame_size;
 
 	// Private Member Variable
     PifTimerManager* __p_timer_manager;
@@ -205,15 +204,6 @@ BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifTimerManager* p_timer_m
  * @param pp_owner
  */
 void pifProtocol_Clear(PifProtocol* p_owner);
-
-/**
- * @fn pifProtocol_SetFrameSize
- * @brief
- * @param pvOwner
- * @param frame_size
- * @return
- */
-BOOL pifProtocol_SetFrameSize(PifProtocol* p_owner, uint8_t frame_size);
 
 /**
  * @fn pifProtocol_ResizeRxPacket

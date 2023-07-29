@@ -46,6 +46,7 @@ BOOL pifUart_Init(PifUart* p_owner, PifId id)
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
+    p_owner->_frame_size = 1;
     return TRUE;
 }
 
@@ -86,6 +87,19 @@ BOOL pifUart_AllocTxBuffer(PifUart* p_owner, uint16_t tx_size)
     if (!p_owner->_p_tx_buffer) return FALSE;
     pifRingBuffer_SetName(p_owner->_p_tx_buffer, "TB");
 	return TRUE;
+}
+
+BOOL pifUart_SetFrameSize(PifUart* p_owner, uint8_t frame_size)
+{
+	switch (frame_size) {
+	case 1:
+	case 2:
+	case 4:
+	case 8:
+		p_owner->_frame_size = frame_size;
+		return TRUE;
+	}
+	return FALSE;
 }
 
 void pifUart_AttachClient(PifUart* p_owner, void* p_client, PifEvtUartParsing evt_parsing, PifEvtUartSending evt_sending)

@@ -494,7 +494,6 @@ BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifTimerManager* p_timer_m
     p_owner->_id = id;
     p_owner->__packet_id = 0x20;
     p_owner->__rx.packet_size = 10 + PIF_PROTOCOL_RX_PACKET_SIZE;
-    p_owner->_frame_size = 1;
     return TRUE;
 
 fail:
@@ -518,19 +517,6 @@ void pifProtocol_Clear(PifProtocol* p_owner)
 		pifTimerManager_Remove(p_owner->__tx.p_timer);
 		p_owner->__tx.p_timer = NULL;
 	}
-}
-
-BOOL pifProtocol_SetFrameSize(PifProtocol* p_owner, uint8_t frame_size)
-{
-	switch (frame_size) {
-	case 1:
-	case 2:
-	case 4:
-	case 8:
-		p_owner->_frame_size = frame_size;
-		return TRUE;
-	}
-	return FALSE;
 }
 
 BOOL pifProtocol_ResizeRxPacket(PifProtocol* p_owner, uint16_t rx_packet_size)
@@ -625,9 +611,9 @@ BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_r
 		break;
 	}
 	length = p_owner->__header_size + data_size + usCount + 2;
-	if (p_owner->_frame_size > 1) {
-		lack = length % p_owner->_frame_size;
-		if (lack > 0) lack = p_owner->_frame_size - lack;
+	if (p_owner->__p_uart->_frame_size > 1) {
+		lack = length % p_owner->__p_uart->_frame_size;
+		if (lack > 0) lack = p_owner->__p_uart->_frame_size - lack;
 		length += lack;
 	}
 	else lack = 0;
@@ -725,9 +711,9 @@ BOOL pifProtocol_MakeAnswer(PifProtocol* p_owner, PifProtocolPacket* p_question,
 	tailer[0] = 0x80 | pifCrc7_Result(crc7);
 	tailer[1] = ASCII_ETX;
 	length += 2;
-	if (p_owner->_frame_size > 1) {
-		lack = length % p_owner->_frame_size;
-		if (lack > 0) lack = p_owner->_frame_size - lack;
+	if (p_owner->__p_uart->_frame_size > 1) {
+		lack = length % p_owner->__p_uart->_frame_size;
+		if (lack > 0) lack = p_owner->__p_uart->_frame_size - lack;
 		for (i = 0; i < lack; i++) tailer[2 + i] = 0;
 	}
 	else lack = 0;
