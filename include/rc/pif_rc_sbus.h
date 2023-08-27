@@ -17,7 +17,7 @@
  */
 typedef struct StPifRcSbus
 {
-	// Must be at the front
+	// The parent variable must be at the beginning of this structure.
 	PifRc parent;
 
 	// Public Member Variable

@@ -6,57 +6,57 @@
 
 
 /**
- * @class StPifNoiseFilterAverage
+ * @class StPifNfInt32Common
  * @brief
  */
-typedef struct StPifNoiseFilterAverage
+typedef struct StPifNfInt32Common
 {
-	int32_t sum;
-} PifNoiseFilterAverage;
+	uint8_t size;
+	uint8_t current;
+	int32_t result;
+	int32_t* p_buffer;
+} PifNfInt32Common;
 
 /**
- * @class StPifNoiseFilterWeightFactor
+ * @class StPifNfInt32Average
  * @brief
  */
-typedef struct StPifNoiseFilterWeightFactor
+typedef struct StPifNfInt32Average
 {
+	// The parent variable must be at the beginning of this structure.
+	PifNoiseFilterMethod parent;
+	PifNfInt32Common common;
+
+	uint8_t len;
+} PifNfInt32Average;
+
+/**
+ * @class StPifNfInt32WeightFactor
+ * @brief
+ */
+typedef struct StPifNfInt32WeightFactor
+{
+	// The parent variable must be at the beginning of this structure.
+	PifNoiseFilterMethod parent;
+	PifNfInt32Common common;
+
 	int8_t* value;
 	int16_t total;
-} PifNoiseFilterWeightFactor;
+} PifNfInt32WeightFactor;
 
 /**
- * @class StPifNoiseFilterNoiseCancel
+ * @class StPifNfInt32NoiseCancel
  * @brief
  */
-typedef struct StPifNoiseFilterNoiseCancel
+typedef struct StPifNfInt32NoiseCancel
 {
+	// The parent variable must be at the beginning of this structure.
+	PifNoiseFilterMethod parent;
+	PifNfInt32Common common;
+
 	int8_t before;
 	int16_t* diff;
-} PifNoiseFilterNoiseCancel;
-
-/**
- * @class StPifNoiseFilterInt32
- * @brief
- */
-typedef struct StPifNoiseFilterInt32
-{
-	PifNoiseFilter parent;
-
-	// Public Member Variable
-
-	// Read-only Member Variable
-	int8_t _size;
-	int32_t _result;
-
-	// Private Member Variable
-	int32_t* __buffer;
-	int8_t __current;
-	union {
-		PifNoiseFilterAverage __avg;
-		PifNoiseFilterWeightFactor __wf;
-		PifNoiseFilterNoiseCancel __nc;
-	};
-} PifNoiseFilterInt32;
+} PifNfInt32NoiseCancel;
 
 
 #ifdef __cplusplus
@@ -64,37 +64,32 @@ extern "C" {
 #endif
 
 /**
- * @fn pifNoiseFilterInt32_Init
+ * @fn pifNoiseFilterInt32_AddAverage
  * @brief
- * @param p_owner
+ * @param p_parent
  * @param size
  * @return
  */
-BOOL pifNoiseFilterInt32_Init(PifNoiseFilterInt32* p_owner, uint8_t size);
+BOOL pifNoiseFilterInt32_AddAverage(PifNoiseFilter* p_parent, uint8_t size);
 
 /**
- * @fn pifNoiseFilterInt32_Clear
+ * @fn pifNoiseFilterInt32_AddWeightFactor
  * @brief
- * @param p_owner
- */
-void pifNoiseFilterInt32_Clear(PifNoiseFilterInt32* p_owner);
-
-/**
- * @fn pifNoiseFilterInt32_SetWeightFactor
- * @brief
- * @param p_owner
+ * @param p_parent
+ * @param size
  * @param weight_factor...
  * @return
  */
-BOOL pifNoiseFilterInt32_SetWeightFactor(PifNoiseFilterInt32* p_owner, ...);
+BOOL pifNoiseFilterInt32_AddWeightFactor(PifNoiseFilter* p_parent, uint8_t size, ...);
 
 /**
- * @fn pifNoiseFilterInt32_SetNoiseCancel
+ * @fn pifNoiseFilterInt32_AddNoiseCancel
  * @brief
- * @param p_owner
+ * @param p_parent
+ * @param size
  * @return
  */
-BOOL pifNoiseFilterInt32_SetNoiseCancel(PifNoiseFilterInt32* p_owner);
+BOOL pifNoiseFilterInt32_AddNoiseCancel(PifNoiseFilter* p_parent, uint8_t size);
 
 #ifdef __cplusplus
 }

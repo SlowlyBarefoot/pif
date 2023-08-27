@@ -42,6 +42,7 @@ typedef struct StPifDutyMotorPosStage
  */
 typedef struct StPifDutyMotorPos
 {
+	// The parent variable must be at the beginning of this structure.
 	PifDutyMotor parent;
 
 	// Public Member Variable

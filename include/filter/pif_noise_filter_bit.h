@@ -6,25 +6,21 @@
 
 
 /**
- * @class StPifNoiseFilterBit
+ * @class StPifNfBit
  * @brief
  */
-typedef struct StPifNoiseFilterBit
+typedef struct StPifNfBit
 {
-	PifNoiseFilter parent;
+	// The parent variable must be at the beginning of this structure.
+	PifNoiseFilterMethod parent;
 
-	// Public Member Variable
-
-	// Read-only Member Variable
 	int8_t _size;
 	SWITCH _result;
-
-	// Private Member Variable
     uint8_t __half;
     uint32_t __msb;
     uint8_t __count;
     uint32_t __list;
-} PifNoiseFilterBit;
+} PifNfBit;
 
 
 #ifdef __cplusplus
@@ -32,22 +28,22 @@ extern "C" {
 #endif
 
 /**
- * @fn pifNoiseFilterBit_Init
+ * @fn pifNoiseFilterBit_AddCount
  * @brief
- * @param p_owner
+ * @param p_parent
  * @param size
  * @return
  */
-BOOL pifNoiseFilterBit_Init(PifNoiseFilterBit* p_owner, uint8_t size);
+BOOL pifNoiseFilterBit_AddCount(PifNoiseFilter* p_parent, uint8_t size);
 
 /**
- * @fn pifNoiseFilterBit_SetContinue
+ * @fn pifNoiseFilterBit_AddContinue
  * @brief
- * @param p_owner
+ * @param p_parent
  * @param size
  * @return
  */
-BOOL pifNoiseFilterBit_SetContinue(PifNoiseFilterBit* p_owner, uint8_t size);
+BOOL pifNoiseFilterBit_AddContinue(PifNoiseFilter* p_parent, uint8_t size);
 
 #ifdef __cplusplus
 }

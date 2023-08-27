@@ -58,7 +58,8 @@ BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_r
 
 	if (!p_port->act_transfer) return FALSE;
 
-	return (*p_port->act_transfer)(p_port->_id, p_write, p_read, size);
+	(*p_port->act_transfer)(p_port->_id, p_write, p_read, size);
+	return TRUE;
 }
 
 BOOL pifSpiDevice_Read(PifSpiDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)

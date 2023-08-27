@@ -42,10 +42,10 @@ typedef struct StPifMax31855ColSig
  */
 typedef struct StPifMax31855
 {
+	// The parent variable must be at the beginning of this structure.
 	PifSensor parent;
 
 	// Public Member Variable
-    PifNoiseFilter* p_filter;
 
 	// Read-only Member Variable
 	PifSpiDevice* _p_spi;
@@ -55,6 +55,8 @@ typedef struct StPifMax31855
 	// Private Member Variable
 	double __low_threshold;
 	double __high_threshold;
+    PifNoiseFilter* __p_filter;
+    uint8_t __filter_index;
 
 #ifdef __PIF_COLLECT_SIGNAL__
     PifMax31855ColSig* __p_colsig;
@@ -121,6 +123,16 @@ void pifMax31855_StopMeasurement(PifMax31855* p_owner);
  * @param high_threshold
  */
 void pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double high_threshold);
+
+/**
+ * @fn pifMax31855_AttachFilter
+ * @brief
+ * @param p_owner
+ * @param p_filter
+ * @param index
+ * @return
+ */
+BOOL pifMax31855_AttachFilter(PifMax31855* p_owner, PifNoiseFilter* p_filter, uint8_t index);
 
 
 #ifdef __PIF_COLLECT_SIGNAL__

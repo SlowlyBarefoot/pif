@@ -1,9 +1,49 @@
 #include "filter/pif_noise_filter_bit.h"
 
 
-static PifNoiseFilterValueP _processCount(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value)
+static PifNfBit* _addMethod(PifNoiseFilter* p_parent, uint8_t size)
 {
-	PifNoiseFilterBit* p_owner = (PifNoiseFilterBit*)p_parent;
+	PifNfBit* p_method;
+
+	if (!p_parent || size < 3 || size >= 32) {
+		pif_error = E_INVALID_PARAM;
+		return NULL;
+	}
+
+	if (p_parent->_last >= p_parent->_count) {
+		pif_error = E_OVERFLOW_BUFFER;
+		return NULL;
+	}
+
+	p_parent->__p_method[p_parent->_last] = calloc(1, sizeof(PifNfBit));
+	if (!p_parent->__p_method[p_parent->_last]) {
+		pif_error = E_OUT_OF_HEAP;
+		return NULL;
+	}
+
+	p_method = (PifNfBit*)p_parent->__p_method[p_parent->_last];
+
+	p_method->_size = size;
+	p_method->__half = size / 2;
+	p_method->__msb = 1L << (size - 1);
+	p_method->__count = 0;
+	p_method->__list = 0L;
+
+	p_parent->_last++;
+    return p_method;
+}
+
+static void _resetMethod(PifNoiseFilterMethod* p_method)
+{
+	PifNfBit* p_owner = (PifNfBit*)p_method;
+
+	p_owner->__count = 0;
+	p_owner->__list = 0L;
+}
+
+static PifNoiseFilterValueP _processCount(PifNoiseFilterMethod* p_method, PifNoiseFilterValueP p_value)
+{
+	PifNfBit* p_owner = (PifNfBit*)p_method;
 
     if (p_owner->__list & p_owner->__msb) {
     	p_owner->__list &= ~p_owner->__msb;
@@ -18,9 +58,9 @@ static PifNoiseFilterValueP _processCount(PifNoiseFilter* p_parent, PifNoiseFilt
     return &p_owner->_result;
 }
 
-static PifNoiseFilterValueP _processContinue(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value)
+static PifNoiseFilterValueP _processContinue(PifNoiseFilterMethod* p_method, PifNoiseFilterValueP p_value)
 {
-	PifNoiseFilterBit* p_owner = (PifNoiseFilterBit*)p_parent;
+	PifNfBit* p_owner = (PifNfBit*)p_method;
 	int i, count;
 	SWITCH state, sw;
 	uint32_t mask;
@@ -59,42 +99,26 @@ static PifNoiseFilterValueP _processContinue(PifNoiseFilter* p_parent, PifNoiseF
     return &p_owner->_result;
 }
 
-BOOL pifNoiseFilterBit_Init(PifNoiseFilterBit* p_owner, uint8_t size)
+BOOL pifNoiseFilterBit_AddCount(PifNoiseFilter* p_parent, uint8_t size)
 {
-	if (!p_owner || size < 3 || size >= 32) {
-		pif_error = E_INVALID_PARAM;
-		return FALSE;
-	}
+	PifNfBit* p_owner = _addMethod(p_parent, size);
 
-    memset(p_owner, 0, sizeof(PifNoiseFilterBit));
+	if (!p_owner) return FALSE;
 
-	pifNoiseFilter_Init(&p_owner->parent, NFT_BIT_COUNT);
-    p_owner->_size = size;
-    p_owner->__half = size / 2;
-    p_owner->__msb = 1L << (size - 1);
-    p_owner->__count = 0;
-    p_owner->__list = 0L;
-
-	p_owner->parent.__fn_process = _processCount;
+	p_owner->parent.type = NFT_BIT_COUNT;
+	p_owner->parent.fn_reset = _resetMethod;
+	p_owner->parent.fn_process = _processCount;
     return TRUE;
 }
 
-BOOL pifNoiseFilterBit_SetContinue(PifNoiseFilterBit* p_owner, uint8_t size)
+BOOL pifNoiseFilterBit_AddContinue(PifNoiseFilter* p_parent, uint8_t size)
 {
-	if (size != p_owner->_size) {
-		if (size < 3 || size >= 32) {
-			pif_error = E_INVALID_PARAM;
-			return FALSE;
-		}
+	PifNfBit* p_owner = _addMethod(p_parent, size);
 
-		p_owner->_size = size;
-		p_owner->__half = size / 2;
-		p_owner->__msb = 1L << (size - 1);
-		p_owner->__count = 0;
-		p_owner->__list = 0L;
-	}
+	if (!p_owner) return FALSE;
 
-	p_owner->parent._type = NFT_BIT_CONTINUE;
-	p_owner->parent.__fn_process = _processContinue;
+	p_owner->parent.type = NFT_BIT_CONTINUE;
+	p_owner->parent.fn_reset = _resetMethod;
+	p_owner->parent.fn_process = _processContinue;
 	return TRUE;
 }

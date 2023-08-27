@@ -39,6 +39,7 @@ typedef struct StPifStepMotorSpeedStage
  */
 typedef struct StPifStepMotorSpeed
 {
+	// The parent variable must be at the beginning of this structure.
 	PifStepMotor parent;
 
 	// Public Member Variable

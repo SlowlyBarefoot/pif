@@ -43,6 +43,7 @@ typedef struct StPifStorageVarInfo
  */
 typedef struct StPifStorageVar
 {
+	// The parent variable must be at the beginning of this structure.
 	PifStorage parent;
 
 	// Public Member Variable

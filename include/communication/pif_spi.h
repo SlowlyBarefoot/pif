@@ -13,7 +13,7 @@ typedef struct StPifSpiDevice PifSpiDevice;
 struct StPifSpiPort;
 typedef struct StPifSpiPort PifSpiPort;
 
-typedef BOOL (*PifActSpiTransfer)(PifId id, uint8_t* p_write, uint8_t* p_read, uint16_t size);
+typedef void (*PifActSpiTransfer)(PifId id, uint8_t* p_write, uint8_t* p_read, uint16_t size);
 
 typedef BOOL (*PifActSpiRead)(PifId id, uint32_t iaddr, uint8_t isize, uint8_t* p_data, uint16_t size);
 typedef BOOL (*PifActSpiWrite)(PifId id, uint32_t iaddr, uint8_t isize, uint8_t* p_data, uint16_t size);
