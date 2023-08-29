@@ -44,8 +44,8 @@ struct StPifTouchScreen
 	int16_t __clx, __cty, __crx, __cby;
 	float __px, __py;
 	BOOL __pressure;
-    PifNoiseFilter* __p_filter;
-    uint8_t __filter_index;
+    PifNoiseFilter* __p_filter_x;
+    PifNoiseFilter* __p_filter_y;
 
 	// Private Action Function
 	PifActTouchPosition __act_position;
@@ -92,11 +92,11 @@ BOOL pifTouchScreen_AttachAction(PifTouchScreen* p_owner, PifActTouchPosition ac
  * @fn pifTouchScreen_AttachFilter
  * @brief
  * @param p_owner
- * @param p_filter
- * @param index
+ * @param p_filter_x
+ * @param p_filter_y
  * @return
  */
-BOOL pifTouchScreen_AttachFilter(PifTouchScreen* p_owner, PifNoiseFilter* p_filter, uint8_t index);
+BOOL pifTouchScreen_AttachFilter(PifTouchScreen* p_owner, PifNoiseFilter* p_filter_x, PifNoiseFilter* p_filter_y);
 
 /**
  * @fn pifTouchScreen_SetControlPeriod

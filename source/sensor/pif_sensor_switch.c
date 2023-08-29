@@ -100,22 +100,10 @@ void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner)
 	p_owner->__state = p_parent->_init_state;
 }
 
-BOOL pifSensorSwitch_AttachFilter(PifSensorSwitch* p_owner, PifNoiseFilter* p_filter, uint8_t index)
-{
-    if (!p_filter || index >= p_filter->_count) {
-		pif_error = E_INVALID_PARAM;
-	    return FALSE;
-	}
-
-	p_owner->__p_filter = p_filter;
-	p_owner->__filter_index = index;
-	return TRUE;
-}
-
 void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state)
 {
-	if (p_owner->__p_filter) {
-    	p_owner->__state = *(SWITCH*)pifNoiseFilter_Process(p_owner->__p_filter, p_owner->__filter_index, &state);
+	if (p_owner->p_filter) {
+    	p_owner->__state = *(SWITCH*)pifNoiseFilter_Process(p_owner->p_filter, &state);
     }
 	else {
 		p_owner->__state = state;

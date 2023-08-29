@@ -105,24 +105,12 @@ void pifSensorDigital_SetThreshold(PifSensorDigital* p_owner, uint16_t low_thres
 	p_owner->__high_threshold = high_threshold;
 }
 
-BOOL pifSensorDigital_AttachFilter(PifSensorDigital* p_owner, PifNoiseFilter* p_filter, uint8_t index)
-{
-    if (!p_filter || index >= p_filter->_count) {
-		pif_error = E_INVALID_PARAM;
-	    return FALSE;
-	}
-
-	p_owner->__p_filter = p_filter;
-	p_owner->__filter_index = index;
-	return TRUE;
-}
-
 void pifSensorDigital_sigData(PifSensorDigital* p_owner, uint16_t level)
 {
 	p_owner->__prev_level = p_owner->__curr_level;
 
-	if (p_owner->__p_filter) {
-    	p_owner->__curr_level = *(uint16_t*)pifNoiseFilter_Process(p_owner->__p_filter, p_owner->__filter_index, &level);
+	if (p_owner->p_filter) {
+    	p_owner->__curr_level = *(uint16_t*)pifNoiseFilter_Process(p_owner->p_filter, &level);
     }
     else {
     	p_owner->__curr_level = level;

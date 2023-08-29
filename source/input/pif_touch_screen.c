@@ -82,9 +82,9 @@ static uint16_t _doTask(PifTask* p_task)
 
 	if (!(*p_owner->__act_pressure)(p_owner)) {
 		if (p_owner->__pressure) {
-			if (p_owner->__p_filter) {
-				pifNoiseFilter_Reset(p_owner->__p_filter, p_owner->__filter_index);
-				pifNoiseFilter_Reset(p_owner->__p_filter, p_owner->__filter_index + 1);
+			if (p_owner->__p_filter_x && p_owner->__p_filter_y) {
+				pifNoiseFilter_Reset(p_owner->__p_filter_x);
+				pifNoiseFilter_Reset(p_owner->__p_filter_y);
 			}
 			p_owner->__pressure = FALSE;
 		}
@@ -97,9 +97,9 @@ static uint16_t _doTask(PifTask* p_task)
 	else {
 		(*p_owner->__act_position)(p_owner, &tpx, &tpy);
 	}
-    if (p_owner->__p_filter) {
-    	p_vx = pifNoiseFilter_Process(p_owner->__p_filter, p_owner->__filter_index, &tpx);
-    	p_vy = pifNoiseFilter_Process(p_owner->__p_filter, p_owner->__filter_index + 1, &tpy);
+    if (p_owner->__p_filter_x && p_owner->__p_filter_y) {
+    	p_vx = pifNoiseFilter_Process(p_owner->__p_filter_x, &tpx);
+    	p_vy = pifNoiseFilter_Process(p_owner->__p_filter_y, &tpy);
     	if (!p_vx || !p_vy) return 0;
     	tpx = *(int16_t*)p_vx;
     	tpy = *(int16_t*)p_vy;
@@ -163,15 +163,15 @@ BOOL pifTouchScreen_AttachAction(PifTouchScreen* p_owner, PifActTouchPosition ac
     return TRUE;
 }
 
-BOOL pifTouchScreen_AttachFilter(PifTouchScreen* p_owner, PifNoiseFilter* p_filter, uint8_t index)
+BOOL pifTouchScreen_AttachFilter(PifTouchScreen* p_owner, PifNoiseFilter* p_filter_x, PifNoiseFilter* p_filter_y)
 {
-    if (!p_filter || index >= p_filter->_count) {
+    if (!p_filter_x || !p_filter_y) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
-    p_owner->__p_filter = p_filter;
-	p_owner->__filter_index = index;
+    p_owner->__p_filter_x = p_filter_x;
+	p_owner->__p_filter_y = p_filter_y;
 	return TRUE;
 }
 

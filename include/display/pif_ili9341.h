@@ -74,10 +74,10 @@ typedef struct StPifIli9341 PifIli9341;
 
 typedef void (*PifActLcdReset)();
 typedef void (*PifActLcdChipSelect)(SWITCH sw);
+typedef void (*PifActLcdReadCmd)(PifIli9341Cmd cmd, uint16_t* p_data, uint32_t len);
 typedef void (*PifActLcdWriteCmd)(PifIli9341Cmd cmd, uint16_t* p_data, uint32_t len);
 typedef void (*PifActLcdWriteData)(uint16_t* p_data, uint32_t len);
 typedef void (*PifActLcdWriteRepeat)(uint16_t* p_data, uint8_t size, uint32_t len);
-typedef void (*PifActLcdReadCmd)(PifIli9341Cmd cmd, uint16_t* p_data, uint32_t len);
 typedef void (*PifActLcdBackLight)(uint8_t level);
 
 /**

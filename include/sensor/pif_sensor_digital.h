@@ -44,14 +44,13 @@ struct StPifSensorDigital
 	PifSensor parent;
 
 	// Public Member Variable
+    PifNoiseFilter* p_filter;
 
 	// Private Member Variable
 	uint16_t __low_threshold;
 	uint16_t __high_threshold;
     uint16_t __curr_level;
     uint16_t __prev_level;
-    PifNoiseFilter* __p_filter;
-    uint8_t __filter_index;
 
 #ifdef __PIF_COLLECT_SIGNAL__
     PifSensorDigitalColSig* __p_colsig;
@@ -97,16 +96,6 @@ void pifSensorDigital_InitialState(PifSensorDigital* p_owner);
  * @param high_threshold
  */
 void pifSensorDigital_SetThreshold(PifSensorDigital* p_owner, uint16_t low_threshold, uint16_t high_threshold);
-
-/**
- * @fn pifSensorDigital_AttachFilter
- * @brief
- * @param p_owner
- * @param p_filter
- * @param index
- * @return
- */
-BOOL pifSensorDigital_AttachFilter(PifSensorDigital* p_owner, PifNoiseFilter* p_filter, uint8_t index);
 
 /**
  * @fn pifSensorDigital_sigData

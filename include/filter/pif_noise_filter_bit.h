@@ -2,7 +2,7 @@
 #define PIF_NOISE_FILTER_BIT_H
 
 
-#include "filter/pif_noise_filter.h"
+#include "filter/pif_noise_filter_manager.h"
 
 
 /**
@@ -12,7 +12,7 @@
 typedef struct StPifNfBit
 {
 	// The parent variable must be at the beginning of this structure.
-	PifNoiseFilterMethod parent;
+	PifNoiseFilter parent;
 
 	int8_t _size;
 	SWITCH _result;
@@ -30,20 +30,20 @@ extern "C" {
 /**
  * @fn pifNoiseFilterBit_AddCount
  * @brief
- * @param p_parent
+ * @param p_manager
  * @param size
  * @return
  */
-BOOL pifNoiseFilterBit_AddCount(PifNoiseFilter* p_parent, uint8_t size);
+PifNoiseFilter* pifNoiseFilterBit_AddCount(PifNoiseFilterManager* p_manager, uint8_t size);
 
 /**
  * @fn pifNoiseFilterBit_AddContinue
  * @brief
- * @param p_parent
+ * @param p_manager
  * @param size
  * @return
  */
-BOOL pifNoiseFilterBit_AddContinue(PifNoiseFilter* p_parent, uint8_t size);
+PifNoiseFilter* pifNoiseFilterBit_AddContinue(PifNoiseFilterManager* p_manager, uint8_t size);
 
 #ifdef __cplusplus
 }

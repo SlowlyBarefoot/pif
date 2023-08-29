@@ -21,26 +21,9 @@ typedef void* PifNoiseFilterValueP;
 struct StPifNoiseFilter;
 typedef struct StPifNoiseFilter PifNoiseFilter;
 
-struct StPifNoiseFilterMethod;
-typedef struct StPifNoiseFilterMethod PifNoiseFilterMethod;
-
-typedef void (*PifNoiseFiler_Clear)(PifNoiseFilterMethod* p_method);
-typedef void (*PifNoiseFiler_Reset)(PifNoiseFilterMethod* p_method);
-typedef PifNoiseFilterValueP (*PifNoiseFiler_Process)(PifNoiseFilterMethod* p_method, PifNoiseFilterValueP p_value);
-
-/**
- * @class StPifNoiseFilterMethod
- * @brief
- */
-struct StPifNoiseFilterMethod
-{
-	PifNoiseFilterType type;
-
-	PifNoiseFiler_Clear fn_clear;
-	PifNoiseFiler_Reset fn_reset;
-	PifNoiseFiler_Process fn_process;
-};
-
+typedef void (*PifNoiseFiler_Clear)(PifNoiseFilter* p_parent);
+typedef void (*PifNoiseFiler_Reset)(PifNoiseFilter* p_parent);
+typedef PifNoiseFilterValueP (*PifNoiseFiler_Process)(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value);
 
 /**
  * @class StPifNoiseFilter
@@ -51,13 +34,14 @@ struct StPifNoiseFilter
 	// Public Member Variable
 
 	// Read-only Member Variable
-	uint8_t _count;
-	uint8_t _last;
+	PifNoiseFilterType _type;
 
 	// Private Member Variable
 
 	// Private Function
-	PifNoiseFilterMethod** __p_method;
+	PifNoiseFiler_Clear __fn_clear;
+	PifNoiseFiler_Reset __fn_reset;
+	PifNoiseFiler_Process __fn_process;
 };
 
 
@@ -66,49 +50,30 @@ extern "C" {
 #endif
 
 /**
- * @fn pifNoiseFilter_Init
- * @brief
- * @param p_owner
- * @param uint8_t count
- * @return
- */
-BOOL pifNoiseFilter_Init(PifNoiseFilter* p_owner, uint8_t count);
-
-/**
- * @fn pifNoiseFilter_Clear
- * @brief
- * @param p_owner
- */
-void pifNoiseFilter_Clear(PifNoiseFilter* p_owner);
-
-/**
  * @fn pifNoiseFilter_Reset
  * @brief
- * @param p_owner
- * @param index
- * @return
+ * @param p_parent
  */
 #ifdef __PIF_NO_USE_INLINE__
-	void pifNoiseFilter_Reset(PifNoiseFilter* p_owner, uint8_t index);
+	void pifNoiseFilter_Reset(PifNoiseFilter* p_parent);
 #else
-	inline void pifNoiseFilter_Reset(PifNoiseFilter* p_owner, uint8_t index) {
-		(*p_owner->__p_method[index]->fn_reset)(p_owner->__p_method[index]);
+	inline void pifNoiseFilter_Reset(PifNoiseFilter* p_parent) {
+		(*p_parent->__fn_reset)(p_parent);
 	}
 #endif
 
 /**
  * @fn pifNoiseFilter_Process
  * @brief
- * @param p_owner
- * @param index
+ * @param p_parent
  * @param p_value
  * @return
  */
 #ifdef __PIF_NO_USE_INLINE__
-	PifNoiseFilterValueP pifNoiseFilter_Process(PifNoiseFilter* p_owner, uint8_t index, PifNoiseFilterValueP p_value);
+	PifNoiseFilterValueP pifNoiseFilter_Process(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value);
 #else
-	inline PifNoiseFilterValueP pifNoiseFilter_Process(PifNoiseFilter* p_owner, uint8_t index, PifNoiseFilterValueP p_value) {
-		return (*p_owner->__p_method[index]->fn_process)(p_owner->__p_method[index], p_value);
+	inline PifNoiseFilterValueP pifNoiseFilter_Process(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value) {
+		return (*p_parent->__fn_process)(p_parent, p_value);
 	}
 #endif
 

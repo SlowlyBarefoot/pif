@@ -46,11 +46,10 @@ struct StPifSensorSwitch
 	PifSensor parent;
 
 	// Public Member Variable
+    PifNoiseFilter* p_filter;
 
 	// Private Member Variable
     SWITCH __state;
-    PifNoiseFilter* __p_filter;
-    uint8_t __filter_index;
 
 #ifdef __PIF_COLLECT_SIGNAL__
     PifSensorSwitchColSig* __p_colsig;
@@ -86,16 +85,6 @@ void pifSensorSwitch_Clear(PifSensorSwitch* p_owner);
  * @param p_owner
  */
 void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner);
-
-/**
- * @fn pifSensorSwitch_AttachFilter
- * @brief
- * @param p_owner
- * @param p_filter
- * @param index
- * @return
- */
-BOOL pifSensorSwitch_AttachFilter(PifSensorSwitch* p_owner, PifNoiseFilter* p_filter, uint8_t index);
 
 /**
  * @fn pifSensorSwitch_sigData

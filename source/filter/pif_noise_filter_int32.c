@@ -1,14 +1,14 @@
 #include "filter/pif_noise_filter_int32.h"
 
 
-static BOOL _checkParam(PifNoiseFilter* p_parent, BOOL check_size)
+static BOOL _checkParam(PifNoiseFilterManager* p_manager, BOOL check_size)
 {
-	if (!p_parent || !check_size) {
+	if (!p_manager || !check_size) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
-	if (p_parent->_last >= p_parent->_count) {
+	if (p_manager->_last >= p_manager->_count) {
 		pif_error = E_OVERFLOW_BUFFER;
 		return FALSE;
 	}
@@ -27,9 +27,9 @@ static BOOL _allocBuffer(PifNfInt32Common* p_common, uint8_t size)
 	return TRUE;
 }
 
-static void _clearAverage(PifNoiseFilterMethod* p_method)
+static void _clearAverage(PifNoiseFilter* p_parent)
 {
-	PifNfInt32Common* p_common = &((PifNfInt32Average*)p_method)->common;
+	PifNfInt32Common* p_common = &((PifNfInt32Average*)p_parent)->common;
 
 	if (p_common->p_buffer) {
 		free(p_common->p_buffer);
@@ -37,9 +37,9 @@ static void _clearAverage(PifNoiseFilterMethod* p_method)
 	}
 }
 
-static void _resetAverage(PifNoiseFilterMethod* p_method)
+static void _resetAverage(PifNoiseFilter* p_parent)
 {
-	PifNfInt32Average* p_owner = (PifNfInt32Average*)p_method;
+	PifNfInt32Average* p_owner = (PifNfInt32Average*)p_parent;
 	PifNfInt32Common* p_common = &p_owner->common;
 
 	memset(p_common->p_buffer, 0, p_common->size * sizeof(int32_t));
@@ -47,9 +47,9 @@ static void _resetAverage(PifNoiseFilterMethod* p_method)
 	p_owner->len = 0;
 }
 
-static PifNoiseFilterValueP _processAverage(PifNoiseFilterMethod* p_method, PifNoiseFilterValueP p_value)
+static PifNoiseFilterValueP _processAverage(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value)
 {
-	PifNfInt32Average* p_owner = (PifNfInt32Average*)p_method;
+	PifNfInt32Average* p_owner = (PifNfInt32Average*)p_parent;
 	PifNfInt32Common* p_common = &p_owner->common;
 	uint8_t min_p, max_p, i;
 	int32_t min_v, max_v;
@@ -83,9 +83,9 @@ static PifNoiseFilterValueP _processAverage(PifNoiseFilterMethod* p_method, PifN
 	return &p_common->result;
 }
 
-static void _clearWeightFactor(PifNoiseFilterMethod* p_method)
+static void _clearWeightFactor(PifNoiseFilter* p_parent)
 {
-	PifNfInt32WeightFactor* p_owner = (PifNfInt32WeightFactor*)p_method;
+	PifNfInt32WeightFactor* p_owner = (PifNfInt32WeightFactor*)p_parent;
 	PifNfInt32Common* p_common = &p_owner->common;
 
 	if (p_common->p_buffer) {
@@ -98,9 +98,9 @@ static void _clearWeightFactor(PifNoiseFilterMethod* p_method)
 	}
 }
 
-static void _resetWeightFactor(PifNoiseFilterMethod* p_method)
+static void _resetWeightFactor(PifNoiseFilter* p_parent)
 {
-	PifNfInt32WeightFactor* p_owner = (PifNfInt32WeightFactor*)p_method;
+	PifNfInt32WeightFactor* p_owner = (PifNfInt32WeightFactor*)p_parent;
 	PifNfInt32Common* p_common = &p_owner->common;
 
 	memset(p_common->p_buffer, 0, p_common->size * sizeof(int32_t));
@@ -108,9 +108,9 @@ static void _resetWeightFactor(PifNoiseFilterMethod* p_method)
 	p_owner->total = 0;
 }
 
-static PifNoiseFilterValueP _processWeightFactor(PifNoiseFilterMethod* p_method, PifNoiseFilterValueP p_value)
+static PifNoiseFilterValueP _processWeightFactor(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value)
 {
-	PifNfInt32WeightFactor* p_owner = (PifNfInt32WeightFactor*)p_method;
+	PifNfInt32WeightFactor* p_owner = (PifNfInt32WeightFactor*)p_parent;
 	PifNfInt32Common* p_common = &p_owner->common;
 	int i, n;
 	int32_t sum;
@@ -128,9 +128,9 @@ static PifNoiseFilterValueP _processWeightFactor(PifNoiseFilterMethod* p_method,
 	return &p_common->result;
 }
 
-static void _clearNoiseCancel(PifNoiseFilterMethod* p_method)
+static void _clearNoiseCancel(PifNoiseFilter* p_parent)
 {
-	PifNfInt32NoiseCancel* p_owner = (PifNfInt32NoiseCancel*)p_method;
+	PifNfInt32NoiseCancel* p_owner = (PifNfInt32NoiseCancel*)p_parent;
 	PifNfInt32Common* p_common = &p_owner->common;
 
 	if (p_common->p_buffer) {
@@ -143,20 +143,20 @@ static void _clearNoiseCancel(PifNoiseFilterMethod* p_method)
 	}
 }
 
-static void _resetNoiseCancel(PifNoiseFilterMethod* p_method)
+static void _resetNoiseCancel(PifNoiseFilter* p_parent)
 {
-	PifNfInt32NoiseCancel* p_owner = (PifNfInt32NoiseCancel*)p_method;
+	PifNfInt32NoiseCancel* p_owner = (PifNfInt32NoiseCancel*)p_parent;
 	PifNfInt32Common* p_common = &p_owner->common;
 
-	memset(p_common->p_buffer, 0, p_owner->size * sizeof(int32_t));
+	memset(p_common->p_buffer, 0, p_common->size * sizeof(int32_t));
 	memset(p_owner->diff, 0, p_common->size * 3 * sizeof(int16_t));
 	p_common->current = 0;
 	p_owner->before = 0;
 }
 
-static PifNoiseFilterValueP _processNoiseCancel(PifNoiseFilterMethod* p_method, PifNoiseFilterValueP p_value)
+static PifNoiseFilterValueP _processNoiseCancel(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value)
 {
-	PifNfInt32NoiseCancel* p_owner = (PifNfInt32NoiseCancel*)p_method;
+	PifNfInt32NoiseCancel* p_owner = (PifNfInt32NoiseCancel*)p_parent;
 	PifNfInt32Common* p_common = &p_owner->common;
 	int i, count;
 	int32_t sum;
@@ -210,101 +210,116 @@ static PifNoiseFilterValueP _processNoiseCancel(PifNoiseFilterMethod* p_method, 
 	return &p_common->result;
 }
 
-BOOL pifNoiseFilterInt32_AddAverage(PifNoiseFilter* p_parent, uint8_t size)
+PifNoiseFilter* pifNoiseFilterInt32_AddAverage(PifNoiseFilterManager* p_manager, uint8_t size)
 {
-	PifNfInt32Average* p_method;
+	PifNfInt32Average* p_owner;
 
-	if (!_checkParam(p_parent, size != 0)) return FALSE;
+	if (!_checkParam(p_manager, size != 0)) return NULL;
 
-	p_parent->__p_method[p_parent->_last] = calloc(1, sizeof(PifNfInt32Average));
-	if (!p_parent->__p_method[p_parent->_last]) {
+	p_owner = calloc(1, sizeof(PifNfInt32Average));
+	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
-		return FALSE;
+		return NULL;
 	}
 
-	p_method = (PifNfInt32Average*)p_parent->__p_method[p_parent->_last];
+	if (!_allocBuffer(&p_owner->common, size)) goto fail;
 
-	if (!_allocBuffer(&p_method->common, size)) return FALSE;
+	p_owner->parent._type = NFT_AVERAGE;
+	p_owner->parent.__fn_clear = _clearAverage;
+	p_owner->parent.__fn_reset = _resetAverage;
+	p_owner->parent.__fn_process = _processAverage;
 
-	p_method->parent.type = NFT_AVERAGE;
-	p_method->parent.fn_clear = _clearAverage;
-	p_method->parent.fn_reset = _resetAverage;
-	p_method->parent.fn_process = _processAverage;
+	p_manager->__p_list[p_manager->_last] = (PifNoiseFilter*)p_owner;
+	p_manager->_last++;
+	return (PifNoiseFilter*)p_owner;
 
-	p_parent->_last++;
-	return TRUE;
+fail:
+	if (p_owner) free(p_owner);
+	return NULL;
 }
 
-BOOL pifNoiseFilterInt32_AddWeightFactor(PifNoiseFilter* p_parent, uint8_t size, ...)
+PifNoiseFilter* pifNoiseFilterInt32_AddWeightFactor(PifNoiseFilterManager* p_manager, uint8_t size, ...)
 {
-	PifNfInt32WeightFactor* p_method;
+	PifNfInt32WeightFactor* p_owner;
 	int i, n;
 	va_list ap;
 
-	if (!_checkParam(p_parent, (size & 1) != 0)) return FALSE;
+	if (!_checkParam(p_manager, (size & 1) != 0)) return NULL;
 
-	p_parent->__p_method[p_parent->_last] = calloc(1, sizeof(PifNfInt32WeightFactor));
-	if (!p_parent->__p_method[p_parent->_last]) {
+	p_owner = calloc(1, sizeof(PifNfInt32WeightFactor));
+	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
-		return FALSE;
+		return NULL;
 	}
 
-	p_method = (PifNfInt32WeightFactor*)p_parent->__p_method[p_parent->_last];
-
-	p_method->value = calloc(size, sizeof(int8_t));
-	if (!p_method->value) {
+	p_owner->value = calloc(size, sizeof(int8_t));
+	if (!p_owner->value) {
 		pif_error = E_OUT_OF_HEAP;
-		return FALSE;
+		goto fail;
 	}
 
-	if (!_allocBuffer(&p_method->common, size)) return FALSE;
+	if (!_allocBuffer(&p_owner->common, size)) goto fail;
 
 	va_start(ap, size);
-	p_method->total = 0;
+	p_owner->total = 0;
 	n = size / 2;
 	for (i = 0; i < size; i++) {
-		p_method->value[n] = va_arg(ap, int);
-		p_method->total += p_method->value[n];
+		p_owner->value[n] = va_arg(ap, int);
+		p_owner->total += p_owner->value[n];
 		n = (n + 1) % size;
 	}
 	va_end(ap);
 
-	p_method->parent.type = NFT_WEIGHT_FACTOR;
-	p_method->parent.fn_clear = _clearWeightFactor;
-	p_method->parent.fn_reset = _resetWeightFactor;
-	p_method->parent.fn_process = _processWeightFactor;
+	p_owner->parent._type = NFT_WEIGHT_FACTOR;
+	p_owner->parent.__fn_clear = _clearWeightFactor;
+	p_owner->parent.__fn_reset = _resetWeightFactor;
+	p_owner->parent.__fn_process = _processWeightFactor;
 
-	p_parent->_last++;
-	return TRUE;
+	p_manager->__p_list[p_manager->_last] = (PifNoiseFilter*)p_owner;
+	p_manager->_last++;
+	return (PifNoiseFilter*)p_owner;
+
+fail:
+	if (p_owner) {
+		if (p_owner->value) free(p_owner->value);
+		free(p_owner);
+	}
+	return NULL;
 }
 
-BOOL pifNoiseFilterInt32_AddNoiseCancel(PifNoiseFilter* p_parent, uint8_t size)
+PifNoiseFilter* pifNoiseFilterInt32_AddNoiseCancel(PifNoiseFilterManager* p_manager, uint8_t size)
 {
-	PifNfInt32NoiseCancel* p_method;
+	PifNfInt32NoiseCancel* p_owner;
 
-	if (!_checkParam(p_parent, size >= 3 && size <= 32)) return FALSE;
+	if (!_checkParam(p_manager, size >= 3 && size <= 32)) return NULL;
 
-	p_parent->__p_method[p_parent->_last] = calloc(1, sizeof(PifNfInt32NoiseCancel));
-	if (!p_parent->__p_method[p_parent->_last]) {
+	p_owner = calloc(1, sizeof(PifNfInt32NoiseCancel));
+	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
-		return FALSE;
+		return NULL;
 	}
 
-	p_method = (PifNfInt32NoiseCancel*)p_parent->__p_method[p_parent->_last];
-
-	p_method->diff = calloc(size * 3, sizeof(int16_t));
-	if (!p_method->diff) {
+	p_owner->diff = calloc(size * 3, sizeof(int16_t));
+	if (!p_owner->diff) {
 		pif_error = E_OUT_OF_HEAP;
-		return FALSE;
+		goto fail;
 	}
 
-	if (!_allocBuffer(&p_method->common, size)) return FALSE;
+	if (!_allocBuffer(&p_owner->common, size)) goto fail;
 
-	p_method->parent.type = NFT_NOISE_CANCEL;
-	p_method->parent.fn_clear = _clearNoiseCancel;
-	p_method->parent.fn_reset = _resetNoiseCancel;
-	p_method->parent.fn_process = _processNoiseCancel;
+	p_owner->parent._type = NFT_NOISE_CANCEL;
+	p_owner->parent.__fn_clear = _clearNoiseCancel;
+	p_owner->parent.__fn_reset = _resetNoiseCancel;
+	p_owner->parent.__fn_process = _processNoiseCancel;
 
-	p_parent->_last++;
-	return TRUE;
+	p_manager->__p_list[p_manager->_last] = (PifNoiseFilter*)p_owner;
+	p_manager->_last++;
+	return (PifNoiseFilter*)p_owner;
+
+fail:
+	if (p_owner) {
+		if (p_owner->diff) free(p_owner->diff);
+		free(p_owner);
+	}
+	return NULL;
 }

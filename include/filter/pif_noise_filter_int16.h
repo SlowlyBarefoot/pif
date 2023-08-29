@@ -2,7 +2,7 @@
 #define PIF_NOISE_FILTER_INT16_H
 
 
-#include "filter/pif_noise_filter.h"
+#include "filter/pif_noise_filter_manager.h"
 
 
 /**
@@ -24,7 +24,7 @@ typedef struct StPifNfInt16Common
 typedef struct StPifNfInt16Average
 {
 	// The parent variable must be at the beginning of this structure.
-	PifNoiseFilterMethod parent;
+	PifNoiseFilter parent;
 	PifNfInt16Common common;
 
 	uint8_t len;
@@ -37,7 +37,7 @@ typedef struct StPifNfInt16Average
 typedef struct StPifNfInt16WeightFactor
 {
 	// The parent variable must be at the beginning of this structure.
-	PifNoiseFilterMethod parent;
+	PifNoiseFilter parent;
 	PifNfInt16Common common;
 
 	int8_t* value;
@@ -51,7 +51,7 @@ typedef struct StPifNfInt16WeightFactor
 typedef struct StPifNfInt16NoiseCancel
 {
 	// The parent variable must be at the beginning of this structure.
-	PifNoiseFilterMethod parent;
+	PifNoiseFilter parent;
 	PifNfInt16Common common;
 
 	int8_t before;
@@ -66,30 +66,30 @@ extern "C" {
 /**
  * @fn pifNoiseFilterInt16_AddAverage
  * @brief
- * @param p_parent
+ * @param p_manager
  * @param size
  * @return
  */
-BOOL pifNoiseFilterInt16_AddAverage(PifNoiseFilter* p_parent, uint8_t size);
+PifNoiseFilter* pifNoiseFilterInt16_AddAverage(PifNoiseFilterManager* p_manager, uint8_t size);
 
 /**
  * @fn pifNoiseFilterInt16_AddWeightFactor
  * @brief
- * @param p_parent
+ * @param p_manager
  * @param size
  * @param weight_factor...
  * @return
  */
-BOOL pifNoiseFilterInt16_AddWeightFactor(PifNoiseFilter* p_parent, uint8_t size, ...);
+PifNoiseFilter* pifNoiseFilterInt16_AddWeightFactor(PifNoiseFilterManager* p_manager, uint8_t size, ...);
 
 /**
  * @fn pifNoiseFilterInt16_AddNoiseCancel
  * @brief
- * @param p_parent
+ * @param p_manager
  * @param size
  * @return
  */
-BOOL pifNoiseFilterInt16_AddNoiseCancel(PifNoiseFilter* p_parent, uint8_t size);
+PifNoiseFilter* pifNoiseFilterInt16_AddNoiseCancel(PifNoiseFilterManager* p_manager, uint8_t size);
 
 #ifdef __cplusplus
 }

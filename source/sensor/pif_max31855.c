@@ -159,8 +159,8 @@ BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_
 		else {
 			data = (raw[0] << 6) | (raw[1] >> 2);
 		}
-		if (p_owner->__p_filter) {
-			*p_temperature = *(int16_t*)pifNoiseFilter_Process(p_owner->__p_filter, p_owner->__filter_index, &data) / 4.0;
+		if (p_owner->p_filter) {
+			*p_temperature = *(int16_t*)pifNoiseFilter_Process(p_owner->p_filter, &data) / 4.0;
 		}
 		else {
 			*p_temperature = data / 4.0;
@@ -195,19 +195,6 @@ void pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double
 	p_owner->__low_threshold = low_threshold;
 	p_owner->__high_threshold = high_threshold;
 }
-
-BOOL pifMax31855_AttachFilter(PifMax31855* p_owner, PifNoiseFilter* p_filter, uint8_t index)
-{
-    if (!p_filter || index >= p_filter->_count) {
-		pif_error = E_INVALID_PARAM;
-	    return FALSE;
-	}
-
-    p_owner->__p_filter = p_filter;
-	p_owner->__filter_index = index;
-	return TRUE;
-}
-
 
 #ifdef __PIF_COLLECT_SIGNAL__
 
