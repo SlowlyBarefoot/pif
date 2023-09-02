@@ -10,10 +10,8 @@ static PifNfBit* _addMethod(PifNoiseFilterManager* p_manager, uint8_t size)
 		return NULL;
 	}
 
-	if (p_manager->_last >= p_manager->_count) {
-		pif_error = E_OVERFLOW_BUFFER;
-		return NULL;
-	}
+	PifPtrArrayIterator it = pifPtrArray_Add(&p_manager->__filters);
+	if (!it) return NULL;
 
 	p_owner = calloc(1, sizeof(PifNfBit));
 	if (!p_owner) {
@@ -27,8 +25,7 @@ static PifNfBit* _addMethod(PifNoiseFilterManager* p_manager, uint8_t size)
 	p_owner->__count = 0;
 	p_owner->__list = 0L;
 
-	p_manager->__p_list[p_manager->_last] = (PifNoiseFilter*)p_owner;
-	p_manager->_last++;
+	it->p_data = (char*)p_owner;
     return p_owner;
 }
 

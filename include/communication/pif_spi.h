@@ -2,7 +2,7 @@
 #define PIF_SPI_H
 
 
-#include "core/pif_list.h"
+#include "core/pif_obj_array.h"
 
 
 typedef uint16_t PifSpiRegField;
@@ -52,7 +52,7 @@ typedef struct StPifSpiPort
 	PifId _id;
 
 	// Private Member Variable
-    PifFixList __devices;
+    PifObjArray __devices;
     uint16_t __max_transfer_size;
 } PifSpiPort;
 

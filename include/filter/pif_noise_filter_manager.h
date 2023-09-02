@@ -2,6 +2,7 @@
 #define PIF_NOISE_FILTER_MANAGER_H
 
 
+#include "core/pif_ptr_array.h"
 #include "filter/pif_noise_filter.h"
 
 
@@ -15,12 +16,11 @@ typedef struct StPifNoiseFilterManager
 
 	// Read-only Member Variable
 	uint8_t _count;
-	uint8_t _last;
 
 	// Private Member Variable
 
 	// Private Function
-	PifNoiseFilter** __p_list;
+	PifPtrArray __filters;
 } PifNoiseFilterManager;
 
 

@@ -2,7 +2,7 @@
 #define PIF_TIMER_H
 
 
-#include "core/pif_list.h"
+#include "core/pif_obj_array.h"
 #include "core/pif_task.h"
 
 
@@ -67,7 +67,7 @@ typedef struct StPifTimerManager
 	uint32_t _period1us;
 
 	// Private Member Variable
-    PifFixList __timers;
+    PifObjArray __timers;
 	PifTask* __p_task;
 } PifTimerManager;
 

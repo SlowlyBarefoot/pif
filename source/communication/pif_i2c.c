@@ -17,7 +17,7 @@ BOOL pifI2cPort_Init(PifI2cPort* p_owner, PifId id, uint8_t device_count, uint16
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     p_owner->__max_transfer_size = max_transfer_size;
-    if (!pifFixList_Init(&p_owner->__devices, sizeof(PifI2cDevice), device_count)) goto fail;
+    if (!pifObjArray_Init(&p_owner->__devices, sizeof(PifI2cDevice), device_count, NULL)) goto fail;
     return TRUE;
 
 fail:
@@ -27,7 +27,7 @@ fail:
 
 void pifI2cPort_Clear(PifI2cPort* p_owner)
 {
-	pifFixList_Clear(&p_owner->__devices, NULL);
+	pifObjArray_Clear(&p_owner->__devices);
 }
 
 PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, uint8_t addr)
@@ -37,9 +37,10 @@ PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, uint8_t addr)
 		return FALSE;
 	}
 
-	PifI2cDevice* p_device = (PifI2cDevice*)pifFixList_AddFirst(&p_owner->__devices);
-    if (!p_device) return FALSE;
+	PifObjArrayIterator it = pifObjArray_Add(&p_owner->__devices);
+    if (!it) return FALSE;
 
+    PifI2cDevice* p_device = (PifI2cDevice*)it->data;
     p_device->__p_port = p_owner;
 	p_device->addr = addr;
     p_device->timeout = 10;		// 10ms
@@ -49,7 +50,7 @@ PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, uint8_t addr)
 void pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device)
 {
 	if (p_device) {
-		pifFixList_Remove(&p_owner->__devices, p_device);
+		pifObjArray_Remove(&p_owner->__devices, p_device);
 		p_device = NULL;
 	}
 }

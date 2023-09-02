@@ -14,7 +14,7 @@ BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, uint16
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     p_owner->__max_transfer_size = max_transfer_size;
-    if (!pifFixList_Init(&p_owner->__devices, sizeof(PifSpiDevice), device_count)) goto fail;
+    if (!pifObjArray_Init(&p_owner->__devices, sizeof(PifSpiDevice), device_count, NULL)) goto fail;
     return TRUE;
 
 fail:
@@ -24,7 +24,7 @@ fail:
 
 void pifSpiPort_Clear(PifSpiPort* p_owner)
 {
-	pifFixList_Clear(&p_owner->__devices, NULL);
+	pifObjArray_Clear(&p_owner->__devices);
 }
 
 PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id)
@@ -34,9 +34,10 @@ PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id)
 		return FALSE;
 	}
 
-	PifSpiDevice* p_device = (PifSpiDevice*)pifFixList_AddFirst(&p_owner->__devices);
-    if (!p_device) return FALSE;
+	PifObjArrayIterator it = pifObjArray_Add(&p_owner->__devices);
+    if (!it) return FALSE;
 
+    PifSpiDevice* p_device = (PifSpiDevice*)it->data;
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_device->_id = id;
     p_device->__p_port = p_owner;
@@ -47,7 +48,7 @@ PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id)
 void pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device)
 {
 	if (p_device) {
-		pifFixList_Remove(&p_owner->__devices, p_device);
+		pifObjArray_Remove(&p_owner->__devices, p_device);
 		p_device = NULL;
 	}
 }

@@ -1,4 +1,4 @@
-#include "core/pif_list.h"
+#include "core/pif_obj_array.h"
 #include "core/pif_log.h"
 #include "core/pif_task.h"
 
@@ -15,8 +15,8 @@ PifActTaskSignal pif_act_task_signal = NULL;
 
 #endif
 
-static PifFixList s_tasks;
-static PifFixListIterator s_it_current;
+static PifObjArray s_tasks;
+static PifObjArrayIterator s_it_current;
 static PifTask* s_task_stack[PIF_TASK_STACK_SIZE];
 static int s_task_stack_ptr = 0;
 static PifTask* s_task_cutin = NULL;
@@ -462,7 +462,7 @@ uint32_t pifTask_GetDeltaTime(PifTask* p_owner, BOOL reset)
 
 BOOL pifTaskManager_Init(int max_count)
 {
-	if (!pifFixList_Init(&s_tasks, sizeof(PifTask), max_count)) return FALSE;
+	if (!pifObjArray_Init(&s_tasks, sizeof(PifTask), max_count, NULL)) return FALSE;
 	s_it_current = NULL;
 
 	s_table_number = 0L;
@@ -472,7 +472,7 @@ BOOL pifTaskManager_Init(int max_count)
 
 void pifTaskManager_Clear()
 {
-	pifFixList_Clear(&s_tasks, NULL);
+	pifObjArray_Clear(&s_tasks);
 }
 
 PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start)
@@ -484,9 +484,10 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
 
 	if (!_checkParam(&mode, period)) return NULL;
 
-	PifTask* p_owner = (PifTask*)pifFixList_AddFirst(&s_tasks);
-	if (!p_owner) return NULL;
+	PifObjArrayIterator it = pifObjArray_Add(&s_tasks);
+	if (!it) return NULL;
 
+	PifTask* p_owner = (PifTask*)it->data;
 	pifTask_Init(p_owner);
 
 	if (!_setParam(p_owner, mode, period)) goto fail;
@@ -494,12 +495,12 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
     p_owner->__evt_loop = evt_loop;
     p_owner->_p_client = p_client;
     p_owner->pause = (mode != TM_EXTERNAL_ORDER && mode != TM_EXTERNAL_CUTIN) ? !start : TRUE;
-    if (!s_it_current) s_it_current = pifFixList_Begin(&s_tasks);
+    if (!s_it_current) s_it_current = pifObjArray_Begin(&s_tasks);
     return p_owner;
 
 fail:
 	if (p_owner) {
-		pifFixList_Remove(&s_tasks, p_owner);
+		pifObjArray_Remove(&s_tasks, p_owner);
 	}
 	return NULL;
 }
@@ -517,15 +518,15 @@ void pifTaskManager_Remove(PifTask* p_task)
 	default:
 		break;
 	}
-	pifFixList_Remove(&s_tasks, p_task);
+	pifObjArray_Remove(&s_tasks, p_task);
 
-	if (!pifFixList_Count(&s_tasks)) s_it_current = NULL;
-	else if (!s_it_current) s_it_current = pifFixList_Begin(&s_tasks);
+	if (!pifObjArray_Count(&s_tasks)) s_it_current = NULL;
+	else if (!s_it_current) s_it_current = pifObjArray_Begin(&s_tasks);
 }
 
 int pifTaskManager_Count()
 {
-	return pifFixList_Count(&s_tasks);
+	return pifObjArray_Count(&s_tasks);
 }
 
 void pifTaskManager_Loop()
@@ -533,15 +534,15 @@ void pifTaskManager_Loop()
 	PifTask* p_owner;
 	PifTask* p_select = NULL;
 	PifTask* p_idle = NULL;
-	PifFixListIterator it_idle = NULL;
-	int i, n, t = 0, count = pifFixList_Count(&s_tasks);
+	PifObjArrayIterator it_idle = NULL;
+	int i, n, t = 0, count = pifObjArray_Count(&s_tasks);
 	BOOL trigger = FALSE;
 
 	if (pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
 
 	if (!s_it_current) {
 		if (!count) return;
-		s_it_current = pifFixList_Begin(&s_tasks);
+		s_it_current = pifObjArray_Begin(&s_tasks);
 	}
 
 	s_loop_count += count;
@@ -581,9 +582,9 @@ void pifTaskManager_Loop()
 				}
 			}
 
-			s_it_current = pifFixList_Next(s_it_current);
+			s_it_current = pifObjArray_Next(s_it_current);
 			if (!s_it_current) {
-				s_it_current = pifFixList_Begin(&s_tasks);
+				s_it_current = pifObjArray_Begin(&s_tasks);
 				_checkLoopTime();
 			}
 		}
@@ -600,9 +601,9 @@ void pifTaskManager_Loop()
 	}
 	else if (p_idle) {
 		i = n;
-		it_idle = pifFixList_Next(it_idle);
+		it_idle = pifObjArray_Next(it_idle);
 		if (!it_idle) {
-			s_it_current = pifFixList_Begin(&s_tasks);
+			s_it_current = pifObjArray_Begin(&s_tasks);
 		}
 		else {
 			s_it_current = it_idle;
@@ -617,15 +618,15 @@ void pifTaskManager_Yield()
 	PifTask* p_owner;
 	PifTask* p_select = NULL;
 	PifTask* p_idle = NULL;
-	PifFixListIterator it_idle = NULL;
-	int i, k, n, t = 0, count = pifFixList_Count(&s_tasks);
+	PifObjArrayIterator it_idle = NULL;
+	int i, k, n, t = 0, count = pifObjArray_Count(&s_tasks);
 	BOOL trigger = FALSE;
 
 	if (pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
 
 	if (!s_it_current) {
 		if (!count) return;
-		s_it_current = pifFixList_Begin(&s_tasks);
+		s_it_current = pifObjArray_Begin(&s_tasks);
 	}
 
 	s_loop_count += count;
@@ -674,9 +675,9 @@ void pifTaskManager_Yield()
 			}
 
 next:
-			s_it_current = pifFixList_Next(s_it_current);
+			s_it_current = pifObjArray_Next(s_it_current);
 			if (!s_it_current) {
-				s_it_current = pifFixList_Begin(&s_tasks);
+				s_it_current = pifObjArray_Begin(&s_tasks);
 				if (s_task_stack_ptr) _checkLoopTime();
 			}
 		}
@@ -693,9 +694,9 @@ next:
 	}
 	else if (p_idle) {
 		i = n;
-		it_idle = pifFixList_Next(it_idle);
+		it_idle = pifObjArray_Next(it_idle);
 		if (!it_idle) {
-			s_it_current = pifFixList_Begin(&s_tasks);
+			s_it_current = pifObjArray_Begin(&s_tasks);
 		}
 		else {
 			s_it_current = it_idle;
@@ -786,11 +787,11 @@ void pifTaskManager_YieldAbortUs(uint32_t time, PifTaskCheckAbort p_check_abort,
 
 void pifTaskManager_Print()
 {
-	PifFixListIterator it;
+	PifObjArrayIterator it;
 	const char* mode[] = { "Ratio", "Always", "PeriodMs", "PeriodUs", "ChangeMs", "ChangeUs", "ExtCutin", "ExtOrder", "Timer", "IdleMs" };
 
-   	pifLog_Printf(LT_NONE, "Task count: %d\n", pifFixList_Count(&s_tasks));
-	it = pifFixList_Begin(&s_tasks);
+   	pifLog_Printf(LT_NONE, "Task count: %d\n", pifObjArray_Count(&s_tasks));
+	it = pifObjArray_Begin(&s_tasks);
 	while (it) {
 		PifTask* p_owner = (PifTask*)it->data;
 		if (p_owner->name) {
@@ -808,7 +809,7 @@ void pifTaskManager_Print()
 			pifLog_Printf(LT_NONE, ",  delay: M=%dus A=%dus", p_owner->_max_trigger_delay, p_owner->_total_trigger_delay / p_owner->_execution_count);
 		}
 		pifLog_Print(LT_NONE, "\n");
-		it = pifFixList_Next(it);
+		it = pifObjArray_Next(it);
 	}
 }
 

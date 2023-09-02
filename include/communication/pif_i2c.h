@@ -2,7 +2,7 @@
 #define PIF_I2C_H
 
 
-#include "core/pif_list.h"
+#include "core/pif_obj_array.h"
 
 
 typedef enum EnPifI2cState
@@ -66,7 +66,7 @@ struct StPifI2cPort
 	PifId _id;
 
 	// Private Member Variable
-    PifFixList __devices;
+    PifObjArray __devices;
     uint16_t __max_transfer_size;
     volatile PifI2cDevice* __use_device;
 };

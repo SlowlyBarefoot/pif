@@ -5,7 +5,7 @@ static uint16_t _doTask(PifTask* p_task)
 {
 	PifTimerManager* p_manager = p_task->_p_client;
 
-	PifFixListIterator it = pifFixList_Begin(&p_manager->__timers);
+	PifObjArrayIterator it = pifObjArray_Begin(&p_manager->__timers);
 	while (it) {
 		PifTimer* p_timer = (PifTimer*)it->data;
 
@@ -15,7 +15,7 @@ static uint16_t _doTask(PifTask* p_task)
 			if (p_timer->__evt_finish) (*p_timer->__evt_finish)(p_timer->__p_finish_issuer);
 		}
 
-		it = pifFixList_Next(it);
+		it = pifObjArray_Next(it);
 	}
 	return 0;
 }
@@ -31,7 +31,7 @@ BOOL pifTimerManager_Init(PifTimerManager* p_manager, PifId id, uint32_t period1
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_manager->_id = id;
-    if (!pifFixList_Init(&p_manager->__timers, sizeof(PifTimer), max_count)) goto fail;
+    if (!pifObjArray_Init(&p_manager->__timers, sizeof(PifTimer), max_count, NULL)) goto fail;
     p_manager->_period1us = period1us;
 
     p_manager->__p_task = pifTaskManager_Add(TM_TIMER, 0, _doTask, p_manager, TRUE);
@@ -50,14 +50,15 @@ void pifTimerManager_Clear(PifTimerManager* p_manager)
 		pifTaskManager_Remove(p_manager->__p_task);
 		p_manager->__p_task = NULL;
 	}
-	pifFixList_Clear(&p_manager->__timers, NULL);
+	pifObjArray_Clear(&p_manager->__timers);
 }
 
 PifTimer* pifTimerManager_Add(PifTimerManager* p_manager, PifTimerType type)
 {
-	PifTimer* p_timer = (PifTimer*)pifFixList_AddFirst(&p_manager->__timers);
-    if (!p_timer) return NULL;
+	PifObjArrayIterator it = pifObjArray_Add(&p_manager->__timers);
+    if (!it) return NULL;
 
+	PifTimer* p_timer = (PifTimer*)it->data;
     p_timer->_type = type;
     p_timer->_step = TS_STOP;
     return p_timer;
@@ -70,7 +71,7 @@ void pifTimerManager_Remove(PifTimer* p_timer)
 
 int pifTimerManager_Count(PifTimerManager* p_manager)
 {
-	return pifFixList_Count(&p_manager->__timers);
+	return pifObjArray_Count(&p_manager->__timers);
 }
 
 BOOL pifTimer_Start(PifTimer* p_owner, uint32_t target)
@@ -134,7 +135,7 @@ void pifTimerManager_sigTick(PifTimerManager* p_manager)
 
     if (!p_manager) return;
 
-    PifFixListIterator it = pifFixList_Begin(&p_manager->__timers);
+    PifObjArrayIterator it = pifObjArray_Begin(&p_manager->__timers);
 	while (it) {
 		PifTimer* p_timer = (PifTimer*)it->data;
 
@@ -183,10 +184,10 @@ void pifTimerManager_sigTick(PifTimerManager* p_manager)
 			}
 		}
 
-		it = pifFixList_Next(it);
+		it = pifObjArray_Next(it);
 	}
 
-	if (p_remove) pifFixList_Remove(&p_manager->__timers, p_remove);
+	if (p_remove) pifObjArray_Remove(&p_manager->__timers, p_remove);
 }
 
 void pifTimer_AttachEvtFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssuerP p_issuer)
