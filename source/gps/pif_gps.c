@@ -1,7 +1,7 @@
 #include <ctype.h>
 #include <string.h>
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 #include "gps/pif_gps.h"
@@ -473,7 +473,7 @@ void pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 				}
 			}
 			else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				pifLog_Printf(LT_ERROR, "GPS(%u): MsgId=%u CS=%x:%x", __LINE__, p_owner->__msg_id, checksum, p_owner->__parity);
 #endif
 				if (p_owner->evt_nmea_receive) {

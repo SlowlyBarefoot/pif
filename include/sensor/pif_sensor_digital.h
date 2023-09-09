@@ -11,7 +11,7 @@ struct StPifSensorDigital;
 typedef struct StPifSensorDigital PifSensorDigital;
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 typedef enum EnPifSensorDigitalCsFlag
 {
@@ -32,7 +32,7 @@ typedef struct StPifSensorDigitalColSig
     void* p_device[SD_CSF_COUNT];
 } PifSensorDigitalColSig;
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 /**
  * @class StPifSensorDigital
@@ -52,7 +52,7 @@ struct StPifSensorDigital
     uint16_t __curr_level;
     uint16_t __prev_level;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
     PifSensorDigitalColSig* __p_colsig;
 #endif
 
@@ -125,7 +125,7 @@ uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner);
 PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 /**
  * @fn pifSensorDigital_SetCsFlag
@@ -157,7 +157,7 @@ void pifSensorDigitalColSig_SetFlag(PifSensorDigitalCsFlag flag);
  */
 void pifSensorDigitalColSig_ResetFlag(PifSensorDigitalCsFlag flag);
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

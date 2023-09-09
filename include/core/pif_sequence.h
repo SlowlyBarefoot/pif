@@ -32,7 +32,7 @@ typedef struct StPifSequencePhase
 	uint8_t phase_no_next;
 } PifSequencePhase;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 typedef enum EnPifSequenceCsFlag
 {
@@ -53,7 +53,7 @@ typedef struct StPifSequenceColSig
     void* p_device[SQ_CSF_COUNT];
 } PifSequenceColSig;
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 struct StPifSequence
 {
@@ -76,7 +76,7 @@ struct StPifSequence
 	const PifSequencePhase* __p_phase_list;
 	PifTimer* __p_timer_timeout;
 	uint32_t __target_delay;
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	PifSequenceColSig* __p_colsig;
 #endif
 };
@@ -124,7 +124,7 @@ void pifSequence_Start(PifSequence* p_owner);
 BOOL pifSequence_SetTimeout(PifSequence* p_owner, uint16_t timeout);
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 /**
  * @fn pifSequence_SetCsFlag
@@ -156,7 +156,7 @@ void pifSequenceColSig_SetFlag(PifSequenceCsFlag flag);
  */
 void pifSequenceColSig_ResetFlag(PifSequenceCsFlag flag);
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

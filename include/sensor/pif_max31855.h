@@ -3,6 +3,7 @@
 
 
 #include "communication/pif_spi.h"
+#include "core/pif_task.h"
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
 
@@ -13,7 +14,7 @@ typedef struct StPifMax31855 PifMax31855;
 typedef void (*PifEvtMax31855Measure)(PifMax31855* p_owner, double temperature, PifIssuerP p_issuer);		// distance unit : degree
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 typedef enum EnPifMax31855CsFlag
 {
@@ -34,7 +35,7 @@ typedef struct StPifMax31855ColSig
     void* p_device[M3_CSF_COUNT];
 } PifMax31855ColSig;
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 /**
  * @class StPifMax31855
@@ -57,7 +58,7 @@ typedef struct StPifMax31855
 	double __low_threshold;
 	double __high_threshold;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
     PifMax31855ColSig* __p_colsig;
 #endif
 
@@ -123,7 +124,7 @@ void pifMax31855_StopMeasurement(PifMax31855* p_owner);
  */
 void pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double high_threshold);
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 /**
  * @fn pifMax31855_SetCsFlag
@@ -155,7 +156,7 @@ void pifMax31855ColSig_SetFlag(PifMax31855CsFlag flag);
  */
 void pifMax31855ColSig_ResetFlag(PifMax31855CsFlag flag);
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

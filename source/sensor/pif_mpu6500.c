@@ -20,7 +20,7 @@ static BOOL _changeAccelFsSel(PifImuSensor* p_imu_sensor, PifMpu6500AccelFsSel a
 
 BOOL pifMpu6500_Detect(PifI2cPort* p_i2c, uint8_t addr)
 {
-#ifndef __PIF_NO_LOG__	
+#ifndef PIF_NO_LOG	
 	const char ident[] = "MPU6500 Ident: ";
 #endif	
 	uint8_t data;
@@ -30,7 +30,7 @@ BOOL pifMpu6500_Detect(PifI2cPort* p_i2c, uint8_t addr)
 
 	if (!pifI2cDevice_ReadRegByte(p_device, MPU6500_REG_WHO_AM_I, &data)) return FALSE;
 	if (data != 0x70) return FALSE;
-#ifndef __PIF_NO_LOG__	
+#ifndef PIF_NO_LOG	
 	if (data < 32) {
 		pifLog_Printf(LT_INFO, "%s%Xh", ident, data >> 1);
 	}

@@ -13,7 +13,7 @@ static BOOL _changeFsSel(PifImuSensor* p_imu_sensor, PifMpu30x0FsSel fs_sel)
 
 BOOL pifMpu30x0_Detect(PifI2cPort* p_i2c, uint8_t addr)
 {
-#ifndef __PIF_NO_LOG__	
+#ifndef PIF_NO_LOG	
 	const char ident[] = "MPU30X0 Ident: ";
 #endif	
 	uint8_t data;
@@ -23,7 +23,7 @@ BOOL pifMpu30x0_Detect(PifI2cPort* p_i2c, uint8_t addr)
 
 	if (!pifI2cDevice_ReadRegByte(p_device, MPU30X0_REG_WHO_AM_I, &data)) return FALSE;
 	if (data != addr) return FALSE;
-#ifndef __PIF_NO_LOG__	
+#ifndef PIF_NO_LOG	
 	if (data < 32) {
 		pifLog_Printf(LT_INFO, "%s%Xh", ident, data >> 1);
 	}

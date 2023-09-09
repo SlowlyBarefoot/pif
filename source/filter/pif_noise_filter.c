@@ -1,7 +1,7 @@
 #include "filter/pif_noise_filter.h"
 
 
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 
 void pifNoiseFilter_Reset(PifNoiseFilter* p_parent)
 {

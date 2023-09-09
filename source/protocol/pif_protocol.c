@@ -1,4 +1,4 @@
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 #include "protocol/pif_protocol.h"
@@ -10,7 +10,7 @@ static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 {
 	PifProtocol* p_owner = (PifProtocol*)p_issuer;
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "PTC(%u) ParsingPacket(Timeout) State:%u Len:%u Cnt:%u", p_owner->_id,
 			p_owner->__rx.state, p_owner->__rx.packet.length, p_owner->__rx.packet.data_count);
 #ifdef __DEBUG_PACKET__
@@ -32,7 +32,7 @@ static void _evtTimerTxTimeout(PifIssuerP p_issuer)
 
 	switch (p_owner->__tx.state) {
 	case PTS_WAIT_RESPONSE:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_WARN, "PTC(%u) TxTimeout State:%u Len:%u Cnt:%u", p_owner->_id, p_owner->__tx.state,
 				p_owner->__rx.packet.length, p_owner->__rx.packet.data_count);
 #endif
@@ -44,7 +44,7 @@ static void _evtTimerTxTimeout(PifIssuerP p_issuer)
 		break;
 
 	default:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_WARN, "PTC(%u) TxTimeout State:%u", p_owner->_id, p_owner->__tx.state);
 #endif
 		break;
@@ -57,7 +57,7 @@ static void _evtTimerTxTimeout(PifIssuerP p_issuer)
 #define PKT_ERR_WRONG_CRC    	3
 #define PKT_ERR_WRONG_ETX    	4
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 
 static const char* kPktErr[5] = {
 		"Big Length",
@@ -73,7 +73,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActUartReceiveData act_recei
 {
 	PifProtocolPacket* p_packet = &p_owner->__rx.packet;
 	uint8_t data;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	uint8_t pkt_err;
 #endif
 	static uint8_t crc7;
@@ -97,7 +97,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActUartReceiveData act_recei
 					p_owner->__rx.state = PRS_ACK;
 				}
 				else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 					pifLog_Printf(LT_WARN, "PTC(%u):Receive NAK(%xh)", p_owner->_id, data);
 #endif
 #if PIF_PROTOCOL_RETRY_DELAY
@@ -136,7 +136,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActUartReceiveData act_recei
 						p_packet->data_count = 0;
 					}
 					else if (p_packet->length > p_owner->__rx.packet_size - 10) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 						pkt_err = PKT_ERR_BIG_LENGHT;
 #endif
 						goto fail;
@@ -150,7 +150,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActUartReceiveData act_recei
 				}
 			}
 			else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				pkt_err = PKT_ERR_INVALID_DATA;
 #endif
 				goto fail;
@@ -174,7 +174,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActUartReceiveData act_recei
 				p_owner->__rx.data_link_escape = TRUE;
 			}
 			else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				pkt_err = PKT_ERR_INVALID_DATA;
 #endif
 				goto fail;
@@ -188,14 +188,14 @@ static void _parsingPacket(PifProtocol* p_owner, PifActUartReceiveData act_recei
 					p_owner->__rx.state = PRS_GET_TAILER;
 				}
 				else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 					pkt_err = PKT_ERR_WRONG_CRC;
 #endif
 					goto fail;
 				}
 			}
 			else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				pkt_err = PKT_ERR_INVALID_DATA;
 #endif
 				goto fail;
@@ -211,7 +211,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActUartReceiveData act_recei
 	            return;
 			}
 			else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				pkt_err = PKT_ERR_WRONG_ETX;
 #endif
 				goto fail;
@@ -225,7 +225,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActUartReceiveData act_recei
 	return;
 
 fail:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "PTC(%u) ParsingPacket(%s) TS:%u RS:%u Len:%u Cnt:%u", p_owner->_id, kPktErr[pkt_err],
 			p_owner->__tx.state, p_owner->__rx.state, p_packet->length, p_packet->data_count);
 #ifdef __DEBUG_PACKET__
@@ -260,7 +260,7 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 	_parsingPacket(p_owner, act_receive_data);
 
     if (p_owner->__rx.state == PRS_DONE) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 #ifdef __DEBUG_PACKET__
     	pifLog_Printf(LT_NONE, "\n%u> %x %x %x %x %x %x : %x", p_owner->_id,
     			p_owner->__rx.p_packet[0],	p_owner->__rx.p_packet[1], p_owner->__rx.p_packet[2], p_owner->__rx.p_packet[3],
@@ -274,7 +274,7 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
         	const PifProtocolQuestion *pstQuestion = p_owner->__p_questions;
         	while (pstQuestion->command) {
         		if (p_packet->command == pstQuestion->command) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
         	    	if (p_packet->flags & PF_LOG_PRINT_MASK) {
         	    		pifLog_Printf(LT_COMM, "PTC(%u) Qt:%xh F:%xh P:%d L:%d CRC:%xh", p_owner->_id, p_packet->command,
         	    				p_packet->flags, p_packet->packet_id, p_packet->length, p_packet->crc);
@@ -288,7 +288,7 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
     	}
     	else {
     	    if (p_owner->__tx.state == PTS_WAIT_RESPONSE) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
     	    	if (p_packet->flags & PF_LOG_PRINT_MASK) {
     	    		pifLog_Printf(LT_COMM, "PTC(%u) Rs:%xh F:%xh P:%d L:%d CRC:%xh", p_owner->_id, p_packet->command,
     	    				p_packet->flags, p_packet->packet_id, p_packet->length, p_packet->crc);
@@ -312,7 +312,7 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 #endif
     	    	}
     	    }
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
     	    else {
     	    	pifLog_Printf(LT_WARN, "PTC(%u) Invalid State %d", p_owner->_id, p_owner->__tx.state);
     	    }
@@ -391,7 +391,7 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 					pif_error = E_OVERFLOW_BUFFER;
 					if (p_owner->evt_error) (*p_owner->evt_error)(p_owner->_id);
 					pifRingBuffer_Remove(&p_owner->__tx.request_buffer, 5 + p_owner->__tx.ui.st.length);
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 					pifLog_Printf(LT_WARN, "PTC(%u) Not start timer", p_owner->_id);
 #endif
 					p_owner->__tx.state = PTS_IDLE;
@@ -405,7 +405,7 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 	    case PTS_RETRY:
 	    	p_owner->__tx.ui.st.retry--;
 			if (p_owner->__tx.ui.st.retry) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				pifLog_Printf(LT_WARN, "PTC(%u) Retry: %d", p_owner->_id, p_owner->__tx.ui.st.retry);
 #endif
 				p_owner->__rx.state = PRS_IDLE;
@@ -416,7 +416,7 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 				pif_error = E_TRANSFER_FAILED;
 				if (p_owner->evt_error) (*p_owner->evt_error)(p_owner->_id);
 				pifRingBuffer_Remove(&p_owner->__tx.request_buffer, 5 + p_owner->__tx.ui.st.length);
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				pifLog_Printf(LT_ERROR, "PTC(%u) Transfer failed", p_owner->_id);
 #endif
 				p_owner->__tx.state = PTS_IDLE;
@@ -645,7 +645,7 @@ BOOL pifProtocol_MakeRequest(PifProtocol* p_owner, const PifProtocolRequest* p_r
 
 	pifRingBuffer_CommitPutting(&p_owner->__tx.request_buffer);
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	if (p_request->flags & PF_LOG_PRINT_MASK) {
 		pifLog_Printf(LT_COMM, "PTC(%u) Rq:%xh F:%xh P:%d L:%d=%d CRC:%xh", p_owner->_id, p_request->command,
 				p_request->flags, packet_id, data_size, length, tailer[0]);
@@ -721,7 +721,7 @@ BOOL pifProtocol_MakeAnswer(PifProtocol* p_owner, PifProtocolPacket* p_question,
 
 	pifRingBuffer_CommitPutting(&p_owner->__tx.answer_buffer);
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	if (flags & PF_LOG_PRINT_MASK) {
 		pifLog_Printf(LT_COMM, "PTC(%u) As:%xh F:%xh P:%d L:%d=%d CRC:%xh", p_owner->_id, p_question->command,
 				flags, packet_id, data_size, length + lack, tailer[0]);

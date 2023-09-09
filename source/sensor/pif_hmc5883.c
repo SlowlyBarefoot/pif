@@ -25,7 +25,7 @@ static void _changeGain(PifImuSensor* p_imu_sensor, PifHmc5883Gain gain)
 
 BOOL pifHmc5883_Detect(PifI2cPort* p_i2c)
 {
-#ifndef __PIF_NO_LOG__	
+#ifndef PIF_NO_LOG	
 	const char ident[] = "HMC5883 Ident: ";
 #endif	
 	uint8_t data[3];
@@ -35,7 +35,7 @@ BOOL pifHmc5883_Detect(PifI2cPort* p_i2c)
 
     if (!pifI2cDevice_ReadRegBytes(p_device, HMC5883_REG_IDENT_A, data, 3)) return FALSE;
 	if (data[0] != 'H') return FALSE;
-#ifndef __PIF_NO_LOG__	
+#ifndef PIF_NO_LOG	
     if (data[0] < 32 || data[1] < 32 || data[2] < 32) {
     	pifLog_Printf(LT_INFO, "%s%2Xh %2Xh %2Xh", ident, data[0], data[1], data[2]);
     }
@@ -129,7 +129,7 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSen
         if (xyz_total[AXIS_Z]) p_owner->scale[AXIS_Z] = fabsf(660.0f * HMC58X3_Z_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[AXIS_Z]);
     }
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
     pifLog_Printf(LT_INFO, "Mag scale: X=%f Y=%f Z=%f", (double)p_owner->scale[AXIS_X], (double)p_owner->scale[AXIS_Y], (double)p_owner->scale[AXIS_Z]);
 #endif
 

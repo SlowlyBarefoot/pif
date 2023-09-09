@@ -78,7 +78,7 @@ BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifTimerManager* p_timer
  */
 void pifDutyMotor_Clear(PifDutyMotor* p_owner);
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	/**
 	* @fn pifDutyMotor_SetState
 	* @brief
@@ -94,7 +94,7 @@ void pifDutyMotor_Clear(PifDutyMotor* p_owner);
 	 * @param p_owner
 	 * @param state
 	 */
-	#ifdef __PIF_NO_USE_INLINE__
+	#ifdef PIF_NO_USE_INLINE
 		void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state);
 	#else
 		void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state) { p_owner->_state = state; }

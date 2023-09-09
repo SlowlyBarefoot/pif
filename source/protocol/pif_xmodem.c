@@ -1,4 +1,4 @@
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 #include "core/pif_ring_buffer.h"
@@ -22,7 +22,7 @@ static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 
 	switch (p_owner->__tx.state) {
 	default:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(Timeout) State:%u Cnt:%u", p_owner->_id,
 				p_owner->__rx.state, p_owner->__rx.count);
 #endif
@@ -38,7 +38,7 @@ static void _evtTimerTxTimeout(PifIssuerP p_issuer)
 
 	switch (p_owner->__tx.state) {
 	case XTS_WAIT_RESPONSE:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_WARN, "XM(%u) TxTimeout State:%u Count=%u", p_owner->_id,
 				p_owner->__tx.state, p_owner->__rx.count);
 #endif
@@ -49,14 +49,14 @@ static void _evtTimerTxTimeout(PifIssuerP p_issuer)
 		break;
 
 	default:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_WARN, "XM(%u) TxTimeout State:%u", p_owner->_id, p_owner->__tx.state);
 #endif
 		break;
 	}
 }
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 
 #define PKT_ERR_INVALID_PACKET_NO	0
 #define PKT_ERR_WRONG_CRC    		1
@@ -88,7 +88,7 @@ static void _parsingPacket(PifXmodem* p_owner, PifActUartReceiveData act_receive
 				p_owner->__rx.count = 1;
 				p_owner->__rx.state = XRS_GET_HEADER;
 				if (!pifTimer_Start(p_owner->__rx.p_timer, p_owner->__rx.timeout * 1000L / p_owner->__p_timer_manager->_period1us)) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 					pifLog_Printf(LT_WARN, "XM(%u) Not start timer", p_owner->_id);
 #endif
 				}
@@ -116,7 +116,7 @@ static void _parsingPacket(PifXmodem* p_owner, PifActUartReceiveData act_receive
 					p_owner->__rx.count = 0;
 				}
 				else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 					pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(%s) %u!=%u", p_owner->_id,
 							c_cPktErr[PKT_ERR_INVALID_PACKET_NO], (unsigned int)p_packet->packet_no[0],
 							(unsigned int)p_packet->packet_no[1]);
@@ -147,7 +147,7 @@ static void _parsingPacket(PifXmodem* p_owner, PifActUartReceiveData act_receive
 					p_owner->__tx.state = XTS_ACK;
 				}
 				else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 					pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(%s) %u!=%u", p_owner->_id,
 							c_cPktErr[PKT_ERR_WRONG_CRC], (unsigned int)p_owner->__rx.crc, (unsigned int)crc);
 #endif
@@ -170,7 +170,7 @@ static void _parsingPacket(PifXmodem* p_owner, PifActUartReceiveData act_receive
 			            p_owner->__tx.state = XTS_ACK;
 					}
 					else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 						pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(%s) %u!=%u", p_owner->_id,
 								c_cPktErr[PKT_ERR_WRONG_CRC], (unsigned int)p_owner->__rx.crc, (unsigned int)crc);
 #endif
@@ -223,7 +223,7 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 				(*p_owner->__tx.evt_receive)(p_owner->__rx.state, 0);
 			}
 			p_owner->__rx.state = XRS_IDLE;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			pifLog_Printf(LT_NONE, "C");
 #endif
 			break;
@@ -260,7 +260,7 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 	case XTS_SEND_C:
 		data = 'C';
 		if ((*act_send_data)(p_owner->__p_uart, &data, 1)) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			pifLog_Printf(LT_NONE, "C");
 #endif
 			timer1ms = pif_cumulative_timer1ms;
@@ -462,7 +462,7 @@ BOOL pifXmodem_SendData(PifXmodem* p_owner, uint8_t packet_no, uint8_t* p_data, 
 	p_owner->__tx.data_pos = 0;
 	p_owner->__tx.state = XTS_SENDING;
 	if (!pifTimer_Start(p_owner->__tx.p_timer, p_owner->__tx.timeout * 1000L / p_owner->__p_timer_manager->_period1us)) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_WARN, "XM(%u) Not start timer", p_owner->_id);
 #endif
 	}

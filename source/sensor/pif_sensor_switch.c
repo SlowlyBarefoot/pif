@@ -1,14 +1,14 @@
-#ifdef __PIF_COLLECT_SIGNAL__
+#include "sensor/pif_sensor_switch.h"
+#ifdef PIF_COLLECT_SIGNAL
 	#include "core/pif_collect_signal.h"
 #endif
 #include "core/pif_list.h"
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
-#include "sensor/pif_sensor_switch.h"
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	static PifDList s_cs_list;
 #endif
 
@@ -19,7 +19,7 @@ static uint16_t _doTaskAcquire(PifTask* p_task)
 	return 0;
 }
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 static void _addDeviceInCollectSignal()
 {
@@ -35,7 +35,7 @@ static void _addDeviceInCollectSignal()
 						prefix[f], p_owner->parent._curr_state);
 			}
 		}
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_INFO, "SS_CS:Add(DC:%u F:%u)", p_owner->parent._id, p_colsig->flag);
 #endif
 
@@ -43,7 +43,7 @@ static void _addDeviceInCollectSignal()
 	}
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state, PifActSensorAcquire act_acquire)
 {
@@ -57,7 +57,7 @@ BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state,
     p_parent->_curr_state = init_state;
 	p_parent->__act_acquire = act_acquire;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Attach(CSF_SENSOR_SWITCH, _addDeviceInCollectSignal);
 	}
@@ -69,7 +69,7 @@ BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state,
 #endif
     return TRUE;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 fail:
 	pifSensorSwitch_Clear(p_owner);
 	return FALSE;
@@ -78,7 +78,7 @@ fail:
 
 void pifSensorSwitch_Clear(PifSensorSwitch* p_owner)
 {
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Detach(CSF_SENSOR_SWITCH);
@@ -94,7 +94,7 @@ void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner)
 	PifSensor *p_parent = &p_owner->parent;
 
 	p_parent->_curr_state = p_parent->_init_state;
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	p_owner->__p_colsig->state = p_parent->_init_state;
 #endif
 	p_owner->__state = p_parent->_init_state;
@@ -108,7 +108,7 @@ void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state)
 	else {
 		p_owner->__state = state;
 	}
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	PifSensorSwitchColSig* p_colsig = p_owner->__p_colsig;
 	if (p_colsig->flag & SS_CSF_RAW_BIT) {
 		if (p_colsig->state != state) {
@@ -130,7 +130,7 @@ uint16_t pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner)
 	if (p_owner->__state != p_parent->_curr_state) {
 		if (p_parent->evt_change) {
 			(*p_parent->evt_change)(p_parent, p_owner->__state, NULL, p_parent->p_issuer);
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 			if (p_owner->__p_colsig->flag & SS_CSF_FILTER_BIT) {
 				pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SS_CSF_FILTER_IDX], p_owner->__state);
 			}
@@ -151,7 +151,7 @@ PifTask* pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifTaskMode
 }
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 void pifSensorSwitch_SetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag)
 {
@@ -193,4 +193,4 @@ void pifSensorSwitchColSig_ResetFlag(PifSensorSwitchCsFlag flag)
 	}
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL

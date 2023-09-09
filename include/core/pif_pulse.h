@@ -21,7 +21,7 @@ struct StPifPulse;
 typedef struct StPifPulse PifPulse;
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 typedef enum EnPifGpioCsFlag
 {
@@ -42,7 +42,7 @@ typedef struct
     void* p_device[PL_CSF_COUNT];
 } PifPulseColSig;
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 /**
  * @struct StPifPulseData
@@ -78,7 +78,7 @@ struct StPifPulse
 	} __valid_range[3];
 	PifIssuerP __p_issuer;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	PifPulseColSig* __p_colsig;
 #endif
 
@@ -183,7 +183,7 @@ BOOL pifPulse_sigEdge(PifPulse* p_owner, PifPulseState state, uint32_t time_us);
  */
 void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssuerP p_issuer);
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 /**
  * @fn pifPulse_SetCsFlag
@@ -215,7 +215,7 @@ void pifPulseColSig_SetFlag(PifPulseCsFlag flag);
  */
 void pifPulseColSig_ResetFlag(PifPulseCsFlag flag);
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

@@ -1,4 +1,4 @@
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 #include "gps/pif_gps_nmea.h"
@@ -21,14 +21,14 @@ static uint16_t _doTask(PifTask* p_task)
 	PifGpsNmea *p_owner = p_task->_p_client;
 	uint8_t data[DATA_SIZE];
 	uint16_t size, i;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	int line;
 	static uint32_t timer1ms;
 #endif
 
 	if (!p_owner->__length) {
 		if (!pifI2cDevice_ReadRegWord(p_owner->__p_i2c_device, 0xFD, &p_owner->__length)) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
 			goto fail;
@@ -36,12 +36,12 @@ static uint16_t _doTask(PifTask* p_task)
 		if (!p_owner->__length) return 0;
 		if (p_owner->__length == 0xFFFF) { p_owner->__length = 0; return 0; }
 		if (p_owner->__length & 0x8000) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
 			goto fail;
 		}
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		timer1ms = pif_cumulative_timer1ms;
 		pifLog_Printf(LT_INFO, "GN(%u): Start L=%d bytes", __LINE__, p_owner->__length);
 #endif
@@ -49,7 +49,7 @@ static uint16_t _doTask(PifTask* p_task)
 
 	size = p_owner->__length > DATA_SIZE ? DATA_SIZE : p_owner->__length;
 	if (!pifI2cDevice_Read(p_owner->__p_i2c_device, 0, 0, data, size)) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
 			goto fail;
@@ -59,7 +59,7 @@ static uint16_t _doTask(PifTask* p_task)
 	}
 	p_owner->__length -= size;
 	if (p_owner->__length) pifTask_SetTrigger(p_task);
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	else {
 		pifLog_Printf(LT_INFO, "GN(%u): End T=%ld ms", __LINE__, pif_cumulative_timer1ms - timer1ms);
 	}
@@ -67,7 +67,7 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 
 fail:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "GN(%u): len=%d", line, p_owner->__length);
 #endif
 	p_owner->__length = 0;

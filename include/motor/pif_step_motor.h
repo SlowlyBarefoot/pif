@@ -101,7 +101,7 @@ BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifTimerManager* p_timer
  */
 void pifStepMotor_Clear(PifStepMotor* p_owner);
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	/**
 	* @fn pifStepMotor_SetState
 	* @brief
@@ -117,7 +117,7 @@ void pifStepMotor_Clear(PifStepMotor* p_owner);
 	 * @param p_owner
 	 * @param state
 	 */
-	#ifdef __PIF_NO_USE_INLINE__
+	#ifdef PIF_NO_USE_INLINE
 		void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state);
 	#else
 		void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state) { p_owner->_state = state; }

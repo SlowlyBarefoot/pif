@@ -1,4 +1,4 @@
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 #include "protocol/pif_msp.h"
@@ -18,7 +18,7 @@ static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 
 	PifMsp* p_owner = (PifMsp *)p_issuer;
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) ParsingPacket(Timeout) State:%u Cnt:%u", __LINE__, p_owner->_id,
 			p_owner->__rx.state, p_owner->__rx.packet.data_count);
 #ifdef __DEBUG_PACKET__
@@ -37,7 +37,7 @@ static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 #define PKT_ERR_WRONG_CRC    	2
 #define PKT_ERR_NONE	    	3
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 
 static const char *kPktErr[] = {
 		"Big Length",
@@ -52,7 +52,7 @@ static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_da
 	PifMspPacket* p_packet = &p_owner->__rx.packet;
 	uint8_t data;
 	uint8_t pkt_err;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	int line;
 #endif
 	static uint8_t pre_error = PKT_ERR_NONE;
@@ -71,7 +71,7 @@ static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_da
 			}
 			else {
 				pkt_err = PKT_ERR_INVALID_DATA;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				line = __LINE__;
 #endif
 				goto fail;
@@ -84,7 +84,7 @@ static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_da
 			}
 			else {
 				pkt_err = PKT_ERR_INVALID_DATA;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				line = __LINE__;
 #endif
 				goto fail;
@@ -97,7 +97,7 @@ static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_da
 			}
 			else {
 				pkt_err = PKT_ERR_INVALID_DATA;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				line = __LINE__;
 #endif
 				goto fail;
@@ -113,7 +113,7 @@ static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_da
 			}
 			else {
 				pkt_err = PKT_ERR_BIG_LENGHT;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				line = __LINE__;
 #endif
 				goto fail;
@@ -141,7 +141,7 @@ static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_da
 				}
 				else {
 					pkt_err = PKT_ERR_WRONG_CRC;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 					line = __LINE__;
 #endif
 					goto fail;
@@ -158,13 +158,13 @@ static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_da
 
 fail:
 	if (pkt_err != pre_error) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_ERROR, "MWP:%u(%u) %s D:%xh RS:%u Cnt:%u", line, p_owner->_id, kPktErr[pkt_err], data,
 				p_owner->__rx.state, p_packet->data_count);
 #endif
 		pre_error = pkt_err;
 	}
-#if !defined( __PIF_NO_LOG__) && defined(__DEBUG_PACKET__)
+#if !defined( PIF_NO_LOG) && defined(__DEBUG_PACKET__)
 	pifLog_Printf(LT_NONE, "\n%x %x %x %x %x", p_owner->__rx.p_packet[0], p_owner->__rx.p_packet[1], p_owner->__rx.p_packet[2],
 			p_owner->__rx.p_packet[3], p_owner->__rx.p_packet[4]);
 #endif
@@ -184,7 +184,7 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
     }
 
     if (p_owner->__rx.state == MRS_DONE) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 #ifdef __DEBUG_PACKET__
     	pifLog_Printf(LT_NONE, "\n%u> %x %x %x %x %x", p_owner->_id, p_owner->__rx.p_packet[0],	p_owner->__rx.p_packet[1],
     			p_owner->__rx.p_packet[2], p_owner->__rx.p_packet[3], p_owner->__rx.p_packet[4]);
@@ -262,7 +262,7 @@ BOOL pifMsp_Init(PifMsp* p_owner, PifTimerManager* p_timer, PifId id)
 
 fail:
 	pifMsp_Clear(p_owner);
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, id, pif_error);
 #endif
     return FALSE;
@@ -357,7 +357,7 @@ BOOL pifMsp_MakeAnswer(PifMsp* p_owner, PifMspPacket* p_question)
 fail:
 	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
 	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) C:%u EC:%d", __LINE__, p_owner->_id, p_question->command, pif_error);
 #endif
 	return FALSE;
@@ -373,7 +373,7 @@ BOOL pifMsp_AddAnswer8(PifMsp* p_owner, uint8_t data)
 fail:
 	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
 	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, p_owner->_id, pif_error);
 #endif
 	return FALSE;
@@ -389,7 +389,7 @@ BOOL pifMsp_AddAnswer16(PifMsp* p_owner, uint16_t data)
 fail:
 	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
 	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, p_owner->_id, pif_error);
 #endif
 	return FALSE;
@@ -405,7 +405,7 @@ BOOL pifMsp_AddAnswer32(PifMsp* p_owner, uint32_t data)
 fail:
 	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
 	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, p_owner->_id, pif_error);
 #endif
 	return FALSE;
@@ -423,7 +423,7 @@ BOOL pifMsp_AddAnswer(PifMsp* p_owner, uint8_t* p_data, uint16_t size)
 fail:
 	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
 	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, p_owner->_id, pif_error);
 #endif
 	return FALSE;
@@ -448,7 +448,7 @@ BOOL pifMsp_MakeError(PifMsp* p_owner, PifMspPacket* p_question)
 fail:
 	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
 	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) C:%u EC:%d", __LINE__, p_owner->_id, p_question->command, pif_error);
 #endif
 	return FALSE;
@@ -468,7 +468,7 @@ BOOL pifMsp_SendAnswer(PifMsp* p_owner)
 fail:
 	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
 	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, p_owner->_id, pif_error);
 #endif
 	return FALSE;

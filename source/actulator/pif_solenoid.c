@@ -1,14 +1,14 @@
 #include "actulator/pif_solenoid.h"
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	#include "core/pif_collect_signal.h"
 #endif
 #include "core/pif_list.h"
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	static PifDList s_cs_list;
 #endif
 
@@ -16,7 +16,7 @@
 static void _action(PifSolenoid* p_owner, BOOL state, PifSolenoidDir dir)
 {
 	(*p_owner->__act_control)(state, dir);
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	PifSolenoidColSig* p_colsig = p_owner->__p_colsig;
 	if (p_colsig->flag & SN_CSF_ACTION_BIT) {
 		pifCollectSignal_AddSignal(p_colsig->p_device[SN_CSF_ACTION_IDX], state);
@@ -109,7 +109,7 @@ static int32_t _calcurateTime(PifSolenoid* p_owner)
 	return time;
 }
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 static void _addDeviceInCollectSignal()
 {
@@ -125,7 +125,7 @@ static void _addDeviceInCollectSignal()
 		if (p_colsig->flag & 2) {
 			p_colsig->p_device[1] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_WIRE, 2, prefix[1], 0);
 		}
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_INFO, "SN_CS:Add(DC:%u F:%u)", p_owner->_id, p_colsig->flag);
 #endif
 
@@ -133,7 +133,7 @@ static void _addDeviceInCollectSignal()
 	}
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifTimerManager* p_timer_manager, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control)
@@ -162,7 +162,7 @@ BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifTimerManager* p_timer_m
     p_owner->_type = type;
     p_owner->on_time = on_time;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Attach(CSF_SOLENOID, _addDeviceInCollectSignal);
 	}
@@ -180,7 +180,7 @@ fail:
 
 void pifSolenoid_Clear(PifSolenoid* p_owner)
 {
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Detach(CSF_SOLENOID);
@@ -266,7 +266,7 @@ void pifSolenoid_ActionOff(PifSolenoid* p_owner)
 }
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 void pifSolenoid_SetCsFlag(PifSolenoid *p_owner, PifSolenoidCsFlag flag)
 {
@@ -308,4 +308,4 @@ void pifSolenoidColSig_ResetFlag(PifSolenoidCsFlag flag)
 	}
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL

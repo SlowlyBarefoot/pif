@@ -90,7 +90,7 @@ void pifStorageVar_Clear(PifStorageVar* p_owner);
  * @param act_write
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	BOOL pifStorageVar_AttachActStorage(PifStorageVar* p_owner, PifActStorageRead act_read, PifActStorageWrite act_write);
 #else
 	inline BOOL pifStorageVar_AttachActStorage(PifStorageVar* p_owner, PifActStorageRead act_read, PifActStorageWrite act_write) {
@@ -108,7 +108,7 @@ void pifStorageVar_Clear(PifStorageVar* p_owner);
  * @param write_delay_ms
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	BOOL pifStorageVar_AttachI2c(PifStorageVar* p_owner, PifI2cPort* p_port, uint8_t addr, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms);
 #else
 	inline BOOL pifStorageVar_AttachI2c(PifStorageVar* p_owner, PifI2cPort* p_port, uint8_t addr, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms) {
@@ -193,7 +193,7 @@ BOOL pifStorageVar_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfo
  */
 BOOL pifStorageVar_Write(PifStorage* p_parent, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size);
 
-#if defined(__PIF_DEBUG__) && !defined(__PIF_NO_LOG__)
+#if defined(PIF_DEBUG) && !defined(PIF_NO_LOG)
 
 /**
  * @fn pifStorageVar_PrintInfo

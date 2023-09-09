@@ -1,4 +1,4 @@
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 #include "motor/pif_duty_motor_pos.h"
@@ -10,7 +10,7 @@ static void _evtTimerDelayFinish(PifIssuerP p_issuer)
 
 	switch (p_parent->_state) {
 	case MS_BREAKING:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifDutyMotor_SetState(p_parent, MS_STOPPING, "SMP");
 #else
 		pifDutyMotor_SetState(p_parent, MS_STOPPING);
@@ -18,7 +18,7 @@ static void _evtTimerDelayFinish(PifIssuerP p_issuer)
 		break;
 
 	default:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_WARN, "DMP(%u) S:%u", p_parent->_id, p_parent->_state);
 #endif
 		break;
@@ -38,7 +38,7 @@ static uint16_t _doTask(PifTask* p_task)
 	if (p_parent->_state == MS_GAINED) {
 		if (tmp_duty >= p_stage->fs_high_duty) {
 			tmp_duty = p_stage->fs_high_duty;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			pifDutyMotor_SetState(p_parent, MS_CONST, "SMP");
 #else
 			pifDutyMotor_SetState(p_parent, MS_CONST);
@@ -53,7 +53,7 @@ static uint16_t _doTask(PifTask* p_task)
 		if (!p_stage->rs_ctrl_duty) {
 			if (p_stage->mode & MM_PC_MASK) {
 				tmp_duty = p_stage->rs_low_duty;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				pifDutyMotor_SetState(p_parent, MS_LOW_CONST, "SMP");
 #else
 				pifDutyMotor_SetState(p_parent, MS_LOW_CONST);
@@ -61,7 +61,7 @@ static uint16_t _doTask(PifTask* p_task)
 			}
 			else {
 				tmp_duty = 0;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				pifDutyMotor_SetState(p_parent, MS_BREAK, "SMP");
 #else
 				pifDutyMotor_SetState(p_parent, MS_BREAK);
@@ -73,7 +73,7 @@ static uint16_t _doTask(PifTask* p_task)
 		}
 		else if (tmp_duty) {
 			tmp_duty = p_stage->rs_low_duty;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			pifDutyMotor_SetState(p_parent, MS_LOW_CONST, "SMP");
 #else
 			pifDutyMotor_SetState(p_parent, MS_LOW_CONST);
@@ -85,7 +85,7 @@ static uint16_t _doTask(PifTask* p_task)
 		if (p_owner->__p_encoder->falling_count >= p_stage->total_pulse) {
 			tmp_duty = 0;
 			if (p_parent->_state < MS_BREAK) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				pifDutyMotor_SetState(p_parent, MS_BREAK, "SMP");
 #else
 				pifDutyMotor_SetState(p_parent, MS_BREAK);
@@ -94,7 +94,7 @@ static uint16_t _doTask(PifTask* p_task)
 		}
 		else if (p_owner->__p_encoder->falling_count >= p_stage->fs_pulse_count) {
 			if (p_parent->_state < MS_REDUCE) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				pifDutyMotor_SetState(p_parent, MS_REDUCE, "SMP");
 #else
 				pifDutyMotor_SetState(p_parent, MS_REDUCE);
@@ -112,7 +112,7 @@ static uint16_t _doTask(PifTask* p_task)
     	if (p_parent->act_operate_break && p_stage->rs_break_time &&
     			pifTimer_Start(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
 			(*p_parent->act_operate_break)(1);
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			pifDutyMotor_SetState(p_parent, MS_BREAKING, "SMP");
 #else
 			pifDutyMotor_SetState(p_parent, MS_BREAKING);
@@ -120,7 +120,7 @@ static uint16_t _doTask(PifTask* p_task)
     	}
     	else {
 			if (p_parent->act_operate_break) (*p_parent->act_operate_break)(1);
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			pifDutyMotor_SetState(p_parent, MS_STOPPING, "SMP");
 #else
 			pifDutyMotor_SetState(p_parent, MS_STOPPING);
@@ -132,7 +132,7 @@ static uint16_t _doTask(PifTask* p_task)
 		if (!(p_stage->mode & MM_NR_MASK)) {
 			if (p_parent->act_operate_break) (*p_parent->act_operate_break)(0);
 		}
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifDutyMotor_SetState(p_parent, MS_STOP, "SMP");
 #else
 		pifDutyMotor_SetState(p_parent, MS_STOP);
@@ -154,7 +154,7 @@ static uint16_t _doTask(PifTask* p_task)
 		}
     }
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	if (pif_log_flag.bt.duty_motor && pre_duty != tmp_duty) {
 		if (p_parent->_state == MS_CONST) {
 			pifLog_Printf(LT_INFO, "DMP(%u) %s D:%u->%u(%u%%) CP:%u E:%d P:%luus", p_parent->_id, kMotorState[p_parent->_state],
@@ -197,7 +197,7 @@ static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValu
 
 	if (state) {
 		p_motor->_current_duty = 0;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifDutyMotor_SetState(p_motor, MS_BREAK, "SMP");
 #else
 		pifDutyMotor_SetState(p_motor, MS_BREAK);
@@ -244,7 +244,7 @@ BOOL pifDutyMotorPos_Init(PifDutyMotorPos* p_owner, PifId id, PifTimerManager* p
 	p_parent->__p_task->name = "DutyMotorPos";
 
 	p_owner->__p_encoder = p_encoder;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
     pifPulse_SetMeasureMode(p_encoder, PIF_PMM_COUNT | PIF_PMM_PERIOD);
 #else
     pifPulse_SetMeasureMode(p_encoder, PIF_PMM_FALLING_COUNT);
@@ -345,7 +345,7 @@ BOOL pifDutyMotorPos_Start(PifDutyMotorPos* p_owner, uint8_t stage_index, uint32
 
     if (p_stage->gs_ctrl_duty) {
     	p_parent->_current_duty = p_stage->gs_start_duty;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifDutyMotor_SetState(p_parent, MS_GAINED, "SMP");
 #else
 		pifDutyMotor_SetState(p_parent, MS_GAINED);
@@ -353,7 +353,7 @@ BOOL pifDutyMotorPos_Start(PifDutyMotorPos* p_owner, uint8_t stage_index, uint32
     }
     else {
     	p_parent->_current_duty = p_stage->fs_high_duty;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifDutyMotor_SetState(p_parent, MS_CONST, "SMP");
 #else
 		pifDutyMotor_SetState(p_parent, MS_CONST);
@@ -372,14 +372,14 @@ void pifDutyMotorPos_Stop(PifDutyMotorPos* p_owner)
 
     if (p_parent->_state == MS_IDLE) return;
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifDutyMotor_SetState(p_parent, MS_REDUCE, "SMP");
 #else
 	pifDutyMotor_SetState(p_parent, MS_REDUCE);
 #endif
 }
 
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 
 uint32_t pifDutyMotorPos_GetCurrentPulse(PifDutyMotorPos* p_owner)
 {
@@ -393,7 +393,7 @@ void pifDutyMotorPos_Emergency(PifDutyMotorPos* p_owner)
     PifDutyMotor* p_parent = &p_owner->parent;
 
 	p_parent->_current_duty = 0;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifDutyMotor_SetState(p_parent, MS_REDUCE, "SMP");
 #else
 	pifDutyMotor_SetState(p_parent, MS_REDUCE);

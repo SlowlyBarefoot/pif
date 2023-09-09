@@ -1,11 +1,11 @@
-#ifdef __PIF_COLLECT_SIGNAL__
-
 #include "core/pif_collect_signal.h"
 #include "core/pif_list.h"
 #include "core/pif_log.h"
 
 #include <string.h>
 
+
+#ifdef PIF_COLLECT_SIGNAL
 
 #define PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS	20
 
@@ -282,10 +282,10 @@ void* pifCollectSignal_AddDevice(PifId id, PifCollectSignalVarType var_type, uin
 	p_device->var_type = var_type;
 	p_device->index = s_collect_signal.device_count;
 	p_device->size = size;
-	pif_Printf(p_device->p_reference, "%s_%x", p_reference, id);
+	pif_Printf(p_device->p_reference, sizeof(p_device->p_reference), "%s_%x", p_reference, id);
 	p_device->initial_value = initial_value;
 	s_collect_signal.device_count++;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_INFO, "CS:Add(ID:%u VT:%u SZ:%u) DC:%d", id, var_type, size, p_device->size);
 #endif
 	return p_device;
@@ -314,7 +314,7 @@ void pifCollectSignal_Start()
 		break;
 
 	case CSM_BUFFER:
-		pif_Printf(cBuffer, "#0\n");
+		pif_Printf(cBuffer, sizeof(cBuffer), "#0\n");
 		pifRingBuffer_PutString(&s_collect_signal.buffer, cBuffer);
 		break;
 	}
@@ -351,7 +351,7 @@ void pifCollectSignal_Stop()
 		break;
 
 	case CSM_BUFFER:
-		pif_Printf(buffer, "#%lu\n", timer);
+		pif_Printf(buffer, sizeof(buffer), "#%lu\n", timer);
 		pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
 		break;
 	}
@@ -407,7 +407,7 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
 
 	case CSM_BUFFER:
 		if (s_collect_signal.timer != timer) {
-			pif_Printf(buffer, "#%lu\n", timer);
+			pif_Printf(buffer, sizeof(buffer), "#%lu\n", timer);
 			pifRingBuffer_PutString(&s_collect_signal.buffer, buffer);
 			s_collect_signal.timer = timer;
 		}
@@ -415,15 +415,15 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t state)
 		switch (p_device->var_type) {
 		case CSVT_INTEGER:
 		case CSVT_REG:
-			pif_Printf(buffer, "b%b %c\n", state, (int)('!' + p_device->index));
+			pif_Printf(buffer, sizeof(buffer), "b%b %c\n", state, (int)('!' + p_device->index));
 			break;
 
 		case CSVT_REAL:
-			pif_Printf(buffer, "r%f %c\n", (double)state, (int)('!' + p_device->index));
+			pif_Printf(buffer, sizeof(buffer), "r%f %c\n", (double)state, (int)('!' + p_device->index));
 			break;
 
 		case CSVT_WIRE:
-			pif_Printf(buffer, "%u%c\n", state, (int)('!' + p_device->index));
+			pif_Printf(buffer, sizeof(buffer), "%u%c\n", state, (int)('!' + p_device->index));
 			break;
 
 		default:
@@ -445,4 +445,4 @@ void pifCollectSignal_PrintLog()
 	s_collect_signal.p_task->pause = FALSE;
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL

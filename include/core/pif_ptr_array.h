@@ -80,7 +80,7 @@ void pifPtrArray_Remove(PifPtrArray* p_owner, void* p_data);
  * @param p_owner
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	int pifPtrArray_Count(PifPtrArray* p_owner);
 #else
 	inline int pifPtrArray_Count(PifPtrArray* p_owner) { return p_owner->count; }
@@ -92,7 +92,7 @@ void pifPtrArray_Remove(PifPtrArray* p_owner, void* p_data);
  * @param p_owner
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	PifPtrArrayIterator pifPtrArray_Begin(PifPtrArray* p_owner);
 #else
 	inline PifPtrArrayIterator pifPtrArray_Begin(PifPtrArray* p_owner) { return p_owner->p_first; }
@@ -104,7 +104,7 @@ void pifPtrArray_Remove(PifPtrArray* p_owner, void* p_data);
  * @param it
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	PifPtrArrayIterator pifPtrArray_Next(PifPtrArrayIterator it);
 #else
 	inline PifPtrArrayIterator pifPtrArray_Next(PifPtrArrayIterator it) { return it ? it->p_next : NULL; }

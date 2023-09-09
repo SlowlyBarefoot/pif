@@ -17,7 +17,7 @@ typedef void (*PifActGpioOut)(PifId id, uint8_t state);
 typedef void (*PifEvtGpioIn)(uint8_t index, uint8_t state);
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 typedef enum EnPifGpioCsFlag
 {
@@ -38,7 +38,7 @@ typedef struct
     void* p_device[GP_CSF_COUNT];
 } PifGpioColSig;
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 /**
  * @class StPifGpio
@@ -59,7 +59,7 @@ struct StPifGpio
 	uint8_t __read_state;
 	uint8_t __write_state;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	PifGpioColSig* __p_colsig;
 #endif
 
@@ -165,7 +165,7 @@ void pifGpio_AttachActOut(PifGpio* p_owner, PifActGpioOut act_out);
 PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 /**
  * @fn pifGpio_SetCsFlag
@@ -197,7 +197,7 @@ void pifGpioColSig_SetFlag(PifGpioCsFlag flag);
  */
 void pifGpioColSig_ResetFlag(PifGpioCsFlag flag);
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

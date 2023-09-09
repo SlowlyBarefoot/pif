@@ -1,14 +1,14 @@
-#ifdef __PIF_COLLECT_SIGNAL__
+#include "core/pif_sequence.h"
+#ifdef PIF_COLLECT_SIGNAL
 	#include "core/pif_collect_signal.h"
 #endif
 #include "core/pif_list.h"
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
-#include "core/pif_sequence.h"
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	static PifDList s_cs_list;
 #endif
 
@@ -16,7 +16,7 @@
 static void _setPhaseNo(PifSequence* p_owner, uint8_t phase_no)
 {
 	p_owner->_phase_no = phase_no;
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (p_owner->__p_colsig->flag & SQ_CSF_PHASE_BIT) {
 		pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SQ_CSF_PHASE_IDX], p_owner->_phase_no);
 	}
@@ -95,7 +95,7 @@ static void _evtTimerTimeoutFinish(PifIssuerP p_issuer)
 	_setPhaseNo(p_owner, PIF_SEQUENCE_PHASE_NO_IDLE);
 }
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 static void _addDeviceInCollectSignal()
 {
@@ -110,7 +110,7 @@ static void _addDeviceInCollectSignal()
 				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_REG, 8, prefix[f], 0xFF);
 			}
 		}
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_INFO, "SQ_CS:Add(DC:%u F:%u)", p_owner->_id, p_colsig->flag);
 #endif
 
@@ -118,7 +118,7 @@ static void _addDeviceInCollectSignal()
 	}
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t control_period1ms,
 		const PifSequencePhase* p_phase_list, void* p_param)
@@ -147,7 +147,7 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_m
 	if (!p_owner->__p_task) goto fail;
 	p_owner->__p_task->name = "Sequence";
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Attach(CSF_SEQUENCE, _addDeviceInCollectSignal);
 	}
@@ -165,7 +165,7 @@ fail:
 
 void pifSequence_Clear(PifSequence* p_owner)
 {
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Detach(CSF_SEQUENCE);
@@ -202,7 +202,7 @@ BOOL pifSequence_SetTimeout(PifSequence* p_owner, uint16_t timeout)
 }
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 void pifSequence_SetCsFlag(PifSequence* p_owner, PifSequenceCsFlag flag)
 {
@@ -244,4 +244,4 @@ void pifSequenceColSig_ResetFlag(PifSequenceCsFlag flag)
 	}
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL

@@ -39,7 +39,7 @@ typedef struct StPifSolenoidContent
 	PifSolenoidDir dir;
 } PifSolenoidContent;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 typedef enum EnPifSolenoidCsFlag
 {
@@ -62,7 +62,7 @@ typedef struct StPifSolenoidColSig
     void* p_device[SN_CSF_COUNT];
 } PifSolenoidColSig;
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 /**
  * @class StPifSolenoid
@@ -89,7 +89,7 @@ struct StPifSolenoid
 	PifTimer* __p_timer_delay;
     PifSolenoidDir __dir;
 	PifRingData* __p_buffer;
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	PifSolenoidColSig* __p_colsig;
 #endif
 
@@ -173,7 +173,7 @@ void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDi
 void pifSolenoid_ActionOff(PifSolenoid* p_owner);
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 /**
  * @fn pifSolenoid_SetCsFlag
@@ -205,7 +205,7 @@ void pifSolenoidColSig_SetFlag(PifSolenoidCsFlag flag);
  */
 void pifSolenoidColSig_ResetFlag(PifSolenoidCsFlag flag);
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

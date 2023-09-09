@@ -1,4 +1,4 @@
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 #include "storage/pif_storage_var.h"
@@ -155,7 +155,7 @@ fail:
     return FALSE;
 }
 
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 
 BOOL pifStorageVar_AttachActStorage(PifStorageVar* p_owner, PifActStorageRead act_read, PifActStorageWrite act_write)
 {
@@ -425,7 +425,7 @@ BOOL pifStorageVar_Write(PifStorage* p_parent, PifStorageDataInfoP p_dst, uint8_
 	return _writeData(p_owner, ((PifStorageVarDataInfo*)p_dst)->first_sector * p_owner->_p_info->sector_size, p_src, size);
 }
 
-#if defined(__PIF_DEBUG__) && !defined(__PIF_NO_LOG__)
+#if defined(PIF_DEBUG) && !defined(PIF_NO_LOG)
 
 void pifStorageVar_PrintInfo(PifStorageVar* p_owner, BOOL human)
 {

@@ -120,7 +120,7 @@ void pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device);
  */
 PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr);
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 
 /**
  * @fn pifI2cPort_ScanAddress

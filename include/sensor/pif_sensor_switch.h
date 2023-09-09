@@ -10,7 +10,7 @@
 struct StPifSensorSwitch;
 typedef struct StPifSensorSwitch PifSensorSwitch;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 typedef enum EnPifSensorSwitchCsFlag
 {
@@ -34,7 +34,7 @@ typedef struct StPifSensorSwitchColSig
     SWITCH state;
 } PifSensorSwitchColSig;
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 /**
  * @class StPifSensorSwitch
@@ -51,7 +51,7 @@ struct StPifSensorSwitch
 	// Private Member Variable
     SWITCH __state;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
     PifSensorSwitchColSig* __p_colsig;
 #endif
 };
@@ -114,7 +114,7 @@ uint16_t pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner);
 PifTask *pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 /**
  * @fn pifSensorSwitch_SetCsFlag
@@ -146,7 +146,7 @@ void pifSensorSwitchColSig_SetFlag(PifSensorSwitchCsFlag flag);
  */
 void pifSensorSwitchColSig_ResetFlag(PifSensorSwitchCsFlag flag);
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

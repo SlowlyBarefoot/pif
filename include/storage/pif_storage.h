@@ -100,7 +100,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param p_owner
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	BOOL pifStorage_IsFormat(PifStorage* p_owner);
 #else
 	inline BOOL pifStorage_IsFormat(PifStorage* p_owner) {
@@ -114,7 +114,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param p_owner
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	BOOL pifStorage_Format(PifStorage* p_owner);
 #else
 	inline BOOL pifStorage_Format(PifStorage* p_owner)	{
@@ -130,7 +130,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param size
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	PifStorageDataInfoP pifStorage_Create(PifStorage* p_owner, uint16_t id, uint16_t size);
 #else
 	inline PifStorageDataInfoP pifStorage_Create(PifStorage* p_owner, uint16_t id, uint16_t size) {
@@ -145,7 +145,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param id
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	BOOL pifStorage_Delete(PifStorage* p_owner, uint16_t id);
 #else
 	inline BOOL pifStorage_Delete(PifStorage* p_owner, uint16_t id) {
@@ -160,7 +160,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param id
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	PifStorageDataInfoP pifStorage_Open(PifStorage* p_owner, uint16_t id);
 #else
 	inline PifStorageDataInfoP pifStorage_Open(PifStorage* p_owner, uint16_t id) {
@@ -177,7 +177,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param size
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	BOOL pifStorage_Read(PifStorage* p_owner, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size);
 #else
 	inline BOOL pifStorage_Read(PifStorage* p_owner, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size) {
@@ -194,7 +194,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param size
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	BOOL pifStorage_Write(PifStorage* p_owner, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size);
 #else
 	inline BOOL pifStorage_Write(PifStorage* p_owner, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size) {

@@ -1,4 +1,4 @@
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 #include "motor/pif_duty_motor.h"
@@ -11,7 +11,7 @@ void pifDutyMotor_Control(PifDutyMotor* p_owner)
 			(*p_owner->act_set_duty)(0);
 			p_owner->_current_duty = 0;
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			pifDutyMotor_SetState(p_owner, MS_BREAK, "DM");
 #else
 			pifDutyMotor_SetState(p_owner, MS_BREAK);
@@ -23,7 +23,7 @@ void pifDutyMotor_Control(PifDutyMotor* p_owner)
 
 	if (p_owner->_state == MS_STOP) {
 		p_owner->__p_task->pause = TRUE;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifDutyMotor_SetState(p_owner, MS_IDLE, "DM");
 #else
 		pifDutyMotor_SetState(p_owner, MS_IDLE);
@@ -37,7 +37,7 @@ static void _evtTimerBreakFinish(PifIssuerP p_issuer)
     PifDutyMotor* p_owner = (PifDutyMotor*)p_issuer;
 
     if (p_owner->_state > MS_IDLE && p_owner->_state < MS_REDUCE) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifDutyMotor_SetState(p_owner, MS_REDUCE, "DM");
 #else
 		pifDutyMotor_SetState(p_owner, MS_REDUCE);
@@ -76,7 +76,7 @@ void pifDutyMotor_Clear(PifDutyMotor* p_owner)
 	}
 }
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 
 void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state, char *tag)
 {
@@ -87,7 +87,7 @@ void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state, char *tag
 
 #else
 
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 
 void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state)
 {

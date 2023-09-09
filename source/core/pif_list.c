@@ -82,7 +82,7 @@ void pifSList_RemoveFirst(PifSList* p_owner)
     p_owner->size--;
 }
 
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 
 int pifSList_Size(PifSList* p_owner)
 {
@@ -286,7 +286,7 @@ void pifDList_Remove(PifDList* p_owner, void* p_data)
 	}
 }
 
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 
 int pifDList_Size(PifDList* p_owner)
 {

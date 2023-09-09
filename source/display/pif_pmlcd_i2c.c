@@ -193,7 +193,7 @@ BOOL pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...)
 	char buffer[32];
 
 	va_start(data, p_format);
-	pif_PrintFormat(buffer, &data, p_format);
+	pif_PrintFormat(buffer, sizeof(buffer), &data, p_format);
 	va_end(data);
 
 	return pifPmlcdI2c_Print(p_owner, buffer);

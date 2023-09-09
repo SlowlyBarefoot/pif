@@ -1,4 +1,4 @@
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 #include "storage/pif_storage_fix.h"
@@ -66,7 +66,7 @@ BOOL pifStorageFix_SetMedia(PifStorageFix* p_owner, uint32_t sector_size, uint32
 	return TRUE;
 }
 
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 
 BOOL pifStorageFix_AttachActStorage(PifStorageFix* p_owner, PifActStorageRead act_read, PifActStorageWrite act_write)
 {

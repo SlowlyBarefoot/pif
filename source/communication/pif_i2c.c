@@ -1,5 +1,5 @@
 #include "communication/pif_i2c.h"
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 #include "core/pif_task.h"
@@ -65,7 +65,7 @@ PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr)
 	return &device;
 }
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 
 void pifI2cPort_ScanAddress(PifI2cPort* p_owner)
 {
@@ -100,13 +100,13 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 	uint8_t len;
 	uint32_t timer1ms;
 	size_t ptr;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	int line;
 #endif
 
 	if (!p_port->act_read) return FALSE;
 	if (p_port->__use_device) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_INFO, "I2CR:%u Addr:%Xh Use Addr:%Xh", __LINE__, p_owner->addr, p_port->__use_device->addr);
 #endif
 		return FALSE;
@@ -122,14 +122,14 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 			timer1ms = pif_cumulative_timer1ms;
 			while (p_owner->_state == IS_RUN) {
 				if (pif_cumulative_timer1ms - timer1ms > p_owner->timeout) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 					line = __LINE__;
 #endif
 					goto fail;
 				}
 			}
 			if (p_owner->_state == IS_ERROR) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				line = __LINE__;
 #endif
 				goto fail;
@@ -140,7 +140,7 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 			break;
 
 		case IR_ERROR:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
 			goto fail;
@@ -153,7 +153,7 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 	return TRUE;
 
 fail:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "I2CR:%u A:%Xh R:%Xh E:%u", line, p_owner->addr, iaddr, pif_error);
 #endif
 	p_port->__use_device = NULL;
@@ -213,13 +213,13 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 	uint8_t len;
 	uint32_t timer1ms;
 	size_t ptr;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	int line;
 #endif
 
 	if (!p_port->act_write) return FALSE;
 	if (p_port->__use_device) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_INFO, "I2CW:%u Addr:%Xh Use Addr:%Xh", __LINE__, p_owner->addr, p_port->__use_device->addr);
 #endif
 		return FALSE;
@@ -235,14 +235,14 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 			timer1ms = pif_cumulative_timer1ms;
 			while (p_owner->_state == IS_RUN) {
 				if (pif_cumulative_timer1ms - timer1ms > p_owner->timeout) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 					line = __LINE__;
 #endif
 					goto fail;
 				}
 			}
 			if (p_owner->_state == IS_ERROR) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 				line = __LINE__;
 #endif
 				goto fail;
@@ -253,7 +253,7 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 			break;
 
 		case IR_ERROR:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
 			goto fail;
@@ -266,7 +266,7 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 	return TRUE;
 
 fail:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "I2CW:%u A:%Xh R:%Xh E:%u", line, p_owner->addr, iaddr, pif_error);
 #endif
 	p_port->__use_device = NULL;

@@ -2,12 +2,11 @@
 #define PIF_COLLECT_SIGNAL_H
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
-
-
 #include "core/pif_ring_buffer.h"
 #include "core/pif_task.h"
 
+
+#ifdef PIF_COLLECT_SIGNAL
 
 #define PIF_COLLECT_SIGNAL_GET_FLAG(FLAG, IDX)	(((FLAG)[(IDX) / 2] >> (((IDX) & 1) * 4)) & 0x0F)
 
@@ -210,7 +209,7 @@ PifTask* pifCollectSignal_AttachTask(PifTaskMode mode, uint16_t period, BOOL sta
 #endif
 
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 
 #endif	// PIF_COLLECT_SIGNAL_H

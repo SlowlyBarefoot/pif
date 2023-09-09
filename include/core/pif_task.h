@@ -5,6 +5,10 @@
 #include "core/pif.h"
 
 
+#ifndef PIF_TASK_TABLE_SIZE
+#define PIF_TASK_TABLE_SIZE				32
+#endif
+
 #define DISALLOW_YIELD_ID_NONE		0
 
 
@@ -68,7 +72,7 @@ struct StPifTask
 	uint32_t __pretime;
 	uint32_t __last_execute_time;
 	uint32_t __trigger_time;
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
 	uint32_t __count;
 	float __period;
 #endif
@@ -77,7 +81,7 @@ struct StPifTask
 	PifEvtTaskLoop __evt_loop;
 };
 
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
 
 extern PifActTaskSignal pif_act_task_signal;
 
@@ -238,7 +242,7 @@ void pifTaskManager_YieldAbortUs(uint32_t time, PifTaskCheckAbort p_check_abort,
  */
 void pifTaskManager_Print();
 
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
 
 /**
  * @fn pifTaskManager_PrintRatioTable
@@ -246,7 +250,7 @@ void pifTaskManager_Print();
  */
 void pifTaskManager_PrintRatioTable();
 
-#endif	// __PIF_DEBUG__
+#endif	// PIF_DEBUG
 
 #ifdef __cplusplus
 }

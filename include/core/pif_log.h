@@ -6,6 +6,18 @@
 #include "core/pif_ring_buffer.h"
 
 
+#ifndef PIF_LOG_LINE_SIZE
+#define PIF_LOG_LINE_SIZE				80
+#endif
+
+#ifndef PIF_LOG_RX_BUFFER_SIZE
+#define PIF_LOG_RX_BUFFER_SIZE			32
+#endif
+
+#ifndef PIF_LOG_TX_BUFFER_SIZE
+#define PIF_LOG_TX_BUFFER_SIZE			80
+#endif
+
 #define PIF_LOG_CMD_MAX_ARGS        8
 
 #define PIF_LOG_CMD_NO_ERROR        (0)
@@ -101,7 +113,7 @@ BOOL pifLog_InitStatic(uint16_t size, uint8_t* p_buffer);
  */
 void pifLog_Clear();
 
-#ifdef __PIF_LOG_COMMAND__
+#ifdef PIF_LOG_COMMAND
 
 /**
  * @fn pifLog_UseCommad

@@ -11,7 +11,7 @@ typedef struct StPifLog
 	PifUart* p_uart;
     PifRingBuffer* p_tx_buffer;
 
-#ifdef __PIF_LOG_COMMAND__
+#ifdef PIF_LOG_COMMAND
     PifTask* p_task;
     char last_char;
     uint8_t char_idx;
@@ -45,7 +45,7 @@ const struct {
 };
 const char type_ch[] = { 'I', 'W', 'E', 'C' };
 
-#ifdef __PIF_LOG_COMMAND__
+#ifdef PIF_LOG_COMMAND
 
 
 int pifLog_CmdHelp(int argc, char *argv[])
@@ -366,7 +366,7 @@ static uint16_t _doTask(PifTask* p_task)
 		// Otherwise the command was executed.  Print the error
 		// code if one was returned.
 		if (status < PIF_LOG_CMD_NO_ERROR && status > PIF_LOG_CMD_USER_ERROR) {
-			pif_Printf(msg, "Command returned error code: %d", status);
+			pif_Printf(msg, sizeof(msg), "Command returned error code: %d", status);
 			pifRingBuffer_PutString(s_log.p_tx_buffer, msg);
 		}
 		break;
@@ -441,7 +441,7 @@ BOOL pifLog_Init()
 	memset(&s_log, 0, sizeof(PifLog));
 
 	s_log.enable = TRUE;
-#ifdef __PIF_LOG_COMMAND__
+#ifdef PIF_LOG_COMMAND
 	s_log.p_task = pifTaskManager_Add(TM_EXTERNAL_ORDER, 0, _doTask, &s_log, FALSE);
 	if (!s_log.p_task) return FALSE;
 	s_log.p_task->name = "Log";
@@ -473,7 +473,7 @@ void pifLog_Clear()
 {
 	pifRingBuffer_Clear(&s_log.buffer);
 	if (s_log.p_tx_buffer) pifRingBuffer_Destroy(&s_log.p_tx_buffer);
-#ifdef __PIF_LOG_COMMAND__
+#ifdef PIF_LOG_COMMAND
 	if (s_log.p_task) {
 		pifTaskManager_Remove(s_log.p_task);
 		s_log.p_task = NULL;
@@ -485,7 +485,7 @@ void pifLog_Clear()
 #endif
 }
 
-#ifdef __PIF_LOG_COMMAND__
+#ifdef PIF_LOG_COMMAND
 
 BOOL pifLog_UseCommand(const PifLogCmdEntry* p_cmd_table, const char* p_prompt)
 {
@@ -570,7 +570,7 @@ void pifLog_Printf(PifLogType type, const char* p_format, ...)
 {
 	va_list data;
 	int offset = 0;
-    char tmp_buf[PIF_LOG_LINE_SIZE + 1];
+    char tmp_buf[PIF_LOG_LINE_SIZE];
 
     if (type >= LT_INFO) {
         if (s_minute != pif_datetime.minute) {
@@ -588,7 +588,7 @@ void pifLog_Printf(PifLogType type, const char* p_format, ...)
     }
 
 	va_start(data, p_format);
-	pif_PrintFormat(tmp_buf + offset, &data, p_format);
+	pif_PrintFormat(tmp_buf + offset, PIF_LOG_LINE_SIZE, &data, p_format);
 	va_end(data);
 
 	_printLog(tmp_buf, type == LT_VCD);
@@ -625,7 +625,7 @@ BOOL pifLog_AttachUart(PifUart* p_uart)
 	s_log.p_uart = p_uart;
 	pifUart_AttachClient(p_uart, &s_log, _evtParsing, _evtSending);
 
-#ifdef __PIF_LOG_COMMAND__
+#ifdef PIF_LOG_COMMAND
 	pifRingBuffer_PutString(s_log.p_tx_buffer, (char *)s_log.p_prompt);
 	pifTask_SetTrigger(s_log.p_uart->_p_task);
 #endif

@@ -1,7 +1,7 @@
 #include <ctype.h>
 #include <string.h>
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 #include "gps/pif_gps_ublox.h"
@@ -32,7 +32,7 @@ enum {
 } UbxNavStatus;
 
 
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 
 static const char *kPktErr[] = {
 		"Big Length",
@@ -65,7 +65,7 @@ static void _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 	PifGpsUbxPacket* p_packet = &p_owner->__rx.packet;
 	PifGps *p_parent = &p_owner->_gps;
     int i;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	uint8_t pkt_err;
 	int line;
 	static uint8_t pre_err = PKT_ERR_NONE;
@@ -75,7 +75,7 @@ static void _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 	case GURS_SYNC_CHAR_1:
 		if (data == 0xB5) {
 			p_owner->__rx.state = GURS_SYNC_CHAR_2;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			pre_err = PKT_ERR_NONE;
 #endif
 		}
@@ -89,7 +89,7 @@ static void _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 			p_owner->__rx.state = GURS_CLASS;
 		}
 		else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			pkt_err = PKT_ERR_INVALID_DATA;
 			line = __LINE__;
 #endif
@@ -119,7 +119,7 @@ static void _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 			p_owner->__rx.state = GURS_PAYLOAD;
 		}
 		else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			pkt_err = PKT_ERR_BIG_LENGHT;
 			line = __LINE__;
 #endif
@@ -146,7 +146,7 @@ static void _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 			p_owner->__rx.state = GURS_DONE;
 		}
 		else {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			pkt_err = PKT_ERR_WRONG_CRC;
 			line = __LINE__;
 #endif
@@ -159,7 +159,7 @@ static void _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 	}
 
     if (p_owner->__rx.state == GURS_DONE) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 #ifdef __DEBUG_PACKET__
     	pifLog_Printf(LT_NONE, "\n%u> %x %x %x %x %x %x %x %x", p_owner->_gps._id, p_packet->class_id, p_packet->msg_id, p_packet->length,
     			p_packet->payload.bytes[0], p_packet->payload.bytes[1], p_packet->payload.bytes[2], p_packet->payload.bytes[3], p_packet->payload.bytes[4]);
@@ -179,7 +179,7 @@ static void _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
             		break;
 
                 default:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
             		pifLog_Printf(LT_ERROR, "GU:%u(%u) %s CID:%x MID:%x", __LINE__, p_owner->_gps._id, kPktErr[PKT_ERR_UNKNOWE_ID], p_packet->class_id, p_packet->msg_id);
 #endif
                     break;
@@ -257,7 +257,7 @@ static void _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
                     break;
 
                 default:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
             		pifLog_Printf(LT_ERROR, "GU:%u(%u) %s CID:%x MID:%x", __LINE__, p_owner->_gps._id, kPktErr[PKT_ERR_UNKNOWE_ID], p_packet->class_id, p_packet->msg_id);
 #endif
                     break;
@@ -265,7 +265,7 @@ static void _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
         	break;
 
 		default:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			pifLog_Printf(LT_ERROR, "GU:%u(%u) %s CID:%x", __LINE__, p_owner->_gps._id, kPktErr[PKT_ERR_UNKNOWE_ID], p_packet->class_id);
 #endif
 			break;
@@ -280,7 +280,7 @@ static void _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 	return;
 
 fail:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	if (pkt_err != pre_err) {
 		if (p_owner->__rx.state) {
 			pifLog_Printf(LT_ERROR, "GU:%u(%u) %s D:%xh RS:%u CID:%u MID:%u Len:%u", line, p_owner->_gps._id, kPktErr[pkt_err], data,
@@ -317,14 +317,14 @@ static uint16_t _doTask(PifTask* p_task)
 	PifGpsUblox *p_owner = p_task->_p_client;
 	uint8_t data[DATA_SIZE];
 	uint16_t size, i;
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	int line;
 	static uint32_t timer1ms;
 #endif
 
 	if (!p_owner->__length) {
 		if (!pifI2cDevice_ReadRegWord(p_owner->__p_i2c_device, 0xFD, &p_owner->__length)) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
 			goto fail;
@@ -332,12 +332,12 @@ static uint16_t _doTask(PifTask* p_task)
 		if (!p_owner->__length) return 0;
 		if (p_owner->__length == 0xFFFF) { p_owner->__length = 0; return 0; }
 		if (p_owner->__length & 0x8000) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
 			goto fail;
 		}
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		timer1ms = pif_cumulative_timer1ms;
 		pifLog_Printf(LT_INFO, "GU(%u): Start L=%d bytes", __LINE__, p_owner->__length);
 #endif
@@ -345,7 +345,7 @@ static uint16_t _doTask(PifTask* p_task)
 
 	size = p_owner->__length > DATA_SIZE ? DATA_SIZE : p_owner->__length;
 	if (!pifI2cDevice_Read(p_owner->__p_i2c_device, 0, 0, data, size)) {
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
 			goto fail;
@@ -355,7 +355,7 @@ static uint16_t _doTask(PifTask* p_task)
 	}
 	p_owner->__length -= size;
 	if (p_owner->__length) pifTask_SetTrigger(p_task);
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	else {
 		pifLog_Printf(LT_INFO, "GU(%u): End T=%ld ms", __LINE__, pif_cumulative_timer1ms - timer1ms);
 	}
@@ -363,7 +363,7 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 
 fail:
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "GU(%u): len=%d", line, p_owner->__length);
 #endif
 	p_owner->__length = 0;
@@ -593,7 +593,7 @@ BOOL pifGpsUblox_Init(PifGpsUblox* p_owner, PifId id)
 
 fail:
 	pifGpsUblox_Clear(p_owner);
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, id, pif_error);
 #endif
     return FALSE;
@@ -718,7 +718,7 @@ BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t i
 
 	if (!_checkBlocking(p_owner, blocking)) return FALSE;
 
-	pif_Printf(data, "$PUBX,41,%u,%4X,%4X,%lu,0*", port_id, in_proto, out_proto, baudrate);
+	pif_Printf(data, sizeof(data), "$PUBX,41,%u,%4X,%4X,%lu,0*", port_id, in_proto, out_proto, baudrate);
 
 	return _makeNmeaPacket(p_owner, data, waiting);
 }
@@ -729,7 +729,7 @@ BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t
 
 	if (!_checkBlocking(p_owner, blocking)) return FALSE;
 
-	pif_Printf(data, "$PUBX,40,%s,%u,%u,%u,%u,%u,0*", p_mag_id, rddc, rus1, rus2, rusb, rspi);
+	pif_Printf(data, sizeof(data), "$PUBX,40,%s,%u,%u,%u,%u,%u,0*", p_mag_id, rddc, rus1, rus2, rusb, rspi);
 
 	return _makeNmeaPacket(p_owner, data, waiting);
 }

@@ -101,7 +101,7 @@ void pifPtrArray_Remove(PifPtrArray* p_owner, void* p_data)
 	p_owner->count--;
 }
 
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 
 int pifPtrArray_Count(PifPtrArray* p_owner)
 {

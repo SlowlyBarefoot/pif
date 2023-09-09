@@ -1,13 +1,13 @@
-#ifdef __PIF_COLLECT_SIGNAL__
+#include "sensor/pif_max31855.h"
+#ifdef PIF_COLLECT_SIGNAL
 	#include "core/pif_collect_signal.h"
 #endif
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
-#include "sensor/pif_max31855.h"
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	static PifDList s_cs_list;
 #endif
 
@@ -25,7 +25,7 @@ static uint16_t _doTask(PifTask* p_task)
 			if (temperature < p_owner->__low_threshold) {
 				p_parent->_curr_state = OFF;
 				(*p_parent->evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->p_issuer);
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 				if (p_owner->__p_colsig->flag & M3_CSF_STATE_BIT) {
 					pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[M3_CSF_STATE_IDX], p_parent->_curr_state);
 				}
@@ -36,7 +36,7 @@ static uint16_t _doTask(PifTask* p_task)
 			if (temperature >= p_owner->__high_threshold) {
 				p_parent->_curr_state = ON;
 				(*p_parent->evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->p_issuer);
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 				if (p_owner->__p_colsig->flag & M3_CSF_STATE_BIT) {
 					pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[M3_CSF_STATE_IDX], p_parent->_curr_state);
 				}
@@ -51,7 +51,7 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 static void _addDeviceInCollectSignal()
 {
@@ -67,7 +67,7 @@ static void _addDeviceInCollectSignal()
 						prefix[f], p_owner->parent._curr_state);
 			}
 		}
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_INFO, "M3_CS:Add(DC:%u F:%u)", p_owner->parent._id, p_colsig->flag);
 #endif
 
@@ -75,7 +75,7 @@ static void _addDeviceInCollectSignal()
 	}
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port)
 {
@@ -92,7 +92,7 @@ BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port)
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->parent._id = id;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Attach(CSF_MAX31855, _addDeviceInCollectSignal);
 	}
@@ -103,7 +103,7 @@ BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port)
 #endif
     return TRUE;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 fail:
 	pifMax31855_Destroy((PifSensor**)&p_owner);
 	return FALSE;
@@ -112,7 +112,7 @@ fail:
 
 void pifMax31855_Clear(PifMax31855* p_owner)
 {
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Detach(CSF_MAX31855);
@@ -196,7 +196,7 @@ void pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double
 	p_owner->__high_threshold = high_threshold;
 }
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 void pifMax31855_SetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag)
 {
@@ -238,4 +238,4 @@ void pifMax31855ColSig_ResetFlag(PifMax31855CsFlag flag)
 	}
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL

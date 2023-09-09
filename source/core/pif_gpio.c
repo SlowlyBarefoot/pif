@@ -1,19 +1,19 @@
-#ifdef __PIF_COLLECT_SIGNAL__
+#include "core/pif_gpio.h"
+#ifdef PIF_COLLECT_SIGNAL
 	#include "core/pif_collect_signal.h"
 #endif
-#include "core/pif_gpio.h"
 #include "core/pif_list.h"
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	static PifDList s_cs_list;
 #endif
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 static void _addDeviceInCollectSignal()
 {
@@ -29,7 +29,7 @@ static void _addDeviceInCollectSignal()
 						prefix[f], p_owner->__write_state);
 			}
 		}
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_INFO, "GP_CS:Add(DC:%u CNT:%u)", p_owner->_id, p_owner->count);
 #endif
 
@@ -37,7 +37,7 @@ static void _addDeviceInCollectSignal()
 	}
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count)
 {
@@ -50,7 +50,7 @@ BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count)
     p_owner->_id = id;
     p_owner->count = count;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Attach(CSF_GPIO, _addDeviceInCollectSignal);
 	}
@@ -61,7 +61,7 @@ BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count)
 #endif
 	return TRUE;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 fail:
 	pifGpio_Clear(p_owner);
 	return FALSE;	
@@ -70,7 +70,7 @@ fail:
 
 void pifGpio_Clear(PifGpio* p_owner)
 {
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PifGpioColSig* p_colsig = (PifGpioColSig*)it->data;
@@ -98,7 +98,7 @@ uint8_t pifGpio_ReadAll(PifGpio* p_owner)
 
 	uint8_t state = p_owner->__ui.act_in(p_owner->_id);
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (p_owner->__p_colsig->flag & GP_CSF_STATE_BIT) {
 		pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[GP_CSF_STATE_IDX], state);
 	}
@@ -117,7 +117,7 @@ SWITCH pifGpio_ReadCell(PifGpio* p_owner, uint8_t index)
 	uint8_t state = (p_owner->__ui.act_in(p_owner->_id) >> index) & 1;
 	p_owner->__read_state = (p_owner->__read_state & (1 << index)) | state;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (p_owner->__p_colsig->flag & GP_CSF_STATE_BIT) {
 		pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[GP_CSF_STATE_IDX], p_owner->__read_state);
 	}
@@ -136,7 +136,7 @@ BOOL pifGpio_WriteAll(PifGpio* p_owner, uint8_t state)
 	p_owner->__write_state = state;
 	p_owner->__ui.act_out(p_owner->_id, state);
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (p_owner->__p_colsig->flag & GP_CSF_STATE_BIT) {
 		pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[GP_CSF_STATE_IDX], p_owner->__write_state);
 	}
@@ -159,7 +159,7 @@ BOOL pifGpio_WriteCell(PifGpio* p_owner, uint8_t index, SWITCH state)
 	}
 	p_owner->__ui.act_out(p_owner->_id, p_owner->__write_state);
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (p_owner->__p_colsig->flag & GP_CSF_STATE_BIT) {
 		pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[GP_CSF_STATE_IDX], p_owner->__write_state);
 	}
@@ -171,7 +171,7 @@ static uint16_t _doTask(PifTask* p_task)
 {
 	PifGpio* p_owner = p_task->_p_client;
 	uint8_t state, bit;
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	BOOL change = FALSE;
 #endif
 
@@ -180,14 +180,14 @@ static uint16_t _doTask(PifTask* p_task)
 		bit = 1 << i;
 		if ((state & bit) != (p_owner->__read_state & bit)) {
 			if (p_owner->evt_in) (*p_owner->evt_in)(i, (state >> 1) & 1);
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 			change = TRUE;
 #endif
 		}
 	}
 	p_owner->__read_state = state;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (change && (p_owner->__p_colsig->flag & GP_CSF_STATE_BIT)) {
 		pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[GP_CSF_STATE_IDX], state);
 	}
@@ -202,7 +202,7 @@ void pifGpio_sigData(PifGpio* p_owner, uint8_t index, SWITCH state)
 		p_owner->__read_state = (p_owner->__read_state & (1 << index)) | state;
 		if (p_owner->evt_in) (*p_owner->evt_in)(index, state);
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 		if (p_owner->__p_colsig->flag & GP_CSF_STATE_BIT) {
 			pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[GP_CSF_STATE_IDX], p_owner->__read_state);
 		}
@@ -233,7 +233,7 @@ PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifTaskMode mode, uint16_t perio
 	return p_task;
 }
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 void pifGpio_SetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag)
 {
@@ -275,4 +275,4 @@ void pifGpioColSig_ResetFlag(PifGpioCsFlag flag)
 	}
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL

@@ -9,7 +9,7 @@
 #define PIF_TASK_STACK_SIZE		5
 
 
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
 
 PifActTaskSignal pif_act_task_signal = NULL;
 
@@ -118,7 +118,7 @@ static PifTask* _processingPeriodMs(PifTask* p_owner)
 static PifTask* _processingRatio(PifTask* p_owner)
 {
 	uint32_t gap;
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
 	uint32_t time;
 	static uint32_t pretime;
 #endif
@@ -130,7 +130,7 @@ static PifTask* _processingRatio(PifTask* p_owner)
 		}
 	}
 	else if (s_table[s_number] & (1 << p_owner->__table_number)) {
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
 		time = pif_timer1sec;
 		if (time != pretime) {
 			p_owner->__period = 1000000.0 / p_owner->__count;
@@ -256,7 +256,7 @@ static void _processingTask(PifTask* p_owner)
 
 	if (s_task_stack_ptr >= PIF_TASK_STACK_SIZE) return;
 
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
     if (pif_act_task_signal) (*pif_act_task_signal)(TRUE);
 #endif
 
@@ -278,7 +278,7 @@ static void _processingTask(PifTask* p_owner)
 	s_task_stack_ptr--;
 	s_task_stack[s_task_stack_ptr] = NULL;
 
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
     if (pif_act_task_signal) (*pif_act_task_signal)(FALSE);
 #endif
 
@@ -305,10 +305,10 @@ static void _processingTask(PifTask* p_owner)
 static void _checkLoopTime()
 {
 	static uint8_t timer_10ms = 0;
-#if defined(__PIF_DEBUG__) || !defined(__PIF_NO_LOG__)
+#if defined(PIF_DEBUG) || !defined(PIF_NO_LOG)
 	uint32_t value;
 #endif
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
 	static uint32_t pretime = 0UL;
 	static uint32_t max_loop = 0UL;
 
@@ -335,9 +335,9 @@ static void _checkLoopTime()
 	}
 
 	if (pif_performance.__state & 2) {		// 1sec
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
 		if (pif_performance.__max_loop_time1us > max_loop) max_loop = pif_performance.__max_loop_time1us;
-	#ifndef __PIF_NO_LOG__
+	#ifndef PIF_NO_LOG
 		if (pif_log_flag.bt.performance) {
 			value = 1000000L / pif_performance._count;
         	pifLog_Printf(LT_INFO, "LT:%uns(%lur/s) MLT=%luus", value, pif_performance._count, pif_performance.__max_loop_time1us);
@@ -345,7 +345,7 @@ static void _checkLoopTime()
 	#endif
 		pif_performance.__max_loop_time1us = 0UL;
 #else
-	#ifndef __PIF_NO_LOG__
+	#ifndef PIF_NO_LOG
 		if (pif_log_flag.bt.performance) {
 			value = 1000000L / pif_performance._count;
         	pifLog_Printf(LT_INFO, "LT:%uns(%lur/s)", value, pif_performance._count);
@@ -355,9 +355,9 @@ static void _checkLoopTime()
     	pif_performance._count = 0;
 	}
 
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
 	if (pif_performance.__state & 4) {		// 1min
-	#ifndef __PIF_NO_LOG__
+	#ifndef PIF_NO_LOG
     	pifLog_Printf(LT_INFO, "MLT=%luus", max_loop);
 	#endif
 		max_loop = 0UL;
@@ -813,7 +813,7 @@ void pifTaskManager_Print()
 	}
 }
 
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
 
 void pifTaskManager_PrintRatioTable()
 {
@@ -825,4 +825,4 @@ void pifTaskManager_PrintRatioTable()
 	}
 }
 
-#endif	// __PIF_DEBUG__
+#endif	// PIF_DEBUG

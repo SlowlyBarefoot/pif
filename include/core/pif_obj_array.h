@@ -2,7 +2,7 @@
 #define PIF_OBJ_ARRAY_H
 
 
-#include "pif.h"
+#include "core/pif.h"
 
 
 /**
@@ -82,7 +82,7 @@ void pifObjArray_Remove(PifObjArray* p_owner, void* p_data);
  * @param p_owner
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	int pifObjArray_Count(PifObjArray* p_owner);
 #else
 	inline int pifObjArray_Count(PifObjArray* p_owner) { return p_owner->count; }
@@ -94,7 +94,7 @@ void pifObjArray_Remove(PifObjArray* p_owner, void* p_data);
  * @param p_owner
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	PifObjArrayIterator pifObjArray_Begin(PifObjArray* p_owner);
 #else
 	inline PifObjArrayIterator pifObjArray_Begin(PifObjArray* p_owner) { return p_owner->p_first; }
@@ -106,7 +106,7 @@ void pifObjArray_Remove(PifObjArray* p_owner, void* p_data);
  * @param it
  * @return
  */
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 	PifObjArrayIterator pifObjArray_Next(PifObjArrayIterator it);
 #else
 	inline PifObjArrayIterator pifObjArray_Next(PifObjArrayIterator it) { return it ? it->p_next : NULL; }

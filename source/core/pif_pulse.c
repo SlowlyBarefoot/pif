@@ -1,18 +1,18 @@
-#ifdef __PIF_COLLECT_SIGNAL__
+#include "core/pif_pulse.h"
+#ifdef PIF_COLLECT_SIGNAL
 	#include "core/pif_collect_signal.h"
 #endif
 #include "core/pif_list.h"
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
-#include "core/pif_pulse.h"
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	static PifDList s_cs_list;
 #endif
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 static void _addDeviceInCollectSignal()
 {
@@ -28,7 +28,7 @@ static void _addDeviceInCollectSignal()
 						prefix[f], PE_FALLING);
 			}
 		}
-#ifndef __PIF_NO_LOG__
+#ifndef PIF_NO_LOG
 		pifLog_Printf(LT_INFO, "PL_CS:Add(DC:%u)", p_owner->_id);
 #endif
 
@@ -36,7 +36,7 @@ static void _addDeviceInCollectSignal()
 	}
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL
 
 BOOL pifPulse_Init(PifPulse* p_owner, PifId id)
 {
@@ -50,7 +50,7 @@ BOOL pifPulse_Init(PifPulse* p_owner, PifId id)
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (!pifDList_Size(&s_cs_list)) {
 		pifCollectSignal_Attach(CSF_PULSE, _addDeviceInCollectSignal);
 	}
@@ -61,7 +61,7 @@ BOOL pifPulse_Init(PifPulse* p_owner, PifId id)
 #endif
     return TRUE;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 fail:
 	pifPulse_Clear(p_owner);
     return FALSE;
@@ -70,7 +70,7 @@ fail:
 
 void pifPulse_Clear(PifPulse* p_owner)
 {
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
 		PifPulseColSig* p_colsig = (PifPulseColSig*)it->data;
@@ -215,7 +215,7 @@ BOOL pifPulse_sigEdge(PifPulse* p_owner, PifPulseState state, uint32_t time_us)
 	}
 	if (p_owner->__count < PIF_PULSE_DATA_SIZE) p_owner->__count++;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	if (p_owner->__p_colsig->flag & PL_CSF_STATE_BIT) {
 		pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[PL_CSF_STATE_IDX], edge);
 	}
@@ -230,7 +230,7 @@ void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssu
 	p_owner->__p_issuer = p_issuer;
 }
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 void pifPulse_SetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag)
 {
@@ -272,4 +272,4 @@ void pifPulseColSig_ResetFlag(PifPulseCsFlag flag)
 	}
 }
 
-#endif	// __PIF_COLLECT_SIGNAL__
+#endif	// PIF_COLLECT_SIGNAL

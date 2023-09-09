@@ -2,6 +2,10 @@
 #define PIF_H
 
 
+#ifdef PIF_CONF
+#include "pif_conf.h"
+#endif
+
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -9,97 +13,13 @@
 #include <string.h>
 
 
-// -------- pif Configuration --------------------
-
-//#define __PIF_DEBUG__
-//#define __PIF_NO_USE_INLINE__
+#define PIF_VERSION_MAJOR	0
+#define PIF_VERSION_MINOR	1
+#define PIF_VERSION_PATCH	0
 
 #ifndef PIF_WEAK
 #define PIF_WEAK __attribute__ ((weak))
 #endif
-
-// -------- pifCollectSignal ---------------------
-
-//#define __PIF_COLLECT_SIGNAL__
-
-// -------- pifKeypad ----------------------------
-
-#ifndef PIF_KEYPAD_DEFAULT_HOLD_TIME
-#define PIF_KEYPAD_DEFAULT_HOLD_TIME	100
-#endif
-
-#ifndef PIF_KEYPAD_DEFAULT_LONG_TIME
-#define PIF_KEYPAD_DEFAULT_LONG_TIME	1000
-#endif
-
-#ifndef PIF_KEYPAD_DEFAULT_DOUBLE_TIME
-#define PIF_KEYPAD_DEFAULT_DOUBLE_TIME	300
-#endif
-
-// -------- pifLog -------------------------------
-
-//#define __PIF_NO_LOG__
-//#define __PIF_LOG_COMMAND__
-
-#ifndef PIF_LOG_LINE_SIZE
-#define PIF_LOG_LINE_SIZE				80
-#endif
-
-#ifndef PIF_LOG_RX_BUFFER_SIZE
-#define PIF_LOG_RX_BUFFER_SIZE			32
-#endif
-
-#ifndef PIF_LOG_TX_BUFFER_SIZE
-#define PIF_LOG_TX_BUFFER_SIZE			80
-#endif
-
-// -------- pifProtocol --------------------------
-
-#ifndef PIF_PROTOCOL_RX_PACKET_SIZE
-#define PIF_PROTOCOL_RX_PACKET_SIZE		32
-#endif
-
-#ifndef PIF_PROTOCOL_TX_REQUEST_SIZE
-#define PIF_PROTOCOL_TX_REQUEST_SIZE	64
-#endif
-
-#ifndef PIF_PROTOCOL_TX_ANSWER_SIZE
-#define PIF_PROTOCOL_TX_ANSWER_SIZE		32
-#endif
-
-// 한 packet을 전부 받는 시간 제한
-// 0 : 제한없음
-// 1이상 : pifProtocol_Init에서 받은 타이머의 단위를 곱한 시간
-//         기본값은 50이고 타이머 단위가 1ms이면 50 * 1ms = 50ms이다.
-#ifndef PIF_PROTOCOL_RECEIVE_TIMEOUT
-#define PIF_PROTOCOL_RECEIVE_TIMEOUT	50
-#endif
-
-// Retry하기 전 delay 시간
-// 0 : 제한없음
-// 1이상 : pifProtocol_Init에서 받은 타이머의 단위를 곱한 시간
-//         기본값은 10이고 타이머 단위가 1ms이면 10 * 1ms = 10ms이다.
-#ifndef PIF_PROTOCOL_RETRY_DELAY
-#define PIF_PROTOCOL_RETRY_DELAY		10
-#endif
-
-// -------- pifTimer -----------------------------
-
-#ifndef PIF_PWM_MAX_DUTY
-#define PIF_PWM_MAX_DUTY				1000
-#endif
-
-// -------- pifTask ------------------------------
-
-#ifndef PIF_TASK_TABLE_SIZE
-#define PIF_TASK_TABLE_SIZE				32
-#endif
-
-// -----------------------------------------------
-
-#define PIF_VERSION_MAJOR	0
-#define PIF_VERSION_MINOR	1
-#define PIF_VERSION_PATCH	0
 
 #ifndef BOOL
 #define BOOL   unsigned char
@@ -228,7 +148,7 @@ typedef struct StPifPerformance
 
 	// Private Member Variable
 	uint8_t __state;	// 0 : nomal, 1 : 1 ms, 2 : 1 second, 4: 1 minute
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
 	uint32_t __max_loop_time1us;
 #endif
 } PifPerformance;
@@ -366,17 +286,19 @@ int pif_FloatToString(char* p_buffer, double value, uint16_t point);
  * @brief
  * @param p_buffer
  * @param p_data
+ * @param buffer_size
  * @param p_format
  */
-void pif_PrintFormat(char* p_buffer, va_list* data, const char* p_format);
+void pif_PrintFormat(char* p_buffer, size_t buffer_size, va_list* data, const char* p_format);
 
 /**
  * @fn pif_Printf
  * @brief
  * @param p_buffer
+ * @param buffer_size
  * @param p_format
  */
-void pif_Printf(char* p_buffer, const char* p_format, ...);
+void pif_Printf(char* p_buffer, size_t buffer_size, const char* p_format, ...);
 
 /**
  * @fn pifCrc7_Add

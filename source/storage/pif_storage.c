@@ -88,7 +88,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner)
 	p_owner->__act_write = NULL;
 }
 
-#ifdef __PIF_NO_USE_INLINE__
+#ifdef PIF_NO_USE_INLINE
 
 BOOL pifStorage_IsFormat(PifStorage* p_owner)
 {

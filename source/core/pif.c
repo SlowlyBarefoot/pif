@@ -1,5 +1,5 @@
 #include "core/pif.h"
-#ifndef	__PIF_NO_LOG__
+#ifndef	PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
 #include "core/pif_task.h"
@@ -19,8 +19,8 @@ volatile uint32_t pif_cumulative_timer1ms = 0L;
 PifPerformance pif_performance = {
 		._count = 0,
 		.__state = FALSE,
-#ifdef __PIF_DEBUG__
-#ifndef __PIF_NO_LOG__
+#ifdef PIF_DEBUG
+#ifndef PIF_NO_LOG
 		.__max_loop_time1us = 0UL
 #endif
 #endif
@@ -41,7 +41,7 @@ const char* kPifHexLowerChar = "0123456789abcdef";
 const uint8_t kDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 
 void PIF_WEAK pifGpioColSig_Init() {}
 void PIF_WEAK pifGpioColSig_Clear() {}
@@ -70,7 +70,7 @@ void pif_Init(PifActTimer1us act_timer1us)
 	pif_datetime.month = 1;
 	pif_datetime.day = 1;
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
     pifGpioColSig_Init();
     pifPulseColSig_Init();
     pifSensorDigitalColSig_Init();
@@ -86,7 +86,7 @@ void pif_Exit()
 
 	pifTaskManager_Clear();
 
-#ifdef __PIF_COLLECT_SIGNAL__
+#ifdef PIF_COLLECT_SIGNAL
 	pifGpioColSig_Clear();
 	pifPulseColSig_Clear();
 	pifSensorDigitalColSig_Clear();
@@ -138,7 +138,7 @@ void pif_sigTimer1ms()
     			}
     		}
 
-#ifdef __PIF_DEBUG__
+#ifdef PIF_DEBUG
         	pif_performance.__state |= 4;
 #endif			
     	}
@@ -311,7 +311,7 @@ int pif_FloatToString(char* p_buffer, double value, uint16_t point)
     return idx;
 }
 
-void pif_PrintFormat(char* p_buffer, va_list* p_data, const char* p_format)
+void pif_PrintFormat(char* p_buffer, size_t buffer_size, va_list* p_data, const char* p_format)
 {
 	unsigned int uint_val;
 	int int_val;
@@ -422,11 +422,11 @@ NEXT_STR:
                     p_var_str = va_arg(*p_data, char *);
                     if (p_var_str) {
 						size = strlen(p_var_str);
-						if (offset + size < PIF_LOG_LINE_SIZE - 1) {
+						if (offset + size < buffer_size - 1) {
 							strcpy(p_buffer + offset, p_var_str);
 						}
 						else {
-							size = PIF_LOG_LINE_SIZE - 1 - offset;
+							size = buffer_size - 1 - offset;
 							strncpy(p_buffer + offset, p_var_str, size);
 						}
 						offset += size;
@@ -450,12 +450,12 @@ NEXT_STR:
 	p_buffer[offset] = 0;
 }
 
-void pif_Printf(char* p_buffer, const char* p_format, ...)
+void pif_Printf(char* p_buffer, size_t buffer_size, const char* p_format, ...)
 {
 	va_list data;
 
 	va_start(data, p_format);
-	pif_PrintFormat(p_buffer, &data, p_format);
+	pif_PrintFormat(p_buffer, buffer_size, &data, p_format);
 	va_end(data);
 }
 

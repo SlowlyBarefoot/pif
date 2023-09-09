@@ -6,6 +6,11 @@
 #include "core/pif_task.h"
 
 
+#ifndef PIF_PWM_MAX_DUTY
+#define PIF_PWM_MAX_DUTY				1000
+#endif
+
+
 typedef void (*PifActTimerPwm)(SWITCH value);
 
 typedef void (*PifEvtTimerFinish)(PifIssuerP p_issuer);
