@@ -155,19 +155,15 @@ fail:
     return FALSE;
 }
 
-#ifdef PIF_NO_USE_INLINE
-
-BOOL pifStorageVar_AttachActStorage(PifStorageVar* p_owner, PifActStorageRead act_read, PifActStorageWrite act_write)
+PIF_INLINE BOOL pifStorageVar_AttachActStorage(PifStorageVar* p_owner, PifActStorageRead act_read, PifActStorageWrite act_write)
 {
 	return pifStorage_AttachActStorage(&p_owner->parent, act_read, act_write);
 }
 
-BOOL pifStorageVar_AttachI2c(PifStorageVar* p_owner, PifI2cPort* p_port, uint8_t addr, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms)
+PIF_INLINE BOOL pifStorageVar_AttachI2c(PifStorageVar* p_owner, PifI2cPort* p_port, uint8_t addr, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms)
 {
 	return pifStorage_AttachI2c(&p_owner->parent, p_port, addr, i_addr_size, write_delay_ms);
 }
-
-#endif
 
 BOOL pifStorageVar_IsFormat(PifStorage* p_parent)
 {

@@ -116,11 +116,7 @@ void pifDutyMotorPos_Stop(PifDutyMotorPos* p_owner);
  * @brief
  * @param p_owner
  */
-#ifdef PIF_NO_USE_INLINE
-	uint32_t pifDutyMotorPos_GetCurrentPulse(PifDutyMotorPos* p_owner);
-#else
-	inline uint32_t pifDutyMotorPos_GetCurrentPulse(PifDutyMotorPos* p_owner) { return p_owner->__p_encoder->falling_count; }
-#endif
+uint32_t pifDutyMotorPos_GetCurrentPulse(PifDutyMotorPos* p_owner);
 
 /**
  * @fn pifDutyMotorPos_Emergency

@@ -87,14 +87,10 @@ void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state, char *tag
 
 #else
 
-#ifdef PIF_NO_USE_INLINE
-
-void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state)
+PIF_INLINE void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state)
 {
 	p_owner->_state = state;
 }
-
-#endif
 
 #endif
 

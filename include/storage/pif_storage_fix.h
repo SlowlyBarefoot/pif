@@ -64,13 +64,7 @@ void pifStorageFix_Clear(PifStorageFix* p_owner);
  * @param act_write
  * @return
  */
-#ifdef PIF_NO_USE_INLINE
-	BOOL pifStorageFix_AttachActStorage(PifStorageFix* p_owner, PifActStorageRead act_read, PifActStorageWrite act_write);
-#else
-	inline BOOL pifStorageFix_AttachActStorage(PifStorageFix* p_owner, PifActStorageRead act_read, PifActStorageWrite act_write) {
-		return pifStorage_AttachActStorage(&p_owner->parent, act_read, act_write);
-	}
-#endif
+BOOL pifStorageFix_AttachActStorage(PifStorageFix* p_owner, PifActStorageRead act_read, PifActStorageWrite act_write);
 
 /**
  * @fn pifStorageFix_AttachI2c
@@ -82,13 +76,7 @@ void pifStorageFix_Clear(PifStorageFix* p_owner);
  * @param write_delay_ms
  * @return
  */
-#ifdef PIF_NO_USE_INLINE
-	BOOL pifStorageFix_AttachI2c(PifStorageFix* p_owner, PifI2cPort* p_port, uint8_t addr, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms);
-#else
-	inline BOOL pifStorageFix_AttachI2c(PifStorageFix* p_owner, PifI2cPort* p_port, uint8_t addr, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms) {
-		return pifStorage_AttachI2c(&p_owner->parent, p_port, addr, i_addr_size, write_delay_ms);
-	}
-#endif
+BOOL pifStorageFix_AttachI2c(PifStorageFix* p_owner, PifI2cPort* p_port, uint8_t addr, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms);
 
 /**
  * @fn pifStorageFix_SetMedia

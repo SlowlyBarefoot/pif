@@ -94,11 +94,7 @@ void pifDutyMotor_Clear(PifDutyMotor* p_owner);
 	 * @param p_owner
 	 * @param state
 	 */
-	#ifdef PIF_NO_USE_INLINE
-		void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state);
-	#else
-		void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state) { p_owner->_state = state; }
-	#endif
+	void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state);
 #endif
 
 /**

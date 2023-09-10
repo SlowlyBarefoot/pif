@@ -105,21 +105,17 @@ void pifObjArray_Remove(PifObjArray* p_owner, void* p_data)
 	p_owner->count--;
 }
 
-#ifdef PIF_NO_USE_INLINE
-
-int pifObjArray_Count(PifObjArray* p_owner)
+PIF_INLINE int pifObjArray_Count(PifObjArray* p_owner)
 {
 	return p_owner->count;
 }
 
-PifObjArrayIterator pifObjArray_Begin(PifObjArray* p_owner)
+PIF_INLINE PifObjArrayIterator pifObjArray_Begin(PifObjArray* p_owner)
 {
 	return p_owner->p_first;
 }
 
-PifObjArrayIterator pifObjArray_Next(PifObjArrayIterator it)
+PIF_INLINE PifObjArrayIterator pifObjArray_Next(PifObjArrayIterator it)
 {
 	return it ? it->p_next : NULL;
 }
-
-#endif

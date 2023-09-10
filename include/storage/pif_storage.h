@@ -100,13 +100,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param p_owner
  * @return
  */
-#ifdef PIF_NO_USE_INLINE
-	BOOL pifStorage_IsFormat(PifStorage* p_owner);
-#else
-	inline BOOL pifStorage_IsFormat(PifStorage* p_owner) {
-		return (*p_owner->__fn_is_format)(p_owner);
-	}
-#endif
+BOOL pifStorage_IsFormat(PifStorage* p_owner);
 
 /**
  * @fn pifStorage_Format
@@ -114,13 +108,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param p_owner
  * @return
  */
-#ifdef PIF_NO_USE_INLINE
-	BOOL pifStorage_Format(PifStorage* p_owner);
-#else
-	inline BOOL pifStorage_Format(PifStorage* p_owner)	{
-		return (*p_owner->__fn_format)(p_owner);
-	}
-#endif
+BOOL pifStorage_Format(PifStorage* p_owner);
 
 /**
  * @fn pifStorage_Create
@@ -130,13 +118,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param size
  * @return
  */
-#ifdef PIF_NO_USE_INLINE
-	PifStorageDataInfoP pifStorage_Create(PifStorage* p_owner, uint16_t id, uint16_t size);
-#else
-	inline PifStorageDataInfoP pifStorage_Create(PifStorage* p_owner, uint16_t id, uint16_t size) {
-		return (*p_owner->__fn_create)(p_owner, id, size);
-	}
-#endif
+PifStorageDataInfoP pifStorage_Create(PifStorage* p_owner, uint16_t id, uint16_t size);
 
 /**
  * @fn pifStorage_Delete
@@ -145,13 +127,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param id
  * @return
  */
-#ifdef PIF_NO_USE_INLINE
-	BOOL pifStorage_Delete(PifStorage* p_owner, uint16_t id);
-#else
-	inline BOOL pifStorage_Delete(PifStorage* p_owner, uint16_t id) {
-		return (*p_owner->__fn_delete)(p_owner, id);
-	}
-#endif
+BOOL pifStorage_Delete(PifStorage* p_owner, uint16_t id);
 
 /**
  * @fn pifStorage_Open
@@ -160,13 +136,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param id
  * @return
  */
-#ifdef PIF_NO_USE_INLINE
-	PifStorageDataInfoP pifStorage_Open(PifStorage* p_owner, uint16_t id);
-#else
-	inline PifStorageDataInfoP pifStorage_Open(PifStorage* p_owner, uint16_t id) {
-		return (*p_owner->__fn_open)(p_owner, id);
-	}
-#endif
+PifStorageDataInfoP pifStorage_Open(PifStorage* p_owner, uint16_t id);
 
 /**
  * @fn pifStorage_Read
@@ -177,13 +147,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param size
  * @return
  */
-#ifdef PIF_NO_USE_INLINE
-	BOOL pifStorage_Read(PifStorage* p_owner, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size);
-#else
-	inline BOOL pifStorage_Read(PifStorage* p_owner, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size) {
-		return (*p_owner->__fn_read)(p_owner, p_dst, p_src, size);
-	}
-#endif
+BOOL pifStorage_Read(PifStorage* p_owner, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size);
 
 /**
  * @fn pifStorage_Write
@@ -194,13 +158,7 @@ void pifStorage_DetachI2c(PifStorage* p_owner);
  * @param size
  * @return
  */
-#ifdef PIF_NO_USE_INLINE
-	BOOL pifStorage_Write(PifStorage* p_owner, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size);
-#else
-	inline BOOL pifStorage_Write(PifStorage* p_owner, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size) {
-		return (*p_owner->__fn_write)(p_owner, p_dst, p_src, size);
-	}
-#endif
+BOOL pifStorage_Write(PifStorage* p_owner, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size);
 
 #ifdef __cplusplus
 }

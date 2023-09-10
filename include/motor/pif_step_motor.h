@@ -117,11 +117,7 @@ void pifStepMotor_Clear(PifStepMotor* p_owner);
 	 * @param p_owner
 	 * @param state
 	 */
-	#ifdef PIF_NO_USE_INLINE
-		void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state);
-	#else
-		void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state) { p_owner->_state = state; }
-	#endif
+	void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state);
 #endif
 
 /**

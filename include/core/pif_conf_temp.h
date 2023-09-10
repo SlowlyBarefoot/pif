@@ -9,7 +9,10 @@
 // -------- pif Configuration --------------------
 
 //#define PIF_DEBUG
-//#define PIF_NO_USE_INLINE
+
+//#define PIF_INLINE
+#define PIF_INLINE                      	inline
+//#define PIF_INLINE                      	__inline
 
 //#define PIF_WEAK							__attribute__ ((weak))
 

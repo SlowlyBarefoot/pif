@@ -54,13 +54,7 @@ extern "C" {
  * @brief
  * @param p_parent
  */
-#ifdef PIF_NO_USE_INLINE
-	void pifNoiseFilter_Reset(PifNoiseFilter* p_parent);
-#else
-	inline void pifNoiseFilter_Reset(PifNoiseFilter* p_parent) {
-		(*p_parent->__fn_reset)(p_parent);
-	}
-#endif
+void pifNoiseFilter_Reset(PifNoiseFilter* p_parent);
 
 /**
  * @fn pifNoiseFilter_Process
@@ -69,13 +63,7 @@ extern "C" {
  * @param p_value
  * @return
  */
-#ifdef PIF_NO_USE_INLINE
-	PifNoiseFilterValueP pifNoiseFilter_Process(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value);
-#else
-	inline PifNoiseFilterValueP pifNoiseFilter_Process(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value) {
-		return (*p_parent->__fn_process)(p_parent, p_value);
-	}
-#endif
+PifNoiseFilterValueP pifNoiseFilter_Process(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value);
 
 #ifdef __cplusplus
 }

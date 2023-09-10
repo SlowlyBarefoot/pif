@@ -66,19 +66,15 @@ BOOL pifStorageFix_SetMedia(PifStorageFix* p_owner, uint32_t sector_size, uint32
 	return TRUE;
 }
 
-#ifdef PIF_NO_USE_INLINE
-
-BOOL pifStorageFix_AttachActStorage(PifStorageFix* p_owner, PifActStorageRead act_read, PifActStorageWrite act_write)
+PIF_INLINE BOOL pifStorageFix_AttachActStorage(PifStorageFix* p_owner, PifActStorageRead act_read, PifActStorageWrite act_write)
 {
 	return pifStorage_AttachActStorage(&p_owner->parent, act_read, act_write);
 }
 
-BOOL pifStorageFix_AttachI2c(PifStorageFix* p_owner, PifI2cPort* p_port, uint8_t addr, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms)
+PIF_INLINE BOOL pifStorageFix_AttachI2c(PifStorageFix* p_owner, PifI2cPort* p_port, uint8_t addr, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms)
 {
 	return pifStorage_AttachI2c(&p_owner->parent, p_port, addr, i_addr_size, write_delay_ms);
 }
-
-#endif
 
 BOOL pifStorageFix_IsFormat(PifStorage* p_parent)
 {
