@@ -29,7 +29,6 @@ static BOOL _calibrate(PifTouchScreen* p_owner, uint16_t x, uint16_t y, uint16_t
     int failcount = 0;
     int cnt = 0;
 	int16_t tpx, tpy;
-	PifNoiseFilterValueP p_vx, p_vy;
     uint32_t tx = 0, ty = 0;
     BOOL OK = FALSE;
 
@@ -76,7 +75,6 @@ static uint16_t _doTask(PifTask* p_task)
 {
 	PifTouchScreen* p_owner = p_task->_p_client;
 	PifTftLcd* p_lcd = p_owner->__p_lcd;
-	uint8_t n;
 	int16_t tpx, tpy;
 	PifNoiseFilterValueP p_vx, p_vy;
 
@@ -230,6 +228,9 @@ void pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotat
 		p_owner->__crx = cby;	p_owner->__cby = clx;
 		p_owner->__px = py;		p_owner->__py = -px;
 		break;
+
+	default:
+		break;
 	}
 
 	(*p_lcd->_fn_set_rotation)(p_lcd, rotation);
@@ -255,11 +256,16 @@ void pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotat
 		p_owner->__crx = cty;	p_owner->__cby = crx;
 		p_owner->__px = -py;	p_owner->__py = px;
 		break;
+
+	default:
+		break;
 	}
 
+#ifndef PIF_NO_LOG
     pifLog_Printf(LT_INFO, "px = %f, py = %f", p_owner->__px, p_owner->__py);
 	pifLog_Printf(LT_INFO, "x = map(p.x, LEFT=%d, RIGHT=%d, 0, %d)", p_owner->__clx, p_owner->__crx, p_lcd->_width);
 	pifLog_Printf(LT_INFO, "y = map(p.y, TOP=%d, BOTTOM=%d, 0, %d)", p_owner->__cty, p_owner->__cby, p_lcd->_height);
+#endif
 }
 
 BOOL pifTouchScreen_Calibration(PifTouchScreen* p_owner)
@@ -303,14 +309,18 @@ BOOL pifTouchScreen_Calibration(PifTouchScreen* p_owner)
     p_owner->__cty -= p_owner->__py * 10;
     p_owner->__cby += p_owner->__py * 10;
 
+#ifndef PIF_NO_LOG
 	pifLog_Printf(LT_INFO, "%s CALIBRATION : %d x %d", orientation[p_lcd->_rotation & 1], dispx, dispy);
     pifLog_Printf(LT_INFO, "px = %f, py = %f", p_owner->__px, p_owner->__py);
 	pifLog_Printf(LT_INFO, "x = map(p.x, LEFT=%d, RT=%d, 0, %d)", p_owner->__clx, p_owner->__crx, dispx);
 	pifLog_Printf(LT_INFO, "y = map(p.y, TOP=%d, BOT=%d, 0, %d)", p_owner->__cty, p_owner->__cby, dispy);
+#endif
 
     int16_t x_range = p_owner->__clx - p_owner->__crx, y_range = p_owner->__cty - p_owner->__cby;
     if (abs(x_range) < 500 || abs(y_range) < 650) {
+#ifndef PIF_NO_LOG
         pifLog_Printf(LT_INFO, "\n*** UNUSUAL CALIBRATION RANGES %d %d", x_range, y_range);
+#endif
     	rtn = FALSE;
     	goto fail;
     }

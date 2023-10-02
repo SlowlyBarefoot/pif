@@ -15,6 +15,10 @@
 #define YELLOW  		0xFFFF00
 #define WHITE   		0xFFFFFF
 
+#define TFT_SETUP_DELAY_MS	0xFF
+
+
+typedef uint8_t PifTftLcdCmd;
 
 typedef enum EnPifTftLcdRotation
 {
@@ -27,6 +31,14 @@ typedef enum EnPifTftLcdRotation
 
 struct StPifTftLcd;
 typedef struct StPifTftLcd PifTftLcd;
+
+typedef void (*PifActLcdReset)();
+typedef void (*PifActLcdChipSelect)(SWITCH sw);
+typedef void (*PifActLcdReadCmd)(PifTftLcdCmd cmd, uint32_t* p_data, uint32_t size);
+typedef void (*PifActLcdWriteCmd)(PifTftLcdCmd cmd, uint32_t* p_data, uint32_t size);
+typedef void (*PifActLcdWriteData)(uint32_t* p_data, uint32_t size);
+typedef void (*PifActLcdWriteRepeat)(uint32_t* p_data, uint8_t size, uint32_t len);
+typedef void (*PifActLcdBackLight)(uint8_t level);
 
 typedef void (*PifTftLcdSetRotation)(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 typedef void (*PifTftLcdDrawPixel)(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint32_t color);
@@ -56,6 +68,17 @@ struct StPifTftLcd
     PifTftLcdDrawHorLine _fn_draw_hor_line;
     PifTftLcdDrawVerLine _fn_draw_ver_line;
     PifTftLcdDrawFillRect _fn_draw_fill_rect;
+
+	// Public Action Function
+    PifActLcdBackLight act_backlight;
+
+	// Private Action Function
+    PifActLcdReset __act_reset;
+    PifActLcdChipSelect __act_chip_select;
+    PifActLcdReadCmd __act_read_cmd;
+    PifActLcdWriteCmd __act_write_cmd;
+    PifActLcdWriteData __act_write_data;
+    PifActLcdWriteRepeat __act_write_repeat;
 };
 
 

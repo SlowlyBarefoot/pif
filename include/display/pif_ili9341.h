@@ -58,27 +58,38 @@ typedef enum EnPifIli9341Cmd
 	ILI9341_CMD_DRIVER_TIM_CTRL_B   	= 0xEA,
 	ILI9341_CMD_POWER_SEQ_CTRL			= 0xED,
 	ILI9341_CMD_ENABLE_3G    			= 0xF2,
+	ILI9341_CMD_INTERFACE_CTRL			= 0xF6,
 	ILI9341_CMD_PUMP_RATIO_CTRL			= 0xF7
 } PifIli9341Cmd;
 
 typedef enum EnPifIli9341Interface
 {
-	ILI9341_IF_PARALLEL_8BIT,
-	ILI9341_IF_PARALLEL_16BIT,
-	ILI9341_IF_SERIAL,
-	ILI9341_IF_RGB
+	ILI9341_IF_MCU_8BIT_I				= 0x00,
+	ILI9341_IF_MCU_16BIT_I				= 0x01,
+	ILI9341_IF_MCU_9BIT_I				= 0x02,
+	ILI9341_IF_MCU_18BIT_I				= 0x03,
+	ILI9341_IF_3_WIRE_9BIT_I			= 0x05,
+	ILI9341_IF_4_WIRE_8BIT_I			= 0x06,
+	ILI9341_IF_MCU_8BIT_II				= 0x08,
+	ILI9341_IF_MCU_16BIT_II				= 0x09,
+	ILI9341_IF_MCU_9BIT_II				= 0x0A,
+	ILI9341_IF_MCU_18BIT_II				= 0x0B,
+	ILI9341_IF_3_WIRE_9BIT_II			= 0x0D,
+	ILI9341_IF_4_WIRE_8BIT_II			= 0x0E
 } PifIli9341Interface;
+
+typedef enum EnPifIli9341PixelFormat
+{
+	ILI9341_PF_16BIT					= 5,
+	ILI9341_PF_18BIT					= 6,
+	ILI9341_PF_16BIT_RIM				= 13,
+	ILI9341_PF_18BIT_RIM				= 14
+} PifIli9341PixelFormat;
 
 struct StPifIli9341;
 typedef struct StPifIli9341 PifIli9341;
 
-typedef void (*PifActLcdReset)();
-typedef void (*PifActLcdChipSelect)(SWITCH sw);
-typedef void (*PifActLcdReadCmd)(PifIli9341Cmd cmd, uint16_t* p_data, uint32_t len);
-typedef void (*PifActLcdWriteCmd)(PifIli9341Cmd cmd, uint16_t* p_data, uint32_t len);
-typedef void (*PifActLcdWriteData)(uint16_t* p_data, uint32_t len);
-typedef void (*PifActLcdWriteRepeat)(uint16_t* p_data, uint8_t size, uint32_t len);
-typedef void (*PifActLcdBackLight)(uint8_t level);
+typedef uint8_t (*PifConvertColor)(PifIli9341* p_owner, uint32_t color, uint32_t* p_data);
 
 /**
  * @class StPifIli9341
@@ -92,24 +103,18 @@ struct StPifIli9341
 	// Public Member Variable
 
 	// Read-only Member Variable
-    PifIli9341Interface _interface;
     uint16_t _view_size;
     uint32_t _ic_id_04;
     uint32_t _ic_id_D3;
 
 	// Private Member Variable
-    const uint16_t* __p_rotation;
+    const uint8_t* __p_rotation;
+    PifIli9341Interface __interface;
+    PifIli9341PixelFormat __pixel_format;
+    uint8_t __mdt;
 
-	// Public Action Function
-    PifActLcdBackLight act_backlight;
-
-	// Private Action Function
-    PifActLcdReset __act_reset;
-    PifActLcdChipSelect __act_chip_select;
-    PifActLcdReadCmd __act_read_cmd;
-    PifActLcdWriteCmd __act_write_cmd;
-    PifActLcdWriteData __act_write_data;
-    PifActLcdWriteRepeat __act_write_repeat;
+	// Private Function
+    PifConvertColor __fn_convert_color;
 };
 
 
@@ -149,7 +154,7 @@ BOOL pifIli9341_AttachActParallel(PifIli9341* p_owner, PifActLcdReset act_reset,
  * @param p_setup
  * @param p_rotation
  */
-void pifIli9341_Setup(PifIli9341* p_owner, const uint16_t* p_setup, const uint16_t* p_rotation);
+void pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation);
 
 /**
  * @fn pifIli9341_SetRotation
