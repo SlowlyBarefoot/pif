@@ -305,7 +305,7 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 	PifGpsUblox *p_owner = (PifGpsUblox *)p_client;
     uint8_t data;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data, 1, NULL)) {
 		_parsingPacket(p_owner, data);
 	}
 }

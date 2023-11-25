@@ -27,7 +27,7 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 
 	p_buffer = p_owner->__p_buffer;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data, 1, NULL)) {
 		//add byte to the ring buffer
 		p_buffer[p_owner->__index++] = data;
 

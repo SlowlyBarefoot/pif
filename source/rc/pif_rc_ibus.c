@@ -19,7 +19,7 @@ static void _ParsingPacket(PifRcIbus *p_owner, PifActUartReceiveData act_receive
 	static uint16_t chksum;                  // checksum calculation
 	static uint8_t lchksum;                  // checksum lower byte received
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data, 1, NULL)) {
 		switch (p_owner->__rx_state) {
 		case IRS_GET_LENGTH:
 			if (data <= IBUS_FRAME_SIZE && data > IBUS_OVERHEAD) {

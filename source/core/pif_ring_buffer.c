@@ -210,15 +210,15 @@ BOOL pifRingBuffer_IsEmpty(PifRingBuffer* p_owner)
 
 uint16_t pifRingBuffer_GetFillSize(PifRingBuffer* p_owner)
 {
-	uint16_t usFill;
+	uint16_t fill;
 
     if (p_owner->__head >= p_owner->__tail) {
-    	usFill = p_owner->__head - p_owner->__tail;
+    	fill = p_owner->__head - p_owner->__tail;
     }
     else {
-    	usFill = p_owner->_size - p_owner->__tail + p_owner->__head;
+    	fill = p_owner->_size - p_owner->__tail + p_owner->__head;
     }
-    return usFill;
+    return fill;
 }
 
 uint16_t pifRingBuffer_GetLinerSize(PifRingBuffer* p_owner, uint16_t pos)
@@ -337,6 +337,20 @@ BOOL pifRingBuffer_GetByte(PifRingBuffer* p_owner, uint8_t* p_data)
 	return TRUE;
 }
 
+uint16_t pifRingBuffer_GetBytes(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t length)
+{
+	uint16_t i;
+
+	for (i = 0; i < length; i++) {
+		if (p_owner->__tail == p_owner->__head) return i;
+
+		p_data[i] = p_owner->__p_buffer[p_owner->__tail];
+		p_owner->__tail++;
+		if (p_owner->__tail >= p_owner->_size) p_owner->__tail = 0;
+	}
+	return i;
+}
+
 uint16_t pifRingBuffer_CopyToArray(uint8_t* p_dst, uint16_t count, PifRingBuffer* p_src, uint16_t pos)
 {
 	uint16_t tail = p_src->__tail + pos;
@@ -357,12 +371,12 @@ uint16_t pifRingBuffer_CopyAll(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint1
 	uint16_t remain = pifRingBuffer_GetRemainSize(p_dst);
 	uint16_t length = remain < fill ? remain : fill;
 
-	uint16_t usTail = p_src->__tail + pos;
-	if (usTail >= p_src->_size) usTail -= p_src->_size;
+	uint16_t tail = p_src->__tail + pos;
+	if (tail >= p_src->_size) tail -= p_src->_size;
 	for (uint16_t i = 0; i < length; i++) {
-		pifRingBuffer_PutByte(p_dst, p_src->__p_buffer[usTail]);
-		usTail++;
-		if (usTail >= p_src->_size) usTail = 0;
+		pifRingBuffer_PutByte(p_dst, p_src->__p_buffer[tail]);
+		tail++;
+		if (tail >= p_src->_size) tail = 0;
 	}
 	return length;
 }

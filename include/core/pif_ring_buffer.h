@@ -271,6 +271,16 @@ BOOL pifRingBuffer_PutString(PifRingBuffer* p_owner, char* p_string);
 BOOL pifRingBuffer_GetByte(PifRingBuffer* p_owner, uint8_t* p_data);
 
 /**
+ * @fn pifRingBuffer_GetBytes
+ * @brief
+ * @param p_owner
+ * @param p_data
+ * @param length
+ * @return
+ */
+uint16_t pifRingBuffer_GetBytes(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t length);
+
+/**
  * @fn pifRingBuffer_CopyToArray
  * @brief
  * @param p_dst

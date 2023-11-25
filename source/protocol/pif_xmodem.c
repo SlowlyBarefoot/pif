@@ -74,7 +74,7 @@ static void _parsingPacket(PifXmodem* p_owner, PifActUartReceiveData act_receive
 	uint8_t data;
 	uint16_t crc;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data, 1, NULL)) {
 		switch (p_owner->__rx.state)	{
 		case XRS_IDLE:
 			switch (data) {
@@ -200,7 +200,7 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 	uint8_t data;
 
 	if (p_owner->__tx.state == XTS_WAIT_RESPONSE) {
-		if ((*act_receive_data)(p_owner->__p_uart, &data)) {
+		if ((*act_receive_data)(p_owner->__p_uart, &data, 1, NULL)) {
 			switch (data) {
 			case ASCII_ACK:
 			case ASCII_NAK:

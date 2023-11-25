@@ -1,18 +1,93 @@
+#include "core/pif_log.h"
 #include "communication/pif_uart.h"
 
 
-static BOOL _actReceiveData(PifUart* p_owner, uint8_t* p_data)
+static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t length, uint8_t* p_rate)
 {
-	return pifRingBuffer_GetByte(p_owner->_p_rx_buffer, p_data);
+	uint8_t i, tx;
+	uint16_t len = 0;
+
+	if (p_owner->act_receive_data) {
+		len = (*p_owner->act_receive_data)(p_owner, p_data, length, p_rate);
+		if (!len) return 0;
+	}
+	else if (p_owner->_p_rx_buffer) {
+		len = pifRingBuffer_GetBytes(p_owner->_p_rx_buffer, p_data, length);
+		if (!len) return 0;
+		if (p_rate) *p_rate = 100 * pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) / p_owner->_p_rx_buffer->_size;
+	}
+	else {
+		return 0;
+	}
+
+	switch (p_owner->_flow_control) {
+	case UFC_SOFTWARE:
+		for (i = 0; i < len; i++) {
+			switch (p_data[i]) {
+			case ASCII_XON:
+				p_owner->_fc_state = ON;
+				if (p_owner->__evt_tx_flow_state) (*p_owner->__evt_tx_flow_state)(p_owner->__p_client, ON);
+				break;
+
+			case ASCII_XOFF:
+				p_owner->_fc_state = OFF;
+				if (p_owner->__evt_tx_flow_state) (*p_owner->__evt_tx_flow_state)(p_owner->__p_client, OFF);
+				break;
+
+			default:
+				break;
+			}
+		}
+
+		if (p_rate) {
+			if (p_owner->_fc_state) {
+				if (*p_rate > p_owner->fc_limit) {
+					p_owner->_fc_state = OFF;
+					tx = ASCII_XOFF;
+					pifUart_SendTxData(p_owner, &tx, 1);
+				}
+			}
+			else {
+				if (*p_rate == 0) {
+					p_owner->_fc_state = ON;
+					tx = ASCII_XON;
+					pifUart_SendTxData(p_owner, &tx, 1);
+				}
+			}
+		}
+		break;
+
+	case UFC_HARDWARE:
+		if (p_rate && p_owner->act_rx_flow_state) {
+			if (p_owner->_fc_state) {
+				if (*p_rate > p_owner->fc_limit) {
+					p_owner->_fc_state = OFF;
+					(*p_owner->act_rx_flow_state)(p_owner, OFF);
+				}
+			}
+			else {
+				if (*p_rate == 0) {
+					p_owner->_fc_state = ON;
+					(*p_owner->act_rx_flow_state)(p_owner, ON);
+				}
+			}
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	return len;
 }
 
-static uint16_t _actSendData(PifUart* p_owner, uint8_t* p_buffer, uint16_t size)
+static uint16_t _actSendData(PifUart* p_owner, uint8_t* p_data, uint16_t size)
 {
 	uint16_t remain = pifRingBuffer_GetRemainSize(p_owner->_p_tx_buffer);
 
 	if (!remain) return 0;
 	if (size > remain) size = remain;
-	if (pifRingBuffer_PutData(p_owner->_p_tx_buffer, p_buffer, size)) {
+	if (pifRingBuffer_PutData(p_owner->_p_tx_buffer, p_data, size)) {
 		return size;
 	}
 	return 0;
@@ -20,17 +95,24 @@ static uint16_t _actSendData(PifUart* p_owner, uint8_t* p_buffer, uint16_t size)
 
 static void _sendData(PifUart* p_owner)
 {
-	if (p_owner->act_send_data) {
-		(*p_owner->__evt_sending)(p_owner->__p_client, p_owner->act_send_data);
+	if (p_owner->__evt_sending) {
+		if (p_owner->act_send_data) {
+			(*p_owner->__evt_sending)(p_owner->__p_client, p_owner->act_send_data);
+		}
+		else if (p_owner->_p_tx_buffer) {
+			if ((*p_owner->__evt_sending)(p_owner->__p_client, _actSendData)) goto next;
+		}
 	}
-	else if (p_owner->_p_tx_buffer) {
-		if ((*p_owner->__evt_sending)(p_owner->__p_client, _actSendData)) {
-			if (p_owner->__state == UTS_IDLE) {
-				p_owner->__state = UTS_SENDING;
-				if (p_owner->act_start_transfer) {
-					if (!(*p_owner->act_start_transfer)(p_owner)) p_owner->__state = UTS_IDLE;
-				}
-			}
+	else {
+		if (p_owner->_p_tx_buffer) goto next;
+	}
+	return;
+
+next:
+	if (p_owner->__state == UTS_IDLE) {
+		p_owner->__state = UTS_SENDING;
+		if (p_owner->act_start_transfer) {
+			if (!(*p_owner->act_start_transfer)(p_owner)) p_owner->__state = UTS_IDLE;
 		}
 	}
 }
@@ -44,9 +126,11 @@ BOOL pifUart_Init(PifUart* p_owner, PifId id)
 
 	memset(p_owner, 0, sizeof(PifUart));
 
+	p_owner->fc_limit = 50;					// default: 50%
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     p_owner->_frame_size = 1;
+	p_owner->_fc_state = ON;
     return TRUE;
 }
 
@@ -120,6 +204,41 @@ void pifUart_DetachClient(PifUart* p_owner)
 	p_owner->__evt_sending = NULL;
 }
 
+void pifUart_ResetFlowControl(PifUart* p_owner)
+{
+	p_owner->_flow_control = UFC_NONE;
+	p_owner->__evt_tx_flow_state = NULL;
+}
+
+void pifUart_SetFlowControl(PifUart* p_owner, PifUartFlowControl flow_control, PifEvtUartTxFlowState evt_tx_flow_state)
+{
+	p_owner->_flow_control = flow_control;
+	p_owner->__evt_tx_flow_state = evt_tx_flow_state;
+	p_owner->_fc_state = ON;
+	if (flow_control == UFC_HARDWARE && p_owner->act_rx_flow_state) (*p_owner->act_rx_flow_state)(p_owner, ON);
+}
+
+BOOL pifUart_ChangeRxFlowState(PifUart* p_owner, SWITCH state)
+{
+	if (p_owner->_flow_control == UFC_SOFTWARE) {
+		return pifUart_SendTxData(p_owner, &state, 1);
+	}
+	else if (p_owner->_flow_control == UFC_HARDWARE) {
+		(*p_owner->act_rx_flow_state)(p_owner->__p_client, state);
+	}
+	return TRUE;
+}
+
+void pifUart_SigTxFlowState(PifUart* p_owner, SWITCH state)
+{
+	if (p_owner->_flow_control != UFC_HARDWARE) return;
+
+	p_owner->_fc_state = state;
+	if (p_owner->__evt_tx_flow_state) {
+		(*p_owner->__evt_tx_flow_state)(p_owner->__p_client, state);
+	}
+}
+
 uint16_t pifUart_GetRemainSizeOfRxBuffer(PifUart* p_owner)
 {
 	return pifRingBuffer_GetRemainSize(p_owner->_p_rx_buffer);
@@ -189,15 +308,11 @@ uint8_t pifUart_EndGetTxData(PifUart* p_owner, uint16_t length)
 
 uint16_t pifUart_ReceiveRxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
-	uint16_t i = 0, len;
+	uint8_t rate;
+	uint16_t len;
 
 	if (p_owner->act_receive_data) {
-		i = 0;
-		while (i < length) {
-			if (!(*p_owner->act_receive_data)(p_owner, p_data + i)) break;
-			i++;
-		}
-		return i;
+		return (*p_owner->act_receive_data)(p_owner, p_data, length, &rate);
 	}
 	else if (p_owner->_p_rx_buffer) {
 		len = pifRingBuffer_CopyToArray(p_data, length, p_owner->_p_rx_buffer, 0);
@@ -209,26 +324,23 @@ uint16_t pifUart_ReceiveRxData(PifUart* p_owner, uint8_t* p_data, uint16_t lengt
 	return 0;
 }
 
-BOOL pifUart_SendTxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
+uint16_t pifUart_SendTxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
+	uint16_t len = 0;
+
 	if (p_owner->act_send_data) {
-		return (*p_owner->act_send_data)(p_owner, p_data, length) == length;
+		len = (*p_owner->act_send_data)(p_owner, p_data, length);
 	}
 	else if (p_owner->_p_tx_buffer) {
-		return pifRingBuffer_PutData(p_owner->_p_tx_buffer, p_data, length);
+		len = pifRingBuffer_PutData(p_owner->_p_tx_buffer, p_data, length) ? length : 0;
 	}
-	return FALSE;
+	return len;
 }
 
 void pifUart_FinishTransfer(PifUart* p_owner)
 {
 	p_owner->__state = UTS_IDLE;
 	pifTask_SetTrigger(p_owner->_p_task);
-}
-
-void pifUart_ForceSendData(PifUart* p_owner)
-{
-	if (p_owner->__evt_sending) _sendData(p_owner);
 }
 
 void pifUart_AbortRx(PifUart* p_owner)
@@ -240,17 +352,16 @@ void pifUart_AbortRx(PifUart* p_owner)
 static uint16_t _doTask(PifTask* p_task)
 {
 	PifUart *p_owner = p_task->_p_client;
+	uint8_t data;
 
 	if (p_owner->__evt_parsing) {
-		if (p_owner->act_receive_data) {
-			(*p_owner->__evt_parsing)(p_owner->__p_client, p_owner->act_receive_data);
-		}
-		else if (p_owner->_p_rx_buffer) {
-			(*p_owner->__evt_parsing)(p_owner->__p_client, _actReceiveData);
-		}
+		(*p_owner->__evt_parsing)(p_owner->__p_client, _actReceiveData);
+	}
+	else {
+		_actReceiveData(p_owner, &data, 1, NULL);
 	}
 
-	if (p_owner->__evt_sending) _sendData(p_owner);
+	_sendData(p_owner);
 	return 0;
 }
 
@@ -263,4 +374,3 @@ PifTask* pifUart_AttachTask(PifUart* p_owner, PifTaskMode mode, uint16_t period,
 	}
 	return p_owner->_p_task;
 }
-
