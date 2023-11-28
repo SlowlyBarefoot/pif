@@ -161,8 +161,9 @@ void pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
  * @brief
  * @param p_parent
  * @param rotation
+ * @return
  */
-void pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
+BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 
 /**
  * @fn pifIli9341_DrawPixel

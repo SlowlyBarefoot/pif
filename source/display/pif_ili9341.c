@@ -295,7 +295,7 @@ BOOL pifIli9341_AttachActParallel(PifIli9341* p_owner, PifActLcdReset act_reset,
 {
 	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
 
-	if (!p_owner || !act_reset || !act_chip_select || !act_read_cmd || !act_write_cmd || !act_write_data || !act_write_repeat) {
+	if (!p_owner || !act_reset || !act_chip_select || !act_write_cmd || !act_write_data || !act_write_repeat) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
@@ -318,7 +318,9 @@ void pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 
 	p_owner->__p_rotation = p_rotation;
 #ifndef PIF_NO_LOG
-	pifLog_Printf(LT_INFO, "Rot: %X, %X, %X, %X", p_owner->__p_rotation[0], p_owner->__p_rotation[1], p_owner->__p_rotation[2], p_owner->__p_rotation[3]);
+	if (p_rotation) {
+		pifLog_Printf(LT_INFO, "Rot: %X, %X, %X, %X", p_rotation[0], p_rotation[1], p_rotation[2], p_rotation[3]);
+	}
 #endif
 
 	p = p_setup;
@@ -347,17 +349,19 @@ void pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 
 	for (i = 0; i < 3; i++)	(*p_parent->__act_write_cmd)(ILI9341_CMD_NOP, NULL, 0);
 
-	(*p_parent->__act_read_cmd)(ILI9341_CMD_READ_DISP_ID_INFO, data, 4);
-	p_owner->_ic_id_04 = (data[1] << 16) + (data[2] << 8) + data[3];
+	if (p_parent->__act_read_cmd) {
+		(*p_parent->__act_read_cmd)(ILI9341_CMD_READ_DISP_ID_INFO, data, 4);
+		p_owner->_ic_id_04 = (data[1] << 16) + (data[2] << 8) + data[3];
 #ifndef PIF_NO_LOG
-	pifLog_Printf(LT_INFO, "ID(%Xh): %Xh", ILI9341_CMD_READ_DISP_ID_INFO, p_owner->_ic_id_04);
+		pifLog_Printf(LT_INFO, "ID(%Xh): %Xh", ILI9341_CMD_READ_DISP_ID_INFO, p_owner->_ic_id_04);
 #endif
 
-	(*p_parent->__act_read_cmd)(ILI9341_CMD_READ_ID_4, data, 4);
-	p_owner->_ic_id_D3 = (data[1] << 16) + (data[2] << 8) + data[3];
+		(*p_parent->__act_read_cmd)(ILI9341_CMD_READ_ID_4, data, 4);
+		p_owner->_ic_id_D3 = (data[1] << 16) + (data[2] << 8) + data[3];
 #ifndef PIF_NO_LOG
-	pifLog_Printf(LT_INFO, "ID(%Xh): %Xh", ILI9341_CMD_READ_ID_4, p_owner->_ic_id_D3);
+		pifLog_Printf(LT_INFO, "ID(%Xh): %Xh", ILI9341_CMD_READ_ID_4, p_owner->_ic_id_D3);
 #endif
+	}
 
 	p = p_setup;
 	while (*p) {
@@ -382,10 +386,15 @@ void pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 	(*p_parent->__act_chip_select)(FALSE);
 }
 
-void pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
+BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 {
 	PifIli9341* p_owner = (PifIli9341*)p_parent;
 	uint16_t val;
+
+	if (!p_owner->__p_rotation) {
+		pif_error = E_CANNOT_USE;
+		return FALSE;
+	}
 
 	if (rotation & 1) {
 		p_parent->_width = ILI9341_HEIGHT;
@@ -404,6 +413,7 @@ void pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 #ifndef PIF_NO_LOG
 	pifLog_Printf(LT_INFO, "Rot: %d, %X, %X, %X, %X", rotation, p_owner->__p_rotation[0], p_owner->__p_rotation[1], p_owner->__p_rotation[2], p_owner->__p_rotation[3]);
 #endif
+	return TRUE;
 }
 
 void pifIli9341_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint32_t color)
