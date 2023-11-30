@@ -12,9 +12,9 @@
 #define ILI9341_MADCTL_MX  		0x40
 #define ILI9341_MADCTL_MV  		0x20
 #define ILI9341_MADCTL_ML  		0x10
-#define ILI9341_MADCTL_RGB 		0x00
-#define ILI9341_MADCTL_BGR 		0x08
 #define ILI9341_MADCTL_MH  		0x04
+#define ILI9341_MADCTL_BGR 		0x08
+#define ILI9341_MADCTL_RGB 		0x00
 
 
 typedef enum EnPifIli9341Cmd

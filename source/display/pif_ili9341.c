@@ -2,32 +2,30 @@
 #include "display/pif_ili9341.h"
 
 
-static void _convertCmd(PifIli9341* p_owner, uint8_t* p_src, uint32_t* p_dst, uint8_t len)
+static void _convertCmd(PifIli9341Interface interface, uint8_t* p_src, uint32_t* p_dst, uint8_t len)
 {
 	uint8_t i;
 
-	switch (p_owner->__interface) {
-	case ILI9341_IF_MCU_8BIT_I:
-	case ILI9341_IF_MCU_16BIT_I:
-	case ILI9341_IF_MCU_9BIT_I:
-	case ILI9341_IF_MCU_18BIT_I:
-		for (i = 0; i < len; i++) p_dst[i] = p_src[i];
-		break;
-
+	switch (interface) {
 	case ILI9341_IF_MCU_8BIT_II:
 	case ILI9341_IF_MCU_9BIT_II:
-		for (i = 0; i < len; i++) p_dst[i] = p_src[i] << 10;
+		for (i = 0; i < len; i++) p_dst[i] = (uint32_t)p_src[i] << 10;
 		break;
 
 	case ILI9341_IF_MCU_16BIT_II:
 	case ILI9341_IF_MCU_18BIT_II:
-		for (i = 0; i < len; i++) p_dst[i] = p_src[i] << 1;
+		for (i = 0; i < len; i++) p_dst[i] = (uint32_t)p_src[i] << 1;
+		break;
+
+	default:
+		for (i = 0; i < len; i++) p_dst[i] = (uint32_t)p_src[i];
 		break;
 	}
 }
 
-static void _setAddress(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
+static void _setAddress(PifIli9341* p_owner, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
+	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
 	uint8_t src[4];
 	uint32_t dst[4];
 
@@ -35,14 +33,14 @@ static void _setAddress(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t 
 	src[1] = x1 & 0xFF;
 	src[2] = x2 >> 8;
 	src[3] = x2 & 0xFF;
-	_convertCmd((PifIli9341*)p_parent, src, dst, 4);
+	_convertCmd(p_owner->__interface, src, dst, 4);
 	(*p_parent->__act_write_cmd)(ILI9341_CMD_COL_ADDR_SET, dst, 4);
 
 	src[0] = y1 >> 8;
 	src[1] = y1 & 0xFF;
 	src[2] = y2 >> 8;
 	src[3] = y2 & 0xFF;
-	_convertCmd((PifIli9341*)p_parent, src, dst, 4);
+	_convertCmd(p_owner->__interface, src, dst, 4);
 	(*p_parent->__act_write_cmd)(ILI9341_CMD_PAGE_ADDR_SET, dst, 4);
 
 	(*p_parent->__act_write_cmd)(ILI9341_CMD_MEM_WRITE, NULL, 0);
@@ -323,7 +321,7 @@ void pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 	}
 #endif
 
-	p = p_setup;
+	p = (uint8_t*)p_setup;
 	while (*p) {
 		cmd = *p++;
 		len = *p++;
@@ -363,7 +361,7 @@ void pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 #endif
 	}
 
-	p = p_setup;
+	p = (uint8_t*)p_setup;
 	while (*p) {
 		cmd = *p++;
 		len = *p++;
@@ -371,7 +369,7 @@ void pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 			pif_Delay1ms(len);
 		}
 		else {
-			_convertCmd((PifIli9341*)p_parent, p, data, len);
+			_convertCmd(p_owner->__interface, p, data, len);
 			(*p_parent->__act_write_cmd)(cmd, data, len);
 			p += len;
 		}
@@ -389,7 +387,7 @@ void pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 {
 	PifIli9341* p_owner = (PifIli9341*)p_parent;
-	uint16_t val;
+	uint32_t data[1];
 
 	if (!p_owner->__p_rotation) {
 		pif_error = E_CANNOT_USE;
@@ -407,11 +405,12 @@ BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 	p_parent->_rotation = rotation;
 
 	(*p_parent->__act_chip_select)(TRUE);
-    (*p_parent->__act_write_cmd)(ILI9341_CMD_MEM_ACCESS_CTRL, &p_owner->__p_rotation[rotation], 1);
+	_convertCmd(p_owner->__interface, (uint8_t*)(p_owner->__p_rotation + rotation), data, 1);
+    (*p_parent->__act_write_cmd)(ILI9341_CMD_MEM_ACCESS_CTRL, data, 1);
 	(*p_parent->__act_chip_select)(FALSE);
 
 #ifndef PIF_NO_LOG
-	pifLog_Printf(LT_INFO, "Rot: %d, %X, %X, %X, %X", rotation, p_owner->__p_rotation[0], p_owner->__p_rotation[1], p_owner->__p_rotation[2], p_owner->__p_rotation[3]);
+	pifLog_Printf(LT_INFO, "Rot: %d -> %X", rotation, p_owner->__p_rotation[rotation]);
 #endif
 	return TRUE;
 }

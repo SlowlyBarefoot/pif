@@ -40,7 +40,7 @@ typedef void (*PifActLcdWriteData)(uint32_t* p_data, uint32_t size);
 typedef void (*PifActLcdWriteRepeat)(uint32_t* p_data, uint8_t size, uint32_t len);
 typedef void (*PifActLcdBackLight)(uint8_t level);
 
-typedef void (*PifTftLcdSetRotation)(PifTftLcd* p_parent, PifTftLcdRotation rotation);
+typedef BOOL (*PifTftLcdSetRotation)(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 typedef void (*PifTftLcdDrawPixel)(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint32_t color);
 typedef void (*PifTftLcdDrawHorLine)(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, uint32_t color);
 typedef void (*PifTftLcdDrawVerLine)(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, uint32_t color);
