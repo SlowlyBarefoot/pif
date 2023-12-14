@@ -334,6 +334,7 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 	PifProtocol* p_owner = (PifProtocol*)p_client;
 	uint16_t length;
 
+	if (!p_owner->__p_uart->_fc_state) return FALSE;
 	if (p_owner->__rx.state != PRS_IDLE) return FALSE;
 
 	if (!pifRingBuffer_IsEmpty(&p_owner->__tx.answer_buffer)) {

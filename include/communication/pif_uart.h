@@ -63,8 +63,10 @@ typedef void (*PifEvtUartTxFlowState)(void* p_client, SWITCH state);
 typedef enum EnPifUartFlowControl
 {
 	UFC_NONE		= 0,
-	UFC_SOFTWARE,			// Xon / Xoff
-	UFC_HARDWARE			// RTS / CTS, DSR / DTR
+	UFC_HOST_SOFTWARE,			// Xon / Xoff
+	UFC_DEVICE_SOFTWARE,
+	UFC_HOST_HARDWARE,			// RTS / CTS, DSR / DTR
+	UFC_DEVICE_HARDWARE
 } PifUartFlowControl;
 
 typedef enum EnPifUartTxState

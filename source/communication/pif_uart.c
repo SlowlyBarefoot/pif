@@ -21,7 +21,7 @@ static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t leng
 	}
 
 	switch (p_owner->_flow_control) {
-	case UFC_SOFTWARE:
+	case UFC_HOST_SOFTWARE:
 		for (i = 0; i < len; i++) {
 			switch (p_data[i]) {
 			case ASCII_XON:
@@ -38,7 +38,9 @@ static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t leng
 				break;
 			}
 		}
+		break;
 
+	case UFC_DEVICE_SOFTWARE:
 		if (p_rate) {
 			if (p_owner->_fc_state) {
 				if (*p_rate > p_owner->fc_limit) {
@@ -57,7 +59,7 @@ static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t leng
 		}
 		break;
 
-	case UFC_HARDWARE:
+	case UFC_DEVICE_HARDWARE:
 		if (p_rate && p_owner->act_rx_flow_state) {
 			if (p_owner->_fc_state) {
 				if (*p_rate > p_owner->fc_limit) {
@@ -215,15 +217,15 @@ void pifUart_SetFlowControl(PifUart* p_owner, PifUartFlowControl flow_control, P
 	p_owner->_flow_control = flow_control;
 	p_owner->__evt_tx_flow_state = evt_tx_flow_state;
 	p_owner->_fc_state = ON;
-	if (flow_control == UFC_HARDWARE && p_owner->act_rx_flow_state) (*p_owner->act_rx_flow_state)(p_owner, ON);
+	if (flow_control == UFC_DEVICE_HARDWARE && p_owner->act_rx_flow_state) (*p_owner->act_rx_flow_state)(p_owner, ON);
 }
 
 BOOL pifUart_ChangeRxFlowState(PifUart* p_owner, SWITCH state)
 {
-	if (p_owner->_flow_control == UFC_SOFTWARE) {
+	if (p_owner->_flow_control == UFC_DEVICE_SOFTWARE) {
 		return pifUart_SendTxData(p_owner, &state, 1);
 	}
-	else if (p_owner->_flow_control == UFC_HARDWARE) {
+	else if (p_owner->_flow_control == UFC_DEVICE_HARDWARE) {
 		(*p_owner->act_rx_flow_state)(p_owner->__p_client, state);
 	}
 	return TRUE;
@@ -231,7 +233,7 @@ BOOL pifUart_ChangeRxFlowState(PifUart* p_owner, SWITCH state)
 
 void pifUart_SigTxFlowState(PifUart* p_owner, SWITCH state)
 {
-	if (p_owner->_flow_control != UFC_HARDWARE) return;
+	if (p_owner->_flow_control != UFC_HOST_HARDWARE) return;
 
 	p_owner->_fc_state = state;
 	if (p_owner->__evt_tx_flow_state) {

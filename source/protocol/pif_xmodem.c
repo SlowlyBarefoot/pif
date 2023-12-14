@@ -256,6 +256,8 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 	uint8_t data;
 	static uint32_t timer1ms;
 
+	if (!p_owner->__p_uart->_fc_state) return FALSE;
+
 	switch (p_owner->__tx.state) {
 	case XTS_SEND_C:
 		data = 'C';
