@@ -9,7 +9,7 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 	PifGpsNmea *p_owner = (PifGpsNmea *)p_client;
 	uint8_t c;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &c, 1, NULL)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &c, 1)) {
 		pifGps_ParsingNmea(&p_owner->_gps, c);
 	}
 }

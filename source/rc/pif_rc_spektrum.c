@@ -20,7 +20,7 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 
 	p_buffer = p_owner->__p_buffer;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1, NULL)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
 		p_buffer[p_owner->__index++] = data;
 
 		if (p_owner->__index == 2) {

@@ -50,9 +50,10 @@ struct StPifUart;
 typedef struct StPifUart PifUart;
 
 typedef BOOL (*PifActUartSetBaudRate)(PifUart* p_uart, uint32_t baudrate);
-typedef uint16_t (*PifActUartReceiveData)(PifUart* p_uart, uint8_t* p_data, uint16_t size, uint8_t* p_rate);
+typedef uint16_t (*PifActUartReceiveData)(PifUart* p_uart, uint8_t* p_data, uint16_t size);
 typedef uint16_t (*PifActUartSendData)(PifUart* p_uart, uint8_t* p_data, uint16_t size);
 typedef BOOL (*PifActUartStartTransfer)(PifUart* p_uart);
+typedef uint8_t (*PifActUartGetRxRate)(PifUart* p_uart);
 typedef void (*PifActUartRxFlowState)(PifUart* p_uart, SWITCH state);
 
 typedef void (*PifEvtUartParsing)(void* p_client, PifActUartReceiveData act_receive_data);
@@ -62,11 +63,14 @@ typedef void (*PifEvtUartTxFlowState)(void* p_client, SWITCH state);
 
 typedef enum EnPifUartFlowControl
 {
-	UFC_NONE		= 0,
-	UFC_HOST_SOFTWARE,			// Xon / Xoff
-	UFC_DEVICE_SOFTWARE,
-	UFC_HOST_HARDWARE,			// RTS / CTS, DSR / DTR
-	UFC_DEVICE_HARDWARE
+	UFC_NONE			= 0,
+	UFC_HOST_SOFTWARE	= 2,	// Xon / Xoff
+	UFC_HOST_HARDWARE	= 3,	// RTS / CTS, DSR / DTR
+	UFC_DEVICE_SOFTWARE	= 4,	// Xon / Xoff
+	UFC_DEVICE_HARDWARE	= 5,	// RTS / CTS, DSR / DTR
+
+	UFC_HOST_MASK		= 2,
+	UFC_DEVICE_MASK		= 4
 } PifUartFlowControl;
 
 typedef enum EnPifUartTxState
@@ -89,6 +93,7 @@ struct StPifUart
 	PifActUartReceiveData act_receive_data;
     PifActUartSendData act_send_data;
     PifActUartStartTransfer act_start_transfer;
+    PifActUartGetRxRate act_get_rx_rate;
     PifActUartRxFlowState act_rx_flow_state;
 
     // Public Event Function

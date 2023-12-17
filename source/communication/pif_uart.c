@@ -2,19 +2,18 @@
 #include "communication/pif_uart.h"
 
 
-static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t length, uint8_t* p_rate)
+static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
-	uint8_t i, tx;
+	uint8_t i;
 	uint16_t len = 0;
 
 	if (p_owner->act_receive_data) {
-		len = (*p_owner->act_receive_data)(p_owner, p_data, length, p_rate);
+		len = (*p_owner->act_receive_data)(p_owner, p_data, length);
 		if (!len) return 0;
 	}
 	else if (p_owner->_p_rx_buffer) {
 		len = pifRingBuffer_GetBytes(p_owner->_p_rx_buffer, p_data, length);
 		if (!len) return 0;
-		if (p_rate) *p_rate = 100 * pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) / p_owner->_p_rx_buffer->_size;
 	}
 	else {
 		return 0;
@@ -36,42 +35,6 @@ static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t leng
 
 			default:
 				break;
-			}
-		}
-		break;
-
-	case UFC_DEVICE_SOFTWARE:
-		if (p_rate) {
-			if (p_owner->_fc_state) {
-				if (*p_rate > p_owner->fc_limit) {
-					p_owner->_fc_state = OFF;
-					tx = ASCII_XOFF;
-					pifUart_SendTxData(p_owner, &tx, 1);
-				}
-			}
-			else {
-				if (*p_rate == 0) {
-					p_owner->_fc_state = ON;
-					tx = ASCII_XON;
-					pifUart_SendTxData(p_owner, &tx, 1);
-				}
-			}
-		}
-		break;
-
-	case UFC_DEVICE_HARDWARE:
-		if (p_rate && p_owner->act_rx_flow_state) {
-			if (p_owner->_fc_state) {
-				if (*p_rate > p_owner->fc_limit) {
-					p_owner->_fc_state = OFF;
-					(*p_owner->act_rx_flow_state)(p_owner, OFF);
-				}
-			}
-			else {
-				if (*p_rate == 0) {
-					p_owner->_fc_state = ON;
-					(*p_owner->act_rx_flow_state)(p_owner, ON);
-				}
 			}
 		}
 		break;
@@ -310,11 +273,10 @@ uint8_t pifUart_EndGetTxData(PifUart* p_owner, uint16_t length)
 
 uint16_t pifUart_ReceiveRxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
-	uint8_t rate;
 	uint16_t len;
 
 	if (p_owner->act_receive_data) {
-		return (*p_owner->act_receive_data)(p_owner, p_data, length, &rate);
+		return (*p_owner->act_receive_data)(p_owner, p_data, length);
 	}
 	else if (p_owner->_p_rx_buffer) {
 		len = pifRingBuffer_CopyToArray(p_data, length, p_owner->_p_rx_buffer, 0);
@@ -354,13 +316,63 @@ void pifUart_AbortRx(PifUart* p_owner)
 static uint16_t _doTask(PifTask* p_task)
 {
 	PifUart *p_owner = p_task->_p_client;
-	uint8_t data;
+	uint8_t data, rate, tx;
 
+	if (p_owner->_flow_control & UFC_DEVICE_MASK) {
+		if (p_owner->act_get_rx_rate) {
+			rate = (*p_owner->act_get_rx_rate)(p_owner);
+		}
+		else if (p_owner->_p_rx_buffer) {
+			rate = 100 * pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) / p_owner->_p_rx_buffer->_size;
+		}
+		else goto next;
+
+		switch (p_owner->_flow_control) {
+		case UFC_DEVICE_SOFTWARE:
+			if (p_owner->_fc_state) {
+				if (rate > p_owner->fc_limit) {
+					p_owner->_fc_state = OFF;
+					tx = ASCII_XOFF;
+					pifUart_SendTxData(p_owner, &tx, 1);
+				}
+			}
+			else {
+				if (rate == 0) {
+					p_owner->_fc_state = ON;
+					tx = ASCII_XON;
+					pifUart_SendTxData(p_owner, &tx, 1);
+				}
+			}
+			break;
+
+		case UFC_DEVICE_HARDWARE:
+			if (p_owner->act_rx_flow_state) {
+				if (p_owner->_fc_state) {
+					if (rate > p_owner->fc_limit) {
+						p_owner->_fc_state = OFF;
+						(*p_owner->act_rx_flow_state)(p_owner, OFF);
+					}
+				}
+				else {
+					if (rate == 0) {
+						p_owner->_fc_state = ON;
+						(*p_owner->act_rx_flow_state)(p_owner, ON);
+					}
+				}
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
+
+next:
 	if (p_owner->__evt_parsing) {
 		(*p_owner->__evt_parsing)(p_owner->__p_client, _actReceiveData);
 	}
 	else {
-		_actReceiveData(p_owner, &data, 1, NULL);
+		_actReceiveData(p_owner, &data, 1);
 	}
 
 	_sendData(p_owner);

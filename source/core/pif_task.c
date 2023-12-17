@@ -800,13 +800,15 @@ void pifTaskManager_Print()
 		else {
 			pifLog_Print(LT_NONE, "  ---");
 		}
-		pifLog_Printf(LT_NONE, " (%d): %s-%d,  proc: M=%dus, A=%dus T=%dms", p_owner->_id, mode[p_owner->_mode], p_owner->_period,
-				p_owner->_max_execution_time, p_owner->_total_execution_time / p_owner->_execution_count, p_owner->_total_execution_time / 1000);
+		pifLog_Printf(LT_NONE, " (%d): %s-%d\n", p_owner->_id, mode[p_owner->_mode], p_owner->_period);
+		pifLog_Printf(LT_NONE, "    Proc: M=%dus A=%dus T=%dms\n", p_owner->_max_execution_time,
+				p_owner->_total_execution_time / p_owner->_execution_count, p_owner->_total_execution_time / 1000);
 		if (p_owner->_total_period_time) {
-			pifLog_Printf(LT_NONE, ",  period: %dus", p_owner->_total_period_time / p_owner->_period_count);
+			pifLog_Printf(LT_NONE, "    Period: %dus\n", p_owner->_total_period_time / p_owner->_period_count);
 		}
 		if (p_owner->_total_trigger_delay) {
-			pifLog_Printf(LT_NONE, ",  delay: M=%dus A=%dus", p_owner->_max_trigger_delay, p_owner->_total_trigger_delay / p_owner->_execution_count);
+			pifLog_Printf(LT_NONE, "    Delay: M=%dus A=%dus\n", p_owner->_max_trigger_delay,
+					p_owner->_total_trigger_delay / p_owner->_execution_count);
 		}
 		pifLog_Print(LT_NONE, "\n");
 		it = pifObjArray_Next(it);

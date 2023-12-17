@@ -149,7 +149,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_d
     static uint8_t pre_enter = 0;
     const PifLogCmdEntry *cmd, *pstart, *pend;
 
-	while ((*act_receive_data)(p_owner->p_uart, (uint8_t*)&tmp_char, 1, NULL)) {
+	while ((*act_receive_data)(p_owner->p_uart, (uint8_t*)&tmp_char, 1)) {
 		if (tmp_char >= 32 && tmp_char <= 126) {
 			if (!p_owner->char_idx && tmp_char == ' ') continue;
 			if (p_owner->char_idx < p_owner->rx_buffer_size - 3) {

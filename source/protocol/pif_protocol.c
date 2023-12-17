@@ -78,7 +78,7 @@ static void _parsingPacket(PifProtocol* p_owner, PifActUartReceiveData act_recei
 #endif
 	static uint8_t crc7;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1, NULL)) {
+	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
 		switch (p_owner->__rx.state)	{
 		case PRS_IDLE:
 			if (data == ASCII_STX) {
