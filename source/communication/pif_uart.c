@@ -292,6 +292,8 @@ uint16_t pifUart_SendTxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
 	uint16_t len = 0;
 
+	if (!p_owner->_fc_state) return 0;
+
 	if (p_owner->act_send_data) {
 		len = (*p_owner->act_send_data)(p_owner, p_data, length);
 	}

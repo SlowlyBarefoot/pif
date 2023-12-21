@@ -2,10 +2,6 @@
 #define PIF_CONF_H
 
 
-// -------- pifCollectSignal ---------------------
-
-//#define PIF_COLLECT_SIGNAL
-
 // -------- pif Configuration --------------------
 
 //#define PIF_DEBUG
@@ -15,6 +11,10 @@
 //#define PIF_INLINE                      	__inline
 
 //#define PIF_WEAK							__attribute__ ((weak))
+
+// -------- pifCollectSignal ---------------------
+
+//#define PIF_COLLECT_SIGNAL
 
 // -------- pifGpsNmea ---------------------------
 
@@ -53,6 +53,10 @@
 // 1이상 : pifProtocol_Init에서 받은 타이머의 단위를 곱한 시간
 //         기본값은 10이고 타이머 단위가 1ms이면 10 * 1ms = 10ms이다.
 //#define PIF_PROTOCOL_RETRY_DELAY			10
+
+// -------- pifSrml ------------------------------
+
+//#define PIF_SRML_MAX_BUFFER_SIZE     		64
 
 // -------- pifTask ------------------------------
 
