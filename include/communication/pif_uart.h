@@ -46,21 +46,6 @@
 #define PIF_UART_SEND_DATA_STATE_EMPTY		2
 
 
-struct StPifUart;
-typedef struct StPifUart PifUart;
-
-typedef BOOL (*PifActUartSetBaudRate)(PifUart* p_uart, uint32_t baudrate);
-typedef uint16_t (*PifActUartReceiveData)(PifUart* p_uart, uint8_t* p_data, uint16_t size);
-typedef uint16_t (*PifActUartSendData)(PifUart* p_uart, uint8_t* p_data, uint16_t size);
-typedef BOOL (*PifActUartStartTransfer)(PifUart* p_uart);
-typedef uint8_t (*PifActUartGetRxRate)(PifUart* p_uart);
-typedef void (*PifActUartRxFlowState)(PifUart* p_uart, SWITCH state);
-
-typedef void (*PifEvtUartParsing)(void* p_client, PifActUartReceiveData act_receive_data);
-typedef BOOL (*PifEvtUartSending)(void* p_client, PifActUartSendData act_send_data);
-typedef void (*PifEvtUartAbortRx)(void* p_client);
-typedef void (*PifEvtUartTxFlowState)(void* p_client, SWITCH state);
-
 typedef enum EnPifUartFlowControl
 {
 	UFC_NONE			= 0,
@@ -79,6 +64,30 @@ typedef enum EnPifUartTxState
 	UTS_SENDING		= 1
 } PifUartTxState;
 
+typedef enum EnPifUartDirection
+{
+	UD_RX		= 0,
+	UD_TX		= 1
+} PifUartDirection;
+
+
+struct StPifUart;
+typedef struct StPifUart PifUart;
+
+typedef BOOL (*PifActUartSetBaudrate)(PifUart* p_uart, uint32_t baudrate);
+typedef uint16_t (*PifActUartReceiveData)(PifUart* p_uart, uint8_t* p_data, uint16_t size);
+typedef uint16_t (*PifActUartSendData)(PifUart* p_uart, uint8_t* p_data, uint16_t size);
+typedef BOOL (*PifActUartStartTransfer)(PifUart* p_uart);
+typedef uint8_t (*PifActUartGetRate)(PifUart* p_uart);
+typedef void (*PifActUartRxFlowState)(PifUart* p_uart, SWITCH state);
+typedef void (*PifActUartDirection)(PifUartDirection direction);
+
+typedef void (*PifEvtUartParsing)(void* p_client, PifActUartReceiveData act_receive_data);
+typedef uint16_t (*PifEvtUartSending)(void* p_client, PifActUartSendData act_send_data);
+typedef void (*PifEvtUartAbortRx)(void* p_client);
+typedef void (*PifEvtUartTxFlowState)(void* p_client, SWITCH state);
+
+
 /**
  * @class StPifUart
  * @brief
@@ -89,11 +98,12 @@ struct StPifUart
 	uint8_t fc_limit;							// Range: 0% ~ 100%, default: 50%
 
 	// Public Action Function
-    PifActUartSetBaudRate act_set_baudrate;
+    PifActUartSetBaudrate act_set_baudrate;
 	PifActUartReceiveData act_receive_data;
     PifActUartSendData act_send_data;
     PifActUartStartTransfer act_start_transfer;
-    PifActUartGetRxRate act_get_rx_rate;
+    PifActUartGetRate act_get_tx_rate;
+    PifActUartGetRate act_get_rx_rate;
     PifActUartRxFlowState act_rx_flow_state;
 
     // Public Event Function
@@ -101,6 +111,7 @@ struct StPifUart
 
 	// Read-only Member Variable
     PifId _id;
+    uint32_t _baudrate;
     PifUartFlowControl _flow_control;
     uint8_t _frame_size;
     PifRingBuffer* _p_tx_buffer;
@@ -112,6 +123,9 @@ struct StPifUart
     void* __p_client;
     PifUartTxState __state;
     uint16_t __rx_threshold;
+
+	// Private Action Function
+    PifActUartDirection __act_direction;
 
     // Private Event Function
     PifEvtUartParsing __evt_parsing;
@@ -129,9 +143,10 @@ extern "C" {
  * @brief
  * @param p_owner
  * @param id
+ * @param baudrate
  * @return
  */
-BOOL pifUart_Init(PifUart* p_owner, PifId id);
+BOOL pifUart_Init(PifUart* p_owner, PifId id, uint32_t baudrate);
 
 /**
  * @fn pifUart_Clear
@@ -162,11 +177,20 @@ BOOL pifUart_AllocTxBuffer(PifUart* p_owner, uint16_t tx_size);
 /**
  * @fn pifUart_SetFrameSize
  * @brief
- * @param pvOwner
+ * @param p_owner
  * @param frame_size
  * @return
  */
 BOOL pifUart_SetFrameSize(PifUart* p_owner, uint8_t frame_size);
+
+/**
+ * @fn pifUart_ChangeBaudrate
+ * @brief
+ * @param p_owner
+ * @param baudrate
+ * @return
+ */
+BOOL pifUart_ChangeBaudrate(PifUart* p_owner, uint32_t baudrate);
 
 /**
  * @fn pifUart_AttachClient
@@ -177,6 +201,15 @@ BOOL pifUart_SetFrameSize(PifUart* p_owner, uint8_t frame_size);
  * @param evt_sending
  */
 void pifUart_AttachClient(PifUart* p_owner, void* p_client, PifEvtUartParsing evt_parsing, PifEvtUartSending evt_sending);
+
+/**
+ * @fn pifUart_AttachActDirection
+ * @brief
+ * @param p_owner
+ * @param act_direction
+ * @param init_state
+ */
+void pifUart_AttachActDirection(PifUart* p_owner, PifActUartDirection act_direction, PifUartDirection init_state);
 
 /**
  * @fn pifUart_DetachClient
@@ -193,7 +226,7 @@ void pifUart_DetachClient(PifUart* p_owner);
 void pifUart_ResetFlowControl(PifUart* p_owner);
 
 /**
- * @fn pifUart_SetSoftwareFlowControl
+ * @fn pifUart_SetFlowControl
  * @brief
  * @param p_owner
  * @param flow_control
@@ -314,6 +347,14 @@ void pifUart_FinishTransfer(PifUart* p_owner);
  * @param p_owner
  */
 void pifUart_AbortRx(PifUart* p_owner);
+
+/**
+ * @fn pifUart_CheckTxTransfer
+ * @brief
+ * @param p_owner
+ * @return
+ */
+BOOL pifUart_CheckTxTransfer(PifUart* p_owner);
 
 /**
  * @fn pifUart_AttachTask

@@ -515,7 +515,7 @@ fail:
 	return FALSE;
 }
 
-static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
+static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 {
 	PifGpsUblox *p_owner = (PifGpsUblox *)p_client;
 	uint16_t length;
@@ -536,7 +536,7 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 		if (p_owner->__tx.pos >= 4 + p_owner->__tx.ui.st.length) {
 			p_owner->__tx.state = GUTS_WAIT_SENDED;
 		}
-		return TRUE;
+		break;
 
 	case GUTS_WAIT_SENDED:
 		if (!p_owner->__tx.ui.st.response) {
@@ -548,7 +548,7 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 	default:
 		break;
 	}
-	return FALSE;
+	return 0;
 }
 
 static void _evtAbortRx(void* p_client)

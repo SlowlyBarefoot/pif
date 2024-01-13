@@ -329,13 +329,13 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
     }
 }
 
-static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
+static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 {
 	PifProtocol* p_owner = (PifProtocol*)p_client;
 	uint16_t length;
 
-	if (!p_owner->__p_uart->_fc_state) return FALSE;
-	if (p_owner->__rx.state != PRS_IDLE) return FALSE;
+	if (!p_owner->__p_uart->_fc_state) return 0;
+	if (p_owner->__rx.state != PRS_IDLE) return 0;
 
 	if (!pifRingBuffer_IsEmpty(&p_owner->__tx.answer_buffer)) {
 		switch (p_owner->__tx.state) {
@@ -350,14 +350,14 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 	    case PTS_SENDING:
 	    	length = (*act_send_data)(p_owner->__p_uart, pifRingBuffer_GetTailPointer(&p_owner->__tx.answer_buffer, p_owner->__tx.pos),
 	    			pifRingBuffer_GetLinerSize(&p_owner->__tx.answer_buffer, p_owner->__tx.pos));
-	    	if (!length) return FALSE;
+	    	if (!length) return 0;
 
 	    	p_owner->__tx.pos += length;
 			if (p_owner->__tx.pos >= p_owner->__tx.ui.st.length) {
 				pifRingBuffer_Remove(&p_owner->__tx.answer_buffer, p_owner->__tx.pos);
 				p_owner->__tx.state = PTS_IDLE;
 			}
-			return TRUE;
+			break;
 
 		default:
 			break;
@@ -380,7 +380,7 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 			if (p_owner->__tx.pos >= 5 + p_owner->__tx.ui.st.length) {
 				p_owner->__tx.state = PTS_WAIT_SENDED;
 			}
-			return TRUE;
+			break;
 
 	    case PTS_WAIT_SENDED:
 			if ((p_owner->__tx.ui.st.flags & PF_RESPONSE_MASK) == PF_RESPONSE_NO) {
@@ -428,7 +428,7 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 			break;
 	    }
 	}
-	return FALSE;
+	return 0;
 }
 
 BOOL pifProtocol_Init(PifProtocol* p_owner, PifId id, PifTimerManager* p_timer_manager, PifProtocolType type,

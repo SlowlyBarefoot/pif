@@ -94,7 +94,8 @@ typedef enum EnPifError
 	E_CANNOT_FOUND				= 0x0E,
 	E_IS_NOT_FORMATED			= 0x0F,
 	E_RECEIVE_NACK				= 0x10,
-	E_INVALID_ID				= 0x11
+	E_INVALID_ID				= 0x11,
+	E_ALREADY_ATTACHED			= 0x12
 } PifError;
 
 typedef enum EnPifPulseState

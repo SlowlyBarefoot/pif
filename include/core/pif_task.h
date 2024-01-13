@@ -53,9 +53,9 @@ struct StPifTask
 	PifId _id;
 	PifTaskMode _mode;
 	BOOL _running;
-	uint16_t _period;
+	uint16_t _default_period;
 	void *_p_client;
-    uint32_t _max_execution_time;
+    int32_t _max_execution_time;
     uint32_t _total_execution_time;		// total time consumed by task since boot
 	uint32_t _execution_count;
 	uint32_t _total_period_time;
@@ -66,6 +66,7 @@ struct StPifTask
 
 	// Private Member Variable
 	PifTaskProcessing __processing;
+	uint16_t __period;
 	BOOL __trigger;
 	int __table_number;
 	uint16_t __delay_ms;
@@ -73,8 +74,8 @@ struct StPifTask
 	uint32_t __last_execute_time;
 	uint32_t __trigger_time;
 #ifdef PIF_DEBUG
-	uint32_t __count;
-	float __period;
+	uint32_t __ratio_count;
+	float __ratio_period;
 #endif
 
 	// Private Event Function
@@ -201,14 +202,14 @@ void pifTaskManager_Yield();
  * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
  * @param time
  */
-void pifTaskManager_YieldMs(uint32_t time);
+void pifTaskManager_YieldMs(int32_t time);
 
 /**
  * @fn pifTaskManager_YieldUs
  * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
  * @param time
  */
-void pifTaskManager_YieldUs(uint32_t time);
+void pifTaskManager_YieldUs(int32_t time);
 
 /**
  * @fn pifTaskManager_YieldAbort
@@ -225,7 +226,7 @@ void pifTaskManager_YieldAbort(PifTaskCheckAbort p_check_abort, PifIssuerP p_iss
  * @param p_check_abort
  * @param p_issuer
  */
-void pifTaskManager_YieldAbortMs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
+void pifTaskManager_YieldAbortMs(int32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
 
 /**
  * @fn pifTaskManager_YieldAbortUs
@@ -234,7 +235,9 @@ void pifTaskManager_YieldAbortMs(uint32_t time, PifTaskCheckAbort p_check_abort,
  * @param p_check_abort
  * @param p_issuer
  */
-void pifTaskManager_YieldAbortUs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
+void pifTaskManager_YieldAbortUs(int32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
+
+#ifndef PIF_NO_LOG
 
 /**
  * @fn pifTaskManager_Print
@@ -251,6 +254,8 @@ void pifTaskManager_Print();
 void pifTaskManager_PrintRatioTable();
 
 #endif	// PIF_DEBUG
+
+#endif	// PIF_NO_LOG
 
 #ifdef __cplusplus
 }

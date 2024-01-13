@@ -77,7 +77,7 @@ static void _resetTable(int number)
 
 static PifTask* _processingAlways(PifTask* p_owner)
 {
-	uint32_t gap;
+	int32_t gap;
 
 	if (p_owner->__delay_ms) {
 		gap = pif_cumulative_timer1ms - p_owner->__pretime;
@@ -91,12 +91,13 @@ static PifTask* _processingAlways(PifTask* p_owner)
 
 static PifTask* _processingPeriodUs(PifTask* p_owner)
 {
-	uint32_t current, gap;
+	uint32_t current;
+	int32_t gap;
 
 	current = (*pif_act_timer1us)();
 	gap = current - p_owner->__pretime;
-	if (gap >= p_owner->_period) {
-		p_owner->__pretime = current - (gap - p_owner->_period);
+	if (gap >= p_owner->__period) {
+		p_owner->__pretime = current - (gap - p_owner->__period);
 		return p_owner;
 	}
 	return NULL;
@@ -104,11 +105,12 @@ static PifTask* _processingPeriodUs(PifTask* p_owner)
 
 static PifTask* _processingPeriodMs(PifTask* p_owner)
 {
-	uint32_t current, gap;
+	uint32_t current;
+	int32_t gap;
 
 	current = pif_cumulative_timer1ms;
 	gap = current - p_owner->__pretime;
-	if (gap >= p_owner->_period) {
+	if (gap >= p_owner->__period) {
 		p_owner->__pretime = current;
 		return p_owner;
 	}
@@ -117,7 +119,7 @@ static PifTask* _processingPeriodMs(PifTask* p_owner)
 
 static PifTask* _processingRatio(PifTask* p_owner)
 {
-	uint32_t gap;
+	int32_t gap;
 #ifdef PIF_DEBUG
 	uint32_t time;
 	static uint32_t pretime;
@@ -133,11 +135,11 @@ static PifTask* _processingRatio(PifTask* p_owner)
 #ifdef PIF_DEBUG
 		time = pif_timer1sec;
 		if (time != pretime) {
-			p_owner->__period = 1000000.0 / p_owner->__count;
-			p_owner->__count = 0;
+			p_owner->__ratio_period = 1000000.0 / p_owner->__ratio_count;
+			p_owner->__ratio_count = 0;
 			pretime = time;
 		}
-		p_owner->__count++;
+		p_owner->__ratio_count++;
 #endif
 		return p_owner;
 	}
@@ -245,14 +247,16 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
     }
 
     p_owner->_mode = mode;
-    p_owner->_period = period;
+    p_owner->_default_period = period;
+    p_owner->__period = period;
 	return TRUE;
 }
 
 static void _processingTask(PifTask* p_owner)
 {
 	uint16_t period;
-	uint32_t start_time, execute_time;
+	uint32_t start_time;
+	int32_t execute_time;
 
 	if (s_task_stack_ptr >= PIF_TASK_STACK_SIZE) return;
 
@@ -285,15 +289,21 @@ static void _processingTask(PifTask* p_owner)
 	switch (p_owner->_mode) {
 	case TM_CHANGE_MS:
 		if (period > 0) {
-			p_owner->_period = period;
+			p_owner->__period = period;
 			p_owner->__pretime = pif_cumulative_timer1ms;
+		}
+		else {
+			p_owner->__period = p_owner->_default_period;
 		}
 		break;
 
 	case TM_CHANGE_US:
 		if (period > 0) {
-			p_owner->_period = period;
+			p_owner->__period = period;
 			p_owner->__pretime = (*pif_act_timer1us)();
+		}
+		else {
+			p_owner->__period = p_owner->_default_period;
 		}
 		break;
 
@@ -402,8 +412,11 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
 	switch (p_owner->_mode) {
 	case TM_PERIOD_MS:
 	case TM_PERIOD_US:
+	case TM_CHANGE_MS:
+	case TM_CHANGE_US:
 	case TM_IDLE_MS:
-		p_owner->_period = period;
+		p_owner->_default_period = period;
+		p_owner->__period = period;
 		break;
 
 	default:
@@ -440,7 +453,8 @@ void pifTask_DelayMs(PifTask* p_owner, uint16_t delay)
 
 uint32_t pifTask_GetDeltaTime(PifTask* p_owner, BOOL reset)
 {
-	uint32_t currect, delta;
+	uint32_t currect;
+	int32_t delta;
 
     if (!pif_act_timer1us) {
 		currect = pif_cumulative_timer1ms * 1000;
@@ -706,7 +720,7 @@ next:
 	s_pass_count += i - t;
 }
 
-void pifTaskManager_YieldMs(uint32_t time)
+void pifTaskManager_YieldMs(int32_t time)
 {
     uint32_t start;
 
@@ -715,10 +729,10 @@ void pifTaskManager_YieldMs(uint32_t time)
     start = pif_cumulative_timer1ms;
     do {
 		pifTaskManager_Yield();
-    } while (pif_cumulative_timer1ms - start <= time);
+    } while ((int32_t)(pif_cumulative_timer1ms - start) <= time);
 }
 
-void pifTaskManager_YieldUs(uint32_t time)
+void pifTaskManager_YieldUs(int32_t time)
 {
     uint32_t start;
 
@@ -728,13 +742,13 @@ void pifTaskManager_YieldUs(uint32_t time)
         start = pif_cumulative_timer1ms * 1000;
         do {
     		pifTaskManager_Yield();
-		} while (pif_cumulative_timer1ms * 1000 - start <= time);
+		} while ((int32_t)(pif_cumulative_timer1ms * 1000 - start) <= time);
     }
     else {
     	start = (*pif_act_timer1us)();
 		do {
 			pifTaskManager_Yield();
-		} while ((*pif_act_timer1us)() - start <= time);
+		} while ((int32_t)((*pif_act_timer1us)() - start) <= time);
     }
 }
 
@@ -748,7 +762,7 @@ void pifTaskManager_YieldAbort(PifTaskCheckAbort p_check_abort, PifIssuerP p_iss
     }
 }
 
-void pifTaskManager_YieldAbortMs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer)
+void pifTaskManager_YieldAbortMs(int32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer)
 {
     uint32_t start;
 
@@ -759,10 +773,10 @@ void pifTaskManager_YieldAbortMs(uint32_t time, PifTaskCheckAbort p_check_abort,
     do {
 		pifTaskManager_Yield();
 		if ((*p_check_abort)(p_issuer)) break;
-    } while (pif_cumulative_timer1ms - start <= time);
+    } while ((int32_t)(pif_cumulative_timer1ms - start) <= time);
 }
 
-void pifTaskManager_YieldAbortUs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer)
+void pifTaskManager_YieldAbortUs(int32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer)
 {
     uint32_t start;
 
@@ -774,16 +788,18 @@ void pifTaskManager_YieldAbortUs(uint32_t time, PifTaskCheckAbort p_check_abort,
         do {
     		pifTaskManager_Yield();
    			if ((*p_check_abort)(p_issuer)) break;
-		} while (pif_cumulative_timer1ms * 1000 - start <= time);
+		} while ((int32_t)(pif_cumulative_timer1ms * 1000 - start) <= time);
     }
     else {
     	start = (*pif_act_timer1us)();
 		do {
 			pifTaskManager_Yield();
 			if ((*p_check_abort)(p_issuer)) break;
-		} while ((*pif_act_timer1us)() - start <= time);
+		} while ((int32_t)((*pif_act_timer1us)() - start) <= time);
     }
 }
+
+#ifndef PIF_NO_LOG
 
 void pifTaskManager_Print()
 {
@@ -800,15 +816,15 @@ void pifTaskManager_Print()
 		else {
 			pifLog_Print(LT_NONE, "  ---");
 		}
-		pifLog_Printf(LT_NONE, " (%d): %s-%d\n", p_owner->_id, mode[p_owner->_mode], p_owner->_period);
-		pifLog_Printf(LT_NONE, "    Proc: M=%dus A=%dus T=%dms\n", p_owner->_max_execution_time,
-				p_owner->_total_execution_time / p_owner->_execution_count, p_owner->_total_execution_time / 1000);
+		pifLog_Printf(LT_NONE, " (%u): %s-%u\n", p_owner->_id, mode[p_owner->_mode], p_owner->_default_period);
+		pifLog_Printf(LT_NONE, "    Proc: M=%ldus A=%luus T=%lums\n", p_owner->_max_execution_time,
+				(p_owner->_execution_count ? p_owner->_total_execution_time / p_owner->_execution_count : 0), p_owner->_total_execution_time / 1000);
 		if (p_owner->_total_period_time) {
-			pifLog_Printf(LT_NONE, "    Period: %dus\n", p_owner->_total_period_time / p_owner->_period_count);
+			pifLog_Printf(LT_NONE, "    Period: %luus\n", (p_owner->_period_count ? p_owner->_total_period_time / p_owner->_period_count : 0));
 		}
 		if (p_owner->_total_trigger_delay) {
-			pifLog_Printf(LT_NONE, "    Delay: M=%dus A=%dus\n", p_owner->_max_trigger_delay,
-					p_owner->_total_trigger_delay / p_owner->_execution_count);
+			pifLog_Printf(LT_NONE, "    Delay: M=%luus A=%luus\n", p_owner->_max_trigger_delay,
+					(p_owner->_execution_count ? p_owner->_total_trigger_delay / p_owner->_execution_count : 0));
 		}
 		pifLog_Print(LT_NONE, "\n");
 		it = pifObjArray_Next(it);
@@ -828,3 +844,5 @@ void pifTaskManager_PrintRatioTable()
 }
 
 #endif	// PIF_DEBUG
+
+#endif	// PIF_NO_LOG

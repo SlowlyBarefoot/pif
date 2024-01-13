@@ -249,14 +249,14 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 	}
 }
 
-static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
+static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 {
 	PifXmodem* p_owner = (PifXmodem*)p_client;
 	uint16_t length;
 	uint8_t data;
 	static uint32_t timer1ms;
 
-	if (!p_owner->__p_uart->_fc_state) return FALSE;
+	if (!p_owner->__p_uart->_fc_state) return 0;
 
 	switch (p_owner->__tx.state) {
 	case XTS_SEND_C:
@@ -267,7 +267,6 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 #endif
 			timer1ms = pif_cumulative_timer1ms;
 			p_owner->__tx.state = XTS_DELAY_C;
-			return TRUE;
 		}
 		break;
 
@@ -284,13 +283,13 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 		if (p_owner->__tx.data_pos >= p_owner->__packet_size) {
 			p_owner->__tx.state = XTS_WAIT_RESPONSE;
 		}
-		return TRUE;
+		break;
 
 	case XTS_EOT:
 		if ((*act_send_data)(p_owner->__p_uart, (uint8_t *)&p_owner->__tx.state, 1)) {
 			p_owner->__tx.state = XTS_WAIT_RESPONSE;
 		}
-		return TRUE;
+		break;
 
 	case XTS_CAN:
 		if ((*act_send_data)(p_owner->__p_uart, (uint8_t *)&p_owner->__tx.state, 1)) {
@@ -301,19 +300,19 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 				p_owner->__tx.state = XTS_IDLE;
 			}
 		}
-		return TRUE;
+		break;
 
 	case XTS_ACK:
 	case XTS_NAK:
 		if ((*act_send_data)(p_owner->__p_uart, (uint8_t *)&p_owner->__tx.state, 1)) {
 			p_owner->__tx.state = XTS_IDLE;
 		}
-		return TRUE;
+		break;
 
 	default:
 		break;
 	}
-	return FALSE;
+	return 0;
 }
 
 BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifTimerManager* p_timer_manager, PifXmodemType type)

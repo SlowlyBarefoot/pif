@@ -345,28 +345,28 @@ static uint16_t _doTask(PifTask* p_task)
 	switch (status) {
 	case PIF_LOG_CMD_BAD_CMD:
 		// Handle the case of bad command.
-		pifRingBuffer_PutString(s_log.p_tx_buffer, "Not defined command!");
+		pifRingBuffer_PutString(s_log.p_tx_buffer, "\nNot defined command!");
 		break;
 
 	case PIF_LOG_CMD_TOO_MANY_ARGS:
 		// Handle the case of too many arguments.
-		pifRingBuffer_PutString(s_log.p_tx_buffer, "Too many arguments!");
+		pifRingBuffer_PutString(s_log.p_tx_buffer, "\nToo many arguments!");
 		break;
 
 	case PIF_LOG_CMD_TOO_FEW_ARGS:
 		// Handle the case of too few arguments.
-		pifRingBuffer_PutString(s_log.p_tx_buffer, "Too few arguments!");
+		pifRingBuffer_PutString(s_log.p_tx_buffer, "\nToo few arguments!");
 		break;
 
 	case PIF_LOG_CMD_INVALID_ARG:
-		pifRingBuffer_PutString(s_log.p_tx_buffer, "Invalid arguments!");
+		pifRingBuffer_PutString(s_log.p_tx_buffer, "\nInvalid arguments!");
 		break;
 
 	default:
 		// Otherwise the command was executed.  Print the error
 		// code if one was returned.
 		if (status < PIF_LOG_CMD_NO_ERROR && status > PIF_LOG_CMD_USER_ERROR) {
-			pif_Printf(msg, sizeof(msg), "Command returned error code: %d", status);
+			pif_Printf(msg, sizeof(msg), "\nCommand returned error code: %d", status);
 			pifRingBuffer_PutString(s_log.p_tx_buffer, msg);
 		}
 		break;
@@ -389,7 +389,7 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 
 #endif
 
-static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
+static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 {
 	PifLog* p_owner = (PifLog*)p_client;
 	uint16_t length;
@@ -398,9 +398,8 @@ static BOOL _evtSending(void* p_client, PifActUartSendData act_send_data)
 		length = (*act_send_data)(p_owner->p_uart, pifRingBuffer_GetTailPointer(p_owner->p_tx_buffer, 0),
     			pifRingBuffer_GetLinerSize(p_owner->p_tx_buffer, 0));
 		pifRingBuffer_Remove(p_owner->p_tx_buffer, length);
-		return TRUE;
 	}
-	return FALSE;
+	return 0;
 }
 
 static void _printLog(char* p_string, BOOL vcd)

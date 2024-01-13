@@ -58,31 +58,7 @@ static uint16_t _actSendData(PifUart* p_owner, uint8_t* p_data, uint16_t size)
 	return 0;
 }
 
-static void _sendData(PifUart* p_owner)
-{
-	if (p_owner->__evt_sending) {
-		if (p_owner->act_send_data) {
-			(*p_owner->__evt_sending)(p_owner->__p_client, p_owner->act_send_data);
-		}
-		else if (p_owner->_p_tx_buffer) {
-			if ((*p_owner->__evt_sending)(p_owner->__p_client, _actSendData)) goto next;
-		}
-	}
-	else {
-		if (p_owner->_p_tx_buffer) goto next;
-	}
-	return;
-
-next:
-	if (p_owner->__state == UTS_IDLE) {
-		p_owner->__state = UTS_SENDING;
-		if (p_owner->act_start_transfer) {
-			if (!(*p_owner->act_start_transfer)(p_owner)) p_owner->__state = UTS_IDLE;
-		}
-	}
-}
-
-BOOL pifUart_Init(PifUart* p_owner, PifId id)
+BOOL pifUart_Init(PifUart* p_owner, PifId id, uint32_t baudrate)
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -94,6 +70,7 @@ BOOL pifUart_Init(PifUart* p_owner, PifId id)
 	p_owner->fc_limit = 50;					// default: 50%
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
+    p_owner->_baudrate = baudrate;
     p_owner->_frame_size = 1;
 	p_owner->_fc_state = ON;
     return TRUE;
@@ -151,12 +128,28 @@ BOOL pifUart_SetFrameSize(PifUart* p_owner, uint8_t frame_size)
 	return FALSE;
 }
 
+BOOL pifUart_ChangeBaudrate(PifUart* p_owner, uint32_t baudrate)
+{
+	if (p_owner->act_set_baudrate) {
+		if (!(*p_owner->act_set_baudrate)(p_owner, baudrate)) return FALSE;
+	}
+	p_owner->_baudrate = baudrate;
+	return TRUE;
+}
+
 void pifUart_AttachClient(PifUart* p_owner, void* p_client, PifEvtUartParsing evt_parsing, PifEvtUartSending evt_sending)
 {
 	p_owner->__p_client = p_client;
 	p_owner->__evt_parsing = evt_parsing;
 	p_owner->__evt_sending = evt_sending;
-	p_owner->_p_task->pause = FALSE;
+	p_owner->_p_task->pause = !evt_parsing && !evt_sending;
+
+}
+
+void pifUart_AttachActDirection(PifUart* p_owner, PifActUartDirection act_direction, PifUartDirection init_state)
+{
+	p_owner->__act_direction = act_direction;
+	(*act_direction)(init_state);
 }
 
 void pifUart_DetachClient(PifUart* p_owner)
@@ -315,10 +308,23 @@ void pifUart_AbortRx(PifUart* p_owner)
 	if (p_owner->evt_abort_rx) (*p_owner->evt_abort_rx)(p_owner->__p_client);
 }
 
+BOOL pifUart_CheckTxTransfer(PifUart* p_owner)
+{
+	if (p_owner->act_send_data) {
+		if (!p_owner->act_get_tx_rate) return TRUE;
+		if ((*p_owner->act_get_tx_rate)(p_owner) >= 100) return TRUE;
+	}
+	else if (p_owner->_p_tx_buffer) {
+		if (!pifRingBuffer_GetFillSize(p_owner->_p_tx_buffer) && p_owner->__state == UTS_IDLE) return TRUE;
+	}
+	return FALSE;
+}
+
 static uint16_t _doTask(PifTask* p_task)
 {
 	PifUart *p_owner = p_task->_p_client;
 	uint8_t data, rate, tx;
+	uint16_t period = 0;
 
 	if (p_owner->_flow_control & UFC_DEVICE_MASK) {
 		if (p_owner->act_get_rx_rate) {
@@ -327,7 +333,7 @@ static uint16_t _doTask(PifTask* p_task)
 		else if (p_owner->_p_rx_buffer) {
 			rate = 100 * pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) / p_owner->_p_rx_buffer->_size;
 		}
-		else goto next;
+		else goto next1;
 
 		switch (p_owner->_flow_control) {
 		case UFC_DEVICE_SOFTWARE:
@@ -369,7 +375,7 @@ static uint16_t _doTask(PifTask* p_task)
 		}
 	}
 
-next:
+next1:
 	if (p_owner->__evt_parsing) {
 		(*p_owner->__evt_parsing)(p_owner->__p_client, _actReceiveData);
 	}
@@ -377,12 +383,33 @@ next:
 		_actReceiveData(p_owner, &data, 1);
 	}
 
-	_sendData(p_owner);
-	return 0;
+	if (p_owner->act_send_data) {
+		if (p_owner->__evt_sending) {
+			period = (*p_owner->__evt_sending)(p_owner->__p_client, p_owner->act_send_data);
+		}
+	}
+	else if (p_owner->_p_tx_buffer) {
+		if (p_owner->__evt_sending) {
+			period = (*p_owner->__evt_sending)(p_owner->__p_client, _actSendData);
+		}
+		if (p_owner->__state == UTS_IDLE) {
+			if (pifRingBuffer_GetFillSize(p_owner->_p_tx_buffer)) {
+				if (p_owner->act_start_transfer) {
+					if ((*p_owner->act_start_transfer)(p_owner)) p_owner->__state = UTS_SENDING;
+				}
+			}
+		}
+	}
+	return period;
 }
 
 PifTask* pifUart_AttachTask(PifUart* p_owner, PifTaskMode mode, uint16_t period, const char* name)
 {
+    if (p_owner->_p_task) {
+    	pif_error = E_ALREADY_ATTACHED;
+	    return NULL;
+    }
+
 	p_owner->_p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, FALSE);
 	if (p_owner->_p_task) {
 		if (name) p_owner->_p_task->name = name;
