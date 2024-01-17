@@ -238,10 +238,14 @@ uint8_t pifUart_GetTxByte(PifUart* p_owner, uint8_t* p_data)
     ucState = pifRingBuffer_GetByte(p_owner->_p_tx_buffer, p_data);
 	if (ucState) {
 		if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) {
+			p_owner->__tx_state = UTS_IDLE;
 			ucState |= PIF_UART_SEND_DATA_STATE_EMPTY;
 		}
 	}
-	else ucState |= PIF_UART_SEND_DATA_STATE_EMPTY;
+	else {
+		p_owner->__tx_state = UTS_IDLE;
+		ucState |= PIF_UART_SEND_DATA_STATE_EMPTY;
+	}
 	return ucState;
 }
 
@@ -250,7 +254,10 @@ uint8_t pifUart_StartGetTxData(PifUart* p_owner, uint8_t** pp_data, uint16_t* p_
 	uint16_t usLength;
 
     if (!p_owner->_p_tx_buffer) return PIF_UART_SEND_DATA_STATE_INIT;
-    if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) return PIF_UART_SEND_DATA_STATE_EMPTY;
+    if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) {
+		p_owner->__tx_state = UTS_IDLE;
+    	return PIF_UART_SEND_DATA_STATE_EMPTY;
+    }
 
     *pp_data = pifRingBuffer_GetTailPointer(p_owner->_p_tx_buffer, 0);
     usLength = pifRingBuffer_GetLinerSize(p_owner->_p_tx_buffer, 0);
@@ -261,7 +268,11 @@ uint8_t pifUart_StartGetTxData(PifUart* p_owner, uint8_t** pp_data, uint16_t* p_
 uint8_t pifUart_EndGetTxData(PifUart* p_owner, uint16_t length)
 {
     pifRingBuffer_Remove(p_owner->_p_tx_buffer, length);
-	return pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer) << 1;
+    if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) {
+		p_owner->__tx_state = UTS_IDLE;
+    	return PIF_UART_SEND_DATA_STATE_EMPTY;
+    }
+    return PIF_UART_SEND_DATA_STATE_INIT;
 }
 
 uint16_t pifUart_ReceiveRxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
@@ -296,12 +307,6 @@ uint16_t pifUart_SendTxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 	return len;
 }
 
-void pifUart_FinishTransfer(PifUart* p_owner)
-{
-	p_owner->__state = UTS_IDLE;
-	pifTask_SetTrigger(p_owner->_p_task);
-}
-
 void pifUart_AbortRx(PifUart* p_owner)
 {
 	pifRingBuffer_Empty(p_owner->_p_rx_buffer);
@@ -315,7 +320,7 @@ BOOL pifUart_CheckTxTransfer(PifUart* p_owner)
 		if ((*p_owner->act_get_tx_rate)(p_owner) >= 100) return TRUE;
 	}
 	else if (p_owner->_p_tx_buffer) {
-		if (!pifRingBuffer_GetFillSize(p_owner->_p_tx_buffer) && p_owner->__state == UTS_IDLE) return TRUE;
+		if (!pifRingBuffer_GetFillSize(p_owner->_p_tx_buffer)) return TRUE;
 	}
 	return FALSE;
 }
@@ -392,10 +397,10 @@ next1:
 		if (p_owner->__evt_sending) {
 			period = (*p_owner->__evt_sending)(p_owner->__p_client, _actSendData);
 		}
-		if (p_owner->__state == UTS_IDLE) {
+		if (p_owner->__tx_state == UTS_IDLE) {
 			if (pifRingBuffer_GetFillSize(p_owner->_p_tx_buffer)) {
 				if (p_owner->act_start_transfer) {
-					if ((*p_owner->act_start_transfer)(p_owner)) p_owner->__state = UTS_SENDING;
+					if ((*p_owner->act_start_transfer)(p_owner)) p_owner->__tx_state = UTS_SENDING;
 				}
 			}
 		}

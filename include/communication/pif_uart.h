@@ -121,7 +121,7 @@ struct StPifUart
 
 	// Private Member Variable
     void* __p_client;
-    PifUartTxState __state;
+    PifUartTxState __tx_state;
     uint16_t __rx_threshold;
 
 	// Private Action Function
@@ -333,13 +333,6 @@ uint16_t pifUart_ReceiveRxData(PifUart* p_owner, uint8_t* p_data, uint16_t lengt
  * @return
  */
 uint16_t pifUart_SendTxData(PifUart* p_owner, uint8_t* p_data, uint16_t length);
-
-/**
- * @fn pifUart_FinishTransfer
- * @brief
- * @param p_owner
- */
-void pifUart_FinishTransfer(PifUart* p_owner);
 
 /**
  * @fn pifUart_AbortRx
