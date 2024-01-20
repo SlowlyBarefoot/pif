@@ -80,14 +80,8 @@ BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifTimerManager* p_timer_manager, ui
     p_owner->__act_display = act_display;
     p_owner->__period_per_digit_1ms = PIF_FND_PERIOD_PER_DIGIT;
 
-    if (pif_act_timer1us) {
-    	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_US, p_owner->__period_per_digit_1ms * 1000L / digit_size,
-    			_doTask, p_owner, FALSE);
-    }
-    else {
-    	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_MS, p_owner->__period_per_digit_1ms / digit_size,
-    			_doTask, p_owner, FALSE);
-    }
+	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_US, p_owner->__period_per_digit_1ms * 1000L / digit_size,
+			_doTask, p_owner, FALSE);
     if (!p_owner->__p_task) goto fail;
 	p_owner->__p_task->name = "FND";
     return TRUE;
@@ -126,12 +120,7 @@ BOOL pifFnd_SetPeriodPerDigit(PifFnd* p_owner, uint16_t period1ms)
 	}
 
 	p_owner->__period_per_digit_1ms = period1ms;
-    if (pif_act_timer1us) {
-    	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__period_per_digit_1ms * 1000L / p_owner->_digit_size);
-    }
-    else {
-    	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__period_per_digit_1ms / p_owner->_digit_size);
-    }
+   	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__period_per_digit_1ms * 1000L / p_owner->_digit_size);
 	return TRUE;
 }
 

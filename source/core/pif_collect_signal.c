@@ -229,11 +229,6 @@ BOOL pifCollectSignal_ChangeScale(PifCollectSignalScale scale)
 		return FALSE;
 	}
 
-	if (scale == CSS_1US && !pif_act_timer1us) {
-		pif_error = E_CANNOT_USE;
-		return FALSE;
-	}
-
 	s_collect_signal.scale = scale;
 	return TRUE;
 }

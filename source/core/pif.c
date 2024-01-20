@@ -63,8 +63,13 @@ void PIF_WEAK pifSequenceColSig_Clear() {}
 
 #endif
 
-void pif_Init(PifActTimer1us act_timer1us)
+BOOL pif_Init(PifActTimer1us act_timer1us)
 {
+	if (!act_timer1us) {
+		pif_error = E_INVALID_PARAM;
+	    return FALSE;
+	}
+
 	pif_act_timer1us = act_timer1us;
 
 	pif_datetime.month = 1;
@@ -78,6 +83,7 @@ void pif_Init(PifActTimer1us act_timer1us)
     pifSolenoidColSig_Init();
     pifSequenceColSig_Init();
 #endif
+    return TRUE;
 }
 
 void pif_Exit()

@@ -174,11 +174,6 @@ static BOOL _checkParam(PifTaskMode* p_mode, uint16_t period)
     		pif_error = E_INVALID_PARAM;
 		    return FALSE;
     	}
-
-    	if (!pif_act_timer1us) {
-    		pif_error = E_CANNOT_USE;
-		    return FALSE;
-        }
     	break;
     	
 	case TM_EXTERNAL_CUTIN:
@@ -267,17 +262,12 @@ static void _processingTask(PifTask* p_owner)
     s_task_stack[s_task_stack_ptr] = p_owner;
 	s_task_stack_ptr++;
 	p_owner->_running = TRUE;
-	if (pif_act_timer1us) {
-		start_time = (*pif_act_timer1us)();
-		period = (*p_owner->__evt_loop)(p_owner);
-		execute_time = (*pif_act_timer1us)() - start_time;
-		p_owner->_execution_count++;
-		if (execute_time > p_owner->_max_execution_time) p_owner->_max_execution_time = execute_time;
-		p_owner->_total_execution_time += execute_time;
-	}
-	else {
-		period = (*p_owner->__evt_loop)(p_owner);
-	}
+	start_time = (*pif_act_timer1us)();
+	period = (*p_owner->__evt_loop)(p_owner);
+	execute_time = (*pif_act_timer1us)() - start_time;
+	p_owner->_execution_count++;
+	if (execute_time > p_owner->_max_execution_time) p_owner->_max_execution_time = execute_time;
+	p_owner->_total_execution_time += execute_time;
 	p_owner->_running = FALSE;
 	s_task_stack_ptr--;
 	s_task_stack[s_task_stack_ptr] = NULL;
@@ -322,13 +312,11 @@ static void _checkLoopTime()
 	static uint32_t pretime = 0UL;
 	static uint32_t max_loop = 0UL;
 
-	if (pif_act_timer1us) {
-		value = (*pif_act_timer1us)() - pretime;
-		if (value > pif_performance.__max_loop_time1us) {
-			pif_performance.__max_loop_time1us = value;
-		}
-		pretime = (*pif_act_timer1us)();
+	value = (*pif_act_timer1us)() - pretime;
+	if (value > pif_performance.__max_loop_time1us) {
+		pif_performance.__max_loop_time1us = value;
 	}
+	pretime = (*pif_act_timer1us)();
 #endif
 
 	pif_performance._count++;
@@ -429,8 +417,7 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
 BOOL pifTask_SetTrigger(PifTask* p_owner)
 {
 	if (p_owner) {
-		if (pif_act_timer1us) p_owner->__trigger_time = (*pif_act_timer1us)();
-		else p_owner->__trigger_time = pif_cumulative_timer1ms;
+		p_owner->__trigger_time = (*pif_act_timer1us)();
 		p_owner->__trigger = TRUE;
 		return TRUE;
 	}
@@ -456,12 +443,7 @@ uint32_t pifTask_GetDeltaTime(PifTask* p_owner, BOOL reset)
 	uint32_t currect;
 	int32_t delta;
 
-    if (!pif_act_timer1us) {
-		currect = pif_cumulative_timer1ms * 1000;
-	}
-	else {
-		currect = (*pif_act_timer1us)();
-	}
+	currect = (*pif_act_timer1us)();
 	delta = currect - p_owner->__last_execute_time;
 	if (reset) {
 		if (p_owner->__last_execute_time) {
@@ -552,7 +534,7 @@ void pifTaskManager_Loop()
 	int i, n, t = 0, count = pifObjArray_Count(&s_tasks);
 	BOOL trigger = FALSE;
 
-	if (pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
+	pif_timer1us = (*pif_act_timer1us)();
 
 	if (!s_it_current) {
 		if (!count) return;
@@ -606,8 +588,7 @@ void pifTaskManager_Loop()
 
 	if (p_select) {
 		if (trigger) {
-			if (pif_act_timer1us) p_select->_trigger_delay = (*pif_act_timer1us)() - p_select->__trigger_time;
-			else p_select->_trigger_delay = pif_cumulative_timer1ms - p_select->__trigger_time;
+			p_select->_trigger_delay = (*pif_act_timer1us)() - p_select->__trigger_time;
 			if (p_select->_trigger_delay > p_select->_max_trigger_delay) p_select->_max_trigger_delay = p_select->_trigger_delay;
 			p_select->_total_trigger_delay += p_select->_trigger_delay;
 		}
@@ -636,7 +617,7 @@ void pifTaskManager_Yield()
 	int i, k, n, t = 0, count = pifObjArray_Count(&s_tasks);
 	BOOL trigger = FALSE;
 
-	if (pif_act_timer1us) pif_timer1us = (*pif_act_timer1us)();
+	pif_timer1us = (*pif_act_timer1us)();
 
 	if (!s_it_current) {
 		if (!count) return;
@@ -699,8 +680,7 @@ next:
 
 	if (p_select) {
 		if (trigger && s_task_stack_ptr) {
-			if (pif_act_timer1us) p_select->_trigger_delay = (*pif_act_timer1us)() - p_select->__trigger_time;
-			else p_select->_trigger_delay = pif_cumulative_timer1ms - p_select->__trigger_time;
+			p_select->_trigger_delay = (*pif_act_timer1us)() - p_select->__trigger_time;
 			if (p_select->_trigger_delay > p_select->_max_trigger_delay) p_select->_max_trigger_delay = p_select->_trigger_delay;
 			p_select->_total_trigger_delay += p_select->_trigger_delay;
 		}
@@ -738,18 +718,10 @@ void pifTaskManager_YieldUs(int32_t time)
 
     if (!time) return;
 
-    if (!pif_act_timer1us) {
-        start = pif_cumulative_timer1ms * 1000;
-        do {
-    		pifTaskManager_Yield();
-		} while ((int32_t)(pif_cumulative_timer1ms * 1000 - start) <= time);
-    }
-    else {
-    	start = (*pif_act_timer1us)();
-		do {
-			pifTaskManager_Yield();
-		} while ((int32_t)((*pif_act_timer1us)() - start) <= time);
-    }
+	start = (*pif_act_timer1us)();
+	do {
+		pifTaskManager_Yield();
+	} while ((int32_t)((*pif_act_timer1us)() - start) <= time);
 }
 
 void pifTaskManager_YieldAbort(PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer)
@@ -783,20 +755,11 @@ void pifTaskManager_YieldAbortUs(int32_t time, PifTaskCheckAbort p_check_abort, 
     if (!time) return;
     if (!p_check_abort) return;
 
-    if (!pif_act_timer1us) {
-        start = pif_cumulative_timer1ms * 1000;
-        do {
-    		pifTaskManager_Yield();
-   			if ((*p_check_abort)(p_issuer)) break;
-		} while ((int32_t)(pif_cumulative_timer1ms * 1000 - start) <= time);
-    }
-    else {
-    	start = (*pif_act_timer1us)();
-		do {
-			pifTaskManager_Yield();
-			if ((*p_check_abort)(p_issuer)) break;
-		} while ((int32_t)((*pif_act_timer1us)() - start) <= time);
-    }
+	start = (*pif_act_timer1us)();
+	do {
+		pifTaskManager_Yield();
+		if ((*p_check_abort)(p_issuer)) break;
+	} while ((int32_t)((*pif_act_timer1us)() - start) <= time);
 }
 
 #ifndef PIF_NO_LOG

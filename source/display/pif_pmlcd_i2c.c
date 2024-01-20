@@ -89,11 +89,6 @@ BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_
 		return FALSE;
 	}
 
-    if (!pif_act_timer1us) {
-		pif_error = E_CANNOT_USE;
-		return FALSE;
-	}
-
 	memset(p_owner, 0, sizeof(PifPmlcdI2c));
 
 	if (id == PIF_ID_AUTO) id = pif_id++;

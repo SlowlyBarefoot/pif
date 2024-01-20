@@ -29,11 +29,6 @@ BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id)
     	return FALSE;
 	}
 
-	if (!pif_act_timer1us) {
-		pif_error = E_CANNOT_USE;
-    	return FALSE;
-	}
-
 	memset(p_owner, 0, sizeof(PifHcSr04));
 
 	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, 50, _doTask, p_owner, FALSE);

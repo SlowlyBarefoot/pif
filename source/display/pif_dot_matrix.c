@@ -178,14 +178,8 @@ BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifTimerManager* p_timer
     p_owner->__act_display = act_display;
     p_owner->__period_per_row_1ms = PIF_DOT_MATRIX_PERIOD_PER_ROW;
 
-    if (pif_act_timer1us) {
-    	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_US, p_owner->__period_per_row_1ms * 1000L / row_size,
-    			_doTask, p_owner, FALSE);
-    }
-    else {
-    	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_MS, p_owner->__period_per_row_1ms / row_size,
-    			_doTask, p_owner, FALSE);
-    }
+	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_US, p_owner->__period_per_row_1ms * 1000L / row_size,
+			_doTask, p_owner, FALSE);
     if (!p_owner->__p_task) goto fail;
 	p_owner->__p_task->name = "DotMatrix";
     return TRUE;
@@ -269,12 +263,7 @@ BOOL pifDotMatrix_SetPeriodPerRow(PifDotMatrix* p_owner, uint16_t period1ms)
 	}
 
 	p_owner->__period_per_row_1ms = period1ms;
-    if (pif_act_timer1us) {
-    	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__period_per_row_1ms * 1000L / p_owner->__row_size);
-    }
-    else {
-    	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__period_per_row_1ms / p_owner->__row_size);
-    }
+   	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__period_per_row_1ms * 1000L / p_owner->__row_size);
 	return TRUE;
 }
 

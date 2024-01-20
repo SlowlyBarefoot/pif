@@ -316,7 +316,7 @@ static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 
 BOOL pifModbusAsciiSlave_Init(PifModbusAsciiSlave *p_owner, PifId id, PifTimerManager *p_timer_manager, uint8_t my_addr)
 {
-    if (!p_owner || !p_timer_manager || !pif_act_timer1us || my_addr == 0 || my_addr > 248) {
+    if (!p_owner || !p_timer_manager || my_addr == 0 || my_addr > 248) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}

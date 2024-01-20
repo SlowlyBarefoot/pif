@@ -214,7 +214,7 @@ fail:
 
 BOOL pifModbusRtuMaster_Init(PifModbusRtuMaster *p_owner, PifId id, PifTimerManager *p_timer_manager)
 {
-    if (!p_owner || !p_timer_manager || !pif_act_timer1us) {
+    if (!p_owner || !p_timer_manager) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}

@@ -44,12 +44,7 @@ static uint32_t _conversionDelay(PifAds1x1x* p_owner)
         }
     }
     if (data_rate) {
-		if (pif_act_timer1us) {
-			delay = (1000000UL - 1) / data_rate + 1;
-		}
-		else {
-			delay = (1000UL - 1) / data_rate + 1;
-		}
+		delay = (1000000UL - 1) / data_rate + 1;
     }
     return delay;
 }
@@ -119,12 +114,7 @@ int16_t pifAds1x1x_ReadMux(PifAds1x1x* p_owner, PifAds1x1xMux mux)
 	config.bit.os_sscs = 1;
 	if (!pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, config.word)) return 0;
 	if (p_owner->__conversion_delay) {
-		if (pif_act_timer1us) {
-			pifTaskManager_YieldUs(p_owner->__conversion_delay);
-		}
-		else {
-			pifTaskManager_YieldMs(p_owner->__conversion_delay);
-		}
+		pifTaskManager_YieldUs(p_owner->__conversion_delay);
 	}
 	if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONVERSION, &data)) return 0;
 	return data >> p_owner->__bit_offset;

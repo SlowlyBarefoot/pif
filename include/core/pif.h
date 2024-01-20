@@ -191,8 +191,9 @@ extern "C" {
  * @fn pif_Init
  * @brief pif의 전역 변수를 초기화한다.
  * @param act_timer1us
+ * @return
  */
-void pif_Init(PifActTimer1us act_timer1us);
+BOOL pif_Init(PifActTimer1us act_timer1us);
 
 /**
  * @fn pif_Exit

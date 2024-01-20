@@ -128,11 +128,6 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_m
 	    return FALSE;
     }
 
-    if (!pif_act_timer1us) {
-        pif_error = E_CANNOT_USE;
-	    return FALSE;
-    }
-
 	memset(p_owner, 0, sizeof(PifSequence));
 
     p_owner->__p_timer_manager = p_timer_manager;

@@ -61,7 +61,7 @@ static int _numberToString(char *p_buffer, long value, int str_cnt, char ch_thou
 
 static void _convertString(PifSrml *p_owner, char *p_str, PifSrmlAlign align, int str_cnt)
 {
-    char form[8], *p_buffer = p_owner->__buffer + p_owner->__offset;
+    char form[16], *p_buffer = p_owner->__buffer + p_owner->__offset;
     int i, len, offset;
 
     if (align == SRMLA_NONE) align = SRMLA_LEFT;
