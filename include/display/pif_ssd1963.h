@@ -132,9 +132,6 @@ struct StPifSsd1963
     const uint8_t* __p_rotation;
 	PifSsd1963PixelFormat __pixel_format;
 
-	// Public Action Function
-    PifActLcdBackLight act_backlight;
-
 	// Private Function
     PifConvertColor __fn_convert_color;
 };
@@ -176,14 +173,6 @@ BOOL pifSsd1963_AttachActParallel(PifSsd1963* p_owner, PifActLcdReset act_reset,
  * @param p_rotation
  */
 void pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation);
-
-/**
- * @fn pifSsd1963_SetRotation
- * @brief
- * @param p_parent
- * @param rotation
- */
-void pifSsd1963_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 
 /**
  * @fn pifSsd1963_DrawPixel

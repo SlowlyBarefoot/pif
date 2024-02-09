@@ -125,7 +125,6 @@ BOOL pifSsd1963_Init(PifSsd1963* p_owner, PifId id)
 	memset(p_owner, 0, sizeof(PifSsd1963));
 
 	pifTftLcd_Init(&p_owner->parent, id, SSD1963_WIDTH, SSD1963_HEIGHT, TLR_0_DEGREE);
-	p_parent->_fn_set_rotation = pifSsd1963_SetRotation;
 	p_parent->_fn_draw_pixel = pifSsd1963_DrawPixel;
 	p_parent->_fn_draw_hor_line = pifSsd1963_DrawHorLine;
 	p_parent->_fn_draw_ver_line = pifSsd1963_DrawVerLine;
@@ -142,7 +141,7 @@ BOOL pifSsd1963_AttachActParallel(PifSsd1963* p_owner, PifActLcdReset act_reset,
 {
 	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
 
-	if (!p_owner || !act_reset || !act_chip_select || !act_read_cmd || !act_write_cmd || !act_write_data || !act_write_repeat) {
+	if (!p_owner || !act_reset || !act_chip_select || !act_write_cmd || !act_write_data || !act_write_repeat) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
@@ -164,10 +163,12 @@ void pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t
 
 	p_owner->__p_rotation = p_rotation;
 #ifndef PIF_NO_LOG
-	pifLog_Printf(LT_INFO, "Rot: %X, %X, %X, %X", p_owner->__p_rotation[0], p_owner->__p_rotation[1], p_owner->__p_rotation[2], p_owner->__p_rotation[3]);
+	if (p_rotation) {
+		pifLog_Printf(LT_INFO, "Rot: %X, %X, %X, %X", p_rotation[0], p_rotation[1], p_rotation[2], p_rotation[3]);
+	}
 #endif
 
-	p = p_setup;
+	p = (uint8_t*)p_setup;
 	while (*p) {
 		cmd = *p++;
 		len = *p++;
@@ -192,7 +193,7 @@ void pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t
 
 	for (i = 0; i < 3; i++)	(*p_parent->__act_write_cmd)(SSD1963_CMD_NOP, NULL, 0);
 
-	p = p_setup;
+	p = (uint8_t*)p_setup;
 	while (*p) {
 		cmd = *p++;
 		len = *p++;
@@ -207,33 +208,9 @@ void pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t
 	}
 
     (*p_parent->__act_write_cmd)(SSD1963_CMD_SET_DISP_ON, NULL, 0);
-
 	(*p_parent->__act_write_cmd)(SSD1963_CMD_WRITE_MEM_START, NULL, 0);
 
 	(*p_parent->__act_chip_select)(FALSE);
-}
-
-void pifSsd1963_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
-{
-	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
-
-	if (rotation & 1) {
-		p_parent->_width = SSD1963_HEIGHT;
-		p_parent->_height = SSD1963_WIDTH;
-	}
-	else {
-		p_parent->_width = SSD1963_WIDTH;
-		p_parent->_height = SSD1963_HEIGHT;
-	}
-	p_parent->_rotation = rotation;
-
-	(*p_parent->__act_chip_select)(TRUE);
-    (*p_parent->__act_write_cmd)(SSD1963_CMD_SET_ADDR_MODE, &p_owner->__p_rotation[rotation], 1);
-	(*p_parent->__act_chip_select)(FALSE);
-
-#ifndef PIF_NO_LOG
-	pifLog_Printf(LT_INFO, "Rot: %d, %X, %X, %X, %X", rotation, p_owner->__p_rotation[0], p_owner->__p_rotation[1], p_owner->__p_rotation[2], p_owner->__p_rotation[3]);
-#endif
 }
 
 void pifSsd1963_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint32_t color)
