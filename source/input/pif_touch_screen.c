@@ -18,7 +18,7 @@ static BOOL _isPressed(PifTouchScreen* p_owner)
         if (state == oldstate) count++;
         else count = 0;
         oldstate = state;
-		pifTaskManager_YieldMs(5);
+		pifTaskManager_YieldMs(PIF_TOUCH_CONTROL_PERIOD);
     }
     return oldstate;
 }
@@ -78,6 +78,12 @@ static uint16_t _doTask(PifTask* p_task)
 	int16_t tpx, tpy;
 	PifNoiseFilterValueP p_vx, p_vy;
 
+	if (p_lcd->_rotation & 1) {
+		(*p_owner->__act_position)(p_owner, &tpy, &tpx);
+	}
+	else {
+		(*p_owner->__act_position)(p_owner, &tpx, &tpy);
+	}
 	if (!(*p_owner->__act_pressure)(p_owner)) {
 		if (p_owner->__pressure) {
 			if (p_owner->__p_filter_x && p_owner->__p_filter_y) {
@@ -89,12 +95,6 @@ static uint16_t _doTask(PifTask* p_task)
 		return 0;
 	}
 
-	if (p_lcd->_rotation & 1) {
-		(*p_owner->__act_position)(p_owner, &tpy, &tpx);
-	}
-	else {
-		(*p_owner->__act_position)(p_owner, &tpx, &tpy);
-	}
     if (p_owner->__p_filter_x && p_owner->__p_filter_y) {
     	p_vx = pifNoiseFilter_Process(p_owner->__p_filter_x, &tpx);
     	p_vy = pifNoiseFilter_Process(p_owner->__p_filter_y, &tpy);

@@ -46,14 +46,6 @@ static void _setAddress(PifIli9341* p_owner, uint16_t x1, uint16_t y1, uint16_t 
 	(*p_parent->__act_write_cmd)(ILI9341_CMD_MEM_WRITE, NULL, 0);
 }
 
-static uint8_t _convertColor(PifIli9341* p_owner, uint32_t color, uint32_t* p_data)
-{
-	(void)p_owner;
-	(void)color;
-	(void)p_data;
-	return 0;
-}
-
 static uint8_t _convertColorMcuI_8bit(PifIli9341* p_owner, uint32_t color, uint32_t* p_data)
 {
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
@@ -222,9 +214,18 @@ static uint8_t _convertColorMcuII_18bit(PifIli9341* p_owner, uint32_t color, uin
 	}
 }
 
-static void _setFunction(PifIli9341* p_owner)
+BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interface)
 {
-	switch (p_owner->__interface) {
+	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
+
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+	    return FALSE;
+	}
+
+	memset(p_owner, 0, sizeof(PifIli9341));
+
+	switch (interface) {
 	case ILI9341_IF_MCU_8BIT_I:
 		p_owner->__fn_convert_color = _convertColorMcuI_8bit;
 		break;
@@ -258,21 +259,8 @@ static void _setFunction(PifIli9341* p_owner)
 		break;
 
 	default:
-		p_owner->__fn_convert_color = _convertColor;
-		break;
+		return FALSE;
 	}
-}
-
-BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interface)
-{
-	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
-
-	if (!p_owner) {
-		pif_error = E_INVALID_PARAM;
-	    return FALSE;
-	}
-
-	memset(p_owner, 0, sizeof(PifIli9341));
 
 	pifTftLcd_Init(&p_owner->parent, id, ILI9341_WIDTH, ILI9341_HEIGHT, TLR_0_DEGREE);
 	p_parent->_fn_set_rotation = pifIli9341_SetRotation;
@@ -283,8 +271,6 @@ BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interfac
 
 	p_owner->__interface = interface;
 	p_owner->_view_size = ILI9341_WIDTH > ILI9341_HEIGHT ? ILI9341_WIDTH : ILI9341_HEIGHT;
-
-	_setFunction(p_owner);
     return TRUE;
 }
 
@@ -338,8 +324,6 @@ void pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 			p += len;
 		}
 	}
-
-	_setFunction(p_owner);
 
     (*p_parent->__act_reset)();
 

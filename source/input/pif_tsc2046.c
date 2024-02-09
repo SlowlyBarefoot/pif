@@ -17,7 +17,9 @@ static void _actTouchPosition(PifTouchScreen* p_parent, int16_t* x, int16_t* y)
 
 static BOOL _actTouchPressure(PifTouchScreen* p_parent)
 {
-	return !(*((PifTsc2046*)p_parent)->__act_pen)();
+	PifTsc2046* p_owner = (PifTsc2046*)p_parent;
+
+	return (*p_owner->__act_pen)();
 }
 
 BOOL pifTsc2046_Init(PifTsc2046* p_owner, PifId id, PifTftLcd* p_lcd, int16_t left_x, int16_t right_x, int16_t top_y, int16_t bottom_y, PifSpiPort* p_port, PifActTsc2046Pen act_pen)
