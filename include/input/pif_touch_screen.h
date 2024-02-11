@@ -37,13 +37,13 @@ struct StPifTouchScreen
     uint16_t _control_period_1ms;			// PIF_TOUCH_SCREEN_CONTROL_PERIOD
     PifTask* _p_task;
 	int16_t _x, _y;
+	BOOL _pressure;
 	BOOL _calibration;
 
 	// Private Member Variable
     PifTftLcd* __p_lcd;
 	int16_t __clx, __cty, __crx, __cby;
 	float __px, __py;
-	BOOL __pressure;
     PifNoiseFilter* __p_filter_x;
     PifNoiseFilter* __p_filter_y;
 

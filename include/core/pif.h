@@ -69,6 +69,12 @@
 #define ABS(x) ((x) > 0 ? (x) : -(x))
 #endif
 
+#define _PIF_CONCAT2(x, y) 		x ## y
+#define PIF_CONCAT2(x, y) 		_PIF_CONCAT2(x, y)
+
+#define _PIF_CONCAT3(x, y, z) 	x ## y ## z
+#define PIF_CONCAT3(x, y, z) 	_PIF_CONCAT3(x, y, z)
+
 
 typedef uint16_t PifId;
 typedef void* PifIssuerP;

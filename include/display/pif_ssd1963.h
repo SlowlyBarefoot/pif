@@ -112,7 +112,7 @@ typedef enum EnPifSsd1963PixelFormat
 struct StPifSsd1963;
 typedef struct StPifSsd1963 PifSsd1963;
 
-typedef uint8_t (*PifConvertColor)(uint32_t color, uint32_t* p_data);
+typedef uint8_t (*PifConvertColor)(PifColor color, uint32_t* p_data);
 
 /**
  * @class StPifSsd1963
@@ -171,8 +171,9 @@ BOOL pifSsd1963_AttachActParallel(PifSsd1963* p_owner, PifActLcdReset act_reset,
  * @param p_owner
  * @param p_setup
  * @param p_rotation
+ * @return
  */
-void pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation);
+BOOL pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation);
 
 /**
  * @fn pifSsd1963_DrawPixel
@@ -181,9 +182,8 @@ void pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t
  * @param x
  * @param y
  * @param color
- * @return
  */
-void pifSsd1963_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint32_t color);
+void pifSsd1963_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor color);
 
 /**
  * @fn pifSsd1963_DrawHorLine
@@ -193,9 +193,8 @@ void pifSsd1963_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint32_t 
  * @param y
  * @param len
  * @param color
- * @return
  */
-void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, uint32_t color);
+void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @fn pifSsd1963_DrawVerLine
@@ -205,9 +204,8 @@ void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
  * @param y
  * @param len
  * @param color
- * @return
  */
-void pifSsd1963_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, uint32_t color);
+void pifSsd1963_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @fn pifSsd1963_DrawFillRect
@@ -218,9 +216,20 @@ void pifSsd1963_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
  * @param x2
  * @param y2
  * @param color
- * @return
  */
-void pifSsd1963_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint32_t color);
+void pifSsd1963_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color);
+
+/**
+ * @fn pifSsd1963_DrawArea
+ * @brief
+ * @param p_parent
+ * @param x1
+ * @param y1
+ * @param x2
+ * @param y2
+ * @param p_color_map
+ */
+void pifSsd1963_DrawArea(PifTftLcd *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map);
 
 #ifdef __cplusplus
 }

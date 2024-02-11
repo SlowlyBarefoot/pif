@@ -2,7 +2,7 @@
 #include "input/pif_touch_screen.h"
 
 
-static void _drawCrossHair(PifTftLcd* p_owner, uint16_t x, uint16_t y, uint32_t color)
+static void _drawCrossHair(PifTftLcd* p_owner, uint16_t x, uint16_t y, PifColor color)
 {
 	(*p_owner->_fn_draw_hor_line)(p_owner, x - 5, y, 11, color);
 	(*p_owner->_fn_draw_ver_line)(p_owner, x, y - 5, 11, color);
@@ -85,12 +85,12 @@ static uint16_t _doTask(PifTask* p_task)
 		(*p_owner->__act_position)(p_owner, &tpx, &tpy);
 	}
 	if (!(*p_owner->__act_pressure)(p_owner)) {
-		if (p_owner->__pressure) {
+		if (p_owner->_pressure) {
 			if (p_owner->__p_filter_x && p_owner->__p_filter_y) {
 				pifNoiseFilter_Reset(p_owner->__p_filter_x);
 				pifNoiseFilter_Reset(p_owner->__p_filter_y);
 			}
-			p_owner->__pressure = FALSE;
+			p_owner->_pressure = FALSE;
 		}
 		return 0;
 	}
@@ -111,7 +111,7 @@ static uint16_t _doTask(PifTask* p_task)
 	if (p_owner->_y < 0) p_owner->_y = 0;
 	else if (p_owner->_y > p_lcd->_height) p_owner->_y = p_lcd->_height - 1;
 
-	p_owner->__pressure = TRUE;
+	p_owner->_pressure = TRUE;
 
 	if (p_owner->evt_touch_data) (*p_owner->evt_touch_data)(p_owner->_x, p_owner->_y);
 	return 0;

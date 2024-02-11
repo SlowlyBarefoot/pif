@@ -89,7 +89,7 @@ typedef enum EnPifIli9341PixelFormat
 struct StPifIli9341;
 typedef struct StPifIli9341 PifIli9341;
 
-typedef uint8_t (*PifConvertColor)(PifIli9341* p_owner, uint32_t color, uint32_t* p_data);
+typedef uint8_t (*PifConvertColor)(PifIli9341* p_owner, PifColor color, uint32_t* p_data);
 
 /**
  * @class StPifIli9341
@@ -112,6 +112,7 @@ struct StPifIli9341
     PifIli9341Interface __interface;
     PifIli9341PixelFormat __pixel_format;
     uint8_t __mdt;
+    uint8_t __command_shift;
 
 	// Private Function
     PifConvertColor __fn_convert_color;
@@ -153,8 +154,9 @@ BOOL pifIli9341_AttachActParallel(PifIli9341* p_owner, PifActLcdReset act_reset,
  * @param p_owner
  * @param p_setup
  * @param p_rotation
+ * @return
  */
-void pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation);
+BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation);
 
 /**
  * @fn pifIli9341_SetRotation
@@ -172,9 +174,8 @@ BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
  * @param x
  * @param y
  * @param color
- * @return
  */
-void pifIli9341_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint32_t color);
+void pifIli9341_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor color);
 
 /**
  * @fn pifIli9341_DrawHorLine
@@ -184,9 +185,8 @@ void pifIli9341_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint32_t 
  * @param y
  * @param len
  * @param color
- * @return
  */
-void pifIli9341_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, uint32_t color);
+void pifIli9341_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @fn pifIli9341_DrawVerLine
@@ -196,9 +196,8 @@ void pifIli9341_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
  * @param y
  * @param len
  * @param color
- * @return
  */
-void pifIli9341_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, uint32_t color);
+void pifIli9341_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @fn pifIli9341_DrawFillRect
@@ -209,9 +208,20 @@ void pifIli9341_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
  * @param x2
  * @param y2
  * @param color
- * @return
  */
-void pifIli9341_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint32_t color);
+void pifIli9341_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color);
+
+/**
+ * @fn pifIli9341_DrawArea
+ * @brief
+ * @param p_parent
+ * @param x1
+ * @param y1
+ * @param x2
+ * @param y2
+ * @param p_color_map
+ */
+void pifIli9341_DrawArea(PifTftLcd *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map);
 
 #ifdef __cplusplus
 }

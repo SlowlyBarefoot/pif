@@ -83,6 +83,12 @@
 //#define PIF_TASK_TABLE_SIZE				32
 
 
+// -------- pifTftLcd ----------------------------
+
+// Color depth: 16 (RGB565), 32 (XRGB8888)
+#define PIF_COLOR_DEPTH 					16
+
+
 // -------- pifTimer -----------------------------
 
 //#define PIF_PWM_MAX_DUTY					1000
