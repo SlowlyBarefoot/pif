@@ -20,6 +20,7 @@ static PifObjArrayIterator s_it_current;
 static PifTask* s_task_stack[PIF_TASK_STACK_SIZE];
 static int s_task_stack_ptr = 0;
 static PifTask* s_task_cutin = NULL;
+static PifTask *s_current_task = NULL;
 
 static uint32_t s_table_number;
 static uint32_t s_table[PIF_TASK_TABLE_SIZE];
@@ -77,11 +78,9 @@ static void _resetTable(int number)
 
 static PifTask* _processingAlways(PifTask* p_owner)
 {
-	int32_t gap;
-
 	if (p_owner->__delay_ms) {
-		gap = pif_cumulative_timer1ms - p_owner->__pretime;
-		if (gap >= p_owner->__delay_ms) {
+		p_owner->_delta_time = pif_cumulative_timer1ms - p_owner->__pretime;
+		if (p_owner->_delta_time >= p_owner->__delay_ms) {
 			p_owner->__delay_ms = 0;
 		}
 		return NULL;
@@ -92,12 +91,11 @@ static PifTask* _processingAlways(PifTask* p_owner)
 static PifTask* _processingPeriodUs(PifTask* p_owner)
 {
 	uint32_t current;
-	int32_t gap;
 
 	current = (*pif_act_timer1us)();
-	gap = current - p_owner->__pretime;
-	if (gap >= p_owner->__period) {
-		p_owner->__pretime = current - (gap - p_owner->__period);
+	p_owner->_delta_time = current - p_owner->__pretime;
+	if (p_owner->_delta_time >= p_owner->__period) {
+		p_owner->__pretime = current;
 		return p_owner;
 	}
 	return NULL;
@@ -106,11 +104,10 @@ static PifTask* _processingPeriodUs(PifTask* p_owner)
 static PifTask* _processingPeriodMs(PifTask* p_owner)
 {
 	uint32_t current;
-	int32_t gap;
 
 	current = pif_cumulative_timer1ms;
-	gap = current - p_owner->__pretime;
-	if (gap >= p_owner->__period) {
+	p_owner->_delta_time = current - p_owner->__pretime;
+	if (p_owner->_delta_time >= p_owner->__period) {
 		p_owner->__pretime = current;
 		return p_owner;
 	}
@@ -119,15 +116,14 @@ static PifTask* _processingPeriodMs(PifTask* p_owner)
 
 static PifTask* _processingRatio(PifTask* p_owner)
 {
-	int32_t gap;
 #ifdef PIF_DEBUG
 	uint32_t time;
 	static uint32_t pretime;
 #endif
 
 	if (p_owner->__delay_ms) {
-		gap = pif_cumulative_timer1ms - p_owner->__pretime;
-		if (gap >= p_owner->__delay_ms) {
+		p_owner->_delta_time = pif_cumulative_timer1ms - p_owner->__pretime;
+		if (p_owner->_delta_time >= p_owner->__delay_ms) {
 			p_owner->__delay_ms = 0;
 		}
 	}
@@ -247,9 +243,10 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
 	return TRUE;
 }
 
-static void _processingTask(PifTask* p_owner)
+static void _processingTask(PifTask* p_owner, BOOL trigger)
 {
 	uint16_t period;
+	uint16_t trigger_delay;
 	uint32_t start_time;
 	int32_t execute_time;
 
@@ -259,15 +256,45 @@ static void _processingTask(PifTask* p_owner)
     if (pif_act_task_signal) (*pif_act_task_signal)(TRUE);
 #endif
 
+#ifdef PIF_USE_TASK_STATISTICS
+	if (trigger) {
+		trigger_delay = (*pif_act_timer1us)() - p_owner->__trigger_time;
+		if (trigger_delay > p_owner->_max_trigger_delay) p_owner->_max_trigger_delay = trigger_delay;
+		p_owner->__total_trigger_delay[p_owner->__trigger_index] += trigger_delay;
+		p_owner->__trigger_count++;
+		if (p_owner->__trigger_count == 200) {
+			p_owner->__trigger_count -= 100;
+			p_owner->__trigger_index ^= 1;
+			p_owner->__total_trigger_delay[p_owner->__trigger_index] = 0;
+		}
+		else if (p_owner->__trigger_count == 100) {
+			p_owner->__trigger_index ^= 1;
+		}
+	}
+#endif
+
+	s_current_task = p_owner;
     s_task_stack[s_task_stack_ptr] = p_owner;
 	s_task_stack_ptr++;
 	p_owner->_running = TRUE;
 	start_time = (*pif_act_timer1us)();
 	period = (*p_owner->__evt_loop)(p_owner);
 	execute_time = (*pif_act_timer1us)() - start_time;
-	p_owner->_execution_count++;
+#ifdef PIF_USE_TASK_STATISTICS
 	if (execute_time > p_owner->_max_execution_time) p_owner->_max_execution_time = execute_time;
-	p_owner->_total_execution_time += execute_time;
+	p_owner->__total_delta_time[p_owner->__execute_index] += p_owner->_delta_time;
+	p_owner->__total_execution_time[p_owner->__execute_index] += execute_time;
+	p_owner->__execution_count++;
+	if (p_owner->__execution_count == 200) {
+		p_owner->__execution_count -= 100;
+		p_owner->__execute_index ^= 1;
+		p_owner->__total_delta_time[p_owner->__execute_index] = 0;
+		p_owner->__total_execution_time[p_owner->__execute_index] = 0;
+	}
+	else if (p_owner->__execution_count == 100) {
+		p_owner->__execute_index ^= 1;
+	}
+#endif
 	p_owner->_running = FALSE;
 	s_task_stack_ptr--;
 	s_task_stack[s_task_stack_ptr] = NULL;
@@ -438,22 +465,24 @@ void pifTask_DelayMs(PifTask* p_owner, uint16_t delay)
 	}
 }
 
-uint32_t pifTask_GetDeltaTime(PifTask* p_owner, BOOL reset)
-{
-	uint32_t currect;
-	int32_t delta;
+#ifdef PIF_USE_TASK_STATISTICS
 
-	currect = (*pif_act_timer1us)();
-	delta = currect - p_owner->__last_execute_time;
-	if (reset) {
-		if (p_owner->__last_execute_time) {
-			p_owner->_total_period_time += delta;
-			p_owner->_period_count++;
-		}
-		p_owner->__last_execute_time = currect;
-	}
-	return delta;
+PIF_INLINE uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner)
+{
+	return (p_owner->__total_delta_time[0] + p_owner->__total_delta_time[1]) / p_owner->__execution_count;
 }
+
+PIF_INLINE uint32_t pifTask_GetAverageExecuteTime(PifTask* p_owner)
+{
+	return (p_owner->__total_execution_time[0] + p_owner->__total_execution_time[1]) / p_owner->__execution_count;
+}
+
+PIF_INLINE uint32_t pifTask_GetAverageTriggerTime(PifTask* p_owner)
+{
+	return (p_owner->__total_trigger_delay[0] + p_owner->__total_trigger_delay[1]) / p_owner->__trigger_count;
+}
+
+#endif
 
 
 BOOL pifTaskManager_Init(int max_count)
@@ -525,6 +554,11 @@ int pifTaskManager_Count()
 	return pifObjArray_Count(&s_tasks);
 }
 
+PIF_INLINE PifTask *pifTaskManager_CurrentTask()
+{
+	return s_current_task;
+}
+
 void pifTaskManager_Loop()
 {
 	PifTask* p_owner;
@@ -587,12 +621,7 @@ void pifTaskManager_Loop()
 	}
 
 	if (p_select) {
-		if (trigger) {
-			p_select->_trigger_delay = (*pif_act_timer1us)() - p_select->__trigger_time;
-			if (p_select->_trigger_delay > p_select->_max_trigger_delay) p_select->_max_trigger_delay = p_select->_trigger_delay;
-			p_select->_total_trigger_delay += p_select->_trigger_delay;
-		}
-	    _processingTask(p_select);
+	    _processingTask(p_select, trigger);
 	}
 	else if (p_idle) {
 		i = n;
@@ -603,7 +632,7 @@ void pifTaskManager_Loop()
 		else {
 			s_it_current = it_idle;
 		}
-	    _processingTask(p_idle);
+	    _processingTask(p_idle, FALSE);
 	}
 	s_pass_count += i - t;
 }
@@ -679,12 +708,7 @@ next:
 	}
 
 	if (p_select) {
-		if (trigger && s_task_stack_ptr) {
-			p_select->_trigger_delay = (*pif_act_timer1us)() - p_select->__trigger_time;
-			if (p_select->_trigger_delay > p_select->_max_trigger_delay) p_select->_max_trigger_delay = p_select->_trigger_delay;
-			p_select->_total_trigger_delay += p_select->_trigger_delay;
-		}
-	    _processingTask(p_select);
+	    _processingTask(p_select, trigger && s_task_stack_ptr);
 	}
 	else if (p_idle) {
 		i = n;
@@ -695,7 +719,7 @@ next:
 		else {
 			s_it_current = it_idle;
 		}
-	    _processingTask(p_idle);
+	    _processingTask(p_idle, FALSE);
 	}
 	s_pass_count += i - t;
 }
@@ -762,12 +786,13 @@ void pifTaskManager_YieldAbortUs(int32_t time, PifTaskCheckAbort p_check_abort, 
 	} while ((int32_t)((*pif_act_timer1us)() - start) <= time);
 }
 
-#ifndef PIF_NO_LOG
+#if !defined(PIF_NO_LOG) || defined(PIF_LOG_COMMAND)
 
 void pifTaskManager_Print()
 {
 	PifObjArrayIterator it;
 	const char* mode[] = { "Ratio", "Always", "PeriodMs", "PeriodUs", "ChangeMs", "ChangeUs", "ExtCutin", "ExtOrder", "Timer", "IdleMs" };
+	uint32_t value;
 
    	pifLog_Printf(LT_NONE, "Task count: %d\n", pifObjArray_Count(&s_tasks));
 	it = pifObjArray_Begin(&s_tasks);
@@ -780,16 +805,23 @@ void pifTaskManager_Print()
 			pifLog_Print(LT_NONE, "  ---");
 		}
 		pifLog_Printf(LT_NONE, " (%u): %s-%u\n", p_owner->_id, mode[p_owner->_mode], p_owner->_default_period);
+#ifdef PIF_USE_TASK_STATISTICS
+		value = p_owner->__total_execution_time[0] + p_owner->__total_execution_time[1];
 		pifLog_Printf(LT_NONE, "    Proc: M=%ldus A=%luus T=%lums\n", p_owner->_max_execution_time,
-				(p_owner->_execution_count ? p_owner->_total_execution_time / p_owner->_execution_count : 0), p_owner->_total_execution_time / 1000);
-		if (p_owner->_total_period_time) {
-			pifLog_Printf(LT_NONE, "    Period: %luus\n", (p_owner->_period_count ? p_owner->_total_period_time / p_owner->_period_count : 0));
+				(p_owner->__execution_count ? value / p_owner->__execution_count : 0), value / 1000);
+
+		value = p_owner->__total_delta_time[0] + p_owner->__total_delta_time[1];
+		if (value) {
+			pifLog_Printf(LT_NONE, "    Delta: %luus\n", value / p_owner->__execution_count);
 		}
-		if (p_owner->_total_trigger_delay) {
-			pifLog_Printf(LT_NONE, "    Delay: M=%luus A=%luus\n", p_owner->_max_trigger_delay,
-					(p_owner->_execution_count ? p_owner->_total_trigger_delay / p_owner->_execution_count : 0));
+
+		value = p_owner->__total_trigger_delay[0] + p_owner->__total_trigger_delay[1];
+		if (value) {
+			pifLog_Printf(LT_NONE, "    Trigger: M=%luus A=%luus\n", p_owner->_max_trigger_delay,
+					(p_owner->__trigger_count ? value / p_owner->__trigger_count : 0));
 		}
 		pifLog_Print(LT_NONE, "\n");
+#endif
 		it = pifObjArray_Next(it);
 	}
 }

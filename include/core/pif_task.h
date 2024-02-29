@@ -23,7 +23,7 @@ typedef enum EnPifTaskMode
 	TM_EXTERNAL_CUTIN,	// After an external trigger occurs, it is executed as soon as the currently running task ends. However, this mode is set to only one task per program.
 	TM_EXTERNAL_ORDER,
 	TM_TIMER,			// Do not use it for other purposes because it is a mode used by the timer.
-	TM_IDLE_MS			// If at least one TM_ALWAYS task exists, the TM_IDLE task is not executed.
+	TM_IDLE_MS			// If at least one TM_ALWAYS task exists, the TM_IDLE_MS task is not executed.
 } PifTaskMode;
 
 
@@ -54,15 +54,12 @@ struct StPifTask
 	PifTaskMode _mode;
 	BOOL _running;
 	uint16_t _default_period;
+	int16_t _delta_time;
 	void *_p_client;
+#ifdef PIF_USE_TASK_STATISTICS
     int32_t _max_execution_time;
-    uint32_t _total_execution_time;		// total time consumed by task since boot
-	uint32_t _execution_count;
-	uint32_t _total_period_time;
-	uint32_t _period_count;
 	uint32_t _max_trigger_delay;
-	uint32_t _total_trigger_delay;
-	uint16_t _trigger_delay;
+#endif
 
 	// Private Member Variable
 	PifTaskProcessing __processing;
@@ -73,6 +70,15 @@ struct StPifTask
 	uint32_t __pretime;
 	uint32_t __last_execute_time;
 	uint32_t __trigger_time;
+#ifdef PIF_USE_TASK_STATISTICS
+	uint32_t __total_delta_time[2];
+    uint32_t __total_execution_time[2];		// total time consumed by task since boot
+	uint32_t __total_trigger_delay[2];
+	uint16_t __execution_count;
+	uint16_t __trigger_count;
+	uint8_t __execute_index;
+	uint8_t __trigger_index;
+#endif
 #ifdef PIF_DEBUG
 	uint32_t __ratio_count;
 	float __ratio_period;
@@ -135,14 +141,33 @@ BOOL pifTask_SetTrigger(PifTask* p_owner);
  */
 void pifTask_DelayMs(PifTask* p_owner, uint16_t delay);
 
+#ifdef PIF_USE_TASK_STATISTICS
+
 /**
- * @fn pifTask_GetDeltaTime
- * @brief 
+ * @fn pifTask_GetAverageDeltaTime
+ * @brief
  * @param p_owner Task 자신
- * @param reset
  * @return
  */
-uint32_t pifTask_GetDeltaTime(PifTask* p_owner, BOOL reset);
+uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner);
+
+/**
+ * @fn pifTask_GetAverageExecuteTime
+ * @brief
+ * @param p_owner Task 자신
+ * @return
+ */
+uint32_t pifTask_GetAverageExecuteTime(PifTask* p_owner);
+
+/**
+ * @fn pifTask_GetAverageTriggerTime
+ * @brief
+ * @param p_owner Task 자신
+ * @return
+ */
+uint32_t pifTask_GetAverageTriggerTime(PifTask* p_owner);
+
+#endif
 
 
 /**
@@ -184,6 +209,13 @@ void pifTaskManager_Remove(PifTask* p_task);
  * @return 등록된 task의 수를 반환한다.
  */
 int pifTaskManager_Count();
+
+/**
+ * @fn pifTaskManager_Count
+ * @brief 등록된 task의 수를 구한다.
+ * @return 등록된 task의 수를 반환한다.
+ */
+PifTask *pifTaskManager_CurrentTask();
 
 /**
  * @fn pifTaskManager_Loop
@@ -237,7 +269,7 @@ void pifTaskManager_YieldAbortMs(int32_t time, PifTaskCheckAbort p_check_abort, 
  */
 void pifTaskManager_YieldAbortUs(int32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
 
-#ifndef PIF_NO_LOG
+#if !defined(PIF_NO_LOG) || defined(PIF_LOG_COMMAND)
 
 /**
  * @fn pifTaskManager_Print
