@@ -246,9 +246,13 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
 static void _processingTask(PifTask* p_owner, BOOL trigger)
 {
 	uint16_t period;
+#ifdef PIF_USE_TASK_STATISTICS
 	uint16_t trigger_delay;
 	uint32_t start_time;
 	int32_t execute_time;
+#else
+	(void)trigger;
+#endif
 
 	if (s_task_stack_ptr >= PIF_TASK_STACK_SIZE) return;
 
@@ -279,10 +283,10 @@ static void _processingTask(PifTask* p_owner, BOOL trigger)
     s_task_stack[s_task_stack_ptr] = p_owner;
 	s_task_stack_ptr++;
 	p_owner->_running = TRUE;
+#ifdef PIF_USE_TASK_STATISTICS
 	start_time = (*pif_act_timer1us)();
 	period = (*p_owner->__evt_loop)(p_owner);
 	execute_time = (*pif_act_timer1us)() - start_time;
-#ifdef PIF_USE_TASK_STATISTICS
 	if (execute_time > p_owner->_max_execution_time) p_owner->_max_execution_time = execute_time;
 	p_owner->__total_delta_time[p_owner->__execute_index] += p_owner->_delta_time;
 	p_owner->__total_execution_time[p_owner->__execute_index] += execute_time;
@@ -296,6 +300,8 @@ static void _processingTask(PifTask* p_owner, BOOL trigger)
 	else if (p_owner->__execution_count == 100) {
 		p_owner->__execute_index ^= 1;
 	}
+#else
+	period = (*p_owner->__evt_loop)(p_owner);
 #endif
 	p_owner->_running = FALSE;
 	s_task_stack_ptr--;
@@ -795,7 +801,9 @@ void pifTaskManager_Print()
 {
 	PifObjArrayIterator it;
 	const char* mode[] = { "Ratio", "Always", "PeriodMs", "PeriodUs", "ChangeMs", "ChangeUs", "ExtCutin", "ExtOrder", "Timer", "IdleMs" };
+#ifdef PIF_USE_TASK_STATISTICS
 	uint32_t value;
+#endif
 
    	pifLog_Printf(LT_NONE, "Task count: %d\n", pifObjArray_Count(&s_tasks));
 	it = pifObjArray_Begin(&s_tasks);

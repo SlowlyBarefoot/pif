@@ -54,7 +54,7 @@ struct StPifTask
 	PifTaskMode _mode;
 	BOOL _running;
 	uint16_t _default_period;
-	int16_t _delta_time;
+	uint16_t _delta_time;
 	void *_p_client;
 #ifdef PIF_USE_TASK_STATISTICS
     int32_t _max_execution_time;
