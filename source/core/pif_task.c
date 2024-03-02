@@ -95,7 +95,7 @@ static PifTask* _processingPeriodUs(PifTask* p_owner)
 	current = (*pif_act_timer1us)();
 	p_owner->_delta_time = current - p_owner->__pretime;
 	if (p_owner->_delta_time >= p_owner->__period) {
-		p_owner->__pretime = current;
+		p_owner->__current_time = current;
 		return p_owner;
 	}
 	return NULL;
@@ -108,7 +108,7 @@ static PifTask* _processingPeriodMs(PifTask* p_owner)
 	current = pif_cumulative_timer1ms;
 	p_owner->_delta_time = current - p_owner->__pretime;
 	if (p_owner->_delta_time >= p_owner->__period) {
-		p_owner->__pretime = current;
+		p_owner->__current_time = current;
 		return p_owner;
 	}
 	return NULL;
@@ -251,6 +251,8 @@ static void _processingTask(PifTask* p_owner, BOOL trigger)
 	int32_t execute_time;
 
 	if (s_task_stack_ptr >= PIF_TASK_STACK_SIZE) return;
+
+	p_owner->__pretime = p_owner->__current_time;
 
 #ifdef PIF_DEBUG
     if (pif_act_task_signal) (*pif_act_task_signal)(TRUE);
@@ -469,16 +471,19 @@ void pifTask_DelayMs(PifTask* p_owner, uint16_t delay)
 
 PIF_INLINE uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner)
 {
+	if (p_owner->__execution_count < 20) return 0;
 	return (p_owner->__total_delta_time[0] + p_owner->__total_delta_time[1]) / p_owner->__execution_count;
 }
 
 PIF_INLINE uint32_t pifTask_GetAverageExecuteTime(PifTask* p_owner)
 {
+	if (p_owner->__execution_count < 20) return 0;
 	return (p_owner->__total_execution_time[0] + p_owner->__total_execution_time[1]) / p_owner->__execution_count;
 }
 
 PIF_INLINE uint32_t pifTask_GetAverageTriggerTime(PifTask* p_owner)
 {
+	if (p_owner->__trigger_count < 20) return 0;
 	return (p_owner->__total_trigger_delay[0] + p_owner->__total_trigger_delay[1]) / p_owner->__trigger_count;
 }
 
@@ -563,7 +568,6 @@ void pifTaskManager_Loop()
 {
 	PifTask* p_owner;
 	PifTask* p_select = NULL;
-	PifTask* p_idle = NULL;
 	PifObjArrayIterator it_idle = NULL;
 	int i, n, t = 0, count = pifObjArray_Count(&s_tasks);
 	BOOL trigger = FALSE;
@@ -598,9 +602,8 @@ void pifTaskManager_Loop()
 				}
 				else if (p_owner->__processing) {
 					if (p_owner->_mode == TM_IDLE_MS) {
-						if (!p_idle) {
-							p_idle = (*p_owner->__processing)(p_owner);
-							if (p_idle) {
+						if (!it_idle) {
+							if ((*p_owner->__processing)(p_owner)) {
 								it_idle = s_it_current;
 								n = i;
 							}
@@ -623,7 +626,8 @@ void pifTaskManager_Loop()
 	if (p_select) {
 	    _processingTask(p_select, trigger);
 	}
-	else if (p_idle) {
+	else if (it_idle) {
+		p_select = (PifTask*)it_idle->data;
 		i = n;
 		it_idle = pifObjArray_Next(it_idle);
 		if (!it_idle) {
@@ -632,7 +636,7 @@ void pifTaskManager_Loop()
 		else {
 			s_it_current = it_idle;
 		}
-	    _processingTask(p_idle, FALSE);
+	    _processingTask(p_select, FALSE);
 	}
 	s_pass_count += i - t;
 }
@@ -641,7 +645,6 @@ void pifTaskManager_Yield()
 {
 	PifTask* p_owner;
 	PifTask* p_select = NULL;
-	PifTask* p_idle = NULL;
 	PifObjArrayIterator it_idle = NULL;
 	int i, k, n, t = 0, count = pifObjArray_Count(&s_tasks);
 	BOOL trigger = FALSE;
@@ -684,9 +687,8 @@ void pifTaskManager_Yield()
 				}
 				else if (p_owner->__processing) {
 					if (p_owner->_mode == TM_IDLE_MS) {
-						if (!p_idle) {
-							p_idle = (*p_owner->__processing)(p_owner);
-							if (p_idle) {
+						if (!it_idle) {
+							if ((*p_owner->__processing)(p_owner)) {
 								it_idle = s_it_current;
 								n = i;
 							}
@@ -710,7 +712,8 @@ next:
 	if (p_select) {
 	    _processingTask(p_select, trigger && s_task_stack_ptr);
 	}
-	else if (p_idle) {
+	else if (it_idle) {
+		p_select = (PifTask*)it_idle->data;
 		i = n;
 		it_idle = pifObjArray_Next(it_idle);
 		if (!it_idle) {
@@ -719,7 +722,7 @@ next:
 		else {
 			s_it_current = it_idle;
 		}
-	    _processingTask(p_idle, FALSE);
+	    _processingTask(p_select, FALSE);
 	}
 	s_pass_count += i - t;
 }

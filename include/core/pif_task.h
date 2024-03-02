@@ -67,6 +67,7 @@ struct StPifTask
 	BOOL __trigger;
 	int __table_number;
 	uint16_t __delay_ms;
+	uint32_t __current_time;
 	uint32_t __pretime;
 	uint32_t __last_execute_time;
 	uint32_t __trigger_time;
