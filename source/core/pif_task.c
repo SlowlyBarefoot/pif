@@ -166,6 +166,7 @@ static BOOL _checkParam(PifTaskMode* p_mode, uint16_t period)
 
     case TM_PERIOD_US:
     case TM_CHANGE_US:
+    case TM_IDLE_US:
     	if (!period) {
     		pif_error = E_INVALID_PARAM;
 		    return FALSE;
@@ -217,6 +218,7 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
 
     case TM_PERIOD_US:
     case TM_CHANGE_US:
+    case TM_IDLE_US:
     	p_owner->__pretime = (*pif_act_timer1us)();
     	p_owner->__processing = _processingPeriodUs;
     	break;
@@ -432,12 +434,10 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period)
 
 BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
 {
-	switch (p_owner->_mode) {
-	case TM_PERIOD_MS:
-	case TM_PERIOD_US:
-	case TM_CHANGE_MS:
-	case TM_CHANGE_US:
-	case TM_IDLE_MS:
+	switch (p_owner->_mode & TM_MASK) {
+	case TM_PERIOD:
+	case TM_CHANGE:
+	case TM_IDLE:
 		p_owner->_default_period = period;
 		p_owner->__period = period;
 		break;
@@ -607,7 +607,7 @@ void pifTaskManager_Loop()
 					t++;
 				}
 				else if (p_owner->__processing) {
-					if (p_owner->_mode == TM_IDLE_MS) {
+					if (p_owner->_mode & TM_IDLE) {
 						if (!it_idle) {
 							if ((*p_owner->__processing)(p_owner)) {
 								it_idle = s_it_current;
@@ -692,7 +692,7 @@ void pifTaskManager_Yield()
 					t++;
 				}
 				else if (p_owner->__processing) {
-					if (p_owner->_mode == TM_IDLE_MS) {
+					if (p_owner->_mode & TM_IDLE) {
 						if (!it_idle) {
 							if ((*p_owner->__processing)(p_owner)) {
 								it_idle = s_it_current;

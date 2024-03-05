@@ -14,16 +14,25 @@
 
 typedef enum EnPifTaskMode
 {
-	TM_RATIO,
-	TM_ALWAYS,
-	TM_PERIOD_MS,
-	TM_PERIOD_US,
-	TM_CHANGE_MS,
-	TM_CHANGE_US,
-	TM_EXTERNAL_CUTIN,	// After an external trigger occurs, it is executed as soon as the currently running task ends. However, this mode is set to only one task per program.
-	TM_EXTERNAL_ORDER,
-	TM_TIMER,			// Do not use it for other purposes because it is a mode used by the timer.
-	TM_IDLE_MS			// If at least one TM_ALWAYS task exists, the TM_IDLE_MS task is not executed.
+	TM_MASK				= 0xF0,
+
+	TM_RATIO			= 0x10,
+	TM_ALWAYS			= 0x11,
+	TM_EXTERNAL_CUTIN	= 0x12,		// After an external trigger occurs, it is executed as soon as the currently running task ends. However, this mode is set to only one task per program.
+	TM_EXTERNAL_ORDER	= 0x13,
+	TM_TIMER			= 0x14,		// Do not use it for other purposes because it is a mode used by the timer.
+
+	TM_PERIOD			= 0x20,
+	TM_PERIOD_MS		= 0x20,
+	TM_PERIOD_US		= 0x21,
+
+	TM_CHANGE			= 0x40,
+	TM_CHANGE_MS		= 0x40,
+	TM_CHANGE_US		= 0x41,
+
+	TM_IDLE				= 0x80,
+	TM_IDLE_MS			= 0x80,		// If at least one TM_ALWAYS task exists, the TM_IDLE_MS task is not executed.
+	TM_IDLE_US			= 0x81		// If at least one TM_ALWAYS task exists, the TM_IDLE_US task is not executed.
 } PifTaskMode;
 
 
