@@ -14,13 +14,15 @@
 
 typedef enum EnPifTaskMode
 {
-	TM_MASK				= 0xF0,
+	TM_MAIN_MASK		= 0xF0,
+	TM_SUB_MASK			= 0x0E,
+	TM_UNIT_MASK		= 0x01,
 
 	TM_RATIO			= 0x10,
-	TM_ALWAYS			= 0x11,
-	TM_EXTERNAL_CUTIN	= 0x12,		// After an external trigger occurs, it is executed as soon as the currently running task ends. However, this mode is set to only one task per program.
-	TM_EXTERNAL_ORDER	= 0x13,
-	TM_TIMER			= 0x14,		// Do not use it for other purposes because it is a mode used by the timer.
+	TM_ALWAYS			= 0x12,
+	TM_EXTERNAL_CUTIN	= 0x14,		// After an external trigger occurs, it is executed as soon as the currently running task ends. However, this mode is set to only one task per program.
+	TM_EXTERNAL_ORDER	= 0x16,
+	TM_TIMER			= 0x18,		// Do not use it for other purposes because it is a mode used by the timer.
 
 	TM_PERIOD			= 0x20,
 	TM_PERIOD_MS		= 0x20,

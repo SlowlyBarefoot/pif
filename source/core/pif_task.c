@@ -434,7 +434,7 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period)
 
 BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
 {
-	switch (p_owner->_mode & TM_MASK) {
+	switch (p_owner->_mode & TM_MAIN_MASK) {
 	case TM_PERIOD:
 	case TM_CHANGE:
 	case TM_IDLE:
