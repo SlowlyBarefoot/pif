@@ -72,7 +72,7 @@ static uint16_t _doTask(PifTask* p_task)
 
 	case BMP280_STATE_WAIT:
 		if (pifI2cDevice_ReadRegByte(p_owner->_p_i2c, BMP280_REG_STATUS, data)) {
-			if (data[0] & 8) {
+			if (!(data[0] & 8)) {
 				p_owner->__state = BMP280_STATE_READ;
 				pifTask_SetTrigger(p_task);
 			}
