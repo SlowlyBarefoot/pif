@@ -57,25 +57,9 @@
 
 #define REG_VALUE(V, SM)			((V) << ((SM) >> 8))
 
-#ifndef MIN
-#define MIN(a,b) \
-  __extension__ ({ __typeof__ (a) _a = (a); \
-  __typeof__ (b) _b = (b); \
-  _a < _b ? _a : _b; })
-#endif
-
-#ifndef MAX
-#define MAX(a,b) \
-  __extension__ ({ __typeof__ (a) _a = (a); \
-  __typeof__ (b) _b = (b); \
-  _a > _b ? _a : _b; })
-#endif
-
-#ifndef ABS
-#define ABS(x) \
-  __extension__ ({ __typeof__ (x) _x = (x); \
-  _x > 0 ? _x : -_x; })
-#endif
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define ABS(x) ((x) > 0 ? (x) : -(x))
 
 #define _PIF_CONCAT2(x, y) 		x ## y
 #define PIF_CONCAT2(x, y) 		_PIF_CONCAT2(x, y)

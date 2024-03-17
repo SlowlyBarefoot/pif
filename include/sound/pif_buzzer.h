@@ -5,7 +5,12 @@
 #include "core/pif_task.h"
 
 
-typedef void (*PifActBuzzerAction)(PifId id, BOOL action);
+#define PIF_BUZZER_STOP			0xF0
+#define PIF_BUZZER_REPEAT(N)	(0xF0 + (N - 1))
+
+
+typedef void (*PifActBuzzerAction)(BOOL action);
+typedef void (*PifEvtBuzzerChange)(PifId id, BOOL state);
 typedef void (*PifEvtBuzzerFinish)(PifId id);
 
 typedef enum EnPifBuzzerState
@@ -26,6 +31,7 @@ typedef struct StPifBuzzer
 	// Public Member Variable
 
 	// Private Event Function
+	PifEvtBuzzerChange evt_change;
 	PifEvtBuzzerFinish evt_finish;
 
 	// Read-only Member Variable

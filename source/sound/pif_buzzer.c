@@ -10,20 +10,23 @@ static uint16_t _doTask(PifTask* p_task)
 	sound_10ms = p_owner->__p_sound_10ms[p_owner->__pos];
 	switch (p_owner->_state) {
 	case BS_START:
-		(*p_owner->__act_action)(p_owner->_id, ON);
+		(*p_owner->__act_action)(ON);
+		if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, ON);
 		p_owner->__pos++;
 		p_owner->_state = BS_ON;
 		break;
 
 	case BS_ON:
-		(*p_owner->__act_action)(p_owner->_id, OFF);
+		(*p_owner->__act_action)(OFF);
+		if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, OFF);
 		p_owner->__pos++;
 		p_owner->_state = BS_OFF;
 		break;
 
 	case BS_OFF:
-		if (sound_10ms < 0xF0) {
-			(*p_owner->__act_action)(p_owner->_id, ON);
+		if (sound_10ms < PIF_BUZZER_STOP) {
+			(*p_owner->__act_action)(ON);
+			if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, ON);
 			p_owner->__pos++;
 			p_owner->_state = BS_ON;
 		}
@@ -32,7 +35,7 @@ static uint16_t _doTask(PifTask* p_task)
 			delay = 1;
 		}
 		else {
-			repeat = sound_10ms - 0xF0;
+			repeat = sound_10ms - PIF_BUZZER_STOP;
 			if (p_owner->__repeat < repeat) {
 				p_owner->__pos = 0;
 				p_owner->__repeat++;
@@ -46,7 +49,7 @@ static uint16_t _doTask(PifTask* p_task)
 		break;
 
 	case BS_STOP:
-		(*p_owner->__act_action)(p_owner->_id, OFF);
+		(*p_owner->__act_action)(OFF);
 		p_owner->_state = BS_IDLE;
 		if (p_owner->evt_finish) (*p_owner->evt_finish)(p_owner->_id);
 		delay = 1;
@@ -100,5 +103,8 @@ BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sound_10ms)
 
 void pifBuzzer_Stop(PifBuzzer* p_owner)
 {
+	(*p_owner->__act_action)(OFF);
+	if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, OFF);
+	p_owner->_p_task->pause = TRUE;
 	p_owner->_state = BS_STOP;
 }
