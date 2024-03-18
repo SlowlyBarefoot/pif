@@ -245,6 +245,31 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
 	return TRUE;
 }
 
+static void _processingTrigger(PifTask* p_owner)
+{
+	uint32_t current;
+
+	switch (p_owner->_mode) {
+	case TM_PERIOD_MS:
+	case TM_CHANGE_MS:
+		p_owner->_delta_time = pif_cumulative_timer1ms - p_owner->__pretime;
+		p_owner->__current_time = pif_cumulative_timer1ms;
+		break;
+
+	case TM_PERIOD_US:
+	case TM_CHANGE_US:
+	case TM_EXTERNAL_CUTIN:
+	case TM_EXTERNAL_ORDER:
+		current = (*pif_act_timer1us)();
+		p_owner->_delta_time = current - p_owner->__pretime;
+		p_owner->__current_time = current;
+		break;
+
+	default:
+		break;
+	}
+}
+
 static void _processingTask(PifTask* p_owner, BOOL trigger)
 {
 	uint16_t period;
@@ -317,7 +342,6 @@ static void _processingTask(PifTask* p_owner, BOOL trigger)
 	case TM_CHANGE_MS:
 		if (period > 0) {
 			p_owner->__period = period;
-			p_owner->__pretime = pif_cumulative_timer1ms;
 		}
 		else {
 			p_owner->__period = p_owner->_default_period;
@@ -327,7 +351,6 @@ static void _processingTask(PifTask* p_owner, BOOL trigger)
 	case TM_CHANGE_US:
 		if (period > 0) {
 			p_owner->__period = period;
-			p_owner->__pretime = (*pif_act_timer1us)();
 		}
 		else {
 			p_owner->__period = p_owner->_default_period;
@@ -452,6 +475,8 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
 BOOL pifTask_SetTrigger(PifTask* p_owner)
 {
 	if (p_owner) {
+		if (p_owner->__trigger) return TRUE;
+
 		p_owner->__trigger_time = (*pif_act_timer1us)();
 		p_owner->__trigger = TRUE;
 		return TRUE;
@@ -530,7 +555,7 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop ev
 
     p_owner->__evt_loop = evt_loop;
     p_owner->_p_client = p_client;
-    p_owner->pause = (mode != TM_EXTERNAL_ORDER && mode != TM_EXTERNAL_CUTIN) ? !start : TRUE;
+    p_owner->pause = ((mode & TM_MAIN_MASK) != TM_EXTERNAL) ? !start : TRUE;
     if (!s_it_current) s_it_current = pifObjArray_Begin(&s_tasks);
     return p_owner;
 
@@ -588,6 +613,7 @@ void pifTaskManager_Loop()
 	s_loop_count += count;
 	if (s_task_cutin && s_task_cutin->__trigger) {
 		s_task_cutin->__trigger = FALSE;
+		_processingTrigger(s_task_cutin);
 		p_select = s_task_cutin;
 		trigger = TRUE;
 		i = 1;
@@ -598,6 +624,7 @@ void pifTaskManager_Loop()
 
 			if (p_owner->__trigger) {
 				p_owner->__trigger = FALSE;
+				_processingTrigger(p_owner);
 				p_select = p_owner;
 				trigger = TRUE;
 			}
@@ -665,6 +692,7 @@ void pifTaskManager_Yield()
 	s_loop_count += count;
 	if (s_task_cutin && s_task_cutin->__trigger && !s_task_cutin->_running) {
 		s_task_cutin->__trigger = FALSE;
+		_processingTrigger(s_task_cutin);
 		p_select = s_task_cutin;
 		trigger = TRUE;
 		i = 1;
@@ -683,6 +711,7 @@ void pifTaskManager_Yield()
 
 			if (p_owner->__trigger) {
 				p_owner->__trigger = FALSE;
+				_processingTrigger(p_owner);
 				p_select = p_owner;
 				trigger = TRUE;
 			}
