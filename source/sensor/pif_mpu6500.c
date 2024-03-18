@@ -183,9 +183,11 @@ BOOL pifMpu6500_ReadAccel(PifMpu6500* p_owner, int16_t* p_accel)
 BOOL pifMpu6500_ReadTemperature(PifMpu6500* p_owner, int16_t* p_temperature)
 {
 	uint8_t data[2];
+    const int16_t RoomTemp_Offset = 21;
+    const int16_t Temp_Sensitivity = 333.87;
 
     if (!pifI2cDevice_ReadRegBytes(p_owner->_p_i2c, MPU6500_REG_TEMP_OUT_H, data, 2)) return FALSE;
-    *p_temperature = ((int16_t)((data[0] << 8) + data[1]) / 340.0 + 36.53) * p_owner->temp_scale;
+    *p_temperature = (RoomTemp_Offset + ((int16_t)((data[0] << 8) | data[1]) - RoomTemp_Offset) / Temp_Sensitivity) * p_owner->temp_scale;
 	return TRUE;
 }
 
