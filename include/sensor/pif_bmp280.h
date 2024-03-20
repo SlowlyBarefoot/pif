@@ -142,6 +142,7 @@ typedef struct StPifBmp280
 	// Private Member Variable
 	PifBmp280CalibParam __calib_param;
 	uint16_t __read_period;
+	uint16_t __delay;
 	PifBmp280State __state;
 	uint32_t __start_time;
 	int32_t __raw_pressure;

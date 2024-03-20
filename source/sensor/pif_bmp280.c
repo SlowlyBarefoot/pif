@@ -54,7 +54,7 @@ static uint16_t _doTask(PifTask* p_task)
 	PifBmp280* p_owner = p_task->_p_client;
 	PifBmp280CtrlMeas ctrl_meas;
 	uint8_t data[6];
-	uint16_t delay = 4;
+	uint16_t delay = 1;
 	uint16_t gap;
 	float pressure;
 	float temperature;
@@ -66,6 +66,7 @@ static uint16_t _doTask(PifTask* p_task)
 		ctrl_meas.bit.osrs_p = p_owner->_osrs_p;
 		ctrl_meas.bit.osrs_t = p_owner->_osrs_t;
 		if (pifI2cDevice_WriteRegByte(p_owner->_p_i2c, BMP280_REG_CTRL_MEAS, ctrl_meas.byte)) {
+			delay = p_owner->__delay;
 			p_owner->__state = BMP280_STATE_WAIT;
 		}
 		break;
@@ -164,8 +165,13 @@ void pifBmp280_Clear(PifBmp280* p_owner)
 
 void pifBmp280_SetOverSamplingRate(PifBmp280* p_owner, uint8_t osrs_p, uint8_t osrs_t)
 {
+	int i;
+
 	p_owner->_osrs_p = osrs_p;
 	p_owner->_osrs_t = osrs_t;
+	p_owner->__delay = 6;		// 5.5ms =:= 6ms
+	for (i = 1; i < osrs_p; i++) p_owner->__delay += 1 << osrs_p;
+	for (i = 1; i < osrs_t; i++) p_owner->__delay += 1 << osrs_t;
 }
 
 BOOL pifBmp280_ReadRawData(PifBmp280* p_owner, int32_t* p_pressure, int32_t* p_temperature)
