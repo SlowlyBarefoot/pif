@@ -6,7 +6,7 @@
 
 
 #ifndef PIF_TASK_TABLE_SIZE
-#define PIF_TASK_TABLE_SIZE				32
+#define PIF_TASK_TABLE_SIZE			32
 #endif
 
 #define DISALLOW_YIELD_ID_NONE		0
@@ -69,7 +69,7 @@ struct StPifTask
 	PifTaskMode _mode;
 	BOOL _running;
 	uint16_t _default_period;
-	uint16_t _delta_time;
+	uint32_t _delta_time;
 	void *_p_client;
 #ifdef PIF_USE_TASK_STATISTICS
     int32_t _max_execution_time;
