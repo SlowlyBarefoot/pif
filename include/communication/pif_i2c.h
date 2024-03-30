@@ -29,8 +29,8 @@ typedef struct StPifI2cDevice PifI2cDevice;
 struct StPifI2cPort;
 typedef struct StPifI2cPort PifI2cPort;
 
-typedef PifI2cReturn (*PifActI2cRead)(uint8_t addr, uint32_t iaddr, uint8_t isize, uint8_t* p_data, uint16_t size);
-typedef PifI2cReturn (*PifActI2cWrite)(uint8_t addr, uint32_t iaddr, uint8_t isize, uint8_t* p_data, uint16_t size);
+typedef PifI2cReturn (*PifActI2cRead)(PifI2cDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, uint16_t size);
+typedef PifI2cReturn (*PifActI2cWrite)(PifI2cDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, uint16_t size);
 
 /**
  * @class StPifI2cDevice
@@ -64,6 +64,7 @@ struct StPifI2cPort
 
 	// Read-only Member Variable
 	PifId _id;
+	void *_p_client;
 
 	// Private Member Variable
     PifObjArray __devices;
@@ -85,7 +86,7 @@ extern "C" {
  * @param max_transfer_size
  * @return
  */
-BOOL pifI2cPort_Init(PifI2cPort* p_owner, PifId id, uint8_t device_count, uint16_t max_transfer_size);
+BOOL pifI2cPort_Init(PifI2cPort *p_owner, PifId id, uint8_t device_count, uint16_t max_transfer_size, void *p_client);
 
 /**
  * @fn pifI2cPort_Clear
