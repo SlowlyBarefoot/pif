@@ -89,7 +89,7 @@ fail:
 void pifAds1x1x_Clear(PifAds1x1x* p_owner)
 {
 	if (p_owner->_p_i2c) {
-		pifI2cPort_RemoveDevice(p_owner->_p_i2c->__p_port, p_owner->_p_i2c);
+		pifI2cPort_RemoveDevice(p_owner->_p_i2c->_p_port, p_owner->_p_i2c);
     	p_owner->_p_i2c = NULL;
 	}
 }

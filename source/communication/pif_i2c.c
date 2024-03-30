@@ -42,7 +42,7 @@ PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, uint8_t addr)
     if (!it) return FALSE;
 
     PifI2cDevice* p_device = (PifI2cDevice*)it->data;
-    p_device->__p_port = p_owner;
+    p_device->_p_port = p_owner;
 	p_device->addr = addr;
     p_device->timeout = 10;		// 10ms
     return p_device;
@@ -60,7 +60,7 @@ PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr)
 {
 	static PifI2cDevice device;
 
-	device.__p_port = p_owner;
+	device._p_port = p_owner;
 	device.addr = addr;
 	device._state = IS_IDLE;
 	return &device;
@@ -74,7 +74,7 @@ void pifI2cPort_ScanAddress(PifI2cPort* p_owner)
 	int i, count = 0;
 	PifI2cDevice device;
 
-	device.__p_port = p_owner;
+	device._p_port = p_owner;
 	for (i = 1; i < 127; i++) {
 		device.addr = i;
 		device._state = IS_IDLE;
@@ -97,7 +97,7 @@ void pifI2cPort_ScanAddress(PifI2cPort* p_owner)
 
 BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
-	PifI2cPort* p_port = p_owner->__p_port;
+	PifI2cPort* p_port = p_owner->_p_port;
 	uint8_t len;
 	uint32_t timer1ms;
 	size_t ptr;
@@ -210,7 +210,7 @@ BOOL pifI2cDevice_ReadRegBit16(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegFiel
 
 BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
-	PifI2cPort* p_port = p_owner->__p_port;
+	PifI2cPort* p_port = p_owner->_p_port;
 	uint8_t len;
 	uint32_t timer1ms;
 	size_t ptr;

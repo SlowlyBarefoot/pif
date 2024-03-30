@@ -44,9 +44,7 @@ struct StPifI2cDevice
 
 	// Read-only Member Variable
 	volatile PifI2cState _state;
-
-	// Private Member Variable
-	PifI2cPort* __p_port;
+	PifI2cPort *_p_port;
 };
 
 /**
