@@ -45,7 +45,7 @@ BOOL pifTsc2046_Init(PifTsc2046* p_owner, PifId id, PifTftLcd* p_lcd, int16_t le
 void pifTsc2046_Clear(PifTsc2046* p_owner)
 {
 	if (p_owner->_p_spi) {
-		pifSpiPort_RemoveDevice(p_owner->_p_spi->__p_port, p_owner->_p_spi);
+		pifSpiPort_RemoveDevice(p_owner->_p_spi->_p_port, p_owner->_p_spi);
     	p_owner->_p_spi = NULL;
 	}
 }

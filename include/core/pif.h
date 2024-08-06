@@ -2,15 +2,15 @@
 #define PIF_H
 
 
-#ifdef PIF_CONF
-#include "pif_conf.h"
-#endif
-
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef PIF_CONF
+#include "pif_conf.h"
+#endif
 
 
 #define PIF_VERSION_MAJOR	0

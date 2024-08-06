@@ -121,7 +121,7 @@ void pifMax31855_Clear(PifMax31855* p_owner)
 #endif
 
 	if (p_owner->_p_spi) {
-		pifSpiPort_RemoveDevice(p_owner->_p_spi->__p_port, p_owner->_p_spi);
+		pifSpiPort_RemoveDevice(p_owner->_p_spi->_p_port, p_owner->_p_spi);
     	p_owner->_p_spi = NULL;
 	}
 

@@ -40,7 +40,7 @@ PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id)
     PifSpiDevice* p_device = (PifSpiDevice*)it->data;
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_device->_id = id;
-    p_device->__p_port = p_owner;
+    p_device->_p_port = p_owner;
     p_device->timeout = 10;		// 10ms
     return p_device;
 }
@@ -55,7 +55,7 @@ void pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device)
 
 BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_read, size_t size)
 {
-	PifSpiPort* p_port = p_owner->__p_port;
+	PifSpiPort* p_port = p_owner->_p_port;
 
 	if (!p_port->act_transfer) return FALSE;
 
@@ -65,7 +65,7 @@ BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_r
 
 BOOL pifSpiDevice_Read(PifSpiDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
-	PifSpiPort* p_port = p_owner->__p_port;
+	PifSpiPort* p_port = p_owner->_p_port;
 	uint8_t len;
 	size_t ptr, remain;
 
@@ -139,7 +139,7 @@ BOOL pifSpiDevice_ReadRegBit16(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegFiel
 
 BOOL pifSpiDevice_Write(PifSpiDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
-	PifSpiPort* p_port = p_owner->__p_port;
+	PifSpiPort* p_port = p_owner->_p_port;
 	uint8_t len;
 	size_t ptr, remain;
 

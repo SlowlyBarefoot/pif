@@ -29,9 +29,7 @@ struct StPifSpiDevice
 
 	// Read-only Member Variable
 	PifId _id;
-
-	// Private Member Variable
-	PifSpiPort* __p_port;
+	PifSpiPort *_p_port;
 };
 
 /**

@@ -164,6 +164,13 @@ typedef union StPifMpu6500Config
 
 // Register : GYRO_CONFIG
 
+typedef enum EnPifMpu6500FchoiceB
+{
+    MPU6500_FCHOICE_B_DISABLE,
+    MPU6500_FCHOICE_B_8800HZ,
+    MPU6500_FCHOICE_B_3600HZ
+} PifMpu6500FchoiceB;
+
 typedef enum EnPifMpu6500GyroFsSel
 {
     MPU6500_GYRO_FS_SEL_250DPS,
@@ -182,7 +189,7 @@ typedef union StPifMpu6500GyroConfig
 {
 	uint8_t byte;
 	struct {
-		uint8_t fchoice_b				: 2;	// LSB
+		PifMpu6500FchoiceB fchoice_b	: 2;	// LSB
 		uint8_t reserved				: 1;
 		PifMpu6500GyroFsSel gyro_fs_sel	: 2;	// Use pifMpu6500_SetGyroConfig or pifMpu6500_SetGyroFsSel to change this value.
 		uint8_t zg_st					: 1;

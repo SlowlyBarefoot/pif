@@ -113,7 +113,7 @@ fail:
 void pifMpu6500_Clear(PifMpu6500* p_owner)
 {
     if (p_owner->_p_i2c) {
-		pifI2cPort_RemoveDevice(p_owner->_p_i2c->__p_port, p_owner->_p_i2c);
+		pifI2cPort_RemoveDevice(p_owner->_p_i2c->_p_port, p_owner->_p_i2c);
     	p_owner->_p_i2c = NULL;
     }
 }
