@@ -300,9 +300,9 @@ int pif_FloatToString(char* p_buffer, double value, uint16_t point)
 	uint16_t i, idx = 0;
 	uint32_t num;
 
-	if (value < 0.0) {
+	if (value < 0.0L) {
 		p_buffer[idx++] = '-';
-		value *= -1.0;
+		value *= -1.0L;
 	}
 
 	num = (uint32_t)value;

@@ -198,6 +198,8 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
     	if (num == -1) return FALSE;
 	}
 
+	p_owner->_unit = 1000;
+
     switch (mode) {
     case TM_RATIO:
     	p_owner->__table_number = num;
@@ -221,6 +223,7 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
     case TM_IDLE_US:
     	p_owner->__pretime = (*pif_act_timer1us)();
     	p_owner->__processing = _processingPeriodUs;
+		p_owner->_unit = 1;
     	break;
 
 	case TM_EXTERNAL_CUTIN:
@@ -310,19 +313,21 @@ static void _processingTask(PifTask* p_owner, BOOL trigger)
     s_task_stack[s_task_stack_ptr] = p_owner;
 	s_task_stack_ptr++;
 	p_owner->_running = TRUE;
+	p_owner->_last_execute_time = (*pif_act_timer1us)();
 #ifdef PIF_USE_TASK_STATISTICS
-	start_time = (*pif_act_timer1us)();
+	start_time = p_owner->_last_execute_time;
 	period = (*p_owner->__evt_loop)(p_owner);
 	execute_time = (*pif_act_timer1us)() - start_time;
+	p_owner->_total_execution_time += execute_time;
 	if (execute_time > p_owner->_max_execution_time) p_owner->_max_execution_time = execute_time;
-	p_owner->__total_delta_time[p_owner->__execute_index] += p_owner->_delta_time;
-	p_owner->__total_execution_time[p_owner->__execute_index] += execute_time;
+	p_owner->__total_delta_time[p_owner->__execute_index] += p_owner->_delta_time * p_owner->_unit;
+	p_owner->__sum_execution_time[p_owner->__execute_index] += execute_time;
 	p_owner->__execution_count++;
 	if (p_owner->__execution_count == 200) {
 		p_owner->__execution_count -= 100;
 		p_owner->__execute_index ^= 1;
 		p_owner->__total_delta_time[p_owner->__execute_index] = 0;
-		p_owner->__total_execution_time[p_owner->__execute_index] = 0;
+		p_owner->__sum_execution_time[p_owner->__execute_index] = 0;
 	}
 	else if (p_owner->__execution_count == 100) {
 		p_owner->__execute_index ^= 1;
@@ -509,7 +514,7 @@ PIF_INLINE uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner)
 PIF_INLINE uint32_t pifTask_GetAverageExecuteTime(PifTask* p_owner)
 {
 	if (p_owner->__execution_count < 20) return 0;
-	return (p_owner->__total_execution_time[0] + p_owner->__total_execution_time[1]) / p_owner->__execution_count;
+	return (p_owner->__sum_execution_time[0] + p_owner->__sum_execution_time[1]) / p_owner->__execution_count;
 }
 
 PIF_INLINE uint32_t pifTask_GetAverageTriggerTime(PifTask* p_owner)
@@ -846,7 +851,7 @@ void pifTaskManager_Print()
 		}
 		pifLog_Printf(LT_NONE, " (%u): %s-%u\n", p_owner->_id, mode[p_owner->_mode], p_owner->_default_period);
 #ifdef PIF_USE_TASK_STATISTICS
-		value = p_owner->__total_execution_time[0] + p_owner->__total_execution_time[1];
+		value = p_owner->__sum_execution_time[0] + p_owner->__sum_execution_time[1];
 		pifLog_Printf(LT_NONE, "    Proc: M=%ldus A=%luus T=%lums\n", p_owner->_max_execution_time,
 				(p_owner->__execution_count ? value / p_owner->__execution_count : 0), value / 1000);
 

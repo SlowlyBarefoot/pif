@@ -68,10 +68,13 @@ struct StPifTask
 	PifId _id;
 	PifTaskMode _mode;
 	BOOL _running;
+	uint16_t _unit;					// us : 1, ms : 1000
 	uint16_t _default_period;
 	uint32_t _delta_time;
 	void *_p_client;
+	uint32_t _last_execute_time;
 #ifdef PIF_USE_TASK_STATISTICS
+    uint32_t _total_execution_time;		// total time consumed by task since boot
     int32_t _max_execution_time;
 	uint32_t _max_trigger_delay;
 #endif
@@ -84,11 +87,10 @@ struct StPifTask
 	uint16_t __delay_ms;
 	uint32_t __current_time;
 	uint32_t __pretime;
-	uint32_t __last_execute_time;
 	uint32_t __trigger_time;
 #ifdef PIF_USE_TASK_STATISTICS
 	uint32_t __total_delta_time[2];
-    uint32_t __total_execution_time[2];		// total time consumed by task since boot
+    uint32_t __sum_execution_time[2];
 	uint32_t __total_trigger_delay[2];
 	uint16_t __execution_count;
 	uint16_t __trigger_count;
