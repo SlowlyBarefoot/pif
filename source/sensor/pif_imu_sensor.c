@@ -159,9 +159,9 @@ BOOL pifImuSensor_ReadGyro(PifImuSensor* p_owner, float* p_gyro)
 	}
 
 	if (p_owner->__actual_threshold) {
-		if (abs(gyro[AXIS_X]) < p_owner->__threshold_gyro[AXIS_X]) gyro[AXIS_X] = 0;
-		if (abs(gyro[AXIS_Y]) < p_owner->__threshold_gyro[AXIS_Y]) gyro[AXIS_Y] = 0;
-		if (abs(gyro[AXIS_Z]) < p_owner->__threshold_gyro[AXIS_Z]) gyro[AXIS_Z] = 0;
+		if (fabs(gyro[AXIS_X]) < p_owner->__threshold_gyro[AXIS_X]) gyro[AXIS_X] = 0;
+		if (fabs(gyro[AXIS_Y]) < p_owner->__threshold_gyro[AXIS_Y]) gyro[AXIS_Y] = 0;
+		if (fabs(gyro[AXIS_Z]) < p_owner->__threshold_gyro[AXIS_Z]) gyro[AXIS_Z] = 0;
 	}
 
 	_alignSensors(p_owner, gyro, p_gyro, p_owner->__gyro_info.align);
