@@ -53,6 +53,14 @@ void pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device)
 	}
 }
 
+PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner)
+{
+	static PifSpiDevice device;
+
+	device._p_port = p_owner;
+	return &device;
+}
+
 BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_read, size_t size)
 {
 	PifSpiPort* p_port = p_owner->_p_port;
@@ -63,9 +71,10 @@ BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_r
 	return TRUE;
 }
 
-BOOL pifSpiDevice_Read(PifSpiDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
+BOOL pifSpiDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
-	PifSpiPort* p_port = p_owner->_p_port;
+	PifSpiDevice* p_device = (PifSpiDevice*)p_owner;
+	PifSpiPort* p_port = p_device->_p_port;
 	uint8_t len;
 	size_t ptr, remain;
 
@@ -76,10 +85,10 @@ BOOL pifSpiDevice_Read(PifSpiDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 	while (remain) {
 		len = remain > p_port->__max_transfer_size ? p_port->__max_transfer_size : remain;
 		if (!ptr) {
-			if (!(*p_port->act_read)(p_owner->_id, iaddr, isize, p_data, len)) goto fail;
+			if (!(*p_port->act_read)(p_device->_id, iaddr, isize, p_data, len)) goto fail;
 		}
 		else {
-			if (!(*p_port->act_read)(p_owner->_id, 0UL, 0, p_data + ptr, len)) goto fail;
+			if (!(*p_port->act_read)(p_device->_id, 0UL, 0, p_data + ptr, len)) goto fail;
 		}
 
 		ptr += len;
@@ -93,12 +102,12 @@ fail:
 	return FALSE;
 }
 
-BOOL pifSpiDevice_ReadRegByte(PifSpiDevice* p_owner, uint8_t reg, uint8_t* p_data)
+BOOL pifSpiDevice_ReadRegByte(PifDevice* p_owner, uint8_t reg, uint8_t* p_data)
 {
 	return pifSpiDevice_Read(p_owner, reg, 1, p_data, 1);
 }
 
-BOOL pifSpiDevice_ReadRegWord(PifSpiDevice* p_owner, uint8_t reg, uint16_t* p_data)
+BOOL pifSpiDevice_ReadRegWord(PifDevice* p_owner, uint8_t reg, uint16_t* p_data)
 {
 	uint8_t tmp[2];
 
@@ -107,12 +116,12 @@ BOOL pifSpiDevice_ReadRegWord(PifSpiDevice* p_owner, uint8_t reg, uint16_t* p_da
 	return TRUE;
 }
 
-BOOL pifSpiDevice_ReadRegBytes(PifSpiDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size)
+BOOL pifSpiDevice_ReadRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size)
 {
 	return pifSpiDevice_Read(p_owner, reg, 1, p_data, size);
 }
 
-BOOL pifSpiDevice_ReadRegBit8(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegField field, uint8_t* p_data)
+BOOL pifSpiDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t* p_data)
 {
 	uint8_t tmp, shift, mask;
 
@@ -124,7 +133,7 @@ BOOL pifSpiDevice_ReadRegBit8(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegField
 	return TRUE;
 }
 
-BOOL pifSpiDevice_ReadRegBit16(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegField field, uint16_t* p_data)
+BOOL pifSpiDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t* p_data)
 {
 	uint8_t tmp[2], shift;
 	uint16_t mask;
@@ -137,9 +146,10 @@ BOOL pifSpiDevice_ReadRegBit16(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegFiel
 	return TRUE;
 }
 
-BOOL pifSpiDevice_Write(PifSpiDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
+BOOL pifSpiDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
-	PifSpiPort* p_port = p_owner->_p_port;
+	PifSpiDevice* p_device = (PifSpiDevice*)p_owner;
+	PifSpiPort* p_port = p_device->_p_port;
 	uint8_t len;
 	size_t ptr, remain;
 
@@ -150,10 +160,10 @@ BOOL pifSpiDevice_Write(PifSpiDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 	while (remain) {
 		len = remain > p_port->__max_transfer_size ? p_port->__max_transfer_size : remain;
 		if (!ptr) {
-			if (!(*p_port->act_write)(p_owner->_id, iaddr, isize, p_data, len)) goto fail;
+			if (!(*p_port->act_write)(p_device->_id, iaddr, isize, p_data, len)) goto fail;
 		}
 		else {
-			if (!(*p_port->act_write)(p_owner->_id, 0UL, 0, p_data + ptr, len)) goto fail;
+			if (!(*p_port->act_write)(p_device->_id, 0UL, 0, p_data + ptr, len)) goto fail;
 		}
 
 		ptr += len;
@@ -167,12 +177,12 @@ fail:
 	return FALSE;
 }
 
-BOOL pifSpiDevice_WriteRegByte(PifSpiDevice* p_owner, uint8_t reg, uint8_t data)
+BOOL pifSpiDevice_WriteRegByte(PifDevice* p_owner, uint8_t reg, uint8_t data)
 {
 	return pifSpiDevice_Write(p_owner, reg, 1, &data, 1);
 }
 
-BOOL pifSpiDevice_WriteRegWord(PifSpiDevice* p_owner, uint8_t reg, uint16_t data)
+BOOL pifSpiDevice_WriteRegWord(PifDevice* p_owner, uint8_t reg, uint16_t data)
 {
 	uint8_t tmp[2];
 
@@ -182,12 +192,12 @@ BOOL pifSpiDevice_WriteRegWord(PifSpiDevice* p_owner, uint8_t reg, uint16_t data
     return TRUE;
 }
 
-BOOL pifSpiDevice_WriteRegBytes(PifSpiDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size)
+BOOL pifSpiDevice_WriteRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size)
 {
 	return pifSpiDevice_Write(p_owner, reg, 1, p_data, size);
 }
 
-BOOL pifSpiDevice_WriteRegBit8(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegField field, uint8_t data)
+BOOL pifSpiDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t data)
 {
 	uint8_t tmp, org, shift, mask;
 
@@ -207,7 +217,7 @@ BOOL pifSpiDevice_WriteRegBit8(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegFiel
     return TRUE;
 }
 
-BOOL pifSpiDevice_WriteRegBit16(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegField field, uint16_t data)
+BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t data)
 {
 	uint8_t tmp[2], shift;
 	uint16_t org, mask;

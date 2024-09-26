@@ -93,7 +93,7 @@ BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, addr);
+	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr);
     if (!p_owner->_p_i2c) goto fail;
 
     p_owner->__backlight_val = LCD_NO_BACK_LIGHT;

@@ -110,7 +110,7 @@ void pifGpsNmea_DetachUart(PifGpsNmea* p_owner)
 
 BOOL pifGpsNmea_AttachI2c(PifGpsNmea* p_owner, PifI2cPort* p_i2c, uint8_t addr, uint16_t period, BOOL start, const char* name)
 {
-    p_owner->__p_i2c_device = pifI2cPort_AddDevice(p_i2c, addr);
+    p_owner->__p_i2c_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
     if (!p_owner->__p_i2c_device) goto fail;
 
     p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, period, _doTask, p_owner, start);

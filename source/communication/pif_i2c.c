@@ -31,7 +31,7 @@ void pifI2cPort_Clear(PifI2cPort* p_owner)
 	pifObjArray_Clear(&p_owner->__devices);
 }
 
-PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, uint8_t addr)
+PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr)
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -42,6 +42,8 @@ PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, uint8_t addr)
     if (!it) return FALSE;
 
     PifI2cDevice* p_device = (PifI2cDevice*)it->data;
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_device->_id = id;
     p_device->_p_port = p_owner;
 	p_device->addr = addr;
     p_device->timeout = 10;		// 10ms
@@ -95,9 +97,10 @@ void pifI2cPort_ScanAddress(PifI2cPort* p_owner)
 
 #endif
 
-BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
+BOOL pifI2cDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
-	PifI2cPort* p_port = p_owner->_p_port;
+	PifI2cDevice* p_device = (PifI2cDevice*)p_owner;
+	PifI2cPort* p_port = p_device->_p_port;
 	uint8_t len;
 	uint32_t timer1ms;
 	size_t ptr;
@@ -108,28 +111,28 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 	if (!p_port->act_read) return FALSE;
 	if (p_port->__use_device) {
 #ifndef PIF_NO_LOG
-		pifLog_Printf(LT_INFO, "I2CR:%u Addr:%Xh Use Addr:%Xh", __LINE__, p_owner->addr, p_port->__use_device->addr);
+		pifLog_Printf(LT_INFO, "I2CR:%u Addr:%Xh Use Addr:%Xh", __LINE__, p_device->addr, p_port->__use_device->addr);
 #endif
 		return FALSE;
 	}
 
-	p_port->__use_device = p_owner;
-	p_owner->_state = IS_RUN;
+	p_port->__use_device = p_device;
+	p_device->_state = IS_RUN;
 	ptr = 0;
 	while (size) {
 		len = size > p_port->__max_transfer_size ? p_port->__max_transfer_size : size;
-		switch ((*p_port->act_read)(p_owner, iaddr + ptr, isize, p_data + ptr, len)) {
+		switch ((*p_port->act_read)(p_device, iaddr + ptr, isize, p_data + ptr, len)) {
 		case IR_WAIT:
 			timer1ms = pif_cumulative_timer1ms;
-			while (p_owner->_state == IS_RUN) {
-				if (pif_cumulative_timer1ms - timer1ms > p_owner->timeout) {
+			while (p_device->_state == IS_RUN) {
+				if (pif_cumulative_timer1ms - timer1ms > p_device->timeout) {
 #ifndef PIF_NO_LOG
 					line = __LINE__;
 #endif
 					goto fail;
 				}
 			}
-			if (p_owner->_state == IS_ERROR) {
+			if (p_device->_state == IS_ERROR) {
 #ifndef PIF_NO_LOG
 				line = __LINE__;
 #endif
@@ -150,26 +153,26 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
 		size -= len;
 	}
 	p_port->__use_device = NULL;
-	p_owner->_state = IS_IDLE;
+	p_device->_state = IS_IDLE;
 	return TRUE;
 
 fail:
 #ifndef PIF_NO_LOG
-	pifLog_Printf(LT_ERROR, "I2CR:%u A:%Xh R:%Xh E:%u", line, p_owner->addr, iaddr, pif_error);
+	pifLog_Printf(LT_ERROR, "I2CR:%u A:%Xh R:%Xh E:%u", line, p_device->addr, iaddr, pif_error);
 #endif
 	p_port->__use_device = NULL;
 	p_port->error_count++;
-	p_owner->_state = IS_IDLE;
+	p_device->_state = IS_IDLE;
 	pif_error = E_TRANSFER_FAILED;
 	return FALSE;
 }
 
-BOOL pifI2cDevice_ReadRegByte(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_data)
+BOOL pifI2cDevice_ReadRegByte(PifDevice* p_owner, uint8_t reg, uint8_t* p_data)
 {
 	return pifI2cDevice_Read(p_owner, reg, 1, p_data, 1);
 }
 
-BOOL pifI2cDevice_ReadRegWord(PifI2cDevice* p_owner, uint8_t reg, uint16_t* p_data)
+BOOL pifI2cDevice_ReadRegWord(PifDevice* p_owner, uint8_t reg, uint16_t* p_data)
 {
 	uint8_t tmp[2];
 
@@ -178,12 +181,12 @@ BOOL pifI2cDevice_ReadRegWord(PifI2cDevice* p_owner, uint8_t reg, uint16_t* p_da
 	return TRUE;
 }
 
-BOOL pifI2cDevice_ReadRegBytes(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size)
+BOOL pifI2cDevice_ReadRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size)
 {
 	return pifI2cDevice_Read(p_owner, reg, 1, p_data, size);
 }
 
-BOOL pifI2cDevice_ReadRegBit8(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegField field, uint8_t* p_data)
+BOOL pifI2cDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t* p_data)
 {
 	uint8_t tmp, shift, mask;
 
@@ -195,7 +198,7 @@ BOOL pifI2cDevice_ReadRegBit8(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegField
 	return TRUE;
 }
 
-BOOL pifI2cDevice_ReadRegBit16(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegField field, uint16_t* p_data)
+BOOL pifI2cDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t* p_data)
 {
 	uint8_t tmp[2], shift;
 	uint16_t mask;
@@ -208,9 +211,10 @@ BOOL pifI2cDevice_ReadRegBit16(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegFiel
 	return TRUE;
 }
 
-BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
+BOOL pifI2cDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
-	PifI2cPort* p_port = p_owner->_p_port;
+	PifI2cDevice* p_device = (PifI2cDevice*)p_owner;
+	PifI2cPort* p_port = p_device->_p_port;
 	uint8_t len;
 	uint32_t timer1ms;
 	size_t ptr;
@@ -221,28 +225,28 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 	if (!p_port->act_write) return FALSE;
 	if (p_port->__use_device) {
 #ifndef PIF_NO_LOG
-		pifLog_Printf(LT_INFO, "I2CW:%u Addr:%Xh Use Addr:%Xh", __LINE__, p_owner->addr, p_port->__use_device->addr);
+		pifLog_Printf(LT_INFO, "I2CW:%u Addr:%Xh Use Addr:%Xh", __LINE__, p_device->addr, p_port->__use_device->addr);
 #endif
 		return FALSE;
 	}
 
-	p_port->__use_device = p_owner;
-	p_owner->_state = IS_RUN;
+	p_port->__use_device = p_device;
+	p_device->_state = IS_RUN;
 	ptr = 0;
 	while (size) {
 		len = size > p_port->__max_transfer_size ? p_port->__max_transfer_size : size;
-		switch ((*p_port->act_write)(p_owner, iaddr + ptr, isize, p_data + ptr, len)) {
+		switch ((*p_port->act_write)(p_device, iaddr + ptr, isize, p_data + ptr, len)) {
 		case IR_WAIT:
 			timer1ms = pif_cumulative_timer1ms;
-			while (p_owner->_state == IS_RUN) {
-				if (pif_cumulative_timer1ms - timer1ms > p_owner->timeout) {
+			while (p_device->_state == IS_RUN) {
+				if (pif_cumulative_timer1ms - timer1ms > p_device->timeout) {
 #ifndef PIF_NO_LOG
 					line = __LINE__;
 #endif
 					goto fail;
 				}
 			}
-			if (p_owner->_state == IS_ERROR) {
+			if (p_device->_state == IS_ERROR) {
 #ifndef PIF_NO_LOG
 				line = __LINE__;
 #endif
@@ -263,26 +267,26 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, ui
 		size -= len;
 	}
 	p_port->__use_device = NULL;
-	p_owner->_state = IS_IDLE;
+	p_device->_state = IS_IDLE;
 	return TRUE;
 
 fail:
 #ifndef PIF_NO_LOG
-	pifLog_Printf(LT_ERROR, "I2CW:%u A:%Xh R:%Xh E:%u", line, p_owner->addr, iaddr, pif_error);
+	pifLog_Printf(LT_ERROR, "I2CW:%u A:%Xh R:%Xh E:%u", line, p_device->addr, iaddr, pif_error);
 #endif
 	p_port->__use_device = NULL;
 	p_port->error_count++;
-	p_owner->_state = IS_IDLE;
+	p_device->_state = IS_IDLE;
 	pif_error = E_TRANSFER_FAILED;
 	return FALSE;
 }
 
-BOOL pifI2cDevice_WriteRegByte(PifI2cDevice* p_owner, uint8_t reg, uint8_t data)
+BOOL pifI2cDevice_WriteRegByte(PifDevice* p_owner, uint8_t reg, uint8_t data)
 {
 	return pifI2cDevice_Write(p_owner, reg, 1, &data, 1);
 }
 
-BOOL pifI2cDevice_WriteRegWord(PifI2cDevice* p_owner, uint8_t reg, uint16_t data)
+BOOL pifI2cDevice_WriteRegWord(PifDevice* p_owner, uint8_t reg, uint16_t data)
 {
 	uint8_t tmp[2];
 
@@ -292,12 +296,12 @@ BOOL pifI2cDevice_WriteRegWord(PifI2cDevice* p_owner, uint8_t reg, uint16_t data
     return TRUE;
 }
 
-BOOL pifI2cDevice_WriteRegBytes(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size)
+BOOL pifI2cDevice_WriteRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size)
 {
 	return pifI2cDevice_Write(p_owner, reg, 1, p_data, size);
 }
 
-BOOL pifI2cDevice_WriteRegBit8(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegField field, uint8_t data)
+BOOL pifI2cDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t data)
 {
 	uint8_t tmp, org, shift, mask;
 
@@ -317,7 +321,7 @@ BOOL pifI2cDevice_WriteRegBit8(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegFiel
     return TRUE;
 }
 
-BOOL pifI2cDevice_WriteRegBit16(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegField field, uint16_t data)
+BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t data)
 {
 	uint8_t tmp[2], shift;
 	uint16_t org, mask;

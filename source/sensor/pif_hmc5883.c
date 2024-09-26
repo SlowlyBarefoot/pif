@@ -62,7 +62,7 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSen
 
 	memset(p_owner, 0, sizeof(PifHmc5883));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, HMC5883_I2C_ADDR);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, HMC5883_I2C_ADDR);
     if (!p_owner->_p_i2c) return FALSE;
 
     if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, HMC5883_REG_CONFIG_B, HMC5883_CONFIG_B_GAIN, data)) goto fail;

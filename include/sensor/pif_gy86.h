@@ -30,6 +30,7 @@ typedef struct StPifGy86Param
 	PifMs5611Osr ms5611_osr;
 	uint16_t ms5611_read_period;
 	PifEvtBaroRead ms5611_evt_read;
+
 	uint8_t disallow_yield_id;
 } PifGy86Param;
 
@@ -57,13 +58,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifGy86_InitParam
- * @brief
- * @return
- */
-PifGy86Param* pifGy86_InitParam();
-
-/**
  * @fn pifGy86_Detect
  * @brief
  * @param p_i2c
@@ -77,7 +71,7 @@ BOOL pifGy86_Detect(PifI2cPort* p_i2c);
  * @param p_owner
  * @param id
  * @param p_i2c
- * @param p_config
+ * @param p_param
  * @param p_imu_sensor
  * @return
  */

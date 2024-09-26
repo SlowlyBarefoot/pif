@@ -2,14 +2,6 @@
 #include "sensor/pif_gy86.h"
 
 
-PifGy86Param* pifGy86_InitParam()
-{
-    static PifGy86Param param;
-
-    memset(&param, 0, sizeof(PifGy86Param));
-    return &param;
-}
-
 BOOL pifGy86_Detect(PifI2cPort* p_i2c)
 {
     if (!pifMpu60x0_Detect(p_i2c, MPU60X0_I2C_ADDR(0))) return FALSE;

@@ -54,7 +54,7 @@ BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
 
 	memset(p_owner, 0, sizeof(PifMpu60x0));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, addr);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
     if (!p_owner->_p_i2c) return FALSE;
 
    	pwr_mgmt_1.byte = 0;

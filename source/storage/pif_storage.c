@@ -51,7 +51,7 @@ BOOL pifStorage_AttachI2c(PifStorage* p_owner, PifI2cPort* p_port, uint8_t addr,
 	    return FALSE;
     }
 
-	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, addr);
+	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr);
     if (!p_owner->_p_i2c) return FALSE;
 
     p_owner->__addr = addr;

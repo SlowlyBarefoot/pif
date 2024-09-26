@@ -2,10 +2,9 @@
 #define PIF_SPI_H
 
 
+#include "communication/pif_comm.h"
 #include "core/pif_obj_array.h"
 
-
-typedef uint16_t PifSpiRegField;
 
 struct StPifSpiDevice;
 typedef struct StPifSpiDevice PifSpiDevice;
@@ -95,6 +94,14 @@ PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id);
 void pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device);
 
 /**
+ * @fn pifSpiPort_TemporaryDevice
+ * @brief
+ * @param p_owner
+ * @return
+ */
+PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner);
+
+/**
  * @fn pifSpiDevice_Transfer
  * @brief
  * @param p_owner
@@ -115,7 +122,7 @@ BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_r
  * @param size
  * @return
  */
-BOOL pifSpiDevice_Read(PifSpiDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
+BOOL pifSpiDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
 
 /**
  * @fn pifSpiDevice_ReadRegByte
@@ -125,7 +132,7 @@ BOOL pifSpiDevice_Read(PifSpiDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
  * @param p_data
  * @return
  */
-BOOL pifSpiDevice_ReadRegByte(PifSpiDevice* p_owner, uint8_t reg, uint8_t* p_data);
+BOOL pifSpiDevice_ReadRegByte(PifDevice* p_owner, uint8_t reg, uint8_t* p_data);
 
 /**
  * @fn pifSpiDevice_ReadRegWord
@@ -135,7 +142,7 @@ BOOL pifSpiDevice_ReadRegByte(PifSpiDevice* p_owner, uint8_t reg, uint8_t* p_dat
  * @param p_data
  * @return
  */
-BOOL pifSpiDevice_ReadRegWord(PifSpiDevice* p_owner, uint8_t reg, uint16_t* p_data);
+BOOL pifSpiDevice_ReadRegWord(PifDevice* p_owner, uint8_t reg, uint16_t* p_data);
 
 /**
  * @fn pifSpiDevice_ReadRegBytes
@@ -146,7 +153,7 @@ BOOL pifSpiDevice_ReadRegWord(PifSpiDevice* p_owner, uint8_t reg, uint16_t* p_da
  * @param size
  * @return
  */
-BOOL pifSpiDevice_ReadRegBytes(PifSpiDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
+BOOL pifSpiDevice_ReadRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
 
 /**
  * @fn pifSpiDevice_ReadRegBit8
@@ -157,7 +164,7 @@ BOOL pifSpiDevice_ReadRegBytes(PifSpiDevice* p_owner, uint8_t reg, uint8_t* p_da
  * @param p_data
  * @return
  */
-BOOL pifSpiDevice_ReadRegBit8(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegField field, uint8_t* p_data);
+BOOL pifSpiDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t* p_data);
 
 /**
  * @fn pifSpiDevice_ReadRegBit16
@@ -168,7 +175,7 @@ BOOL pifSpiDevice_ReadRegBit8(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegField
  * @param p_data
  * @return
  */
-BOOL pifSpiDevice_ReadRegBit16(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegField field, uint16_t* p_data);
+BOOL pifSpiDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t* p_data);
 
 /**
  * @fn pifSpiDevice_Write
@@ -180,7 +187,7 @@ BOOL pifSpiDevice_ReadRegBit16(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegFiel
  * @param size
  * @return
  */
-BOOL pifSpiDevice_Write(PifSpiDevice* p_owner,  uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
+BOOL pifSpiDevice_Write(PifDevice* p_owner,  uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
 
 /**
  * @fn pifSpiDevice_WriteRegByte
@@ -190,7 +197,7 @@ BOOL pifSpiDevice_Write(PifSpiDevice* p_owner,  uint32_t iaddr, uint8_t isize, u
  * @param data
  * @return
  */
-BOOL pifSpiDevice_WriteRegByte(PifSpiDevice* p_owner, uint8_t reg, uint8_t data);
+BOOL pifSpiDevice_WriteRegByte(PifDevice* p_owner, uint8_t reg, uint8_t data);
 
 /**
  * @fn pifSpiDevice_WriteRegWord
@@ -200,7 +207,7 @@ BOOL pifSpiDevice_WriteRegByte(PifSpiDevice* p_owner, uint8_t reg, uint8_t data)
  * @param data
  * @return
  */
-BOOL pifSpiDevice_WriteRegWord(PifSpiDevice* p_owner, uint8_t reg, uint16_t data);
+BOOL pifSpiDevice_WriteRegWord(PifDevice* p_owner, uint8_t reg, uint16_t data);
 
 /**
  * @fn pifSpiDevice_WriteRegBytes
@@ -211,7 +218,7 @@ BOOL pifSpiDevice_WriteRegWord(PifSpiDevice* p_owner, uint8_t reg, uint16_t data
  * @param size
  * @return
  */
-BOOL pifSpiDevice_WriteRegBytes(PifSpiDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
+BOOL pifSpiDevice_WriteRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
 
 /**
  * @fn pifSpiDevice_WriteRegBit8
@@ -222,7 +229,7 @@ BOOL pifSpiDevice_WriteRegBytes(PifSpiDevice* p_owner, uint8_t reg, uint8_t* p_d
  * @param data
  * @return
  */
-BOOL pifSpiDevice_WriteRegBit8(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegField field, uint8_t data);
+BOOL pifSpiDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t data);
 
 /**
  * @fn pifSpiDevice_WriteRegBit16
@@ -233,7 +240,7 @@ BOOL pifSpiDevice_WriteRegBit8(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegFiel
  * @param data
  * @return
  */
-BOOL pifSpiDevice_WriteRegBit16(PifSpiDevice* p_owner, uint8_t reg, PifSpiRegField field, uint16_t data);
+BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t data);
 
 #ifdef __cplusplus
 }

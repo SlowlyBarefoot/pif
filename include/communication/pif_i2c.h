@@ -2,6 +2,7 @@
 #define PIF_I2C_H
 
 
+#include "communication/pif_comm.h"
 #include "core/pif_obj_array.h"
 
 
@@ -20,8 +21,6 @@ typedef enum EnPifI2cReturn
 	IR_ERROR
 } PifI2cReturn;
 
-
-typedef uint16_t PifI2cRegField;
 
 struct StPifI2cDevice;
 typedef struct StPifI2cDevice PifI2cDevice;
@@ -44,6 +43,7 @@ struct StPifI2cDevice
 
 	// Read-only Member Variable
 	volatile PifI2cState _state;
+	PifId _id;
 	PifI2cPort *_p_port;
 };
 
@@ -97,10 +97,11 @@ void pifI2cPort_Clear(PifI2cPort* p_owner);
  * @fn pifI2cPort_AddDevice
  * @brief
  * @param p_owner
+ * @param id
  * @param addr
  * @return
  */
-PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, uint8_t addr);
+PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr);
 
 /**
  * @fn pifI2cPort_RemoveDevice
@@ -140,7 +141,7 @@ void pifI2cPort_ScanAddress(PifI2cPort* p_owner);
  * @param size
  * @return
  */
-BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
+BOOL pifI2cDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
 
 /**
  * @fn pifI2cDevice_ReadRegByte
@@ -150,7 +151,7 @@ BOOL pifI2cDevice_Read(PifI2cDevice* p_owner, uint32_t iaddr, uint8_t isize, uin
  * @param p_data
  * @return
  */
-BOOL pifI2cDevice_ReadRegByte(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_data);
+BOOL pifI2cDevice_ReadRegByte(PifDevice* p_owner, uint8_t reg, uint8_t* p_data);
 
 /**
  * @fn pifI2cDevice_ReadRegWord
@@ -160,7 +161,7 @@ BOOL pifI2cDevice_ReadRegByte(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_dat
  * @param p_data
  * @return
  */
-BOOL pifI2cDevice_ReadRegWord(PifI2cDevice* p_owner, uint8_t reg, uint16_t* p_data);
+BOOL pifI2cDevice_ReadRegWord(PifDevice* p_owner, uint8_t reg, uint16_t* p_data);
 
 /**
  * @fn pifI2cDevice_ReadRegBytes
@@ -171,7 +172,7 @@ BOOL pifI2cDevice_ReadRegWord(PifI2cDevice* p_owner, uint8_t reg, uint16_t* p_da
  * @param size
  * @return
  */
-BOOL pifI2cDevice_ReadRegBytes(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
+BOOL pifI2cDevice_ReadRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
 
 /**
  * @fn pifI2cDevice_ReadRegBit8
@@ -182,7 +183,7 @@ BOOL pifI2cDevice_ReadRegBytes(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_da
  * @param p_data
  * @return
  */
-BOOL pifI2cDevice_ReadRegBit8(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegField field, uint8_t* p_data);
+BOOL pifI2cDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t* p_data);
 
 /**
  * @fn pifI2cDevice_ReadRegBit16
@@ -193,7 +194,7 @@ BOOL pifI2cDevice_ReadRegBit8(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegField
  * @param p_data
  * @return
  */
-BOOL pifI2cDevice_ReadRegBit16(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegField field, uint16_t* p_data);
+BOOL pifI2cDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t* p_data);
 
 /**
  * @fn pifI2cDevice_Write
@@ -205,7 +206,7 @@ BOOL pifI2cDevice_ReadRegBit16(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegFiel
  * @param size
  * @return
  */
-BOOL pifI2cDevice_Write(PifI2cDevice* p_owner,  uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
+BOOL pifI2cDevice_Write(PifDevice* p_owner,  uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
 
 /**
  * @fn pifI2cDevice_WriteRegByte
@@ -215,7 +216,7 @@ BOOL pifI2cDevice_Write(PifI2cDevice* p_owner,  uint32_t iaddr, uint8_t isize, u
  * @param data
  * @return
  */
-BOOL pifI2cDevice_WriteRegByte(PifI2cDevice* p_owner, uint8_t reg, uint8_t data);
+BOOL pifI2cDevice_WriteRegByte(PifDevice* p_owner, uint8_t reg, uint8_t data);
 
 /**
  * @fn pifI2cDevice_WriteRegWord
@@ -225,7 +226,7 @@ BOOL pifI2cDevice_WriteRegByte(PifI2cDevice* p_owner, uint8_t reg, uint8_t data)
  * @param data
  * @return
  */
-BOOL pifI2cDevice_WriteRegWord(PifI2cDevice* p_owner, uint8_t reg, uint16_t data);
+BOOL pifI2cDevice_WriteRegWord(PifDevice* p_owner, uint8_t reg, uint16_t data);
 
 /**
  * @fn pifI2cDevice_WriteRegBytes
@@ -236,7 +237,7 @@ BOOL pifI2cDevice_WriteRegWord(PifI2cDevice* p_owner, uint8_t reg, uint16_t data
  * @param size
  * @return
  */
-BOOL pifI2cDevice_WriteRegBytes(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
+BOOL pifI2cDevice_WriteRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
 
 /**
  * @fn pifI2cDevice_WriteRegBit8
@@ -247,7 +248,7 @@ BOOL pifI2cDevice_WriteRegBytes(PifI2cDevice* p_owner, uint8_t reg, uint8_t* p_d
  * @param data
  * @return
  */
-BOOL pifI2cDevice_WriteRegBit8(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegField field, uint8_t data);
+BOOL pifI2cDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t data);
 
 /**
  * @fn pifI2cDevice_WriteRegBit16
@@ -258,7 +259,7 @@ BOOL pifI2cDevice_WriteRegBit8(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegFiel
  * @param data
  * @return
  */
-BOOL pifI2cDevice_WriteRegBit16(PifI2cDevice* p_owner, uint8_t reg, PifI2cRegField field, uint16_t data);
+BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t data);
 
 /**
  * @fn pifI2cPort_sigEndTransfer

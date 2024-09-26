@@ -3,11 +3,14 @@
 
 
 #include "communication/pif_i2c.h"
+#include "communication/pif_spi.h"
 #include "core/pif_task.h"
 #include "sensor/pif_sensor_event.h"
 
 
 #define BMP280_I2C_ADDR(N)		(0x76 + (N))
+
+#define BMP280_WHO_AM_I_CONST	0x58
 
 
 typedef enum EnPifBmp280Reg
@@ -17,7 +20,7 @@ typedef enum EnPifBmp280Reg
 	BMP280_REG_RESET			= 0xE0,
 	BMP280_REG_STATUS			= 0xF3,
 	BMP280_REG_CTRL_MEAS		= 0xF4,
-	BMP280_REG_CCONFIG			= 0xF5,
+	BMP280_REG_CONFIG			= 0xF5,
 	BMP280_REG_PRESS_MSB		= 0xF7,
 	BMP280_REG_PRESS_LSB		= 0xF8,
 	BMP280_REG_PRESS_XLSB		= 0xF9,
@@ -80,6 +83,27 @@ typedef union StPifBmp280CtrlMeas
 
 // Register : CONFIG
 
+typedef enum EnPifBmp280Filter
+{
+	BMP280_FILTER_OFF,
+	BMP280_FILTER_X2,
+	BMP280_FILTER_X4,
+	BMP280_FILTER_X8,
+	BMP280_FILTER_X16
+} PifBmp280Filter;
+
+typedef enum EnPifBmp280TSB
+{
+	BMP280_T_SB_1_MS,
+	BMP280_T_SB_63_MS,
+	BMP280_T_SB_125_MS,
+	BMP280_T_SB_250_MS,
+	BMP280_T_SB_500_MS,
+	BMP280_T_SB_1000_MS,
+	BMP280_T_SB_2000_MS,
+	BMP280_T_SB_4000_MS
+} PifBmp280TSB;
+
 #define BMP280_CONFIG_SPI3W_EN		0x0001
 #define BMP280_CONFIG_FILTER		0x0203
 #define BMP280_CONFIG_T_SB			0x0503
@@ -134,7 +158,10 @@ typedef struct StPifBmp280
 
 	// Read-only Member Variable
 	PifId _id;
-	PifI2cDevice* _p_i2c;
+	union {
+		PifI2cDevice* _p_i2c;
+		PifSpiDevice* _p_spi;
+	};
 	uint8_t _osrs_p;
 	uint8_t _osrs_t;
 	PifTask* _p_task;
@@ -148,6 +175,9 @@ typedef struct StPifBmp280
 	int32_t __raw_pressure;
 	int32_t __raw_temperature;
 
+	// Read-only Function
+	PifDeviceReg8Func _fn;
+
 	// Private Event Function
 	PifEvtBaroRead __evt_read;
 } PifBmp280;
@@ -158,33 +188,13 @@ extern "C" {
 #endif
 
 /**
- * @fn pifBmp280_Detect
+ * @fn pifBmp280_Config
  * @brief
  * @param p_owner
  * @param id
- * @param p_i2c
- * @param addr
  * @return
  */
-BOOL pifBmp280_Detect(PifI2cPort* p_i2c, uint8_t addr);
-
-/**
- * @fn pifBmp280_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_i2c
- * @param addr
- * @return
- */
-BOOL pifBmp280_Init(PifBmp280* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr);
-
-/**
- * @fn pifBmp280_Clear
- * @brief
- * @param p_owner
- */
-void pifBmp280_Clear(PifBmp280* p_owner);
+BOOL pifBmp280_Config(PifBmp280* p_owner, PifId id);
 
 /**
  * @fn pifBmp280_SetOverSamplingRate

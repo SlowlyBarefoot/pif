@@ -3,10 +3,13 @@
 
 
 #include "communication/pif_i2c.h"
+#include "communication/pif_spi.h"
 #include "sensor/pif_imu_sensor.h"
 
 
 #define MPU6500_I2C_ADDR(N)			(0x68 + (N))
+
+#define MPP6500_WHO_AM_I_CONST		0x70
 
 
 typedef enum EnPifMpu6500Reg
@@ -666,7 +669,13 @@ typedef struct StPifMpu6500
 
 	// Read-only Member Variable
 	PifId _id;
-	PifI2cDevice* _p_i2c;
+	union {
+		PifI2cDevice* _p_i2c;
+		PifSpiDevice* _p_spi;
+	};
+
+	// Read-only Function
+	PifDeviceReg8Func _fn;
 
 	// Private Member Variable
 	PifImuSensor* __p_imu_sensor;
@@ -678,33 +687,14 @@ extern "C" {
 #endif
 
 /**
- * @fn pifMpu6500_Detect
- * @brief
- * @param p_i2c
- * @param addr
- * @return
- */
-BOOL pifMpu6500_Detect(PifI2cPort* p_i2c, uint8_t addr);
-
-/**
- * @fn pifMpu6500_Init
+ * @fn pifMpu6500_Config
  * @brief
  * @param p_owner
  * @param id
- * @param p_i2c
- * @param addr
  * @param p_imu_sensor
  * @return
  */
-BOOL pifMpu6500_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor);
-
-/**
- * @fn pifMpu6500_Clear
- * @brief
- * @param p_owner
- * @return
- */
-void pifMpu6500_Clear(PifMpu6500* p_owner);
+BOOL pifMpu6500_Config(PifMpu6500* p_owner, PifId id, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu6500_SetGyroConfig
