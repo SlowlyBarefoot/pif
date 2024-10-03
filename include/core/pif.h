@@ -8,9 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef PIF_CONF
 #include "pif_conf.h"
-#endif
 
 
 #define PIF_VERSION_MAJOR	0

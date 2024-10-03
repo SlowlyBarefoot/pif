@@ -26,14 +26,16 @@ typedef void (*PifEvtPtrArrayClear)(PifPtrArrayIterator it);
  */
 typedef struct StPifPtrArray
 {
-    int max_count;
-    int count;
-    PifPtrArrayIterator p_node;
+	// Read-only Member Variable
+    int _max_count;
+    int _count;
+    PifPtrArrayIterator _p_node;
 
-    PifPtrArrayIterator p_first;
-    PifPtrArrayIterator p_free;
+    PifPtrArrayIterator _p_first;
+    PifPtrArrayIterator _p_free;
 
-    PifEvtPtrArrayClear evt_clear;
+	// Private Event Function
+    PifEvtPtrArrayClear __evt_clear;
 } PifPtrArray;
 
 
@@ -80,7 +82,7 @@ void pifPtrArray_Remove(PifPtrArray* p_owner, void* p_data);
  * @param p_owner
  * @return
  */
-int pifPtrArray_Count(PifPtrArray* p_owner);
+#define pifPtrArray_Count(p_owner)	((PifPtrArray*)(p_owner))->_count
 
 /**
  * @fn pifPtrArray_Begin
@@ -88,7 +90,7 @@ int pifPtrArray_Count(PifPtrArray* p_owner);
  * @param p_owner
  * @return
  */
-PifPtrArrayIterator pifPtrArray_Begin(PifPtrArray* p_owner);
+#define pifPtrArray_Begin(p_owner)	((PifPtrArray*)(p_owner))->_p_first
 
 /**
  * @fn pifPtrArray_Next
@@ -96,7 +98,7 @@ PifPtrArrayIterator pifPtrArray_Begin(PifPtrArray* p_owner);
  * @param it
  * @return
  */
-PifPtrArrayIterator pifPtrArray_Next(PifPtrArrayIterator it);
+#define pifPtrArray_Next(it)	(it) ? (it)->p_next : NULL
 
 #ifdef __cplusplus
 }

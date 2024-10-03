@@ -26,15 +26,17 @@ typedef void (*PifEvtObjArrayClear)(PifObjArrayIterator it);
  */
 typedef struct StPifObjArray
 {
-	int size;
-    int max_count;
-    int count;
-    PifObjArrayIterator p_node;
+	// Read-only Member Variable
+	int _size;
+    int _max_count;
+    int _count;
+    PifObjArrayIterator _p_node;
 
-    PifObjArrayIterator p_first;
-    PifObjArrayIterator p_free;
+    PifObjArrayIterator _p_first;
+    PifObjArrayIterator _p_free;
 
-    PifEvtObjArrayClear evt_clear;
+	// Private Event Function
+    PifEvtObjArrayClear __evt_clear;
 } PifObjArray;
 
 
@@ -82,7 +84,7 @@ void pifObjArray_Remove(PifObjArray* p_owner, void* p_data);
  * @param p_owner
  * @return
  */
-int pifObjArray_Count(PifObjArray* p_owner);
+#define pifObjArray_Count(p_owner)	((PifObjArray*)(p_owner))->_count
 
 /**
  * @fn pifObjArray_Begin
@@ -90,7 +92,7 @@ int pifObjArray_Count(PifObjArray* p_owner);
  * @param p_owner
  * @return
  */
-PifObjArrayIterator pifObjArray_Begin(PifObjArray* p_owner);
+#define pifObjArray_Begin(p_owner)	((PifObjArray*)(p_owner))->_p_first
 
 /**
  * @fn pifObjArray_Next
@@ -98,7 +100,7 @@ PifObjArrayIterator pifObjArray_Begin(PifObjArray* p_owner);
  * @param it
  * @return
  */
-PifObjArrayIterator pifObjArray_Next(PifObjArrayIterator it);
+#define pifObjArray_Next(it)	(it) ? (it)->p_next : NULL
 
 #ifdef __cplusplus
 }
