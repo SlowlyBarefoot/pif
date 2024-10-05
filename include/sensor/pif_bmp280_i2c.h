@@ -12,8 +12,6 @@ extern "C" {
 /**
  * @fn pifBmp280I2c_Detect
  * @brief
- * @param p_owner
- * @param id
  * @param p_i2c
  * @param addr
  * @return

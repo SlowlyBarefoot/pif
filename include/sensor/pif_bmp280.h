@@ -35,8 +35,8 @@ typedef enum EnPifBmp280Reg
 #define BMP280_IM_UPDATE(N)		(N)
 #define BMP280_MEASURING(N)		((N) << 3)
 
-#define BMP280_IM_UPDATE_MASK	0b00000001
-#define BMP280_MEASURING_MASK	0b00001000
+#define BMP280_IM_UPDATE_MASK	0x01
+#define BMP280_MEASURING_MASK	0x08
 
 
 // Register : CTRL_MEAS
@@ -68,9 +68,9 @@ typedef enum EnPifBmp280OsrsT
 	BMP280_OSRS_T_X16		= 5 << 5
 } PifBmp280OsrsT;
 
-#define BMP280_MODE_MASK	0b00000011
-#define BMP280_OSRS_P_MASK	0b00011100
-#define BMP280_OSRS_T_MASK	0b11100000
+#define BMP280_MODE_MASK	0x03
+#define BMP280_OSRS_P_MASK	0x1C
+#define BMP280_OSRS_T_MASK	0xE0
 
 
 // Register : CONFIG
@@ -98,9 +98,9 @@ typedef enum EnPifBmp280TSB
 	BMP280_T_SB_4000_MS			= 7 << 5
 } PifBmp280TSB;
 
-#define BMP280_SPI3W_EN_MASK	0b00000001
-#define BMP280_FILTER_MASK		0b00011100
-#define BMP280_T_SB_MASK		0b11100000
+#define BMP280_SPI3W_EN_MASK	0x01
+#define BMP280_FILTER_MASK		0x1C
+#define BMP280_T_SB_MASK		0xE0
 
 
 typedef enum EnPifBmp280State

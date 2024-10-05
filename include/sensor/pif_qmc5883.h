@@ -33,9 +33,9 @@ typedef enum EnPifQmc5883Reg
 #define QMC5883_OVL(N)		((N) << 1)
 #define QMC5883_DOR(N)		((N) << 2)
 
-#define QMC5883_DRDY_MASK	0b00000001
-#define QMC5883_OVL_MASK	0b00000010
-#define QMC5883_DOR_MASK	0b00000100
+#define QMC5883_DRDY_MASK	0x01
+#define QMC5883_OVL_MASK	0x02
+#define QMC5883_DOR_MASK	0x04
 
 
 // Register : CONTROL_1
@@ -68,10 +68,10 @@ typedef enum EnPifQmc5883Osr
     QMC5883_OSR_64			= 3 << 6
 } PifQmc5883Osr;
 
-#define QMC5883_MODE_MASK	0b00000011
-#define QMC5883_ODR_MASK	0b00001100
-#define QMC5883_RNG_MASK	0b00110000	// Use pifQmc5883_SetControl1 to change this value.
-#define QMC5883_OSR_MASK	0b11000000
+#define QMC5883_MODE_MASK	0x03
+#define QMC5883_ODR_MASK	0x0C
+#define QMC5883_RNG_MASK	0x30		// Use pifQmc5883_SetControl1 to change this value.
+#define QMC5883_OSR_MASK	0xC0
 
 
 // Register : CONTROL_2
@@ -80,9 +80,9 @@ typedef enum EnPifQmc5883Osr
 #define QMC5883_ROL_PNT(N)		((N) << 6)
 #define QMC5883_SOFT_RST(N)		((N) << 7)
 
-#define QMC5883_INT_ENB_MASK	0b00000001
-#define QMC5883_ROL_PNT_MASK	0b01000000
-#define QMC5883_SOFT_RST_MASK	0b10000000
+#define QMC5883_INT_ENB_MASK	0x01
+#define QMC5883_ROL_PNT_MASK	0x40
+#define QMC5883_SOFT_RST_MASK	0x80
 
 
 /**

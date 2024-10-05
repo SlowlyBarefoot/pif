@@ -111,15 +111,15 @@ typedef enum EnPifAds1x1xCompQue
 	ADS1X1X_COMP_QUE_DISABLE		= 3
 } PifAds1x1xCompQue;
 
-#define ADS1X1X_COMP_QUE_MASK		0b0000000000000011	// Comparator queue and disable (ADS1114 and ADS1115 only)
-#define ADS1X1X_COMP_LAT_MASK		0b0000000000000100	// Latching comparator (ADS1114 and ADS1115 only)
-#define ADS1X1X_COMP_POL_MASK		0b0000000000001000	// Comparator polarity (ADS1114 and ADS1115 only)
-#define ADS1X1X_COMP_MODE_MASK		0b0000000000010000	// Comparator mode (ADS1114 and ADS1115 only)
-#define ADS1X1X_DR_MASK				0b0000000011100000	// Data rate
-#define ADS1X1X_MODE_MASK			0b0000000100000000	// Device operating mode
-#define ADS1X1X_PGA_MASK			0b0000111000000000	// Programmable gain amplifier configuration
-#define ADS1X1X_MUX_MASK			0b0111000000000000	// Input multiplexer configuration (ADS1115 only)
-#define ADS1X1X_OS_SSCS_MASK		0b1000000000000000	// Operational Status(R) or single-shot conversion start(W) */
+#define ADS1X1X_COMP_QUE_MASK		0x0003	// Comparator queue and disable (ADS1114 and ADS1115 only)
+#define ADS1X1X_COMP_LAT_MASK		0x0004	// Latching comparator (ADS1114 and ADS1115 only)
+#define ADS1X1X_COMP_POL_MASK		0x0008	// Comparator polarity (ADS1114 and ADS1115 only)
+#define ADS1X1X_COMP_MODE_MASK		0x0010	// Comparator mode (ADS1114 and ADS1115 only)
+#define ADS1X1X_DR_MASK				0x00E0	// Data rate
+#define ADS1X1X_MODE_MASK			0x0100	// Device operating mode
+#define ADS1X1X_PGA_MASK			0x0E00	// Programmable gain amplifier configuration
+#define ADS1X1X_MUX_MASK			0x7000	// Input multiplexer configuration (ADS1115 only)
+#define ADS1X1X_OS_SSCS_MASK		0x8000 	// Operational Status(R) or single-shot conversion start(W) */
 
 
 /**

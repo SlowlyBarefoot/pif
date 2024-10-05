@@ -61,9 +61,9 @@ typedef enum EnPifHmc5883Samples
 	HMC5883_SAMPLES_DEFAULT			= 0 << 5
 } PifHmc5883Samples;
 
-#define HMC5883_MEASURE_MODE_MASK	0b00000011
-#define HMC5883_DATA_RATE_MASK		0b00011100
-#define HMC5883_SAMPLES_MASK		0b01100000
+#define HMC5883_MEASURE_MODE_MASK	0x03
+#define HMC5883_DATA_RATE_MASK		0x1C
+#define HMC5883_SAMPLES_MASK		0x60
 
 
 // Register : CONFIG_B
@@ -82,7 +82,7 @@ typedef enum EnPifHmc5883Gain
 	HMC5883_GAIN_DEFAULT	= 1 << 5
 } PifHmc5883Gain;
 
-#define HMC5883_GAIN_MASK	0b11100000		// Use pifHmc5883_SetGain to change this value.
+#define HMC5883_GAIN_MASK	0xE0		// Use pifHmc5883_SetGain to change this value.
 
 
 // Register : MODE
@@ -98,8 +98,8 @@ typedef enum EnPifHmc5883Mode
 
 #define HMC5883_HIGH_SPEED(N)		((N) << 7)
 
-#define HMC5883_MODE_MASK			0b00000011
-#define HMC5883_HIGH_SPEED_MASK		0b10000000
+#define HMC5883_MODE_MASK			0x03
+#define HMC5883_HIGH_SPEED_MASK		0x80
 
 
 /**
