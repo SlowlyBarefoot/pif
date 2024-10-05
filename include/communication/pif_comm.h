@@ -23,6 +23,8 @@ typedef BOOL (*PifDeviceWriteRegBit16)(PifDevice* p_owner, uint8_t reg, PifRegMa
 
 typedef struct StPifDeviceReg8Func
 {
+	void *p_device;
+
 	PifDeviceReadRegByte read_byte;
 	PifDeviceReadRegBytes read_bytes;
 	PifDeviceReadRegBit8 read_bit;
@@ -34,6 +36,8 @@ typedef struct StPifDeviceReg8Func
 
 typedef struct StPifDeviceReg16Func
 {
+	void *p_device;
+
 	PifDeviceReadRegWord read_word;
 	PifDeviceReadRegBytes read_bytes;
 	PifDeviceReadRegBit16 read_bit;

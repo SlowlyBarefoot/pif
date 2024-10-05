@@ -55,7 +55,7 @@ static uint16_t _doTask(PifTask* p_task)
 	switch (p_owner->__state) {
 	case BMP280_STATE_START:
 		p_owner->__start_time = pif_cumulative_timer1ms;
-		if ((p_owner->_fn.write_byte)(p_owner->_p_i2c, BMP280_REG_CTRL_MEAS,
+		if ((p_owner->_fn.write_byte)(p_owner->_fn.p_device, BMP280_REG_CTRL_MEAS,
 				BMP280_MODE_FORCED | p_owner->_osrs_p | p_owner->_osrs_t)) {
 			delay = p_owner->__delay;
 			p_owner->__state = BMP280_STATE_WAIT;
@@ -63,7 +63,7 @@ static uint16_t _doTask(PifTask* p_task)
 		break;
 
 	case BMP280_STATE_WAIT:
-		if ((p_owner->_fn.read_byte)(p_owner->_p_i2c, BMP280_REG_STATUS, data)) {
+		if ((p_owner->_fn.read_byte)(p_owner->_fn.p_device, BMP280_REG_STATUS, data)) {
 			if (!(data[0] & BMP280_MEASURING_MASK)) {
 				p_owner->__state = BMP280_STATE_READ;
 				pifTask_SetTrigger(p_task);
@@ -72,7 +72,7 @@ static uint16_t _doTask(PifTask* p_task)
 		break;
 
 	case BMP280_STATE_READ:
-		if ((p_owner->_fn.read_bytes)(p_owner->_p_i2c, BMP280_REG_PRESS_MSB, data, 6)) {
+		if ((p_owner->_fn.read_bytes)(p_owner->_fn.p_device, BMP280_REG_PRESS_MSB, data, 6)) {
 			p_owner->__raw_pressure = (int32_t)((((uint32_t)(data[0])) << 12) | (((uint32_t)(data[1])) << 4) | ((uint32_t)data[2] >> 4));
 			p_owner->__raw_temperature = (int32_t)((((uint32_t)(data[3])) << 12) | (((uint32_t)(data[4])) << 4) | ((uint32_t)data[5] >> 4));
 			p_owner->__state = BMP280_STATE_CALCURATE;
@@ -106,8 +106,9 @@ BOOL pifBmp280_Config(PifBmp280* p_owner, PifId id)
 {
 	uint8_t data;
 
-	if (!p_owner || !p_owner->_fn.read_byte || !p_owner->_fn.read_bytes || !p_owner->_fn.read_bit ||
-			!p_owner->_fn.write_byte || !p_owner->_fn.write_bytes || !p_owner->_fn.write_bit) {
+	if (!p_owner || !p_owner->_fn.p_device
+			|| !p_owner->_fn.read_byte || !p_owner->_fn.read_bytes || !p_owner->_fn.read_bit
+			|| !p_owner->_fn.write_byte || !p_owner->_fn.write_bytes || !p_owner->_fn.write_bit) {
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
 	}
@@ -115,12 +116,12 @@ BOOL pifBmp280_Config(PifBmp280* p_owner, PifId id)
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
 
-	if (!(p_owner->_fn.read_bytes)(p_owner->_p_i2c, BMP280_REG_CALIB, (uint8_t*)&p_owner->__calib_param, 24)) return FALSE;
+	if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, BMP280_REG_CALIB, (uint8_t*)&p_owner->__calib_param, 24)) return FALSE;
 
-    if (!(p_owner->_fn.read_byte)(p_owner->_p_i2c, BMP280_REG_CTRL_MEAS, &data)) return FALSE;
+    if (!(p_owner->_fn.read_byte)(p_owner->_fn.p_device, BMP280_REG_CTRL_MEAS, &data)) return FALSE;
 	pifBmp280_SetOverSamplingRate(p_owner, data & BMP280_OSRS_P_MASK, data & BMP280_OSRS_T_MASK);
 
-	if (!(p_owner->_fn.write_bit)(p_owner->_p_i2c, BMP280_REG_CONFIG, BMP280_FILTER_MASK, BMP280_FILTER_X16)) return FALSE;
+	if (!(p_owner->_fn.write_bit)(p_owner->_fn.p_device, BMP280_REG_CONFIG, BMP280_FILTER_MASK, BMP280_FILTER_X16)) return FALSE;
     return TRUE;
 }
 
@@ -143,18 +144,18 @@ BOOL pifBmp280_ReadRawData(PifBmp280* p_owner, int32_t* p_pressure, int32_t* p_t
 	uint8_t data[6];
 	int i;
 
-	if (!(p_owner->_fn.write_byte)(p_owner->_p_i2c, BMP280_REG_CTRL_MEAS,
+	if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, BMP280_REG_CTRL_MEAS,
 			BMP280_MODE_FORCED | p_owner->_osrs_p | p_owner->_osrs_t)) return FALSE;
 
 	for (i = 0; i < 10; i++) {
 		pifTaskManager_YieldMs(4);
 
-		if (!(p_owner->_fn.read_byte)(p_owner->_p_i2c, BMP280_REG_STATUS, data)) return FALSE;
+		if (!(p_owner->_fn.read_byte)(p_owner->_fn.p_device, BMP280_REG_STATUS, data)) return FALSE;
 		if (!(data[0] & BMP280_MEASURING_MASK)) break;
 	}
 	if (i >= 10) return FALSE;
 
-	if (!(p_owner->_fn.read_bytes)(p_owner->_p_i2c, BMP280_REG_PRESS_MSB, data, 6)) return FALSE;
+	if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, BMP280_REG_PRESS_MSB, data, 6)) return FALSE;
 
     *p_pressure = (int32_t)((((uint32_t)(data[0])) << 12) | (((uint32_t)(data[1])) << 4) | ((uint32_t)data[2] >> 4));
     *p_temperature = (int32_t)((((uint32_t)(data[3])) << 12) | (((uint32_t)(data[4])) << 4) | ((uint32_t)data[5] >> 4));

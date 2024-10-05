@@ -37,6 +37,8 @@ BOOL pifMpu6500I2c_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_
     p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
     if (!p_owner->_p_i2c) return FALSE;
 
+    p_owner->_fn.p_device = p_owner->_p_i2c;
+
 	p_owner->_fn.read_byte = pifI2cDevice_ReadRegByte;
 	p_owner->_fn.read_bytes = pifI2cDevice_ReadRegBytes;
 	p_owner->_fn.read_bit = pifI2cDevice_ReadRegBit8;
