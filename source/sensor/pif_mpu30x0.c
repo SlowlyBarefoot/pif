@@ -7,7 +7,7 @@
 static BOOL _changeFsSel(PifImuSensor* p_imu_sensor, PifMpu30x0FsSel fs_sel)
 {
 	if (!p_imu_sensor) return FALSE;
-	p_imu_sensor->_gyro_gain = 131.0 / (1 << fs_sel);
+	p_imu_sensor->_gyro_gain = 131.0 / (1 << (fs_sel >> 3));
 	return TRUE;
 }
 
@@ -38,7 +38,6 @@ BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
 {
 	uint8_t data;
 	BOOL change;
-	PifMpu30x0PwrMgmt pwr_mgmt;
 
 	if (!p_owner || !p_i2c || !p_imu_sensor) {
 		pif_error = E_INVALID_PARAM;
@@ -50,21 +49,21 @@ BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
     p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, addr);
     if (!p_owner->_p_i2c) return FALSE;
 
-    if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU30X0_REG_DLPF_FS_SYNC, MPU30X0_DLPF_FS_SYNC_FS_SEL, &data)) goto fail;
+    if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU30X0_REG_DLPF_FS_SYNC, MPU30X0_FS_SEL_MASK, &data)) goto fail;
     if (!_changeFsSel(p_imu_sensor, data)) goto fail;
 
-    if (!pifI2cDevice_ReadRegByte(p_owner->_p_i2c, MPU30X0_REG_PWR_MGMT, &pwr_mgmt.byte)) goto fail;
+    if (!pifI2cDevice_ReadRegByte(p_owner->_p_i2c, MPU30X0_REG_PWR_MGMT, &data)) goto fail;
     change = FALSE;
-    if (pwr_mgmt.bit.clk_sel != MPU30X0_CLK_SEL_PLL_XGYRO) {
-    	pwr_mgmt.bit.clk_sel = MPU30X0_CLK_SEL_PLL_XGYRO;
+    if ((data & MPU30X0_CLK_SEL_MASK) != MPU30X0_CLK_SEL_PLL_XGYRO) {
+    	SET_BIT_FILED(data, MPU30X0_CLK_SEL_MASK, MPU30X0_CLK_SEL_PLL_XGYRO);
         change = TRUE;
     }
-    if (pwr_mgmt.bit.sleep == TRUE) {
-    	pwr_mgmt.bit.sleep = FALSE;
+    if (data & MPU30X0_SLEEP_MASK) {
+    	RESET_BIT_FILED(data, MPU30X0_SLEEP_MASK);
         change = TRUE;
     }
     if (change) {
-    	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU30X0_REG_PWR_MGMT, pwr_mgmt.byte)) goto fail;
+    	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU30X0_REG_PWR_MGMT, data)) goto fail;
     }
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
@@ -103,16 +102,16 @@ void pifMpu30x0_Clear(PifMpu30x0* p_owner)
     }
 }
 
-BOOL pifMpu30x0_SetDlpfFsSync(PifMpu30x0* p_owner, PifMpu30x0DlpfFsSync dlpf_fs_sync)
+BOOL pifMpu30x0_SetDlpfFsSync(PifMpu30x0* p_owner, uint8_t dlpf_fs_sync)
 {
-    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU30X0_REG_DLPF_FS_SYNC, dlpf_fs_sync.byte)) return FALSE;
-    _changeFsSel(p_owner->__p_imu_sensor, dlpf_fs_sync.bit.fs_sel);
+    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU30X0_REG_DLPF_FS_SYNC, dlpf_fs_sync)) return FALSE;
+    _changeFsSel(p_owner->__p_imu_sensor, dlpf_fs_sync & MPU30X0_FS_SEL_MASK);
 	return TRUE;
 }
 
 BOOL pifMpu30x0_SetFsSel(PifMpu30x0* p_owner, PifMpu30x0FsSel fs_sel)
 {
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, MPU30X0_REG_DLPF_FS_SYNC, MPU30X0_DLPF_FS_SYNC_FS_SEL, fs_sel)) return FALSE;
+    if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, MPU30X0_REG_DLPF_FS_SYNC, MPU30X0_FS_SEL_MASK, fs_sel)) return FALSE;
     _changeFsSel(p_owner->__p_imu_sensor, fs_sel);
 	return TRUE;
 }

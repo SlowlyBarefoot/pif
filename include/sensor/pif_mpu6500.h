@@ -127,533 +127,387 @@ typedef enum EnPifMpu6500Reg
 
 typedef enum EnPifMpu6500DlpfCfg
 {
-	MPU6500_DLPF_CFG_250HZ,
-	MPU6500_DLPF_CFG_184HZ,
-	MPU6500_DLPF_CFG_92HZ,
-	MPU6500_DLPF_CFG_41HZ,
-	MPU6500_DLPF_CFG_20HZ,
-	MPU6500_DLPF_CFG_10HZ,
-    MPU6500_DLPF_CFG_5HZ,
-	MPU6500_DLPF_CFG_3600HZ
+	MPU6500_DLPF_CFG_250HZ				= 0,
+	MPU6500_DLPF_CFG_184HZ				= 1,
+	MPU6500_DLPF_CFG_92HZ				= 2,
+	MPU6500_DLPF_CFG_41HZ				= 3,
+	MPU6500_DLPF_CFG_20HZ				= 4,
+	MPU6500_DLPF_CFG_10HZ				= 5,
+    MPU6500_DLPF_CFG_5HZ				= 6,
+	MPU6500_DLPF_CFG_3600HZ				= 7
 } PifMpu6500DlpfCfg;
 
 typedef enum EnPifMpu6500ExtSyncSet
 {
-	MPU6500_EXT_SYNC_SET_DISABLE,
-	MPU6500_EXT_SYNC_SET_TEMP_OUT_L,
-	MPU6500_EXT_SYNC_SET_GYRO_XOUT_L,
-	MPU6500_EXT_SYNC_SET_GYRO_YOUT_L,
-	MPU6500_EXT_SYNC_SET_GYRO_ZOUT_L,
-	MPU6500_EXT_SYNC_SET_ACCEL_XOUT_L,
-    MPU6500_EXT_SYNC_SET_ACCEL_YOUT_L,
-    MPU6500_EXT_SYNC_SET_ACCEL_ZOUT_L
+	MPU6500_EXT_SYNC_SET_DISABLE		= 0 << 3,
+	MPU6500_EXT_SYNC_SET_TEMP_OUT_L		= 1 << 3,
+	MPU6500_EXT_SYNC_SET_GYRO_XOUT_L	= 2 << 3,
+	MPU6500_EXT_SYNC_SET_GYRO_YOUT_L	= 3 << 3,
+	MPU6500_EXT_SYNC_SET_GYRO_ZOUT_L	= 4 << 3,
+	MPU6500_EXT_SYNC_SET_ACCEL_XOUT_L	= 5 << 3,
+    MPU6500_EXT_SYNC_SET_ACCEL_YOUT_L	= 6 << 3,
+    MPU6500_EXT_SYNC_SET_ACCEL_ZOUT_	= 7 << 3L
 } PifMpu6500ExtSyncSet;
 
-#define MPU6500_CONFIG_DLPF_CFG			0x0003
-#define MPU6500_CONFIG_EXT_SYNC_SET		0x0303
-#define MPU6500_CONFIG_FIFO_MODE		0x0601
+#define MPU6500_FIFO_MODE(N)			((N) << 6)
 
-typedef union StPifMpu6500Config
-{
-	uint8_t byte;
-	struct {
-		PifMpu6500DlpfCfg dlpf_cfg			: 3;	// LSB
-		PifMpu6500ExtSyncSet ext_sync_set	: 3;
-		uint8_t fifo_mode					: 1;
-		uint8_t reserved					: 1;	// MSB
-	} bit;
-} PifMpu6500Config;
+#define MPU6500_DLPF_CFG_MASK			0b00000111
+#define MPU6500_EXT_SYNC_SET_MASK		0b00111000
+#define MPU6500_FIFO_MODE_MASK			0b01000000
 
 
 // Register : GYRO_CONFIG
 
 typedef enum EnPifMpu6500FchoiceB
 {
-    MPU6500_FCHOICE_B_DISABLE,
-    MPU6500_FCHOICE_B_8800HZ,
-    MPU6500_FCHOICE_B_3600HZ
+    MPU6500_FCHOICE_B_DISABLE		= 0,
+    MPU6500_FCHOICE_B_8800HZ		= 1,
+    MPU6500_FCHOICE_B_3600HZ		= 2
 } PifMpu6500FchoiceB;
 
 typedef enum EnPifMpu6500GyroFsSel
 {
-    MPU6500_GYRO_FS_SEL_250DPS,
-    MPU6500_GYRO_FS_SEL_500DPS,
-    MPU6500_GYRO_FS_SEL_1000DPS,
-    MPU6500_GYRO_FS_SEL_2000DPS
+    MPU6500_GYRO_FS_SEL_250DPS		= 0 << 3,
+    MPU6500_GYRO_FS_SEL_500DPS		= 1 << 3,
+    MPU6500_GYRO_FS_SEL_1000DPS		= 2 << 3,
+    MPU6500_GYRO_FS_SEL_2000DPS		= 3 << 3
 } PifMpu6500GyroFsSel;
 
-#define MPU6500_GYRO_CONFIG_FCHOICE_B		0x0002
-#define MPU6500_GYRO_CONFIG_GYRO_FS_SEL		0x0302		// Use pifMpu6500_SetGyroConfig or pifMpu6500_SetGyroFsSel to change this value.
-#define MPU6500_GYRO_CONFIG_ZG_ST			0x0501
-#define MPU6500_GYRO_CONFIG_YG_ST			0x0601
-#define MPU6500_GYRO_CONFIG_XG_ST			0x0701
+#define MPU6500_ZG_ST(N)			((N) << 5)
+#define MPU6500_YG_ST(N)			((N) << 6)
+#define MPU6500_XG_ST(N)			((N) << 7)
 
-typedef union StPifMpu6500GyroConfig
-{
-	uint8_t byte;
-	struct {
-		PifMpu6500FchoiceB fchoice_b	: 2;	// LSB
-		uint8_t reserved				: 1;
-		PifMpu6500GyroFsSel gyro_fs_sel	: 2;	// Use pifMpu6500_SetGyroConfig or pifMpu6500_SetGyroFsSel to change this value.
-		uint8_t zg_st					: 1;
-		uint8_t yg_st					: 1;
-		uint8_t xg_st					: 1;	// MSB
-	} bit;
-} PifMpu6500GyroConfig;
+#define MPU6500_FCHOICE_B_MASK		0b00000011
+#define MPU6500_GYRO_FS_SEL_MASK	0b00011000		// Use pifMpu6500_SetGyroConfig or pifMpu6500_SetGyroFsSel to change this value.
+#define MPU6500_ZG_ST_MASK			0b00100000
+#define MPU6500_YG_ST_MASK			0b01000000
+#define MPU6500_XG_ST_MASK			0b10000000
 
 
 // Register : ACCEL_CONFIG
 
 typedef enum EnPifMpu6500AccelFsSel
 {
-    MPU6500_ACCEL_FS_SEL_2G,
-    MPU6500_ACCEL_FS_SEL_4G,
-    MPU6500_ACCEL_FS_SEL_8G,
-    MPU6500_ACCEL_FS_SEL_16G
+    MPU6500_ACCEL_FS_SEL_2G			= 0 << 3,
+    MPU6500_ACCEL_FS_SEL_4G			= 1 << 3,
+    MPU6500_ACCEL_FS_SEL_8G			= 2 << 3,
+    MPU6500_ACCEL_FS_SEL_16G		= 3 << 3
 } PifMpu6500AccelFsSel;
 
-#define MPU6500_ACCEL_CONFIG_ACCEL_FS_SEL	0x0302		// Use pifMpu6500_SetAccelConfig or pifMpu6500_SetAfsSel to change this value.
-#define MPU6500_ACCEL_CONFIG_ZA_ST			0x0501
-#define MPU6500_ACCEL_CONFIG_YA_ST			0x0601
-#define MPU6500_ACCEL_CONFIG_XA_ST			0x0701
+#define MPU6500_ZA_ST(N)			((N) << 5)
+#define MPU6500_YA_ST(N)			((N) << 6)
+#define MPU6500_XA_ST(N)			((N) << 7)
 
-typedef union StPifMpu6500AccelConfig
-{
-	uint8_t byte;
-	struct {
-		uint8_t reserved					: 3;	// LSB
-		PifMpu6500AccelFsSel accel_fs_sel	: 2;	// Use pifMpu6500_SetAccelConfig or pifMpu6500_SetAfsSel to change this value.
-		uint8_t za_st						: 1;
-		uint8_t ya_st						: 1;
-		uint8_t xa_st						: 1;	// MSB
-	} bit;
-} PifMpu6500AccelConfig;
+#define MPU6500_ACCEL_FS_SEL_MASK	0b00011000		// Use pifMpu6500_SetAccelConfig or pifMpu6500_SetAfsSel to change this value.
+#define MPU6500_ZA_ST_MASK			0b00100000
+#define MPU6500_YA_ST_MASK			0b01000000
+#define MPU6500_XA_ST_MASK			0b10000000
 
 
 // Register : ACCEL_CONFIG_2
 
 typedef enum EnPifMpu6500ADlpfCfg
 {
-    MPU6500_A_DLPF_CFG_460HZ,
-    MPU6500_A_DLPF_CFG_184HZ,
-    MPU6500_A_DLPF_CFG_92HZ,
-    MPU6500_A_DLPF_CFG_41HZ,
-    MPU6500_A_DLPF_CFG_20HZ,
-    MPU6500_A_DLPF_CFG_10HZ,
-    MPU6500_A_DLPF_CFG_5HZ
+    MPU6500_A_DLPF_CFG_460HZ			= 0,
+    MPU6500_A_DLPF_CFG_184HZ			= 1,
+    MPU6500_A_DLPF_CFG_92HZ				= 2,
+    MPU6500_A_DLPF_CFG_41HZ				= 3,
+    MPU6500_A_DLPF_CFG_20HZ				= 4,
+    MPU6500_A_DLPF_CFG_10HZ				= 5,
+    MPU6500_A_DLPF_CFG_5HZ				= 6
 } PifMpu6500ADlpfCfg;
 
-#define MPU6500_ACCEL_CONFIG_2_A_DLPF_CFG		0x0003
-#define MPU6500_ACCEL_CONFIG_2_ACCEL_FCHOICE_B	0x0301
+#define MPU6500_ACCEL_FCHOICE_B(N)		((N) << 3)
 
-typedef union StPifMpu6500AccelConfig2
-{
-	uint8_t byte;
-	struct {
-		PifMpu6500ADlpfCfg a_dlpf_cfg	: 3;	// LSB
-		uint8_t accel_fchoice_b			: 1;
-		uint8_t reserved				: 4;	// MSB
-	} bit;
-} PifMpu6500AccelConfig2;
+#define MPU6500_A_DLPF_CFG_MASK			0b00000111
+#define MPU6500_ACCEL_FCHOICE_B_MASK	0b00001000
 
 
 // Register : LP_ACCEL_ODR
 
 typedef enum EnPifMpu6500LposcClksel
 {
-    MPU6500_LPOSC_CLKSEL_0_24,
-    MPU6500_LPOSC_CLKSEL_0_49,
-    MPU6500_LPOSC_CLKSEL_0_98,
-    MPU6500_LPOSC_CLKSEL_1_95,
-    MPU6500_LPOSC_CLKSEL_3_91,
-    MPU6500_LPOSC_CLKSEL_7_81,
-    MPU6500_LPOSC_CLKSEL_15_63,
-    MPU6500_LPOSC_CLKSEL_31_25,
-    MPU6500_LPOSC_CLKSEL_62_50,
-    MPU6500_LPOSC_CLKSEL_125,
-    MPU6500_LPOSC_CLKSEL_250,
-    MPU6500_LPOSC_CLKSEL_500
+    MPU6500_LPOSC_CLKSEL_0_24		= 0,
+    MPU6500_LPOSC_CLKSEL_0_49		= 1,
+    MPU6500_LPOSC_CLKSEL_0_98		= 2,
+    MPU6500_LPOSC_CLKSEL_1_95		= 3,
+    MPU6500_LPOSC_CLKSEL_3_91		= 4,
+    MPU6500_LPOSC_CLKSEL_7_81		= 5,
+    MPU6500_LPOSC_CLKSEL_15_63		= 6,
+    MPU6500_LPOSC_CLKSEL_31_25		= 7,
+    MPU6500_LPOSC_CLKSEL_62_50		= 8,
+    MPU6500_LPOSC_CLKSEL_125		= 9,
+    MPU6500_LPOSC_CLKSEL_250		= 10,
+    MPU6500_LPOSC_CLKSEL_500		= 11
 } PifMpu6500LposcClksel;
 
-#define MPU6500_LP_ACCEL_ODR_LPOSC_CLKSEL	0x0004
-
-typedef union StPifMpu6500LpAccelOdr
-{
-	uint8_t byte;
-	struct {
-		PifMpu6500ADlpfCfg lposc_clksel	: 4;	// LSB
-		uint8_t reserved				: 4;	// MSB
-	} bit;
-} PifMpu6500LpAccelOdr;
+#define MPU6500_LPOSC_CLKSEL_MASK	0xb00001111
 
 
 // Register : FIFO_EN
 
-#define MPU6500_FIFO_EN_SLV_0				0x0001
-#define MPU6500_FIFO_EN_SLV_1				0x0101
-#define MPU6500_FIFO_EN_SLV_2				0x0201
-#define MPU6500_FIFO_EN_ACCEL				0x0301
-#define MPU6500_FIFO_EN_GYRO_ZOUT			0x0401
-#define MPU6500_FIFO_EN_GYRO_YOUT			0x0501
-#define MPU6500_FIFO_EN_GYRO_XOUT			0x0601
-#define MPU6500_FIFO_EN_TEMP_OUT			0x0701
+#define MPU6500_SLV_0(N)		(N)
+#define MPU6500_SLV_1(N)		((N) << 1)
+#define MPU6500_SLV_2(N)		((N) << 2)
+#define MPU6500_ACCEL(N)		((N) << 3)
+#define MPU6500_GYRO_ZOUT(N)	((N) << 4)
+#define MPU6500_GYRO_YOUT(N)	((N) << 5)
+#define MPU6500_GYRO_XOUT(N)	((N) << 6)
+#define MPU6500_TEMP_OUT(N)		((N) << 7)
 
-typedef union StPifMpu6500FifoEn
-{
-	uint8_t byte;
-	struct {
-		uint8_t slv_0			: 1;	// LSB
-		uint8_t slv_1			: 1;
-		uint8_t slv_2			: 1;
-		uint8_t accel			: 1;
-		uint8_t gyro_zout		: 1;
-		uint8_t gyro_yout		: 1;
-		uint8_t gyro_xout		: 1;
-		uint8_t temp_out		: 1;	// MSB
-	} bit;
-} PifMpu6500FifoEn;
+#define MPU6500_SLV_0_MASK		0b00000001
+#define MPU6500_SLV_1_MASK		0b00000010
+#define MPU6500_SLV_2_MASK		0b00000100
+#define MPU6500_ACCEL_MASK		0b00001000
+#define MPU6500_GYRO_ZOUT_MASK	0b00010000
+#define MPU6500_GYRO_YOUT_MASK	0b00100000
+#define MPU6500_GYRO_XOUT_MASK	0b01000000
+#define MPU6500_TEMP_OUT_MASK	0b10000000
 
 
 // Register : I2C_MST_CTRL
 
 typedef enum EnPifMpu6500I2cMstClk
 {
-    MPU6500_I2C_MST_CLK_348KHZ,
-    MPU6500_I2C_MST_CLK_333KHZ,
-    MPU6500_I2C_MST_CLK_320KHZ,
-    MPU6500_I2C_MST_CLK_308KHZ,
-    MPU6500_I2C_MST_CLK_296KHZ,
-    MPU6500_I2C_MST_CLK_286KHZ,
-    MPU6500_I2C_MST_CLK_276KHZ,
-    MPU6500_I2C_MST_CLK_267KHZ,
-    MPU6500_I2C_MST_CLK_258KHZ,
-    MPU6500_I2C_MST_CLK_500KHZ,
-    MPU6500_I2C_MST_CLK_471KHZ,
-    MPU6500_I2C_MST_CLK_444KHZ,
-    MPU6500_I2C_MST_CLK_421KHZ,
-    MPU6500_I2C_MST_CLK_400KHZ,
-    MPU6500_I2C_MST_CLK_381KHZ,
-    MPU6500_I2C_MST_CLK_364KHZ
+    MPU6500_I2C_MST_CLK_348KHZ		= 0,
+    MPU6500_I2C_MST_CLK_333KHZ		= 1,
+    MPU6500_I2C_MST_CLK_320KHZ		= 2,
+    MPU6500_I2C_MST_CLK_308KHZ		= 3,
+    MPU6500_I2C_MST_CLK_296KHZ		= 4,
+    MPU6500_I2C_MST_CLK_286KHZ		= 5,
+    MPU6500_I2C_MST_CLK_276KHZ		= 6,
+    MPU6500_I2C_MST_CLK_267KHZ		= 7,
+    MPU6500_I2C_MST_CLK_258KHZ		= 8,
+    MPU6500_I2C_MST_CLK_500KHZ		= 9,
+    MPU6500_I2C_MST_CLK_471KHZ		= 10,
+    MPU6500_I2C_MST_CLK_444KHZ		= 11,
+    MPU6500_I2C_MST_CLK_421KHZ		= 12,
+    MPU6500_I2C_MST_CLK_400KHZ		= 13,
+    MPU6500_I2C_MST_CLK_381KHZ		= 14,
+    MPU6500_I2C_MST_CLK_364KHZ		= 15
 } PifMpu6500I2cMstClk;
 
-#define MPU6500_I2C_MST_CTRL_I2C_MST_CLK	0x0004
-#define MPU6500_I2C_MST_CTRL_I2C_MST_P_NSR	0x0401
-#define MPU6500_I2C_MST_CTRL_SLV_3_FIFO_EN	0x0501
-#define MPU6500_I2C_MST_CTRL_WAIT_FOR_ES	0x0601
-#define MPU6500_I2C_MST_CTRL_MULT_MST_EN	0x0701
+#define MPU6500_I2C_MST_P_NSR(N)	((N) << 4)
+#define MPU6500_SLV_3_FIFO_EN(N)	((N) << 5)
+#define MPU6500_WAIT_FOR_ES(N)		((N) << 6)
+#define MPU6500_MULT_MST_EN(N)		((N) << 7)
 
-typedef union StPifMpu6500I2cMstCtrl
-{
-	uint8_t byte;
-	struct {
-		PifMpu6500I2cMstClk i2c_mst_clk		: 4;	// LSB
-		uint8_t i2c_mst_p_nsr				: 1;
-		uint8_t slv_3_fifo_en				: 1;
-		uint8_t wait_for_es					: 1;
-		uint8_t mult_mst_en					: 1;	// MSB
-	} bit;
-} PifMpu6500I2cMstCtrl;
+#define MPU6500_I2C_MST_CLK_MASK	0b00001111
+#define MPU6500_I2C_MST_P_NSR_MASK	0b00010000
+#define MPU6500_SLV_3_FIFO_EN_MASK	0b00100000
+#define MPU6500_WAIT_FOR_ES_MASK	0b01000000
+#define MPU6500_MULT_MST_EN_MASK	0b10000000
 
 
 // Register : I2C_SLVx_ADDR		x = 0 ~ 4
 
-#define MPU6500_I2C_SLV_ADDR_I2C_ID_x			0x0007
-#define MPU6500_I2C_SLV_ADDR_I2C_SLVx_RNW		0x0701
+#define MPU6500_I2C_ID_x(N)			(N)
+#define MPU6500_I2C_SLVx_RNW(N)		((N) << 7)
 
-typedef union StPifMpu6500I2cSlvxAddr
-{
-	uint8_t byte;
-	struct {
-		uint8_t i2c_id_x		: 7;	// LSB
-		uint8_t i2c_slvx_rnw	: 1;	// MSB
-	} bit;
-} PifMpu6500I2cSlvxAddr;
+#define MPU6500_I2C_ID_x_MASK		0b01111111
+#define MPU6500_I2C_SLVx_RNW_MASK	0b10000000
 
 
 // Register : I2C_SLVx_CTRL		x = 0 ~ 3
 
-#define MPU6500_I2C_SLV_CTRL_I2C_SLVx_LENG		0x0004
-#define MPU6500_I2C_SLV_CTRL_I2C_SLVx_GRP		0x0401
-#define MPU6500_I2C_SLV_CTRL_I2C_SLVx_REG_DIS	0x0501
-#define MPU6500_I2C_SLV_CTRL_I2C_SLVx_BYTE_SW	0x0601
-#define MPU6500_I2C_SLV_CTRL_I2C_SLVx_EN		0x0701
+#define MPU6500_I2C_SLVx_LENG(N)		(N)
+#define MPU6500_I2C_SLVx_GRP(N)			((N) << 4)
+#define MPU6500_I2C_SLVx_REG_DIS(N)		((N) << 5)
+#define MPU6500_I2C_SLVx_BYTE_SW(N)		((N) << 6)
+#define MPU6500_I2C_SLVx_EN(N)			((N) << 7)
 
-typedef union StPifMpu6500I2cSlvxCtrl
-{
-	uint8_t byte;
-	struct {
-		uint8_t i2c_slvx_leng		: 4;	// LSB
-		uint8_t i2c_slvx_grp		: 1;
-		uint8_t i2c_slvx_reg_dis	: 1;
-		uint8_t i2c_slvx_byte_sw	: 1;
-		uint8_t i2c_slvx_en			: 1;	// MSB
-	} bit;
-} PifMpu6500I2cSlvxCtrl;
+#define MPU6500_I2C_SLVx_LENG_MASK		0b00001111
+#define MPU6500_I2C_SLVx_GRP_MASK		0b00010000
+#define MPU6500_I2C_SLVx_REG_DIS_MASK	0b00100000
+#define MPU6500_I2C_SLVx_BYTE_SW_MASK	0b01000000
+#define MPU6500_I2C_SLVx_EN_MASK		0b10000000
 
 
 // Register : I2C_SLV4_CTRL
 
-#define MPU6500_I2C_SLV_CTRL_I2C_MST_DLY		0x0005
-#define MPU6500_I2C_SLV_CTRL_I2C_SLV4_REG_DIS	0x0501
-#define MPU6500_I2C_SLV_CTRL_SLV4_DONE_INT_EN	0x0601
-#define MPU6500_I2C_SLV_CTRL_I2C_SLV4_EN		0x0701
+#define MPU6500_I2C_MST_DLY(N)			(N)
+#define MPU6500_I2C_SLV4_REG_DIS(N)		((N) << 5)
+#define MPU6500_SLV4_DONE_INT_EN(N)		((N) << 6)
+#define MPU6500_I2C_SLV4_EN(N)			((N) << 7)
 
-typedef union StPifMpu6500I2cSlv4Ctrl
-{
-	uint8_t byte;
-	struct {
-		uint8_t i2c_mst_dly			: 5;	// LSB
-		uint8_t i2c_slv4_reg_dis	: 1;
-		uint8_t slv4_done_int_en	: 1;
-		uint8_t i2c_slv4_en			: 1;	// MSB
-	} bit;
-} PifMpu6500I2cSlv4Ctrl;
+#define MPU6500_I2C_MST_DLY_MASK		0b00011111
+#define MPU6500_I2C_SLV4_REG_DIS_MASK	0b00100000
+#define MPU6500_SLV4_DONE_INT_EN_MASK	0b01000000
+#define MPU6500_I2C_SLV4_EN_MASK		0b10000000
 
 
 // Register : I2C_MST_STSTUS
 
-#define MPU6500_I2C_MST_STATUS_I2C_SLV0_NACK	0x0001
-#define MPU6500_I2C_MST_STATUS_I2C_SLV1_NACK	0x0101
-#define MPU6500_I2C_MST_STATUS_I2C_SLV2_NACK	0x0201
-#define MPU6500_I2C_MST_STATUS_I2C_SLV3_NACK	0x0301
-#define MPU6500_I2C_MST_STATUS_I2C_SLV4_NACK	0x0401
-#define MPU6500_I2C_MST_STATUS_I2C_LOST_ARB		0x0501
-#define MPU6500_I2C_MST_STATUS_I2C_SLV4_DONE	0x0601
-#define MPU6500_I2C_MST_STATUS_PASS_THROUGH		0x0701
+#define MPU6500_I2C_SLV0_NACK(N)	(N)
+#define MPU6500_I2C_SLV1_NACK(N)	((N) << 1)
+#define MPU6500_I2C_SLV2_NACK(N)	((N) << 2)
+#define MPU6500_I2C_SLV3_NACK(N)	((N) << 3)
+#define MPU6500_I2C_SLV4_NACK(N)	((N) << 4)
+#define MPU6500_I2C_LOST_ARB(N)		((N) << 5)
+#define MPU6500_I2C_SLV4_DONE(N)	((N) << 6)
+#define MPU6500_PASS_THROUGH(N)		((N) << 7)
 
-typedef union StPifMpu6500I2cMstStatus
-{
-	uint8_t byte;
-	struct {
-		uint8_t i2c_slv0_nack	: 1;	// LSB
-		uint8_t i2c_slv1_nack	: 1;
-		uint8_t i2c_slv2_nack	: 1;
-		uint8_t i2c_slv3_nack	: 1;
-		uint8_t i2c_slv4_nack	: 1;
-		uint8_t i2c_lost_arb	: 1;
-		uint8_t i2c_slv4_done	: 1;
-		uint8_t pass_through	: 1;	// MSB
-	} bit;
-} PifMpu6500I2cMstStatus;
+#define MPU6500_I2C_SLV0_NACK_MASK	0b00000001
+#define MPU6500_I2C_SLV1_NACK_MASK	0b00000010
+#define MPU6500_I2C_SLV2_NACK_MASK	0b00000100
+#define MPU6500_I2C_SLV3_NACK_MASK	0b00001000
+#define MPU6500_I2C_SLV4_NACK_MASK	0b00010000
+#define MPU6500_I2C_LOST_ARB_MASK	0b00100000
+#define MPU6500_I2C_SLV4_DONE_MASK	0b01000000
+#define MPU6500_PASS_THROUGH_MASK	0b10000000
 
 
 // Register : INT_PIN_CFG
 
-#define MPU6500_INT_PIN_CFG_BYPASS_EN			0x0101
-#define MPU6500_INT_PIN_CFG_FSYNC_INT_MODE_EN	0x0201
-#define MPU6500_INT_PIN_CFG_ACTL_FSYNC			0x0301
-#define MPU6500_INT_PIN_CFG_INT_ANYRD_2CLEAR	0x0401
-#define MPU6500_INT_PIN_CFG_LATCH_INT_EN		0x0501
-#define MPU6500_INT_PIN_CFG_OPEN				0x0601
-#define MPU6500_INT_PIN_CFG_ACTL				0x0701
+#define MPU6500_BYPASS_EN(N)			((N) << 1)
+#define MPU6500_FSYNC_INT_MODE_EN(N)	((N) << 2)
+#define MPU6500_ACTL_FSYNC(N)			((N) << 3)
+#define MPU6500_INT_ANYRD_2CLEAR(N)		((N) << 4)
+#define MPU6500_LATCH_INT_EN(N)			((N) << 5)
+#define MPU6500_OPEN(N)					((N) << 6)
+#define MPU6500_ACTL(N)					((N) << 7)
 
-typedef union StPifMpu6500IntPinCfg
-{
-	uint8_t byte;
-	struct {
-		uint8_t reserved			: 1;	// LSB
-		uint8_t bypass_en			: 1;
-		uint8_t fsync_int_mode_en	: 1;
-		uint8_t actl_fsync			: 1;
-		uint8_t int_adyrd_2clear	: 1;
-		uint8_t latch_int_en		: 1;
-		uint8_t open				: 1;
-		uint8_t actl				: 1;	// MSB
-	} bit;
-} PifMpu6500IntPinCfg;
+#define MPU6500_BYPASS_EN_MASK			0b00000010
+#define MPU6500_FSYNC_INT_MODE_EN_MASK	0b00000100
+#define MPU6500_ACTL_FSYNC_MASK			0b00001000
+#define MPU6500_INT_ANYRD_2CLEAR_MASK	0b00010000
+#define MPU6500_LATCH_INT_EN_MASK		0b00100000
+#define MPU6500_OPEN_MASK				0b01000000
+#define MPU6500_ACTL_MASK				0b10000000
 
 
 // Register : INT_ENABLE
 
-#define MPU6500_INT_ENABLE_RAW_RDY_EN			0x0001
-#define MPU6500_INT_ENABLE_FSYNC_INT_EN			0x0301
-#define MPU6500_INT_ENABLE_FIFO_OVERFLOW_EN		0x0401
-#define MPU6500_INT_ENABLE_WOM_EN				0x0401
+#define MPU6500_RAW_RDY_EN(N)			(N)
+#define MPU6500_FSYNC_INT_EN(N)			((N) << 3)
+#define MPU6500_FIFO_OVERFLOW_EN(N)		((N) << 4)
+#define MPU6500_WOM_EN(N)				((N) << 6)
 
-typedef union StPifMpu6500IntEnable
-{
-	uint8_t byte;
-	struct {
-		uint8_t raw_rdy_en			: 1;	// LSB
-		uint8_t reserved1			: 2;
-		uint8_t fsync_int_en		: 1;
-		uint8_t fifo_overflow_en	: 1;
-		uint8_t reserved2			: 1;
-		uint8_t wom_en				: 1;
-		uint8_t reserved3			: 1;	// MSB
-	} bit;
-} PifMpu6500IntEnable;
+#define MPU6500_RAW_RDY_EN_MASK			0b00000001
+#define MPU6500_FSYNC_INT_EN_MASK		0b00001000
+#define MPU6500_FIFO_OVERFLOW_EN_MASK	0b00010000
+#define MPU6500_WOM_EN_MASK				0b01000000
 
 
 // Register : INT_STATUS
 
-#define MPU6500_INT_STATUS_RAW_RDY_INT			0x0001
-#define MPU6500_INT_STATUS_DMP_INT				0x0101
-#define MPU6500_INT_STATUS_FSYNC_INT			0x0301
-#define MPU6500_INT_STATUS_FIFO_OVERFLOW_INT	0x0401
-#define MPU6500_INT_STATUS_WOM_INT				0x0601
+#define MPU6500_RAW_RDY_INT(N)			(N)
+#define MPU6500_DMP_INT(N)				((N) << 1)
+#define MPU6500_FSYNC_INT(N)			((N) << 3)
+#define MPU6500_FIFO_OVERFLOW_INT(N)	((N) << 4)
+#define MPU6500_WOM_INT(N)				((N) << 6)
 
-typedef union StPifMpu6500IntStatus
-{
-	uint8_t byte;
-	struct {
-		uint8_t raw_rdy_int			: 1;	// LSB
-		uint8_t dmp_int				: 1;
-		uint8_t reserved1			: 1;
-		uint8_t fsync_int			: 1;
-		uint8_t fifo_overflow_int	: 1;
-		uint8_t reserved2			: 1;
-		uint8_t wom_int				: 1;
-		uint8_t reserved3			: 1;	// MSB
-	} bit;
-} PifMpu6500IntStatus;
+#define MPU6500_RAW_RDY_INT_MASK		0b00000001
+#define MPU6500_DMP_INT_MASK			0b00000010
+#define MPU6500_FSYNC_INT_MASK			0b00001000
+#define MPU6500_FIFO_OVERFLOW_INT_MASK	0b00010000
+#define MPU6500_WOM_INT_MASK			0b01000000
 
 
 // Register : I2C_MST_DELAY_CTRL
 
-#define MPU6500_I2C_MST_DELAY_CTRL_I2C_SLV0_DLY_EN	0x0001
-#define MPU6500_I2C_MST_DELAY_CTRL_I2C_SLV1_DLY_EN	0x0101
-#define MPU6500_I2C_MST_DELAY_CTRL_I2C_SLV2_DLY_EN	0x0201
-#define MPU6500_I2C_MST_DELAY_CTRL_I2C_SLV3_DLY_EN	0x0301
-#define MPU6500_I2C_MST_DELAY_CTRL_I2C_SLV4_DLY_EN	0x0401
-#define MPU6500_I2C_MST_DELAY_CTRL_DELAY_ES_SHADOW	0x0701
+#define MPU6500_I2C_SLV0_DLY_EN(N)		(N)
+#define MPU6500_I2C_SLV1_DLY_EN(N)		((N) << 1)
+#define MPU6500_I2C_SLV2_DLY_EN(N)		((N) << 2)
+#define MPU6500_I2C_SLV3_DLY_EN(N)		((N) << 3)
+#define MPU6500_I2C_SLV4_DLY_EN(N)		((N) << 4)
+#define MPU6500_DELAY_ES_SHADOW(N)		((N) << 7)
 
-typedef union StPifMpu6500I2cMstDelayCtrl
-{
-	uint8_t byte;
-	struct {
-		uint8_t i2c_slv0_dly_en		: 1;	// LSB
-		uint8_t i2c_slv1_dly_en		: 1;
-		uint8_t i2c_slv2_dly_en		: 1;
-		uint8_t i2c_slv3_dly_en		: 1;
-		uint8_t i2c_slv4_dly_en		: 1;
-		uint8_t reserved			: 2;
-		uint8_t delay_es_shadow		: 1;	// MSB
-	} bit;
-} PifMpu6500I2cMstDelayCtrl;
+#define MPU6500_I2C_SLV0_DLY_EN_MASK	0b00000001
+#define MPU6500_I2C_SLV1_DLY_EN_MASK	0b00000010
+#define MPU6500_I2C_SLV2_DLY_EN_MASK	0b00000100
+#define MPU6500_I2C_SLV3_DLY_EN_MASK	0b00001000
+#define MPU6500_I2C_SLV4_DLY_EN_MASK	0b00010000
+#define MPU6500_DELAY_ES_SHADOW_MASK	0b10000000
 
 
 // Register : SIGNAL_PATH_RESET
 
-#define MPU6500_SIGNAL_PATH_RESET_TEMP_RESET		0x0001
-#define MPU6500_SIGNAL_PATH_RESET_ACCEL_RESET		0x0101
-#define MPU6500_SIGNAL_PATH_RESET_GYRO_RESET		0x0201
+#define MPU6500_TEMP_RESET(N)		(N)
+#define MPU6500_ACCEL_RESET(N)		((N) << 1)
+#define MPU6500_GYRO_RESET(N)		((N) << 2)
 
-typedef union StPifMpu6500SignalPathReset
-{
-	uint8_t byte;
-	struct {
-		uint8_t temp_reset		: 1;	// LSB
-		uint8_t accel_reset		: 1;
-		uint8_t gyro_reset		: 1;
-		uint8_t reserved		: 5;	// MSB
-	} bit;
-} PifMpu6500SignalPathReset;
+#define MPU6500_TEMP_RESET_MASK		0b00000001
+#define MPU6500_ACCEL_RESET_MASK	0b00000010
+#define MPU6500_GYRO_RESET_MASK		0b00000100
 
 
 // Register : ACCEL_INTEL_CTRL
 
-#define MPU6500_ACCEL_INTEL_CTRL_ACCEL_INTEL_MODE	0x0601
-#define MPU6500_ACCEL_INTEL_CTRL_ACCEL_INTEL_EN		0x0701
+#define MPU6500_ACCEL_INTEL_MODE(N)		((N) << 6)
+#define MPU6500_ACCEL_INTEL_EN(N)		((N) << 7)
 
-typedef union StPifMpu6500AccelIntelCtrl
-{
-	uint8_t byte;
-	struct {
-		uint8_t reserved			: 6;	// LSB
-		uint8_t accel_intel_mode	: 1;
-		uint8_t accel_intel_en		: 1;	// MSB
-	} bit;
-} PifMpu6500AccelIntelCtrl;
+#define MPU6500_ACCEL_INTEL_MODE_MASK	0b01000000
+#define MPU6500_ACCEL_INTEL_EN_MASK		0b10000000
 
 
 // Register : USER_CTRL
 
-#define MPU6500_USER_CTRL_SIG_COND_RST		0x0001
-#define MPU6500_USER_CTRL_I2C_MST_RST		0x0101
-#define MPU6500_USER_CTRL_FIFO_RST			0x0201
-#define MPU6500_USER_CTRL_DMP_RST			0x0301
-#define MPU6500_USER_CTRL_I2C_IF_DIS		0x0401
-#define MPU6500_USER_CTRL_I2C_MST_EN		0x0501
-#define MPU6500_USER_CTRL_FIFO_EN			0x0601
-#define MPU6500_USER_CTRL_DMP_EN			0x0701
+#define MPU6500_SIG_COND_RST(N)		(N)
+#define MPU6500_I2C_MST_RST(N)		((N) << 1)
+#define MPU6500_FIFO_RST(N)			((N) << 2)
+#define MPU6500_DMP_RST(N)			((N) << 3)
+#define MPU6500_I2C_IF_DIS(N)		((N) << 4)
+#define MPU6500_I2C_MST_EN(N)		((N) << 5)
+#define MPU6500_FIFO_EN(N)			((N) << 6)
+#define MPU6500_DMP_EN(N)			((N) << 7)
 
-typedef union StPifMpu6500UserCtrl
-{
-	uint8_t byte;
-	struct {
-		uint8_t sig_cond_rst		: 1;	// LSB
-		uint8_t i2c_mst_rst			: 1;
-		uint8_t fifo_rst			: 1;
-		uint8_t dmp_rst				: 1;
-		uint8_t i2c_if_dis			: 1;
-		uint8_t i2c_mst_en			: 1;
-		uint8_t fifo_en				: 1;
-		uint8_t dmp_en				: 1;	// MSB
-	} bit;
-} PifMpu6500UserCtrl;
+#define MPU6500_SIG_COND_RST_MASK	0b00000001
+#define MPU6500_I2C_MST_RST_MASK	0b00000010
+#define MPU6500_FIFO_RST_MASK		0b00000100
+#define MPU6500_DMP_RST_MASK		0b00001000
+#define MPU6500_I2C_IF_DIS_MASK		0b00010000
+#define MPU6500_I2C_MST_EN_MASK		0b00100000
+#define MPU6500_FIFO_EN_MASK		0b01000000
+#define MPU6500_DMP_EN_MASK			0b10000000
 
 
 // Register : PWR_MGMT_1
 
 typedef enum EnPifMpu6500Clksel
 {
-    MPU6500_CLKSEL_INTERNAL,
-    MPU6500_CLKSEL_PLL
+    MPU6500_CLKSEL_INTERNAL			= 0,
+    MPU6500_CLKSEL_PLL				= 1
 } PifMpu6500Clksel;
 
-#define MPU6500_PWR_MGMT_1_CLKSEL			0x0003
-#define MPU6500_PWR_MGMT_1_TEMP_DIS			0x0301
-#define MPU6500_PWR_MGMT_1_GYRO_STANDBY		0x0401
-#define MPU6500_PWR_MGMT_1_CYCLE			0x0501
-#define MPU6500_PWR_MGMT_1_SLEEP			0x0601
-#define MPU6500_PWR_MGMT_1_DEVICE_RESET		0x0701
+#define MPU6500_TEMP_DIS(N)			((N) << 3)
+#define MPU6500_GYRO_STANDBY(N)		((N) << 4)
+#define MPU6500_CYCLE(N)			((N) << 5)
+#define MPU6500_SLEEP(N)			((N) << 6)
+#define MPU6500_DEVICE_RESET(N)		((N) << 7)
 
-typedef union StPifMpu6500PwrMgmt1
-{
-	uint8_t byte;
-	struct {
-		uint8_t clksel				: 3;	// LSB
-		uint8_t temp_dis			: 1;
-		uint8_t gyro_standby		: 1;
-		uint8_t cycle				: 1;
-		uint8_t sleep				: 1;
-		uint8_t device_reset		: 1;	// MSB
-	} bit;
-} PifMpu6500PwrMgmt1;
+#define MPU6500_CLKSEL_MASK			0b00000111
+#define MPU6500_TEMP_DIS_MASK		0b00001000
+#define MPU6500_GYRO_STANDBY_MASK	0b00010000
+#define MPU6500_CYCLE_MASK			0b00100000
+#define MPU6500_SLEEP_MASK			0b01000000
+#define MPU6500_DEVICE_RESET_MASK	0b10000000
 
 
 // Register : PWR_MGMT_2
 
+#define MPU6500_DISABLE_ZG(N)		(N)
+#define MPU6500_DISABLE_YG(N)		((N) << 1)
+#define MPU6500_DISABLE_XG(N)		((N) << 2)
+#define MPU6500_DISABLE_ZA(N)		((N) << 3)
+#define MPU6500_DISABLE_YA(N)		((N) << 4)
+#define MPU6500_DISABLE_XA(N)		((N) << 5)
+
 typedef enum EnPifMpu6500LpWakeCtrl
 {
-    MPU6500_LP_WAKE_CTRL_1_25HZ,
-    MPU6500_LP_WAKE_CTRL_5HZ,
-    MPU6500_LP_WAKE_CTRL_20HZ,
-    MPU6500_LP_WAKE_CTRL_40HZ
+    MPU6500_LP_WAKE_CTRL_1_25HZ		= 0 << 6,
+    MPU6500_LP_WAKE_CTRL_5HZ		= 1 << 6,
+    MPU6500_LP_WAKE_CTRL_20HZ		= 2 << 6,
+    MPU6500_LP_WAKE_CTRL_40HZ		= 3 << 6
 } PifMpu6500LpWakeCtrl;
 
-#define MPU6500_PWR_MGMT_2_DISABLE_ZG		0x0001
-#define MPU6500_PWR_MGMT_2_DISABLE_YG		0x0101
-#define MPU6500_PWR_MGMT_2_DISABLE_XG		0x0201
-#define MPU6500_PWR_MGMT_2_DISABLE_ZA		0x0301
-#define MPU6500_PWR_MGMT_2_DISABLE_YA		0x0401
-#define MPU6500_PWR_MGMT_2_DISABLE_XA		0x0501
-#define MPU6500_PWR_MGMT_2_LP_WAKE_CTRL		0x0602
-
-typedef union StPifMpu6500PwrMgmt2
-{
-	uint8_t byte;
-	struct {
-		uint8_t disable_zg					: 1;	// LSB
-		uint8_t disable_yg					: 1;
-		uint8_t disable_xg					: 1;
-		uint8_t disable_za					: 1;
-		uint8_t disable_ya					: 1;
-		uint8_t disable_xa					: 1;
-		PifMpu6500LpWakeCtrl lp_wake_ctrl	: 2;	// MSB
-	} bit;
-} PifMpu6500PwrMgmt2;
+#define MPU6500_DISABLE_ZG_MASK		0b00000001
+#define MPU6500_DISABLE_YG_MASK		0b00000010
+#define MPU6500_DISABLE_XG_MASK		0b00000100
+#define MPU6500_DISABLE_ZA_MASK		0b00001000
+#define MPU6500_DISABLE_YA_MASK		0b00010000
+#define MPU6500_DISABLE_XA_MASK		0b00100000
+#define MPU6500_LP_WAKE_CTRL_MASK	0b11000000
 
 
 /**
@@ -703,7 +557,7 @@ BOOL pifMpu6500_Config(PifMpu6500* p_owner, PifId id, PifImuSensor* p_imu_sensor
  * @param gyro_config
  * @return
  */
-BOOL pifMpu6500_SetGyroConfig(PifMpu6500* p_owner, PifMpu6500GyroConfig gyro_config);
+BOOL pifMpu6500_SetGyroConfig(PifMpu6500* p_owner, uint8_t gyro_config);
 
 /**
  * @fn pifMpu6500_SetGyroFsSel
@@ -721,7 +575,7 @@ BOOL pifMpu6500_SetGyroFsSel(PifMpu6500* p_owner, PifMpu6500GyroFsSel gyro_fs_se
  * @param accel_config
  * @return
  */
-BOOL pifMpu6500_SetAccelConfig(PifMpu6500* p_owner, PifMpu6500AccelConfig accel_config);
+BOOL pifMpu6500_SetAccelConfig(PifMpu6500* p_owner, uint8_t accel_config);
 
 /**
  * @fn pifMpu6500_SetaAccelFsSel

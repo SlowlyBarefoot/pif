@@ -51,205 +51,140 @@ typedef enum EnPifMpu30x0Reg
 
 // Register : WHO_AM_I
 
-#define MPU30X0_WHO_AM_I_ID					0x0106
-#define MPU30X0_WHO_AM_I_I2C_IF_DIS			0x0701
+#define MPU30X0_ID(N)				((N) << 1)
+#define MPU30X0_I2C_IF_DIS(N)		((N) << 7)
 
-typedef union StPifMpu30x0WhoAmI
-{
-	uint8_t byte;
-	struct {
-		uint8_t reserved			: 1;	// LSB
-		uint8_t id					: 6;
-		uint8_t i2c_if_dis			: 1;	// MSB
-	} bit;
-} PifMpu30x0WhoAmI;
+#define MPU30X0_ID_MASK				0b01111110
+#define MPU30X0_I2C_IF_DIS_MASK		0b10000000
 
 
 // Register : PRODUCT_ID
 
-#define MPU30X0_PRODUCT_ID_VERSION			0x0004
-#define MPU30X0_PRODUCT_ID_PART_NUM			0x0404
+#define MPU30X0_VERSION(N)		(N)
+#define MPU30X0_PART_NUM(N)		((N) << 4)
 
-typedef union StPifMpu30x0ProductId
-{
-	uint8_t byte;
-	struct {
-		uint8_t verison				: 4;	// LSB
-		uint8_t part_num			: 4;	// MSB
-	} bit;
-} PifMpu30x0ProductId;
+#define MPU30X0_VERSION_MASK	0b00001111
+#define MPU30X0_PART_NUM_MASK	0b11110000
 
 
 // Register : FIFO_EN
 
-#define MPU30X0_FIFO_EN_FIFO_FOOTER			0x0001
-#define MPU30X0_FIFO_EN_AUX_ZOUT			0x0101
-#define MPU30X0_FIFO_EN_AUX_YOUT			0x0201
-#define MPU30X0_FIFO_EN_AUX_XOUT			0x0301
-#define MPU30X0_FIFO_EN_GYRO_ZOUT			0x0401
-#define MPU30X0_FIFO_EN_GYRO_YOUT			0x0501
-#define MPU30X0_FIFO_EN_GYRO_XOUT			0x0601
-#define MPU30X0_FIFO_EN_TEMP_OUT			0x0701
+#define MPU30X0_FIFO_FOOTER(N)		(N)
+#define MPU30X0_AUX_ZOUT(N)			((N) << 1)
+#define MPU30X0_AUX_YOUT(N)			((N) << 2)
+#define MPU30X0_AUX_XOUT(N)			((N) << 3)
+#define MPU30X0_GYRO_ZOUT(N)		((N) << 4)
+#define MPU30X0_GYRO_YOUT(N)		((N) << 5)
+#define MPU30X0_GYRO_XOUT(N)		((N) << 6)
+#define MPU30X0_TEMP_OUT(N)			((N) << 7)
 
-typedef union StPifMpu30x0FifoEn
-{
-	uint8_t byte;
-	struct {
-		uint8_t fifo_footer			: 1;	// LSB
-		uint8_t aux_zout			: 1;
-		uint8_t aux_yout			: 1;
-		uint8_t aux_xout			: 1;
-		uint8_t gyro_zout			: 1;
-		uint8_t gyro_yout			: 1;
-		uint8_t gyro_xout			: 1;
-		uint8_t temp_out			: 1;	// MSB
-	} bit;
-} PifMpu30x0FifoEn;
+#define MPU30X0_FIFO_FOOTER_MASK	0b00000001
+#define MPU30X0_AUX_ZOUT_MASK		0b00000010
+#define MPU30X0_AUX_YOUT_MASK		0b00000100
+#define MPU30X0_AUX_XOUT_MASK		0b00001000
+#define MPU30X0_GYRO_ZOUT_MASK		0b00010000
+#define MPU30X0_GYRO_YOUT_MASK		0b00100000
+#define MPU30X0_GYRO_XOUT_MASK		0b01000000
+#define MPU30X0_TEMP_OUT_MASK		0b10000000
 
 
 // Register : AUX_VDDIO
 
-#define MPU30X0_AUX_VDDIO_AUX_VDDIO			0x0201
+#define MPU30X0_AUX_VDDIO(N)	((N) << 2)
 
-typedef union StPifMpu30x0AuxVddio
-{
-	uint8_t byte;
-	struct {
-		uint8_t reserved1			: 2;	// LSB
-		uint8_t aux_vddio			: 1;
-		uint8_t reserved2			: 5;	// MSB
-	} bit;
-} PifMpu30x0AuxVddio;
+#define MPU30X0_AUX_VDDIO_MASK	0b00000100
 
 
 // Register : AUX_SLV_ADDR
 
-#define MPU30X0_AUX_SLV_ADDR_AUX_ID			0x0007
-#define MPU30X0_AUX_SLV_ADDR_CLKOUT_EN		0x0701
+#define MPU30X0_AUX_ID(N)		(N)
+#define MPU30X0_CLKOUT_EN(N)	((N) << 7)
 
-typedef union StPifMpu30x0AuxSlvAddr
-{
-	uint8_t byte;
-	struct {
-		uint8_t aux_id				: 7;	// LSB
-		uint8_t clkout_en			: 1;	// MSB
-	} bit;
-} PifMpu30x0AuxSlvAddr;
+#define MPU30X0_AUX_ID_MASK		0b01111111
+#define MPU30X0_CLKOUT_EN_MASK	0b10000000
 
 
 // Register : DLPF_FS_SYNC
 
 typedef enum EnPifMpu30x0DlpfCfg
 {
-	MPU30X0_DLPF_CFG_256HZ,
-	MPU30X0_DLPF_CFG_188HZ,
-	MPU30X0_DLPF_CFG_98HZ,
-	MPU30X0_DLPF_CFG_42HZ,
-	MPU30X0_DLPF_CFG_20HZ,
-	MPU30X0_DLPF_CFG_10HZ,
-    MPU30X0_DLPF_CFG_5HZ
+	MPU30X0_DLPF_CFG_256HZ				= 0,
+	MPU30X0_DLPF_CFG_188HZ				= 1,
+	MPU30X0_DLPF_CFG_98HZ				= 2,
+	MPU30X0_DLPF_CFG_42HZ				= 3,
+	MPU30X0_DLPF_CFG_20HZ				= 4,
+	MPU30X0_DLPF_CFG_10HZ				= 5,
+    MPU30X0_DLPF_CFG_5HZ				= 6
 } PifMpu30x0DlpfCfg;
 
 typedef enum EnPifMpu30x0FsSel
 {
-    MPU30X0_FS_SEL_250DPS,
-    MPU30X0_FS_SEL_500DPS,
-    MPU30X0_FS_SEL_1000DPS,
-    MPU30X0_FS_SEL_2000DPS
+    MPU30X0_FS_SEL_250DPS				= 0 << 3,
+    MPU30X0_FS_SEL_500DPS				= 1 << 3,
+    MPU30X0_FS_SEL_1000DPS				= 2 << 3,
+    MPU30X0_FS_SEL_2000DPS				= 3 << 3
 } PifMpu30x0FsSel;
 
 typedef enum EnPifMpu30x0ExtSyncSet
 {
-	MPU30X0_EXT_SYNC_SET_NO_SYNC,
-	MPU30X0_EXT_SYNC_SET_TEMP_OUT_L,
-	MPU30X0_EXT_SYNC_SET_GYRO_XOUT_L,
-	MPU30X0_EXT_SYNC_SET_GYRO_YOUT_L,
-	MPU30X0_EXT_SYNC_SET_GYRO_ZOUT_L,
-	MPU30X0_EXT_SYNC_SET_AUX_XOUT_L,
-    MPU30X0_EXT_SYNC_SET_AUX_YOUT_L,
-    MPU30X0_EXT_SYNC_SET_AUX_ZOUT_L
+	MPU30X0_EXT_SYNC_SET_NO_SYNC		= 0 << 5,
+	MPU30X0_EXT_SYNC_SET_TEMP_OUT_L		= 1 << 5,
+	MPU30X0_EXT_SYNC_SET_GYRO_XOUT_L	= 2 << 5,
+	MPU30X0_EXT_SYNC_SET_GYRO_YOUT_L	= 3 << 5,
+	MPU30X0_EXT_SYNC_SET_GYRO_ZOUT_L	= 4 << 5,
+	MPU30X0_EXT_SYNC_SET_AUX_XOUT_L		= 5 << 5,
+    MPU30X0_EXT_SYNC_SET_AUX_YOUT_L		= 6 << 5,
+    MPU30X0_EXT_SYNC_SET_AUX_ZOUT_L		= 7 << 5
 } PifMpu30x0ExtSyncSet;
 
-#define MPU30X0_DLPF_FS_SYNC_DLPF_CFG		0x0003
-#define MPU30X0_DLPF_FS_SYNC_FS_SEL			0x0302
-#define MPU30X0_DLPF_FS_SYNC_EXT_SYNC_SET	0x0503
-
-typedef union StPifMpu30x0DlpfFsSync
-{
-	uint8_t byte;
-	struct {
-		PifMpu30x0DlpfCfg dlpf_cfg			: 3;	// LSB
-		PifMpu30x0FsSel fs_sel				: 2;
-		PifMpu30x0ExtSyncSet ext_sync_set	: 3;	// MSB
-	} bit;
-} PifMpu30x0DlpfFsSync;
+#define MPU30X0_DLPF_CFG_MASK			0b00000111
+#define MPU30X0_FS_SEL_MASK				0b00011000
+#define MPU30X0_EXT_SYNC_SET_MASK		0b11100000
 
 
 // Register : INT_CFG
 
-#define MPU30X0_INT_CFG_RAW_RDY_EN			0x0001
-#define MPU30X0_INT_CFG_DMP_DONE_EN			0x0101
-#define MPU30X0_INT_CFG_MPU_RDY_EN			0x0201
-#define MPU30X0_INT_CFG_INT_ANYRD_2CLEAR	0x0401
-#define MPU30X0_INT_CFG_LATCH_INT_EN		0x0501
-#define MPU30X0_INT_CFG_OPEN				0x0601
-#define MPU30X0_INT_CFG_ACTL				0x0701
+#define MPU30X0_RAW_RDY_EN(N)			(N)
+#define MPU30X0_DMP_DONE_EN(N)			((N) << 1)
+#define MPU30X0_MPU_RDY_EN(N)			((N) << 2)
+#define MPU30X0_INT_ANYRD_2CLEAR(N)		((N) << 4)
+#define MPU30X0_LATCH_INT_EN(N)			((N) << 5)
+#define MPU30X0_OPEN(N)					((N) << 6)
+#define MPU30X0_ACTL(N)					((N) << 7)
 
-typedef union StPifMpu30x0IntCfg
-{
-	uint8_t byte;
-	struct {
-		uint8_t raw_rdy_en			: 1;	// LSB
-		uint8_t dmp_done_en			: 1;
-		uint8_t mpu_rdy_en			: 1;
-		uint8_t reserved			: 1;
-		uint8_t int_anyrd_2clear	: 1;
-		uint8_t latch_int_en		: 1;
-		uint8_t open				: 1;
-		uint8_t actl				: 1;	// MSB
-	} bit;
-} PifMpu30x0IntCfg;
+#define MPU30X0_RAW_RDY_EN_MASK			0b00000001
+#define MPU30X0_DMP_DONE_EN_MASK		0b00000010
+#define MPU30X0_MPU_RDY_EN_MASK			0b00000100
+#define MPU30X0_INT_ANYRD_2CLEAR_MASK	0b00010000
+#define MPU30X0_LATCH_INT_EN_MASK		0b00100000
+#define MPU30X0_OPEN_MASK				0b01000000
+#define MPU30X0_ACTL_MASK				0b10000000
 
 
 // Register : INT_STATUS
 
-#define MPU30X0_INT_STATUS_RAW_DATA_RDY		0x0001
-#define MPU30X0_INT_STATUS_DMP_DONE			0x0101
-#define MPU30X0_INT_STATUS_MPU_RDY			0x0201
+#define MPU30X0_RAW_DATA_RDY(N)		(N)
+#define MPU30X0_DMP_DONE(N)			((N) << 1)
+#define MPU30X0_MPU_RDY(N)			((N) << 2)
 
-typedef union StPifMpu30x0IntStatus
-{
-	uint8_t byte;
-	struct {
-		uint8_t raw_data_rdy		: 1;	// LSB
-		uint8_t dmp_done			: 1;
-		uint8_t mpu_rdy				: 1;	// MSB
-	} bit;
-} PifMpu30x0IntStatus;
+#define MPU30X0_RAW_DATA_RDY_MASK	0b00000001
+#define MPU30X0_DMP_DONE_MASK		0b00000010
+#define MPU30X0_MPU_RDY_MASK		0b00000100
 
 
 // Register : USER_CTRL
 
-#define MPU30X0_USER_CTRL_GYRO_RST			0x0001
-#define MPU30X0_USER_CTRL_FIFO_RST			0x0101
-#define MPU30X0_USER_CTRL_AUX_IF_RST		0x0301
-#define MPU30X0_USER_CTRL_AUX_IF_EN			0x0501
-#define MPU30X0_USER_CTRL_FIFO_EN			0x0601
+#define MPU30X0_GYRO_RST(N)			(N)
+#define MPU30X0_FIFO_RST(N)			((N) << 1)
+#define MPU30X0_AUX_IF_RST(N)		((N) << 3)
+#define MPU30X0_AUX_IF_EN(N)		((N) << 5)
+#define MPU30X0_FIFO_EN(N)			((N) << 6)
 
-typedef union StPifMpu30x0UserCtrl
-{
-	uint8_t byte;
-	struct {
-		uint8_t gyro_rst			: 1;	// LSB
-		uint8_t fifo_rst			: 1;
-		uint8_t reserved1			: 1;
-		uint8_t aux_if_rst			: 1;
-		uint8_t reserved2			: 1;
-		uint8_t aux_if_en			: 1;
-		uint8_t fifo_en				: 1;
-		uint8_t reserved3			: 1;	// MSB
-	} bit;
-} PifMpu30x0UserCtrl;
+#define MPU30X0_GYRO_RST_MASK		0b00000001
+#define MPU30X0_FIFO_RST_MASK		0b00000010
+#define MPU30X0_AUX_IF_RST_MASK		0b00001000
+#define MPU30X0_AUX_IF_EN_MASK		0b00100000
+#define MPU30X0_FIFO_EN_MASK		0b01000000
 
 
 // Register : PWR_MGMT
@@ -265,25 +200,18 @@ typedef enum EnPifMpu30x0ClkSel
     MPU30X0_CLK_SEL_STOP_CLOCK      		= 7
 } PifMpu30x0ClkSel;
 
-#define MPU30X0_PWR_MGMT_CLK_SEL			0x0003
-#define MPU30X0_PWR_MGMT_STBY_ZG			0x0301
-#define MPU30X0_PWR_MGMT_STBY_YG			0x0401
-#define MPU30X0_PWR_MGMT_STBY_XG			0x0501
-#define MPU30X0_PWR_MGMT_SLEEP				0x0601
-#define MPU30X0_PWR_MGMT_H_RESET			0x0701
+#define MPU30X0_STBY_ZG(N)					((N) << 3)
+#define MPU30X0_STBY_YG(N)					((N) << 4)
+#define MPU30X0_STBY_XG(N)					((N) << 5)
+#define MPU30X0_SLEEP(N)					((N) << 6)
+#define MPU30X0_H_RESET(N)					((N) << 7)
 
-typedef union StPifMpu30x0PwrMgmt
-{
-	uint8_t byte;
-	struct {
-		PifMpu30x0ClkSel clk_sel	: 3;	// LSB
-		uint8_t stby_zg				: 1;
-		uint8_t stby_yg				: 1;
-		uint8_t stby_xg				: 1;
-		uint8_t sleep				: 1;
-		uint8_t h_reset				: 1;	// MSB
-	} bit;
-} PifMpu30x0PwrMgmt;
+#define MPU30X0_CLK_SEL_MASK				0b00000111
+#define MPU30X0_STBY_ZG_MASK				0b00001000
+#define MPU30X0_STBY_YG_MASK				0b00010000
+#define MPU30X0_STBY_XG_MASK				0b00100000
+#define MPU30X0_SLEEP_MASK					0b01000000
+#define MPU30X0_H_RESET_MASK				0b10000000
 
 
 /**
@@ -344,7 +272,7 @@ void pifMpu30x0_Clear(PifMpu30x0* p_owner);
  * @param dlpf_fs_sync
  * @return
  */
-BOOL pifMpu30x0_SetDlpfFsSync(PifMpu30x0* p_owner, PifMpu30x0DlpfFsSync dlpf_fs_sync);
+BOOL pifMpu30x0_SetDlpfFsSync(PifMpu30x0* p_owner, uint8_t dlpf_fs_sync);
 
 /**
  * @fn pifMpu30x0_SetFsSel

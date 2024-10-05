@@ -160,22 +160,22 @@ BOOL pifSpiDevice_ReadRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data,
  * @brief
  * @param p_owner
  * @param reg
- * @param field
+ * @param mask
  * @param p_data
  * @return
  */
-BOOL pifSpiDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t* p_data);
+BOOL pifSpiDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint8_t* p_data);
 
 /**
  * @fn pifSpiDevice_ReadRegBit16
  * @brief
  * @param p_owner
  * @param reg
- * @param field
+ * @param mask
  * @param p_data
  * @return
  */
-BOOL pifSpiDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t* p_data);
+BOOL pifSpiDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask field, uint16_t* p_data);
 
 /**
  * @fn pifSpiDevice_Write
@@ -225,22 +225,22 @@ BOOL pifSpiDevice_WriteRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data
  * @brief
  * @param p_owner
  * @param reg
- * @param field
+ * @param mask
  * @param data
  * @return
  */
-BOOL pifSpiDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t data);
+BOOL pifSpiDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint8_t data);
 
 /**
  * @fn pifSpiDevice_WriteRegBit16
  * @brief
  * @param p_owner
  * @param reg
- * @param field
+ * @param mask
  * @param data
  * @return
  */
-BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t data);
+BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint16_t data);
 
 #ifdef __cplusplus
 }

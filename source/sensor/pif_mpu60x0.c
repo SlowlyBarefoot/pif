@@ -7,14 +7,14 @@
 static BOOL _changeFsSel(PifImuSensor* p_imu_sensor, PifMpu60x0FsSel fs_sel)
 {
 	if (!p_imu_sensor) return FALSE;
-	p_imu_sensor->_gyro_gain = 131.0 / (1 << fs_sel);
+	p_imu_sensor->_gyro_gain = 131.0 / (1 << (fs_sel >> 3));
 	return TRUE;
 }
 
 static BOOL _changeAfsSel(PifImuSensor* p_imu_sensor, PifMpu60x0AfsSel afs_sel)
 {
 	if (!p_imu_sensor) return FALSE;
-	p_imu_sensor->_accel_gain = 16384 >> afs_sel;
+	p_imu_sensor->_accel_gain = 16384 >> (afs_sel >> 3);
 	return TRUE;
 }
 
@@ -43,9 +43,7 @@ BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr)
 
 BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor)
 {
-    PifMpu60x0AccelConfig accel_config;
-    PifMpu60x0GyroConfig gyro_config;
-	PifMpu60x0PwrMgmt1 pwr_mgmt_1;
+	uint8_t data;
 
 	if (!p_owner || !p_i2c || !p_imu_sensor) {
 		pif_error = E_INVALID_PARAM;
@@ -57,16 +55,14 @@ BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
     p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
     if (!p_owner->_p_i2c) return FALSE;
 
-   	pwr_mgmt_1.byte = 0;
-	pwr_mgmt_1.bit.device_reset = TRUE;
-	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_PWR_MGMT_1, pwr_mgmt_1.byte)) goto fail;
+	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_PWR_MGMT_1, MPU60X0_DEVICE_RESET(1))) goto fail;
 	pifTaskManager_YieldMs(100);
 
-    if (!pifI2cDevice_ReadRegByte(p_owner->_p_i2c, MPU60X0_REG_GYRO_CONFIG, &gyro_config.byte)) goto fail;
-    if (!_changeFsSel(p_imu_sensor, gyro_config.bit.fs_sel)) goto fail;
+    if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU60X0_REG_GYRO_CONFIG, MPU60X0_FS_SEL_MASK, &data)) goto fail;
+    if (!_changeFsSel(p_imu_sensor, data)) goto fail;
 
-    if (!pifI2cDevice_ReadRegByte(p_owner->_p_i2c, MPU60X0_REG_ACCEL_CONFIG, &accel_config.byte)) goto fail;
-    if (!_changeAfsSel(p_imu_sensor, accel_config.bit.afs_sel)) goto fail;
+    if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU60X0_REG_ACCEL_CONFIG, MPU60X0_AFS_SEL_MASK, &data)) goto fail;
+    if (!_changeAfsSel(p_imu_sensor, data)) goto fail;
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
@@ -109,30 +105,30 @@ void pifMpu60x0_Clear(PifMpu60x0* p_owner)
     }
 }
 
-BOOL pifMpu60x0_SetGyroConfig(PifMpu60x0* p_owner, PifMpu60x0GyroConfig gyro_config)
+BOOL pifMpu60x0_SetGyroConfig(PifMpu60x0* p_owner, uint8_t gyro_config)
 {
-    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_GYRO_CONFIG, gyro_config.byte)) return FALSE;
-    _changeFsSel(p_owner->__p_imu_sensor, gyro_config.bit.fs_sel);
+    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_GYRO_CONFIG, gyro_config)) return FALSE;
+    _changeFsSel(p_owner->__p_imu_sensor, gyro_config & MPU60X0_FS_SEL_MASK);
 	return TRUE;
 }
 
 BOOL pifMpu60x0_SetFsSel(PifMpu60x0* p_owner, PifMpu60x0FsSel fs_sel)
 {
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, MPU60X0_REG_GYRO_CONFIG, MPU60X0_GYRO_CONFIG_FS_SEL, fs_sel)) return FALSE;
+    if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, MPU60X0_REG_GYRO_CONFIG, MPU60X0_FS_SEL_MASK, fs_sel)) return FALSE;
     _changeFsSel(p_owner->__p_imu_sensor, fs_sel);
 	return TRUE;
 }
 
-BOOL pifMpu60x0_SetAccelConfig(PifMpu60x0* p_owner, PifMpu60x0AccelConfig accel_config)
+BOOL pifMpu60x0_SetAccelConfig(PifMpu60x0* p_owner, uint8_t accel_config)
 {
-    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_ACCEL_CONFIG, accel_config.byte)) return FALSE;
-    _changeAfsSel(p_owner->__p_imu_sensor, accel_config.bit.afs_sel);
+    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_ACCEL_CONFIG, accel_config)) return FALSE;
+    _changeAfsSel(p_owner->__p_imu_sensor, accel_config & MPU60X0_AFS_SEL_MASK);
 	return TRUE;
 }
 
 BOOL pifMpu60x0_SetAfsSel(PifMpu60x0* p_owner, PifMpu60x0AfsSel afs_sel)
 {
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, MPU60X0_REG_ACCEL_CONFIG, MPU60X0_ACCEL_CONFIG_AFS_SEL, afs_sel)) return FALSE;
+    if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, MPU60X0_REG_ACCEL_CONFIG, MPU60X0_AFS_SEL_MASK, afs_sel)) return FALSE;
     _changeAfsSel(p_owner->__p_imu_sensor, afs_sel);
 	return TRUE;
 }

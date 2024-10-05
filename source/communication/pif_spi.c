@@ -121,28 +121,21 @@ BOOL pifSpiDevice_ReadRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data,
 	return pifSpiDevice_Read(p_owner, reg, 1, p_data, size);
 }
 
-BOOL pifSpiDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t* p_data)
+BOOL pifSpiDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint8_t* p_data)
 {
-	uint8_t tmp, shift, mask;
-
-	shift = field >> 8;
-	mask = (1 << (field & 0xFF)) - 1;
+	uint8_t tmp;
 
 	if (!pifSpiDevice_Read(p_owner, reg, 1, &tmp, 1)) return FALSE;
-	*p_data = (tmp >> shift) & mask;
+	*p_data = tmp & mask;
 	return TRUE;
 }
 
-BOOL pifSpiDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t* p_data)
+BOOL pifSpiDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint16_t* p_data)
 {
-	uint8_t tmp[2], shift;
-	uint16_t mask;
-
-	shift = field >> 8;
-	mask = (1 << (field & 0xFF)) - 1;
+	uint8_t tmp[2];
 
 	if (!pifSpiDevice_Read(p_owner, reg, 1, tmp, 2)) return FALSE;
-	*p_data = (((tmp[0] << 8) + tmp[1]) >> shift) & mask;
+	*p_data = ((tmp[0] << 8) + tmp[1]) & mask;
 	return TRUE;
 }
 
@@ -197,12 +190,9 @@ BOOL pifSpiDevice_WriteRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data
 	return pifSpiDevice_Write(p_owner, reg, 1, p_data, size);
 }
 
-BOOL pifSpiDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t data)
+BOOL pifSpiDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint8_t data)
 {
-	uint8_t tmp, org, shift, mask;
-
-	shift = field >> 8;
-	mask = (1 << (field & 0xFF)) - 1;
+	uint8_t tmp, org;
 
 	if (data > mask) {
 		pif_error = E_WRONG_DATA;
@@ -210,20 +200,17 @@ BOOL pifSpiDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField fiel
 	}
 	if (!pifSpiDevice_Read(p_owner, reg, 1, &org, 1)) return FALSE;
 
-	if (((org >> shift) & mask) != data) {
-		tmp = (org & ~(mask << shift)) | (data << shift);
+	if ((org & mask) != data) {
+		tmp = (org & ~mask) | data;
 		if (!pifSpiDevice_Write(p_owner, reg, 1, &tmp, 1)) return FALSE;
 	}
     return TRUE;
 }
 
-BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t data)
+BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint16_t data)
 {
-	uint8_t tmp[2], shift;
-	uint16_t org, mask;
-
-	shift = field >> 8;
-	mask = (1 << (field & 0xFF)) - 1;
+	uint8_t tmp[2];
+	uint16_t org;
 
 	if (data > mask) {
 		pif_error = E_WRONG_DATA;
@@ -231,8 +218,8 @@ BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField fie
 	}
 	if (!pifSpiDevice_ReadRegWord(p_owner, reg, &org)) return FALSE;
 
-	if (((org >> shift) & mask) != data) {
-		org = (org & ~(mask << shift)) | (data << shift);
+	if ((org & mask) != data) {
+		org = (org & ~mask) | data;
 		tmp[0] = org >> 8;
 		tmp[1] = org & 0xFF;
 		if (!pifSpiDevice_Write(p_owner, reg, 1, tmp, 2)) return FALSE;

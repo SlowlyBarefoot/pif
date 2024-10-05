@@ -32,92 +32,75 @@ typedef enum EnPifBmp280Reg
 
 // Register : STATUS
 
-#define BMP280_STATUS_IM_UPDATE		0x0001
-#define BMP280_STATUS_MEASURING		0x0301
+#define BMP280_IM_UPDATE(N)		(N)
+#define BMP280_MEASURING(N)		((N) << 3)
 
-typedef union StPifBmp280Status
-{
-	uint8_t byte;
-	struct {
-		uint8_t im_update		: 1;	// LSB
-		uint8_t reserved1		: 2;
-		uint8_t measuring		: 1;
-		uint8_t reserved2		: 4;	// MSB
-	} bit;
-} PifBmp280Status;
+#define BMP280_IM_UPDATE_MASK	0b00000001
+#define BMP280_MEASURING_MASK	0b00001000
 
 
 // Register : CTRL_MEAS
 
 typedef enum EnPifBmp280Mode
 {
-	BMP280_MODE_SLEEP	= 0,
-	BMP280_MODE_FORCED	= 1,
-	BMP280_OSRS_NORMAL	= 3
+	BMP280_MODE_SLEEP		= 0,
+	BMP280_MODE_FORCED		= 1,
+	BMP280_OSRS_NORMAL		= 3
 } PifBmp280Mode;
 
-typedef enum EnPifBmp280Osrs
+typedef enum EnPifBmp280OsrsP
 {
-	BMP280_OSRS_SKIP,
-	BMP280_OSRS_X1,
-	BMP280_OSRS_X2,
-	BMP280_OSRS_X4,
-	BMP280_OSRS_X8,
-	BMP280_OSRS_X16,
-} PifBmp280Osrs;
+	BMP280_OSRS_P_SKIP		= 0 << 2,
+	BMP280_OSRS_P_X1		= 1 << 2,
+	BMP280_OSRS_P_X2		= 2 << 2,
+	BMP280_OSRS_P_X4		= 3 << 2,
+	BMP280_OSRS_P_X8		= 4 << 2,
+	BMP280_OSRS_P_X16		= 5 << 2
+} PifBmp280OsrsP;
 
-#define BMP280_CTRL_MEAS_MODE		0x0002
-#define BMP280_CTRL_MEAS_OSRS_P		0x0203
-#define BMP280_CTRL_MEAS_OSRS_T		0x0503
-
-typedef union StPifBmp280CtrlMeas
+typedef enum EnPifBmp280OsrsT
 {
-	uint8_t byte;
-	struct {
-		uint8_t mode				: 2;	// LSB
-		PifBmp280Osrs osrs_p		: 3;
-		PifBmp280Osrs osrs_t		: 3;	// MSB
-	} bit;
-} PifBmp280CtrlMeas;
+	BMP280_OSRS_T_SKIP		= 0 << 5,
+	BMP280_OSRS_T_X1		= 1 << 5,
+	BMP280_OSRS_T_X2		= 2 << 5,
+	BMP280_OSRS_T_X4		= 3 << 5,
+	BMP280_OSRS_T_X8		= 4 << 5,
+	BMP280_OSRS_T_X16		= 5 << 5
+} PifBmp280OsrsT;
+
+#define BMP280_MODE_MASK	0b00000011
+#define BMP280_OSRS_P_MASK	0b00011100
+#define BMP280_OSRS_T_MASK	0b11100000
 
 
 // Register : CONFIG
 
+#define BMP280_SPI3W_EN(N)		(N)
+
 typedef enum EnPifBmp280Filter
 {
-	BMP280_FILTER_OFF,
-	BMP280_FILTER_X2,
-	BMP280_FILTER_X4,
-	BMP280_FILTER_X8,
-	BMP280_FILTER_X16
+	BMP280_FILTER_OFF			= 0 << 2,
+	BMP280_FILTER_X2			= 1 << 2,
+	BMP280_FILTER_X4			= 2 << 2,
+	BMP280_FILTER_X8			= 3 << 2,
+	BMP280_FILTER_X16			= 4 << 2
 } PifBmp280Filter;
 
 typedef enum EnPifBmp280TSB
 {
-	BMP280_T_SB_1_MS,
-	BMP280_T_SB_63_MS,
-	BMP280_T_SB_125_MS,
-	BMP280_T_SB_250_MS,
-	BMP280_T_SB_500_MS,
-	BMP280_T_SB_1000_MS,
-	BMP280_T_SB_2000_MS,
-	BMP280_T_SB_4000_MS
+	BMP280_T_SB_1_MS			= 0 << 5,
+	BMP280_T_SB_63_MS			= 1 << 5,
+	BMP280_T_SB_125_MS			= 2 << 5,
+	BMP280_T_SB_250_MS			= 3 << 5,
+	BMP280_T_SB_500_MS			= 4 << 5,
+	BMP280_T_SB_1000_MS			= 5 << 5,
+	BMP280_T_SB_2000_MS			= 6 << 5,
+	BMP280_T_SB_4000_MS			= 7 << 5
 } PifBmp280TSB;
 
-#define BMP280_CONFIG_SPI3W_EN		0x0001
-#define BMP280_CONFIG_FILTER		0x0203
-#define BMP280_CONFIG_T_SB			0x0503
-
-typedef union StPifBmp280Config
-{
-	uint8_t byte;
-	struct {
-		uint8_t spi3w_en	: 1;	// LSB
-		uint8_t reserved	: 1;
-		uint8_t filter		: 3;
-		uint8_t t_sb		: 3;	// MSB
-	} bit;
-} PifBmp280Config;
+#define BMP280_SPI3W_EN_MASK	0b00000001
+#define BMP280_FILTER_MASK		0b00011100
+#define BMP280_T_SB_MASK		0b11100000
 
 
 typedef enum EnPifBmp280State

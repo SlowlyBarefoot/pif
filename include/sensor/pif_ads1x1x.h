@@ -29,107 +29,97 @@ typedef enum EnPifAds1x1xReg
 
 // Register : Config
 
+typedef enum EnPifAds1x1xSscs
+{
+    ADS1X1X_SSCS_NO_EFECT			= 0 << 15,
+	ADS1X1X_SSCS_SINGLE				= 1 << 15
+} PifAds1x1xSscs;
+
 typedef enum ENPifAds1x1xMux
 {
-    ADS1X1X_MUX_DIFF_0_1, 			// default
-	ADS1X1X_MUX_DIFF_0_3,
-	ADS1X1X_MUX_DIFF_1_3,
-	ADS1X1X_MUX_DIFF_2_3,
-	ADS1X1X_MUX_SINGLE_0,
-	ADS1X1X_MUX_SINGLE_1,
-	ADS1X1X_MUX_SINGLE_2,
-	ADS1X1X_MUX_SINGLE_3
+    ADS1X1X_MUX_DIFF_0_1			= 0 < 12, 	// default
+	ADS1X1X_MUX_DIFF_0_3			= 1 < 12,
+	ADS1X1X_MUX_DIFF_1_3			= 2 < 12,
+	ADS1X1X_MUX_DIFF_2_3			= 3 < 12,
+	ADS1X1X_MUX_SINGLE_0			= 4 < 12,
+	ADS1X1X_MUX_SINGLE_1			= 5 < 12,
+	ADS1X1X_MUX_SINGLE_2			= 6 < 12,
+	ADS1X1X_MUX_SINGLE_3			= 7 < 12
 } PifAds1x1xMux;
 
 typedef enum EnPifAds1x1xPGA
 {
-    ADS1X1X_PGA_FSR_6_144V,
-	ADS1X1X_PGA_FSR_4_096V,
-	ADS1X1X_PGA_FSR_2_048V,			// default
-	ADS1X1X_PGA_FSR_1_024V,
-	ADS1X1X_PGA_FSR_0_512V,
-	ADS1X1X_PGA_FSR_0_256V
+    ADS1X1X_PGA_FSR_6_144V			= 0 << 9,
+	ADS1X1X_PGA_FSR_4_096V			= 1 << 9,
+	ADS1X1X_PGA_FSR_2_048V			= 2 << 9,	// default
+	ADS1X1X_PGA_FSR_1_024V			= 3 << 9,
+	ADS1X1X_PGA_FSR_0_512V			= 4 << 9,
+	ADS1X1X_PGA_FSR_0_256V			= 5 << 9
 } PifAds1x1xPGA;
 
 typedef enum EnPifAds1x1xMode
 {
-    ADS1X1X_MODE_CONTINUOUS,
-	ADS1X1X_MODE_SINGLE_SHOT
+    ADS1X1X_MODE_CONTINUOUS			= 0 << 8,
+	ADS1X1X_MODE_SINGLE_SHOT		= 1 << 8
 } PifAds1x1xMode;
 
 typedef enum EnPifAds1x1xDR
 {
     // for 12bit model
-    ADS1X1X_DR_12B_0128_SPS = 0x00,
-	ADS1X1X_DR_12B_0250_SPS,
-	ADS1X1X_DR_12B_0490_SPS,
-	ADS1X1X_DR_12B_0920_SPS,
-	ADS1X1X_DR_12B_1600_SPS,		// default
-	ADS1X1X_DR_12B_2400_SPS,
-	ADS1X1X_DR_12B_3300_SPS,
+    ADS1X1X_DR_12B_0128_SPS			= 0 << 5,
+	ADS1X1X_DR_12B_0250_SPS			= 1 << 5,
+	ADS1X1X_DR_12B_0490_SPS			= 2 << 5,
+	ADS1X1X_DR_12B_0920_SPS			= 3 << 5,
+	ADS1X1X_DR_12B_1600_SPS			= 4 << 5,	// default
+	ADS1X1X_DR_12B_2400_SPS			= 5 << 5,
+	ADS1X1X_DR_12B_3300_SPS			= 6 << 5,
 
     // for 16bit model
-	ADS1X1X_DR_16B_0008_SPS = 0x00,
-	ADS1X1X_DR_16B_0016_SPS,
-	ADS1X1X_DR_16B_0032_SPS,
-	ADS1X1X_DR_16B_0064_SPS,
-	ADS1X1X_DR_16B_0128_SPS,		// default
-	ADS1X1X_DR_16B_0250_SPS,
-	ADS1X1X_DR_16B_0475_SPS,
-	ADS1X1X_DR_16B_0860_SPS
+	ADS1X1X_DR_16B_0008_SPS			= 0 << 5,
+	ADS1X1X_DR_16B_0016_SPS			= 1 << 5,
+	ADS1X1X_DR_16B_0032_SPS			= 2 << 5,
+	ADS1X1X_DR_16B_0064_SPS			= 3 << 5,
+	ADS1X1X_DR_16B_0128_SPS			= 4 << 5,	// default
+	ADS1X1X_DR_16B_0250_SPS			= 5 << 5,
+	ADS1X1X_DR_16B_0475_SPS			= 6 << 5,
+	ADS1X1X_DR_16B_0860_SPS			= 7 << 5
 } PifAds1x1xDR;
 
 typedef enum EnPifAds1x1xCompMode
 {
-    ADS1X1X_COMP_MODE_TRADITIONAL, 	// default
-	ADS1X1X_COMP_MODE_WINDOW
+    ADS1X1X_COMP_MODE_TRADITIONAL	= 0 << 4, 	// default
+	ADS1X1X_COMP_MODE_WINDOW		= 1 << 4
 } PifAds1x1xCompMode;
 
 typedef enum EnPifAds1x1xCompPol
 {
-    ADS1X1X_COMP_POL_ACTIVE_L, 		// default
-	ADS1X1X_COMP_POL_ACTIVE_H
+    ADS1X1X_COMP_POL_ACTIVE_L		= 0 << 3, 	// default
+	ADS1X1X_COMP_POL_ACTIVE_H		= 1 << 3
 } PifAds1x1xCompPol;
 
 typedef enum EnPifAds1x1xCompLat
 {
-    ADS1X1X_COMP_LAT_DISABLE, 		// default
-	ADS1X1X_COMP_LAT_ENABLE
+    ADS1X1X_COMP_LAT_DISABLE		= 0 << 2, 	// default
+	ADS1X1X_COMP_LAT_ENABLE			= 1 << 2
 } PifAds1x1xCompLat;
 
 typedef enum EnPifAds1x1xCompQue
 {
-    ADS1X1X_COMP_QUE_ONE,
-	ADS1X1X_COMP_QUE_TWO,
-	ADS1X1X_COMP_QUE_FOUR,
-	ADS1X1X_COMP_QUE_DISABLE
+    ADS1X1X_COMP_QUE_ONE			= 0,
+	ADS1X1X_COMP_QUE_TWO			= 1,
+	ADS1X1X_COMP_QUE_FOUR			= 2,
+	ADS1X1X_COMP_QUE_DISABLE		= 3
 } PifAds1x1xCompQue;
 
-#define ADS1X1X_CONFIG_COMP_QUE		0x0002
-#define ADS1X1X_CONFIG_COMP_LAT		0x0201
-#define ADS1X1X_CONFIG_COMP_POL		0x0301
-#define ADS1X1X_CONFIG_COMP_MODE	0x0401
-#define ADS1X1X_CONFIG_DR			0x0503
-#define ADS1X1X_CONFIG_MODE			0x0801
-#define ADS1X1X_CONFIG_PGA			0x0903
-#define ADS1X1X_CONFIG_MUX			0x0C03
-#define ADS1X1X_CONFIG_OS_SSCS		0x0F01
-
-typedef union StPifAds1x1xConfig
-{
-	uint16_t word;
-	struct {
-		uint16_t comp_que	: 2;	// Comparator queue and disable (ADS1114 and ADS1115 only)
-		uint16_t comp_lat	: 1;	// Latching comparator (ADS1114 and ADS1115 only)
-		uint16_t comp_pol	: 1;	// Comparator polarity (ADS1114 and ADS1115 only)
-		uint16_t comp_mode	: 1;	// Comparator mode (ADS1114 and ADS1115 only)
-		uint16_t dr			: 3;	// Data rate
-		uint16_t mode		: 1;	// Device operating mode
-		uint16_t pga		: 3;	// Programmable gain amplifier configuration
-		uint16_t mux		: 3;	// Input multiplexer configuration (ADS1115 only)
-		uint16_t os_sscs	: 1;	// Operational Status(R) or single-shot conversion start(W) */
-	} bit;
-} PifAds1x1xConfig;
+#define ADS1X1X_COMP_QUE_MASK		0b0000000000000011	// Comparator queue and disable (ADS1114 and ADS1115 only)
+#define ADS1X1X_COMP_LAT_MASK		0b0000000000000100	// Latching comparator (ADS1114 and ADS1115 only)
+#define ADS1X1X_COMP_POL_MASK		0b0000000000001000	// Comparator polarity (ADS1114 and ADS1115 only)
+#define ADS1X1X_COMP_MODE_MASK		0b0000000000010000	// Comparator mode (ADS1114 and ADS1115 only)
+#define ADS1X1X_DR_MASK				0b0000000011100000	// Data rate
+#define ADS1X1X_MODE_MASK			0b0000000100000000	// Device operating mode
+#define ADS1X1X_PGA_MASK			0b0000111000000000	// Programmable gain amplifier configuration
+#define ADS1X1X_MUX_MASK			0b0111000000000000	// Input multiplexer configuration (ADS1115 only)
+#define ADS1X1X_OS_SSCS_MASK		0b1000000000000000	// Operational Status(R) or single-shot conversion start(W) */
 
 
 /**
@@ -145,7 +135,7 @@ typedef struct StPifAds1x1x
 	PifId _id;
 	PifAds1x1xType _type;
 	PifI2cDevice* _p_i2c;
-    PifAds1x1xConfig _config;
+    uint16_t _config;
 
 	// Private Member Variable
     uint8_t __resolution;
@@ -216,10 +206,10 @@ double pifAds1x1x_VoltageMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
  * @fn pifAds1x1x_SetConfig
  * @brief
  * @param p_owner
- * @param p_config
+ * @param config
  * @return
  */
-BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, PifAds1x1xConfig* p_config);
+BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, uint16_t config);
 
 /**
  * @fn pifAds1x1x_SingleShotConvert

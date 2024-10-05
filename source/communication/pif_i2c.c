@@ -186,28 +186,21 @@ BOOL pifI2cDevice_ReadRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data,
 	return pifI2cDevice_Read(p_owner, reg, 1, p_data, size);
 }
 
-BOOL pifI2cDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t* p_data)
+BOOL pifI2cDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint8_t* p_data)
 {
-	uint8_t tmp, shift, mask;
-
-	shift = field >> 8;
-	mask = (1 << (field & 0xFF)) - 1;
+	uint8_t tmp;
 
 	if (!pifI2cDevice_Read(p_owner, reg, 1, &tmp, 1)) return FALSE;
-	*p_data = (tmp >> shift) & mask;
+	*p_data = tmp & mask;
 	return TRUE;
 }
 
-BOOL pifI2cDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t* p_data)
+BOOL pifI2cDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint16_t* p_data)
 {
-	uint8_t tmp[2], shift;
-	uint16_t mask;
-
-	shift = field >> 8;
-	mask = (1 << (field & 0xFF)) - 1;
+	uint8_t tmp[2];
 
 	if (!pifI2cDevice_Read(p_owner, reg, 1, tmp, 2)) return FALSE;
-	*p_data = (((tmp[0] << 8) + tmp[1]) >> shift) & mask;
+	*p_data = ((tmp[0] << 8) + tmp[1]) & mask;
 	return TRUE;
 }
 
@@ -301,12 +294,9 @@ BOOL pifI2cDevice_WriteRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data
 	return pifI2cDevice_Write(p_owner, reg, 1, p_data, size);
 }
 
-BOOL pifI2cDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t data)
+BOOL pifI2cDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint8_t data)
 {
-	uint8_t tmp, org, shift, mask;
-
-	shift = field >> 8;
-	mask = (1 << (field & 0xFF)) - 1;
+	uint8_t tmp, org;
 
 	if (data > mask) {
 		pif_error = E_WRONG_DATA;
@@ -314,20 +304,17 @@ BOOL pifI2cDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField fiel
 	}
 	if (!pifI2cDevice_Read(p_owner, reg, 1, &org, 1)) return FALSE;
 
-	if (((org >> shift) & mask) != data) {
-		tmp = (org & ~(mask << shift)) | (data << shift);
+	if ((org & mask) != data) {
+		tmp = (org & ~mask) | data;
 		if (!pifI2cDevice_Write(p_owner, reg, 1, &tmp, 1)) return FALSE;
 	}
     return TRUE;
 }
 
-BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t data)
+BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint16_t data)
 {
-	uint8_t tmp[2], shift;
-	uint16_t org, mask;
-
-	shift = field >> 8;
-	mask = (1 << (field & 0xFF)) - 1;
+	uint8_t tmp[2];
+	uint16_t org;
 
 	if (data > mask) {
 		pif_error = E_WRONG_DATA;
@@ -335,8 +322,8 @@ BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField fie
 	}
 	if (!pifI2cDevice_ReadRegWord(p_owner, reg, &org)) return FALSE;
 
-	if (((org >> shift) & mask) != data) {
-		org = (org & ~(mask << shift)) | (data << shift);
+	if ((org & mask) != data) {
+		SET_BIT_FILED(org, mask, data);
 		tmp[0] = org >> 8;
 		tmp[1] = org & 0xFF;
 		if (!pifI2cDevice_Write(p_owner, reg, 1, tmp, 2)) return FALSE;

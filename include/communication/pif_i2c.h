@@ -179,22 +179,22 @@ BOOL pifI2cDevice_ReadRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data,
  * @brief
  * @param p_owner
  * @param reg
- * @param field
+ * @param mask
  * @param p_data
  * @return
  */
-BOOL pifI2cDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t* p_data);
+BOOL pifI2cDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint8_t* p_data);
 
 /**
  * @fn pifI2cDevice_ReadRegBit16
  * @brief
  * @param p_owner
  * @param reg
- * @param field
+ * @param mask
  * @param p_data
  * @return
  */
-BOOL pifI2cDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t* p_data);
+BOOL pifI2cDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint16_t* p_data);
 
 /**
  * @fn pifI2cDevice_Write
@@ -244,22 +244,22 @@ BOOL pifI2cDevice_WriteRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data
  * @brief
  * @param p_owner
  * @param reg
- * @param field
+ * @param mask
  * @param data
  * @return
  */
-BOOL pifI2cDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegField field, uint8_t data);
+BOOL pifI2cDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint8_t data);
 
 /**
  * @fn pifI2cDevice_WriteRegBit16
  * @brief
  * @param p_owner
  * @param reg
- * @param field
+ * @param mask
  * @param data
  * @return
  */
-BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegField field, uint16_t data);
+BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint16_t data);
 
 /**
  * @fn pifI2cPort_sigEndTransfer

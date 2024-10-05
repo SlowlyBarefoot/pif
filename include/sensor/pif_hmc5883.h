@@ -31,103 +31,75 @@ typedef enum EnPifHmc5883Reg
 
 typedef enum EnPifHmc5883MeasureMode
 {
-    HMC5883_MEASURE_MODE_NORMAL,		// Default
-    HMC5883_MEASURE_MODE_POS_BIAS,
-    HMC5883_MEASURE_MODE_NEG_BIAS,
+    HMC5883_MEASURE_MODE_NORMAL		= 0,		// Default
+    HMC5883_MEASURE_MODE_POS_BIAS	= 1,
+    HMC5883_MEASURE_MODE_NEG_BIAS	= 2,
 
     HMC5883_MEASURE_MODE_DEFAULT	= 0
 } PifHmc5883MeasureMode;
 
 typedef enum EnPifHmc5883DataRate
 {
-    HMC5883_DATARATE_0_75_HZ,
-    HMC5883_DATARATE_1_5HZ,
-    HMC5883_DATARATE_3HZ,
-    HMC5883_DATARATE_7_5HZ,
-    HMC5883_DATARATE_15HZ,				// Default
-    HMC5883_DATARATE_30HZ,
-    HMC5883_DATARATE_75HZ,
+    HMC5883_DATARATE_0_75_HZ		= 0 << 2,
+    HMC5883_DATARATE_1_5HZ			= 1 << 2,
+    HMC5883_DATARATE_3HZ			= 2 << 2,
+    HMC5883_DATARATE_7_5HZ			= 3 << 2,
+    HMC5883_DATARATE_15HZ			= 4 << 2,	// Default
+    HMC5883_DATARATE_30HZ			= 5 << 2,
+    HMC5883_DATARATE_75HZ			= 6 << 2,
 
-	HMC5883_DATARATE_DEFAULT	= 4
+	HMC5883_DATARATE_DEFAULT		= 4 << 2
 } PifHmc5883DataRate;
 
 typedef enum EnPifHmc5883Samples
 {
-    HMC5883_SAMPLES_1,					// Default
-    HMC5883_SAMPLES_2,
-    HMC5883_SAMPLES_4,
-    HMC5883_SAMPLES_8,
+    HMC5883_SAMPLES_1				= 0 << 5,	// Default
+    HMC5883_SAMPLES_2				= 1 << 5,
+    HMC5883_SAMPLES_4				= 2 << 5,
+    HMC5883_SAMPLES_8				= 3 << 5,
 
-	HMC5883_SAMPLES_DEFAULT	= 0
+	HMC5883_SAMPLES_DEFAULT			= 0 << 5
 } PifHmc5883Samples;
 
-#define HMC5883_CONFIG_A_MEASURE_MODE		0x0002
-#define HMC5883_CONFIG_A_DATA_RATE			0x0203
-#define HMC5883_CONFIG_A_SAMPLES			0x0502
-
-typedef union StPifHmc5883ConfigA
-{
-	uint8_t byte;
-	struct {
-		PifHmc5883MeasureMode measure_mode	: 2;	// LSB
-		PifHmc5883DataRate data_rate		: 3;
-		PifHmc5883Samples samples			: 2;
-		uint8_t reserved					: 1;	// MSB
-	} bit;
-} PifHmc5883ConfigA;
+#define HMC5883_MEASURE_MODE_MASK	0b00000011
+#define HMC5883_DATA_RATE_MASK		0b00011100
+#define HMC5883_SAMPLES_MASK		0b01100000
 
 
 // Register : CONFIG_B
 
 typedef enum EnPifHmc5883Gain
 {
-    HMC5883_GAIN_0_88GA,
-    HMC5883_GAIN_1_3GA,				// Default
-    HMC5883_GAIN_1_9GA,
-	HMC5883_GAIN_2_5GA,
-	HMC5883_GAIN_4GA,
-	HMC5883_GAIN_4_7GA,
-	HMC5883_GAIN_5_6GA,
-	HMC5883_GAIN_8_1GA,
+    HMC5883_GAIN_0_88GA		= 0 << 5,
+    HMC5883_GAIN_1_3GA		= 1 << 5,	// Default
+    HMC5883_GAIN_1_9GA		= 2 << 5,
+	HMC5883_GAIN_2_5GA		= 3 << 5,
+	HMC5883_GAIN_4GA		= 4 << 5,
+	HMC5883_GAIN_4_7GA		= 5 << 5,
+	HMC5883_GAIN_5_6GA		= 6 << 5,
+	HMC5883_GAIN_8_1GA		= 7 << 5,
 
-	HMC5883_GAIN_DEFAULT	= 1
+	HMC5883_GAIN_DEFAULT	= 1 << 5
 } PifHmc5883Gain;
 
-#define HMC5883_CONFIG_B_GAIN		0x0503		// Use pifHmc5883_SetGain to change this value.
-
-typedef union StPifHmc5883ConfigB
-{
-	uint8_t byte;
-	struct {
-		uint8_t reserved	: 5;	// LSB
-		PifHmc5883Gain gain	: 3;	// MSB : Use pifHmc5883_SetGain to change this value.
-	} bit;
-} PifHmc5883ConfigB;
+#define HMC5883_GAIN_MASK	0b11100000		// Use pifHmc5883_SetGain to change this value.
 
 
 // Register : MODE
 
 typedef enum EnPifHmc5883Mode
 {
-    HMC5883_MODE_CONTINOUS,
-    HMC5883_MODE_SINGLE,			// Default
-    HMC5883_MODE_IDLE,
+    HMC5883_MODE_CONTINOUS			= 0,
+    HMC5883_MODE_SINGLE				= 1,	// Default
+    HMC5883_MODE_IDLE				= 2,
 
-    HMC5883_MODE_DEFAULT	= 1
+    HMC5883_MODE_DEFAULT			= 1
 } PifHmc5883Mode;
 
-#define HMC5883_MODE_MODE			0x0002
-#define HMC5883_MODE_HIGH_SPEED		0x0701
+#define HMC5883_HIGH_SPEED(N)		((N) << 7)
 
-typedef union StPifHmc5883ModeReg
-{
-	uint8_t byte;
-	struct {
-		PifHmc5883Mode mode	: 2;	// LSB
-		uint8_t reserved	: 5;
-		BOOL high_speed		: 1;	// MSB
-	} bit;
-} PifHmc5883ModeReg;
+#define HMC5883_MODE_MASK			0b00000011
+#define HMC5883_HIGH_SPEED_MASK		0b10000000
 
 
 /**

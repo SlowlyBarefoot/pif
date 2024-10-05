@@ -65,6 +65,9 @@
 #define _PIF_CONCAT3(x, y, z) 	x ## y ## z
 #define PIF_CONCAT3(x, y, z) 	_PIF_CONCAT3(x, y, z)
 
+#define RESET_BIT_FILED(V, M)	(V) = (V) & ~(M)
+#define SET_BIT_FILED(V, M, D)	(V) = ((V) & ~(M)) | (D)
+
 
 typedef uint16_t PifId;
 typedef void* PifIssuerP;
