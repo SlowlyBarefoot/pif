@@ -4,6 +4,7 @@
 BOOL pifObjArray_Init(PifObjArray* p_owner, int size, int max_count, PifEvtObjArrayClear evt_clear)
 {
 	char* p_buffer;
+	int tmp, len = sizeof(PifObjArrayIterator);
 	PifObjArrayIterator p_node;
 
 	if (!p_owner || !size || !max_count) {
@@ -11,7 +12,13 @@ BOOL pifObjArray_Init(PifObjArray* p_owner, int size, int max_count, PifEvtObjAr
         return FALSE;
 	}
 
-	p_buffer = calloc(2 * sizeof(PifObjArrayIterator) + size, max_count);
+	if (size < len) size = len;
+	else {
+		tmp = size % len;
+		if (tmp) size += len - tmp;
+	}
+
+	p_buffer = calloc(2 * len + size, max_count);
 	if (!p_buffer) return FALSE;
 
 	p_owner->_p_node = (PifObjArrayIterator)p_buffer;
@@ -24,7 +31,7 @@ BOOL pifObjArray_Init(PifObjArray* p_owner, int size, int max_count, PifEvtObjAr
 	p_node = p_owner->_p_node;
 	p_owner->_p_free = p_node;
 	for (int i = 1; i < max_count; i++) {
-		p_buffer += 2 * sizeof(PifObjArrayIterator) + size;
+		p_buffer += 2 * len + size;
 		p_node->p_next = (PifObjArrayIterator)p_buffer;
 		p_node->p_prev = NULL;
 		p_node = (PifObjArrayIterator)p_buffer;
@@ -75,13 +82,7 @@ PifObjArrayIterator pifObjArray_Add(PifObjArray* p_owner)
 
 void pifObjArray_Remove(PifObjArray* p_owner, void* p_data)
 {
-	PifObjArrayIterator p_node = p_owner->_p_first;
-
-	while (p_node) {
-		if (p_data == p_node->data) break;
-		p_node = p_node ? p_node->p_next : NULL;
-	}
-	if (!p_node) return;
+	PifObjArrayIterator p_node = (PifObjArrayIterator)((char *)p_data - 2 * sizeof(PifObjArrayIterator));
 
 	if (p_owner->__evt_clear) (*p_owner->__evt_clear)(p_node);
 

@@ -64,17 +64,27 @@ void pifPtrArray_Clear(PifPtrArray* p_owner);
  * @fn pifPtrArray_Add
  * @brief
  * @param p_owner
+ * @param p_data
  * @return
  */
-PifPtrArrayIterator pifPtrArray_Add(PifPtrArray* p_owner);
+PifPtrArrayIterator pifPtrArray_Add(PifPtrArray* p_owner, void *p_data);
 
 /**
  * @fn pifPtrArray_Remove
  * @brief
  * @param p_owner
- * @param p_data
+ * @param p_node
  */
-void pifPtrArray_Remove(PifPtrArray* p_owner, void* p_data);
+void pifPtrArray_Remove(PifPtrArray* p_owner, PifPtrArrayIterator p_node);
+
+/**
+ * @fn pifPtrArray_Find
+ * @brief
+ * @param p_owner
+ * @param p_data
+ * @return
+ */
+PifPtrArrayIterator pifPtrArray_Find(PifPtrArray* p_owner, void *p_data);
 
 /**
  * @fn pifPtrArray_Count

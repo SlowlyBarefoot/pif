@@ -53,11 +53,12 @@ void pifPtrArray_Clear(PifPtrArray* p_owner)
 	p_owner->_max_count = 0;
 }
 
-PifPtrArrayIterator pifPtrArray_Add(PifPtrArray* p_owner)
+PifPtrArrayIterator pifPtrArray_Add(PifPtrArray* p_owner, void *p_data)
 {
 	if (p_owner->_p_free == NULL) return NULL;
 
 	PifPtrArrayIterator p_node = p_owner->_p_free;
+	p_node->p_data = p_data;
 	p_owner->_p_free = p_node->p_next;
 
 	p_node->p_next = p_owner->_p_first;
@@ -69,15 +70,9 @@ PifPtrArrayIterator pifPtrArray_Add(PifPtrArray* p_owner)
     return p_node;
 }
 
-void pifPtrArray_Remove(PifPtrArray* p_owner, void* p_data)
+void pifPtrArray_Remove(PifPtrArray* p_owner, PifPtrArrayIterator p_node)
 {
-	PifPtrArrayIterator p_node = p_owner->_p_first;
-
-	while (p_node) {
-		if (p_data == p_node->p_data) break;
-		p_node = p_node ? p_node->p_next : NULL;
-	}
-	if (!p_node) return;
+	if (p_node == NULL) return;
 
 	if (p_owner->__evt_clear) (*p_owner->__evt_clear)(p_node);
 
@@ -95,4 +90,15 @@ void pifPtrArray_Remove(PifPtrArray* p_owner, void* p_data)
 	p_owner->_p_free = p_node;
 
 	p_owner->_count--;
+}
+
+PifPtrArrayIterator pifPtrArray_Find(PifPtrArray* p_owner, void *p_data)
+{
+	PifPtrArrayIterator p_node = p_owner->_p_first;
+
+	while (p_node) {
+		if (p_data == p_node->p_data) return p_node;
+		p_node = p_node->p_next;
+	}
+	return NULL;
 }

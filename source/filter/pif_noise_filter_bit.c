@@ -10,23 +10,25 @@ static PifNfBit* _addMethod(PifNoiseFilterManager* p_manager, uint8_t size)
 		return NULL;
 	}
 
-	PifPtrArrayIterator it = pifPtrArray_Add(&p_manager->__filters);
-	if (!it) return NULL;
-
 	p_owner = calloc(1, sizeof(PifNfBit));
 	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		return NULL;
 	}
 
+	PifPtrArrayIterator it = pifPtrArray_Add(&p_manager->__filters, p_owner);
+	if (!it) goto fail;
+
 	p_owner->_size = size;
 	p_owner->__half = size / 2;
 	p_owner->__msb = 1L << (size - 1);
 	p_owner->__count = 0;
 	p_owner->__list = 0L;
-
-	it->p_data = (char*)p_owner;
     return p_owner;
+
+fail:
+	if (p_owner) free(p_owner);
+	return NULL;
 }
 
 static void _resetMethod(PifNoiseFilter* p_parent)
