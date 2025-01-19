@@ -82,7 +82,11 @@ PifObjArrayIterator pifObjArray_Add(PifObjArray* p_owner)
 
 void pifObjArray_Remove(PifObjArray* p_owner, void* p_data)
 {
-	PifObjArrayIterator p_node = (PifObjArrayIterator)((char *)p_data - 2 * sizeof(PifObjArrayIterator));
+	PifObjArrayIterator p_node;
+	
+	if (!p_data) return;
+
+	p_node = (PifObjArrayIterator)((char *)p_data - 2 * sizeof(PifObjArrayIterator));
 
 	if (p_owner->__evt_clear) (*p_owner->__evt_clear)(p_node);
 

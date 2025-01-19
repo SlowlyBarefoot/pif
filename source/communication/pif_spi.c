@@ -2,7 +2,7 @@
 #include "core/pif_task.h"
 
 
-BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, uint16_t max_transfer_size)
+BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, uint16_t max_transfer_size, void *p_client)
 {
 	if (!p_owner || !device_count || !max_transfer_size) {
 		pif_error = E_INVALID_PARAM;
@@ -15,6 +15,7 @@ BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, uint16
     p_owner->_id = id;
     p_owner->__max_transfer_size = max_transfer_size;
     if (!pifObjArray_Init(&p_owner->__devices, sizeof(PifSpiDevice), device_count, NULL)) goto fail;
+	p_owner->_p_client = p_client;
     return TRUE;
 
 fail:

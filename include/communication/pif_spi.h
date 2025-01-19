@@ -47,6 +47,7 @@ typedef struct StPifSpiPort
 
 	// Read-only Member Variable
 	PifId _id;
+	void *_p_client;
 
 	// Private Member Variable
     PifObjArray __devices;
@@ -65,9 +66,10 @@ extern "C" {
  * @param id
  * @param device_count
  * @param max_transfer_size
+ * @param p_client
  * @return
  */
-BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, uint16_t max_transfer_size);
+BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, uint16_t max_transfer_size, void *p_client);
 
 /**
  * @fn pifSpiPort_Clear

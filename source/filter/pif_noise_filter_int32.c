@@ -199,14 +199,12 @@ static PifNoiseFilterValueP _processNoiseCancel(PifNoiseFilter* p_parent, PifNoi
 PifNoiseFilter* pifNoiseFilterInt32_AddAverage(PifNoiseFilterManager* p_manager, uint8_t size)
 {
 	PifNfInt32Average* p_owner;
+	PifPtrArrayIterator it;
 
 	if (!p_manager || !size) {
 		pif_error = E_INVALID_PARAM;
 		return NULL;
 	}
-
-	PifPtrArrayIterator it = pifPtrArray_Add(&p_manager->__filters);
-	if (!it) return NULL;
 
 	p_owner = calloc(1, sizeof(PifNfInt32Average));
 	if (!p_owner) {
@@ -214,25 +212,27 @@ PifNoiseFilter* pifNoiseFilterInt32_AddAverage(PifNoiseFilterManager* p_manager,
 		return NULL;
 	}
 
+	it = pifPtrArray_Add(&p_manager->__filters, p_owner);
+	if (!it) goto fail;
+
 	if (!_allocBuffer(&p_owner->common, size)) goto fail;
 
 	p_owner->parent._type = NFT_AVERAGE;
 	p_owner->parent.__fn_clear = _clearAverage;
 	p_owner->parent.__fn_reset = _resetAverage;
 	p_owner->parent.__fn_process = _processAverage;
-
-	it->p_data = (char*)p_owner;
 	return (PifNoiseFilter*)p_owner;
 
 fail:
-	if (p_owner) free(p_owner);
 	if (it) pifPtrArray_Remove(&p_manager->__filters, it);
+	if (p_owner) free(p_owner);
 	return NULL;
 }
 
 PifNoiseFilter* pifNoiseFilterInt32_AddWeightFactor(PifNoiseFilterManager* p_manager, uint8_t size, ...)
 {
 	PifNfInt32WeightFactor* p_owner;
+	PifPtrArrayIterator it = NULL;
 	int i, n;
 	va_list ap;
 
@@ -240,9 +240,6 @@ PifNoiseFilter* pifNoiseFilterInt32_AddWeightFactor(PifNoiseFilterManager* p_man
 		pif_error = E_INVALID_PARAM;
 		return NULL;
 	}
-
-	PifPtrArrayIterator it = pifPtrArray_Add(&p_manager->__filters);
-	if (!it) return NULL;
 
 	p_owner = calloc(1, sizeof(PifNfInt32WeightFactor));
 	if (!p_owner) {
@@ -255,6 +252,9 @@ PifNoiseFilter* pifNoiseFilterInt32_AddWeightFactor(PifNoiseFilterManager* p_man
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
+
+	it = pifPtrArray_Add(&p_manager->__filters, p_owner);
+	if (!it) goto fail;
 
 	if (!_allocBuffer(&p_owner->common, size)) goto fail;
 
@@ -272,30 +272,26 @@ PifNoiseFilter* pifNoiseFilterInt32_AddWeightFactor(PifNoiseFilterManager* p_man
 	p_owner->parent.__fn_clear = _clearWeightFactor;
 	p_owner->parent.__fn_reset = _resetWeightFactor;
 	p_owner->parent.__fn_process = _processWeightFactor;
-
-	it->p_data = (char*)p_owner;
 	return (PifNoiseFilter*)p_owner;
 
 fail:
+	if (it) pifPtrArray_Remove(&p_manager->__filters, it);
 	if (p_owner) {
 		if (p_owner->value) free(p_owner->value);
 		free(p_owner);
 	}
-	if (it) pifPtrArray_Remove(&p_manager->__filters, it);
 	return NULL;
 }
 
 PifNoiseFilter* pifNoiseFilterInt32_AddNoiseCancel(PifNoiseFilterManager* p_manager, uint8_t size)
 {
 	PifNfInt32NoiseCancel* p_owner;
+	PifPtrArrayIterator it = NULL;
 
 	if (!p_manager || size < 3 || size > 32) {
 		pif_error = E_INVALID_PARAM;
 		return NULL;
 	}
-
-	PifPtrArrayIterator it = pifPtrArray_Add(&p_manager->__filters);
-	if (!it) return NULL;
 
 	p_owner = calloc(1, sizeof(PifNfInt32NoiseCancel));
 	if (!p_owner) {
@@ -309,21 +305,22 @@ PifNoiseFilter* pifNoiseFilterInt32_AddNoiseCancel(PifNoiseFilterManager* p_mana
 		goto fail;
 	}
 
+	it = pifPtrArray_Add(&p_manager->__filters, p_owner);
+	if (!it) goto fail;
+
 	if (!_allocBuffer(&p_owner->common, size)) goto fail;
 
 	p_owner->parent._type = NFT_NOISE_CANCEL;
 	p_owner->parent.__fn_clear = _clearNoiseCancel;
 	p_owner->parent.__fn_reset = _resetNoiseCancel;
 	p_owner->parent.__fn_process = _processNoiseCancel;
-
-	it->p_data = (char*)p_owner;
 	return (PifNoiseFilter*)p_owner;
 
 fail:
+	if (it) pifPtrArray_Remove(&p_manager->__filters, it);
 	if (p_owner) {
 		if (p_owner->diff) free(p_owner->diff);
 		free(p_owner);
 	}
-	if (it) pifPtrArray_Remove(&p_manager->__filters, it);
 	return NULL;
 }
