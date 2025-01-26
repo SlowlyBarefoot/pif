@@ -2,9 +2,9 @@
 #include "core/pif_task.h"
 
 
-BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, uint16_t max_transfer_size, void *p_client)
+BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, void *p_client)
 {
-	if (!p_owner || !device_count || !max_transfer_size) {
+	if (!p_owner || !device_count) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -13,7 +13,6 @@ BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, uint16
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-    p_owner->__max_transfer_size = max_transfer_size;
     if (!pifObjArray_Init(&p_owner->__devices, sizeof(PifSpiDevice), device_count, NULL)) goto fail;
 	p_owner->_p_client = p_client;
     return TRUE;
@@ -28,9 +27,9 @@ void pifSpiPort_Clear(PifSpiPort* p_owner)
 	pifObjArray_Clear(&p_owner->__devices);
 }
 
-PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id)
+PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id, uint16_t max_transfer_size)
 {
-	if (!p_owner) {
+	if (!p_owner || !max_transfer_size) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -42,6 +41,7 @@ PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id)
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_device->_id = id;
     p_device->_p_port = p_owner;
+    p_device->__max_transfer_size = max_transfer_size;
     p_device->timeout = 10;		// 10ms
     return p_device;
 }
@@ -84,7 +84,7 @@ BOOL pifSpiDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_
 	ptr = 0;
 	remain = size;
 	while (remain) {
-		len = remain > p_port->__max_transfer_size ? p_port->__max_transfer_size : remain;
+		len = remain > p_device->__max_transfer_size ? p_device->__max_transfer_size : remain;
 		if (!ptr) {
 			if (!(*p_port->act_read)(p_owner, iaddr, isize, p_data, len)) goto fail;
 		}
@@ -152,7 +152,7 @@ BOOL pifSpiDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8
 	ptr = 0;
 	remain = size;
 	while (remain) {
-		len = remain > p_port->__max_transfer_size ? p_port->__max_transfer_size : remain;
+		len = remain > p_device->__max_transfer_size ? p_device->__max_transfer_size : remain;
 		if (!ptr) {
 			if (!(*p_port->act_write)(p_owner, iaddr, isize, p_data, len)) goto fail;
 		}

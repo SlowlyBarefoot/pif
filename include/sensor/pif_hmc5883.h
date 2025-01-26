@@ -138,10 +138,11 @@ BOOL pifHmc5883_Detect(PifI2cPort* p_i2c);
  * @param p_owner
  * @param id
  * @param p_i2c
+ * @param max_transfer_size
  * @param p_imu_sensor
  * @return
  */
-BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSensor* p_imu_sensor);
+BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, uint16_t max_transfer_size, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifHmc5883_Clear

@@ -81,11 +81,12 @@ BOOL pifStorage_AttachActStorage(PifStorage* p_owner, PifActStorageRead act_read
  * @param p_owner
  * @param p_port
  * @param addr
+ * @param max_transfer_size
  * @param i_addr_size
  * @param write_delay_ms
  * @return
  */
-BOOL pifStorage_AttachI2c(PifStorage* p_owner, PifI2cPort* p_port, uint8_t addr, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms);
+BOOL pifStorage_AttachI2c(PifStorage* p_owner, PifI2cPort* p_port, uint8_t addr, uint16_t max_transfer_size, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms);
 
 /**
  * @fn pifStorage_DetachI2c

@@ -29,6 +29,9 @@ struct StPifSpiDevice
 	// Read-only Member Variable
 	PifId _id;
 	PifSpiPort *_p_port;
+
+	// Private Member Variable
+    uint16_t __max_transfer_size;
 };
 
 /**
@@ -51,7 +54,6 @@ typedef struct StPifSpiPort
 
 	// Private Member Variable
     PifObjArray __devices;
-    uint16_t __max_transfer_size;
 } PifSpiPort;
 
 
@@ -65,11 +67,10 @@ extern "C" {
  * @param p_owner
  * @param id
  * @param device_count
- * @param max_transfer_size
  * @param p_client
  * @return
  */
-BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, uint16_t max_transfer_size, void *p_client);
+BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, void *p_client);
 
 /**
  * @fn pifSpiPort_Clear
@@ -83,9 +84,10 @@ void pifSpiPort_Clear(PifSpiPort* p_owner);
  * @brief
  * @param p_owner
  * @param id
+ * @param max_transfer_size
  * @return
  */
-PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id);
+PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id, uint16_t max_transfer_size);
 
 /**
  * @fn pifSpiPort_RemoveDevice

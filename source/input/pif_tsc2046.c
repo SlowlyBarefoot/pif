@@ -22,7 +22,7 @@ static BOOL _actTouchPressure(PifTouchScreen* p_parent)
 	return (*p_owner->__act_pen)();
 }
 
-BOOL pifTsc2046_Init(PifTsc2046* p_owner, PifId id, PifTftLcd* p_lcd, int16_t left_x, int16_t right_x, int16_t top_y, int16_t bottom_y, PifSpiPort* p_port, PifActTsc2046Pen act_pen)
+BOOL pifTsc2046_Init(PifTsc2046* p_owner, PifId id, PifTftLcd* p_lcd, int16_t left_x, int16_t right_x, int16_t top_y, int16_t bottom_y, PifSpiPort* p_port, uint16_t max_transfer_size, PifActTsc2046Pen act_pen)
 {
 	if (!p_owner || !p_lcd || !p_port || !act_pen) {
 		pif_error = E_INVALID_PARAM;
@@ -33,7 +33,7 @@ BOOL pifTsc2046_Init(PifTsc2046* p_owner, PifId id, PifTftLcd* p_lcd, int16_t le
 
 	if (!pifTouchScreen_Init(&p_owner->parent, id, p_lcd, left_x, right_x, top_y, bottom_y)) return FALSE;
 
-	p_owner->_p_spi = pifSpiPort_AddDevice(p_port, PIF_ID_AUTO);
+	p_owner->_p_spi = pifSpiPort_AddDevice(p_port, PIF_ID_AUTO, max_transfer_size);
     if (!p_owner->_p_spi) return FALSE;
 
     if (!pifTouchScreen_AttachAction(&p_owner->parent, _actTouchPosition, _actTouchPressure)) return FALSE;

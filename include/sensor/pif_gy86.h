@@ -71,11 +71,12 @@ BOOL pifGy86_Detect(PifI2cPort* p_i2c);
  * @param p_owner
  * @param id
  * @param p_i2c
+ * @param max_transfer_size
  * @param p_param
  * @param p_imu_sensor
  * @return
  */
-BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifGy86Param* p_param, PifImuSensor* p_imu_sensor);
+BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, uint16_t max_transfer_size, PifGy86Param* p_param, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifGy86_Clear

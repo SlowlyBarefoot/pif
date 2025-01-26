@@ -13,7 +13,7 @@ BOOL pifMpu6500Spi_Detect(PifSpiPort* p_spi)
     p_device = pifSpiPort_TemporaryDevice(p_spi);
 
 	if (!pifSpiDevice_ReadRegByte(p_device, MPU6500_REG_WHO_AM_I, &data)) return FALSE;
-	if (data != MPP6500_WHO_AM_I_CONST) return FALSE;
+	if (data != MPU6500_WHO_AM_I_CONST) return FALSE;
 #ifndef PIF_NO_LOG	
 	if (data < 32) {
 		pifLog_Printf(LT_INFO, "%s%Xh", ident, data >> 1);

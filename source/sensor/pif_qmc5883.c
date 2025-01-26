@@ -28,7 +28,7 @@ BOOL pifQmc5883_Detect(PifI2cPort* p_i2c)
 	return TRUE;
 }
 
-BOOL pifQmc5883_Init(PifQmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSensor* p_imu_sensor)
+BOOL pifQmc5883_Init(PifQmc5883* p_owner, PifId id, PifI2cPort* p_i2c, uint16_t max_transfer_size, PifImuSensor* p_imu_sensor)
 {
 	uint8_t data;
 
@@ -39,7 +39,7 @@ BOOL pifQmc5883_Init(PifQmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSen
 
 	memset(p_owner, 0, sizeof(PifQmc5883));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, QMC5883_I2C_ADDR);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, QMC5883_I2C_ADDR, max_transfer_size);
     if (!p_owner->_p_i2c) return FALSE;
 
     if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, QMC5883_REG_SET_RESET_PERIOD, 1)) return FALSE;

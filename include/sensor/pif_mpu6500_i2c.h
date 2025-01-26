@@ -25,10 +25,11 @@ BOOL pifMpu6500I2c_Detect(PifI2cPort* p_i2c, uint8_t addr);
  * @param id
  * @param p_i2c
  * @param addr
+ * @param max_transfer_size
  * @param p_imu_sensor
  * @return
  */
-BOOL pifMpu6500I2c_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor);
+BOOL pifMpu6500I2c_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu6500I2c_Clear

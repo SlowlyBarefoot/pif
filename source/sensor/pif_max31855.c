@@ -77,7 +77,7 @@ static void _addDeviceInCollectSignal()
 
 #endif	// PIF_COLLECT_SIGNAL
 
-BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port)
+BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, uint16_t max_transfer_size)
 {
 	if (!p_owner || !p_port) {
 		pif_error = E_INVALID_PARAM;
@@ -86,7 +86,7 @@ BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port)
 
 	memset(p_owner, 0, sizeof(PifMax31855));
 
-	p_owner->_p_spi = pifSpiPort_AddDevice(p_port, PIF_ID_AUTO);
+	p_owner->_p_spi = pifSpiPort_AddDevice(p_port, PIF_ID_AUTO, max_transfer_size);
     if (!p_owner->_p_spi) return FALSE;
 
 	if (id == PIF_ID_AUTO) id = pif_id++;

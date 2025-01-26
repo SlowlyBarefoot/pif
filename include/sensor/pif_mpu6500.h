@@ -9,7 +9,7 @@
 
 #define MPU6500_I2C_ADDR(N)			(0x68 + (N))
 
-#define MPP6500_WHO_AM_I_CONST		0x70
+#define MPU6500_WHO_AM_I_CONST		0x70
 
 
 typedef enum EnPifMpu6500Reg
