@@ -457,9 +457,10 @@ extern "C" {
  * @brief
  * @param p_i2c
  * @param addr
+ * @param max_transfer_size
  * @return
  */
-BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr);
+BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size);
 
 /**
  * @fn pifMpu60x0_Init

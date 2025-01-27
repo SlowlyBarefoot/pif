@@ -2,19 +2,19 @@
 #include "sensor/pif_dps310_i2c.h"
 
 
-BOOL pifDps310I2c_Detect(PifI2cPort* p_i2c, uint8_t addr)
+BOOL pifDps310I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size)
 {
 	uint8_t data;
 	PifI2cDevice* p_device;
 
-    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr);
+    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr, max_transfer_size);
 
 	if (!pifI2cDevice_ReadRegByte(p_device, DPS310_REG_PRODUCT_ID, &data)) return FALSE;
 	if (data != DPS310_PRODUCT_ID_CONST) return FALSE;
 	return TRUE;
 }
 
-BOOL pifDps310I2c_Init(PifDps310* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr)
+BOOL pifDps310I2c_Init(PifDps310* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size)
 {
 	if (!p_owner || !p_i2c) {
 		pif_error = E_INVALID_PARAM;
@@ -23,7 +23,7 @@ BOOL pifDps310I2c_Init(PifDps310* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t 
 
 	memset(p_owner, 0, sizeof(PifDps310));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, max_transfer_size);
     if (!p_owner->_p_i2c) return FALSE;
 
     p_owner->_fn.p_device = p_owner->_p_i2c;

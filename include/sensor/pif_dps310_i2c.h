@@ -14,9 +14,10 @@ extern "C" {
  * @brief
  * @param p_i2c
  * @param addr
+ * @param max_transfer_size
  * @return
  */
-BOOL pifDps310I2c_Detect(PifI2cPort* p_i2c, uint8_t addr);
+BOOL pifDps310I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size);
 
 /**
  * @fn pifDps310I2c_Init
@@ -25,9 +26,10 @@ BOOL pifDps310I2c_Detect(PifI2cPort* p_i2c, uint8_t addr);
  * @param id
  * @param p_i2c
  * @param addr
+ * @param max_transfer_size
  * @return
  */
-BOOL pifDps310I2c_Init(PifDps310* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr);
+BOOL pifDps310I2c_Init(PifDps310* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size);
 
 /**
  * @fn pifDps310I2c_Clear

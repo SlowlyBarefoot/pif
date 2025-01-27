@@ -101,9 +101,10 @@ void pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device);
  * @fn pifSpiPort_TemporaryDevice
  * @brief
  * @param p_owner
+ * @param max_transfer_size
  * @return
  */
-PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner);
+PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, uint16_t max_transfer_size);
 
 /**
  * @fn pifSpiDevice_Transfer

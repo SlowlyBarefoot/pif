@@ -54,11 +54,12 @@ void pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device)
 	}
 }
 
-PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner)
+PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, uint16_t max_transfer_size)
 {
 	static PifSpiDevice device;
 
 	device._p_port = p_owner;
+    device.__max_transfer_size = max_transfer_size;
 	return &device;
 }
 

@@ -58,12 +58,13 @@ void pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device)
 	}
 }
 
-PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr)
+PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr, uint16_t max_transfer_size)
 {
 	static PifI2cDevice device;
 
 	device._p_port = p_owner;
 	device.addr = addr;
+	device.__max_transfer_size = max_transfer_size;
 	device._state = IS_IDLE;
 	return &device;
 }

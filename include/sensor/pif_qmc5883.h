@@ -110,9 +110,10 @@ extern "C" {
  * @fn pifQmc5883_Detect
  * @brief
  * @param p_i2c
+ * @param max_transfer_size
  * @return
  */
-BOOL pifQmc5883_Detect(PifI2cPort* p_i2c);
+BOOL pifQmc5883_Detect(PifI2cPort* p_i2c, uint16_t max_transfer_size);
 
 /**
  * @fn pifQmc5883_Init

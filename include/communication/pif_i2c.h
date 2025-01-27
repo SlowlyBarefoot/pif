@@ -119,9 +119,10 @@ void pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device);
  * @brief
  * @param p_owner
  * @param addr
+ * @param max_transfer_size
  * @return
  */
-PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr);
+PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr, uint16_t max_transfer_size);
 
 #ifndef PIF_NO_LOG
 

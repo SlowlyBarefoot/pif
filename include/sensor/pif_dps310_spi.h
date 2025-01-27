@@ -13,9 +13,10 @@ extern "C" {
  * @fn pifDps310Spi_Detect
  * @brief
  * @param p_spi
+ * @param max_transfer_size
  * @return
  */
-BOOL pifDps310Spi_Detect(PifSpiPort* p_spi);
+BOOL pifDps310Spi_Detect(PifSpiPort* p_spi, uint16_t max_transfer_size);
 
 /**
  * @fn pifDps310Spi_Init
@@ -23,9 +24,10 @@ BOOL pifDps310Spi_Detect(PifSpiPort* p_spi);
  * @param p_owner
  * @param id
  * @param p_spi
+ * @param max_transfer_size
  * @return
  */
-BOOL pifDps310Spi_Init(PifDps310* p_owner, PifId id, PifSpiPort* p_spi);
+BOOL pifDps310Spi_Init(PifDps310* p_owner, PifId id, PifSpiPort* p_spi, uint16_t max_transfer_size);
 
 /**
  * @fn pifDps310Spi_Clear

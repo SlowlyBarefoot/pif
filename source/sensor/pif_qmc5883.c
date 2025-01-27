@@ -10,12 +10,12 @@ static void _changeGain(PifImuSensor* p_imu_sensor, PifQmc5883Rng gain)
 	}
 }
 
-BOOL pifQmc5883_Detect(PifI2cPort* p_i2c)
+BOOL pifQmc5883_Detect(PifI2cPort* p_i2c, uint16_t max_transfer_size)
 {
 	uint8_t data;
 	PifI2cDevice* p_device;
 
-    p_device = pifI2cPort_TemporaryDevice(p_i2c, QMC5883_I2C_ADDR);
+    p_device = pifI2cPort_TemporaryDevice(p_i2c, QMC5883_I2C_ADDR, max_transfer_size);
 
 	if (!pifI2cDevice_WriteRegByte(p_device, QMC5883_REG_CONTROL_2, QMC5883_SOFT_RST_MASK)) return FALSE;
 	pif_Delay1ms(20);

@@ -128,9 +128,10 @@ extern "C" {
  * @fn pifHmc5883_Detect
  * @brief
  * @param p_i2c
+ * @param max_transfer_size
  * @return
  */
-BOOL pifHmc5883_Detect(PifI2cPort* p_i2c);
+BOOL pifHmc5883_Detect(PifI2cPort* p_i2c, uint16_t max_transfer_size);
 
 /**
  * @fn pifHmc5883_Init

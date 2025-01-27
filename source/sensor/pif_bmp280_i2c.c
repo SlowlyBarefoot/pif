@@ -2,12 +2,12 @@
 #include "sensor/pif_bmp280_i2c.h"
 
 
-BOOL pifBmp280I2c_Detect(PifI2cPort* p_i2c, uint8_t addr)
+BOOL pifBmp280I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size)
 {
 	uint8_t data;
 	PifI2cDevice* p_device;
 
-    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr);
+    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr, max_transfer_size);
 
 	if (!pifI2cDevice_ReadRegByte(p_device, BMP280_REG_ID, &data)) return FALSE;
 	if (data != BMP280_WHO_AM_I_CONST) return FALSE;
