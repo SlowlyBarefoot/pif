@@ -27,9 +27,9 @@ void pifSpiPort_Clear(PifSpiPort* p_owner)
 	pifObjArray_Clear(&p_owner->__devices);
 }
 
-PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id, uint16_t max_transfer_size)
+PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id)
 {
-	if (!p_owner || !max_transfer_size) {
+	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -41,7 +41,6 @@ PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id, uint16_t max_t
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_device->_id = id;
     p_device->_p_port = p_owner;
-    p_device->__max_transfer_size = max_transfer_size;
     p_device->timeout = 10;		// 10ms
     return p_device;
 }
@@ -54,12 +53,11 @@ void pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device)
 	}
 }
 
-PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, uint16_t max_transfer_size)
+PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner)
 {
 	static PifSpiDevice device;
 
 	device._p_port = p_owner;
-    device.__max_transfer_size = max_transfer_size;
 	return &device;
 }
 
@@ -85,7 +83,7 @@ BOOL pifSpiDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_
 	ptr = 0;
 	remain = size;
 	while (remain) {
-		len = remain > p_device->__max_transfer_size ? p_device->__max_transfer_size : remain;
+		len = (p_device->max_transfer_size && remain > p_device->max_transfer_size) ? p_device->max_transfer_size : remain;
 		if (!ptr) {
 			if (!(*p_port->act_read)(p_owner, iaddr, isize, p_data, len)) goto fail;
 		}
@@ -153,7 +151,7 @@ BOOL pifSpiDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8
 	ptr = 0;
 	remain = size;
 	while (remain) {
-		len = remain > p_device->__max_transfer_size ? p_device->__max_transfer_size : remain;
+		len = (p_device->max_transfer_size && remain > p_device->max_transfer_size) ? p_device->max_transfer_size : remain;
 		if (!ptr) {
 			if (!(*p_port->act_write)(p_owner, iaddr, isize, p_data, len)) goto fail;
 		}

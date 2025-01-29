@@ -47,11 +47,10 @@ extern "C" {
  * @param top_y
  * @param bottom_y
  * @param p_port
- * @param max_transfer_size
  * @param act_pen
  * @return
  */
-BOOL pifTsc2046_Init(PifTsc2046* p_owner, PifId id, PifTftLcd* p_lcd, int16_t left_x, int16_t right_x, int16_t top_y, int16_t bottom_y, PifSpiPort* p_port, uint16_t max_transfer_size, PifActTsc2046Pen act_pen);
+BOOL pifTsc2046_Init(PifTsc2046* p_owner, PifId id, PifTftLcd* p_lcd, int16_t left_x, int16_t right_x, int16_t top_y, int16_t bottom_y, PifSpiPort* p_port, PifActTsc2046Pen act_pen);
 
 /**
  * @fn pifTsc2046_Clear

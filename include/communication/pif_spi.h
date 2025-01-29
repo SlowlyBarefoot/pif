@@ -27,13 +27,11 @@ struct StPifSpiDevice
 {
 	// Public Member Variable
     uint8_t timeout;
+    uint16_t max_transfer_size;
 
 	// Read-only Member Variable
 	PifId _id;
 	PifSpiPort *_p_port;
-
-	// Private Member Variable
-    uint16_t __max_transfer_size;
 };
 
 /**
@@ -87,10 +85,9 @@ void pifSpiPort_Clear(PifSpiPort* p_owner);
  * @brief
  * @param p_owner
  * @param id
- * @param max_transfer_size
  * @return
  */
-PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id, uint16_t max_transfer_size);
+PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id);
 
 /**
  * @fn pifSpiPort_RemoveDevice
@@ -104,10 +101,9 @@ void pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device);
  * @fn pifSpiPort_TemporaryDevice
  * @brief
  * @param p_owner
- * @param max_transfer_size
  * @return
  */
-PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, uint16_t max_transfer_size);
+PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner);
 
 /**
  * @fn pifSpiDevice_Transfer

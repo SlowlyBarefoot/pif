@@ -18,7 +18,7 @@ static BOOL _changeAfsSel(PifImuSensor* p_imu_sensor, PifMpu60x0AfsSel afs_sel)
 	return TRUE;
 }
 
-BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size)
+BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr)
 {
 #ifndef PIF_NO_LOG	
 	const char ident[] = "MPU60X0 Ident: ";
@@ -26,7 +26,7 @@ BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_si
 	uint8_t data;
 	PifI2cDevice* p_device;
 
-    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr, max_transfer_size);
+    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr);
 
 	if (!pifI2cDevice_ReadRegByte(p_device, MPU60X0_REG_WHO_AM_I, &data)) return FALSE;
 	if (data != addr) return FALSE;
@@ -41,7 +41,7 @@ BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_si
 	return TRUE;
 }
 
-BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size, PifImuSensor* p_imu_sensor)
+BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor)
 {
 	uint8_t data;
 
@@ -52,7 +52,7 @@ BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
 
 	memset(p_owner, 0, sizeof(PifMpu60x0));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, max_transfer_size);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
     if (!p_owner->_p_i2c) return FALSE;
 
 	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_PWR_MGMT_1, MPU60X0_DEVICE_RESET(1))) goto fail;

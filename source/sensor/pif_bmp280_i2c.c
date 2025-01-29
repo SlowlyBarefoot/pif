@@ -2,19 +2,19 @@
 #include "sensor/pif_bmp280_i2c.h"
 
 
-BOOL pifBmp280I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size)
+BOOL pifBmp280I2c_Detect(PifI2cPort* p_i2c, uint8_t addr)
 {
 	uint8_t data;
 	PifI2cDevice* p_device;
 
-    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr, max_transfer_size);
+    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr);
 
 	if (!pifI2cDevice_ReadRegByte(p_device, BMP280_REG_ID, &data)) return FALSE;
 	if (data != BMP280_WHO_AM_I_CONST) return FALSE;
 	return TRUE;
 }
 
-BOOL pifBmp280I2c_Init(PifBmp280* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size)
+BOOL pifBmp280I2c_Init(PifBmp280* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr)
 {
 	if (!p_owner || !p_i2c) {
 		pif_error = E_INVALID_PARAM;
@@ -23,7 +23,7 @@ BOOL pifBmp280I2c_Init(PifBmp280* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t 
 
 	memset(p_owner, 0, sizeof(PifBmp280));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, max_transfer_size);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
     if (!p_owner->_p_i2c) return FALSE;
 
     p_owner->_fn.p_device = p_owner->_p_i2c;

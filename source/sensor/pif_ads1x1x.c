@@ -49,7 +49,7 @@ static uint32_t _conversionDelay(PifAds1x1x* p_owner)
     return delay;
 }
 
-BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, uint8_t addr, uint16_t max_transfer_size)
+BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, uint8_t addr)
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -60,7 +60,7 @@ BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cP
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr, max_transfer_size);
+	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr);
     if (!p_owner->_p_i2c) return FALSE;
 
     switch (type) {

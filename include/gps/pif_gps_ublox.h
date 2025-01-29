@@ -448,6 +448,7 @@ struct StPifGpsUblox
 	// Read-only Member Variable
     PifGps _gps;
     PifTask* _p_task;
+	PifI2cDevice* _p_i2c_device;
     volatile PifGpsUbxRequestState _request_state;
 	uint8_t _num_ch;                // Number of channels
 	uint8_t _svinfo_chn[16];        // Channel number
@@ -459,7 +460,6 @@ struct StPifGpsUblox
 	// Private Member Variable
 	PifUart* __p_uart;
 	PifI2cPort* __p_i2c_port;
-	PifI2cDevice* __p_i2c_device;
     PifGpsUbxRx __rx;
 	PifGpsUbloxTx __tx;
 	PifGpsUbxMessageId __cfg_msg_id;
@@ -509,13 +509,12 @@ void pifGpsUblox_DetachUart(PifGpsUblox* p_owner);
  * @param p_owner
  * @param p_i2c
  * @param addr
- * @param max_transfer_size
  * @param period
  * @param start
  * @param name
  * @return
  */
-BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size, uint16_t period, BOOL start, const char* name);
+BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr, uint16_t period, BOOL start, const char* name);
 
 /**
  * @fn pifGpsUblox_DetachI2c

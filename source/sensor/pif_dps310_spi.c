@@ -2,19 +2,19 @@
 #include "sensor/pif_dps310_spi.h"
 
 
-BOOL pifDps310Spi_Detect(PifSpiPort* p_spi, uint16_t max_transfer_size)
+BOOL pifDps310Spi_Detect(PifSpiPort* p_spi)
 {
 	uint8_t data;
 	PifSpiDevice* p_device;
 
-    p_device = pifSpiPort_TemporaryDevice(p_spi, max_transfer_size);
+    p_device = pifSpiPort_TemporaryDevice(p_spi);
 
 	if (!pifSpiDevice_ReadRegByte(p_device, DPS310_REG_PRODUCT_ID, &data)) return FALSE;
 	if (data != DPS310_PRODUCT_ID_CONST) return FALSE;
 	return TRUE;
 }
 
-BOOL pifDps310Spi_Init(PifDps310* p_owner, PifId id, PifSpiPort* p_spi, uint16_t max_transfer_size)
+BOOL pifDps310Spi_Init(PifDps310* p_owner, PifId id, PifSpiPort* p_spi)
 {
 	if (!p_owner || !p_spi) {
 		pif_error = E_INVALID_PARAM;
@@ -23,7 +23,7 @@ BOOL pifDps310Spi_Init(PifDps310* p_owner, PifId id, PifSpiPort* p_spi, uint16_t
 
 	memset(p_owner, 0, sizeof(PifDps310));
 
-    p_owner->_p_spi = pifSpiPort_AddDevice(p_spi, PIF_ID_AUTO, max_transfer_size);
+    p_owner->_p_spi = pifSpiPort_AddDevice(p_spi, PIF_ID_AUTO);
     if (!p_owner->_p_spi) return FALSE;
 
     p_owner->_fn.p_device = p_owner->_p_spi;

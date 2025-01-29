@@ -2,7 +2,7 @@
 #include "sensor/pif_mpu6500_i2c.h"
 
 
-BOOL pifMpu6500I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size)
+BOOL pifMpu6500I2c_Detect(PifI2cPort* p_i2c, uint8_t addr)
 {
 #ifndef PIF_NO_LOG	
 	const char ident[] = "MPU6500 Ident: ";
@@ -10,7 +10,7 @@ BOOL pifMpu6500I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer
 	uint8_t data;
 	PifI2cDevice* p_device;
 
-    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr, max_transfer_size);
+    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr);
 
 	if (!pifI2cDevice_ReadRegByte(p_device, MPU6500_REG_WHO_AM_I, &data)) return FALSE;
 	if (data != MPU6500_WHO_AM_I_CONST) return FALSE;
@@ -25,7 +25,7 @@ BOOL pifMpu6500I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer
 	return TRUE;
 }
 
-BOOL pifMpu6500I2c_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size, PifImuSensor* p_imu_sensor)
+BOOL pifMpu6500I2c_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor)
 {
 	if (!p_owner || !p_i2c || !p_imu_sensor) {
 		pif_error = E_INVALID_PARAM;
@@ -34,7 +34,7 @@ BOOL pifMpu6500I2c_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_
 
 	memset(p_owner, 0, sizeof(PifMpu6500));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, max_transfer_size);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
     if (!p_owner->_p_i2c) return FALSE;
 
     p_owner->_fn.p_device = p_owner->_p_i2c;

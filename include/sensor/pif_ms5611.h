@@ -77,10 +77,9 @@ extern "C" {
  * @param id
  * @param p_i2c
  * @param addr
- * @param max_transfer_size
  * @return
  */
-BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size);
+BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr);
 
 /**
  * @fn pifMs5611_Clear

@@ -323,7 +323,7 @@ static uint16_t _doTask(PifTask* p_task)
 #endif
 
 	if (!p_owner->__length) {
-		if (!pifI2cDevice_ReadRegWord(p_owner->__p_i2c_device, 0xFD, &p_owner->__length)) {
+		if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c_device, 0xFD, &p_owner->__length)) {
 #ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
@@ -344,7 +344,7 @@ static uint16_t _doTask(PifTask* p_task)
 	}
 
 	size = p_owner->__length > DATA_SIZE ? DATA_SIZE : p_owner->__length;
-	if (!pifI2cDevice_Read(p_owner->__p_i2c_device, 0, 0, data, size)) {
+	if (!pifI2cDevice_Read(p_owner->_p_i2c_device, 0, 0, data, size)) {
 #ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
@@ -416,7 +416,7 @@ static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, uint16_t waiting
 		pifTaskManager_YieldAbortMs(waiting, _checkAbortSerial, p_owner);
 	}
 	else {
-		if (!pifI2cDevice_Write(p_owner->__p_i2c_device, 0, 0, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, 4), i)) goto fail;
+		if (!pifI2cDevice_Write(p_owner->_p_i2c_device, 0, 0, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, 4), i)) goto fail;
 		pifRingBuffer_Remove(&p_owner->__tx.buffer, 4 + i);
 	}
 	p_owner->_request_state = GURS_TIMEOUT;
@@ -495,8 +495,8 @@ static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t len
 			p_owner->_request_state = GURS_TIMEOUT;
 		}
 	}
-	else if (p_owner->__p_i2c_device) {
-		if (!pifI2cDevice_Write(p_owner->__p_i2c_device, 0, 0, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, 4), 8 + length)) goto fail;
+	else if (p_owner->_p_i2c_device) {
+		if (!pifI2cDevice_Write(p_owner->_p_i2c_device, 0, 0, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, 4), 8 + length)) goto fail;
 		pifRingBuffer_Remove(&p_owner->__tx.buffer, 12 + length);
 
 		if (p_owner->_request_state == GURS_SEND) {
@@ -617,10 +617,10 @@ void pifGpsUblox_DetachUart(PifGpsUblox* p_owner)
 	p_owner->__p_uart = NULL;
 }
 
-BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size, uint16_t period, BOOL start, const char* name)
+BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr, uint16_t period, BOOL start, const char* name)
 {
-    p_owner->__p_i2c_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, max_transfer_size);
-    if (!p_owner->__p_i2c_device) goto fail;
+    p_owner->_p_i2c_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
+    if (!p_owner->_p_i2c_device) goto fail;
 
     p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, period, _doTask, p_owner, start);
 	if (!p_owner->_p_task) goto fail;
@@ -628,7 +628,7 @@ BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr
     p_owner->__p_i2c_port = p_i2c;
 	if (name) p_owner->_p_task->name = name;
 	else p_owner->_p_task->name = "GPS UBLOX";
-	p_owner->__p_i2c_device->timeout = 200;
+	p_owner->_p_i2c_device->timeout = 200;
     return TRUE;
 
 fail:
@@ -638,9 +638,9 @@ fail:
 
 void pifGpsUblox_DetachI2c(PifGpsUblox* p_owner)
 {
-	if (p_owner->__p_i2c_device) {
-		pifI2cPort_RemoveDevice(p_owner->__p_i2c_port, p_owner->__p_i2c_device);
-		p_owner->__p_i2c_device = NULL;
+	if (p_owner->_p_i2c_device) {
+		pifI2cPort_RemoveDevice(p_owner->__p_i2c_port, p_owner->_p_i2c_device);
+		p_owner->_p_i2c_device = NULL;
 	}
 }
 

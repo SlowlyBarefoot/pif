@@ -82,7 +82,7 @@ static BOOL _send(PifPmlcdI2c* p_owner, uint8_t value, uint8_t mode)
 	return TRUE;
 }
 
-BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_t addr, uint16_t max_transfer_size)
+BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_t addr)
 {
     if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -93,7 +93,7 @@ BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr, max_transfer_size);
+	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr);
     if (!p_owner->_p_i2c) goto fail;
 
     p_owner->__backlight_val = LCD_NO_BACK_LIGHT;

@@ -44,14 +44,14 @@ BOOL pifStorage_AttachActStorage(PifStorage* p_owner, PifActStorageRead act_read
 	return TRUE;
 }
 
-BOOL pifStorage_AttachI2c(PifStorage* p_owner, PifI2cPort* p_port, uint8_t addr, uint16_t max_transfer_size, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms)
+BOOL pifStorage_AttachI2c(PifStorage* p_owner, PifI2cPort* p_port, uint8_t addr, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms)
 {
     if (!p_owner || !p_port) {
     	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
-	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr, max_transfer_size);
+	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr);
     if (!p_owner->_p_i2c) return FALSE;
 
     p_owner->__addr = addr;

@@ -23,7 +23,7 @@ static void _changeGain(PifImuSensor* p_imu_sensor, PifHmc5883Gain gain)
 	}
 }
 
-BOOL pifHmc5883_Detect(PifI2cPort* p_i2c, uint16_t max_transfer_size)
+BOOL pifHmc5883_Detect(PifI2cPort* p_i2c)
 {
 #ifndef PIF_NO_LOG	
 	const char ident[] = "HMC5883 Ident: ";
@@ -31,7 +31,7 @@ BOOL pifHmc5883_Detect(PifI2cPort* p_i2c, uint16_t max_transfer_size)
 	uint8_t data[3];
 	PifI2cDevice* p_device;
 
-    p_device = pifI2cPort_TemporaryDevice(p_i2c, HMC5883_I2C_ADDR, max_transfer_size);
+    p_device = pifI2cPort_TemporaryDevice(p_i2c, HMC5883_I2C_ADDR);
 
     if (!pifI2cDevice_ReadRegBytes(p_device, HMC5883_REG_IDENT_A, data, 3)) return FALSE;
 	if (data[0] != 'H') return FALSE;
@@ -46,7 +46,7 @@ BOOL pifHmc5883_Detect(PifI2cPort* p_i2c, uint16_t max_transfer_size)
     return TRUE;
 }
 
-BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, uint16_t max_transfer_size, PifImuSensor* p_imu_sensor)
+BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSensor* p_imu_sensor)
 {
 	uint8_t data[4];
     int16_t adc[3];
@@ -61,7 +61,7 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, uint16_t 
 
 	memset(p_owner, 0, sizeof(PifHmc5883));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, HMC5883_I2C_ADDR, max_transfer_size);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, HMC5883_I2C_ADDR);
     if (!p_owner->_p_i2c) return FALSE;
 
     if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, HMC5883_REG_CONFIG_B, HMC5883_GAIN_MASK, data)) goto fail;

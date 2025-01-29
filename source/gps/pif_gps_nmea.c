@@ -27,7 +27,7 @@ static uint16_t _doTask(PifTask* p_task)
 #endif
 
 	if (!p_owner->__length) {
-		if (!pifI2cDevice_ReadRegWord(p_owner->__p_i2c_device, 0xFD, &p_owner->__length)) {
+		if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c_device, 0xFD, &p_owner->__length)) {
 #ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
@@ -48,7 +48,7 @@ static uint16_t _doTask(PifTask* p_task)
 	}
 
 	size = p_owner->__length > DATA_SIZE ? DATA_SIZE : p_owner->__length;
-	if (!pifI2cDevice_Read(p_owner->__p_i2c_device, 0, 0, data, size)) {
+	if (!pifI2cDevice_Read(p_owner->_p_i2c_device, 0, 0, data, size)) {
 #ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
@@ -108,10 +108,10 @@ void pifGpsNmea_DetachUart(PifGpsNmea* p_owner)
 	p_owner->__p_uart = NULL;
 }
 
-BOOL pifGpsNmea_AttachI2c(PifGpsNmea* p_owner, PifI2cPort* p_i2c, uint8_t addr, uint16_t max_transfer_size, uint16_t period, BOOL start, const char* name)
+BOOL pifGpsNmea_AttachI2c(PifGpsNmea* p_owner, PifI2cPort* p_i2c, uint8_t addr, uint16_t period, BOOL start, const char* name)
 {
-    p_owner->__p_i2c_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, max_transfer_size);
-    if (!p_owner->__p_i2c_device) goto fail;
+    p_owner->_p_i2c_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
+    if (!p_owner->_p_i2c_device) goto fail;
 
     p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, period, _doTask, p_owner, start);
 	if (!p_owner->_p_task) goto fail;
@@ -128,8 +128,8 @@ fail:
 
 void pifGpsNmea_DetachI2c(PifGpsNmea* p_owner)
 {
-	if (p_owner->__p_i2c_device) {
-		pifI2cPort_RemoveDevice(p_owner->__p_i2c_port, p_owner->__p_i2c_device);
-		p_owner->__p_i2c_device = NULL;
+	if (p_owner->_p_i2c_device) {
+		pifI2cPort_RemoveDevice(p_owner->__p_i2c_port, p_owner->_p_i2c_device);
+		p_owner->_p_i2c_device = NULL;
 	}
 }

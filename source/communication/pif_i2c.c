@@ -30,9 +30,9 @@ void pifI2cPort_Clear(PifI2cPort* p_owner)
 	pifObjArray_Clear(&p_owner->__devices);
 }
 
-PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr, uint16_t max_transfer_size)
+PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr)
 {
-	if (!p_owner || !max_transfer_size) {
+	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -45,7 +45,6 @@ PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr, 
     p_device->_id = id;
     p_device->_p_port = p_owner;
 	p_device->addr = addr;
-	p_device->__max_transfer_size = max_transfer_size;
     p_device->timeout = 10;		// 10ms
     return p_device;
 }
@@ -58,13 +57,12 @@ void pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device)
 	}
 }
 
-PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr, uint16_t max_transfer_size)
+PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr)
 {
 	static PifI2cDevice device;
 
 	device._p_port = p_owner;
 	device.addr = addr;
-	device.__max_transfer_size = max_transfer_size;
 	device._state = IS_IDLE;
 	return &device;
 }
@@ -121,7 +119,7 @@ BOOL pifI2cDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_
 	p_device->_state = IS_RUN;
 	ptr = 0;
 	while (size) {
-		len = size > p_device->__max_transfer_size ? p_device->__max_transfer_size : size;
+		len = (p_device->max_transfer_size && size > p_device->max_transfer_size) ? p_device->max_transfer_size : size;
 		switch ((*p_port->act_read)(p_device, iaddr + ptr, isize, p_data + ptr, len)) {
 		case IR_WAIT:
 			timer1ms = pif_cumulative_timer1ms;
@@ -228,7 +226,7 @@ BOOL pifI2cDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8
 	p_device->_state = IS_RUN;
 	ptr = 0;
 	while (size) {
-		len = size > p_device->__max_transfer_size ? p_device->__max_transfer_size : size;
+		len = (p_device->max_transfer_size && size > p_device->max_transfer_size) ? p_device->max_transfer_size : size;
 		switch ((*p_port->act_write)(p_device, iaddr + ptr, isize, p_data + ptr, len)) {
 		case IR_WAIT:
 			timer1ms = pif_cumulative_timer1ms;

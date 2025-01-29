@@ -1,7 +1,7 @@
 #include "osd/pif_max7456.h"
 
 
-BOOL pifMax7456_Init(PifMax7456* p_owner, PifId id, PifSpiPort* p_port, uint16_t max_transfer_size)
+BOOL pifMax7456_Init(PifMax7456* p_owner, PifId id, PifSpiPort* p_port)
 {
 	if (!p_owner || !p_port) {
 		pif_error = E_INVALID_PARAM;
@@ -12,7 +12,7 @@ BOOL pifMax7456_Init(PifMax7456* p_owner, PifId id, PifSpiPort* p_port, uint16_t
 	p_owner->__previous_invert = 0xFF;
 	pifMax7456_InitBrightness(p_owner);
 
-	p_owner->_p_spi = pifSpiPort_AddDevice(p_port, PIF_ID_AUTO, max_transfer_size);
+	p_owner->_p_spi = pifSpiPort_AddDevice(p_port, PIF_ID_AUTO);
     if (!p_owner->_p_spi) return FALSE;
 
 	if (id == PIF_ID_AUTO) id = pif_id++;

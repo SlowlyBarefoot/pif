@@ -40,14 +40,12 @@ struct StPifI2cDevice
 	// Public Member Variable
     uint8_t addr;
     uint16_t timeout;
+    uint16_t max_transfer_size;
 
 	// Read-only Member Variable
 	volatile PifI2cState _state;
 	PifId _id;
 	PifI2cPort *_p_port;
-
-	// Private Member Variable
-    uint16_t __max_transfer_size;
 };
 
 /**
@@ -101,10 +99,9 @@ void pifI2cPort_Clear(PifI2cPort* p_owner);
  * @param p_owner
  * @param id
  * @param addr
- * @param max_transfer_size
  * @return
  */
-PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr, uint16_t max_transfer_size);
+PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr);
 
 /**
  * @fn pifI2cPort_RemoveDevice
@@ -119,10 +116,9 @@ void pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device);
  * @brief
  * @param p_owner
  * @param addr
- * @param max_transfer_size
  * @return
  */
-PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr, uint16_t max_transfer_size);
+PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr);
 
 #ifndef PIF_NO_LOG
 
