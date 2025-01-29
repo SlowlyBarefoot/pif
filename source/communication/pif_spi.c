@@ -228,3 +228,24 @@ BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask
 	}
     return TRUE;
 }
+
+BOOL pifSpiDevice_IsBusy(PifDevice* p_owner)
+{
+	PifSpiPort* p_port = ((PifSpiDevice*)p_owner)->_p_port;
+
+	if (!p_port->act_is_busy) return FALSE;
+
+	if (!(*p_port->act_is_busy)(p_owner)) return FALSE;
+	return TRUE;
+}
+
+BOOL pifSpiDevice_Wait(PifDevice* p_owner)
+{
+	PifSpiPort* p_port = ((PifSpiDevice*)p_owner)->_p_port;
+
+	if (!p_port->act_is_busy) return FALSE;
+
+	while ((*p_port->act_is_busy)(p_owner));
+	return TRUE;
+}
+

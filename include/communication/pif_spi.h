@@ -17,6 +17,8 @@ typedef void (*PifActSpiTransfer)(PifSpiDevice *p_owner, uint8_t* p_write, uint8
 typedef BOOL (*PifActSpiRead)(PifSpiDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, uint16_t size);
 typedef BOOL (*PifActSpiWrite)(PifSpiDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, uint16_t size);
 
+typedef BOOL (*PifActSpiIsBusy)(PifSpiDevice *p_owner);
+
 /**
  * @class StPifSpiDevice
  * @brief
@@ -47,6 +49,7 @@ typedef struct StPifSpiPort
 	PifActSpiTransfer act_transfer;
 	PifActSpiRead act_read;
 	PifActSpiWrite act_write;
+	PifActSpiIsBusy act_is_busy;
 
 	// Read-only Member Variable
 	PifId _id;
@@ -246,6 +249,22 @@ BOOL pifSpiDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask,
  * @return
  */
 BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint16_t data);
+
+/**
+ * @fn pifSpiDevice_IsBusy
+ * @brief
+ * @param p_owner
+ * @return
+ */
+BOOL pifSpiDevice_IsBusy(PifDevice* p_owner);
+
+/**
+ * @fn pifSpiDevice_Wait
+ * @brief
+ * @param p_owner
+ * @return
+ */
+BOOL pifSpiDevice_Wait(PifDevice* p_owner);
 
 #ifdef __cplusplus
 }
