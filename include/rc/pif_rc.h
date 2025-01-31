@@ -29,7 +29,7 @@ struct StPifRc
 	uint32_t _error_frames;
 	uint32_t _lost_frames;
 
-	// Private Member Variable
+    // Private Event Function
 	PifEvtRcReceive __evt_receive;
 	PifIssuerP* __p_issuer;
 };

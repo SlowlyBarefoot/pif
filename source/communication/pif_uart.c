@@ -142,7 +142,7 @@ void pifUart_AttachClient(PifUart* p_owner, void* p_client, PifEvtUartParsing ev
 	p_owner->__p_client = p_client;
 	p_owner->__evt_parsing = evt_parsing;
 	p_owner->__evt_sending = evt_sending;
-	p_owner->_p_task->pause = !evt_parsing && !evt_sending;
+	p_owner->_p_task->pause = FALSE;
 
 }
 

@@ -287,6 +287,13 @@ void pifTaskManager_YieldAbortMs(int32_t time, PifTaskCheckAbort p_check_abort, 
  */
 void pifTaskManager_YieldAbortUs(int32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
 
+/**
+ * @fn pifTaskManager_AllTask
+ * @brief 
+ * @param callback
+ */
+void pifTaskManager_AllTask(void (*callback)(PifTask *p_task));
+
 #if !defined(PIF_NO_LOG) || defined(PIF_LOG_COMMAND)
 
 /**

@@ -829,12 +829,23 @@ void pifTaskManager_YieldAbortUs(int32_t time, PifTaskCheckAbort p_check_abort, 
 	} while ((int32_t)((*pif_act_timer1us)() - start) <= time);
 }
 
+void pifTaskManager_AllTask(void (*callback)(PifTask *p_task))
+{
+	PifObjArrayIterator it;
+
+	it = pifObjArray_Begin(&s_tasks);
+	while (it) {
+	 	(*callback)((PifTask*)it->data);
+		it = pifObjArray_Next(it);
+	}
+}
+
 #if !defined(PIF_NO_LOG) || defined(PIF_LOG_COMMAND)
 
 void pifTaskManager_Print()
 {
 	PifObjArrayIterator it;
-	const char* mode[] = { "Ratio", "Always", "PeriodMs", "PeriodUs", "ChangeMs", "ChangeUs", "ExtCutin", "ExtOrder", "Timer", "IdleMs" };
+	char* mode;
 #ifdef PIF_USE_TASK_STATISTICS
 	uint32_t value;
 #endif
@@ -849,7 +860,21 @@ void pifTaskManager_Print()
 		else {
 			pifLog_Print(LT_NONE, "  ---");
 		}
-		pifLog_Printf(LT_NONE, " (%u): %s-%u\n", p_owner->_id, mode[p_owner->_mode], p_owner->_default_period);
+		switch (p_owner->_mode) {
+			case TM_RATIO: mode = "Ratio"; break;
+			case TM_ALWAYS: mode = "Always"; break;
+			case TM_PERIOD_MS: mode = "PeriodMs"; break;
+			case TM_PERIOD_US: mode = "PeriodUs"; break;
+			case TM_CHANGE_MS: mode = "ChangeMs"; break;
+			case TM_CHANGE_US: mode = "ChangeUs"; break;
+			case TM_EXTERNAL_CUTIN: mode = "ExtCutin"; break;
+			case TM_EXTERNAL_ORDER: mode = "ExtOrder"; break;
+			case TM_TIMER: mode = "Timer"; break;
+			case TM_IDLE_MS: mode = "IdleMs"; break;
+			case TM_IDLE_US: mode = "IdleUs"; break;
+	        default: mode = "---"; break;
+		}
+		pifLog_Printf(LT_NONE, " (%u): %s-%u\n", p_owner->_id, mode, p_owner->_default_period);
 #ifdef PIF_USE_TASK_STATISTICS
 		value = p_owner->__sum_execution_time[0] + p_owner->__sum_execution_time[1];
 		pifLog_Printf(LT_NONE, "    Proc: M=%ldus A=%luus T=%lums\n", p_owner->_max_execution_time,
