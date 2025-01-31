@@ -102,6 +102,22 @@ BOOL pifUart_AllocRxBuffer(PifUart* p_owner, uint16_t rx_size, uint8_t threshold
     return TRUE;
 }
 
+BOOL pifUart_AssignRxBuffer(PifUart* p_owner, uint16_t rx_size, uint8_t* p_buffer, uint8_t threshold)
+{
+    if (!rx_size || !p_buffer) {
+    	pif_error = E_INVALID_PARAM;
+	    return FALSE;
+    }
+
+    p_owner->_p_rx_buffer = pifRingBuffer_CreateStatic(PIF_ID_AUTO, rx_size, p_buffer);
+    if (!p_owner->_p_rx_buffer) return FALSE;
+    if (threshold > 100) threshold = 100;
+    p_owner->__rx_threshold = rx_size * 100 / threshold;
+    if (p_owner->__rx_threshold == 0) p_owner->__rx_threshold = 1;
+    pifRingBuffer_SetName(p_owner->_p_rx_buffer, "RB");
+    return TRUE;
+}
+
 BOOL pifUart_AllocTxBuffer(PifUart* p_owner, uint16_t tx_size)
 {
 	if (!tx_size) {
@@ -110,6 +126,19 @@ BOOL pifUart_AllocTxBuffer(PifUart* p_owner, uint16_t tx_size)
     }
 
     p_owner->_p_tx_buffer = pifRingBuffer_CreateHeap(PIF_ID_AUTO, tx_size);
+    if (!p_owner->_p_tx_buffer) return FALSE;
+    pifRingBuffer_SetName(p_owner->_p_tx_buffer, "TB");
+	return TRUE;
+}
+
+BOOL pifUart_AssignTxBuffer(PifUart* p_owner, uint16_t tx_size, uint8_t* p_buffer)
+{
+	if (!tx_size || !p_buffer) {
+    	pif_error = E_INVALID_PARAM;
+		return FALSE;
+    }
+
+    p_owner->_p_tx_buffer = pifRingBuffer_CreateStatic(PIF_ID_AUTO, tx_size, p_buffer);
     if (!p_owner->_p_tx_buffer) return FALSE;
     pifRingBuffer_SetName(p_owner->_p_tx_buffer, "TB");
 	return TRUE;

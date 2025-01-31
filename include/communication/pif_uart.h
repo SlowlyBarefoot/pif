@@ -166,6 +166,17 @@ void pifUart_Clear(PifUart* p_owner);
 BOOL pifUart_AllocRxBuffer(PifUart* p_owner, uint16_t rx_size, uint8_t threshold);
 
 /**
+ * @fn pifUart_AssignRxBuffer
+ * @brief
+ * @param p_owner
+ * @param rx_size
+ * @param p_buffer
+ * @param threshold
+ * @return
+ */
+BOOL pifUart_AssignRxBuffer(PifUart* p_owner, uint16_t rx_size, uint8_t* p_buffer, uint8_t threshold);
+
+/**
  * @fn pifUart_AllocTxBuffer
  * @brief
  * @param p_owner
@@ -173,6 +184,16 @@ BOOL pifUart_AllocRxBuffer(PifUart* p_owner, uint16_t rx_size, uint8_t threshold
  * @return
  */
 BOOL pifUart_AllocTxBuffer(PifUart* p_owner, uint16_t tx_size);
+
+/**
+ * @fn pifUart_AssignTxBuffer
+ * @brief
+ * @param p_owner
+ * @param tx_size
+ * @param p_buffer
+ * @return
+ */
+BOOL pifUart_AssignTxBuffer(PifUart* p_owner, uint16_t tx_size, uint8_t* p_buffer);
 
 /**
  * @fn pifUart_SetFrameSize
