@@ -10,6 +10,8 @@
 
 
 typedef void (*PifActBuzzerAction)(BOOL action);
+
+typedef void (*PifEvtBuzzerPeriod)(PifId id);
 typedef void (*PifEvtBuzzerChange)(PifId id, BOOL state);
 typedef void (*PifEvtBuzzerFinish)(PifId id);
 
@@ -31,6 +33,7 @@ typedef struct StPifBuzzer
 	// Public Member Variable
 
 	// Private Event Function
+	PifEvtBuzzerPeriod evt_period;
 	PifEvtBuzzerChange evt_change;
 	PifEvtBuzzerFinish evt_finish;
 
@@ -40,7 +43,7 @@ typedef struct StPifBuzzer
     PifBuzzerState _state;
 
 	// Private Member Variable
-    const uint8_t* __p_sound_10ms;
+    const uint8_t* __p_sequence;
     uint8_t __pos;
     uint8_t __repeat;
 
@@ -58,10 +61,11 @@ extern "C" {
  * @brief
  * @param p_owner
  * @param id
+ * @param period
  * @param act_action
  * @return
  */
-BOOL pifBuzzer_Init(PifBuzzer* p_owner, PifId id, PifActBuzzerAction act_action);
+BOOL pifBuzzer_Init(PifBuzzer* p_owner, PifId id, uint16_t period, PifActBuzzerAction act_action);
 
 /**
  * @fn pifBuzzer_Clear
@@ -74,10 +78,10 @@ void pifBuzzer_Clear(PifBuzzer* p_owner);
  * @fn pifBuzzer_Start
  * @brief
  * @param p_owner
- * @param p_sound_10ms
+ * @param p_sequence
  * @return
  */
-BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sound_10ms);
+BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sequence);
 
 /**
  * @fn pifBuzzer_Stop
@@ -85,6 +89,14 @@ BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sound_10ms);
  * @param p_owner
  */
 void pifBuzzer_Stop(PifBuzzer* p_owner);
+
+/**
+ * @fn pifBuzzer_State
+ * @brief
+ * @param p_owner
+ * @return
+ */
+BOOL pifBuzzer_State(PifBuzzer* p_owner);
 
 #ifdef __cplusplus
 }
