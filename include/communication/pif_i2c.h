@@ -46,6 +46,7 @@ struct StPifI2cDevice
 	volatile PifI2cState _state;
 	PifId _id;
 	PifI2cPort *_p_port;
+	void *_p_client;
 };
 
 /**
@@ -63,7 +64,6 @@ struct StPifI2cPort
 
 	// Read-only Member Variable
 	PifId _id;
-	void *_p_client;
 
 	// Private Member Variable
     PifObjArray __devices;
@@ -81,10 +81,9 @@ extern "C" {
  * @param p_owner
  * @param id
  * @param device_count
- * @param p_client
  * @return
  */
-BOOL pifI2cPort_Init(PifI2cPort *p_owner, PifId id, uint8_t device_count, void *p_client);
+BOOL pifI2cPort_Init(PifI2cPort *p_owner, PifId id, uint8_t device_count);
 
 /**
  * @fn pifI2cPort_Clear
@@ -99,9 +98,10 @@ void pifI2cPort_Clear(PifI2cPort* p_owner);
  * @param p_owner
  * @param id
  * @param addr
+ * @param p_client
  * @return
  */
-PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr);
+PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr, void *p_client);
 
 /**
  * @fn pifI2cPort_RemoveDevice

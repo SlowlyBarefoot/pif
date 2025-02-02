@@ -14,7 +14,7 @@ BOOL pifDps310Spi_Detect(PifSpiPort* p_spi)
 	return TRUE;
 }
 
-BOOL pifDps310Spi_Init(PifDps310* p_owner, PifId id, PifSpiPort* p_spi)
+BOOL pifDps310Spi_Init(PifDps310* p_owner, PifId id, PifSpiPort* p_spi, void *p_client)
 {
 	if (!p_owner || !p_spi) {
 		pif_error = E_INVALID_PARAM;
@@ -23,7 +23,7 @@ BOOL pifDps310Spi_Init(PifDps310* p_owner, PifId id, PifSpiPort* p_spi)
 
 	memset(p_owner, 0, sizeof(PifDps310));
 
-    p_owner->_p_spi = pifSpiPort_AddDevice(p_spi, PIF_ID_AUTO);
+    p_owner->_p_spi = pifSpiPort_AddDevice(p_spi, PIF_ID_AUTO, p_client);
     if (!p_owner->_p_spi) return FALSE;
 
     p_owner->_fn.p_device = p_owner->_p_spi;

@@ -23,9 +23,10 @@ BOOL pifDps310Spi_Detect(PifSpiPort* p_spi);
  * @param p_owner
  * @param id
  * @param p_spi
+ * @param p_client
  * @return
  */
-BOOL pifDps310Spi_Init(PifDps310* p_owner, PifId id, PifSpiPort* p_spi);
+BOOL pifDps310Spi_Init(PifDps310* p_owner, PifId id, PifSpiPort* p_spi, void *p_client);
 
 /**
  * @fn pifDps310Spi_Clear

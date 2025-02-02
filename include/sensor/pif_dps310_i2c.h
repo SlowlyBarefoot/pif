@@ -25,9 +25,10 @@ BOOL pifDps310I2c_Detect(PifI2cPort* p_i2c, uint8_t addr);
  * @param id
  * @param p_i2c
  * @param addr
+ * @param p_client
  * @return
  */
-BOOL pifDps310I2c_Init(PifDps310* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr);
+BOOL pifDps310I2c_Init(PifDps310* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client);
 
 /**
  * @fn pifDps310I2c_Clear

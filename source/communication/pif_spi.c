@@ -2,7 +2,7 @@
 #include "core/pif_task.h"
 
 
-BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, void *p_client)
+BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count)
 {
 	if (!p_owner || !device_count) {
 		pif_error = E_INVALID_PARAM;
@@ -14,7 +14,6 @@ BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count, void *
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     if (!pifObjArray_Init(&p_owner->__devices, sizeof(PifSpiDevice), device_count, NULL)) goto fail;
-	p_owner->_p_client = p_client;
     return TRUE;
 
 fail:
@@ -27,7 +26,7 @@ void pifSpiPort_Clear(PifSpiPort* p_owner)
 	pifObjArray_Clear(&p_owner->__devices);
 }
 
-PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id)
+PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id, void *p_client)
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -41,6 +40,7 @@ PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id)
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_device->_id = id;
     p_device->_p_port = p_owner;
+	p_device->_p_client = p_client;
     p_device->timeout = 10;		// 10ms
     return p_device;
 }

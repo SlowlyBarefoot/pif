@@ -120,10 +120,11 @@ BOOL pifQmc5883_Detect(PifI2cPort* p_i2c);
  * @param p_owner
  * @param id
  * @param p_i2c
+ * @param p_client
  * @param p_imu_sensor
  * @return
  */
-BOOL pifQmc5883_Init(PifQmc5883* p_owner, PifId id, PifI2cPort* p_i2c, PifImuSensor* p_imu_sensor);
+BOOL pifQmc5883_Init(PifQmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_client, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifQmc5883_Clear

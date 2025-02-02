@@ -14,7 +14,7 @@ BOOL pifDps310I2c_Detect(PifI2cPort* p_i2c, uint8_t addr)
 	return TRUE;
 }
 
-BOOL pifDps310I2c_Init(PifDps310* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr)
+BOOL pifDps310I2c_Init(PifDps310* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client)
 {
 	if (!p_owner || !p_i2c) {
 		pif_error = E_INVALID_PARAM;
@@ -23,7 +23,7 @@ BOOL pifDps310I2c_Init(PifDps310* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t 
 
 	memset(p_owner, 0, sizeof(PifDps310));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
     if (!p_owner->_p_i2c) return FALSE;
 
     p_owner->_fn.p_device = p_owner->_p_i2c;
