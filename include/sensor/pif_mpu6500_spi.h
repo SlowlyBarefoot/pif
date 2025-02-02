@@ -23,10 +23,11 @@ BOOL pifMpu6500Spi_Detect(PifSpiPort* p_spi);
  * @param p_owner
  * @param id
  * @param p_spi
+ * @param p_client
  * @param p_imu_sensor
  * @return
  */
-BOOL pifMpu6500Spi_Init(PifMpu6500* p_owner, PifId id, PifSpiPort* p_spi, PifImuSensor* p_imu_sensor);
+BOOL pifMpu6500Spi_Init(PifMpu6500* p_owner, PifId id, PifSpiPort* p_spi, void *p_client, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu6500Spi_Clear

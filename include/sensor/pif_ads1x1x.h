@@ -157,9 +157,10 @@ extern "C" {
  * @param type
  * @param port
  * @param addr
+ * @param p_client
  * @return
  */
-BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, uint8_t addr);
+BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, uint8_t addr, void *p_client);
 
 /**
  * @fn pifAds1x1x_Clear

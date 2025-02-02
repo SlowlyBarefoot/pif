@@ -41,9 +41,10 @@ extern "C" {
  * @param id
  * @param p_port
  * @param addr
+ * @param p_client
  * @return
  */
-BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_t addr);
+BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_t addr, void *p_client);
 
 /**
  * @fn pifPmlcdI2c_Clear

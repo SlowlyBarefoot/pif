@@ -509,12 +509,13 @@ void pifGpsUblox_DetachUart(PifGpsUblox* p_owner);
  * @param p_owner
  * @param p_i2c
  * @param addr
+ * @param p_client
  * @param period
  * @param start
  * @param name
  * @return
  */
-BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr, uint16_t period, BOOL start, const char* name);
+BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr, void *p_client, uint16_t period, BOOL start, const char* name);
 
 /**
  * @fn pifGpsUblox_DetachI2c

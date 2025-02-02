@@ -77,9 +77,10 @@ extern "C" {
  * @param p_owner
  * @param id
  * @param p_port
+ * @param p_client
  * @return
  */
-BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port);
+BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, void *p_client);
 
 /**
  * @fn pifMax31855_Clear

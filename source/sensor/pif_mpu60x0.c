@@ -41,7 +41,7 @@ BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr)
 	return TRUE;
 }
 
-BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor)
+BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client, PifImuSensor* p_imu_sensor)
 {
 	uint8_t data;
 
@@ -52,7 +52,7 @@ BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
 
 	memset(p_owner, 0, sizeof(PifMpu60x0));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
     if (!p_owner->_p_i2c) return FALSE;
 
 	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_PWR_MGMT_1, MPU60X0_DEVICE_RESET(1))) goto fail;

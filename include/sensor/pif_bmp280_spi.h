@@ -23,9 +23,10 @@ BOOL pifBmp280Spi_Detect(PifSpiPort* p_spi);
  * @param p_owner
  * @param id
  * @param p_spi
+ * @param p_client
  * @return
  */
-BOOL pifBmp280Spi_Init(PifBmp280* p_owner, PifId id, PifSpiPort* p_spi);
+BOOL pifBmp280Spi_Init(PifBmp280* p_owner, PifId id, PifSpiPort* p_spi, void *p_client);
 
 /**
  * @fn pifBmp280Spi_Clear

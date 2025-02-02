@@ -18,7 +18,7 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifGy86Param* p
 
 	memset(p_owner, 0, sizeof(PifGy86));
 
-    if (!pifMpu60x0_Init(&p_owner->_mpu6050, PIF_ID_AUTO, p_i2c, MPU60X0_I2C_ADDR(0), p_imu_sensor)) goto fail;
+    if (!pifMpu60x0_Init(&p_owner->_mpu6050, PIF_ID_AUTO, p_i2c, MPU60X0_I2C_ADDR(0), NULL, p_imu_sensor)) goto fail;
 
     if (!pifI2cDevice_WriteRegByte(p_owner->_mpu6050._p_i2c, MPU60X0_REG_SMPLRT_DIV, 0)) goto fail;
 
@@ -48,7 +48,7 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifGy86Param* p
 
     if (!pifHmc5883_Detect(p_i2c)) goto fail;
 
-    if (!pifHmc5883_Init(&p_owner->_hmc5883, PIF_ID_AUTO, p_i2c, p_imu_sensor)) goto fail;
+    if (!pifHmc5883_Init(&p_owner->_hmc5883, PIF_ID_AUTO, p_i2c, NULL, p_imu_sensor)) goto fail;
 
     if (p_param) {
         if (!pifI2cDevice_WriteRegByte(p_owner->_hmc5883._p_i2c, HMC5883_REG_CONFIG_A,
@@ -75,7 +75,7 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifGy86Param* p
 			MPU60X0_I2C_SLV_LEN(6) | MPU60X0_I2C_SLV_EN(1))) goto fail;
 
     if (p_param && p_param->ms5611_evt_read) {
-    	if (!pifMs5611_Init(&p_owner->_ms5611, PIF_ID_AUTO, p_i2c, MS5611_I2C_ADDR(1))) goto fail;
+    	if (!pifMs5611_Init(&p_owner->_ms5611, PIF_ID_AUTO, p_i2c, MS5611_I2C_ADDR(1), NULL)) goto fail;
 
         pifMs5611_SetOverSamplingRate(&p_owner->_ms5611, p_param->ms5611_osr);
 

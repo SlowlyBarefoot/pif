@@ -25,7 +25,7 @@ BOOL pifMpu6500Spi_Detect(PifSpiPort* p_spi)
 	return TRUE;
 }
 
-BOOL pifMpu6500Spi_Init(PifMpu6500* p_owner, PifId id, PifSpiPort* p_spi, PifImuSensor* p_imu_sensor)
+BOOL pifMpu6500Spi_Init(PifMpu6500* p_owner, PifId id, PifSpiPort* p_spi, void *p_client, PifImuSensor* p_imu_sensor)
 {
 	if (!p_owner || !p_spi || !p_imu_sensor) {
 		pif_error = E_INVALID_PARAM;
@@ -34,7 +34,7 @@ BOOL pifMpu6500Spi_Init(PifMpu6500* p_owner, PifId id, PifSpiPort* p_spi, PifImu
 
 	memset(p_owner, 0, sizeof(PifMpu6500));
 
-    p_owner->_p_spi = pifSpiPort_AddDevice(p_spi, PIF_ID_AUTO);
+    p_owner->_p_spi = pifSpiPort_AddDevice(p_spi, PIF_ID_AUTO, p_client);
     if (!p_owner->_p_spi) return FALSE;
 
     p_owner->_fn.p_device = p_owner->_p_spi;

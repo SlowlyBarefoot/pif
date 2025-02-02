@@ -127,7 +127,7 @@ static uint16_t _doTask(PifTask* p_task)
 	return delay;
 }
 
-BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr)
+BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client)
 {
 	int i;
 
@@ -138,7 +138,7 @@ BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t add
 
 	memset(p_owner, 0, sizeof(PifMs5611));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
     if (!p_owner->_p_i2c) return FALSE;
 
 	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MS5611_REG_RESET, 0)) goto fail;

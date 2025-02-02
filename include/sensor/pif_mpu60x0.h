@@ -468,10 +468,11 @@ BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr);
  * @param id
  * @param p_i2c
  * @param addr
+ * @param p_client
  * @param p_imu_sensor
  * @return
  */
-BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor);
+BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu60x0_Clear

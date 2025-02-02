@@ -71,9 +71,9 @@ PIF_INLINE BOOL pifStorageFix_AttachActStorage(PifStorageFix* p_owner, PifActSto
 	return pifStorage_AttachActStorage(&p_owner->parent, act_read, act_write);
 }
 
-PIF_INLINE BOOL pifStorageFix_AttachI2c(PifStorageFix* p_owner, PifI2cPort* p_port, uint8_t addr, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms)
+PIF_INLINE BOOL pifStorageFix_AttachI2c(PifStorageFix* p_owner, PifI2cPort* p_port, uint8_t addr, void *p_client, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms)
 {
-	return pifStorage_AttachI2c(&p_owner->parent, p_port, addr, i_addr_size, write_delay_ms);
+	return pifStorage_AttachI2c(&p_owner->parent, p_port, addr, p_client, i_addr_size, write_delay_ms);
 }
 
 BOOL pifStorageFix_IsFormat(PifStorage* p_parent)
