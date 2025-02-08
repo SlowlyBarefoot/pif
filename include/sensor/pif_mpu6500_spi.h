@@ -13,9 +13,10 @@ extern "C" {
  * @fn pifMpu6500Spi_Detect
  * @brief
  * @param p_spi
+ * @param p_client
  * @return
  */
-BOOL pifMpu6500Spi_Detect(PifSpiPort* p_spi);
+BOOL pifMpu6500Spi_Detect(PifSpiPort* p_spi, void *p_client);
 
 /**
  * @fn pifMpu6500Spi_Init

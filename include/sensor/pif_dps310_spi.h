@@ -13,9 +13,10 @@ extern "C" {
  * @fn pifDps310Spi_Detect
  * @brief
  * @param p_spi
+ * @param p_client
  * @return
  */
-BOOL pifDps310Spi_Detect(PifSpiPort* p_spi);
+BOOL pifDps310Spi_Detect(PifSpiPort* p_spi, void *p_client);
 
 /**
  * @fn pifDps310Spi_Init

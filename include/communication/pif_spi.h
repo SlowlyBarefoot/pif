@@ -12,10 +12,10 @@ typedef struct StPifSpiDevice PifSpiDevice;
 struct StPifSpiPort;
 typedef struct StPifSpiPort PifSpiPort;
 
-typedef void (*PifActSpiTransfer)(PifSpiDevice *p_owner, uint8_t* p_write, uint8_t* p_read, uint16_t size);
+typedef void (*PifActSpiTransfer)(PifSpiDevice *p_owner, uint8_t* p_write, uint8_t* p_read, size_t size);
 
-typedef BOOL (*PifActSpiRead)(PifSpiDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, uint16_t size);
-typedef BOOL (*PifActSpiWrite)(PifSpiDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, uint16_t size);
+typedef BOOL (*PifActSpiRead)(PifSpiDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
+typedef BOOL (*PifActSpiWrite)(PifSpiDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
 
 typedef BOOL (*PifActSpiIsBusy)(PifSpiDevice *p_owner);
 
@@ -101,9 +101,10 @@ void pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device);
  * @fn pifSpiPort_TemporaryDevice
  * @brief
  * @param p_owner
+ * @param p_client
  * @return
  */
-PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner);
+PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, void *p_client);
 
 /**
  * @fn pifSpiDevice_Transfer

@@ -2,7 +2,7 @@
 #include "sensor/pif_mpu6500_spi.h"
 
 
-BOOL pifMpu6500Spi_Detect(PifSpiPort* p_spi)
+BOOL pifMpu6500Spi_Detect(PifSpiPort* p_spi, void *p_client)
 {
 #ifndef PIF_NO_LOG	
 	const char ident[] = "MPU6500 Ident: ";
@@ -10,7 +10,7 @@ BOOL pifMpu6500Spi_Detect(PifSpiPort* p_spi)
 	uint8_t data;
 	PifI2cDevice* p_device;
 
-    p_device = pifSpiPort_TemporaryDevice(p_spi);
+    p_device = pifSpiPort_TemporaryDevice(p_spi, p_client);
 
 	if (!pifSpiDevice_ReadRegByte(p_device, MPU6500_REG_WHO_AM_I, &data)) return FALSE;
 	if (data != MPU6500_WHO_AM_I_CONST) return FALSE;

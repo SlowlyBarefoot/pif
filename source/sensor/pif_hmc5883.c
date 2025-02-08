@@ -23,7 +23,7 @@ static void _changeGain(PifImuSensor* p_imu_sensor, PifHmc5883Gain gain)
 	}
 }
 
-BOOL pifHmc5883_Detect(PifI2cPort* p_i2c)
+BOOL pifHmc5883_Detect(PifI2cPort* p_i2c, void *p_client)
 {
 #ifndef PIF_NO_LOG	
 	const char ident[] = "HMC5883 Ident: ";
@@ -31,7 +31,7 @@ BOOL pifHmc5883_Detect(PifI2cPort* p_i2c)
 	uint8_t data[3];
 	PifI2cDevice* p_device;
 
-    p_device = pifI2cPort_TemporaryDevice(p_i2c, HMC5883_I2C_ADDR);
+    p_device = pifI2cPort_TemporaryDevice(p_i2c, HMC5883_I2C_ADDR, p_client);
 
     if (!pifI2cDevice_ReadRegBytes(p_device, HMC5883_REG_IDENT_A, data, 3)) return FALSE;
 	if (data[0] != 'H') return FALSE;

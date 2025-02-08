@@ -241,9 +241,10 @@ extern "C" {
  * @brief
  * @param p_i2c
  * @param addr
+ * @param p_client
  * @return
  */
-BOOL pifMpu30x0_Detect(PifI2cPort* p_i2c, uint8_t addr);
+BOOL pifMpu30x0_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client);
 
 /**
  * @fn pifMpu30x0_Init

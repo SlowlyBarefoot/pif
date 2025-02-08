@@ -2,12 +2,12 @@
 #include "sensor/pif_dps310_spi.h"
 
 
-BOOL pifDps310Spi_Detect(PifSpiPort* p_spi)
+BOOL pifDps310Spi_Detect(PifSpiPort* p_spi, void *p_client)
 {
 	uint8_t data;
 	PifSpiDevice* p_device;
 
-    p_device = pifSpiPort_TemporaryDevice(p_spi);
+    p_device = pifSpiPort_TemporaryDevice(p_spi, p_client);
 
 	if (!pifSpiDevice_ReadRegByte(p_device, DPS310_REG_PRODUCT_ID, &data)) return FALSE;
 	if (data != DPS310_PRODUCT_ID_CONST) return FALSE;

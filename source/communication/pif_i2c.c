@@ -57,12 +57,13 @@ void pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device)
 	}
 }
 
-PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr)
+PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr, void *p_client)
 {
 	static PifI2cDevice device;
 
 	device._p_port = p_owner;
 	device.addr = addr;
+	device._p_client = p_client;
 	device._state = IS_IDLE;
 	return &device;
 }
@@ -100,9 +101,8 @@ BOOL pifI2cDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_
 {
 	PifI2cDevice* p_device = (PifI2cDevice*)p_owner;
 	PifI2cPort* p_port = p_device->_p_port;
-	uint8_t len;
+	size_t len, ptr;
 	uint32_t timer1ms;
-	size_t ptr;
 #ifndef PIF_NO_LOG
 	int line;
 #endif
@@ -207,9 +207,8 @@ BOOL pifI2cDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8
 {
 	PifI2cDevice* p_device = (PifI2cDevice*)p_owner;
 	PifI2cPort* p_port = p_device->_p_port;
-	uint8_t len;
+	size_t len, ptr;
 	uint32_t timer1ms;
-	size_t ptr;
 #ifndef PIF_NO_LOG
 	int line;
 #endif

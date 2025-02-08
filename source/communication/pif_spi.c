@@ -53,11 +53,12 @@ void pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device)
 	}
 }
 
-PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner)
+PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, void *p_client)
 {
 	static PifSpiDevice device;
 
 	device._p_port = p_owner;
+	device._p_client = p_client;
 	return &device;
 }
 
@@ -75,8 +76,7 @@ BOOL pifSpiDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_
 {
 	PifSpiDevice* p_device = (PifSpiDevice*)p_owner;
 	PifSpiPort* p_port = p_device->_p_port;
-	uint8_t len;
-	size_t ptr, remain;
+	size_t len, ptr, remain;
 
 	if (!p_port->act_read) return FALSE;
 
@@ -143,8 +143,7 @@ BOOL pifSpiDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8
 {
 	PifSpiDevice* p_device = (PifSpiDevice*)p_owner;
 	PifSpiPort* p_port = p_device->_p_port;
-	uint8_t len;
-	size_t ptr, remain;
+	size_t len, ptr, remain;
 
 	if (!p_port->act_write) return FALSE;
 

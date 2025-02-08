@@ -4,7 +4,7 @@
 
 BOOL pifGy86_Detect(PifI2cPort* p_i2c)
 {
-    if (!pifMpu60x0_Detect(p_i2c, MPU60X0_I2C_ADDR(0))) return FALSE;
+    if (!pifMpu60x0_Detect(p_i2c, MPU60X0_I2C_ADDR(0), NULL)) return FALSE;
 //    if (!pifHmc5883_Detect(p_i2c)) return FALSE;
     return TRUE;
 }
@@ -46,7 +46,7 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifGy86Param* p
 
     pif_Delay1ms(100);
 
-    if (!pifHmc5883_Detect(p_i2c)) goto fail;
+    if (!pifHmc5883_Detect(p_i2c, NULL)) goto fail;
 
     if (!pifHmc5883_Init(&p_owner->_hmc5883, PIF_ID_AUTO, p_i2c, NULL, p_imu_sensor)) goto fail;
 

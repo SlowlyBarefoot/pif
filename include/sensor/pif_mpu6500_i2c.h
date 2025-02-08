@@ -14,9 +14,10 @@ extern "C" {
  * @brief
  * @param p_i2c
  * @param addr
+ * @param p_client
  * @return
  */
-BOOL pifMpu6500I2c_Detect(PifI2cPort* p_i2c, uint8_t addr);
+BOOL pifMpu6500I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client);
 
 /**
  * @fn pifMpu6500I2c_Init

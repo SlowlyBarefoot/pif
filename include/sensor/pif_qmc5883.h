@@ -110,9 +110,10 @@ extern "C" {
  * @fn pifQmc5883_Detect
  * @brief
  * @param p_i2c
+ * @param p_client
  * @return
  */
-BOOL pifQmc5883_Detect(PifI2cPort* p_i2c);
+BOOL pifQmc5883_Detect(PifI2cPort* p_i2c, void *p_client);
 
 /**
  * @fn pifQmc5883_Init

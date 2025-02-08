@@ -18,7 +18,7 @@ static BOOL _changeAfsSel(PifImuSensor* p_imu_sensor, PifMpu60x0AfsSel afs_sel)
 	return TRUE;
 }
 
-BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr)
+BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client)
 {
 #ifndef PIF_NO_LOG	
 	const char ident[] = "MPU60X0 Ident: ";
@@ -26,7 +26,7 @@ BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr)
 	uint8_t data;
 	PifI2cDevice* p_device;
 
-    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr);
+    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr, p_client);
 
 	if (!pifI2cDevice_ReadRegByte(p_device, MPU60X0_REG_WHO_AM_I, &data)) return FALSE;
 	if (data != addr) return FALSE;

@@ -128,9 +128,10 @@ extern "C" {
  * @fn pifHmc5883_Detect
  * @brief
  * @param p_i2c
+ * @param p_client
  * @return
  */
-BOOL pifHmc5883_Detect(PifI2cPort* p_i2c);
+BOOL pifHmc5883_Detect(PifI2cPort* p_i2c, void *p_client);
 
 /**
  * @fn pifHmc5883_Init

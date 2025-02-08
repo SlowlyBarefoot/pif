@@ -2,12 +2,12 @@
 #include "sensor/pif_dps310_i2c.h"
 
 
-BOOL pifDps310I2c_Detect(PifI2cPort* p_i2c, uint8_t addr)
+BOOL pifDps310I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client)
 {
 	uint8_t data;
 	PifI2cDevice* p_device;
 
-    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr);
+    p_device = pifI2cPort_TemporaryDevice(p_i2c, addr, p_client);
 
 	if (!pifI2cDevice_ReadRegByte(p_device, DPS310_REG_PRODUCT_ID, &data)) return FALSE;
 	if (data != DPS310_PRODUCT_ID_CONST) return FALSE;
