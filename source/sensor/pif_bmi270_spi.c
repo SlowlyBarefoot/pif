@@ -1,38 +1,26 @@
-#include "core/pif_log.h"
-#include "sensor/pif_mpu6500_spi.h"
+#include "sensor/pif_bmi270_spi.h"
 
 
-BOOL pifMpu6500Spi_Detect(PifSpiPort* p_spi, void *p_client)
+BOOL pifBmi270Spi_Detect(PifSpiPort *p_spi, void *p_client)
 {
-#ifndef PIF_NO_LOG	
-	const char ident[] = "MPU6500 Ident: ";
-#endif	
-	uint8_t data;
-	PifSpiDevice* p_device;
+	uint8_t data[2];
+	PifSpiDevice *p_device;
 
     p_device = pifSpiPort_TemporaryDevice(p_spi, p_client);
 
-	if (!pifSpiDevice_ReadRegByte(p_device, MPU6500_REG_WHO_AM_I, &data)) return FALSE;
-	if (data != MPU6500_WHO_AM_I_CONST) return FALSE;
-#ifndef PIF_NO_LOG	
-	if (data < 32) {
-		pifLog_Printf(LT_INFO, "%s%Xh", ident, data >> 1);
-	}
-	else {
-		pifLog_Printf(LT_INFO, "%s%c", ident, data >> 1);
-	}
-#endif
+	if (!pifSpiDevice_ReadRegBytes(p_device, BMI270_REG_CHIP_ID | 0x80, data, 2)) return FALSE;
+	if (data[1] != BMI270_WHO_AM_I_CONST) return FALSE;
 	return TRUE;
 }
 
-BOOL pifMpu6500Spi_Init(PifMpu6500* p_owner, PifId id, PifSpiPort* p_spi, void *p_client, PifImuSensor* p_imu_sensor)
+BOOL pifBmi270Spi_Init(PifBmi270 *p_owner, PifId id, PifSpiPort *p_spi, void *p_client, PifImuSensor *p_imu_sensor)
 {
 	if (!p_owner || !p_spi || !p_imu_sensor) {
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
 	}
 
-	memset(p_owner, 0, sizeof(PifMpu6500));
+	memset(p_owner, 0, sizeof(PifBmi270));
 
     p_owner->_p_spi = pifSpiPort_AddDevice(p_spi, PIF_ID_AUTO, p_client);
     if (!p_owner->_p_spi) return FALSE;
@@ -47,15 +35,15 @@ BOOL pifMpu6500Spi_Init(PifMpu6500* p_owner, PifId id, PifSpiPort* p_spi, void *
 	p_owner->_fn.write_bytes = pifSpiDevice_WriteRegBytes;
 	p_owner->_fn.write_bit = pifSpiDevice_WriteRegBit8;
 
-	if (!pifMpu6500_Config(p_owner, id, p_imu_sensor)) goto fail;
+	if (!pifBmi270_Config(p_owner, id, p_imu_sensor)) goto fail;
     return TRUE;
 
 fail:
-	pifMpu6500Spi_Clear(p_owner);
+	pifBmi270Spi_Clear(p_owner);
 	return FALSE;
 }
 
-void pifMpu6500Spi_Clear(PifMpu6500* p_owner)
+void pifBmi270Spi_Clear(PifBmi270 *p_owner)
 {
     if (p_owner->_p_spi) {
 		pifSpiPort_RemoveDevice(p_owner->_p_spi->_p_port, p_owner->_p_spi);

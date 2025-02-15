@@ -57,6 +57,7 @@ PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, void *p_client)
 {
 	static PifSpiDevice device;
 
+	memset(&device, 0, sizeof(PifSpiDevice));
 	device._p_port = p_owner;
 	device._p_client = p_client;
 	return &device;

@@ -61,6 +61,7 @@ PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr, void
 {
 	static PifI2cDevice device;
 
+	memset(&device, 0, sizeof(PifI2cDevice));
 	device._p_port = p_owner;
 	device.addr = addr;
 	device._p_client = p_client;
