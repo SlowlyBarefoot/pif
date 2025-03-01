@@ -273,12 +273,12 @@ BOOL pifUart_ChangeRxFlowState(PifUart* p_owner, SWITCH state);
 void pifUart_SigTxFlowState(PifUart* p_owner, SWITCH state);
 
 /**
- * @fn pifUart_GetRemainSizeOfRxBuffer
+ * @fn pifUart_GetFillSizeOfRxBuffer
  * @brief
  * @param p_owner
  * @return
  */
-uint16_t pifUart_GetRemainSizeOfRxBuffer(PifUart* p_owner);
+uint16_t pifUart_GetFillSizeOfRxBuffer(PifUart* p_owner);
 
 /**
  * @fn pifUart_GetFillSizeOfTxBuffer

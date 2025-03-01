@@ -226,9 +226,9 @@ void pifUart_SigTxFlowState(PifUart* p_owner, SWITCH state)
 	}
 }
 
-uint16_t pifUart_GetRemainSizeOfRxBuffer(PifUart* p_owner)
+uint16_t pifUart_GetFillSizeOfRxBuffer(PifUart* p_owner)
 {
-	return pifRingBuffer_GetRemainSize(p_owner->_p_rx_buffer);
+	return pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer);
 }
 
 uint16_t pifUart_GetFillSizeOfTxBuffer(PifUart* p_owner)
