@@ -32,10 +32,6 @@ typedef enum EnPifTaskMode
 	TM_PERIOD_MS		= 0x20,
 	TM_PERIOD_US		= 0x21,
 
-	TM_CHANGE			= 0x40,
-	TM_CHANGE_MS		= 0x40,
-	TM_CHANGE_US		= 0x41,
-
 	TM_IDLE				= 0x80,
 	TM_IDLE_MS			= 0x80,		// If at least one TM_ALWAYS task exists, the TM_IDLE_MS task is not executed.
 	TM_IDLE_US			= 0x81		// If at least one TM_ALWAYS task exists, the TM_IDLE_US task is not executed.

@@ -60,7 +60,7 @@ static uint16_t _actSendData(PifUart* p_owner, uint8_t* p_data, uint16_t size)
 
 BOOL pifUart_Init(PifUart* p_owner, PifId id, uint32_t baudrate)
 {
-	if (!p_owner) {
+	if (!p_owner || !baudrate) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
