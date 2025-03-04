@@ -47,7 +47,7 @@ static int32_t _getTwosComplement(uint32_t raw, uint8_t length)
 	return raw;
 }
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifDps310* p_owner = p_task->_p_client;
 	uint8_t data[6];
@@ -94,7 +94,7 @@ static uint16_t _doTask(PifTask* p_task)
 	default:
 		break;
 	}
-	return delay;
+	return delay * 1000;
 }
 
 BOOL pifDps310_Config(PifDps310* p_owner, PifId id)
@@ -195,7 +195,7 @@ BOOL pifDps310_ReadBarometric(PifDps310* p_owner, float* p_pressure, float* p_te
 
 BOOL pifDps310_AddTaskForReading(PifDps310* p_owner, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start)
 {
-	p_owner->_p_task = pifTaskManager_Add(TM_CHANGE_MS, read_period, _doTask, p_owner, start);
+	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD, read_period * 1000, _doTask, p_owner, start);
     if (!p_owner->_p_task) return FALSE;
 	p_owner->_p_task->name = "DPS310";
 
