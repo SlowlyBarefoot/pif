@@ -71,7 +71,7 @@ static BOOL _calibrate(PifTouchScreen* p_owner, uint16_t x, uint16_t y, uint16_t
     return TRUE;
 }
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifTouchScreen* p_owner = p_task->_p_client;
 	PifTftLcd* p_lcd = p_owner->__p_lcd;
@@ -189,7 +189,7 @@ BOOL pifTouchScreen_Start(PifTouchScreen* p_owner, const char* p_name)
 {
 	if (p_owner->_p_task) p_owner->_p_task->pause = FALSE;
 	else {
-		p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, p_owner->_control_period_1ms, _doTask, p_owner, TRUE);
+		p_owner->_p_task = pifTaskManager_Add(TM_PERIOD, p_owner->_control_period_1ms * 1000, _doTask, p_owner, TRUE);
 		if (!p_owner->_p_task) return FALSE;
 		p_owner->_p_task->name = p_name ? p_name : "Touch";
 	}

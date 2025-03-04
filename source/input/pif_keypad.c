@@ -107,7 +107,7 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 	}
 }
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	int idx, b, c;
 
@@ -249,7 +249,7 @@ BOOL pifKeypad_Start(PifKeypad* p_owner, const char* p_name)
 
 	if (p_owner->__p_task) p_owner->__p_task->pause = FALSE;
 	else {
-		p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_MS, p_owner->__control_period_1ms, _doTask, p_owner, TRUE);
+		p_owner->__p_task = pifTaskManager_Add(TM_PERIOD, p_owner->__control_period_1ms * 1000, _doTask, p_owner, TRUE);
 		if (!p_owner->__p_task) return FALSE;
 		p_owner->__p_task->name = p_name ? p_name : "Keypad";
 	}

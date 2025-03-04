@@ -1,7 +1,7 @@
 #include "sound/pif_buzzer.h"
 
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifBuzzer* p_owner = (PifBuzzer*)p_task->_p_client;
 	uint8_t repeat;
@@ -65,16 +65,16 @@ static uint16_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-BOOL pifBuzzer_Init(PifBuzzer* p_owner, PifId id, uint16_t period, PifActBuzzerAction act_action)
+BOOL pifBuzzer_Init(PifBuzzer* p_owner, PifId id, uint16_t period1ms, PifActBuzzerAction act_action)
 {
-	if (!p_owner || !act_action) {
+	if (!p_owner || !period1ms || !act_action) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
 	memset(p_owner, 0, sizeof(PifBuzzer));
 
-	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, period, _doTask, p_owner, TRUE);
+	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD, period1ms * 1000, _doTask, p_owner, TRUE);
 	if (!p_owner->_p_task) return FALSE;
 	p_owner->_p_task->name = "Buzzer";
 

@@ -324,7 +324,7 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
     }
 }
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
     int status = PIF_LOG_CMD_NO_ERROR;
     char msg[40];

@@ -798,7 +798,7 @@ static int kwdhook_(char *msg)
 
 #endif
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifBasic* p_owner = (PifBasic*)p_task->_p_client;
 	char *p_current = p_owner->__p_program, *p_nl, *p_cr;

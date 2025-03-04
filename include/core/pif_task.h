@@ -29,19 +29,15 @@ typedef enum EnPifTaskMode
 	TM_EXTERNAL_ORDER	= 0x14,
 
 	TM_PERIOD			= 0x20,
-	TM_PERIOD_MS		= 0x20,
-	TM_PERIOD_US		= 0x21,
 
-	TM_IDLE				= 0x80,
-	TM_IDLE_MS			= 0x80,		// If at least one TM_ALWAYS task exists, the TM_IDLE_MS task is not executed.
-	TM_IDLE_US			= 0x81		// If at least one TM_ALWAYS task exists, the TM_IDLE_US task is not executed.
+	TM_IDLE				= 0x80		// If at least one TM_ALWAYS task exists, the TM_IDLE_MS task is not executed.
 } PifTaskMode;
 
 
 struct StPifTask;
 typedef struct StPifTask PifTask;
 
-typedef uint16_t (*PifEvtTaskLoop)(PifTask* p_task);
+typedef uint32_t (*PifEvtTaskLoop)(PifTask* p_task);
 typedef void (*PifActTaskSignal)(BOOL state);
 
 typedef PifTask* (*PifTaskProcessing)(PifTask* p_owner);
@@ -65,7 +61,7 @@ struct StPifTask
 	PifTaskMode _mode;
 	BOOL _running;
 	uint16_t _unit;					// us : 1, ms : 1000
-	uint16_t _default_period;
+	uint32_t _default_period;
 	uint32_t _delta_time;
 	void *_p_client;
 	uint32_t _last_execute_time;
@@ -77,7 +73,7 @@ struct StPifTask
 
 	// Private Member Variable
 	PifTaskProcessing __processing;
-	uint16_t __period;
+	uint32_t __period;
 	BOOL __trigger;
 	int __table_number;
 	uint16_t __delay_ms;
@@ -128,7 +124,7 @@ void pifTask_Init(PifTask* p_owner);
  * @param period Task 주기 (ms, us)
  * @return 성공 여부를 반환한다.
  */
-BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period);
+BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint32_t period);
 
 /**
  * @fn pifTask_ChangePeriod
@@ -137,7 +133,7 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period);
  * @param period Task 주기 (ms, us)
  * @return 성공 여부를 반환한다.
  */
-BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period);
+BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period);
 
 /**
  * @fn pifTask_SetTrigger
@@ -208,7 +204,7 @@ void pifTaskManager_Clear();
  * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start);
+PifTask* pifTaskManager_Add(PifTaskMode mode, uint32_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start);
 
 /**
  * @fn pifTaskManager_Remove

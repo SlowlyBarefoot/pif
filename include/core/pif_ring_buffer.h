@@ -29,8 +29,8 @@ typedef struct StPifRingBuffer
 	// Private Member Variable
 	const char* __p_name;
     uint8_t* __p_buffer;
-    uint16_t __head;
-    uint16_t __tail;
+    volatile uint16_t __head;
+    volatile uint16_t __tail;
     uint16_t __backup_head;
     union {
 		char chop_off_char;

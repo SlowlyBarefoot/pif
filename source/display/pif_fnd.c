@@ -11,7 +11,7 @@ const uint8_t *c_user_char;
 static uint8_t s_user_char_count = 0;
 
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifFnd *p_owner = p_task->_p_client;
 	uint8_t ch, seg = 0;
@@ -80,7 +80,7 @@ BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifTimerManager* p_timer_manager, ui
     p_owner->__act_display = act_display;
     p_owner->__period_per_digit_1ms = PIF_FND_PERIOD_PER_DIGIT;
 
-	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_US, p_owner->__period_per_digit_1ms * 1000L / digit_size,
+	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD, p_owner->__period_per_digit_1ms * 1000L / digit_size,
 			_doTask, p_owner, FALSE);
     if (!p_owner->__p_task) goto fail;
 	p_owner->__p_task->name = "FND";

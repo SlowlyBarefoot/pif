@@ -25,7 +25,7 @@ static void _evtTimerDelayFinish(PifIssuerP p_issuer)
 	}
 }
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifDutyMotor* p_parent = p_task->_p_client;
 	uint16_t tmp_duty = 0;
@@ -239,7 +239,7 @@ BOOL pifDutyMotorPos_Init(PifDutyMotorPos* p_owner, PifId id, PifTimerManager* p
     if (!p_parent->__p_timer_delay) goto fail;
     pifTimer_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent);
 
-    p_parent->__p_task = pifTaskManager_Add(TM_PERIOD_MS, period1ms, _doTask, p_owner, FALSE);
+    p_parent->__p_task = pifTaskManager_Add(TM_PERIOD, period1ms * 1000, _doTask, p_owner, FALSE);
 	if (!p_parent->__p_task) goto fail;
 	p_parent->__p_task->name = "DutyMotorPos";
 

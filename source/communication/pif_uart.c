@@ -354,11 +354,11 @@ BOOL pifUart_CheckTxTransfer(PifUart* p_owner)
 	return FALSE;
 }
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifUart *p_owner = p_task->_p_client;
 	uint8_t data, rate, tx;
-	uint16_t period = 0;
+	uint32_t period = 0;
 
 	if (p_owner->_flow_control & UFC_DEVICE_MASK) {
 		if (p_owner->act_get_rx_rate) {
@@ -437,7 +437,7 @@ next1:
 	return period;
 }
 
-PifTask* pifUart_AttachTask(PifUart* p_owner, PifTaskMode mode, uint16_t period, const char* name)
+PifTask* pifUart_AttachTask(PifUart* p_owner, PifTaskMode mode, uint32_t period, const char* name)
 {
     if (p_owner->_p_task) {
     	pif_error = E_ALREADY_ATTACHED;

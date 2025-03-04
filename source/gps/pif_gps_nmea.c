@@ -16,7 +16,7 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 
 #define DATA_SIZE	128
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifGpsNmea *p_owner = p_task->_p_client;
 	uint8_t data[DATA_SIZE];
@@ -108,12 +108,12 @@ void pifGpsNmea_DetachUart(PifGpsNmea* p_owner)
 	p_owner->__p_uart = NULL;
 }
 
-BOOL pifGpsNmea_AttachI2c(PifGpsNmea* p_owner, PifI2cPort* p_i2c, uint8_t addr, void *p_client, uint16_t period, BOOL start, const char* name)
+BOOL pifGpsNmea_AttachI2c(PifGpsNmea* p_owner, PifI2cPort* p_i2c, uint8_t addr, void *p_client, uint16_t period1ms, BOOL start, const char* name)
 {
     p_owner->_p_i2c_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
     if (!p_owner->_p_i2c_device) goto fail;
 
-    p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, period, _doTask, p_owner, start);
+    p_owner->_p_task = pifTaskManager_Add(TM_PERIOD, period1ms * 1000, _doTask, p_owner, start);
 	if (!p_owner->_p_task) goto fail;
 
     p_owner->__p_i2c_port = p_i2c;

@@ -13,7 +13,7 @@
 #endif
 
 
-static uint16_t _doTaskAcquire(PifTask* p_task)
+static uint32_t _doTaskAcquire(PifTask* p_task)
 {
 	pifSensorSwitch_ProcessAcquire((PifSensorSwitch*)p_task->_p_client);
 	return 0;
@@ -141,7 +141,7 @@ uint16_t pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner)
 	return 0;
 }
 
-PifTask* pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
+PifTask* pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifTaskMode mode, uint32_t period, BOOL start)
 {
 	PifTask* p_task;
 

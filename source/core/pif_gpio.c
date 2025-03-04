@@ -167,7 +167,7 @@ BOOL pifGpio_WriteCell(PifGpio* p_owner, uint8_t index, SWITCH state)
 	return TRUE;
 }
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifGpio* p_owner = p_task->_p_client;
 	uint8_t state, bit;

@@ -88,24 +88,11 @@ static PifTask* _processingAlways(PifTask* p_owner)
 	return p_owner;
 }
 
-static PifTask* _processingPeriodUs(PifTask* p_owner)
+static PifTask* _processingPeriod(PifTask* p_owner)
 {
 	uint32_t current;
 
 	current = (*pif_act_timer1us)();
-	p_owner->_delta_time = current - p_owner->__pretime;
-	if (p_owner->_delta_time >= p_owner->__period) {
-		p_owner->__current_time = current;
-		return p_owner;
-	}
-	return NULL;
-}
-
-static PifTask* _processingPeriodMs(PifTask* p_owner)
-{
-	uint32_t current;
-
-	current = pif_cumulative_timer1ms;
 	p_owner->_delta_time = current - p_owner->__pretime;
 	if (p_owner->_delta_time >= p_owner->__period) {
 		p_owner->__current_time = current;
@@ -142,7 +129,7 @@ static PifTask* _processingRatio(PifTask* p_owner)
 	return NULL;
 }
 
-static BOOL _checkParam(PifTaskMode* p_mode, uint16_t period)
+static BOOL _checkParam(PifTaskMode* p_mode, uint32_t period)
 {
 	switch (*p_mode) {
     case TM_RATIO:
@@ -155,16 +142,8 @@ static BOOL _checkParam(PifTaskMode* p_mode, uint16_t period)
     	}
     	break;
 
-    case TM_PERIOD_MS:
-    case TM_IDLE_MS:
-    	if (!period) {
-    		pif_error = E_INVALID_PARAM;
-		    return FALSE;
-    	}
-    	break;
-
-    case TM_PERIOD_US:
-    case TM_IDLE_US:
+    case TM_PERIOD:
+    case TM_IDLE:
     	if (!period) {
     		pif_error = E_INVALID_PARAM;
 		    return FALSE;
@@ -187,7 +166,7 @@ static BOOL _checkParam(PifTaskMode* p_mode, uint16_t period)
 	return TRUE;
 }
 
-static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
+static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint32_t period)
 {
 	int num = -1;
 
@@ -209,16 +188,10 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint16_t period)
     	p_owner->__processing = _processingAlways;
     	break;
 
-    case TM_PERIOD_MS:
-    case TM_IDLE_MS:
-    	p_owner->__pretime = pif_cumulative_timer1ms;
-    	p_owner->__processing = _processingPeriodMs;
-    	break;
-
-    case TM_PERIOD_US:
-    case TM_IDLE_US:
+    case TM_PERIOD:
+    case TM_IDLE:
     	p_owner->__pretime = (*pif_act_timer1us)();
-    	p_owner->__processing = _processingPeriodUs;
+    	p_owner->__processing = _processingPeriod;
 		p_owner->_unit = 1;
     	break;
 
@@ -249,12 +222,7 @@ static void _processingTrigger(PifTask* p_owner)
 	uint32_t current;
 
 	switch (p_owner->_mode) {
-	case TM_PERIOD_MS:
-		p_owner->_delta_time = pif_cumulative_timer1ms - p_owner->__pretime;
-		p_owner->__current_time = pif_cumulative_timer1ms;
-		break;
-
-	case TM_PERIOD_US:
+	case TM_PERIOD:
 	case TM_EXTERNAL_CUTIN:
 	case TM_EXTERNAL_ORDER:
 		current = (*pif_act_timer1us)();
@@ -269,7 +237,7 @@ static void _processingTrigger(PifTask* p_owner)
 
 static void _processingTask(PifTask* p_owner, BOOL trigger)
 {
-	uint16_t period;
+	uint32_t period;
 #ifdef PIF_USE_TASK_STATISTICS
 	uint16_t trigger_delay;
 	uint32_t start_time;
@@ -337,19 +305,13 @@ static void _processingTask(PifTask* p_owner, BOOL trigger)
     if (pif_act_task_signal) (*pif_act_task_signal)(FALSE);
 #endif
 
-	switch (p_owner->_mode) {
-	case TM_PERIOD_MS:
-	case TM_PERIOD_US:
+	if (p_owner->_mode == TM_PERIOD) {
 		if (period > 0) {
 			p_owner->__period = period;
 		}
 		else {
 			p_owner->__period = p_owner->_default_period;
 		}
-		break;
-
-	default:
-		break;
 	}
 }
 
@@ -423,7 +385,7 @@ void pifTask_Init(PifTask* p_owner)
     p_owner->_id = pif_id;
 }
 
-BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period)
+BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint32_t period)
 {
 	if (mode == p_owner->_mode) return TRUE;
 
@@ -446,7 +408,7 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint16_t period)
     return TRUE;
 }
 
-BOOL pifTask_ChangePeriod(PifTask* p_owner, uint16_t period)
+BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period)
 {
 	switch (p_owner->_mode & TM_MAIN_MASK) {
 	case TM_PERIOD:
@@ -531,7 +493,7 @@ void pifTaskManager_Clear()
 	pifObjArray_Clear(&s_tasks);
 }
 
-PifTask* pifTaskManager_Add(PifTaskMode mode, uint16_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start)
+PifTask* pifTaskManager_Add(PifTaskMode mode, uint32_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start)
 {
 	if (!evt_loop) {
         pif_error = E_INVALID_PARAM;
@@ -853,16 +815,14 @@ void pifTaskManager_Print()
 		switch (p_owner->_mode) {
 			case TM_RATIO: mode = "Ratio"; break;
 			case TM_ALWAYS: mode = "Always"; break;
-			case TM_PERIOD_MS: mode = "PeriodMs"; break;
-			case TM_PERIOD_US: mode = "PeriodUs"; break;
+			case TM_PERIOD: mode = "Period"; break;
 			case TM_EXTERNAL_CUTIN: mode = "ExtCutin"; break;
 			case TM_EXTERNAL_ORDER: mode = "ExtOrder"; break;
 			case TM_TIMER: mode = "Timer"; break;
-			case TM_IDLE_MS: mode = "IdleMs"; break;
-			case TM_IDLE_US: mode = "IdleUs"; break;
+			case TM_IDLE: mode = "Idle"; break;
 	        default: mode = "---"; break;
 		}
-		pifLog_Printf(LT_NONE, " (%u): %s-%u\n", p_owner->_id, mode, p_owner->_default_period);
+		pifLog_Printf(LT_NONE, " (%u): %s-%lu\n", p_owner->_id, mode, p_owner->_default_period);
 #ifdef PIF_USE_TASK_STATISTICS
 		value = p_owner->__sum_execution_time[0] + p_owner->__sum_execution_time[1];
 		pifLog_Printf(LT_NONE, "    Proc: M=%ldus A=%luus T=%lums\n", p_owner->_max_execution_time,

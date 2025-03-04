@@ -122,7 +122,7 @@ uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner);
  * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
+PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifTaskMode mode, uint32_t period, BOOL start);
 
 
 #ifdef PIF_COLLECT_SIGNAL

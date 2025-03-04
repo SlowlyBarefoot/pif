@@ -2,7 +2,7 @@
 #include "sensor/pif_hc_sr04.h"
 
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifHcSr04* p_owner = (PifHcSr04*)p_task->_p_client;
 
@@ -31,7 +31,7 @@ BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id)
 
 	memset(p_owner, 0, sizeof(PifHcSr04));
 
-	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, 50, _doTask, p_owner, FALSE);
+	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD, 50000, _doTask, p_owner, FALSE);		// 50ms
 	if (!p_owner->_p_task) return FALSE;
 	p_owner->_p_task->name = "HC_SR04";
 

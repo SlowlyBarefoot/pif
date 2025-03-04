@@ -103,11 +103,11 @@ BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_
  * @fn pifMax31855_StartMeasurement
  * @brief
  * @param p_owner
- * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @param period1ms Mode에 따라 주기의 단위가 변경된다.
  * @param evt_measure
  * @return
  */
-BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period, PifEvtMax31855Measure evt_measure);
+BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifEvtMax31855Measure evt_measure);
 
 /**
  * @fn pifMax31855_StopMeasurement

@@ -70,7 +70,7 @@ static void _calcurateBarometric(PifMs5611* p_owner, float* p_pressure, float* p
 	*p_pressure = (float)(((((int64_t)p_owner->__D1 * sens) >> 21) - off) >> 15);
 }
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifMs5611* p_owner = p_task->_p_client;
 	uint8_t value[3];
@@ -124,7 +124,7 @@ static uint16_t _doTask(PifTask* p_task)
 	default:
 		break;
 	}
-	return delay;
+	return delay * 1000;
 }
 
 BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client)
@@ -220,7 +220,7 @@ BOOL pifMs5611_ReadBarometric(PifMs5611* p_owner, float* p_pressure, float* p_te
 
 BOOL pifMs5611_AddTaskForReading(PifMs5611* p_owner, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start)
 {
-	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, read_period, _doTask, p_owner, start);
+	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD, read_period * 1000, _doTask, p_owner, start);
     if (!p_owner->_p_task) return FALSE;
     p_owner->_p_task->name = "MS5611";
 

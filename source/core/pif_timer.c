@@ -1,7 +1,7 @@
 #include "core/pif_timer.h"
 
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifTimerManager* p_manager = p_task->_p_client;
 

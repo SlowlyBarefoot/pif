@@ -12,7 +12,7 @@
 #endif
 
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifMax31855* p_owner = (PifMax31855*)p_task->_p_client;
 	PifSensor* p_parent = &p_owner->parent;
@@ -169,14 +169,14 @@ BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_
 	return TRUE;
 }
 
-BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period, PifEvtMax31855Measure evt_measure)
+BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifEvtMax31855Measure evt_measure)
 {
-	if (!p_owner || !period) {
+	if (!p_owner || !period1ms) {
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
 	}
 
-	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, period, _doTask, p_owner, TRUE);
+	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD, period1ms * 1000, _doTask, p_owner, TRUE);
 	if (!p_owner->_p_task) return FALSE;
 	p_owner->_p_task->name = "MAX31855";
 

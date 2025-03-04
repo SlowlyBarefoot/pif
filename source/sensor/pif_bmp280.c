@@ -43,7 +43,7 @@ static float _compensate_P(PifBmp280* p_owner, int32_t adc_P)
     return (float)p / 25600.0f;
 }
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifBmp280* p_owner = p_task->_p_client;
 	uint8_t data[6];
@@ -99,7 +99,7 @@ static uint16_t _doTask(PifTask* p_task)
 	default:
 		break;
 	}
-	return delay;
+	return delay * 1000;
 }
 
 BOOL pifBmp280_Config(PifBmp280* p_owner, PifId id)
@@ -175,7 +175,7 @@ BOOL pifBmp280_ReadBarometric(PifBmp280* p_owner, float* p_pressure, float* p_te
 
 BOOL pifBmp280_AddTaskForReading(PifBmp280* p_owner, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start)
 {
-	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD_MS, read_period, _doTask, p_owner, start);
+	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD, read_period * 1000, _doTask, p_owner, start);
     if (!p_owner->_p_task) return FALSE;
 	p_owner->_p_task->name = "BMP280";
 

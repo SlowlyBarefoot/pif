@@ -73,12 +73,12 @@ void pifGpsNmea_DetachUart(PifGpsNmea* p_owner);
  * @param p_i2c
  * @param addr
  * @param p_client
- * @param period
+ * @param period1ms
  * @param start
  * @param name
  * @return
  */
-BOOL pifGpsNmea_AttachI2c(PifGpsNmea* p_owner, PifI2cPort* p_i2c, uint8_t addr, void *p_client, uint16_t period, BOOL start, const char* name);
+BOOL pifGpsNmea_AttachI2c(PifGpsNmea* p_owner, PifI2cPort* p_i2c, uint8_t addr, void *p_client, uint16_t period1ms, BOOL start, const char* name);
 
 /**
  * @fn pifGpsNmea_DetachI2c

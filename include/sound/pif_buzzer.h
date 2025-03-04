@@ -61,11 +61,11 @@ extern "C" {
  * @brief
  * @param p_owner
  * @param id
- * @param period
+ * @param period1ms
  * @param act_action
  * @return
  */
-BOOL pifBuzzer_Init(PifBuzzer* p_owner, PifId id, uint16_t period, PifActBuzzerAction act_action);
+BOOL pifBuzzer_Init(PifBuzzer* p_owner, PifId id, uint16_t period1ms, PifActBuzzerAction act_action);
 
 /**
  * @fn pifBuzzer_Clear

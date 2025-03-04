@@ -23,7 +23,7 @@ static void _setPhaseNo(PifSequence* p_owner, uint8_t phase_no)
 #endif
 }
 
-static uint16_t _doTask(PifTask* p_task)
+static uint32_t _doTask(PifTask* p_task)
 {
 	PifSequence *p_owner = p_task->_p_client;
 	const PifSequencePhase *pstPhase;
@@ -138,7 +138,7 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_m
     _setPhaseNo(p_owner, PIF_SEQUENCE_PHASE_NO_IDLE);
     p_owner->p_param = p_param;
 
-    p_owner->__p_task = pifTaskManager_Add(TM_PERIOD_MS, control_period1ms, _doTask, p_owner, TRUE);
+    p_owner->__p_task = pifTaskManager_Add(TM_PERIOD, control_period1ms * 1000, _doTask, p_owner, TRUE);
 	if (!p_owner->__p_task) goto fail;
 	p_owner->__p_task->name = "Sequence";
 

@@ -121,7 +121,7 @@ struct StPifUart
 
 	// Private Member Variable
     void* __p_client;
-    PifUartTxState __tx_state;
+    volatile PifUartTxState __tx_state;
     uint16_t __rx_threshold;
 
 	// Private Action Function
@@ -379,7 +379,7 @@ BOOL pifUart_CheckTxTransfer(PifUart* p_owner);
  * @param name task의 이름을 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifUart_AttachTask(PifUart* p_owner, PifTaskMode mode, uint16_t period, const char* name);
+PifTask* pifUart_AttachTask(PifUart* p_owner, PifTaskMode mode, uint32_t period, const char* name);
 
 #ifdef __cplusplus
 }
