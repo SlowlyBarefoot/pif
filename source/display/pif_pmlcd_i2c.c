@@ -84,7 +84,7 @@ static BOOL _send(PifPmlcdI2c* p_owner, uint8_t value, uint8_t mode)
 
 BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_t addr, void *p_client)
 {
-    if (!p_owner) {
+    if (!p_owner && !p_port) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}

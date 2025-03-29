@@ -76,7 +76,7 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 				}
 		    	if (p_owner->parent.__evt_receive) (*p_owner->parent.__evt_receive)(&p_owner->parent, channels, p_owner->parent.__p_issuer);
 			}
-			break;
+			return;
 		}
 	}
 }

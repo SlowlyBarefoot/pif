@@ -32,8 +32,10 @@ static BOOL _chopOff(PifRingBuffer* p_owner, uint16_t count)
 			size += p_owner->__ui.chop_off_length;
 		}
 		if (size < length) {
-			p_owner->__tail += size;
-			if (p_owner->__tail >= p_owner->_size) p_owner->__tail -= p_owner->_size;
+			tail = p_owner->__tail;
+			tail += size;
+			if (tail >= p_owner->_size) tail -= p_owner->_size;
+			p_owner->__tail = tail;
 			return TRUE;
 		}
 		else if (count <= length) {
@@ -329,25 +331,29 @@ BOOL pifRingBuffer_PutString(PifRingBuffer* p_owner, char* p_string)
 
 BOOL pifRingBuffer_GetByte(PifRingBuffer* p_owner, uint8_t* p_data)
 {
-	if (p_owner->__tail == p_owner->__head) return FALSE;
+	uint16_t tail = p_owner->__tail;
 
-	*p_data = p_owner->__p_buffer[p_owner->__tail];
-	p_owner->__tail++;
-	if (p_owner->__tail >= p_owner->_size) p_owner->__tail = 0;
+	if (tail == p_owner->__head) return FALSE;
+
+	*p_data = p_owner->__p_buffer[tail];
+	tail++;
+	if (tail >= p_owner->_size) tail = 0;
+	p_owner->__tail = tail;
 	return TRUE;
 }
 
 uint16_t pifRingBuffer_GetBytes(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t length)
 {
-	uint16_t i;
+	uint16_t i, tail = p_owner->__tail;
 
 	for (i = 0; i < length; i++) {
-		if (p_owner->__tail == p_owner->__head) return i;
+		if (tail == p_owner->__head) return i;
 
-		p_data[i] = p_owner->__p_buffer[p_owner->__tail];
-		p_owner->__tail++;
-		if (p_owner->__tail >= p_owner->_size) p_owner->__tail = 0;
+		p_data[i] = p_owner->__p_buffer[tail];
+		tail++;
+		if (tail >= p_owner->_size) tail = 0;
 	}
+	p_owner->__tail = tail;
 	return i;
 }
 

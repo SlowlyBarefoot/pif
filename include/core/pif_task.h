@@ -5,10 +5,6 @@
 #include "core/pif.h"
 
 
-#ifndef PIF_TASK_TABLE_SIZE
-#define PIF_TASK_TABLE_SIZE			32
-#endif
-
 #define DISALLOW_YIELD_ID_NONE		0
 
 
@@ -20,7 +16,6 @@ typedef enum EnPifTaskMode
 	TM_SUB_MASK			= 0x0E,
 	TM_UNIT_MASK		= 0x01,
 
-	TM_RATIO			= 0x02,
 	TM_ALWAYS			= 0x04,
 	TM_TIMER			= 0x08,		// Do not use it for other purposes because it is a mode used by the timer.
 
@@ -60,7 +55,6 @@ struct StPifTask
 	PifId _id;
 	PifTaskMode _mode;
 	BOOL _running;
-	uint16_t _unit;					// us : 1, ms : 1000
 	uint32_t _default_period;
 	uint32_t _delta_time;
 	void *_p_client;
@@ -76,7 +70,7 @@ struct StPifTask
 	uint32_t __period;
 	BOOL __trigger;
 	int __table_number;
-	uint16_t __delay_ms;
+	uint32_t __delay_us;
 	uint32_t __current_time;
 	uint32_t __pretime;
 	uint32_t __trigger_time;
@@ -293,16 +287,6 @@ void pifTaskManager_AllTask(void (*callback)(PifTask *p_task));
  * @brief Task 할당 정보를 출력한다.
  */
 void pifTaskManager_Print();
-
-#ifdef PIF_DEBUG
-
-/**
- * @fn pifTaskManager_PrintRatioTable
- * @brief Task의 Ratio Table을 출력한다.
- */
-void pifTaskManager_PrintRatioTable();
-
-#endif	// PIF_DEBUG
 
 #endif	// PIF_NO_LOG
 

@@ -79,6 +79,7 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 				p_owner->parent._error_frames++;
 				p_owner->__index = 0;
 			}
+			return;
 		}
 	}
 }

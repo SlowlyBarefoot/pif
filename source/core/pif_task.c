@@ -5,7 +5,6 @@
 #include <string.h>
 
 
-#define PIF_TASK_TABLE_MASK		(PIF_TASK_TABLE_SIZE - 1)
 #define PIF_TASK_STACK_SIZE		5
 
 
@@ -22,66 +21,15 @@ static int s_task_stack_ptr = 0;
 static PifTask* s_task_cutin = NULL;
 static PifTask *s_current_task = NULL;
 
-static uint32_t s_table_number;
-static uint32_t s_table[PIF_TASK_TABLE_SIZE];
-static uint8_t s_number = 0;
-
 static uint32_t s_loop_count = 0UL, s_pass_count = 0UL;
 
 
-static int _setTable(uint16_t period, PifTaskMode* p_mode)
-{
-	uint32_t gap, index, bit;
-	static int base = 0;
-	int i, count, num = -1;
-
-	for (i = 0; i < PIF_TASK_TABLE_SIZE; i++) {
-		if (!(s_table_number & (1 << i))) {
-			num = i;
-			break;
-		}
-	}
-	if (num == -1) {
-		pif_error = E_OVERFLOW_BUFFER;
-		return -1;
-	}
-	bit = 1 << num;
-	s_table_number |= bit;
-
-	count = PIF_TASK_TABLE_SIZE * period;
-	gap = 10000L * PIF_TASK_TABLE_SIZE / count;
-	if (gap > 100) {
-		index = 100 * base;
-		for (i = 0; i < count / 100; i++) {
-			s_table[(index / 100) & PIF_TASK_TABLE_MASK] |= bit;
-			index += gap;
-		}
-		base++;
-	}
-	else {
-		*p_mode = TM_ALWAYS;
-	}
-	return num;
-}
-
-static void _resetTable(int number)
-{
-	int i;
-	uint32_t mask;
-
-	mask = ~((uint32_t)1 << number);
-	for (i = 0; i < PIF_TASK_TABLE_SIZE; i++) {
-		s_table[i] &= mask;
-	}
-	s_table_number &= mask;
-}
-
 static PifTask* _processingAlways(PifTask* p_owner)
 {
-	if (p_owner->__delay_ms) {
-		p_owner->_delta_time = pif_cumulative_timer1ms - p_owner->__pretime;
-		if (p_owner->_delta_time >= p_owner->__delay_ms) {
-			p_owner->__delay_ms = 0;
+	if (p_owner->__delay_us) {
+		p_owner->_delta_time = (*pif_act_timer1us)() - p_owner->__pretime;
+		if (p_owner->_delta_time >= p_owner->__delay_us) {
+			p_owner->__delay_us = 0;
 		}
 		return NULL;
 	}
@@ -101,47 +49,9 @@ static PifTask* _processingPeriod(PifTask* p_owner)
 	return NULL;
 }
 
-static PifTask* _processingRatio(PifTask* p_owner)
-{
-#ifdef PIF_DEBUG
-	uint32_t time;
-	static uint32_t pretime;
-#endif
-
-	if (p_owner->__delay_ms) {
-		p_owner->_delta_time = pif_cumulative_timer1ms - p_owner->__pretime;
-		if (p_owner->_delta_time >= p_owner->__delay_ms) {
-			p_owner->__delay_ms = 0;
-		}
-	}
-	else if (s_table[s_number] & (1 << p_owner->__table_number)) {
-#ifdef PIF_DEBUG
-		time = pif_timer1sec;
-		if (time != pretime) {
-			p_owner->__ratio_period = 1000000.0 / p_owner->__ratio_count;
-			p_owner->__ratio_count = 0;
-			pretime = time;
-		}
-		p_owner->__ratio_count++;
-#endif
-		return p_owner;
-	}
-	return NULL;
-}
-
 static BOOL _checkParam(PifTaskMode* p_mode, uint32_t period)
 {
 	switch (*p_mode) {
-    case TM_RATIO:
-    	if (!period || period > 100) {
-    		pif_error = E_INVALID_PARAM;
-		    return FALSE;
-    	}
-    	else if (period == 100) {
-    		*p_mode = TM_ALWAYS;
-    	}
-    	break;
-
     case TM_PERIOD:
     case TM_IDLE:
     	if (!period) {
@@ -168,23 +78,8 @@ static BOOL _checkParam(PifTaskMode* p_mode, uint32_t period)
 
 static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint32_t period)
 {
-	int num = -1;
-
-	if (mode == TM_RATIO) {
-    	num = _setTable(period, &mode);
-    	if (num == -1) return FALSE;
-	}
-
-	p_owner->_unit = 1000;
-
     switch (mode) {
-    case TM_RATIO:
-    	p_owner->__table_number = num;
-    	p_owner->__processing = _processingRatio;
-    	break;
-
     case TM_ALWAYS:
-    	period = 100;
     	p_owner->__processing = _processingAlways;
     	break;
 
@@ -192,7 +87,6 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint32_t period)
     case TM_IDLE:
     	p_owner->__pretime = (*pif_act_timer1us)();
     	p_owner->__processing = _processingPeriod;
-		p_owner->_unit = 1;
     	break;
 
 	case TM_EXTERNAL_CUTIN:
@@ -282,7 +176,7 @@ static void _processingTask(PifTask* p_owner, BOOL trigger)
 	execute_time = (*pif_act_timer1us)() - start_time;
 	p_owner->_total_execution_time += execute_time;
 	if (execute_time > p_owner->_max_execution_time) p_owner->_max_execution_time = execute_time;
-	p_owner->__total_delta_time[p_owner->__execute_index] += p_owner->_delta_time * p_owner->_unit;
+	p_owner->__total_delta_time[p_owner->__execute_index] += p_owner->_delta_time;
 	p_owner->__sum_execution_time[p_owner->__execute_index] += execute_time;
 	p_owner->__execution_count++;
 	if (p_owner->__execution_count == 200) {
@@ -393,16 +287,6 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint32_t period)
 
 	if (!_checkParam(&mode, period)) return FALSE;
 
-	switch (p_owner->_mode) {
-	case TM_RATIO:
-	case TM_ALWAYS:
-		_resetTable(p_owner->__table_number);
-		break;
-
-	default:
-		break;
-	}
-
 	if (!_setParam(p_owner, mode, period)) return FALSE;
 
     return TRUE;
@@ -439,10 +323,9 @@ BOOL pifTask_SetTrigger(PifTask* p_owner)
 void pifTask_DelayMs(PifTask* p_owner, uint16_t delay)
 {
 	switch (p_owner->_mode) {
-	case TM_RATIO:
 	case TM_ALWAYS:
-		p_owner->__delay_ms = delay;
-    	p_owner->__pretime = pif_cumulative_timer1ms;
+		p_owner->__delay_us = delay * 1000;
+    	p_owner->__pretime = (*pif_act_timer1us)();
 		break;
 
 	default:
@@ -482,9 +365,6 @@ BOOL pifTaskManager_Init(int max_count)
 
 	if (!pifObjArray_Init(&s_tasks, sizeof(PifTask), max_count, NULL)) return FALSE;
 	s_it_current = NULL;
-
-	s_table_number = 0L;
-	memset(s_table, 0, sizeof(s_table));
 	return TRUE;
 }
 
@@ -527,15 +407,6 @@ void pifTaskManager_Remove(PifTask* p_task)
 {
 	if (p_task == (PifTask*)s_it_current->data) s_it_current = NULL;
 
-	switch (p_task->_mode) {
-	case TM_RATIO:
-	case TM_ALWAYS:
-		_resetTable(p_task->__table_number);
-		break;
-
-	default:
-		break;
-	}
 	pifObjArray_Remove(&s_tasks, p_task);
 
 	if (!pifObjArray_Count(&s_tasks)) s_it_current = NULL;
@@ -813,7 +684,6 @@ void pifTaskManager_Print()
 			pifLog_Print(LT_NONE, "  ---");
 		}
 		switch (p_owner->_mode) {
-			case TM_RATIO: mode = "Ratio"; break;
 			case TM_ALWAYS: mode = "Always"; break;
 			case TM_PERIOD: mode = "Period"; break;
 			case TM_EXTERNAL_CUTIN: mode = "ExtCutin"; break;
@@ -822,7 +692,12 @@ void pifTaskManager_Print()
 			case TM_IDLE: mode = "Idle"; break;
 	        default: mode = "---"; break;
 		}
-		pifLog_Printf(LT_NONE, " (%u): %s-%lu\n", p_owner->_id, mode, p_owner->_default_period);
+		if (p_owner->_default_period < 1000) {
+			pifLog_Printf(LT_NONE, " (%u): %s-%luus\n", p_owner->_id, mode, p_owner->_default_period);
+		}
+		else {
+			pifLog_Printf(LT_NONE, " (%u): %s-%1fms\n", p_owner->_id, mode, p_owner->_default_period / 1000.0);
+		}
 #ifdef PIF_USE_TASK_STATISTICS
 		value = p_owner->__sum_execution_time[0] + p_owner->__sum_execution_time[1];
 		pifLog_Printf(LT_NONE, "    Proc: M=%ldus A=%luus T=%lums\n", p_owner->_max_execution_time,
@@ -843,19 +718,5 @@ void pifTaskManager_Print()
 		it = pifObjArray_Next(it);
 	}
 }
-
-#ifdef PIF_DEBUG
-
-void pifTaskManager_PrintRatioTable()
-{
-	int i;
-
-	pifLog_Printf(LT_INFO, "Task Ratio Table Size=%d", PIF_TASK_TABLE_SIZE);
-	for (i = 0; i < PIF_TASK_TABLE_SIZE; i++) {
-		pifLog_Printf(LT_NONE, "\n %3d : %8lX", i, s_table[i]);
-	}
-}
-
-#endif	// PIF_DEBUG
 
 #endif	// PIF_NO_LOG

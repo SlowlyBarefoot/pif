@@ -64,7 +64,7 @@ static void _ParsingPacket(PifRcIbus *p_owner, PifActUartReceiveData act_receive
 				p_owner->parent._error_frames++;
 				p_owner->__rx_state = IRS_GET_LENGTH;
 			}
-			break;
+			return;
 
 		default:
 			break;

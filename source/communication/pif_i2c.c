@@ -86,7 +86,7 @@ void pifI2cPort_ScanAddress(PifI2cPort* p_owner)
 			pifLog_Printf(LT_INFO, "I2C Addr:%Xh %u", i, data);
 			count++;
 		}
-		pif_Delay1ms(10);
+		pifTaskManager_YieldMs(10);
 	}
 	if (count) {
 		pifLog_Printf(LT_INFO, "I2C %d found", count);
