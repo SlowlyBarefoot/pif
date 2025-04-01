@@ -69,11 +69,14 @@ struct StPifTask
 	PifTaskProcessing __processing;
 	uint32_t __period;
 	BOOL __trigger;
+	BOOL __set_trigger;
 	int __table_number;
 	uint32_t __delay_us;
 	uint32_t __current_time;
 	uint32_t __pretime;
 	uint32_t __trigger_time;
+	uint32_t __trigger_delay;
+	uint32_t __set_trigger_delay;
 #ifdef PIF_USE_TASK_STATISTICS
 	uint32_t __total_delta_time[2];
     uint32_t __sum_execution_time[2];
@@ -133,15 +136,16 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period);
  * @fn pifTask_SetTrigger
  * @brief 
  * @param p_owner Task 자신
+ * @param delay
  * @return 
  */
-BOOL pifTask_SetTrigger(PifTask* p_owner);
+BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay);
 
 /**
  * @fn pifTask_DelayMs
  * @brief ms단위의 일정 시간동안 Task를 정지시킨다.
  * @param p_owner Task 자신
- * @param 정지시킬 시
+ * @param delay 정지시킬 시간
  */
 void pifTask_DelayMs(PifTask* p_owner, uint16_t delay);
 

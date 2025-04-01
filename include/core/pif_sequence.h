@@ -6,31 +6,12 @@
 #include "core/pif_timer.h"
 
 
-#define PIF_SEQUENCE_PHASE_NO_IDLE	0xFF
-
-#define PIF_SEQUENCE_STEP_INIT		0
-
-
-typedef enum EnPifSequenceResult
-{
-    SR_CONTINUE			= 1,
-    SR_NEXT				= 2,
-    SR_FINISH			= 3
-} PifSequenceResult;
-
-
 struct StPifSequence;
 typedef struct StPifSequence PifSequence;
 
-typedef PifSequenceResult (*PifSequenceProcess)(PifSequence* p_owner);
+typedef void (*PifSequenceProcess)(PifSequence* p_owner);
 typedef void (*PifEvtSequenceError)(PifSequence* p_owner);
 
-
-typedef struct StPifSequencePhase
-{
-	PifSequenceProcess process;
-	uint8_t phase_no_next;
-} PifSequencePhase;
 
 #ifdef PIF_COLLECT_SIGNAL
 
@@ -58,9 +39,6 @@ typedef struct StPifSequenceColSig
 struct StPifSequence
 {
 	// Public Member Variable
-	uint8_t step;
-	uint8_t phase_no_next;
-	uint32_t delay1us;
 	void* p_param;
 
     // Public Event Function
@@ -68,14 +46,14 @@ struct StPifSequence
 
 	// Read-only Member Variable
 	PifId _id;
-	uint8_t _phase_no;
 
 	// Private Member Variable
 	PifTask* __p_task;
 	PifTimerManager* __p_timer_manager;
-	const PifSequencePhase* __p_phase_list;
-	PifTimer* __p_timer_timeout;
-	uint32_t __target_delay;
+	PifTimer *__p_timer_timeout;
+	PifSequenceProcess __process;
+	PifSequenceProcess __next_process;
+	PifTimer* __p_timer;
 #ifdef PIF_COLLECT_SIGNAL
 	PifSequenceColSig* __p_colsig;
 #endif
@@ -92,13 +70,10 @@ extern "C" {
  * @param p_owner
  * @param id
  * @param p_timer_manager
- * @param control_period1ms
- * @param p_phase_list
  * @param p_param
  * @return Sequence 구조체 포인터를 반환한다.
  */
-BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t control_period1ms,
-		const PifSequencePhase* p_phase_list, void* p_param);
+BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_manager, void* p_param);
 
 /**
  * @fn pifSequence_Clear
@@ -108,20 +83,48 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_m
 void pifSequence_Clear(PifSequence* p_owner);
 
 /**
+ * @fn pifSequence_IsRunning
+ * @brief
+ * @param p_owner
+ * @return
+ */
+BOOL pifSequence_IsRunning(PifSequence *p_owner);
+
+/**
  * @fn pifSequence_Start
  * @brief
  * @param p_owner
- */
-void pifSequence_Start(PifSequence* p_owner);
-
-/**
- * @fn pifSequence_SetTimeout
- * @brief
- * @param p_owner
- * @param timeout
+ * @param process
  * @return
  */
-BOOL pifSequence_SetTimeout(PifSequence* p_owner, uint16_t timeout);
+BOOL pifSequence_Start(PifSequence *p_owner, PifSequenceProcess process);
+
+/**
+ * @fn pifSequence_NextDelay
+ * @brief
+ * @param p_owner
+ * @param process
+ * @param delay1ms
+ * @return
+ */
+BOOL pifSequence_NextDelay(PifSequence *p_owner, PifSequenceProcess process, uint16_t delay1ms);
+
+/**
+ * @fn pifSequence_NextEvent
+ * @brief
+ * @param p_owner
+ * @param process
+ * @param timeout1ms
+ * @return
+ */
+BOOL pifSequence_NextEvent(PifSequence *p_owner, PifSequenceProcess process, uint16_t timeout1ms);
+
+/**
+ * @fn pifSequence_TriggerEvent
+ * @brief
+ * @param p_owner
+ */
+void pifSequence_TriggerEvent(PifSequence *p_owner);
 
 
 #ifdef PIF_COLLECT_SIGNAL

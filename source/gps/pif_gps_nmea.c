@@ -58,7 +58,7 @@ static uint32_t _doTask(PifTask* p_task)
 		pifGps_ParsingNmea(&p_owner->_gps, data[i]);
 	}
 	p_owner->__length -= size;
-	if (p_owner->__length) pifTask_SetTrigger(p_task);
+	if (p_owner->__length) pifTask_SetTrigger(p_task, 0);
 #ifndef PIF_NO_LOG
 	else {
 		pifLog_Printf(LT_INFO, "GN(%u): End T=%ld ms", __LINE__, pif_cumulative_timer1ms - timer1ms);

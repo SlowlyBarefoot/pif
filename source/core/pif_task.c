@@ -308,16 +308,20 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period)
 	return TRUE;
 }
 
-BOOL pifTask_SetTrigger(PifTask* p_owner)
+BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay)
 {
-	if (p_owner) {
-		if (p_owner->__trigger) return TRUE;
+	if (!p_owner) return FALSE;
 
+	if (p_owner->__trigger) {
+		p_owner->__set_trigger = TRUE;
+		p_owner->__set_trigger_delay = delay;
+	}
+	else {
 		p_owner->__trigger_time = (*pif_act_timer1us)();
 		p_owner->__trigger = TRUE;
-		return TRUE;
+		p_owner->__trigger_delay = delay;
 	}
-	return FALSE;
+	return TRUE;
 }
 
 void pifTask_DelayMs(PifTask* p_owner, uint16_t delay)
@@ -429,6 +433,7 @@ void pifTaskManager_Loop()
 	PifTask* p_select = NULL;
 	PifObjArrayIterator it_idle = NULL;
 	int i, n, t = 0, count = pifObjArray_Count(&s_tasks);
+	uint32_t diff;
 	BOOL trigger = FALSE;
 
 	pif_timer1us = (*pif_act_timer1us)();
@@ -451,12 +456,18 @@ void pifTaskManager_Loop()
 			p_owner = (PifTask*)s_it_current->data;
 
 			if (p_owner->__trigger) {
-				p_owner->__trigger = FALSE;
-				_processingTrigger(p_owner);
-				p_select = p_owner;
-				trigger = TRUE;
+				if (p_owner->__trigger_delay) {
+					diff = pif_timer1us - p_owner->__trigger_time;
+					if (diff >= p_owner->__trigger_delay) p_owner->__trigger_delay = 0;
+				}
+				if (!p_owner->__trigger_delay) {
+					p_owner->__trigger = FALSE;
+					_processingTrigger(p_owner);
+					p_select = p_owner;
+					trigger = TRUE;
+				}
 			}
-			else if (!p_owner->pause) {
+			if (!p_select && !p_owner->pause) {
 				if (p_owner->_mode == TM_TIMER) {
 					(*p_owner->__evt_loop)(p_owner);
 					t++;
@@ -508,6 +519,7 @@ void pifTaskManager_Yield()
 	PifTask* p_select = NULL;
 	PifObjArrayIterator it_idle = NULL;
 	int i, k, n, t = 0, count = pifObjArray_Count(&s_tasks);
+	uint32_t diff;
 	BOOL trigger = FALSE;
 
 	pif_timer1us = (*pif_act_timer1us)();
@@ -538,12 +550,18 @@ void pifTaskManager_Yield()
 			}
 
 			if (p_owner->__trigger) {
-				p_owner->__trigger = FALSE;
-				_processingTrigger(p_owner);
-				p_select = p_owner;
-				trigger = TRUE;
+				if (p_owner->__trigger_delay) {
+					diff = pif_timer1us - p_owner->__trigger_time;
+					if (diff >= p_owner->__trigger_delay) p_owner->__trigger_delay = 0;
+				}
+				if (!p_owner->__trigger_delay) {
+					p_owner->__trigger = FALSE;
+					_processingTrigger(p_owner);
+					p_select = p_owner;
+					trigger = TRUE;
+				}
 			}
-			else if (!p_owner->pause) {
+			if (!p_select && !p_owner->pause) {
 				if (p_owner->_mode == TM_TIMER) {
 					(*p_owner->__evt_loop)(p_owner);
 					t++;

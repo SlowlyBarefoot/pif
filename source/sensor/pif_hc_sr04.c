@@ -95,7 +95,7 @@ void pifHcSr04_sigReceiveEcho(PifHcSr04* p_owner, SWITCH state)
 		if (!state) {
 			p_owner->__distance = ((*pif_act_timer1us)() - p_owner->__tigger_time_us) / p_owner->_transform_const;
 			p_owner->__state = HSS_LOW;
-			pifTask_SetTrigger(p_owner->_p_task);
+			pifTask_SetTrigger(p_owner->_p_task, 0);
 		}
 		break;
 

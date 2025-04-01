@@ -128,8 +128,8 @@ uint16_t pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner)
 	}
 
 	if (p_owner->__state != p_parent->_curr_state) {
-		if (p_parent->evt_change) {
-			(*p_parent->evt_change)(p_parent, p_owner->__state, NULL, p_parent->p_issuer);
+		if (p_parent->__evt_change) {
+			(*p_parent->__evt_change)(p_parent, p_owner->__state, NULL, p_parent->__p_issuer);
 #ifdef PIF_COLLECT_SIGNAL
 			if (p_owner->__p_colsig->flag & SS_CSF_FILTER_BIT) {
 				pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SS_CSF_FILTER_IDX], p_owner->__state);

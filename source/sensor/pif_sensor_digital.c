@@ -125,11 +125,11 @@ uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner)
 		pifSensorDigital_sigData(p_owner, (*p_parent->__act_acquire)(p_parent));
 	}
 
-	if (p_parent->evt_change) {
+	if (p_parent->__evt_change) {
 		if (p_parent->_curr_state) {
 			if (p_owner->__curr_level <= p_owner->__low_threshold) {
 				p_parent->_curr_state = OFF;
-				(*p_parent->evt_change)(p_parent, p_parent->_curr_state, &p_owner->__curr_level, p_parent->p_issuer);
+				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, &p_owner->__curr_level, p_parent->__p_issuer);
 #ifdef PIF_COLLECT_SIGNAL
 				if (p_owner->__p_colsig->flag & SD_CSF_STATE_BIT) {
 					pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SD_CSF_STATE_IDX], p_parent->_curr_state);
@@ -140,7 +140,7 @@ uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner)
 		else {
 			if (p_owner->__curr_level >= p_owner->__high_threshold) {
 				p_parent->_curr_state = ON;
-				(*p_parent->evt_change)(p_parent, p_parent->_curr_state, &p_owner->__curr_level, p_parent->p_issuer);
+				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, &p_owner->__curr_level, p_parent->__p_issuer);
 #ifdef PIF_COLLECT_SIGNAL
 				if (p_owner->__p_colsig->flag & SD_CSF_STATE_BIT) {
 					pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SD_CSF_STATE_IDX], p_parent->_curr_state);

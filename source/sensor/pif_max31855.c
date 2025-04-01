@@ -20,11 +20,11 @@ static uint32_t _doTask(PifTask* p_task)
 
 	if (!pifMax31855_Measure(p_owner, &temperature, NULL)) return 0;
 
-	if (p_parent->evt_change) {
+	if (p_parent->__evt_change) {
 		if (p_parent->_curr_state) {
 			if (temperature < p_owner->__low_threshold) {
 				p_parent->_curr_state = OFF;
-				(*p_parent->evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->p_issuer);
+				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->__p_issuer);
 #ifdef PIF_COLLECT_SIGNAL
 				if (p_owner->__p_colsig->flag & M3_CSF_STATE_BIT) {
 					pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[M3_CSF_STATE_IDX], p_parent->_curr_state);
@@ -35,7 +35,7 @@ static uint32_t _doTask(PifTask* p_task)
 		else {
 			if (temperature >= p_owner->__high_threshold) {
 				p_parent->_curr_state = ON;
-				(*p_parent->evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->p_issuer);
+				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->__p_issuer);
 #ifdef PIF_COLLECT_SIGNAL
 				if (p_owner->__p_colsig->flag & M3_CSF_STATE_BIT) {
 					pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[M3_CSF_STATE_IDX], p_parent->_curr_state);
@@ -46,7 +46,7 @@ static uint32_t _doTask(PifTask* p_task)
 	}
 
 	if (p_owner->__evt_measure) {
-		(*p_owner->__evt_measure)(p_owner, temperature, p_parent->p_issuer);
+		(*p_owner->__evt_measure)(p_owner, temperature, p_owner->__p_issuer);
 	}
 	return 0;
 }
@@ -169,7 +169,7 @@ BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_
 	return TRUE;
 }
 
-BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifEvtMax31855Measure evt_measure)
+BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifEvtMax31855Measure evt_measure, PifIssuerP p_issuer)
 {
 	if (!p_owner || !period1ms) {
 		pif_error = E_INVALID_PARAM;
@@ -181,6 +181,7 @@ BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifE
 	p_owner->_p_task->name = "MAX31855";
 
 	p_owner->__evt_measure = evt_measure;
+	p_owner->__p_issuer = p_issuer;
 	return TRUE;
 }
 

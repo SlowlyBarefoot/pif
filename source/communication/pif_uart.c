@@ -242,7 +242,7 @@ BOOL pifUart_PutRxByte(PifUart* p_owner, uint8_t data)
 
 	if (!pifRingBuffer_PutByte(p_owner->_p_rx_buffer, data)) return FALSE;
 	if (pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) >= p_owner->__rx_threshold) {
-		pifTask_SetTrigger(p_owner->_p_task);
+		pifTask_SetTrigger(p_owner->_p_task, 0);
 	}
 	return TRUE;
 }
@@ -253,7 +253,7 @@ BOOL pifUart_PutRxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 
 	if (!pifRingBuffer_PutData(p_owner->_p_rx_buffer, p_data, length)) return FALSE;
 	if (pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) >= p_owner->__rx_threshold) {
-		pifTask_SetTrigger(p_owner->_p_task);
+		pifTask_SetTrigger(p_owner->_p_task, 0);
 	}
 	return TRUE;
 }
@@ -314,7 +314,7 @@ uint16_t pifUart_ReceiveRxData(PifUart* p_owner, uint8_t* p_data, uint16_t lengt
 	else if (p_owner->_p_rx_buffer) {
 		len = pifRingBuffer_CopyToArray(p_data, length, p_owner->_p_rx_buffer, 0);
 		if (pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) >= p_owner->__rx_threshold) {
-			pifTask_SetTrigger(p_owner->_p_task);
+			pifTask_SetTrigger(p_owner->_p_task, 0);
 		}
 		return len;
 	}

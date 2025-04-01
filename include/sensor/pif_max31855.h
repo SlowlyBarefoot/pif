@@ -57,6 +57,7 @@ typedef struct StPifMax31855
 	// Private Member Variable
 	double __low_threshold;
 	double __high_threshold;
+    PifIssuerP __p_issuer;
 
 #ifdef PIF_COLLECT_SIGNAL
     PifMax31855ColSig* __p_colsig;
@@ -105,9 +106,10 @@ BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_
  * @param p_owner
  * @param period1ms Mode에 따라 주기의 단위가 변경된다.
  * @param evt_measure
+ * @param p_issuer
  * @return
  */
-BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifEvtMax31855Measure evt_measure);
+BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifEvtMax31855Measure evt_measure, PifIssuerP p_issuer);
 
 /**
  * @fn pifMax31855_StopMeasurement

@@ -354,7 +354,7 @@ static uint32_t _doTask(PifTask* p_task)
 		_parsingPacket(p_owner, data[i]);
 	}
 	p_owner->__length -= size;
-	if (p_owner->__length) pifTask_SetTrigger(p_task);
+	if (p_owner->__length) pifTask_SetTrigger(p_task, 0);
 #ifndef PIF_NO_LOG
 	else {
 		pifLog_Printf(LT_INFO, "GU(%u): End T=%ld ms", __LINE__, pif_cumulative_timer1ms - timer1ms);
@@ -411,7 +411,7 @@ static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, uint16_t waiting
 	pifRingBuffer_CommitPutting(&p_owner->__tx.buffer);
 
 	if (p_owner->__p_uart) {
-		pifTask_SetTrigger(p_owner->__p_uart->_p_task);
+		pifTask_SetTrigger(p_owner->__p_uart->_p_task, 0);
 
 		pifTaskManager_YieldAbortMs(waiting, _checkAbortSerial, p_owner);
 	}
@@ -484,7 +484,7 @@ static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t len
 	pifRingBuffer_CommitPutting(&p_owner->__tx.buffer);
 
 	if (p_owner->__p_uart) {
-		pifTask_SetTrigger(p_owner->__p_uart->_p_task);
+		pifTask_SetTrigger(p_owner->__p_uart->_p_task, 0);
 
 		if (p_owner->_request_state == GURS_SEND) {
 			pifTaskManager_YieldAbortMs(waiting, _checkAbortSerialResponse, p_owner);

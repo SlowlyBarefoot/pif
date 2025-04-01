@@ -922,5 +922,5 @@ void pifBasic_Execute(char* p_program, int opcode)
 	s_basic.__p_program = p_program;
 	if (opcode > 0) s_basic.__opcode = opcode;
 	else s_basic.__opcode = PIF_BASIC_OPCODE;
-	pifTask_SetTrigger(s_basic._p_task);
+	pifTask_SetTrigger(s_basic._p_task, 0);
 }
