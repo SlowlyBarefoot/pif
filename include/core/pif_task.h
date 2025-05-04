@@ -69,14 +69,12 @@ struct StPifTask
 	PifTaskProcessing __processing;
 	uint32_t __period;
 	BOOL __trigger;
-	BOOL __set_trigger;
 	int __table_number;
 	uint32_t __delay_us;
 	uint32_t __current_time;
 	uint32_t __pretime;
 	uint32_t __trigger_time;
 	uint32_t __trigger_delay;
-	uint32_t __set_trigger_delay;
 #ifdef PIF_USE_TASK_STATISTICS
 	uint32_t __total_delta_time[2];
     uint32_t __sum_execution_time[2];
@@ -85,10 +83,6 @@ struct StPifTask
 	uint16_t __trigger_count;
 	uint8_t __execute_index;
 	uint8_t __trigger_index;
-#endif
-#ifdef PIF_DEBUG
-	uint32_t __ratio_count;
-	float __ratio_period;
 #endif
 
 	// Private Event Function

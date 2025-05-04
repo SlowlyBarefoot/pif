@@ -37,7 +37,6 @@ typedef struct StPifModbusAsciiMaster
 	PifUart *__p_uart;
 	PifTimer *__p_timer;
 	uint16_t __timeout;
-	uint16_t __interval;
 	uint8_t __buffer[520];
 	uint16_t length;
 	uint16_t index;

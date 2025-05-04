@@ -94,7 +94,7 @@ fail:
 	p_owner->__rx_state = MBRS_ERROR;
 }
 
-static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifModbusAsciiMaster *p_owner = (PifModbusAsciiMaster *)p_client;
 
@@ -111,12 +111,13 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 		break;
 
 	default:
-		return;
+		return FALSE;
 	}
 
 	pifTimer_Stop(p_owner->__p_timer);
 	p_owner->__rx_state = MBRS_IDLE;
 	p_owner->__state = MBMS_FINISH;
+	return TRUE;
 }
 
 static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
@@ -132,11 +133,11 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 		if (p_owner->index >= p_owner->length) {
 			p_owner->__state = p_owner->__p_uart->__act_direction ? MBMS_REQUEST_WAIT : MBMS_RESPONSE;
 		}
-		period = p_owner->__interval;
+		period = 1;
 		break;
 
 	case MBMS_REQUEST_WAIT:
-		period = p_owner->__interval;
+		period = 1;
 		if (pifUart_CheckTxTransfer(p_owner->__p_uart)) {
 			p_owner->__state = MBMS_REQUEST_DELAY;
 			period *= 2;
@@ -187,17 +188,18 @@ static BOOL _requestAndResponse(PifModbusAsciiMaster *p_owner, uint16_t len)
 	p_owner->length = len;
 	p_owner->index = 0;
 	p_owner->__state = MBMS_REQUEST;
+	pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
 
 	while (1) {
 		if (p_owner->__state == MBMS_RESPONSE) break;
 		else if (p_owner->__state == MBMS_ERROR) goto fail;
-		pifTaskManager_YieldUs(p_owner->__interval);
+		pifTaskManager_YieldUs(p_owner->__p_uart->_transfer_time);
 	}
 
 	while (1) {
 		if (p_owner->__state == MBMS_FINISH)  break;
 		else if (p_owner->__state == MBMS_ERROR) goto fail;
-		pifTaskManager_YieldUs(p_owner->__interval);
+		pifTaskManager_YieldUs(p_owner->__p_uart->_transfer_time);
 	}
 
 fail:
@@ -248,7 +250,6 @@ void pifModbusAsciiMaster_SetResponseTimeout(PifModbusAsciiMaster *p_owner, uint
 void pifModbusAsciiMaster_AttachUart(PifModbusAsciiMaster *p_owner, PifUart *p_uart)
 {
 	p_owner->__p_uart = p_uart;
-    p_owner->__interval = 1000000L / (p_uart->_baudrate / 10);
 	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
 }
 

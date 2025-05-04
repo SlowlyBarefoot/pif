@@ -199,13 +199,27 @@ static void _processingTask(PifTask* p_owner, BOOL trigger)
     if (pif_act_task_signal) (*pif_act_task_signal)(FALSE);
 #endif
 
-	if (p_owner->_mode == TM_PERIOD) {
+	switch (p_owner->_mode) {
+	case TM_PERIOD:
 		if (period > 0) {
 			p_owner->__period = period;
 		}
 		else {
 			p_owner->__period = p_owner->_default_period;
 		}
+		break;
+
+	case TM_EXTERNAL_CUTIN:
+	case TM_EXTERNAL_ORDER:
+		if (period > 0) {
+			p_owner->__trigger_time = (*pif_act_timer1us)();
+			p_owner->__trigger = TRUE;
+			p_owner->__trigger_delay = period;
+		}
+		break;
+
+	default:
+		break;
 	}
 }
 
@@ -312,15 +326,9 @@ BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay)
 {
 	if (!p_owner) return FALSE;
 
-	if (p_owner->__trigger) {
-		p_owner->__set_trigger = TRUE;
-		p_owner->__set_trigger_delay = delay;
-	}
-	else {
-		p_owner->__trigger_time = (*pif_act_timer1us)();
-		p_owner->__trigger = TRUE;
-		p_owner->__trigger_delay = delay;
-	}
+	p_owner->__trigger_time = (*pif_act_timer1us)();
+	p_owner->__trigger = TRUE;
+	p_owner->__trigger_delay = delay;
 	return TRUE;
 }
 
@@ -711,10 +719,10 @@ void pifTaskManager_Print()
 	        default: mode = "---"; break;
 		}
 		if (p_owner->_default_period < 1000) {
-			pifLog_Printf(LT_NONE, " (%u): %s-%luus\n", p_owner->_id, mode, p_owner->_default_period);
+			pifLog_Printf(LT_NONE, " (%u): %s-%luus Pause=%d\n", p_owner->_id, mode, p_owner->_default_period, p_owner->pause);
 		}
 		else {
-			pifLog_Printf(LT_NONE, " (%u): %s-%1fms\n", p_owner->_id, mode, p_owner->_default_period / 1000.0);
+			pifLog_Printf(LT_NONE, " (%u): %s-%1fms Pause=%d\n", p_owner->_id, mode, p_owner->_default_period / 1000.0, p_owner->pause);
 		}
 #ifdef PIF_USE_TASK_STATISTICS
 		value = p_owner->__sum_execution_time[0] + p_owner->__sum_execution_time[1];

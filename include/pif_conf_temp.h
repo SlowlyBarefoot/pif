@@ -37,8 +37,6 @@
 //#define PIF_LOG_COMMAND
 
 //#define PIF_LOG_LINE_SIZE					80
-//#define PIF_LOG_RX_BUFFER_SIZE			32
-//#define PIF_LOG_TX_BUFFER_SIZE			80
 
 
 // -------- pifModbus ----------------------------
@@ -52,25 +50,6 @@
 // pifModbus[Rtu/Ascii]Slave_Init에서 받은 타이머의 단위를 곱한 시간
 // 기본값은 300이고 타이머 단위가 1ms이기에 300 * 1ms = 300ms이다.
 //#define PIF_MODBUS_SLAVE_TIMEOUT  	    300
-
-
-// -------- pifProtocol --------------------------
-
-//#define PIF_PROTOCOL_RX_PACKET_SIZE		32
-//#define PIF_PROTOCOL_TX_REQUEST_SIZE		64
-//#define PIF_PROTOCOL_TX_ANSWER_SIZE		32
-
-// 한 packet을 전부 받는 시간 제한
-// 0 : 제한없음
-// 1이상 : pifProtocol_Init에서 받은 타이머의 단위를 곱한 시간
-//         기본값은 50이고 타이머 단위가 1ms이면 50 * 1ms = 50ms이다.
-//#define PIF_PROTOCOL_RECEIVE_TIMEOUT		50
-
-// Retry하기 전 delay 시간
-// 0 : 제한없음
-// 1이상 : pifProtocol_Init에서 받은 타이머의 단위를 곱한 시간
-//         기본값은 10이고 타이머 단위가 1ms이면 10 * 1ms = 10ms이다.
-//#define PIF_PROTOCOL_RETRY_DELAY			10
 
 
 // -------- pifSrml ------------------------------

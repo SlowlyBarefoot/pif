@@ -45,8 +45,8 @@ const struct {
 };
 const char type_ch[] = { 'I', 'W', 'E', 'C' };
 
-#ifdef PIF_LOG_COMMAND
 
+#ifdef PIF_LOG_COMMAND
 
 int pifLog_CmdHelp(int argc, char *argv[])
 {
@@ -154,7 +154,6 @@ static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_d
 			if (!p_owner->char_idx && tmp_char == ' ') continue;
 			if (p_owner->char_idx < p_owner->rx_buffer_size - 3) {
 				pifRingBuffer_PutByte(p_owner->p_tx_buffer, tmp_char);
-				pifTask_SetTrigger(p_owner->p_uart->_p_task, 0);
 				p_owner->p_rx_buffer[p_owner->char_idx] = tmp_char;
 				p_owner->char_idx++;
             }
@@ -167,7 +166,6 @@ static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_d
 					p_owner->char_idx--;
 					p_owner->p_rx_buffer[p_owner->char_idx] = 0;
 					pifRingBuffer_PutString(p_owner->p_tx_buffer, "\b \b");
-					pifTask_SetTrigger(p_owner->p_uart->_p_task, 0);
 				}
 				break;
 
@@ -206,12 +204,11 @@ static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_d
 	                	pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)cmd->p_name);
 	                	pifRingBuffer_PutByte(p_owner->p_tx_buffer, '\t');
 	                }
-					pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)s_log.p_prompt);
+					pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)p_owner->p_prompt);
 	                i = 0;    /* Redraw prompt */
 	            }
 	            for (; i < p_owner->char_idx; i++)
 	            	pifRingBuffer_PutByte(p_owner->p_tx_buffer, p_owner->p_rx_buffer[i]);
-				pifTask_SetTrigger(p_owner->p_uart->_p_task, 0);
 				break;
 
 			case '\n':		// 0x0A / Line Feed / CTRL-J
@@ -224,8 +221,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_d
 
 			case 0x0C:		// Form Feed, New Page / CTRL-L
 				pifRingBuffer_PutString(p_owner->p_tx_buffer, "\033[2J\033[1;1H");
-				pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)s_log.p_prompt);
-				pifTask_SetTrigger(p_owner->p_uart->_p_task, 0);
+				pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)p_owner->p_prompt);
 				break;
 
 			default:
@@ -240,8 +236,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_d
 				pre_enter = enter;
 			}
 			else if (!pre_enter || enter == pre_enter) {
-				pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)s_log.p_prompt);
-				pifTask_SetTrigger(p_owner->p_uart->_p_task, 0);
+				pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)p_owner->p_prompt);
 				pre_enter = enter;
 			}
 			enter = 0;
@@ -255,7 +250,6 @@ static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_d
             if (p_owner->char_idx) {
 				p_owner->p_rx_buffer[p_owner->char_idx] = 0;
 				pifRingBuffer_PutByte(p_owner->p_tx_buffer, '\n');
-				pifTask_SetTrigger(p_owner->p_uart->_p_task, 0);
 	        	break;
             }
             else {
@@ -263,6 +257,9 @@ static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_d
         	}
         }
     }
+	if (!pifRingBuffer_IsEmpty(p_owner->p_tx_buffer)) {
+		pifTask_SetTrigger(p_owner->p_uart->_p_tx_task, 0);
+	}
     return str_get_done_flag;
 }
 
@@ -312,7 +309,7 @@ static int _processDebugCmd(PifLog* p_owner)
     return PIF_LOG_CMD_NO_ERROR;
 }
 
-static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 {
 	PifLog* p_owner = (PifLog*)p_client;
 
@@ -322,6 +319,7 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
         	pifTask_SetTrigger(p_owner->p_task, 0);
         }
     }
+    return p_owner->cmd_done;
 }
 
 static uint32_t _doTask(PifTask* p_task)
@@ -373,7 +371,7 @@ static uint32_t _doTask(PifTask* p_task)
 	}
 
 	pifRingBuffer_PutString(s_log.p_tx_buffer, (char *)s_log.p_prompt);
-	pifTask_SetTrigger(s_log.p_uart->_p_task, 0);
+	pifTask_SetTrigger(s_log.p_uart->_p_tx_task, 0);
 
 	s_log.cmd_done = FALSE;
 	return 0;
@@ -381,10 +379,12 @@ static uint32_t _doTask(PifTask* p_task)
 
 #else
 
-static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 {
     (void)p_client;
     (void)act_receive_data;
+
+    return FALSE;
 }
 
 #endif
@@ -392,14 +392,14 @@ static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 {
 	PifLog* p_owner = (PifLog*)p_client;
-	uint16_t length;
+	uint16_t length = 0;
 
 	if (!pifRingBuffer_IsEmpty(p_owner->p_tx_buffer)) {
 		length = (*act_send_data)(p_owner->p_uart, pifRingBuffer_GetTailPointer(p_owner->p_tx_buffer, 0),
     			pifRingBuffer_GetLinerSize(p_owner->p_tx_buffer, 0));
 		pifRingBuffer_Remove(p_owner->p_tx_buffer, length);
 	}
-	return 0;
+	return length > 0 ? length : pifRingBuffer_IsEmpty(p_owner->p_tx_buffer);
 }
 
 static void _printLog(char* p_string, BOOL vcd)
@@ -409,9 +409,13 @@ static void _printLog(char* p_string, BOOL vcd)
 	}
 
 	if (s_log.p_uart && (s_log.enable || vcd)) {
-        while (!pifRingBuffer_PutString(s_log.p_tx_buffer, p_string)) {
-        	pifTaskManager_Yield();
+        if (!pifRingBuffer_PutString(s_log.p_tx_buffer, p_string)) {
+            pifTask_SetTrigger(s_log.p_uart->_p_tx_task, 0);
+            while (!pifRingBuffer_PutString(s_log.p_tx_buffer, p_string)) {
+            	pifTaskManager_Yield();
+            }
         }
+        pifTask_SetTrigger(s_log.p_uart->_p_tx_task, 0);
 	}
 }
 
@@ -486,19 +490,19 @@ void pifLog_Clear()
 
 #ifdef PIF_LOG_COMMAND
 
-BOOL pifLog_UseCommand(const PifLogCmdEntry* p_cmd_table, const char* p_prompt)
+BOOL pifLog_UseCommand(uint8_t size, const PifLogCmdEntry* p_cmd_table, const char* p_prompt)
 {
-    if (!p_cmd_table || !p_prompt) {
+    if (!size || !p_cmd_table || !p_prompt) {
     	pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
-    s_log.p_rx_buffer = calloc(sizeof(char), PIF_LOG_RX_BUFFER_SIZE);
+    s_log.p_rx_buffer = calloc(sizeof(char), size);
     if (!s_log.p_rx_buffer) {
         pif_error = E_OUT_OF_HEAP;
 		return FALSE;
     }
-    s_log.rx_buffer_size = PIF_LOG_RX_BUFFER_SIZE;
+    s_log.rx_buffer_size = size;
 
     s_log.p_cmd_table = p_cmd_table;
     s_log.p_prompt = p_prompt;
@@ -597,7 +601,7 @@ void pifLog_PrintInBuffer()
 {
 	uint16_t length;
 
-	if (!s_log.p_uart || !s_log.p_uart->_p_task || !pifRingBuffer_IsBuffer(&s_log.buffer)) return;
+	if (!s_log.p_uart || !s_log.p_uart->_p_tx_task || !pifRingBuffer_IsBuffer(&s_log.buffer)) return;
 
 	while (!pifRingBuffer_IsEmpty(&s_log.buffer)) {
 		while (!pifRingBuffer_IsEmpty(s_log.p_tx_buffer)) {
@@ -605,20 +609,18 @@ void pifLog_PrintInBuffer()
 		}
 		length = pifRingBuffer_CopyAll(s_log.p_tx_buffer, &s_log.buffer, 0);
 		pifRingBuffer_Remove(&s_log.buffer, length);
-		pifTask_SetTrigger(s_log.p_uart->_p_task, 0);
+		pifTask_SetTrigger(s_log.p_uart->_p_tx_task, 0);
 	}
 }
 
-PifTask* pifLog_GetCommTask()
+BOOL pifLog_AttachUart(PifUart* p_uart, uint16_t size)
 {
-	if (!s_log.p_uart) return NULL;
+    if (!size) {
+    	pif_error = E_INVALID_PARAM;
+		return FALSE;
+    }
 
-	return s_log.p_uart->_p_task;
-}
-
-BOOL pifLog_AttachUart(PifUart* p_uart)
-{
-    s_log.p_tx_buffer = pifRingBuffer_CreateHeap(PIF_ID_AUTO, PIF_LOG_TX_BUFFER_SIZE);
+    s_log.p_tx_buffer = pifRingBuffer_CreateHeap(PIF_ID_AUTO, size);
     if (!s_log.p_tx_buffer) return FALSE;
 
 	s_log.p_uart = p_uart;
@@ -626,7 +628,7 @@ BOOL pifLog_AttachUart(PifUart* p_uart)
 
 #ifdef PIF_LOG_COMMAND
 	pifRingBuffer_PutString(s_log.p_tx_buffer, (char *)s_log.p_prompt);
-	pifTask_SetTrigger(s_log.p_uart->_p_task, 0);
+	pifTask_SetTrigger(s_log.p_uart->_p_tx_task, 0);
 #endif
     return TRUE;
 }
@@ -645,6 +647,6 @@ void pifLog_SendAndExit()
 	if (!s_log.p_uart) return;
 
 	while (pifRingBuffer_GetFillSize(s_log.p_tx_buffer)) {
-		s_log.p_uart->_p_task->__evt_loop(s_log.p_uart->_p_task);
+		s_log.p_uart->_p_tx_task->__evt_loop(s_log.p_uart->_p_tx_task);
 	}
 }

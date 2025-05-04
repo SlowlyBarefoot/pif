@@ -16,6 +16,7 @@ static void _sendCommand(PifModbusRtuSlave *p_owner, uint8_t function, uint16_t 
 	p_owner->__length = length;
 	p_owner->__index = 0;
 	p_owner->parent.__state = MBSS_PRE_DELAY;
+	pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
 }
 
 static PifModbusError _writeCommand(PifModbusRtuSlave *p_owner, PifModbusError (*func)(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_value))
@@ -91,7 +92,7 @@ static PifModbusError _parsingPacket(PifModbusRtuSlave *p_owner, PifActUartRecei
 	PifModbusError exception = MBE_NONE;
 
 	if (p_owner->__rx.state == MBRS_IGNORE) {
-		if ((long)((*pif_act_timer1us)() - p_owner->__last_receive_time) >= p_owner->__interval * 3.5) {
+		if ((long)((*pif_act_timer1us)() - p_owner->__last_receive_time) >= p_owner->__p_uart->_transfer_time * 3.5) {
 			p_owner->__rx.state = MBRS_IDLE;
 		}
 	}
@@ -188,7 +189,7 @@ static PifModbusError _parsingPacket(PifModbusRtuSlave *p_owner, PifActUartRecei
 	return exception;
 }
 
-static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifModbusRtuSlave *p_owner = (PifModbusRtuSlave *)p_client;
 	PifModbusSlave *p_parent = &p_owner->parent;
@@ -264,13 +265,14 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 		goto fail;
 
 	default:
-		break;
+		return FALSE;
 	}
-	return;
+	return TRUE;
 
 fail:
 	_sendException(p_owner, exception);
 	p_owner->__rx.state = MBRS_IDLE;
+	return TRUE;
 }
 
 static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
@@ -282,7 +284,7 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 	switch (p_owner->parent.__state) {
 	case MBSS_PRE_DELAY:
 		p_owner->parent.__state = MBSS_SEND;
-		interval = p_owner->__interval * 2.5;
+		interval = 3;		// 2.5bytes
 		diff = (*pif_act_timer1us)() - p_owner->__rx.last_time;
 		if (diff < interval) {
 			period = interval - diff;
@@ -299,11 +301,11 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 		if (p_owner->__index >= p_owner->__length) {
 			p_owner->parent.__state = p_owner->__p_uart->__act_direction ? MBSS_WAIT : MBSS_IDLE;
 		}
-		period = p_owner->__interval;
+		period = 1;
 		break;
 
 	case MBSS_WAIT:
-		period = p_owner->__interval;
+		period = 1;
 		if (pifUart_CheckTxTransfer(p_owner->__p_uart)) {
 			p_owner->parent.__state = MBSS_POST_DELAY;
 			period *= 2;
@@ -386,8 +388,7 @@ void pifModbusRtuSlave_SetReceiveTimeout(PifModbusRtuSlave *p_owner, uint16_t re
 void pifModbusRtuSlave_AttachUart(PifModbusRtuSlave *p_owner, PifUart *p_uart)
 {
 	p_owner->__p_uart = p_uart;
-    p_owner->__interval = 1000000L / (p_uart->_baudrate / 10);
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
+    pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
 }
 
 void pifModbusRtuSlave_DetachUart(PifModbusRtuSlave *p_owner)

@@ -192,9 +192,10 @@ BOOL pifGps_SetEventNmeaText(PifGps* p_owner, PifEvtGpsNmeaText evt_text)
 	return TRUE;
 }
 
-void pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
+BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 {
     uint8_t sv_sat_num, sv_packet_idx, sv_sat_param;
+    BOOL rtn = FALSE;
 
 	if (c == '$') {
 		p_owner->__msg_id = PIF_GPS_NMEA_MSG_ID_NONE;
@@ -471,6 +472,7 @@ void pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 				if (p_owner->__msg_id == PIF_GPS_NMEA_MSG_ID_TXT && p_owner->__evt_text) {
 					(*p_owner->__evt_text)(p_owner->__p_txt);
 				}
+				rtn = TRUE;
 			}
 			else {
 #ifndef PIF_NO_LOG
@@ -492,11 +494,12 @@ void pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 		p_owner->__offset = 0;
 	}
 	else if (c >= 32 && c < 128) {
-		if (p_owner->__offset < PIF_GPS_NMEA_VALUE_SIZE) {
+		if (p_owner->__offset < PIF_GPS_NMEA_VALUE_SIZE - 3) {
 			p_owner->__string[p_owner->__offset++] = c;
 			if (!p_owner->__checksum_param) p_owner->__parity ^= c;
 		}
 	}
+	return rtn;
 }
 
 void pifGps_ConvertLatitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min)

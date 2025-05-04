@@ -58,6 +58,13 @@ typedef enum EnPifUartFlowControl
 	UFC_DEVICE_MASK		= 4
 } PifUartFlowControl;
 
+typedef enum EnPifUartRxState
+{
+	URS_IDLE		= 0,
+	URS_FIRST		= 1,
+	URS_NEXT		= 2
+} PifUartRxState;
+
 typedef enum EnPifUartTxState
 {
 	UTS_IDLE		= 0,
@@ -79,13 +86,13 @@ typedef uint16_t (*PifActUartReceiveData)(PifUart* p_uart, uint8_t* p_data, uint
 typedef uint16_t (*PifActUartSendData)(PifUart* p_uart, uint8_t* p_data, uint16_t size);
 typedef BOOL (*PifActUartStartTransfer)(PifUart* p_uart);
 typedef uint8_t (*PifActUartGetRate)(PifUart* p_uart);
-typedef void (*PifActUartRxFlowState)(PifUart* p_uart, SWITCH state);
+typedef void (*PifActUartDeviceFlowState)(PifUart* p_uart, SWITCH state);
 typedef void (*PifActUartDirection)(PifUartDirection direction);
 
-typedef void (*PifEvtUartParsing)(void* p_client, PifActUartReceiveData act_receive_data);
+typedef BOOL (*PifEvtUartParsing)(void* p_client, PifActUartReceiveData act_receive_data);
 typedef uint16_t (*PifEvtUartSending)(void* p_client, PifActUartSendData act_send_data);
 typedef void (*PifEvtUartAbortRx)(void* p_client);
-typedef void (*PifEvtUartTxFlowState)(void* p_client, SWITCH state);
+typedef void (*PifEvtUartHostFlowState)(void* p_client, SWITCH state);
 
 
 /**
@@ -104,7 +111,7 @@ struct StPifUart
     PifActUartStartTransfer act_start_transfer;
     PifActUartGetRate act_get_tx_rate;
     PifActUartGetRate act_get_rx_rate;
-    PifActUartRxFlowState act_rx_flow_state;
+    PifActUartDeviceFlowState act_device_flow_state;
 
     // Public Event Function
     PifEvtUartAbortRx evt_abort_rx;
@@ -114,15 +121,17 @@ struct StPifUart
     uint32_t _baudrate;
     PifUartFlowControl _flow_control;
     uint8_t _frame_size;
+    uint16_t _transfer_time;
     PifRingBuffer* _p_tx_buffer;
     PifRingBuffer* _p_rx_buffer;
-    PifTask* _p_task;
+    PifTask* _p_tx_task;
+    PifTask* _p_rx_task;
     SWITCH _fc_state;
 
 	// Private Member Variable
     void* __p_client;
     volatile PifUartTxState __tx_state;
-    uint16_t __rx_threshold;
+    volatile PifUartRxState __rx_state;
 
 	// Private Action Function
     PifActUartDirection __act_direction;
@@ -130,7 +139,7 @@ struct StPifUart
     // Private Event Function
     PifEvtUartParsing __evt_parsing;
     PifEvtUartSending __evt_sending;
-    PifEvtUartTxFlowState __evt_tx_flow_state;
+    PifEvtUartHostFlowState __evt_host_flow_state;
 };
 
 
@@ -160,10 +169,9 @@ void pifUart_Clear(PifUart* p_owner);
  * @brief
  * @param p_owner
  * @param rx_size
- * @param threshold
  * @return
  */
-BOOL pifUart_AllocRxBuffer(PifUart* p_owner, uint16_t rx_size, uint8_t threshold);
+BOOL pifUart_AllocRxBuffer(PifUart* p_owner, uint16_t rx_size);
 
 /**
  * @fn pifUart_AssignRxBuffer
@@ -171,10 +179,9 @@ BOOL pifUart_AllocRxBuffer(PifUart* p_owner, uint16_t rx_size, uint8_t threshold
  * @param p_owner
  * @param rx_size
  * @param p_buffer
- * @param threshold
  * @return
  */
-BOOL pifUart_AssignRxBuffer(PifUart* p_owner, uint16_t rx_size, uint8_t* p_buffer, uint8_t threshold);
+BOOL pifUart_AssignRxBuffer(PifUart* p_owner, uint16_t rx_size, uint8_t* p_buffer);
 
 /**
  * @fn pifUart_AllocTxBuffer
@@ -251,9 +258,9 @@ void pifUart_ResetFlowControl(PifUart* p_owner);
  * @brief
  * @param p_owner
  * @param flow_control
- * @param evt_tx_flow_state
+ * @param evt_host_flow_state
  */
-void pifUart_SetFlowControl(PifUart* p_owner, PifUartFlowControl flow_control, PifEvtUartTxFlowState evt_tx_flow_state);
+void pifUart_SetFlowControl(PifUart* p_owner, PifUartFlowControl flow_control, PifEvtUartHostFlowState evt_host_flow_state);
 
 /**
  * @fn pifUart_ChangeRxFlowState
@@ -371,15 +378,26 @@ void pifUart_AbortRx(PifUart* p_owner);
 BOOL pifUart_CheckTxTransfer(PifUart* p_owner);
 
 /**
- * @fn pifUart_AttachTask
- * @brief Task를 추가한다.
+ * @fn pifUart_AttachRxTask
+ * @brief Rx Task를 추가한다.
  * @param p_owner
  * @param mode Task의 Mode를 설정한다.
  * @param period Mode에 따라 주기의 단위가 변경된다.
  * @param name task의 이름을 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifUart_AttachTask(PifUart* p_owner, PifTaskMode mode, uint32_t period, const char* name);
+PifTask* pifUart_AttachRxTask(PifUart* p_owner, PifTaskMode mode, uint32_t period, const char* name);
+
+/**
+ * @fn pifUart_AttachTxTask
+ * @brief Tx Task를 추가한다.
+ * @param p_owner
+ * @param mode Task의 Mode를 설정한다.
+ * @param period Mode에 따라 주기의 단위가 변경된다.
+ * @param name task의 이름을 지정한다.
+ * @return Task 구조체 포인터를 반환한다.
+ */
+PifTask* pifUart_AttachTxTask(PifUart* p_owner, PifTaskMode mode, uint32_t period, const char* name);
 
 #ifdef __cplusplus
 }

@@ -7,15 +7,7 @@
 
 
 #ifndef PIF_LOG_LINE_SIZE
-#define PIF_LOG_LINE_SIZE				80
-#endif
-
-#ifndef PIF_LOG_RX_BUFFER_SIZE
-#define PIF_LOG_RX_BUFFER_SIZE			32
-#endif
-
-#ifndef PIF_LOG_TX_BUFFER_SIZE
-#define PIF_LOG_TX_BUFFER_SIZE			80
+#define PIF_LOG_LINE_SIZE			80
 #endif
 
 #define PIF_LOG_CMD_MAX_ARGS        8
@@ -118,11 +110,12 @@ void pifLog_Clear();
 /**
  * @fn pifLog_UseCommad
  * @brief
+ * @param size
  * @param p_cmd_table
  * @param p_prompt
  * @return
  */
-BOOL pifLog_UseCommand(const PifLogCmdEntry* p_cmd_table, const char* p_prompt);
+BOOL pifLog_UseCommand(uint8_t size, const PifLogCmdEntry* p_cmd_table, const char* p_prompt);
 
 /**
  * @fn pifLog_AttachEvent
@@ -182,19 +175,13 @@ void pifLog_Printf(PifLogType type, const char* p_format, ...);
 void pifLog_PrintInBuffer();
 
 /**
- * @fn pifLog_GetCommTask
- * @brief
- * @return
- */
-PifTask* pifLog_GetCommTask();
-
-/**
  * @fn pifLog_AttachUart
  * @brief
  * @param p_uart
+ * @param size
  * @return
  */
-BOOL pifLog_AttachUart(PifUart* p_uart);
+BOOL pifLog_AttachUart(PifUart* p_uart, uint16_t size);
 
 /**
  * @fn pifLog_SendAndExit

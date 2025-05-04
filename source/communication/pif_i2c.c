@@ -126,6 +126,7 @@ BOOL pifI2cDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_
 			timer1ms = pif_cumulative_timer1ms;
 			while (p_device->_state == IS_RUN) {
 				if (pif_cumulative_timer1ms - timer1ms > p_device->timeout) {
+					pif_error = E_TIMEOUT;
 #ifndef PIF_NO_LOG
 					line = __LINE__;
 #endif
@@ -163,7 +164,6 @@ fail:
 	p_port->__use_device = NULL;
 	p_port->error_count++;
 	p_device->_state = IS_IDLE;
-	pif_error = E_TRANSFER_FAILED;
 	return FALSE;
 }
 
@@ -232,6 +232,7 @@ BOOL pifI2cDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8
 			timer1ms = pif_cumulative_timer1ms;
 			while (p_device->_state == IS_RUN) {
 				if (pif_cumulative_timer1ms - timer1ms > p_device->timeout) {
+					pif_error = E_TIMEOUT;
 #ifndef PIF_NO_LOG
 					line = __LINE__;
 #endif
@@ -269,7 +270,6 @@ fail:
 	p_port->__use_device = NULL;
 	p_port->error_count++;
 	p_device->_state = IS_IDLE;
-	pif_error = E_TRANSFER_FAILED;
 	return FALSE;
 }
 

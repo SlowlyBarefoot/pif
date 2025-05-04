@@ -7,7 +7,7 @@
 
 
 #ifndef PIF_GPS_NMEA_VALUE_SIZE
-#define PIF_GPS_NMEA_VALUE_SIZE			32
+#define PIF_GPS_NMEA_VALUE_SIZE			64
 #endif
 
 #ifndef PIF_GPS_NMEA_TEXT_SIZE
@@ -176,8 +176,9 @@ void pifGps_SendEvent(PifGps* p_owner);
  * @brief
  * @param p_owner
  * @param c
+ * @return
  */
-void pifGps_ParsingNmea(PifGps* p_owner, uint8_t c);
+BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c);
 
 /**
  * @fn pifGps_ConvertLatitude2DegMin

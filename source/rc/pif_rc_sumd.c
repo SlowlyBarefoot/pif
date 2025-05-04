@@ -9,7 +9,7 @@
 #define SUMD_RETRY_TIMEOUT		4		// 4ms
 
 
-static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifRcSumd *p_owner = (PifRcSumd *)p_client;
 	uint8_t data;
@@ -17,8 +17,9 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
     uint16_t channel[PIF_SUMD_CHANNEL_COUNT];
 	uint16_t crc;
 	int index;
+	BOOL rtn = FALSE;
 
-    if (!p_owner->parent.__evt_receive) return;
+    if (!p_owner->parent.__evt_receive) return rtn;
 
 	if (pif_cumulative_timer1ms - p_owner->__last_time >= SUMD_RETRY_TIMEOUT) {
 		p_owner->__index = 0;
@@ -79,9 +80,11 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 				p_owner->parent._error_frames++;
 				p_owner->__index = 0;
 			}
-			return;
+			rtn = TRUE;
+			break;
 		}
 	}
+	return rtn || p_owner->__index > 0;
 }
 
 BOOL pifRcSumd_Init(PifRcSumd* p_owner, PifId id)

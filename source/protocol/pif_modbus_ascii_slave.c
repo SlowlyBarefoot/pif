@@ -19,6 +19,7 @@ static void _sendCommand(PifModbusAsciiSlave *p_owner, uint8_t function, uint16_
 	p_owner->__length = length;
 	p_owner->__index = 0;
 	p_owner->parent.__state = MBSS_PRE_DELAY;
+	pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
 }
 
 static PifModbusError _writeCommand(PifModbusAsciiSlave *p_owner, PifModbusError (*func)(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_value))
@@ -174,7 +175,7 @@ static PifModbusError _parsingPacket(PifModbusAsciiSlave *p_owner, PifActUartRec
 	return exception;
 }
 
-static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifModbusAsciiSlave *p_owner = (PifModbusAsciiSlave *)p_client;
 	PifModbusSlave *p_parent = &p_owner->parent;
@@ -250,13 +251,14 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 		goto fail;
 
 	default:
-		break;
+		return FALSE;
 	}
-	return;
+	return TRUE;
 
 fail:
 	_sendException(p_owner, exception);
 	p_owner->__rx.state = MBRS_IDLE;
+	return TRUE;
 }
 
 static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
@@ -267,7 +269,7 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 	switch (p_owner->parent.__state) {
 	case MBSS_PRE_DELAY:
 		p_owner->parent.__state = MBSS_SEND;
-		period = p_owner->__interval;
+		period = 1;
 		break;
 
 	case MBSS_SEND:
@@ -277,11 +279,11 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 		if (p_owner->__index >= p_owner->__length) {
 			p_owner->parent.__state = p_owner->__p_uart->__act_direction ? MBSS_WAIT : MBSS_IDLE;
 		}
-		period = p_owner->__interval;
+		period = 1;
 		break;
 
 	case MBSS_WAIT:
-		period = p_owner->__interval;
+		period = 1;
 		if (pifUart_CheckTxTransfer(p_owner->__p_uart)) {
 			p_owner->parent.__state = MBSS_POST_DELAY;
 			period *= 2;
@@ -364,7 +366,6 @@ void pifModbusAsciiSlave_SetReceiveTimeout(PifModbusAsciiSlave *p_owner, uint16_
 void pifModbusAsciiSlave_AttachUart(PifModbusAsciiSlave *p_owner, PifUart *p_uart)
 {
 	p_owner->__p_uart = p_uart;
-    p_owner->__interval = 1000000L / (p_uart->_baudrate / 10);
 	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
 }
 

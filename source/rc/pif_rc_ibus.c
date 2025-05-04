@@ -72,7 +72,7 @@ static void _ParsingPacket(PifRcIbus *p_owner, PifActUartReceiveData act_receive
 	}
 }
 
-static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifRcIbus *p_owner = (PifRcIbus *)p_client;
 	PifRcIbusSensorinfo sensor;
@@ -82,8 +82,9 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 	uint8_t tx_buffer[33];							// tx message buffer
 	uint16_t channel[PIF_IBUS_EXP_CHANNEL_COUNT]; 	// servo data received
 	uint16_t chksum;
+	BOOL rtn = FALSE;
 
-    if (!p_owner->parent.__evt_receive) return;
+    if (!p_owner->parent.__evt_receive) return rtn;
 
 	if (pif_cumulative_timer1ms - p_owner->__last_time >= IBUS_RETRY_TIMEOUT) {
 		p_owner->__rx_state = IRS_GET_LENGTH;
@@ -94,6 +95,7 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
     	_ParsingPacket(p_owner, act_receive_data);
     }
 
+    rtn = p_owner->__rx_state > IRS_GET_LENGTH;
     if (p_owner->__rx_state == IRS_DONE) {
 		p_owner->parent._last_frame_time = pif_cumulative_timer1ms;
 
@@ -158,6 +160,7 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 
     	p_owner->__rx_state = IRS_GET_LENGTH;
     }
+    return rtn;
 }
 
 BOOL pifRcIbus_Init(PifRcIbus* p_owner, PifId id)

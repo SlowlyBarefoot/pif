@@ -27,7 +27,6 @@ typedef struct StPifModbusRtuSlave
 	PifUart *__p_uart;
 	PifTimer *__p_timer;
 	uint16_t __timeout;
-	uint16_t __interval;
 	uint32_t __delay;
 	uint8_t __buffer[260];
 	uint16_t __length;

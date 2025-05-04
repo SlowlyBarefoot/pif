@@ -4,14 +4,15 @@
 #define SPEKTRUM_RETRY_TIMEOUT		5	// 5ms
 
 
-static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifRcSpektrum *p_owner = (PifRcSpektrum *)p_client;
 	uint8_t data, id;
 	uint8_t* p_buffer;
 	int index;
+	BOOL rtn = FALSE;
 
-    if (!p_owner->parent.__evt_receive) return;
+    if (!p_owner->parent.__evt_receive) return rtn;
 
 	if (pif_cumulative_timer1ms - p_owner->__last_time >= SPEKTRUM_RETRY_TIMEOUT) {
 		p_owner->__index = 0;
@@ -46,9 +47,11 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 			p_owner->__index = 0;
 
 			if (p_owner->parent.__evt_receive) (*p_owner->parent.__evt_receive)(&p_owner->parent, p_owner->__channel, p_owner->parent.__p_issuer);
-			return;
+			rtn = TRUE;
+			break;
 		}
 	}
+	return rtn || p_owner->__index > 0;
 }
 
 BOOL pifRcSpektrum_Init(PifRcSpektrum* p_owner, PifId id, uint8_t protocol_id)

@@ -101,7 +101,7 @@ fail:
 	p_owner->__rx_state = MBRS_ERROR;
 }
 
-static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifModbusRtuMaster *p_owner = (PifModbusRtuMaster *)p_client;
 
@@ -118,14 +118,15 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 		break;
 
 	default:
-		return;
+		return FALSE;
 	}
 
 	pifTimer_Stop(p_owner->__p_timer);
 	if (p_owner->__p_uart->__act_direction) (*p_owner->__p_uart->__act_direction)(UD_TX);
 	p_owner->__rx_state = MBRS_IDLE;
 	p_owner->__state = MBMS_RESPONSE_DELAY;
-	p_owner->__delay = (*pif_act_timer1us)() + p_owner->__interval * 3.5;
+	p_owner->__delay = (*pif_act_timer1us)() + p_owner->__p_uart->_transfer_time * 3.5;
+	return TRUE;
 }
 
 static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
@@ -141,11 +142,11 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 		if (p_owner->index >= p_owner->length) {
 			p_owner->__state = MBMS_REQUEST_WAIT;
 		}
-		period = p_owner->__interval;
+		period = 1;
 		break;
 
 	case MBMS_REQUEST_WAIT:
-		period = p_owner->__interval;
+		period = 1;
 		if (pifUart_CheckTxTransfer(p_owner->__p_uart)) {
 			p_owner->__state = MBMS_REQUEST_DELAY;
 			period *= 2;
@@ -192,11 +193,12 @@ static BOOL _requestAndResponse(PifModbusRtuMaster *p_owner, uint16_t len)
 	p_owner->length = len + 2;
 	p_owner->index = 0;
 	p_owner->__state = MBMS_REQUEST;
+	pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
 
 	while (1) {
 		if (p_owner->__state == MBMS_RESPONSE) break;
 		else if (p_owner->__state == MBMS_ERROR) goto fail;
-		pifTaskManager_YieldUs(p_owner->__interval);
+		pifTaskManager_YieldUs(p_owner->__p_uart->_transfer_time);
 	}
 
 	while (1) {
@@ -204,7 +206,7 @@ static BOOL _requestAndResponse(PifModbusRtuMaster *p_owner, uint16_t len)
 			if ((int32_t)(p_owner->__delay - (*pif_act_timer1us)()) <= 0) break;
 		}
 		else if (p_owner->__state == MBMS_ERROR) break;
-		pifTaskManager_YieldUs(p_owner->__interval);
+		pifTaskManager_YieldUs(p_owner->__p_uart->_transfer_time);
 	}
 
 fail:
@@ -254,7 +256,6 @@ void pifModbusRtuMaster_SetResponseTimeout(PifModbusRtuMaster *p_owner, uint16_t
 void pifModbusRtuMaster_AttachUart(PifModbusRtuMaster *p_owner, PifUart *p_uart)
 {
 	p_owner->__p_uart = p_uart;
-    p_owner->__interval = 1000000L / (p_uart->_baudrate / 10);
 	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
 }
 

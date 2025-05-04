@@ -28,7 +28,6 @@ typedef enum EnPifXmodemTxState
 {
 	XTS_IDLE			= 0,
 	XTS_SEND_C			= 10,
-	XTS_DELAY_C			= 11,
 	XTS_SENDING			= 12,
 	XTS_WAIT_RESPONSE	= 13,
 	XTS_EOT				= ASCII_EOT,	// 4
@@ -51,6 +50,7 @@ typedef struct StPifXmodemPacket
 
 typedef void (*PifEvtXmodemTxReceive)(uint8_t code, uint8_t packet_no);
 typedef void (*PifEvtXmodemRxReceive)(uint8_t code, PifXmodemPacket* p_packet);
+typedef void (*PifEvtXmodemFinish)(uint16_t delay);
 
 
 /**
@@ -100,6 +100,10 @@ typedef struct StPifXmodem
 	PifXmodemTx __tx;
 	PifXmodemRx __rx;
     uint8_t* __p_data;
+    BOOL __finish;
+
+    // Private Event Function
+    PifEvtXmodemFinish __evt_finish;
 } PifXmodem;
 
 
@@ -157,20 +161,22 @@ void pifXmodem_AttachUart(PifXmodem* p_owner, PifUart* p_uart);
 void pifXmodem_DetachUart(PifXmodem* p_owner);
 
 /**
- * @fn pifXmodem_AttachEvtTxReceive
+ * @fn pifXmodem_AttachEvtTx
  * @brief
  * @param p_owner
  * @param evt_tx_receive
+ * @param evt_finish
  */
-void pifXmodem_AttachEvtTxReceive(PifXmodem* p_owner, PifEvtXmodemTxReceive evt_tx_receive);
+void pifXmodem_AttachEvtTx(PifXmodem* p_owner, PifEvtXmodemTxReceive evt_tx_receive, PifEvtXmodemFinish evt_finish);
 
 /**
- * @fn pifXmodem_AttachEvtRxReceive
+ * @fn pifXmodem_AttachEvtRx
  * @brief
  * @param p_owner
  * @param evt_rx_receive
+ * @param evt_finish
  */
-void pifXmodem_AttachEvtRxReceive(PifXmodem* p_owner, PifEvtXmodemRxReceive evt_rx_receive);
+void pifXmodem_AttachEvtRx(PifXmodem* p_owner, PifEvtXmodemRxReceive evt_rx_receive, PifEvtXmodemFinish evt_finish);
 
 /**
  * @fn pifXmodem_SendData

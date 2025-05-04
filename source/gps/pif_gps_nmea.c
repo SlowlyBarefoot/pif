@@ -4,14 +4,17 @@
 #include "gps/pif_gps_nmea.h"
 
 
-static void _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 {
 	PifGpsNmea *p_owner = (PifGpsNmea *)p_client;
 	uint8_t c;
+	BOOL rtn = FALSE;
 
 	while ((*act_receive_data)(p_owner->__p_uart, &c, 1)) {
-		pifGps_ParsingNmea(&p_owner->_gps, c);
+		rtn = TRUE;
+		if (pifGps_ParsingNmea(&p_owner->_gps, c)) break;
 	}
+	return rtn;
 }
 
 #define DATA_SIZE	128

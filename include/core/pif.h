@@ -48,7 +48,7 @@
 #define PIF_RAD		(PIF_PI / 180.0f)
 
 #define PIF_ID_AUTO			0x0000
-#define PIF_ID_USER			0x0100
+#define PIF_ID_USER(N)		(0x0100 + (N))
 
 #define PIF_CHECK_ELAPSE_TIME_1MS(START, ELAPSE)	(pif_cumulative_timer1ms - (START) >= (ELAPSE))
 #define PIF_CHECK_ELAPSE_TIME_1US(START, ELAPSE)	((*pif_act_timer1us)() - (START) >= (ELAPSE))

@@ -53,7 +53,6 @@ struct StPifSequence
 	PifTimer *__p_timer_timeout;
 	PifSequenceProcess __process;
 	PifSequenceProcess __next_process;
-	PifTimer* __p_timer;
 #ifdef PIF_COLLECT_SIGNAL
 	PifSequenceColSig* __p_colsig;
 #endif

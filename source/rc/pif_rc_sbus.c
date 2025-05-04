@@ -7,14 +7,15 @@
 #define SBUS_RETRY_TIMEOUT		3		// 3ms
 
 
-static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifRcSbus *p_owner = (PifRcSbus *)p_client;
 	uint8_t i, data;
 	uint8_t* p_buffer;
 	uint16_t channels[PIF_SBUS_CHANNEL_COUNT]; 	// servo data received
+	BOOL rtn = FALSE;
 
-    if (!p_owner->parent.__evt_receive) return;
+    if (!p_owner->parent.__evt_receive) return rtn;
 
 	if (pif_cumulative_timer1ms - p_owner->__last_time >= SBUS_RETRY_TIMEOUT) {
 		p_owner->__index = 0;
@@ -76,9 +77,11 @@ static void _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 				}
 		    	if (p_owner->parent.__evt_receive) (*p_owner->parent.__evt_receive)(&p_owner->parent, channels, p_owner->parent.__p_issuer);
 			}
-			return;
+	    	rtn = TRUE;
+			break;
 		}
 	}
+	return rtn || p_owner->__index > 0;
 }
 
 BOOL pifRcSbus_Init(PifRcSbus* p_owner, PifId id)

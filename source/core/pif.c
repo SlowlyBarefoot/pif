@@ -20,9 +20,7 @@ PifPerformance pif_performance = {
 		._count = 0,
 		.__state = FALSE,
 #ifdef PIF_DEBUG
-#ifndef PIF_NO_LOG
 		.__max_loop_time1us = 0UL
-#endif
 #endif
 };
 
