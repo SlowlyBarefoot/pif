@@ -51,7 +51,7 @@ static uint32_t _doTask(PifTask* p_task)
 {
 	PifDps310* p_owner = p_task->_p_client;
 	uint8_t data[6];
-	uint16_t delay = 1;
+	uint16_t delay = 1000;
 	uint16_t gap;
 	float pressure;
 	float temperature;
@@ -71,7 +71,7 @@ static uint32_t _doTask(PifTask* p_task)
 			p_owner->__raw_pressure = _getTwosComplement((((uint32_t)data[0] << 16) | ((uint32_t)data[1] << 8) | (uint32_t)data[2]), 24);
 			p_owner->__raw_temperature = _getTwosComplement((((uint32_t)data[3] << 16) | ((uint32_t)data[4] << 8) | (uint32_t)data[5]), 24);
 			p_owner->__state = DPS310_STATE_CALCURATE;
-			pifTask_SetTrigger(p_task);
+			delay = 1;
 		}
 		break;
 
@@ -83,10 +83,10 @@ static uint32_t _doTask(PifTask* p_task)
 
 		gap = pif_cumulative_timer1ms - p_owner->__start_time;
 		if (gap < p_owner->__read_period) {
-			delay = p_owner->__read_period - gap;
+			delay = (p_owner->__read_period - gap) * 1000;
 		}
 		else {
-			pifTask_SetTrigger(p_task);
+			delay = 1;
 		}
 		p_owner->__state = DPS310_STATE_READY;
 		break;
@@ -94,7 +94,7 @@ static uint32_t _doTask(PifTask* p_task)
 	default:
 		break;
 	}
-	return delay * 1000;
+	return delay;
 }
 
 BOOL pifDps310_Config(PifDps310* p_owner, PifId id)
