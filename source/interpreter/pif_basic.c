@@ -910,7 +910,7 @@ BOOL pifBasic_Init(PifBasicProcess* p_process, PifEvtBasicResult evt_result)
 		while (s_basic.__p_process[s_basic.__process_size]) s_basic.__process_size++;
 	}
 
-	s_basic._p_task = pifTaskManager_Add(TM_EXTERNAL_ORDER, 0, _doTask, &s_basic, FALSE);
+	s_basic._p_task = pifTaskManager_Add(TM_EXTERNAL, 0, _doTask, &s_basic, FALSE);
 	if (!s_basic._p_task) return FALSE;
 	s_basic._p_task->name = "Basic";
 	s_basic.__evt_result = evt_result;

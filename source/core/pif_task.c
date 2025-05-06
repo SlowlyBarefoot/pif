@@ -60,13 +60,9 @@ static BOOL _checkParam(PifTaskMode* p_mode, uint32_t period)
     	}
     	break;
     	
-	case TM_EXTERNAL_CUTIN:
-		if (s_task_cutin) return FALSE;
-    	break;
-
 	case TM_TIMER:
 	case TM_ALWAYS:
-	case TM_EXTERNAL_ORDER:
+	case TM_EXTERNAL:
 		break;
 
     default:
@@ -89,14 +85,8 @@ static BOOL _setParam(PifTask* p_owner, PifTaskMode mode, uint32_t period)
     	p_owner->__processing = _processingPeriod;
     	break;
 
-	case TM_EXTERNAL_CUTIN:
-		s_task_cutin = p_owner;
-    	period = 0;
-    	p_owner->__processing = NULL;
-		break;
-
 	case TM_TIMER:
-    case TM_EXTERNAL_ORDER:
+    case TM_EXTERNAL:
     	period = 0;
     	p_owner->__processing = NULL;
     	break;
@@ -117,8 +107,7 @@ static void _processingTrigger(PifTask* p_owner)
 
 	switch (p_owner->_mode) {
 	case TM_PERIOD:
-	case TM_EXTERNAL_CUTIN:
-	case TM_EXTERNAL_ORDER:
+	case TM_EXTERNAL:
 		current = (*pif_act_timer1us)();
 		p_owner->_delta_time = current - p_owner->__pretime;
 		p_owner->__current_time = current;
@@ -209,8 +198,7 @@ static void _processingTask(PifTask* p_owner, BOOL trigger)
 		}
 		break;
 
-	case TM_EXTERNAL_CUTIN:
-	case TM_EXTERNAL_ORDER:
+	case TM_EXTERNAL:
 		if (period > 0) {
 			p_owner->__trigger_time = (*pif_act_timer1us)();
 			p_owner->__trigger = TRUE;
@@ -297,8 +285,6 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint32_t period)
 {
 	if (mode == p_owner->_mode) return TRUE;
 
-	if (p_owner->_mode == TM_EXTERNAL_CUTIN) s_task_cutin = NULL;
-
 	if (!_checkParam(&mode, period)) return FALSE;
 
 	if (!_setParam(p_owner, mode, period)) return FALSE;
@@ -329,6 +315,21 @@ BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay)
 	p_owner->__trigger_time = (*pif_act_timer1us)();
 	p_owner->__trigger = TRUE;
 	p_owner->__trigger_delay = delay;
+	return TRUE;
+}
+
+BOOL pifTask_SetCutinTrigger(PifTask *p_owner)
+{
+	if (!p_owner) return FALSE;
+
+	if (s_task_cutin) {
+		p_owner->__trigger_time = (*pif_act_timer1us)();
+		p_owner->__trigger = TRUE;
+		p_owner->__trigger_delay = 0;
+	}
+	else {
+		s_task_cutin = p_owner;
+	}
 	return TRUE;
 }
 
@@ -452,10 +453,10 @@ void pifTaskManager_Loop()
 	}
 
 	s_loop_count += count;
-	if (s_task_cutin && s_task_cutin->__trigger) {
-		s_task_cutin->__trigger = FALSE;
+	if (s_task_cutin) {
 		_processingTrigger(s_task_cutin);
 		p_select = s_task_cutin;
+		s_task_cutin = NULL;
 		trigger = TRUE;
 		i = 1;
 	}
@@ -538,10 +539,10 @@ void pifTaskManager_Yield()
 	}
 
 	s_loop_count += count;
-	if (s_task_cutin && s_task_cutin->__trigger && !s_task_cutin->_running) {
-		s_task_cutin->__trigger = FALSE;
+	if (s_task_cutin && !s_task_cutin->_running) {
 		_processingTrigger(s_task_cutin);
 		p_select = s_task_cutin;
+		s_task_cutin = NULL;
 		trigger = TRUE;
 		i = 1;
 	}
@@ -712,8 +713,7 @@ void pifTaskManager_Print()
 		switch (p_owner->_mode) {
 			case TM_ALWAYS: mode = "Always"; break;
 			case TM_PERIOD: mode = "Period"; break;
-			case TM_EXTERNAL_CUTIN: mode = "ExtCutin"; break;
-			case TM_EXTERNAL_ORDER: mode = "ExtOrder"; break;
+			case TM_EXTERNAL: mode = "External"; break;
 			case TM_TIMER: mode = "Timer"; break;
 			case TM_IDLE: mode = "Idle"; break;
 	        default: mode = "---"; break;

@@ -77,7 +77,7 @@ BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_m
     p_owner->_id = id;
     p_owner->p_param = p_param;
 
-    p_owner->__p_task = pifTaskManager_Add(TM_EXTERNAL_ORDER, 0, _doTask, p_owner, TRUE);
+    p_owner->__p_task = pifTaskManager_Add(TM_EXTERNAL, 0, _doTask, p_owner, TRUE);
 	if (!p_owner->__p_task) goto fail;
 	p_owner->__p_task->name = "Sequence";
 

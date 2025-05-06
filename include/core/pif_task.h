@@ -20,11 +20,7 @@ typedef enum EnPifTaskMode
 	TM_TIMER			= 0x08,		// Do not use it for other purposes because it is a mode used by the timer.
 
 	TM_EXTERNAL			= 0x10,
-	TM_EXTERNAL_CUTIN	= 0x12,		// After an external trigger occurs, it is executed as soon as the currently running task ends. However, this mode is set to only one task per program.
-	TM_EXTERNAL_ORDER	= 0x14,
-
 	TM_PERIOD			= 0x20,
-
 	TM_IDLE				= 0x80		// If at least one TM_ALWAYS task exists, the TM_IDLE_MS task is not executed.
 } PifTaskMode;
 
@@ -134,6 +130,14 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period);
  * @return 
  */
 BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay);
+
+/**
+ * @fn pifTask_SetCutinTrigger
+ * @brief
+ * @param p_owner Task 자신
+ * @return
+ */
+BOOL pifTask_SetCutinTrigger(PifTask *p_owner);
 
 /**
  * @fn pifTask_DelayMs
