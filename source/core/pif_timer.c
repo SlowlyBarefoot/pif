@@ -11,6 +11,7 @@ static uint32_t _doTask(PifTask* p_task)
 
 		if (p_timer->__event) {
 			p_timer->__event = FALSE;
+			p_task->__timer_trigger--;
 
 			if (p_timer->__evt_finish) (*p_timer->__evt_finish)(p_timer->__p_finish_issuer);
 		}
@@ -34,7 +35,7 @@ BOOL pifTimerManager_Init(PifTimerManager* p_manager, PifId id, uint32_t period1
     if (!pifObjArray_Init(&p_manager->__timers, sizeof(PifTimer), max_count, NULL)) goto fail;
     p_manager->_period1us = period1us;
 
-    p_manager->__p_task = pifTaskManager_Add(TM_TIMER, 0, _doTask, p_manager, TRUE);
+    p_manager->__p_task = pifTaskManager_Add(TM_TIMER, 0, _doTask, p_manager, FALSE);
     if (!p_manager->__p_task) goto fail;
     p_manager->__p_task->name = "Timer";
     return TRUE;
@@ -148,9 +149,12 @@ void pifTimerManager_sigTick(PifTimerManager* p_manager)
 			case TT_ONCE:
 				if (!p_timer->__current) {
 					p_timer->_step = TS_STOP;
-					p_timer->__event = TRUE;
-					if (p_timer->__evt_int_finish) {
-						(*p_timer->__evt_int_finish)(p_timer->__p_int_finish_issuer);
+					if (p_timer->__event_into_int) {
+						(*p_timer->__evt_finish)(p_timer->__p_finish_issuer);
+					}
+					else {
+						p_timer->__event = TRUE;
+						pifTask_SetTriggerForTimer(p_manager->__p_task);
 					}
 				}
 				break;
@@ -158,9 +162,12 @@ void pifTimerManager_sigTick(PifTimerManager* p_manager)
 			case TT_REPEAT:
 				if (!p_timer->__current) {
 					p_timer->__current = p_timer->target;
-					p_timer->__event = TRUE;
-					if (p_timer->__evt_int_finish) {
-						(*p_timer->__evt_int_finish)(p_timer->__p_int_finish_issuer);
+					if (p_timer->__event_into_int) {
+						(*p_timer->__evt_finish)(p_timer->__p_finish_issuer);
+					}
+					else {
+						p_timer->__event = TRUE;
+						pifTask_SetTriggerForTimer(p_manager->__p_task);
 					}
 				}
 				break;
@@ -194,10 +201,12 @@ void pifTimer_AttachEvtFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, P
 {
 	p_owner->__evt_finish = evt_finish;
 	p_owner->__p_finish_issuer = p_issuer;
+	p_owner->__event_into_int = FALSE;
 }
 
 void pifTimer_AttachEvtIntFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssuerP p_issuer)
 {
-	p_owner->__evt_int_finish = evt_finish;
-	p_owner->__p_int_finish_issuer = p_issuer;
+	p_owner->__evt_finish = evt_finish;
+	p_owner->__p_finish_issuer = p_issuer;
+	p_owner->__event_into_int = TRUE;
 }

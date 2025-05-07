@@ -5,16 +5,9 @@
 #include "core/pif.h"
 
 
-#define DISALLOW_YIELD_ID_NONE		0
-
-
 typedef enum EnPifTaskMode
 {
 	TM_NONE				= 0,
-
-	TM_MAIN_MASK		= 0xF0,
-	TM_SUB_MASK			= 0x0E,
-	TM_UNIT_MASK		= 0x01,
 
 	TM_ALWAYS			= 0x04,
 	TM_TIMER			= 0x08,		// Do not use it for other purposes because it is a mode used by the timer.
@@ -65,7 +58,7 @@ struct StPifTask
 	PifTaskProcessing __processing;
 	uint32_t __period;
 	BOOL __trigger;
-	int __table_number;
+    int __timer_trigger;
 	uint32_t __delay_us;
 	uint32_t __current_time;
 	uint32_t __pretime;
@@ -138,6 +131,14 @@ BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay);
  * @return
  */
 BOOL pifTask_SetCutinTrigger(PifTask *p_owner);
+
+/**
+ * @fn pifTask_SetTriggerForTimer
+ * @brief
+ * @param p_owner Task 자신
+ * @return
+ */
+BOOL pifTask_SetTriggerForTimer(PifTask *p_owner);
 
 /**
  * @fn pifTask_DelayMs

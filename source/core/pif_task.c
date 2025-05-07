@@ -5,7 +5,9 @@
 #include <string.h>
 
 
+#ifndef PIF_TASK_STACK_SIZE
 #define PIF_TASK_STACK_SIZE		5
+#endif
 
 
 #ifdef PIF_DEBUG
@@ -294,7 +296,7 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint32_t period)
 
 BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period)
 {
-	switch (p_owner->_mode & TM_MAIN_MASK) {
+	switch (p_owner->_mode) {
 	case TM_PERIOD:
 	case TM_IDLE:
 		p_owner->_default_period = period;
@@ -330,6 +332,14 @@ BOOL pifTask_SetCutinTrigger(PifTask *p_owner)
 	else {
 		s_task_cutin = p_owner;
 	}
+	return TRUE;
+}
+
+BOOL pifTask_SetTriggerForTimer(PifTask *p_owner)
+{
+	if (!p_owner) return FALSE;
+
+	p_owner->__timer_trigger++;
 	return TRUE;
 }
 
@@ -405,7 +415,7 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint32_t period, PifEvtTaskLoop ev
 
     p_owner->__evt_loop = evt_loop;
     p_owner->_p_client = p_client;
-    p_owner->pause = ((mode & TM_MAIN_MASK) != TM_EXTERNAL) ? !start : TRUE;
+    p_owner->pause = (mode != TM_TIMER && mode != TM_EXTERNAL) ? !start : TRUE;
     if (!s_it_current) s_it_current = pifObjArray_Begin(&s_tasks);
     return p_owner;
 
@@ -464,25 +474,27 @@ void pifTaskManager_Loop()
 		for (i = n = 0; i < count && !p_select; i++) {
 			p_owner = (PifTask*)s_it_current->data;
 
-			if (p_owner->__trigger) {
-				if (p_owner->__trigger_delay) {
-					diff = pif_timer1us - p_owner->__trigger_time;
-					if (diff >= p_owner->__trigger_delay) p_owner->__trigger_delay = 0;
-				}
-				if (!p_owner->__trigger_delay) {
-					p_owner->__trigger = FALSE;
-					_processingTrigger(p_owner);
-					p_select = p_owner;
-					trigger = TRUE;
-				}
-			}
-			if (!p_select && !p_owner->pause) {
-				if (p_owner->_mode == TM_TIMER) {
+			if (p_owner->_mode == TM_TIMER) {
+				if (p_owner->__timer_trigger) {
 					(*p_owner->__evt_loop)(p_owner);
 					t++;
 				}
-				else if (p_owner->__processing) {
-					if (p_owner->_mode & TM_IDLE) {
+			}
+			else {
+				if (p_owner->__trigger) {
+					if (p_owner->__trigger_delay) {
+						diff = pif_timer1us - p_owner->__trigger_time;
+						if (diff >= p_owner->__trigger_delay) p_owner->__trigger_delay = 0;
+					}
+					if (!p_owner->__trigger_delay) {
+						p_owner->__trigger = FALSE;
+						_processingTrigger(p_owner);
+						p_select = p_owner;
+						trigger = TRUE;
+					}
+				}
+				if (!p_select && !p_owner->pause && p_owner->__processing) {
+					if (p_owner->_mode == TM_IDLE) {
 						if (!it_idle) {
 							if ((*p_owner->__processing)(p_owner)) {
 								it_idle = s_it_current;
@@ -558,25 +570,27 @@ void pifTaskManager_Yield()
 				if (k < s_task_stack_ptr) goto next;
 			}
 
-			if (p_owner->__trigger) {
-				if (p_owner->__trigger_delay) {
-					diff = pif_timer1us - p_owner->__trigger_time;
-					if (diff >= p_owner->__trigger_delay) p_owner->__trigger_delay = 0;
-				}
-				if (!p_owner->__trigger_delay) {
-					p_owner->__trigger = FALSE;
-					_processingTrigger(p_owner);
-					p_select = p_owner;
-					trigger = TRUE;
-				}
-			}
-			if (!p_select && !p_owner->pause) {
-				if (p_owner->_mode == TM_TIMER) {
+			if (p_owner->_mode == TM_TIMER) {
+				if (p_owner->__timer_trigger) {
 					(*p_owner->__evt_loop)(p_owner);
 					t++;
 				}
-				else if (p_owner->__processing) {
-					if (p_owner->_mode & TM_IDLE) {
+			}
+			else {
+				if (p_owner->__trigger) {
+					if (p_owner->__trigger_delay) {
+						diff = pif_timer1us - p_owner->__trigger_time;
+						if (diff >= p_owner->__trigger_delay) p_owner->__trigger_delay = 0;
+					}
+					if (!p_owner->__trigger_delay) {
+						p_owner->__trigger = FALSE;
+						_processingTrigger(p_owner);
+						p_select = p_owner;
+						trigger = TRUE;
+					}
+				}
+				if (!p_select && !p_owner->pause && p_owner->__processing) {
+					if (p_owner->_mode == TM_IDLE) {
 						if (!it_idle) {
 							if ((*p_owner->__processing)(p_owner)) {
 								it_idle = s_it_current;

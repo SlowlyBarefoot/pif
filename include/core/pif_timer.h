@@ -50,13 +50,12 @@ typedef struct StPifTimer
 	// Private Member Variable
     uint32_t __current;
     PifIssuerP __p_finish_issuer;
-    PifIssuerP __p_int_finish_issuer;
     uint32_t __pwm_duty;
+    BOOL __event_into_int;
 	BOOL __event;
 
     // Private Event Function
     PifEvtTimerFinish __evt_finish;
-    PifEvtTimerFinish __evt_int_finish;
 } PifTimer;
 
 /**

@@ -59,7 +59,11 @@
 
 // -------- pifTask ------------------------------
 
-//#define PIF_TASK_TABLE_SIZE				32
+//#define PIF_TASK_STACK_SIZE		        5
+
+#define DISALLOW_YIELD_ID_NONE		        0
+#define DISALLOW_YIELD_ID_I2C		        1
+#define DISALLOW_YIELD_ID_SPI		        2
 
 //#define PIF_USE_TASK_STATISTICS
 
