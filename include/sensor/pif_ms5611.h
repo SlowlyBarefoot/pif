@@ -126,15 +126,16 @@ BOOL pifMs5611_ReadRawPressure(PifMs5611* p_owner, uint32_t* p_data);
 BOOL pifMs5611_ReadBarometric(PifMs5611* p_owner, float* p_pressure, float* p_temperature);
 
 /**
- * @fn pifMs5611_AddTaskForReading
+ * @fn pifMs5611_AttachTaskForReading
  * @brief
  * @param p_owner
+ * @param id
  * @param read_period
  * @param evt_read
  * @param start
  * @return
  */
-BOOL pifMs5611_AddTaskForReading(PifMs5611* p_owner, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
+BOOL pifMs5611_AttachTaskForReading(PifMs5611* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
 
 #ifdef __cplusplus
 }

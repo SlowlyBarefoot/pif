@@ -209,15 +209,16 @@ BOOL pifBmp280_ReadRawData(PifBmp280* p_owner, int32_t* p_pressure, int32_t* p_t
 BOOL pifBmp280_ReadBarometric(PifBmp280* p_owner, float* p_pressure, float* p_temperature);
 
 /**
- * @fn pifBmp280_AddTaskForReading
+ * @fn pifBmp280_AttachTaskForReading
  * @brief
  * @param p_owner
+ * @param id
  * @param read_period
  * @param evt_read
  * @param start
  * @return
  */
-BOOL pifBmp280_AddTaskForReading(PifBmp280* p_owner, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
+BOOL pifBmp280_AttachTaskForReading(PifBmp280* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
 
 #ifdef __cplusplus
 }

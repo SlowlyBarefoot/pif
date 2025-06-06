@@ -193,9 +193,9 @@ BOOL pifDps310_ReadBarometric(PifDps310* p_owner, float* p_pressure, float* p_te
 	return TRUE;
 }
 
-BOOL pifDps310_AddTaskForReading(PifDps310* p_owner, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start)
+BOOL pifDps310_AttachTaskForReading(PifDps310* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start)
 {
-	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD, read_period * 1000, _doTask, p_owner, start);
+	p_owner->_p_task = pifTaskManager_Add(id, TM_PERIOD, read_period * 1000, _doTask, p_owner, start);
     if (!p_owner->_p_task) return FALSE;
 	p_owner->_p_task->name = "DPS310";
 

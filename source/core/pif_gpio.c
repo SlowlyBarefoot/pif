@@ -220,7 +220,7 @@ void pifGpio_AttachActOut(PifGpio* p_owner, PifActGpioOut act_out)
     p_owner->__ui.act_out = act_out;
 }
 
-PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifTaskMode mode, uint16_t period, BOOL start)
+PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifId id, PifTaskMode mode, uint16_t period, BOOL start)
 {
 	PifTask* p_task;
 	if (!p_owner->__ui.act_in) {
@@ -228,7 +228,7 @@ PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifTaskMode mode, uint16_t perio
 		return NULL;
 	}
 
-	p_task = pifTaskManager_Add(mode, period, _doTask, p_owner, start);
+	p_task = pifTaskManager_Add(id, mode, period, _doTask, p_owner, start);
 	if (p_task) p_task->name = "Gpio";
 	return p_task;
 }

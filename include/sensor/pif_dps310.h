@@ -308,15 +308,16 @@ BOOL pifDps310_ReadRawData(PifDps310* p_owner, int32_t* p_pressure, int32_t* p_t
 BOOL pifDps310_ReadBarometric(PifDps310* p_owner, float* p_pressure, float* p_temperature);
 
 /**
- * @fn pifDps310_AddTaskForReading
+ * @fn pifDps310_AttachTaskForReading
  * @brief
  * @param p_owner
+ * @param id
  * @param read_period
  * @param evt_read
  * @param start
  * @return
  */
-BOOL pifDps310_AddTaskForReading(PifDps310* p_owner, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
+BOOL pifDps310_AttachTaskForReading(PifDps310* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
 
 #ifdef __cplusplus
 }

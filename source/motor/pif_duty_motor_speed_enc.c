@@ -257,7 +257,7 @@ BOOL pifDutyMotorSpeedEnc_Init(PifDutyMotorSpeedEnc* p_owner, PifId id, PifTimer
     if (!p_parent->__p_timer_delay) goto fail;
     pifTimer_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent);
 
-    p_parent->__p_task = pifTaskManager_Add(TM_PERIOD, period1ms * 1000, _doTask, p_owner, FALSE);
+    p_parent->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000, _doTask, p_owner, FALSE);
 	if (!p_parent->__p_task) goto fail;
 	p_parent->__p_task->name = "DutyMotorSpeecEnc";
 

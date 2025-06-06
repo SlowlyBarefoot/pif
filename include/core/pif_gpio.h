@@ -158,11 +158,12 @@ void pifGpio_AttachActOut(PifGpio* p_owner, PifActGpioOut act_out);
  * @brief Task를 추가한다.
  * @param p_owner
  * @param mode Task의 Mode를 설정한다.
+ * @param id Task의 ID를 설정한다.
  * @param period Mode에 따라 주기의 단위가 변경된다.
  * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifTaskMode mode, uint16_t period, BOOL start);
+PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifId id, PifTaskMode mode, uint16_t period, BOOL start);
 
 
 #ifdef PIF_COLLECT_SIGNAL

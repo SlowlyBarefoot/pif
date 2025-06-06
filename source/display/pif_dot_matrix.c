@@ -178,7 +178,7 @@ BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifTimerManager* p_timer
     p_owner->__act_display = act_display;
     p_owner->__period_per_row_1ms = PIF_DOT_MATRIX_PERIOD_PER_ROW;
 
-	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD, p_owner->__period_per_row_1ms * 1000L / row_size,
+	p_owner->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, p_owner->__period_per_row_1ms * 1000L / row_size,
 			_doTask, p_owner, FALSE);
     if (!p_owner->__p_task) goto fail;
 	p_owner->__p_task->name = "DotMatrix";

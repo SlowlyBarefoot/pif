@@ -152,11 +152,11 @@ uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner)
 	return 0;
 }
 
-PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifTaskMode mode, uint32_t period, BOOL start)
+PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifId id, PifTaskMode mode, uint32_t period, BOOL start)
 {
 	PifTask* p_task;
 
-	p_task = pifTaskManager_Add(mode, period, _doTaskAcquire, p_owner, start);
+	p_task = pifTaskManager_Add(id, mode, period, _doTaskAcquire, p_owner, start);
 	if (p_task) p_task->name = "SensorDigital";
 	return p_task;
 }

@@ -381,23 +381,25 @@ BOOL pifUart_CheckTxTransfer(PifUart* p_owner);
  * @fn pifUart_AttachRxTask
  * @brief Rx Task를 추가한다.
  * @param p_owner
+ * @param id Task의 ID를 설정한다.
  * @param mode Task의 Mode를 설정한다.
  * @param period Mode에 따라 주기의 단위가 변경된다.
  * @param name task의 이름을 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifUart_AttachRxTask(PifUart* p_owner, PifTaskMode mode, uint32_t period, const char* name);
+PifTask* pifUart_AttachRxTask(PifUart* p_owner, PifId id, PifTaskMode mode, uint32_t period, const char* name);
 
 /**
  * @fn pifUart_AttachTxTask
  * @brief Tx Task를 추가한다.
  * @param p_owner
+ * @param id Task의 ID를 설정한다.
  * @param mode Task의 Mode를 설정한다.
  * @param period Mode에 따라 주기의 단위가 변경된다.
  * @param name task의 이름을 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifUart_AttachTxTask(PifUart* p_owner, PifTaskMode mode, uint32_t period, const char* name);
+PifTask* pifUart_AttachTxTask(PifUart* p_owner, PifId id, PifTaskMode mode, uint32_t period, const char* name);
 
 #ifdef __cplusplus
 }

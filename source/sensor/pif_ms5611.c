@@ -218,9 +218,9 @@ BOOL pifMs5611_ReadBarometric(PifMs5611* p_owner, float* p_pressure, float* p_te
 	return TRUE;
 }
 
-BOOL pifMs5611_AddTaskForReading(PifMs5611* p_owner, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start)
+BOOL pifMs5611_AttachTaskForReading(PifMs5611* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start)
 {
-	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD, read_period * 1000, _doTask, p_owner, start);
+	p_owner->_p_task = pifTaskManager_Add(id, TM_PERIOD, read_period * 1000, _doTask, p_owner, start);
     if (!p_owner->_p_task) return FALSE;
     p_owner->_p_task->name = "MS5611";
 

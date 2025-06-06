@@ -80,7 +80,7 @@ BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifTimerManager* p_timer_manager, ui
     p_owner->__act_display = act_display;
     p_owner->__period_per_digit_1ms = PIF_FND_PERIOD_PER_DIGIT;
 
-	p_owner->__p_task = pifTaskManager_Add(TM_PERIOD, p_owner->__period_per_digit_1ms * 1000L / digit_size,
+	p_owner->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, p_owner->__period_per_digit_1ms * 1000L / digit_size,
 			_doTask, p_owner, FALSE);
     if (!p_owner->__p_task) goto fail;
 	p_owner->__p_task->name = "FND";

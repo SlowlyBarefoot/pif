@@ -93,8 +93,9 @@ extern "C" {
  * @fn pifTask_Init
  * @brief
  * @param p_owner
+ * @param id
  */
-void pifTask_Init(PifTask* p_owner);
+void pifTask_Init(PifTask* p_owner, PifId id);
 
 /**
  * @fn pifTask_ChangeMode
@@ -194,6 +195,7 @@ void pifTaskManager_Clear();
 /**
  * @fn pifTaskManager_Add
  * @brief Task를 추가한다.
+ * @param id Task의 ID를 설정한다.
  * @param mode Task의 Mode를 설정한다.
  * @param period Mode에 따라 주기의 단위가 변경된다.
  * @param evt_loop Task 함수
@@ -201,7 +203,7 @@ void pifTaskManager_Clear();
  * @param start 즉시 시작할지를 지정한다.
  * @return Task 구조체 포인터를 반환한다.
  */
-PifTask* pifTaskManager_Add(PifTaskMode mode, uint32_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start);
+PifTask* pifTaskManager_Add(PifId id, PifTaskMode mode, uint32_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start);
 
 /**
  * @fn pifTaskManager_Remove

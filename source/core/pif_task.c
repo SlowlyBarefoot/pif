@@ -277,10 +277,10 @@ static void _checkLoopTime()
 }
 
 
-void pifTask_Init(PifTask* p_owner)
+void pifTask_Init(PifTask* p_owner, PifId id)
 {
-    pif_id++;
-    p_owner->_id = pif_id;
+    if (id == PIF_ID_AUTO) id = pif_id++;
+    p_owner->_id = id;
 }
 
 BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint32_t period)
@@ -396,7 +396,7 @@ void pifTaskManager_Clear()
 	pifObjArray_Clear(&s_tasks);
 }
 
-PifTask* pifTaskManager_Add(PifTaskMode mode, uint32_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start)
+PifTask* pifTaskManager_Add(PifId id, PifTaskMode mode, uint32_t period, PifEvtTaskLoop evt_loop, void* p_client, BOOL start)
 {
 	if (!evt_loop) {
         pif_error = E_INVALID_PARAM;
@@ -409,7 +409,7 @@ PifTask* pifTaskManager_Add(PifTaskMode mode, uint32_t period, PifEvtTaskLoop ev
 	if (!it) return NULL;
 
 	PifTask* p_owner = (PifTask*)it->data;
-	pifTask_Init(p_owner);
+	pifTask_Init(p_owner, id);
 
 	if (!_setParam(p_owner, mode, period)) goto fail;
 

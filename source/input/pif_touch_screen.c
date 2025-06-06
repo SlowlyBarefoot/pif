@@ -189,7 +189,7 @@ BOOL pifTouchScreen_Start(PifTouchScreen* p_owner, const char* p_name)
 {
 	if (p_owner->_p_task) p_owner->_p_task->pause = FALSE;
 	else {
-		p_owner->_p_task = pifTaskManager_Add(TM_PERIOD, p_owner->_control_period_1ms * 1000, _doTask, p_owner, TRUE);
+		p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, p_owner->_control_period_1ms * 1000, _doTask, p_owner, TRUE);
 		if (!p_owner->_p_task) return FALSE;
 		p_owner->_p_task->name = p_name ? p_name : "Touch";
 	}

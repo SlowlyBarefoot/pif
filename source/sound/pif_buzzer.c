@@ -74,7 +74,7 @@ BOOL pifBuzzer_Init(PifBuzzer* p_owner, PifId id, uint16_t period1ms, PifActBuzz
 
 	memset(p_owner, 0, sizeof(PifBuzzer));
 
-	p_owner->_p_task = pifTaskManager_Add(TM_PERIOD, period1ms * 1000, _doTask, p_owner, TRUE);
+	p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000, _doTask, p_owner, TRUE);
 	if (!p_owner->_p_task) return FALSE;
 	p_owner->_p_task->name = "Buzzer";
 

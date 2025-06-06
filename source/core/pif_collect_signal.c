@@ -163,7 +163,7 @@ BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size)
 	pifRingBuffer_ChopsOffChar(&s_collect_signal.buffer, '#');
 	s_collect_signal.method = CSM_BUFFER;
 
-	s_collect_signal.p_task = pifTaskManager_Add(TM_PERIOD, PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS * 1000, _doTask, &s_collect_signal, FALSE);
+	s_collect_signal.p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS * 1000, _doTask, &s_collect_signal, FALSE);
 	if (s_collect_signal.p_task == NULL) goto fail;
 	s_collect_signal.p_task->name = "CollectSignalHeap";
 	return TRUE;
@@ -181,7 +181,7 @@ BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8
 	pifRingBuffer_ChopsOffChar(&s_collect_signal.buffer, '#');
 	s_collect_signal.method = CSM_BUFFER;
 
-	s_collect_signal.p_task = pifTaskManager_Add(TM_PERIOD, PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS * 1000, _doTask, &s_collect_signal, FALSE);
+	s_collect_signal.p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS * 1000, _doTask, &s_collect_signal, FALSE);
 	if (s_collect_signal.p_task == NULL) goto fail;
 	s_collect_signal.p_task->name = "CollectSignalStatic";
 	return TRUE;

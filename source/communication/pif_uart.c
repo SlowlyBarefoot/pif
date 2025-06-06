@@ -490,7 +490,7 @@ static uint32_t _doTxTask(PifTask* p_task)
 	return bytes * p_owner->_transfer_time;
 }
 
-PifTask *pifUart_AttachRxTask(PifUart *p_owner, PifTaskMode mode, uint32_t period, const char *name)
+PifTask *pifUart_AttachRxTask(PifUart *p_owner, PifId id, PifTaskMode mode, uint32_t period, const char *name)
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -502,7 +502,7 @@ PifTask *pifUart_AttachRxTask(PifUart *p_owner, PifTaskMode mode, uint32_t perio
 	    return NULL;
     }
 
-	p_owner->_p_rx_task = pifTaskManager_Add(mode, period, _doRxTask, p_owner, FALSE);
+	p_owner->_p_rx_task = pifTaskManager_Add(id, mode, period, _doRxTask, p_owner, FALSE);
 	if (p_owner->_p_rx_task) {
 		if (name) p_owner->_p_rx_task->name = name;
 		else p_owner->_p_rx_task->name = "UartRx";
@@ -510,7 +510,7 @@ PifTask *pifUart_AttachRxTask(PifUart *p_owner, PifTaskMode mode, uint32_t perio
 	return p_owner->_p_rx_task;
 }
 
-PifTask *pifUart_AttachTxTask(PifUart *p_owner, PifTaskMode mode, uint32_t period, const char *name)
+PifTask *pifUart_AttachTxTask(PifUart *p_owner, PifId id, PifTaskMode mode, uint32_t period, const char *name)
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -522,7 +522,7 @@ PifTask *pifUart_AttachTxTask(PifUart *p_owner, PifTaskMode mode, uint32_t perio
 	    return NULL;
     }
 
-	p_owner->_p_tx_task = pifTaskManager_Add(mode, period, _doTxTask, p_owner, FALSE);
+	p_owner->_p_tx_task = pifTaskManager_Add(id, mode, period, _doTxTask, p_owner, FALSE);
 	if (p_owner->_p_tx_task) {
 		if (name) p_owner->_p_tx_task->name = name;
 		else p_owner->_p_tx_task->name = "UartTx";
