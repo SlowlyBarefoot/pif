@@ -399,7 +399,7 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
     			pifRingBuffer_GetLinerSize(p_owner->p_tx_buffer, 0));
 		pifRingBuffer_Remove(p_owner->p_tx_buffer, length);
 	}
-	return length > 0 ? length : pifRingBuffer_IsEmpty(p_owner->p_tx_buffer);
+	return length > 0 ? length : !pifRingBuffer_IsEmpty(p_owner->p_tx_buffer);
 }
 
 static void _printLog(char* p_string, BOOL vcd)
