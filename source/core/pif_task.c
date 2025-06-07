@@ -736,7 +736,7 @@ void pifTaskManager_Print()
 			pifLog_Printf(LT_NONE, " (%u): %s-%luus Pause=%d\n", p_owner->_id, mode, p_owner->_default_period, p_owner->pause);
 		}
 		else {
-			pifLog_Printf(LT_NONE, " (%u): %s-%1fms Pause=%d\n", p_owner->_id, mode, p_owner->_default_period / 1000.0, p_owner->pause);
+			pifLog_Printf(LT_NONE, " (%u): %s-%1fms Pause=%d\n", p_owner->_id, mode, p_owner->_default_period / 1000.0L, p_owner->pause);
 		}
 #ifdef PIF_USE_TASK_STATISTICS
 		value = p_owner->__sum_execution_time[0] + p_owner->__sum_execution_time[1];
