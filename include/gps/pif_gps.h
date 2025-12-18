@@ -3,7 +3,7 @@
 
 
 #include "communication/pif_uart.h"
-#include "core/pif_timer.h"
+#include "core/pif_timer_manager.h"
 
 
 #ifndef PIF_GPS_NMEA_VALUE_SIZE

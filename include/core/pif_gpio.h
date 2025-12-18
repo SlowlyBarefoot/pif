@@ -2,7 +2,7 @@
 #define PIF_GPIO_H
 
 
-#include "core/pif_task.h"
+#include "core/pif_task_manager.h"
 
 
 #define PIF_GPIO_MAX_COUNT		7

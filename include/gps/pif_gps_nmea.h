@@ -4,6 +4,7 @@
 
 #include "communication/pif_uart.h"
 #include "communication/pif_i2c.h"
+#include "core/pif_task_manager.h"
 #include "gps/pif_gps.h"
 
 

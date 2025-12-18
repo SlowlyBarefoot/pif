@@ -2,8 +2,8 @@
 #define PIF_SEQUENCE_H
 
 
-#include "core/pif_task.h"
-#include "core/pif_timer.h"
+#include "core/pif_task_manager.h"
+#include "core/pif_timer_manager.h"
 
 
 struct StPifSequence;

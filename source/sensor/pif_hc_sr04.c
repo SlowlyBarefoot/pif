@@ -1,4 +1,3 @@
-#include "core/pif_task.h"
 #include "sensor/pif_hc_sr04.h"
 
 

@@ -3,7 +3,7 @@
 
 
 #include "core/pif_ring_data.h"
-#include "core/pif_timer.h"
+#include "core/pif_timer_manager.h"
 
 
 typedef enum EnPifSolenoidType

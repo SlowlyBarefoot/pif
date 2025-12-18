@@ -3,7 +3,6 @@
 
 
 #include "communication/pif_uart.h"
-#include "core/pif_ring_buffer.h"
 
 
 #ifndef PIF_LOG_LINE_SIZE

@@ -1,4 +1,5 @@
 #include "core/pif_log.h"
+#include "core/pif_task_manager.h"
 #include "sensor/pif_mpu60x0.h"
 
 #include <math.h>

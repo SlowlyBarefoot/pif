@@ -3,7 +3,7 @@
 
 
 #include "core/pif_ring_buffer.h"
-#include "core/pif_task.h"
+#include "core/pif_task_manager.h"
 
 
 #ifdef PIF_COLLECT_SIGNAL

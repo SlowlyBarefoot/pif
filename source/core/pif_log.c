@@ -1,4 +1,6 @@
 #include "core/pif_log.h"
+#include "core/pif_ring_buffer.h"
+#include "core/pif_task_manager.h"
 
 #include <stdarg.h>
 #include <string.h>

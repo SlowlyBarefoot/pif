@@ -2,6 +2,7 @@
 #define PIF_SENSOR_DIGITAL_H
 
 
+#include "core/pif_task_manager.h"
 #include "core/pif_timer.h"
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"

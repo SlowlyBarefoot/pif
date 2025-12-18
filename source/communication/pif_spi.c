@@ -1,5 +1,4 @@
 #include "communication/pif_spi.h"
-#include "core/pif_task.h"
 
 
 BOOL pifSpiPort_Init(PifSpiPort* p_owner, PifId id, uint8_t device_count)

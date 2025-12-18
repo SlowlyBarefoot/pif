@@ -3,7 +3,6 @@
 
 
 #include "communication/pif_i2c.h"
-#include "core/pif_task.h"
 #include "sensor/pif_imu_sensor.h"
 #include "sensor/pif_hmc5883.h"
 #include "sensor/pif_mpu60x0.h"

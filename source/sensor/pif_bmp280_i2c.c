@@ -1,4 +1,3 @@
-#include "core/pif_task.h"
 #include "sensor/pif_bmp280_i2c.h"
 
 

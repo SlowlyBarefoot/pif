@@ -3,6 +3,7 @@
 #ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
+#include "core/pif_task_manager.h"
 #include "motor/pif_duty_motor_speed_enc.h"
 
 

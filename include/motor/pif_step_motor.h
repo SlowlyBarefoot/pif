@@ -2,7 +2,7 @@
 #define PIF_STEP_MOTOR_H
 
 
-#include "core/pif_timer.h"
+#include "core/pif_timer_manager.h"
 #include "motor/pif_motor.h"
 
 

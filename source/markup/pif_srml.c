@@ -4,7 +4,6 @@
  * @details
 */
 
-#include "core/pif_task.h"
 #include "markup/pif_srml.h"
 
 #include <stdio.h>

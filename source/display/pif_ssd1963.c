@@ -1,4 +1,5 @@
 #include "core/pif_log.h"
+#include "core/pif_task_manager.h"
 #include "display/pif_ssd1963.h"
 
 

@@ -2,6 +2,7 @@
 #define PIF_MOTOR_ENCODER_H
 
 
+#include "core/pif_pid_control.h"
 #include "core/pif_pulse.h"
 #include "motor/pif_duty_motor.h"
 #include "sensor/pif_sensor.h"

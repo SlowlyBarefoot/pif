@@ -4,8 +4,7 @@
 
 #include "communication/pif_i2c.h"
 #include "communication/pif_spi.h"
-
-#include "core/pif_task.h"
+#include "core/pif_task_manager.h"
 #include "sensor/pif_sensor_event.h"
 
 

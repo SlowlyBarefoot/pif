@@ -155,8 +155,7 @@ void pif_sigTimer1ms()
 
 void pif_Delay1ms(uint16_t delay)
 {
-	uint32_t start;
-	uint16_t diff;
+	uint32_t start, diff;
 
 	start = pif_cumulative_timer1ms;
 	do {
@@ -166,8 +165,7 @@ void pif_Delay1ms(uint16_t delay)
 
 void pif_Delay1us(uint16_t delay)
 {
-	uint32_t start;
-	uint16_t diff;
+	uint32_t start, diff;
 
 	start = (*pif_act_timer1us)();
 	do {
@@ -317,9 +315,7 @@ int pif_FloatToString(char* p_buffer, double value, uint16_t point)
 
 void pif_PrintFormat(char* p_buffer, size_t buffer_size, va_list* p_data, const char* p_format)
 {
-	unsigned int uint_val;
 	int int_val;
-	unsigned long ulong_val;
 	long long_val;
 	uint16_t num_str_cnt;
 	BOOL is_long;
@@ -354,17 +350,14 @@ NEXT_STR:
 
                 case 'b':
                 	if (is_long) {
-                		ulong_val = va_arg(*p_data, unsigned long);
-						offset += pif_BinToString(p_buffer + offset, ulong_val, num_str_cnt);
+						offset += pif_BinToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt);
                 	}
                 	else {
-						uint_val = va_arg(*p_data, unsigned int);
-						offset += pif_BinToString(p_buffer + offset, uint_val, num_str_cnt);
+						offset += pif_BinToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt);
                 	}
                     break;
 
                 case 'd':
-                case 'i':
                 	if (is_long) {
             			long_val = va_arg(*p_data, long);
             			if (long_val < 0) {
@@ -387,34 +380,28 @@ NEXT_STR:
 
                 case 'u':
                 	if (is_long) {
-						ulong_val = va_arg(*p_data, unsigned long);
-						offset += pif_DecToString(p_buffer + offset, ulong_val, num_str_cnt);
+						offset += pif_DecToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt);
                 	}
                 	else {
-						uint_val = va_arg(*p_data, unsigned int);
-						offset += pif_DecToString(p_buffer + offset, uint_val, num_str_cnt);
+						offset += pif_DecToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt);
                 	}
                     break;
 
                 case 'x':
                 	if (is_long) {
-                		ulong_val = va_arg(*p_data, unsigned long);
-						offset += pif_HexToString(p_buffer + offset, ulong_val, num_str_cnt, FALSE);
+						offset += pif_HexToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt, FALSE);
                 	}
                 	else {
-						uint_val = va_arg(*p_data, unsigned int);
-						offset += pif_HexToString(p_buffer + offset, uint_val, num_str_cnt, FALSE);
+						offset += pif_HexToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt, FALSE);
                 	}
                     break;
 
                 case 'X':
                 	if (is_long) {
-                		ulong_val = va_arg(*p_data, unsigned long);
-                		offset += pif_HexToString(p_buffer + offset, ulong_val, num_str_cnt, TRUE);
+                		offset += pif_HexToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt, TRUE);
                 	}
                 	else {
-                		uint_val = va_arg(*p_data, unsigned int);
-                		offset += pif_HexToString(p_buffer + offset, uint_val, num_str_cnt, TRUE);
+                		offset += pif_HexToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt, TRUE);
                 	}
                     break;
 
@@ -533,45 +520,4 @@ uint8_t pifCheckXor(uint8_t* p_data, uint16_t length)
 		xor ^= p_data[i];
 	}
 	return xor;
-}
-
-void pifPidControl_Init(PifPidControl* p_owner, float kp, float ki, float kd, float max_integration)
-{
-	p_owner->kp = kp;
-	p_owner->ki = ki;
-	p_owner->kd = kd;
-	p_owner->max_integration = max_integration;
-	p_owner->err_sum = 0;
-	p_owner->err_prev = 0;
-}
-
-float pifPidControl_Calcurate(PifPidControl* p_owner, float err)
-{
-	float up;			// Variable: Proportional output
-	float ui;			// Variable: Integral output
-	float ud;			// Variable: Derivative output
-	float ed;
-	float out;   		// Output: PID output
-
-	// Compute the error sum
-	p_owner->err_sum += err;
-
-	// Compute the proportional output
-	up = p_owner->kp * err;
-
-	// Compute the integral output
-	ui = p_owner->ki * p_owner->err_sum;
-	if (ui > p_owner->max_integration) 					ui = p_owner->max_integration;
-	else if (ui < (-1.0f * p_owner->max_integration))	ui = -1.0f * p_owner->max_integration;
-
-	// Compute the derivative output
-	ed = err - p_owner->err_prev;
-	ud = ((err > 0 && ed > 0) || (err < 0 && ed < 0)) ? p_owner->kd * ed : 0;
-
-	// Compute the pre-saturated output
-	out = up + ui + ud;
-
-	p_owner->err_prev = err;
-
-	return out;
 }

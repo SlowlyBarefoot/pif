@@ -2,7 +2,8 @@
 #define PIF_DOT_MATRIX_H
 
 
-#include "core/pif_timer.h"
+#include "core/pif_task_manager.h"
+#include "core/pif_timer_manager.h"
 
 
 #define PIF_DOT_MATRIX_PERIOD_PER_ROW	25

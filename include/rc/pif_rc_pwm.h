@@ -2,7 +2,6 @@
 #define PIF_RC_PWM_H
 
 
-#include "core/pif_task.h"
 #include "rc/pif_rc.h"
 
 
