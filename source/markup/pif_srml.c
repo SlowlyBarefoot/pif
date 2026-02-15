@@ -1,8 +1,10 @@
 /**
  * @file pif_srml.c
- * @brief Simple Receipt Markup Langeage
+ * @brief Simple Receipt Markup Language (SRML) parser implementation.
  * @details
-*/
+ * Implements SRML token parsing, value conversion, alignment, repetition, and
+ * line output dispatch through user-provided callback functions.
+ */
 
 #include "markup/pif_srml.h"
 
@@ -10,6 +12,14 @@
 #include <string.h>
 
 
+/**
+ * @brief Converts an integer value to a null-terminated decimal string.
+ * @param p_buffer Output buffer for the resulting string.
+ * @param value Non-negative integer value to convert.
+ * @param str_cnt Minimum digit width; left-zero-padded when greater than 0.
+ * @param ch_thousand Optional thousands separator; ignored when zero.
+ * @return Number of characters written, excluding the null terminator.
+ */
 static int _numberToString(char *p_buffer, long value, int str_cnt, char ch_thousand)
 {
     char inv_buf[16];
@@ -58,6 +68,13 @@ static int _numberToString(char *p_buffer, long value, int str_cnt, char ch_thou
     return idx;
 }
 
+/**
+ * @brief Writes a string value into the internal output buffer with alignment.
+ * @param p_owner Pointer to the SRML context.
+ * @param p_str Source string to write.
+ * @param align Alignment mode; defaults to left when not specified.
+ * @param str_cnt Field width; when 0, writes without fixed-width padding.
+ */
 static void _convertString(PifSrml *p_owner, char *p_str, PifSrmlAlign align, int str_cnt)
 {
     char form[16], *p_buffer = p_owner->__buffer + p_owner->__offset;
@@ -93,6 +110,13 @@ static void _convertString(PifSrml *p_owner, char *p_str, PifSrmlAlign align, in
     }
 }
 
+/**
+ * @brief Converts and writes an integer value with optional alignment and width.
+ * @param p_owner Pointer to the SRML context.
+ * @param value Integer value to format.
+ * @param align Alignment mode; defaults to right when not specified.
+ * @param str_cnt Field width; when 0, writes without fixed-width padding.
+ */
 static void _convertInteger(PifSrml *p_owner, long value, PifSrmlAlign align, int str_cnt)
 {
     char num_str[16];
@@ -109,6 +133,14 @@ static void _convertInteger(PifSrml *p_owner, long value, PifSrmlAlign align, in
     _convertString(p_owner, num_str, align, str_cnt);
 }
 
+/**
+ * @brief Converts and writes a floating-point value with fraction formatting.
+ * @param p_owner Pointer to the SRML context.
+ * @param value Real value to format.
+ * @param align Alignment mode; defaults to right when not specified.
+ * @param str_cnt Field width; when 0, writes without fixed-width padding.
+ * @param fraction Number of fractional digits to print.
+ */
 static void _convertReal(PifSrml *p_owner, double value, PifSrmlAlign align, int str_cnt, int fraction)
 {
     char num_str[32];
@@ -136,6 +168,10 @@ static void _convertReal(PifSrml *p_owner, double value, PifSrmlAlign align, int
     _convertString(p_owner, num_str, align, str_cnt);
 }
 
+/**
+ * @brief Parses and processes a repetition directive that starts with '#'.
+ * @param p_owner Pointer to the SRML context.
+ */
 static void _srmlRepeat(PifSrml *p_owner)
 {
     int i, num_str;
@@ -169,6 +205,10 @@ NEXT_STR:
     }
 }
 
+/**
+ * @brief Parses and processes a conversion directive that starts with '%'.
+ * @param p_owner Pointer to the SRML context.
+ */
 static void _srmlConvert(PifSrml *p_owner)
 {
     int num_str, fraction, point;

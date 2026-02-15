@@ -67,7 +67,7 @@ typedef void (*FSrmlPrintLine)(char *message, int length);
 
 /**
  * @struct StPifSrml
- * @brief
+ * @brief Runtime context and callback registry for SRML parsing.
  */
 typedef struct StPifSrml
 {
@@ -97,21 +97,21 @@ extern "C" {
 
 /**
  * @fn pifSrml_Init
- * @brief
- * @param p_owner
- * @param f_process_data
- * @param f_process_loop
- * @param f_process_if
- * @param f_print_line
- * @return
+ * @brief Initializes an SRML context with callback handlers and default options.
+ * @param p_owner Pointer to the SRML context to initialize.
+ * @param f_process_data Callback that maps SRML command characters to data values.
+ * @param f_process_loop Optional callback that controls loop start and continuation.
+ * @param f_process_if Optional callback that evaluates conditional line output.
+ * @param f_print_line Callback that receives each completed output line.
+ * @return TRUE if initialization succeeds, otherwise FALSE.
  */
 BOOL pifSrml_Init(PifSrml *p_owner, FSrmlProcessData f_process_data, FSrmlProcessLoop f_process_loop, FSrmlProcessIf f_process_if, FSrmlPrintLine f_print_line);
 
 /**
  * @fn pifSrml_Parsing
- * @brief
- * @param p_owner
- * @param p_format
+ * @brief Parses an SRML format string and emits formatted lines through callbacks.
+ * @param p_owner Pointer to an initialized SRML context.
+ * @param p_format Null-terminated SRML template string to parse.
  */
 void pifSrml_Parsing(PifSrml *p_owner, const char *p_format);
 
