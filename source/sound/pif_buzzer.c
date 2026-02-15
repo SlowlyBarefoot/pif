@@ -1,6 +1,12 @@
 #include "sound/pif_buzzer.h"
 
 
+/**
+ * @fn _doTask
+ * @brief Periodic buzzer state-machine task that processes sequence timing and transitions.
+ * @param p_task Pointer to the scheduler task context containing the buzzer instance.
+ * @return Always returns 0 because the task period is fixed by the task manager.
+ */
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifBuzzer* p_owner = (PifBuzzer*)p_task->_p_client;

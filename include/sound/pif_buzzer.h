@@ -26,7 +26,7 @@ typedef enum EnPifBuzzerState
 
 /**
  * @class StPifBuzzer
- * @brief
+ * @brief Buzzer controller object that drives an ON/OFF sequence using a periodic task.
  */
 typedef struct StPifBuzzer
 {
@@ -58,43 +58,43 @@ extern "C" {
 
 /**
  * @fn pifBuzzer_Init
- * @brief
- * @param p_owner
- * @param id
- * @param period1ms
- * @param act_action
- * @return
+ * @brief Initializes a buzzer instance and creates its periodic state-machine task.
+ * @param p_owner Pointer to the buzzer instance to initialize.
+ * @param id Identifier to assign to the instance. Use PIF_ID_AUTO for automatic assignment.
+ * @param period1ms Task period in milliseconds used to advance buzzer sequence timing.
+ * @param act_action Hardware action callback used to set buzzer output ON or OFF.
+ * @return TRUE if initialization succeeds, otherwise FALSE.
  */
 BOOL pifBuzzer_Init(PifBuzzer* p_owner, PifId id, uint16_t period1ms, PifActBuzzerAction act_action);
 
 /**
  * @fn pifBuzzer_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources owned by the buzzer instance.
+ * @param p_owner Pointer to the buzzer instance to clear.
  */
 void pifBuzzer_Clear(PifBuzzer* p_owner);
 
 /**
  * @fn pifBuzzer_Start
- * @brief
- * @param p_owner
- * @param p_sequence
- * @return
+ * @brief Starts buzzer playback using the given encoded ON/OFF sequence.
+ * @param p_owner Pointer to the buzzer instance.
+ * @param p_sequence Pointer to sequence data encoded with durations and stop/repeat markers.
+ * @return TRUE if playback is started, otherwise FALSE.
  */
 BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sequence);
 
 /**
  * @fn pifBuzzer_Stop
- * @brief
- * @param p_owner
+ * @brief Stops buzzer playback immediately and transitions the state machine to stop.
+ * @param p_owner Pointer to the buzzer instance.
  */
 void pifBuzzer_Stop(PifBuzzer* p_owner);
 
 /**
  * @fn pifBuzzer_State
- * @brief
- * @param p_owner
- * @return
+ * @brief Checks whether the buzzer is currently active.
+ * @param p_owner Pointer to the buzzer instance.
+ * @return TRUE if buzzer output sequence is in START or ON state, otherwise FALSE.
  */
 BOOL pifBuzzer_State(PifBuzzer* p_owner);
 
