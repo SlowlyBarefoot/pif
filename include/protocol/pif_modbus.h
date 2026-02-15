@@ -5,16 +5,16 @@
 #include "core/pif.h"
 
 
-// 한 packet을 보내고 응답을 받는 시간 제한
-// pifModbus[Rtu/Ascii]Master_Init에서 받은 타이머의 단위를 곱한 시간
-// 기본값은 500이고 타이머 단위가 1ms이기에 500 * 1ms = 500ms이다.
+// Timeout used after sending one packet while waiting for a response.
+// This value is multiplied by the timer unit configured in pifModbus[Rtu/Ascii]Master_Init().
+// Default is 500 ticks, which equals 500 ms when the timer unit is 1 ms.
 #ifndef PIF_MODBUS_MASTER_TIMEOUT
 	#define PIF_MODBUS_MASTER_TIMEOUT		500
 #endif
 
-// 한 packet을 전부 받는 시간 제한
-// pifModbus[Rtu/Ascii]Slave_Init에서 받은 타이머의 단위를 곱한 시간
-// 기본값은 300이고 타이머 단위가 1ms이기에 300 * 1ms = 300ms이다.
+// Timeout used to receive one complete packet.
+// This value is multiplied by the timer unit configured in pifModbus[Rtu/Ascii]Slave_Init().
+// Default is 300 ticks, which equals 300 ms when the timer unit is 1 ms.
 #ifndef PIF_MODBUS_SLAVE_TIMEOUT
 	#define PIF_MODBUS_SLAVE_TIMEOUT		300
 #endif
@@ -102,17 +102,17 @@ extern "C" {
 
 /**
  * @fn pifModbus_StreamToShort
- * @brief
- * @param p_stream
- * @return
+ * @brief Converts data between wire format and native format.
+ * @param p_stream Pointer to a Modbus network-order byte stream.
+ * @return Computed or decoded 16-bit value.
  */
 uint16_t pifModbus_StreamToShort(uint8_t *p_stream);
 
 /**
  * @fn pifModbus_ShortToStream
- * @brief
- * @param value
- * @param p_stream
+ * @brief Converts data between wire format and native format.
+ * @param value Value to write.
+ * @param p_stream Pointer to a Modbus network-order byte stream.
  */
 void pifModbus_ShortToStream(uint16_t value, uint8_t *p_stream);
 

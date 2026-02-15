@@ -9,6 +9,11 @@
 #if PIF_MSP_RECEIVE_TIMEOUT
 
 
+/**
+ * @brief Handles timer-expiration events and transitions the protocol state machine.
+ * @param p_issuer Issuer pointer provided by the timer callback context.
+ * @return None.
+ */
 static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 {
 	if (!p_issuer) {
@@ -47,6 +52,12 @@ static const char *kPktErr[] = {
 
 #endif
 
+/**
+ * @brief Parses an incoming protocol packet and updates parser state and outputs.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
+ * @return None.
+ */
 static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_data)
 {
 	PifMspPacket* p_packet = &p_owner->__rx.packet;
@@ -175,6 +186,12 @@ fail:
 	p_owner->__rx.state = MRS_IDLE;
 }
 
+/**
+ * @brief Driver callback that consumes received bytes and dispatches parsed events.
+ * @param p_client Opaque client pointer provided by the communication driver callback.
+ * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
+ * @return TRUE when the callback handled data; otherwise FALSE.
+ */
 static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifMsp *p_owner = (PifMsp *)p_client;
@@ -200,6 +217,12 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 	return FALSE;
 }
 
+/**
+ * @brief Driver callback that emits pending transmit bytes from the protocol state machine.
+ * @param p_client Opaque client pointer provided by the communication driver callback.
+ * @param act_send_data Callback used to push outgoing bytes to the underlying driver.
+ * @return Number of bytes transmitted during this callback invocation.
+ */
 static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 {
 	PifMsp *p_owner = (PifMsp *)p_client;

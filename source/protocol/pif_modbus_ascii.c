@@ -1,6 +1,11 @@
 #include "protocol/pif_modbus_ascii.h"
 
 
+/**
+ * @brief Converts data between protocol wire format and native representation.
+ * @param ascii Input argument used by this operation.
+ * @return Converted numeric value decoded from ASCII input.
+ */
 static short _AsciiToBinary(uint8_t ascii)
 {
 	if (ascii >= '0' && ascii <= '9') return ascii - '0';

@@ -39,7 +39,7 @@ typedef enum EnPifXmodemTxState
 
 /**
  * @class StPifXmodemPacket
- * @brief
+ * @brief Represents the StPifXmodemPacket data structure.
  */
 typedef struct StPifXmodemPacket
 {
@@ -55,7 +55,7 @@ typedef void (*PifEvtXmodemFinish)(uint16_t delay);
 
 /**
  * @class StPifXmodemTx
- * @brief
+ * @brief Represents the StPifXmodemTx data structure.
  */
 typedef struct StPifXmodemTx
 {
@@ -68,7 +68,7 @@ typedef struct StPifXmodemTx
 
 /**
  * @class StPifXmodemRx
- * @brief
+ * @brief Represents the StPifXmodemRx data structure.
  */
 typedef struct StPifXmodemRx
 {
@@ -83,7 +83,7 @@ typedef struct StPifXmodemRx
 
 /**
  * @class StPifXmodem
- * @brief
+ * @brief Represents the StPifXmodem data structure.
  */
 typedef struct StPifXmodem
 {
@@ -113,100 +113,100 @@ extern "C" {
 
 /**
  * @fn pifXmodem_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_timer_manager
- * @param type
- * @return
+ * @brief Initializes the instance and required runtime resources.
+ * @param p_owner Pointer to the protocol instance.
+ * @param id Instance identifier. Use PIF_ID_AUTO for automatic assignment.
+ * @param p_timer_manager Timer manager used to allocate protocol timers.
+ * @param type Protocol type or mode selector.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifTimerManager* p_timer_manager, PifXmodemType type);
 
 /**
  * @fn pifXmodem_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources owned by the instance.
+ * @param p_owner Pointer to the protocol instance.
  */
 void pifXmodem_Clear(PifXmodem* p_owner);
 
 /**
  * @fn pifXmodem_SetResponseTimeout
- * @brief
- * @param p_owner
- * @param response_timeout
+ * @brief Updates a runtime configuration value.
+ * @param p_owner Pointer to the protocol instance.
+ * @param response_timeout Response timeout value in timer ticks.
  */
 void pifXmodem_SetResponseTimeout(PifXmodem* p_owner, uint16_t response_timeout);
 
 /**
  * @fn pifXmodem_SetReceiveTimeout
- * @brief
- * @param p_owner
- * @param receive_timeout
+ * @brief Updates a runtime configuration value.
+ * @param p_owner Pointer to the protocol instance.
+ * @param receive_timeout Receive timeout value in timer ticks.
  */
 void pifXmodem_SetReceiveTimeout(PifXmodem* p_owner, uint16_t receive_timeout);
 
 /**
  * @fn pifXmodem_AttachUart
- * @brief
- * @param p_owner
- * @param p_uart
+ * @brief Attaches an interface or callback to the instance.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_uart UART interface bound to this protocol instance.
  */
 void pifXmodem_AttachUart(PifXmodem* p_owner, PifUart* p_uart);
 
 /**
  * @fn pifXmodem_DetachUart
- * @brief
- * @param p_owner
+ * @brief Detaches a previously attached interface or callback.
+ * @param p_owner Pointer to the protocol instance.
  */
 void pifXmodem_DetachUart(PifXmodem* p_owner);
 
 /**
  * @fn pifXmodem_AttachEvtTx
- * @brief
- * @param p_owner
- * @param evt_tx_receive
- * @param evt_finish
+ * @brief Attaches an interface or callback to the instance.
+ * @param p_owner Pointer to the protocol instance.
+ * @param evt_tx_receive Event callback invoked by this API.
+ * @param evt_finish Event callback invoked by this API.
  */
 void pifXmodem_AttachEvtTx(PifXmodem* p_owner, PifEvtXmodemTxReceive evt_tx_receive, PifEvtXmodemFinish evt_finish);
 
 /**
  * @fn pifXmodem_AttachEvtRx
- * @brief
- * @param p_owner
- * @param evt_rx_receive
- * @param evt_finish
+ * @brief Attaches an interface or callback to the instance.
+ * @param p_owner Pointer to the protocol instance.
+ * @param evt_rx_receive Event callback invoked by this API.
+ * @param evt_finish Event callback invoked by this API.
  */
 void pifXmodem_AttachEvtRx(PifXmodem* p_owner, PifEvtXmodemRxReceive evt_rx_receive, PifEvtXmodemFinish evt_finish);
 
 /**
  * @fn pifXmodem_SendData
- * @brief
- * @param p_owner
- * @param packet_no
- * @param p_data
- * @param data_size
- * @return
+ * @brief Sends or queues a protocol frame.
+ * @param p_owner Pointer to the protocol instance.
+ * @param packet_no XMODEM packet sequence number.
+ * @param p_data Pointer to a payload buffer.
+ * @param data_size Payload length in bytes.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifXmodem_SendData(PifXmodem* p_owner, uint8_t packet_no, uint8_t* p_data, uint16_t data_size);
 
 /**
  * @fn pifXmodem_SendEot
- * @brief
- * @param p_owner
+ * @brief Sends or queues a protocol frame.
+ * @param p_owner Pointer to the protocol instance.
  */
 void pifXmodem_SendEot(PifXmodem* p_owner);
 
 /**
  * @fn pifXmodem_SendCancel
- * @brief
- * @param p_owner
+ * @brief Sends or queues a protocol frame.
+ * @param p_owner Pointer to the protocol instance.
  */
 void pifXmodem_SendCancel(PifXmodem* p_owner);
 
 /**
  * @fn pifXmodem_ReadyReceive
- * @brief
- * @param p_owner
+ * @brief Reads data from the protocol context.
+ * @param p_owner Pointer to the protocol instance.
  */
 void pifXmodem_ReadyReceive(PifXmodem* p_owner);
 

@@ -4,6 +4,13 @@
 #include "protocol/pif_modbus_rtu_slave.h"
 
 
+/**
+ * @brief Serializes and queues a normal response command frame for transmission.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ * @param function Input argument used by this operation.
+ * @param length Frame length in bytes used by the current operation.
+ * @return None.
+ */
 static void _sendCommand(PifModbusRtuSlave *p_owner, uint8_t function, uint16_t length)
 {
 	if (p_owner->__p_uart->__act_direction) (*p_owner->__p_uart->__act_direction)(UD_TX);
@@ -19,6 +26,12 @@ static void _sendCommand(PifModbusRtuSlave *p_owner, uint8_t function, uint16_t 
 	pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
 }
 
+/**
+ * @brief Decodes a write command and applies it through the supplied slave callback.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ * @param func Handler callback used to process the decoded command data.
+ * @return Modbus error status produced by command validation or execution.
+ */
 static PifModbusError _writeCommand(PifModbusRtuSlave *p_owner, PifModbusError (*func)(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_value))
 {
 	uint16_t address, value;
@@ -33,6 +46,12 @@ static PifModbusError _writeCommand(PifModbusRtuSlave *p_owner, PifModbusError (
 	return exception;
 }
 
+/**
+ * @brief Decodes a bit-field read command and prepares the corresponding response payload.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ * @param func Handler callback used to process the decoded command data.
+ * @return Modbus error status produced by command validation or execution.
+ */
 static PifModbusError _readBitField(PifModbusRtuSlave *p_owner, PifModbusError (*func)(PifModbusSlave *p_owner, uint16_t *p_quantity))
 {
 	uint16_t i, pos, quantity;
@@ -50,6 +69,13 @@ static PifModbusError _readBitField(PifModbusRtuSlave *p_owner, PifModbusError (
 	return exception;
 }
 
+/**
+ * @brief Decodes a register read command and fills the response register payload.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ * @param func Handler callback used to process the decoded command data.
+ * @param p_registers Register buffer used for read or write operations.
+ * @return Modbus error status produced by command validation or execution.
+ */
 static PifModbusError _readRegisters(PifModbusRtuSlave *p_owner, PifModbusError (*func)(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity), uint16_t *p_registers)
 {
 	uint16_t i, pos, address, quantity;
@@ -67,6 +93,12 @@ static PifModbusError _readRegisters(PifModbusRtuSlave *p_owner, PifModbusError 
 	return exception;
 }
 
+/**
+ * @brief Serializes and queues an exception response frame for transmission.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ * @param exception Modbus exception code to transmit.
+ * @return None.
+ */
 static void _sendException(PifModbusRtuSlave *p_owner, uint8_t exception)
 {
 	p_owner->__buffer[2] = exception;
@@ -85,6 +117,12 @@ static const char *c_cPktErr[] = {
 
 #endif
 
+/**
+ * @brief Parses an incoming protocol packet and updates parser state and outputs.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
+ * @return Modbus error status produced by command validation or execution.
+ */
 static PifModbusError _parsingPacket(PifModbusRtuSlave *p_owner, PifActUartReceiveData act_receive_data)
 {
 	uint8_t data;
@@ -189,6 +227,12 @@ static PifModbusError _parsingPacket(PifModbusRtuSlave *p_owner, PifActUartRecei
 	return exception;
 }
 
+/**
+ * @brief Driver callback that consumes received bytes and dispatches parsed events.
+ * @param p_client Opaque client pointer provided by the communication driver callback.
+ * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
+ * @return TRUE when the callback handled data; otherwise FALSE.
+ */
 static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifModbusRtuSlave *p_owner = (PifModbusRtuSlave *)p_client;
@@ -275,6 +319,12 @@ fail:
 	return TRUE;
 }
 
+/**
+ * @brief Driver callback that emits pending transmit bytes from the protocol state machine.
+ * @param p_client Opaque client pointer provided by the communication driver callback.
+ * @param act_send_data Callback used to push outgoing bytes to the underlying driver.
+ * @return Number of bytes transmitted during this callback invocation.
+ */
 static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 {
 	PifModbusRtuSlave *p_owner = (PifModbusRtuSlave *)p_client;
@@ -323,6 +373,11 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 	return period;
 }
 
+/**
+ * @brief Handles timer-expiration events and transitions the protocol state machine.
+ * @param p_issuer Issuer pointer provided by the timer callback context.
+ * @return None.
+ */
 static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 {
 	PifModbusRtuSlave *p_owner = (PifModbusRtuSlave *)p_issuer;

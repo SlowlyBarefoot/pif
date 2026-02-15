@@ -15,10 +15,10 @@
 #define PIF_MSP_TX_ANSWER_SIZE		128
 #endif
 
-// 한 packet을 전부 받는 시간 제한
-// 0 : 제한없음
-// 1이상 : pifMsp_Init에서 받은 타이머의 단위를 곱한 시간
-//         기본값은 50이고 타이머 단위가 1ms이면 50 * 1ms = 50ms이다.
+// Timeout used to receive one complete packet.
+// 0: no timeout limit.
+// 1 or greater: multiplied by the timer unit configured in pifMsp_Init().
+// Default is 200 ticks in this header; at 1 ms timer unit, that equals 200 ms.
 #ifndef PIF_MSP_RECEIVE_TIMEOUT
 #define PIF_MSP_RECEIVE_TIMEOUT		200
 #endif
@@ -46,7 +46,7 @@ typedef enum EnPifMspTxState
 
 /**
  * @class StPifMspPacket
- * @brief
+ * @brief Represents the StPifMspPacket data structure.
  */
 typedef struct StPifMspPacket
 {
@@ -85,7 +85,7 @@ typedef struct StPifMspTx
 
 /**
  * @class StPifMsp
- * @brief
+ * @brief Performs the StPifMsp operation.
  */
 struct StPifMsp
 {
@@ -114,139 +114,139 @@ extern "C" {
 
 /**
  * @fn pifMsp_Init
- * @brief
- * @param p_owner
- * @param p_timer
- * @param id
- * @return
+ * @brief Initializes the instance and required runtime resources.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_timer Timer manager used by the protocol instance.
+ * @param id Instance identifier. Use PIF_ID_AUTO for automatic assignment.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifMsp_Init(PifMsp* p_owner, PifTimerManager* p_timer, PifId id);
 
 /**
  * @fn pifMsp_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources owned by the instance.
+ * @param p_owner Pointer to the protocol instance.
  */
 void pifMsp_Clear(PifMsp* p_owner);
 
 /**
  * @fn pifMsp_AttachUart
- * @brief
- * @param p_owner
- * @param p_uart
+ * @brief Attaches an interface or callback to the instance.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_uart UART interface bound to this protocol instance.
  */
 void pifMsp_AttachUart(PifMsp* p_owner, PifUart* p_uart);
 
 /**
  * @fn pifMsp_DetachUart
- * @brief
- * @param p_owner
+ * @brief Detaches a previously attached interface or callback.
+ * @param p_owner Pointer to the protocol instance.
  */
 void pifMsp_DetachUart(PifMsp* p_owner);
 
 /**
  * @fn pifMsp_AttachEvtReceive
- * @brief
- * @param p_owner PifMsp 포인터
- * @param evt_receive
- * @param evt_other_packet
- * @param p_issuer 이벤트 발생시 전달할 발행자
+ * @brief Registers callbacks for normal MSP packets and non-MSP bytes.
+ * @param p_owner Pointer to the MSP instance.
+ * @param evt_receive Callback invoked when a valid MSP packet is parsed.
+ * @param evt_other_packet Callback invoked for bytes that do not belong to an MSP packet.
+ * @param p_issuer Issuer object forwarded to callback handlers.
  */
 void pifMsp_AttachEvtReceive(PifMsp* p_owner, PifEvtMspReceive evt_receive, PifEvtMspOtherPacket evt_other_packet, PifIssuerP p_issuer);
 
 /**
  * @fn pifMsp_ReadData8
- * @brief
- * @param p_packet
- * @return
+ * @brief Reads data from the protocol context.
+ * @param p_packet Packet structure used by this operation.
+ * @return Computed or decoded 8-bit value.
  */
 uint8_t pifMsp_ReadData8(PifMspPacket* p_packet);
 
 /**
  * @fn pifMsp_ReadData16
- * @brief
- * @param p_packet
- * @return
+ * @brief Reads data from the protocol context.
+ * @param p_packet Packet structure used by this operation.
+ * @return Computed or decoded 16-bit value.
  */
 uint16_t pifMsp_ReadData16(PifMspPacket* p_packet);
 
 /**
  * @fn pifMsp_ReadData32
- * @brief
- * @param p_packet
- * @return
+ * @brief Reads data from the protocol context.
+ * @param p_packet Packet structure used by this operation.
+ * @return Computed or decoded 32-bit value.
  */
 uint32_t pifMsp_ReadData32(PifMspPacket* p_packet);
 
 /**
  * @fn pifMsp_ReadData
- * @brief
- * @param p_packet
- * @param p_data
- * @param size
+ * @brief Reads data from the protocol context.
+ * @param p_packet Packet structure used by this operation.
+ * @param p_data Pointer to a payload buffer.
+ * @param size Number of bytes to process.
  */
 void pifMsp_ReadData(PifMspPacket* p_packet, uint8_t* p_data, uint16_t size);
 
 /**
  * @fn pifMsp_MakeAnswer
- * @brief
- * @param p_owner
- * @param p_question
- * @return
+ * @brief Builds a protocol frame from the provided input.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_question Question packet that should be answered.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifMsp_MakeAnswer(PifMsp* p_owner, PifMspPacket* p_question);
 
 /**
  * @fn pifMsp_AddAnswer8
- * @brief
- * @param p_owner
- * @param data
- * @return
+ * @brief Appends data to the current packet buffer.
+ * @param p_owner Pointer to the protocol instance.
+ * @param data Input argument used by this API.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifMsp_AddAnswer8(PifMsp* p_owner, uint8_t data);
 
 /**
  * @fn pifMsp_AddAnswer16
- * @brief
- * @param p_owner
- * @param data
- * @return
+ * @brief Appends data to the current packet buffer.
+ * @param p_owner Pointer to the protocol instance.
+ * @param data Input argument used by this API.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifMsp_AddAnswer16(PifMsp* p_owner, uint16_t data);
 
 /**
  * @fn pifMsp_AddAnswer32
- * @brief
- * @param p_owner
- * @param data
- * @return
+ * @brief Appends data to the current packet buffer.
+ * @param p_owner Pointer to the protocol instance.
+ * @param data Input argument used by this API.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifMsp_AddAnswer32(PifMsp* p_owner, uint32_t data);
 
 /**
  * @fn pifMsp_AddAnswer
- * @brief
- * @param p_owner
- * @param p_data
- * @param size
- * @return
+ * @brief Appends data to the current packet buffer.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_data Pointer to a payload buffer.
+ * @param size Number of bytes to process.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifMsp_AddAnswer(PifMsp* p_owner, uint8_t* p_data, uint16_t size);
 
 /**
  * @fn pifMsp_MakeError
- * @brief
- * @param p_owner
- * @param p_question
- * @return
+ * @brief Builds a protocol frame from the provided input.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_question Question packet that should be answered.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifMsp_MakeError(PifMsp* p_owner, PifMspPacket* p_question);
 
 /**
  * @fn pifMsp_SendAnswer
- * @brief
- * @param p_owner
- * @return
+ * @brief Sends or queues a protocol frame.
+ * @param p_owner Pointer to the protocol instance.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifMsp_SendAnswer(PifMsp* p_owner);
 

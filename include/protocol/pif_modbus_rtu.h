@@ -11,10 +11,10 @@ extern "C" {
 
 /**
  * @fn pifModbusRtu_CalcCrc
- * @brief
- * @param p_data
- * @param length
- * @return
+ * @brief Calculates a checksum or CRC value.
+ * @param p_data Pointer to a payload buffer.
+ * @param length Number of bytes in the input buffer.
+ * @return Computed or decoded 16-bit value.
  */
 uint16_t pifModbusRtu_CalcCrc(const uint8_t *p_data, uint16_t length);
 

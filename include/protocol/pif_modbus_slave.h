@@ -27,7 +27,7 @@ typedef BOOL (*PifEvtModbusReadWriteMultipleRegisters)(uint16_t read_address, ui
 
 /**
  * @class StPifModbusSlave
- * @brief
+ * @brief Represents the StPifModbusSlave data structure.
  */
 typedef struct StPifModbusSlave
 {
@@ -69,24 +69,24 @@ extern "C" {
 
 /**
  * @fn pifModbusSlave_AttachDiscreteInput
- * @brief
- * @param p_owner
- * @param p_buffer
- * @param size
- * @param evtReadDiscreteInputs
+ * @brief Attaches an interface or callback to the instance.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_buffer Pointer to the protocol working buffer.
+ * @param size Number of bytes to process.
+ * @param evtReadDiscreteInputs Input argument used by this API.
  */
 void pifModbusSlave_AttachDiscreteInput(PifModbusSlave *p_owner, uint8_t *p_buffer, uint16_t size,
 		PifEvtModbusReadDiscreteInputs evtReadDiscreteInputs);
 
 /**
  * @fn pifModbusSlave_AttachCoils
- * @brief
- * @param p_owner
- * @param p_buffer
- * @param size
- * @param evtReadCoils
- * @param evtWriteSingleCoil
- * @param evtWriteMultipleCoils
+ * @brief Attaches an interface or callback to the instance.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_buffer Pointer to the protocol working buffer.
+ * @param size Number of bytes to process.
+ * @param evtReadCoils Input argument used by this API.
+ * @param evtWriteSingleCoil Input argument used by this API.
+ * @param evtWriteMultipleCoils Input argument used by this API.
  */
 void pifModbusSlave_AttachCoils(PifModbusSlave *p_owner, uint8_t *p_buffer, uint16_t size,
 		PifEvtModbusReadCoils evtReadCoils, PifEvtModbusWriteSingleCoil evtWriteSingleCoil,
@@ -94,24 +94,24 @@ void pifModbusSlave_AttachCoils(PifModbusSlave *p_owner, uint8_t *p_buffer, uint
 
 /**
  * @fn pifModbusSlave_AttachInputRegisters
- * @brief
- * @param p_owner
- * @param p_buffer
- * @param size
- * @param evtReadInputRegisters
+ * @brief Attaches an interface or callback to the instance.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_buffer Pointer to the protocol working buffer.
+ * @param size Number of bytes to process.
+ * @param evtReadInputRegisters Input argument used by this API.
  */
 void pifModbusSlave_AttachInputRegisters(PifModbusSlave *p_owner, uint16_t *p_buffer, uint16_t size,
 		PifEvtModbusReadInputRegisters evtReadInputRegisters);
 
 /**
  * @fn pifModbusSlave_AttachHoldingRegisters
- * @brief
- * @param p_owner
- * @param p_buffer
- * @param size
- * @param evtReadHoldingRegisters
- * @param evtWriteSingleRegister
- * @param evtWriteMultipleRegisters
+ * @brief Attaches an interface or callback to the instance.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_buffer Pointer to the protocol working buffer.
+ * @param size Number of bytes to process.
+ * @param evtReadHoldingRegisters Input argument used by this API.
+ * @param evtWriteSingleRegister Input argument used by this API.
+ * @param evtWriteMultipleRegisters Input argument used by this API.
  */
 void pifModbusSlave_AttachHoldingRegisters(PifModbusSlave *p_owner, uint16_t *p_buffer, uint16_t size,
 		PifEvtModbusReadHoldingRegisters evtReadHoldingRegisters, PifEvtModbusWriteSingleRegister evtWriteSingleRegister,
@@ -119,98 +119,98 @@ void pifModbusSlave_AttachHoldingRegisters(PifModbusSlave *p_owner, uint16_t *p_
 
 /**
  * @fn pifModbusSlave_AllocTmpBits
- * @brief
- * @param p_owner
- * @param quantity
- * @return
+ * @brief Performs the pifModbusSlave_AllocTmpBits operation.
+ * @param p_owner Pointer to the protocol instance.
+ * @param quantity Number of coils or registers to process.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifModbusSlave_AllocTmpBits(PifModbusSlave *p_owner, uint16_t quantity);
 
 /**
  * @fn pifModbusSlave_ReadCoils
- * @brief
- * @param p_owner
- * @param p_quantity
- * @return
+ * @brief Reads data from the protocol context.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_quantity Pointer to quantity value for validation and update.
+ * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_ReadCoils(PifModbusSlave *p_owner, uint16_t *p_quantity);
 
 /**
  * @fn pifModbusSlave_ReadDiscreteInputs
- * @brief
- * @param p_owner
- * @param p_quantity
- * @return
+ * @brief Reads data from the protocol context.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_quantity Pointer to quantity value for validation and update.
+ * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_ReadDiscreteInputs(PifModbusSlave *p_owner, uint16_t *p_quantity);
 
 /**
  * @fn pifModbusSlave_ReadHoldingRegisters
- * @brief
- * @param p_owner
- * @param p_address
- * @param p_quantity
- * @return
+ * @brief Reads data from the protocol context.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_address Pointer to address value for validation and update.
+ * @param p_quantity Pointer to quantity value for validation and update.
+ * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_ReadHoldingRegisters(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity);
 
 /**
  * @fn pifModbusSlave_ReadInputRegisters
- * @brief
- * @param p_owner
- * @param p_address
- * @param p_quantity
- * @return
+ * @brief Reads data from the protocol context.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_address Pointer to address value for validation and update.
+ * @param p_quantity Pointer to quantity value for validation and update.
+ * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_ReadInputRegisters(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity);
 
 /**
  * @fn pifModbusSlave_WriteSingleCoil
- * @brief
- * @param p_owner
- * @param p_address
- * @param p_status
- * @return
+ * @brief Writes data through the protocol context.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_address Pointer to address value for validation and update.
+ * @param p_status Pointer to coil status value for validation and update.
+ * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_WriteSingleCoil(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_status);
 
 /**
  * @fn pifModbusSlave_WriteSingleRegister
- * @brief
- * @param p_owner
- * @param p_address
- * @param p_value
- * @return
+ * @brief Writes data through the protocol context.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_address Pointer to address value for validation and update.
+ * @param p_value Pointer to register value for validation and update.
+ * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_WriteSingleRegister(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_value);
 
 /**
  * @fn pifModbusSlave_WriteMultipleCoils
- * @brief
- * @param p_owner
- * @param p_address
- * @param p_quantity
- * @return
+ * @brief Writes data through the protocol context.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_address Pointer to address value for validation and update.
+ * @param p_quantity Pointer to quantity value for validation and update.
+ * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_WriteMultipleCoils(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity);
 
 /**
  * @fn pifModbusSlave_WriteMultipleRegisters
- * @brief
- * @param p_owner
- * @param p_address
- * @param p_quantity
- * @return
+ * @brief Writes data through the protocol context.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_address Pointer to address value for validation and update.
+ * @param p_quantity Pointer to quantity value for validation and update.
+ * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_WriteMultipleRegisters(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity);
 
 /**
  * @fn pifModbusSlave_ReadWriteMultipleRegisters
- * @brief
- * @param p_owner
- * @param p_read_address
- * @param p_read_quantity
- * @return
+ * @brief Reads data from the protocol context.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_read_address Pointer to read start address for validation and update.
+ * @param p_read_quantity Pointer to read quantity for validation and update.
+ * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_ReadWriteMultipleRegisters(PifModbusSlave *p_owner, uint16_t *p_read_address, uint16_t *p_read_quantity);
 

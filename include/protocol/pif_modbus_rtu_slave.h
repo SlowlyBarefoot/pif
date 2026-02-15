@@ -10,7 +10,7 @@
 
 /**
  * @class StPifModbusRtuSlave
- * @brief
+ * @brief Represents the StPifModbusRtuSlave data structure.
  */
 typedef struct StPifModbusRtuSlave
 {
@@ -49,42 +49,42 @@ extern "C" {
 
 /**
  * @fn pifModbusRtuSlave_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_timer_manager
- * @param my_addr
- * @return
+ * @brief Initializes the instance and required runtime resources.
+ * @param p_owner Pointer to the protocol instance.
+ * @param id Instance identifier. Use PIF_ID_AUTO for automatic assignment.
+ * @param p_timer_manager Timer manager used to allocate protocol timers.
+ * @param my_addr Local slave address handled by this instance.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifModbusRtuSlave_Init(PifModbusRtuSlave *p_owner, PifId id, PifTimerManager *p_timer_manager, uint8_t my_addr);
 
 /**
  * @fn pifModbusRtuSlave_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources owned by the instance.
+ * @param p_owner Pointer to the protocol instance.
  */
 void pifModbusRtuSlave_Clear(PifModbusRtuSlave *p_owner);
 
 /**
  * @fn pifModbusRtuSlave_SetReceiveTimeout
- * @brief
- * @param p_owner
- * @param receive_timeout
+ * @brief Updates a runtime configuration value.
+ * @param p_owner Pointer to the protocol instance.
+ * @param receive_timeout Receive timeout value in timer ticks.
  */
 void pifModbusRtuSlave_SetReceiveTimeout(PifModbusRtuSlave *p_owner, uint16_t receive_timeout);
 
 /**
  * @fn pifModbusRtuSlave_AttachUart
- * @brief
- * @param p_owner
- * @param p_uart
+ * @brief Attaches an interface or callback to the instance.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_uart UART interface bound to this protocol instance.
  */
 void pifModbusRtuSlave_AttachUart(PifModbusRtuSlave *p_owner, PifUart *p_uart);
 
 /**
  * @fn pifModbusRtuSlave_DetachUart
- * @brief
- * @param p_owner
+ * @brief Detaches a previously attached interface or callback.
+ * @param p_owner Pointer to the protocol instance.
  */
 void pifModbusRtuSlave_DetachUart(PifModbusRtuSlave *p_owner);
 

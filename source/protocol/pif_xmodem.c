@@ -5,17 +5,22 @@
 #include "protocol/pif_xmodem.h"
 
 
-// 한 packet을 보내고 응답을 받는 시간 제한
-// pifProtocol_Init에서 받은 타이머의 단위를 곱한 시간
-// 기본값은 500이고 타이머 단위가 1ms이기에 500 * 1ms = 500ms이다.
+// Timeout used after sending one packet while waiting for ACK/NAK or cancel response.
+// The value is multiplied by the timer unit configured in pifXmodem_Init().
+// Default is 500 ticks, which is 500 ms when the timer unit is 1 ms.
 #define PIF_XMODEM_RESPONSE_TIMEOUT		500
 
-// 한 packet을 전부 받는 시간 제한
-// pifProtocol_Init에서 받은 타이머의 단위를 곱한 시간
-// 기본값은 300이고 타이머 단위가 1ms이기에 300 * 1ms = 300ms이다.
+// Timeout used to receive one complete packet from the remote peer.
+// The value is multiplied by the timer unit configured in pifXmodem_Init().
+// Default is 300 ticks, which is 300 ms when the timer unit is 1 ms.
 #define PIF_XMODEM_RECEIVE_TIMEOUT		300
 
 
+/**
+ * @brief Handles receive-timeout events and schedules a NAK when packet parsing stalls.
+ * @param p_issuer Timer callback issuer that resolves to the owning XMODEM instance.
+ * @return None.
+ */
 static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 {
 	PifXmodem* p_owner = (PifXmodem*)p_issuer;
@@ -33,6 +38,11 @@ static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 	}
 }
 
+/**
+ * @brief Handles transmit-response timeout events while waiting for ACK/NAK/CAN.
+ * @param p_issuer Timer callback issuer that resolves to the owning XMODEM instance.
+ * @return None.
+ */
 static void _evtTimerTxTimeout(PifIssuerP p_issuer)
 {
 	PifXmodem* p_owner = (PifXmodem*)p_issuer;
@@ -69,6 +79,12 @@ static const char *c_cPktErr[] = {
 
 #endif
 
+/**
+ * @brief Consumes UART bytes and parses one XMODEM packet according to the current RX state.
+ * @param p_owner Pointer to the XMODEM protocol instance.
+ * @param act_receive_data Callback used to fetch incoming UART bytes.
+ * @return TRUE when packet processing produced immediate transmit work; otherwise FALSE.
+ */
 static BOOL _parsingPacket(PifXmodem* p_owner, PifActUartReceiveData act_receive_data)
 {
 	PifXmodemPacket* p_packet = &p_owner->__rx.packet;
@@ -203,6 +219,12 @@ fail:
 	return TRUE;
 }
 
+/**
+ * @brief UART receive callback that dispatches ACK/NAK handling and packet parsing.
+ * @param p_client Opaque UART client pointer resolved to the owning XMODEM instance.
+ * @param act_receive_data Callback used to fetch incoming UART bytes.
+ * @return TRUE when input bytes were consumed or a state transition occurred; otherwise FALSE.
+ */
 static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 {
 	PifXmodem* p_owner = (PifXmodem*)p_client;
@@ -276,6 +298,12 @@ static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 	return FALSE;
 }
 
+/**
+ * @brief UART transmit callback that emits control bytes or packet payload data based on TX state.
+ * @param p_client Opaque UART client pointer resolved to the owning XMODEM instance.
+ * @param act_send_data Callback used to transmit UART bytes.
+ * @return Number of bytes transmitted during this callback invocation.
+ */
 static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 {
 	PifXmodem* p_owner = (PifXmodem*)p_client;

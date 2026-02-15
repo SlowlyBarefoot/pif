@@ -10,7 +10,7 @@
 
 /**
  * @class StPifModbusAsciiSlave
- * @brief
+ * @brief Represents the StPifModbusAsciiSlave data structure.
  */
 typedef struct StPifModbusAsciiSlave
 {
@@ -46,43 +46,43 @@ extern "C" {
 
 /**
  * @fn pifModbusAsciiSlave_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_timer_manager
- * @param my_addr
- * @return
+ * @brief Initializes the instance and required runtime resources.
+ * @param p_owner Pointer to the protocol instance.
+ * @param id Instance identifier. Use PIF_ID_AUTO for automatic assignment.
+ * @param p_timer_manager Timer manager used to allocate protocol timers.
+ * @param my_addr Local slave address handled by this instance.
+ * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifModbusAsciiSlave_Init(PifModbusAsciiSlave *p_owner, PifId id, PifTimerManager *p_timer_manager, uint8_t my_addr);
 
 /**
  * @fn pifModbusAsciiSlave_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources owned by the instance.
+ * @param p_owner Pointer to the protocol instance.
  */
 void pifModbusAsciiSlave_Clear(PifModbusAsciiSlave *p_owner);
 
 /**
  * @fn pifModbusAsciiSlave_SetReceiveTimeout
- * @brief
- * @param p_owner
- * @param receive_timeout
+ * @brief Updates a runtime configuration value.
+ * @param p_owner Pointer to the protocol instance.
+ * @param receive_timeout Receive timeout value in timer ticks.
  */
 void pifModbusAsciiSlave_SetReceiveTimeout(PifModbusAsciiSlave *p_owner, uint16_t receive_timeout);
 
 /**
  * @fn pifModbusAsciiSlave_AttachUart
- * @brief
- * @param p_owner
- * @param p_uart
- * @param name
+ * @brief Attaches an interface or callback to the instance.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_uart UART interface bound to this protocol instance.
+ * @param name Optional name used for logging or identification.
  */
 void pifModbusAsciiSlave_AttachUart(PifModbusAsciiSlave *p_owner, PifUart *p_uart);
 
 /**
  * @fn pifModbusAsciiSlave_DetachUart
- * @brief
- * @param p_owner
+ * @brief Detaches a previously attached interface or callback.
+ * @param p_owner Pointer to the protocol instance.
  */
 void pifModbusAsciiSlave_DetachUart(PifModbusAsciiSlave *p_owner);
 
