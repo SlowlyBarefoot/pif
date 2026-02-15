@@ -11,7 +11,7 @@
 
 /**
  * @struct StPifRcPpmPulse
- * @brief
+ * @brief One captured PPM pulse edge pair.
  */
 typedef struct StPifRcPpmPulse
 {
@@ -21,14 +21,12 @@ typedef struct StPifRcPpmPulse
 
 /**
  * @struct StPifRcPpm
- * @brief RC PPM를 관리하기 위한 구조체
+ * @brief Runtime state for PPM decoding.
  */
 typedef struct StPifRcPpm
 {
 	// The parent variable must be at the beginning of this structure.
 	PifRc parent;
-
-	// Public Member Variable
 
 	// Read-only Member Variable
 	int8_t _channel;
@@ -54,45 +52,45 @@ extern "C" {
 
 /**
  * @fn pifRcPpm_Init
- * @brief RC PPM를 초기화한다.
- * @param p_owner
- * @param id
- * @param channel_count
- * @param threshold_1us
- * @return 성공 여부를 반환한다.
+ * @brief Initializes a PPM receiver instance.
+ * @param p_owner Pointer to the PPM receiver object.
+ * @param id Object identifier. Use PIF_ID_AUTO to allocate automatically.
+ * @param channel_count Number of channels to decode.
+ * @param threshold_1us Frame separation threshold in microseconds.
+ * @return TRUE if initialization succeeds, otherwise FALSE.
  */
 BOOL pifRcPpm_Init(PifRcPpm* p_owner, PifId id, uint8_t channel_count, uint16_t threshold_1us);
 
 /**
  * @fn pifRcPpm_Clear
- * @brief PifRcPpm내에 할당 메모리를 반환한다.
- * @param p_owner RcPpm 자신
+ * @brief Releases resources allocated by the PPM receiver instance.
+ * @param p_owner Pointer to the PPM receiver object.
  */
 void pifRcPpm_Clear(PifRcPpm* p_owner);
 
 /**
  * @fn pifRcPpm_SetValidRange
- * @brief
- * @param p_owner
- * @param min
- * @param max
- * @return
+ * @brief Sets the valid pulse width range for decoded channel values.
+ * @param p_owner Pointer to the PPM receiver object.
+ * @param min Minimum accepted pulse width in microseconds.
+ * @param max Maximum accepted pulse width in microseconds.
+ * @return TRUE after the range is applied.
  */
 BOOL pifRcPpm_SetValidRange(PifRcPpm* p_owner, uint32_t min, uint32_t max);
 
 /**
  * @fn pifRcPpm_ResetMeasureValue
- * @brief
- * @param p_owner
+ * @brief Resets buffered pulse timing measurements used by the decoder.
+ * @param p_owner Pointer to the PPM receiver object.
  */
 void pifRcPpm_ResetMeasureValue(PifRcPpm* p_owner);
 
 /**
  * @fn pifRcPpm_sigTick
- * @brief
- * @param p_owner
- * @param time_us
- * @return
+ * @brief Processes one captured pulse timestamp.
+ * @param p_owner Pointer to the PPM receiver object.
+ * @param time_us Timestamp in microseconds.
+ * @return Decoded pulse width value, or 0 when no complete channel value is available.
  */
 uint16_t pifRcPpm_sigTick(PifRcPpm* p_owner, uint32_t time_us);
 

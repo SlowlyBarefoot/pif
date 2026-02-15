@@ -5,6 +5,12 @@
 #define IBUS_RETRY_TIMEOUT		3		// 3ms, Packets are received very ~7ms so use ~half that for the gap
 
 
+/**
+ * @brief Consumes UART bytes for iBUS and advances the packet receive state machine until a frame is completed.
+ * @param p_owner Pointer to the receiver instance to operate on.
+ * @param act_receive_data UART receive function used to pull available bytes.
+ * @return None.
+ */
 static void _ParsingPacket(PifRcIbus *p_owner, PifActUartReceiveData act_receive_data)
 {
 	uint8_t data;
@@ -72,6 +78,12 @@ static void _ParsingPacket(PifRcIbus *p_owner, PifActUartReceiveData act_receive
 	}
 }
 
+/**
+ * @brief Parses incoming UART bytes, validates the protocol frame, updates receiver status, and dispatches channel data.
+ * @param p_client Pointer to the protocol receiver instance registered as UART client.
+ * @param act_receive_data UART receive function used to pull available bytes.
+ * @return TRUE when a full frame is parsed or parser state remains active; otherwise FALSE.
+ */
 static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifRcIbus *p_owner = (PifRcIbus *)p_client;

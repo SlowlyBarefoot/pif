@@ -2,6 +2,13 @@
 #include "rc/pif_rc_pwm.h"
 
 
+/**
+ * @brief Processes one PWM edge measurement for a channel and updates the assembled channel frame.
+ * @param p_owner Pointer to the receiver instance to operate on.
+ * @param channel Zero-based channel index or channel output array depending on context.
+ * @param time_us Edge timestamp in microseconds.
+ * @return Decoded pulse width for the channel, or 0 when no valid update is produced.
+ */
 static uint16_t _processRcPwm(PifRcPwm* p_owner, uint8_t channel, uint32_t time_us)
 {
 	uint16_t rtn = 0;

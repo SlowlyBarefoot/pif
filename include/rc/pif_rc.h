@@ -8,12 +8,18 @@
 struct StPifRc;
 typedef struct StPifRc PifRc;
 
+/**
+ * @brief Callback invoked when a complete RC frame has been decoded.
+ * @param p_owner Pointer to the RC base object that produced the frame.
+ * @param channel Pointer to decoded channel values.
+ * @param p_issuer User-defined issuer context forwarded from the RC object.
+ */
 typedef void (*PifEvtRcReceive)(PifRc* p_owner, uint16_t* channel, PifIssuerP p_issuer);
 
 
 /**
  * @class StPifRc
- * @brief
+ * @brief Base RC receiver data shared by protocol-specific receiver implementations.
  */
 struct StPifRc
 {
@@ -40,27 +46,26 @@ extern "C" {
 #endif
 
 /**
- * @fn pifRc_AttachEvtReceive
- * @brief
- * @param p_owner PifRc 포인터
- * @param evt_receive
- * @param p_issuer 이벤트 발생시 전달할 발행자
+v * @brief Registers the RC frame receive callback and callback issuer context.
+ * @param p_owner Pointer to the RC object.
+ * @param evt_receive Callback function called when a valid frame is received.
+ * @param p_issuer User-defined issuer context passed to evt_receive.
  */
 void pifRc_AttachEvtReceive(PifRc* p_owner, PifEvtRcReceive evt_receive, PifIssuerP p_issuer);
 
 /**
  * @fn pifRc_GetFrameLoss
- * @brief
- * @param p_owner
- * @return
+ * @brief Calculates frame loss percentage using good, lost, and error frame counters.
+ * @param p_owner Pointer to the RC object.
+ * @return Frame loss ratio in percent.
  */
 int pifRc_GetFrameLoss(PifRc* p_owner);
 
 /**
  * @fn pifRc_CheckFailSafe
- * @brief
- * @param p_owner
- * @return
+ * @brief Checks whether failsafe is active due to protocol state or frame timeout.
+ * @param p_owner Pointer to the RC object.
+ * @return TRUE if failsafe is active, otherwise FALSE.
  */
 BOOL pifRc_CheckFailSafe(PifRc* p_owner);
 
@@ -69,4 +74,4 @@ BOOL pifRc_CheckFailSafe(PifRc* p_owner);
 #endif
 
 
-#endif	// PIF_RC_H
+#endif  // PIF_RC_H

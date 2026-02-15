@@ -4,6 +4,12 @@
 #define SPEKTRUM_RETRY_TIMEOUT		5	// 5ms
 
 
+/**
+ * @brief Parses incoming UART bytes, validates the protocol frame, updates receiver status, and dispatches channel data.
+ * @param p_client Pointer to the protocol receiver instance registered as UART client.
+ * @param act_receive_data UART receive function used to pull available bytes.
+ * @return TRUE when a full frame is parsed or parser state remains active; otherwise FALSE.
+ */
 static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifRcSpektrum *p_owner = (PifRcSpektrum *)p_client;

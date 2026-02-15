@@ -11,7 +11,7 @@
 
 /**
  * @struct StPifRcPwmPulse
- * @brief
+ * @brief One captured PWM pulse edge pair.
  */
 typedef struct StPifRcPwmPulse
 {
@@ -21,7 +21,7 @@ typedef struct StPifRcPwmPulse
 
 /**
  * @struct StPifRcPwmData
- * @brief
+ * @brief Per-channel PWM measurement history.
  */
 typedef struct StPifRcPwmData
 {
@@ -31,16 +31,12 @@ typedef struct StPifRcPwmData
 
 /**
  * @struct StPifRcPwm
- * @brief Pulse를 관리하기 위한 구조체
+ * @brief Runtime state for PWM decoding.
  */
 typedef struct StPifRcPwm
 {
 	// The parent variable must be at the beginning of this structure.
 	PifRc parent;
-
-	// Public Member Variable
-
-	// Read-only Member Variable
 
 	// Private Member Variable
 	struct {
@@ -61,44 +57,46 @@ extern "C" {
 
 /**
  * @fn pifRcPwm_Init
- * @brief RC PWM을 초기화한다.
- * @param p_owner
- * @param id
- * @param channel_count
- * @return 성공 여부를 반환한다.
+ * @brief Initializes a PWM receiver instance.
+ * @param p_owner Pointer to the PWM receiver object.
+ * @param id Object identifier. Use PIF_ID_AUTO to allocate automatically.
+ * @param channel_count Number of channels to decode.
+ * @return TRUE if initialization succeeds, otherwise FALSE.
  */
 BOOL pifRcPwm_Init(PifRcPwm* p_owner, PifId id, uint8_t channel_count);
 
 /**
  * @fn pifRcPwm_Clear
- * @brief PifRcPwm내에 할당 메모리를 반환한다.
- * @param p_owner RcPwm 자신
+ * @brief Releases resources allocated by the PWM receiver instance.
+ * @param p_owner Pointer to the PWM receiver object.
  */
 void pifRcPwm_Clear(PifRcPwm* p_owner);
 
 /**
  * @fn pifRcPwm_SetValidRange
- * @brief
- * @param p_owner
- * @param min
- * @param max
- * @return
+ * @brief Sets the valid pulse width range for decoded PWM values.
+ * @param p_owner Pointer to the PWM receiver object.
+ * @param min Minimum accepted pulse width in microseconds.
+ * @param max Maximum accepted pulse width in microseconds.
+ * @return TRUE after the range is applied.
  */
 BOOL pifRcPwm_SetValidRange(PifRcPwm* p_owner, uint32_t min, uint32_t max);
 
 /**
  * @fn pifRcPwm_ResetMeasureValue
- * @brief
- * @param p_owner
+ * @brief Resets buffered edge measurements for all channels.
+ * @param p_owner Pointer to the PWM receiver object.
  */
 void pifRcPwm_ResetMeasureValue(PifRcPwm* p_owner);
 
 /**
  * @fn pifRcPwm_sigEdge
- * @param p_owner
- * @param state
- * @param time_us
- * @return
+ * @brief Processes one PWM edge event.
+ * @param p_owner Pointer to the PWM receiver object.
+ * @param channel Zero-based channel index.
+ * @param state Edge type (rising or falling).
+ * @param time_us Edge timestamp in microseconds.
+ * @return Decoded pulse width value, or 0 when no complete pulse is available.
  */
 uint16_t pifRcPwm_sigEdge(PifRcPwm* p_owner, uint8_t channel, PifPulseState state, uint32_t time_us);
 

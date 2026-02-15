@@ -2,6 +2,12 @@
 #include "rc/pif_rc_ppm.h"
 
 
+/**
+ * @brief Processes one measured PPM pulse interval and updates channel values when a valid frame is detected.
+ * @param p_owner Pointer to the receiver instance to operate on.
+ * @param diff Measured pulse interval in microseconds.
+ * @return Decoded pulse width for the current channel, or 0 when no complete value is produced.
+ */
 static uint16_t _processRcPpm(PifRcPpm* p_owner, uint16_t diff)
 {
 	uint16_t rtn = 0;

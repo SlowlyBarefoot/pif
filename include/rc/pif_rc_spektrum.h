@@ -18,14 +18,12 @@
 
 /**
  * @class StPifRcSpektrum
- * @brief
+ * @brief Runtime state for Spektrum frame decoding.
  */
 typedef struct StPifRcSpektrum
 {
 	// The parent variable must be at the beginning of this structure.
 	PifRc parent;
-
-	// Public Member Variable
 
 	// Read-only Member Variable
 	uint8_t _protocol_id;
@@ -34,10 +32,10 @@ typedef struct StPifRcSpektrum
 	// Private Member Variable
 	PifUart* __p_uart;
     uint8_t __p_buffer[SPEKTRUM_FRAME_SIZE];
-	uint8_t __index;                            // message length
-	uint8_t __id_mask;
-	uint8_t __id_shift;
-	uint8_t __pos_mask;
+    uint8_t __index;    // Current message length.
+    uint8_t __id_mask;
+    uint8_t __id_shift;
+    uint8_t __pos_mask;
     uint16_t __channel[PIF_SPEKTRUM_CHANNEL_COUNT];
 	uint32_t __last_time;
 } PifRcSpektrum;
@@ -49,44 +47,44 @@ extern "C" {
 
 /**
  * @fn pifRcSpektrum_Init
- * @brief
- * @param p_owner
- * @param id
- * @param protocol_id
- * @return
+ * @brief Initializes a Spektrum receiver instance.
+ * @param p_owner Pointer to the Spektrum receiver object.
+ * @param id Object identifier. Use PIF_ID_AUTO to allocate automatically.
+ * @param protocol_id Spektrum protocol identifier.
+ * @return TRUE if initialization succeeds, otherwise FALSE.
  */
 BOOL pifRcSpektrum_Init(PifRcSpektrum* p_owner, PifId id, uint8_t protocol_id);
 
 /**
  * @fn pifRcSpektrum_AttachUart
- * @brief
- * @param p_owner
- * @param p_uart
+ * @brief Attaches a UART interface to the Spektrum parser.
+ * @param p_owner Pointer to the Spektrum receiver object.
+ * @param p_uart UART instance to attach.
  */
 void pifRcSpektrum_AttachUart(PifRcSpektrum* p_owner, PifUart* p_uart);
 
 /**
  * @fn pifRcSpektrum_DetachUart
- * @brief
- * @param p_owner
+ * @brief Detaches the UART interface from the Spektrum parser.
+ * @param p_owner Pointer to the Spektrum receiver object.
  */
 void pifRcSpektrum_DetachUart(PifRcSpektrum* p_owner);
 
 /**
  * @fn pifRcSpektrum_CheckFailSafe
- * @brief function used to check the failsafe status
- * @param p_owner
- * @return
+ * @brief Checks whether Spektrum failsafe is active.
+ * @param p_owner Pointer to the Spektrum receiver object.
+ * @return TRUE if failsafe is active, otherwise FALSE.
  */
 BOOL pifRcSpektrum_CheckFailSafe(PifRcSpektrum* p_owner);
 
 /**
  * @fn pifRcSpektrum_SendFrame
- * @brief
- * @param p_owner
- * @param p_channel
- * @param count
- * @return
+ * @brief Encodes and transmits one Spektrum frame.
+ * @param p_owner Pointer to the Spektrum receiver object.
+ * @param p_channel Pointer to channel values.
+ * @param count Number of channel values available in p_channel.
+ * @return TRUE if the frame is queued for transmission, otherwise FALSE.
  */
 BOOL pifRcSpektrum_SendFrame(PifRcSpektrum* p_owner, uint16_t* p_channel, uint8_t count);
 

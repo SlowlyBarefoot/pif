@@ -12,23 +12,19 @@
 
 
 /**
- * @class StPifRcSbus
- * @brief
+* @class StPifRcSbus
+* @brief Runtime state for SBUS decoding.
  */
 typedef struct StPifRcSbus
 {
 	// The parent variable must be at the beginning of this structure.
 	PifRc parent;
 
-	// Public Member Variable
-
-	// Read-only Member Variable
-
 	// Private Member Variable
-	PifUart* __p_uart;
-	uint8_t __index;                    // message length
-	uint8_t __buffer[SBUS_FRAME_SIZE];	// message buffer
-	uint32_t __last_time;
+    PifUart* __p_uart;
+    uint8_t __index;                    // Current message length.
+    uint8_t __buffer[SBUS_FRAME_SIZE];
+    uint32_t __last_time;
 } PifRcSbus;
 
 
@@ -38,35 +34,35 @@ extern "C" {
 
 /**
  * @fn pifRcSbus_Init
- * @brief
- * @param p_owner
- * @param id
- * @return
+ * @brief Initializes an SBUS receiver instance.
+ * @param p_owner Pointer to the SBUS receiver object.
+ * @param id Object identifier. Use PIF_ID_AUTO to allocate automatically.
+ * @return TRUE if initialization succeeds, otherwise FALSE.
  */
 BOOL pifRcSbus_Init(PifRcSbus* p_owner, PifId id);
 
 /**
  * @fn pifRcSbus_AttachUart
- * @brief
- * @param p_owner
- * @param p_uart
+ * @brief Attaches a UART interface to the SBUS parser.
+ * @param p_owner Pointer to the SBUS receiver object.
+ * @param p_uart UART instance to attach.
  */
 void pifRcSbus_AttachUart(PifRcSbus* p_owner, PifUart* p_uart);
 
 /**
  * @fn pifRcSbus_DetachUart
- * @brief
- * @param p_owner
+ * @brief Detaches the UART interface from the SBUS parser.
+ * @param p_owner Pointer to the SBUS receiver object.
  */
 void pifRcSbus_DetachUart(PifRcSbus* p_owner);
 
 /**
- * @fn pifRcSbus_SendFrame
- * @brief
- * @param p_owner
- * @param p_channel
- * @param count
- * @return
+ * @fn pifRcSbus_DetachUart
+ * @brief Encodes and transmits one SBUS frame.
+ * @param p_owner Pointer to the SBUS receiver object.
+ * @param p_channel Pointer to channel values.
+ * @param count Number of channel values available in p_channel.
+ * @return TRUE if the frame is queued for transmission, otherwise FALSE.
  */
 BOOL pifRcSbus_SendFrame(PifRcSbus* p_owner, uint16_t* p_channel, uint8_t count);
 
