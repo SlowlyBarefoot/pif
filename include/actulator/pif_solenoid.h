@@ -31,7 +31,7 @@ typedef void (*PifEvtSolenoid)(PifSolenoid* p_owner);
 
 /**
  * @class StPifSolenoidContent
- * @brief
+ * @brief Queued solenoid command item used by the internal ring buffer.
  */
 typedef struct StPifSolenoidContent
 {
@@ -66,7 +66,7 @@ typedef struct StPifSolenoidColSig
 
 /**
  * @class StPifSolenoid
- * @brief 
+ * @brief Solenoid actuator object with timer-based ON pulse and optional command buffering.
  */
 struct StPifSolenoid
 {
@@ -104,71 +104,71 @@ extern "C" {
 
 /**
  * @fn pifSolenoid_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_timer_manager
- * @param type
- * @param on_time
- * @param act_control
- * @return
+ * @brief Initializes a solenoid instance and allocates internal timers.
+ * @param p_owner Target solenoid instance to initialize.
+ * @param id Instance ID. If set to PIF_ID_AUTO, an ID is assigned automatically.
+ * @param p_timer_manager Timer manager used to create ON and delay timers.
+ * @param type Solenoid type (1-point, 2-point, or 3-point behavior).
+ * @param on_time ON pulse duration in milliseconds. If 0, automatic OFF by timer is disabled.
+ * @param act_control Hardware control callback that applies ON/OFF action and direction.
+ * @return TRUE if initialization succeeds; otherwise FALSE.
  */
 BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifTimerManager* p_timer_manager, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control);
 
 /**
  * @fn pifSolenoid_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources allocated by pifSolenoid_Init.
+ * @param p_owner Solenoid instance to clear.
  */
 void pifSolenoid_Clear(PifSolenoid* p_owner);
 
 /**
  * @fn pifSolenoid_SetBuffer
- * @brief
- * @param p_owner
- * @param size
- * @return
+ * @brief Creates a ring buffer for delayed or queued solenoid commands.
+ * @param p_owner Solenoid instance to configure.
+ * @param size Number of queued command entries to allocate.
+ * @return TRUE if the buffer is created successfully; otherwise FALSE.
  */
 BOOL pifSolenoid_SetBuffer(PifSolenoid* p_owner, uint16_t size);
 
 /**
  * @fn pifSolenoid_SetInvalidDirection
- * @brief
- * @param p_owner
+ * @brief Resets the current direction state to SD_INVALID.
+ * @param p_owner Solenoid instance to update.
  */
 void pifSolenoid_SetInvalidDirection(PifSolenoid* p_owner);
 
 /**
  * @fn pifSolenoid_SetOnTime
- * @brief
- * @param p_owner
- * @param on_time
- * @return
+ * @brief Updates the ON pulse duration.
+ * @param p_owner Solenoid instance to update.
+ * @param on_time ON pulse duration in milliseconds. Must be greater than 0.
+ * @return TRUE if the value is accepted; otherwise FALSE.
  */
 BOOL pifSolenoid_SetOnTime(PifSolenoid* p_owner, uint16_t on_time);
 
 /**
  * @fn pifSolenoid_ActionOn
- * @brief
- * @param p_owner
- * @param delay
+ * @brief Turns the solenoid ON immediately or after a delay.
+ * @param p_owner Solenoid instance to control.
+ * @param delay Delay before activation in milliseconds.
  */
 void pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay);
 
 /**
  * @fn pifSolenoid_ActionOnDir
- * @brief 
- * @param p_owner
- * @param delay
- * @param dir
+ * @brief Turns the solenoid ON with the specified direction, immediately or after a delay.
+ * @param p_owner Solenoid instance to control.
+ * @param delay Delay before activation in milliseconds.
+ * @param dir Direction to apply when activating the solenoid.
  */
 void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDir dir);
 
 /**
  * @fn pifSolenoid_ActionOff
- * @brief
- * @param p_owner
+ * @brief Forces the solenoid OFF immediately and stops the running ON timer.
+ * @param p_owner Solenoid instance to control.
  */
 void pifSolenoid_ActionOff(PifSolenoid* p_owner);
 
@@ -177,31 +177,31 @@ void pifSolenoid_ActionOff(PifSolenoid* p_owner);
 
 /**
  * @fn pifSolenoid_SetCsFlag
- * @brief
- * @param pstSensor
- * @param flag
+ * @brief Enables selected collect-signal channels for a single solenoid instance.
+ * @param p_owner Target solenoid instance.
+ * @param flag Bit mask of channels to enable.
  */
 void pifSolenoid_SetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
 
 /**
  * @fn pifSolenoid_ResetCsFlag
- * @brief
- * @param pstSensor
- * @param flag
+ * @brief Disables selected collect-signal channels for a single solenoid instance.
+ * @param p_owner Target solenoid instance.
+ * @param flag Bit mask of channels to disable.
  */
 void pifSolenoid_ResetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
 
 /**
  * @fn pifSolenoidColSig_SetFlag
- * @brief
- * @param flag
+ * @brief Enables selected collect-signal channels for all registered solenoid instances.
+ * @param flag Bit mask of channels to enable.
  */
 void pifSolenoidColSig_SetFlag(PifSolenoidCsFlag flag);
 
 /**
  * @fn pifSolenoidColSig_ResetFlag
- * @brief
- * @param flag
+ * @brief Disables selected collect-signal channels for all registered solenoid instances.
+ * @param flag Bit mask of channels to disable.
  */
 void pifSolenoidColSig_ResetFlag(PifSolenoidCsFlag flag);
 
