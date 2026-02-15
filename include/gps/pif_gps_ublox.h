@@ -384,7 +384,7 @@ typedef struct {
 
 /**
  * @class StPifGpsUbxPacket
- * @brief
+ * @brief Generic UBX packet container used for parsed class/message payload access.
  */
 typedef struct StPifGpsUbxPacket
 {
@@ -436,7 +436,7 @@ typedef struct StPifGpsUbloxTx
 
 /**
  * @class StPifGpsUblox
- * @brief
+ * @brief u-blox GPS driver wrapper supporting UBX and NMEA over UART/I2C.
  */
 struct StPifGpsUblox
 {
@@ -475,141 +475,141 @@ extern "C" {
 
 /**
  * @fn pifGpsUblox_Init
- * @brief
- * @param p_owner
- * @param id
- * @return
+ * @brief Initializes the u-blox GPS wrapper and its transmit ring buffer.
+ * @param p_owner Pointer to the wrapper instance to initialize.
+ * @param id Requested object ID. Use `PIF_ID_AUTO` for automatic allocation.
+ * @return `TRUE` on success, otherwise `FALSE`.
  */
 BOOL pifGpsUblox_Init(PifGpsUblox* p_owner, PifId id);
 
 /**
  * @fn pifGpsUblox_Clear
- * @brief
- * @param p_owner
+ * @brief Clears internal resources used by the u-blox wrapper.
+ * @param p_owner Pointer to the wrapper instance.
  */
 void pifGpsUblox_Clear(PifGpsUblox* p_owner);
 
 /**
  * @fn pifGpsUblox_AttachUart
- * @brief
- * @param p_owner
- * @param p_uart
+ * @brief Attaches UART callbacks for UBX/NMEA receive and queued transmit.
+ * @param p_owner Pointer to the wrapper instance.
+ * @param p_uart UART device connected to the u-blox module.
  */
 void pifGpsUblox_AttachUart(PifGpsUblox* p_owner, PifUart* p_uart);
 
 /**
  * @fn pifGpsUblox_DetachUart
- * @brief
- * @param p_owner
+ * @brief Detaches UART callbacks from the currently attached UART device.
+ * @param p_owner Pointer to the wrapper instance.
  */
 void pifGpsUblox_DetachUart(PifGpsUblox* p_owner);
 
 /**
  * @fn pifGpsUblox_AttachI2c
- * @brief
- * @param p_owner
- * @param p_i2c
- * @param addr
- * @param p_client
- * @param period1ms
- * @param start
- * @param name
- * @return
+ * @brief Attaches an I2C u-blox device and creates a periodic receive task.
+ * @param p_owner Pointer to the wrapper instance.
+ * @param p_i2c I2C port used to communicate with the module.
+ * @param addr I2C slave address of the module.
+ * @param p_client Client context passed to I2C device registration.
+ * @param period1ms Polling interval in milliseconds.
+ * @param start If `TRUE`, the periodic task starts immediately.
+ * @param name Optional task name. Uses a default if `NULL`.
+ * @return `TRUE` if attachment succeeds, otherwise `FALSE`.
  */
 BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr, void *p_client, uint16_t period1ms, BOOL start, const char* name);
 
 /**
  * @fn pifGpsUblox_DetachI2c
- * @brief
- * @param p_owner
+ * @brief Removes the currently attached I2C u-blox device.
+ * @param p_owner Pointer to the wrapper instance.
  */
 void pifGpsUblox_DetachI2c(PifGpsUblox* p_owner);
 
 /**
  * @fn pifGpsUblox_PollRequestGBQ
- * @brief
- * @param p_owner
- * @param p_mag_id
- * @param blocking
- * @param waiting
- * @return
+ * @brief Sends an NMEA `$GBGBQ` poll request for a specific message ID.
+ * @param p_owner Pointer to the wrapper instance.
+ * @param p_mag_id Target NMEA message identifier string.
+ * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
+ * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @return `TRUE` if the request is queued or sent successfully, otherwise `FALSE`.
  */
 BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_PollRequestGLQ
- * @brief
- * @param p_owner
- * @param p_mag_id
- * @param blocking
- * @param waiting
- * @return
+ * @brief Sends an NMEA `$GLGLQ` poll request for a specific message ID.
+ * @param p_owner Pointer to the wrapper instance.
+ * @param p_mag_id Target NMEA message identifier string.
+ * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
+ * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @return `TRUE` if the request is queued or sent successfully, otherwise `FALSE`.
  */
 BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_PollRequestGNQ
- * @brief
- * @param p_owner
- * @param p_mag_id
- * @param blocking
- * @param waiting
- * @return
+ * @brief Sends an NMEA `$GNGNQ` poll request for a specific message ID.
+ * @param p_owner Pointer to the wrapper instance.
+ * @param p_mag_id Target NMEA message identifier string.
+ * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
+ * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @return `TRUE` if the request is queued or sent successfully, otherwise `FALSE`.
  */
 BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_PollRequestGPQ
- * @brief
- * @param p_owner
- * @param p_mag_id
- * @param blocking
- * @param waiting
- * @return
+ * @brief Sends an NMEA `$GPGPQ` poll request for a specific message ID.
+ * @param p_owner Pointer to the wrapper instance.
+ * @param p_mag_id Target NMEA message identifier string.
+ * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
+ * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @return `TRUE` if the request is queued or sent successfully, otherwise `FALSE`.
  */
 BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_SetPubxConfig
- * @brief
- * @param p_owner
- * @param port_id
- * @param in_proto
- * @param out_proto
- * @param baudrate
- * @param blocking
- * @param waiting
- * @return
+ * @brief Sends a `$PUBX,41` command to configure u-blox serial interface settings.
+ * @param p_owner Pointer to the wrapper instance.
+ * @param port_id Port identifier used by the u-blox receiver.
+ * @param in_proto Input protocol mask.
+ * @param out_proto Output protocol mask.
+ * @param baudrate Serial baud rate to configure.
+ * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
+ * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @return `TRUE` if the command is queued or sent successfully, otherwise `FALSE`.
  */
 BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t in_proto, uint16_t out_proto, uint32_t baudrate, BOOL blocking, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_SetPubxRate
- * @brief
- * @param p_owner
- * @param p_mag_id
- * @param rddc
- * @param rus1
- * @param rus2
- * @param rusb
- * @param rspi
- * @param blocking
- * @param waiting
- * @return
+ * @brief Sends a `$PUBX,40` command to configure output rates for an NMEA message.
+ * @param p_owner Pointer to the wrapper instance.
+ * @param p_mag_id NMEA message identifier string.
+ * @param rddc Rate for DDC (I2C) output.
+ * @param rus1 Rate for UART1 output.
+ * @param rus2 Rate for UART2 output.
+ * @param rusb Rate for USB output.
+ * @param rspi Rate for SPI output.
+ * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
+ * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @return `TRUE` if the command is queued or sent successfully, otherwise `FALSE`.
  */
 BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t rddc, uint8_t rus1, uint8_t rus2, uint8_t rusb, uint8_t rspi, BOOL blocking, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_SendUbxMsg
- * @brief
- * @param p_owner
- * @param class_id
- * @param msg_id
- * @param length
- * @param payload
- * @param blocking
- * @param waiting
- * @return
+ * @brief Builds and sends a raw UBX packet.
+ * @param p_owner Pointer to the wrapper instance.
+ * @param class_id UBX class ID.
+ * @param msg_id UBX message ID within the selected class.
+ * @param length Payload size in bytes.
+ * @param payload Pointer to payload bytes, or `NULL` when `length` is zero.
+ * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
+ * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @return `TRUE` if the packet is queued or sent successfully, otherwise `FALSE`.
  */
 BOOL pifGpsUblox_SendUbxMsg(PifGpsUblox* p_owner, uint8_t class_id, uint8_t msg_id, uint16_t length, uint8_t* payload, BOOL blocking, uint16_t waiting);
 

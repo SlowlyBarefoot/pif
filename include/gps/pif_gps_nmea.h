@@ -10,7 +10,7 @@
 
 /**
  * @class StPifGpsNmea
- * @brief
+ * @brief NMEA transport wrapper that connects `PifGps` to UART or I2C input.
  */
 typedef struct StPifGpsNmea
 {
@@ -38,53 +38,53 @@ extern "C" {
 
 /**
  * @fn pifGpsNmea_Init
- * @brief
- * @param p_owner
- * @param id
- * @return
+ * @brief Initializes an NMEA GPS wrapper instance.
+ * @param p_owner Pointer to the wrapper instance to initialize.
+ * @param usPifId Requested object ID. Use `PIF_ID_AUTO` for automatic allocation.
+ * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
 BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId usPifId);
 
 /**
  * @fn pifGpsNmea_Clear
- * @brief
- * @param p_owner
+ * @brief Clears resources owned by the NMEA wrapper.
+ * @param p_owner Pointer to the wrapper instance.
  */
 void pifGpsNmea_Clear(PifGpsNmea* p_owner);
 
 /**
  * @fn pifGpsNmea_AttachUart
- * @brief
- * @param p_owner
- * @param p_uart
+ * @brief Attaches a UART interface and starts parsing incoming NMEA bytes.
+ * @param p_owner Pointer to the wrapper instance.
+ * @param p_uart UART device used as the input stream.
  */
 void pifGpsNmea_AttachUart(PifGpsNmea* p_owner, PifUart* p_uart);
 
 /**
  * @fn pifGpsNmea_DetachUart
- * @brief
- * @param p_owner
+ * @brief Detaches the current UART client from this NMEA wrapper.
+ * @param p_owner Pointer to the wrapper instance.
  */
 void pifGpsNmea_DetachUart(PifGpsNmea* p_owner);
 
 /**
  * @fn pifGpsNmea_AttachI2c
- * @brief
- * @param p_owner
- * @param p_i2c
- * @param addr
- * @param p_client
- * @param period1ms
- * @param start
- * @param name
- * @return
+ * @brief Attaches an I2C GNSS device and creates a periodic polling task.
+ * @param p_owner Pointer to the wrapper instance.
+ * @param p_i2c I2C port that provides access to the GNSS device.
+ * @param addr I2C slave address of the GNSS device.
+ * @param p_client Client context forwarded to the I2C device registration.
+ * @param period1ms Polling period in milliseconds.
+ * @param start If `TRUE`, the polling task starts immediately after creation.
+ * @param name Optional task name. If `NULL`, a default name is assigned.
+ * @return `TRUE` if device and task attachment succeeds, otherwise `FALSE`.
  */
 BOOL pifGpsNmea_AttachI2c(PifGpsNmea* p_owner, PifI2cPort* p_i2c, uint8_t addr, void *p_client, uint16_t period1ms, BOOL start, const char* name);
 
 /**
  * @fn pifGpsNmea_DetachI2c
- * @brief
- * @param p_owner
+ * @brief Detaches and removes the currently attached I2C GNSS device.
+ * @param p_owner Pointer to the wrapper instance.
  */
 void pifGpsNmea_DetachI2c(PifGpsNmea* p_owner);
 

@@ -10,6 +10,11 @@
 #define DIGIT_TO_VAL(_x)        (_x - '0')
 
 
+/**
+ * @brief Converts an NMEA date token (`ddmmyy`) into `PifDateTime`.
+ * @param str NMEA date string.
+ * @param p_date_time Output date-time structure to update.
+ */
 static void _convertString2Date(char* str, PifDateTime* p_date_time)
 {
 	p_date_time->day = DIGIT_TO_VAL(str[0]) * 10 + DIGIT_TO_VAL(str[1]);
@@ -17,6 +22,11 @@ static void _convertString2Date(char* str, PifDateTime* p_date_time)
 	p_date_time->year = DIGIT_TO_VAL(str[4]) * 10 + DIGIT_TO_VAL(str[5]);
 }
 
+/**
+ * @brief Converts an NMEA time token (`hhmmss.sss`) into `PifDateTime`.
+ * @param str NMEA time string.
+ * @param p_date_time Output date-time structure to update.
+ */
 static void _convertString2Time(char* str, PifDateTime* p_date_time)
 {
 	int i, digit;
@@ -35,6 +45,11 @@ static void _convertString2Time(char* str, PifDateTime* p_date_time)
 	}
 }
 
+/**
+ * @brief Converts a signed decimal ASCII string to `double`.
+ * @param str Numeric string to convert.
+ * @return Converted floating-point value.
+ */
 static double _convertString2Float(char* str)
 {
 	char* p;
@@ -59,6 +74,11 @@ static double _convertString2Float(char* str)
 	return value;
 }
 
+/**
+ * @brief Converts a signed decimal ASCII string to `int`.
+ * @param str Numeric string to convert.
+ * @return Converted integer value.
+ */
 static int _convertString2Interger(char* str)
 {
 	char* p;
@@ -80,6 +100,11 @@ static int _convertString2Interger(char* str)
  * resolution also increased precision of nav calculations
 */
 
+/**
+ * @brief Converts an NMEA coordinate token (`ddmm.mmmm` or `dddmm.mmmm`) to degrees.
+ * @param s Coordinate token string.
+ * @return Decimal degree representation.
+ */
 static double _convertString2Degrees(char* s)
 {
 	char* p;
@@ -115,7 +140,12 @@ static double _convertString2Degrees(char* s)
 	return deg + (min * 10000UL + frac_min) / 600000.0;
 }
 
-static uint8_t _convertAscii2Hex(char n)    // convert '0'..'9','A'..'F' to 0..15
+/**
+ * @brief Converts a hexadecimal ASCII digit to its 4-bit numeric value.
+ * @param n Hex digit character (`0-9`, `A-F`).
+ * @return Numeric value in the range `0` to `15`.
+ */
+static uint8_t _convertAscii2Hex(char n)
 {
 	n -= '0';
 	if (n > 9) n -= 7;
@@ -123,6 +153,10 @@ static uint8_t _convertAscii2Hex(char n)    // convert '0'..'9','A'..'F' to 0..1
 	return n;
 }
 
+/**
+ * @brief Timeout callback that marks GPS link state as disconnected.
+ * @param p_issuer Issuer object castable to `PifGps`.
+ */
 static void _evtTimerFinish(PifIssuerP p_issuer)
 {
     PifGps* p_owner = (PifGps*)p_issuer;

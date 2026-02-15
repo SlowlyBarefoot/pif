@@ -14,8 +14,8 @@
 #define PIF_GPS_NMEA_TEXT_SIZE			64
 #endif
 
-#define PIF_GPS_LAT  	0		// Latitude (위도)
-#define PIF_GPS_LON  	1		// Longitude (경도)
+#define PIF_GPS_LAT  	0		// Latitude index
+#define PIF_GPS_LON  	1		// Longitude index
 
 #define PIF_GPS_NMEA_MSG_ID_NONE	0
 
@@ -78,7 +78,7 @@ typedef struct StPifDegMinSec
 
 /**
  * @class StPifGps
- * @brief
+ * @brief Core GPS state container for NMEA/UBX parsers and event callbacks.
  */
 struct StPifGps
 {
@@ -130,85 +130,85 @@ extern "C" {
 
 /**
  * @fn pifGps_Init
- * @brief
- * @param p_owner
- * @param id
- * @return
+ * @brief Initializes a `PifGps` instance and assigns its identifier.
+ * @param p_owner Pointer to the GPS instance to initialize.
+ * @param id Requested object ID. Use `PIF_ID_AUTO` to allocate automatically.
+ * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
 BOOL pifGps_Init(PifGps* p_owner, PifId id);
 
 /**
  * @fn pifGps_Clear
- * @brief
- * @param p_owner
+ * @brief Releases dynamically allocated resources used by the GPS instance.
+ * @param p_owner Pointer to the GPS instance to clear.
  */
 void pifGps_Clear(PifGps* p_owner);
 
 /**
  * @fn pifGps_SetTimeout
- * @brief
- * @param p_owner
- * @param p_timer_manager
- * @param timeout
- * @param evt_timeout
- * @return
+ * @brief Configures or disables a receive timeout watchdog for GPS input.
+ * @param p_owner Pointer to the GPS instance.
+ * @param p_timer_manager Timer manager used to create the internal timeout timer.
+ * @param timeout Timeout in milliseconds. Set to `0` to disable timeout handling.
+ * @param evt_timeout Callback invoked when timeout expires.
+ * @return `TRUE` if timer configuration succeeds, otherwise `FALSE`.
  */
 BOOL pifGps_SetTimeout(PifGps* p_owner, PifTimerManager* p_timer_manager, uint32_t timeout, PifEvtGpsTimeout evt_timeout);
 
 /**
  * @fn pifGps_SetEventNmeaText
- * @brief
- * @param p_owner
- * @param evt_text
- * @return
+ * @brief Enables TXT sentence parsing callback support.
+ * @param p_owner Pointer to the GPS instance.
+ * @param evt_text Callback invoked when a complete NMEA TXT message is parsed.
+ * @return `TRUE` if the internal TXT buffer is allocated, otherwise `FALSE`.
  */
 BOOL pifGps_SetEventNmeaText(PifGps* p_owner, PifEvtGpsNmeaText evt_text);
 
 /**
  * @fn pifGps_SendEvent
- * @brief
- * @param p_owner
+ * @brief Marks the GPS as connected and notifies the receive callback.
+ * @param p_owner Pointer to the GPS instance.
  */
 void pifGps_SendEvent(PifGps* p_owner);
 
 /**
  * @fn pifGps_ParsingNmea
- * @brief
- * @param p_owner
- * @param c
- * @return
+ * @brief Parses one NMEA character and updates GPS fields when a frame completes.
+ * @param p_owner Pointer to the GPS instance.
+ * @param c One input character from an NMEA stream.
+ * @return `TRUE` when a valid NMEA sentence was completed, otherwise `FALSE`.
  */
 BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c);
 
 /**
  * @fn pifGps_ConvertLatitude2DegMin
- * @brief
- * @param p_owner
- * @param p_deg_min
+ * @brief Converts latitude in decimal degrees to degree-minute format.
+ * @param p_owner Pointer to the GPS instance.
+ * @param p_deg_min Output structure receiving converted degree-minute data.
  */
 void pifGps_ConvertLatitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min);
 
 /**
  * @fn pifGps_ConvertLongitude2DegMin
- * @brief
- * @param p_owner
- * @param p_deg_min
+ * @brief Converts longitude in decimal degrees to degree-minute format.
+ * @param p_owner Pointer to the GPS instance.
+ * @param p_deg_min Output structure receiving converted degree-minute data.
  */
 void pifGps_ConvertLongitude2DegMin(PifGps* p_owner, PifDegMin* p_deg_min);
 
 /**
  * @fn pifGps_ConvertLatitude2DegMinSec
- * @brief
- * @param p_owner
- * @param p_deg_min_sec
+ * @brief Converts latitude in decimal degrees to degree-minute-second format.
+ * @param p_owner Pointer to the GPS instance.
+ * @param p_deg_min_sec Output structure receiving converted degree-minute-second data.
  */
 void pifGps_ConvertLatitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_sec);
 
 /**
  * @fn pifGps_ConvertLongitude2DegMinSec
- * @brief
- * @param p_owner
- * @param p_deg_min_sec
+ * @brief Converts longitude in decimal degrees to degree-minute-second format.
+ * @param p_owner Pointer to the GPS instance.
+ * @param p_deg_min_sec Output structure receiving converted degree-minute-second data.
  */
 void pifGps_ConvertLongitude2DegMinSec(PifGps* p_owner, PifDegMinSec* p_deg_min_sec);
 

@@ -4,6 +4,12 @@
 #include "gps/pif_gps_nmea.h"
 
 
+/**
+ * @brief UART receive callback that feeds bytes into the NMEA parser.
+ * @param p_client Pointer to `PifGpsNmea`.
+ * @param act_receive_data UART receive function pointer.
+ * @return `TRUE` if at least one byte was consumed, otherwise `FALSE`.
+ */
 static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 {
 	PifGpsNmea *p_owner = (PifGpsNmea *)p_client;
@@ -19,6 +25,11 @@ static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 
 #define DATA_SIZE	128
 
+/**
+ * @brief Periodic I2C polling task that reads pending NMEA bytes and parses them.
+ * @param p_task Task context whose client is `PifGpsNmea`.
+ * @return Always returns `0` for the task scheduler.
+ */
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifGpsNmea *p_owner = p_task->_p_client;

@@ -44,6 +44,13 @@ static const char *kPktErr[] = {
 #endif
 
 
+/**
+ * @brief Calculates UBX checksum (CK_A/CK_B) over header and payload bytes.
+ * @param p_header Pointer to UBX header bytes starting at class ID.
+ * @param p_payload Pointer to payload buffer.
+ * @param len Payload length in bytes.
+ * @return Combined checksum where low byte is CK_A and high byte is CK_B.
+ */
 static uint16_t _checksumUbx(uint8_t* p_header, uint8_t* p_payload, uint16_t len)
 {
 	uint8_t ck_a = 0, ck_b = 0;
@@ -60,6 +67,12 @@ static uint16_t _checksumUbx(uint8_t* p_header, uint8_t* p_payload, uint16_t len
 	return ck_a + (ck_b << 8);
 }
 
+/**
+ * @brief Parses one incoming byte as UBX (or fallback NMEA) data.
+ * @param p_owner Pointer to the u-blox wrapper.
+ * @param data One byte received from transport.
+ * @return `TRUE` when a complete UBX packet is parsed, otherwise `FALSE`.
+ */
 static BOOL _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 {
 	PifGpsUbxPacket* p_packet = &p_owner->__rx.packet;
@@ -303,6 +316,12 @@ fail:
 	return FALSE;
 }
 
+/**
+ * @brief UART receive callback that feeds bytes to the UBX parser.
+ * @param p_client Pointer to `PifGpsUblox`.
+ * @param act_receive_data UART receive function pointer.
+ * @return `TRUE` if a packet is completed during this callback, otherwise `FALSE`.
+ */
 static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifGpsUblox *p_owner = (PifGpsUblox *)p_client;
@@ -318,6 +337,11 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 
 #define DATA_SIZE	128
 
+/**
+ * @brief Periodic I2C polling task that reads and parses queued receiver bytes.
+ * @param p_task Task context whose client is `PifGpsUblox`.
+ * @return Always returns `0` for the task scheduler.
+ */
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifGpsUblox *p_owner = p_task->_p_client;
@@ -376,6 +400,11 @@ fail:
 	return 0;
 }
 
+/**
+ * @brief Abort predicate that checks whether UART TX buffer is empty.
+ * @param p_issuer Issuer pointer castable to `PifGpsUblox`.
+ * @return `TRUE` when pending TX data is fully drained, otherwise `FALSE`.
+ */
 static BOOL _checkAbortSerial(PifIssuerP p_issuer)
 {
 	PifGpsUblox* p_owner = (PifGpsUblox*)p_issuer;
@@ -383,6 +412,13 @@ static BOOL _checkAbortSerial(PifIssuerP p_issuer)
 	return pifRingBuffer_IsEmpty(&p_owner->__tx.buffer);
 }
 
+/**
+ * @brief Finalizes, queues, and transmits an NMEA command packet.
+ * @param p_owner Pointer to the u-blox wrapper.
+ * @param p_data NMEA sentence buffer ending at `*` before checksum insertion.
+ * @param waiting Wait time in milliseconds for transmission completion.
+ * @return `TRUE` if packet handling succeeds, otherwise `FALSE`.
+ */
 static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, uint16_t waiting)
 {
 	uint32_t header;
@@ -437,6 +473,11 @@ fail:
 	return FALSE;
 }
 
+/**
+ * @brief Abort predicate for UART requests that expect ACK/NAK response.
+ * @param p_issuer Issuer pointer castable to `PifGpsUblox`.
+ * @return `TRUE` when request reached ACK/NAK state and TX queue is empty.
+ */
 static BOOL _checkAbortSerialResponse(PifIssuerP p_issuer)
 {
 	PifGpsUblox* p_owner = (PifGpsUblox*)p_issuer;
@@ -454,6 +495,11 @@ static BOOL _checkAbortSerialResponse(PifIssuerP p_issuer)
 	return FALSE;
 }
 
+/**
+ * @brief Abort predicate for I2C requests that expect ACK/NAK response.
+ * @param p_issuer Issuer pointer castable to `PifGpsUblox`.
+ * @return `TRUE` when request state is ACK or NAK.
+ */
 static BOOL _checkAbortI2cResponse(PifIssuerP p_issuer)
 {
 	PifGpsUblox* p_owner = (PifGpsUblox*)p_issuer;
@@ -469,6 +515,15 @@ static BOOL _checkAbortI2cResponse(PifIssuerP p_issuer)
 	return FALSE;
 }
 
+/**
+ * @brief Builds, queues, and transmits a UBX packet with checksum.
+ * @param p_owner Pointer to the u-blox wrapper.
+ * @param p_header UBX frame header including sync, class, id, and length.
+ * @param length Payload size in bytes.
+ * @param p_payload Pointer to payload bytes.
+ * @param waiting Wait time in milliseconds for transmission/response.
+ * @return `TRUE` if packet handling succeeds, otherwise `FALSE`.
+ */
 static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t length, uint8_t* p_payload, uint16_t waiting)
 {
 	uint32_t info;
@@ -525,6 +580,12 @@ fail:
 	return FALSE;
 }
 
+/**
+ * @brief UART transmit callback that sends queued command bytes.
+ * @param p_client Pointer to `PifGpsUblox`.
+ * @param act_send_data UART send function pointer.
+ * @return Number of bytes sent or polling hint value for UART scheduler.
+ */
 static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 {
 	PifGpsUblox *p_owner = (PifGpsUblox *)p_client;
@@ -563,16 +624,31 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 	return length;
 }
 
+/**
+ * @brief UART abort callback that resets UBX receive parser state.
+ * @param p_client Pointer to `PifGpsUblox`.
+ */
 static void _evtAbortRx(void* p_client)
 {
 	((PifGpsUblox *)p_client)->__rx.state = GURS_SYNC_CHAR_1;
 }
 
+/**
+ * @brief Abort predicate used while waiting for non-busy TX state.
+ * @param p_issuer Issuer pointer castable to `PifGpsUblox`.
+ * @return `TRUE` when TX state is idle.
+ */
 static BOOL _checkAbortBlocking(PifIssuerP p_issuer)
 {
 	return ((PifGpsUblox*)p_issuer)->__tx.state == GUTS_IDLE;
 }
 
+/**
+ * @brief Validates or waits for an idle TX state before sending new commands.
+ * @param p_owner Pointer to the u-blox wrapper.
+ * @param blocking If `TRUE`, wait for idle state; otherwise fail when busy.
+ * @return `TRUE` if sending is allowed, otherwise `FALSE`.
+ */
 static BOOL _checkBlocking(PifGpsUblox* p_owner, BOOL blocking)
 {
 	if (blocking) {
