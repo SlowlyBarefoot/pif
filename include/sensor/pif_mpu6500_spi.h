@@ -11,30 +11,30 @@ extern "C" {
 
 /**
  * @fn pifMpu6500Spi_Detect
- * @brief
- * @param p_spi
- * @param p_client
- * @return
+ * @brief Performs the mpu6500 spi detect operation.
+ * @param p_spi Pointer to spi.
+ * @param p_client Pointer to optional client context data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500Spi_Detect(PifSpiPort* p_spi, void *p_client);
 
 /**
  * @fn pifMpu6500Spi_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_spi
- * @param p_client
- * @param p_imu_sensor
- * @return
+ * @brief Initializes mpu6500 spi init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param p_spi Pointer to spi.
+ * @param p_client Pointer to optional client context data.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500Spi_Init(PifMpu6500* p_owner, PifId id, PifSpiPort* p_spi, void *p_client, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu6500Spi_Clear
- * @brief
- * @param p_owner
- * @return
+ * @brief Releases resources used by mpu6500 spi clear.
+ * @param p_owner Pointer to the owner instance.
+ * @return None.
  */
 void pifMpu6500Spi_Clear(PifMpu6500* p_owner);
 

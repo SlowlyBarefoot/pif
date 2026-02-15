@@ -12,6 +12,12 @@
 #endif
 
 
+/**
+ * @fn _doTask
+ * @brief Internal helper that supports do task logic.
+ * @param p_task Pointer to the task instance that invokes this callback.
+ * @return Computed integer value.
+ */
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifMax31855* p_owner = (PifMax31855*)p_task->_p_client;
@@ -53,6 +59,11 @@ static uint32_t _doTask(PifTask* p_task)
 
 #ifdef PIF_COLLECT_SIGNAL
 
+/**
+ * @fn _addDeviceInCollectSignal
+ * @brief Internal helper that supports add device in collect signal logic.
+ * @return None.
+ */
 static void _addDeviceInCollectSignal()
 {
 	const char* prefix[M3_CSF_COUNT] = { "M3L", "M3H" };

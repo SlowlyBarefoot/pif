@@ -5,6 +5,13 @@
 #include <math.h>
 
 
+/**
+ * @fn _changeFsSel
+ * @brief Internal helper that supports change fs sel logic.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @param fs_sel Gyroscope full-scale range selection.
+ * @return TRUE on success, FALSE on failure.
+ */
 static BOOL _changeFsSel(PifImuSensor* p_imu_sensor, PifMpu30x0FsSel fs_sel)
 {
 	if (!p_imu_sensor) return FALSE;

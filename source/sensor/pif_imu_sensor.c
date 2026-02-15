@@ -3,6 +3,13 @@
 #include <math.h>
 
 
+/**
+ * @fn _alignBoard
+ * @brief Internal helper that supports align board logic.
+ * @param p_owner Pointer to the owner instance.
+ * @param vec Parameter vec used by this operation.
+ * @return None.
+ */
 static void _alignBoard(PifImuSensor* p_owner, float* vec)
 {
     float x = vec[AXIS_X];
@@ -14,6 +21,15 @@ static void _alignBoard(PifImuSensor* p_owner, float* vec)
     vec[AXIS_Z] = lrintf(p_owner->__board_rotation[0][2] * x + p_owner->__board_rotation[1][2] * y + p_owner->__board_rotation[2][2] * z);
 }
 
+/**
+ * @fn _alignSensors
+ * @brief Internal helper that supports align sensors logic.
+ * @param p_owner Pointer to the owner instance.
+ * @param src Pointer to source vector data.
+ * @param dest Pointer to destination vector data.
+ * @param rotation Rotation option used for axis alignment.
+ * @return None.
+ */
 static void _alignSensors(PifImuSensor* p_owner, float* src, float* dest, uint8_t rotation)
 {
     switch (rotation) {

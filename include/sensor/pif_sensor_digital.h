@@ -37,7 +37,7 @@ typedef struct StPifSensorDigitalColSig
 
 /**
  * @class StPifSensorDigital
- * @brief
+ * @brief Defines the st pif sensor digital data structure.
  */
 struct StPifSensorDigital
 {
@@ -67,62 +67,62 @@ extern "C" {
 
 /**
  * @fn pifSensorDigital_Init
- * @brief 
- * @param p_owner
- * @param id
- * @param act_acquire
- * @return 
+ * @brief Initializes sensor digital init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param act_acquire Parameter act_acquire used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifActSensorAcquire act_acquire);
 
 /**
  * @fn pifSensorDigital_Clear
- * @brief 
- * @param p_owner
+ * @brief Releases resources used by sensor digital clear.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifSensorDigital_Clear(PifSensorDigital* p_owner);
 
 /**
  * @fn pifSensorDigital_InitialState
- * @brief
- * @param p_owner
+ * @brief Initializes sensor digital initial state and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifSensorDigital_InitialState(PifSensorDigital* p_owner);
 
 /**
  * @fn pifSensorDigital_SetThreshold
- * @brief
- * @param p_owner
- * @param low_threshold
- * @param high_threshold
+ * @brief Sets configuration values required by sensor digital set threshold.
+ * @param p_owner Pointer to the owner instance.
+ * @param low_threshold Lower threshold level.
+ * @param high_threshold Upper threshold level.
  */
 void pifSensorDigital_SetThreshold(PifSensorDigital* p_owner, uint16_t low_threshold, uint16_t high_threshold);
 
 /**
  * @fn pifSensorDigital_sigData
- * @brief
- * @param p_owner
- * @param level
+ * @brief Performs the sensor digital sig data operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param level Sampled signal level value.
  */
 void pifSensorDigital_sigData(PifSensorDigital* p_owner, uint16_t level);
 
 /**
  * @fn pifSensorDigital_ProcessAcquire
- * @brief
- * @param p_owner
- * @return
+ * @brief Processes one acquisition cycle for sensor digital process acquire.
+ * @param p_owner Pointer to the owner instance.
+ * @return Computed integer value.
  */
 uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner);
 
 /**
  * @fn pifSensorDigital_AttachTaskAcquire
- * @brief Task를 추가한다.
- * @param p_owner
- * @param id Task의 ID를 설정한다.
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
+ * @brief Creates and attaches a task for sensor digital attach task acquire processing.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param mode Task operating mode that controls scheduling behavior.
+ * @param period Task period value; its unit depends on the selected mode.
+ * @param start Set to TRUE to start the task immediately.
+ * @return Pointer to the created or selected object, or NULL on failure.
  */
 PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifId id, PifTaskMode mode, uint32_t period, BOOL start);
 
@@ -131,31 +131,31 @@ PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifId id,
 
 /**
  * @fn pifSensorDigital_SetCsFlag
- * @brief
- * @param p_owner
- * @param flag
+ * @brief Sets configuration values required by sensor digital set cs flag.
+ * @param p_owner Pointer to the owner instance.
+ * @param flag Bit flag value to set or clear.
  */
 void pifSensorDigital_SetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag);
 
 /**
  * @fn pifSensorDigital_ResetCsFlag
- * @brief
- * @param p_owner
- * @param flag
+ * @brief Sets configuration values required by sensor digital reset cs flag.
+ * @param p_owner Pointer to the owner instance.
+ * @param flag Bit flag value to set or clear.
  */
 void pifSensorDigital_ResetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag);
 
 /**
  * @fn pifSensorDigitalColSig_SetFlag
- * @brief
- * @param flag
+ * @brief Sets configuration values required by sensor digital col sig set flag.
+ * @param flag Bit flag value to set or clear.
  */
 void pifSensorDigitalColSig_SetFlag(PifSensorDigitalCsFlag flag);
 
 /**
  * @fn pifSensorDigitalColSig_ResetFlag
- * @brief
- * @param flag
+ * @brief Sets configuration values required by sensor digital col sig reset flag.
+ * @param flag Bit flag value to set or clear.
  */
 void pifSensorDigitalColSig_ResetFlag(PifSensorDigitalCsFlag flag);
 

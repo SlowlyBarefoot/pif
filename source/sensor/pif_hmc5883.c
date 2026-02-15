@@ -9,6 +9,13 @@
 #define HMC58X3_Z_SELF_TEST_GAUSS (+1.08f)       // Z axis level when bias current is applied.
 
 
+/**
+ * @fn _changeGain
+ * @brief Internal helper that supports change gain logic.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @param gain Gain configuration value.
+ * @return None.
+ */
 static void _changeGain(PifImuSensor* p_imu_sensor, PifHmc5883Gain gain)
 {
 	switch (gain) {

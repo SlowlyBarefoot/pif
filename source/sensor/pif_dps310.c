@@ -6,6 +6,13 @@
 const int32_t _scaling_facts[] = { 524288, 1572864, 3670016, 7864320, 253952, 516096, 1040384, 2088960 };
 
 
+/**
+ * @fn _compensate_T
+ * @brief Internal helper that supports compensate t logic.
+ * @param p_owner Pointer to the owner instance.
+ * @param adc_T Raw ADC temperature sample.
+ * @return Computed floating-point value.
+ */
 static float _compensate_T(PifDps310* p_owner, int32_t adc_T)
 {
 	float temp = adc_T;
@@ -24,6 +31,13 @@ static float _compensate_T(PifDps310* p_owner, int32_t adc_T)
 }
 
 // Returns pressure in hPa as floating point.
+/**
+ * @fn _compensate_P
+ * @brief Internal helper that supports compensate p logic.
+ * @param p_owner Pointer to the owner instance.
+ * @param adc_P Raw ADC pressure sample.
+ * @return Computed floating-point value.
+ */
 static float _compensate_P(PifDps310* p_owner, int32_t adc_P)
 {
 	float prs = adc_P;
@@ -38,6 +52,13 @@ static float _compensate_P(PifDps310* p_owner, int32_t adc_P)
 	return prs;
 }
 
+/**
+ * @fn _getTwosComplement
+ * @brief Retrieves the current value from get twos complement.
+ * @param raw Raw register value read from the device.
+ * @param length Number of valid bits in the raw value.
+ * @return Computed integer value.
+ */
 static int32_t _getTwosComplement(uint32_t raw, uint8_t length)
 {
 	if (raw & ((int)1 << (length - 1)))	{
@@ -46,6 +67,12 @@ static int32_t _getTwosComplement(uint32_t raw, uint8_t length)
 	return raw;
 }
 
+/**
+ * @fn _doTask
+ * @brief Internal helper that supports do task logic.
+ * @param p_task Pointer to the task instance that invokes this callback.
+ * @return Computed integer value.
+ */
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifDps310* p_owner = p_task->_p_client;

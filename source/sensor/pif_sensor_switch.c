@@ -13,6 +13,12 @@
 #endif
 
 
+/**
+ * @fn _doTaskAcquire
+ * @brief Internal helper that supports do task acquire logic.
+ * @param p_task Pointer to the task instance that invokes this callback.
+ * @return Computed integer value.
+ */
 static uint32_t _doTaskAcquire(PifTask* p_task)
 {
 	pifSensorSwitch_ProcessAcquire((PifSensorSwitch*)p_task->_p_client);
@@ -21,6 +27,11 @@ static uint32_t _doTaskAcquire(PifTask* p_task)
 
 #ifdef PIF_COLLECT_SIGNAL
 
+/**
+ * @fn _addDeviceInCollectSignal
+ * @brief Internal helper that supports add device in collect signal logic.
+ * @return None.
+ */
 static void _addDeviceInCollectSignal()
 {
 	const char *prefix[SS_CSF_COUNT] = { "SSR", "SSF" };

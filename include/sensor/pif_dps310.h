@@ -202,7 +202,7 @@ typedef enum EnPifDps310State
 
 /**
  * @class StPifDps310
- * @brief
+ * @brief Defines the st pif dps310 data structure.
  */
 typedef struct StPifDps310
 {
@@ -250,71 +250,71 @@ extern "C" {
 
 /**
  * @fn pifDps310_Config
- * @brief
- * @param p_owner
- * @param id
- * @return
+ * @brief Performs the dps310 config operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifDps310_Config(PifDps310* p_owner, PifId id);
 
 /**
  * @fn pifDps310_SetPressureCfg
- * @brief
- * @param p_owner
- * @param osrs
- * @param rate
- * @return
+ * @brief Sets configuration values required by dps310 set pressure cfg.
+ * @param p_owner Pointer to the owner instance.
+ * @param osrs Parameter osrs used by this operation.
+ * @param rate Parameter rate used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifDps310_SetPressureCfg(PifDps310* p_owner, uint8_t osrs, uint8_t rate);
 
 /**
  * @fn pifDps310_SetTemperatureCfg
- * @brief
- * @param p_owner
- * @param osrs
- * @param rate
- * @return
+ * @brief Sets configuration values required by dps310 set temperature cfg.
+ * @param p_owner Pointer to the owner instance.
+ * @param osrs Parameter osrs used by this operation.
+ * @param rate Parameter rate used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifDps310_SetTemperatureCfg(PifDps310* p_owner, uint8_t osrs, uint8_t rate);
 
 /**
  * @fn pifDps310_SensorOperatingMode
- * @brief
- * @param p_owner
- * @param meas_ctrl
- * @return
+ * @brief Performs the dps310 sensor operating mode operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param meas_ctrl Parameter meas_ctrl used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifDps310_SensorOperatingMode(PifDps310* p_owner, uint8_t meas_ctrl);
 
 /**
  * @fn pifDps310_ReadRawData
- * @brief
- * @param p_owner
- * @param p_pressure
- * @param p_temperature
- * @return
+ * @brief Reads raw data from dps310 read raw data.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_pressure Pointer to pressure.
+ * @param p_temperature Pointer to temperature.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifDps310_ReadRawData(PifDps310* p_owner, int32_t* p_pressure, int32_t* p_temperature);
 
 /**
  * @fn pifDps310_ReadBarometric
- * @brief
- * @param p_owner
- * @param p_pressure
- * @param p_temperature
- * @return
+ * @brief Reads raw data from dps310 read barometric.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_pressure Pointer to pressure.
+ * @param p_temperature Pointer to temperature.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifDps310_ReadBarometric(PifDps310* p_owner, float* p_pressure, float* p_temperature);
 
 /**
  * @fn pifDps310_AttachTaskForReading
- * @brief
- * @param p_owner
- * @param id
- * @param read_period
- * @param evt_read
- * @param start
- * @return
+ * @brief Creates and attaches a task for dps310 attach task for reading processing.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param read_period Parameter read_period used by this operation.
+ * @param evt_read Parameter evt_read used by this operation.
+ * @param start Set to TRUE to start the task immediately.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifDps310_AttachTaskForReading(PifDps310* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
 

@@ -1,6 +1,12 @@
 #include "sensor/pif_hc_sr04.h"
 
 
+/**
+ * @fn _doTask
+ * @brief Internal helper that supports do task logic.
+ * @param p_task Pointer to the task instance that invokes this callback.
+ * @return Computed integer value.
+ */
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifHcSr04* p_owner = (PifHcSr04*)p_task->_p_client;
@@ -77,7 +83,7 @@ void pifHcSr04_StopTrigger(PifHcSr04* p_owner)
 
 void pifHcSr04_SetTemperature(PifHcSr04* p_owner, float temperature)
 {
-	p_owner->_transform_const = 2.0f / ((331.6f + 0.6f * temperature) / 10000.0f);		// 2 : 왕복, 10000 : m/s -> cm/ms
+	p_owner->_transform_const = 2.0f / ((331.6f + 0.6f * temperature) / 10000.0f);		// 2: round trip, 10000: m/s -> cm/ms
 }
 
 void pifHcSr04_sigReceiveEcho(PifHcSr04* p_owner, SWITCH state)

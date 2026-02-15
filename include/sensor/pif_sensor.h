@@ -16,7 +16,7 @@ typedef void (*PifEvtSensorChange)(PifSensor* p_owner, SWITCH state, PifSensorVa
 
 /**
  * @class StPifSensor
- * @brief
+ * @brief Defines the st pif sensor data structure.
  */
 struct StPifSensor
 {
@@ -42,17 +42,17 @@ extern "C" {
 
 /**
  * @fn pifSensor_AttachEvtChange
- * @brief
- * @param p_owner
- * @param evt_change
- * @param p_issuer
+ * @brief Performs the sensor attach evt change operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param evt_change Parameter evt_change used by this operation.
+ * @param p_issuer Pointer to issuer.
  */
 void pifSensor_AttachEvtChange(PifSensor *p_owner, PifEvtSensorChange evt_change, PifIssuerP p_issuer);
 
 /**
  * @fn pifSensor_DetachEvtChange
- * @brief
- * @param p_owner
+ * @brief Performs the sensor detach evt change operation.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifSensor_DetachEvtChange(PifSensor *p_owner);
 

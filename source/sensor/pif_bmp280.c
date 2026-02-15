@@ -5,6 +5,13 @@
 
 // Returns temperature in DegC, float precision. Output value of 51.23 equals 51.23 DegC.
 // t_fine carries fine temperature as global value
+/**
+ * @fn _compensate_T
+ * @brief Internal helper that supports compensate t logic.
+ * @param p_owner Pointer to the owner instance.
+ * @param adc_T Raw ADC temperature sample.
+ * @return Computed floating-point value.
+ */
 static float _compensate_T(PifBmp280* p_owner, int32_t adc_T)
 {
     int32_t var1, var2, T;
@@ -19,6 +26,13 @@ static float _compensate_T(PifBmp280* p_owner, int32_t adc_T)
 }
 
 // Returns pressure in hPa as floating point.
+/**
+ * @fn _compensate_P
+ * @brief Internal helper that supports compensate p logic.
+ * @param p_owner Pointer to the owner instance.
+ * @param adc_P Raw ADC pressure sample.
+ * @return Computed floating-point value.
+ */
 static float _compensate_P(PifBmp280* p_owner, int32_t adc_P)
 {
     int64_t var1, var2, p;
@@ -42,6 +56,12 @@ static float _compensate_P(PifBmp280* p_owner, int32_t adc_P)
     return (float)p / 25600.0f;
 }
 
+/**
+ * @fn _doTask
+ * @brief Internal helper that supports do task logic.
+ * @param p_task Pointer to the task instance that invokes this callback.
+ * @return Computed integer value.
+ */
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifBmp280* p_owner = p_task->_p_client;

@@ -33,7 +33,7 @@ typedef BOOL (*PifImuSensorRead)(void* p_owner, int16_t* p_data);
 
 /**
  * @class StPifImuSensorInfo
- * @brief
+ * @brief Defines the st pif imu sensor info data structure.
  */
 typedef struct StPifImuSensorInfo
 {
@@ -44,7 +44,7 @@ typedef struct StPifImuSensorInfo
 
 /**
  * @class StPifImuSensor
- * @brief
+ * @brief Defines the st pif imu sensor data structure.
  */
 typedef struct StPifImuSensor
 {
@@ -76,96 +76,96 @@ extern "C" {
 
 /**
  * @fn pifImuSensor_Init
- * @brief
- * @param p_owner
+ * @brief Initializes imu sensor init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifImuSensor_Init(PifImuSensor* p_owner);
 
 /**
  * @fn pifImuSensor_InitBoardAlignment
- * @brief
- * @param p_owner
- * @param board_align_roll
- * @param board_align_pitch
- * @param board_align_yaw
+ * @brief Initializes imu sensor init board alignment and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param board_align_roll Parameter board_align_roll used by this operation.
+ * @param board_align_pitch Parameter board_align_pitch used by this operation.
+ * @param board_align_yaw Parameter board_align_yaw used by this operation.
  */
 void pifImuSensor_InitBoardAlignment(PifImuSensor* p_owner, int16_t board_align_roll, int16_t board_align_pitch, int16_t board_align_yaw);
 
 /**
  * @fn pifImuSensor_SetGyroAlign
- * @brief
- * @param p_owner
- * @param align
+ * @brief Sets configuration values required by imu sensor set gyro align.
+ * @param p_owner Pointer to the owner instance.
+ * @param align Parameter align used by this operation.
  */
 void pifImuSensor_SetGyroAlign(PifImuSensor* p_owner, PifImuSensorAlign align);
 
 /**
  * @fn pifImuSensor_ReadRawGyro
- * @brief
- * @param p_owner
- * @param p_gyro
- * @return
+ * @brief Reads raw data from imu sensor read raw gyro.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_gyro Pointer to gyro.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifImuSensor_ReadRawGyro(PifImuSensor* p_owner, float* p_gyro);
 
 /**
  * @fn pifImuSensor_ReadGyro
- * @brief
- * @param p_owner
- * @param p_gyro
- * @return
+ * @brief Reads raw data from imu sensor read gyro.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_gyro Pointer to gyro.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifImuSensor_ReadGyro(PifImuSensor* p_owner, float* p_gyro);
 
 /**
  * @fn pifImuSensor_SetAccelAlign
- * @brief
- * @param p_owner
- * @param align
+ * @brief Sets configuration values required by imu sensor set accel align.
+ * @param p_owner Pointer to the owner instance.
+ * @param align Parameter align used by this operation.
  */
 void pifImuSensor_SetAccelAlign(PifImuSensor* p_owner, PifImuSensorAlign align);
 
 /**
  * @fn pifImuSensor_ReadRawAccel
- * @brief
- * @param p_owner
- * @param p_accel
- * @return
+ * @brief Reads raw data from imu sensor read raw accel.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_accel Pointer to accel.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifImuSensor_ReadRawAccel(PifImuSensor* p_owner, float* p_accel);
 
 /**
  * @fn pifImuSensor_ReadAccel
- * @brief
- * @param p_owner
- * @param p_accel
- * @return
+ * @brief Reads raw data from imu sensor read accel.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_accel Pointer to accel.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifImuSensor_ReadAccel(PifImuSensor* p_owner, float* p_accel);
 
 /**
  * @fn pifImuSensor_SetMagAlign
- * @brief
- * @param p_owner
- * @param align
+ * @brief Sets configuration values required by imu sensor set mag align.
+ * @param p_owner Pointer to the owner instance.
+ * @param align Parameter align used by this operation.
  */
 void pifImuSensor_SetMagAlign(PifImuSensor* p_owner, PifImuSensorAlign align);
 
 /**
  * @fn pifImuSensor_ReadRawMag
- * @brief
- * @param p_owner
- * @param p_mag
- * @return
+ * @brief Reads raw data from imu sensor read raw mag.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_mag Pointer to mag.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifImuSensor_ReadRawMag(PifImuSensor* p_owner, float* p_mag);
 
 /**
  * @fn pifImuSensor_ReadMag
- * @brief
- * @param p_owner
- * @param p_mag
- * @return
+ * @brief Reads raw data from imu sensor read mag.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_mag Pointer to mag.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifImuSensor_ReadMag(PifImuSensor* p_owner, float* p_mag);
 

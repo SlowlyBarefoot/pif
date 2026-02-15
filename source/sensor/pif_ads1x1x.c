@@ -2,6 +2,12 @@
 #include "sensor/pif_ads1x1x.h"
 
 
+/**
+ * @fn _convertVoltage
+ * @brief Converts the latest sample from convert voltage into a voltage value.
+ * @param p_owner Pointer to the owner instance.
+ * @return Computed floating-point value.
+ */
 static double _convertVoltage(PifAds1x1x* p_owner)
 {
     switch (p_owner->_config & ADS1X1X_PGA_MASK) {
@@ -15,6 +21,12 @@ static double _convertVoltage(PifAds1x1x* p_owner)
     return 2.048 / (0x7FFF >> p_owner->__bit_offset);
 }
 
+/**
+ * @fn _conversionDelay
+ * @brief Internal helper that supports conversion delay logic.
+ * @param p_owner Pointer to the owner instance.
+ * @return Computed integer value.
+ */
 static uint32_t _conversionDelay(PifAds1x1x* p_owner)
 {
 	uint16_t data_rate = 0;

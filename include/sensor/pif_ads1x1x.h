@@ -124,7 +124,7 @@ typedef enum EnPifAds1x1xCompQue
 
 /**
  * @class StPifAds1x1x
- * @brief
+ * @brief Defines the st pif ads1x1x data structure.
  */
 typedef struct StPifAds1x1x
 {
@@ -151,212 +151,212 @@ extern "C" {
 
 /**
  * @fn pifAds1x1x_Init
- * @brief
- * @param p_owner
- * @param id
- * @param type
- * @param port
- * @param addr
- * @param p_client
- * @return
+ * @brief Initializes ads1x1x init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param type Sensor or device type selection.
+ * @param port Parameter port used by this operation.
+ * @param addr Device address on the bus.
+ * @param p_client Pointer to optional client context data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, uint8_t addr, void *p_client);
 
 /**
  * @fn pifAds1x1x_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources used by ads1x1x clear.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifAds1x1x_Clear(PifAds1x1x* p_owner);
 
 /**
  * @fn pifAds1x1x_Read
- * @brief
- * @param p_owner
- * @return
+ * @brief Reads raw data from ads1x1x read.
+ * @param p_owner Pointer to the owner instance.
+ * @return Computed integer value.
  */
 int16_t pifAds1x1x_Read(PifAds1x1x* p_owner);
 
 /**
  * @fn pifAds1x1x_ReadMux
- * @brief
- * @param p_owner
- * @param mux
- * @return
+ * @brief Reads raw data from ads1x1x read mux.
+ * @param p_owner Pointer to the owner instance.
+ * @param mux Input multiplexer channel selection.
+ * @return Computed integer value.
  */
 int16_t pifAds1x1x_ReadMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 
 /**
  * @fn pifAds1x1x_Voltage
- * @brief
- * @param p_owner
- * @return
+ * @brief Converts the latest sample from ads1x1x voltage into a voltage value.
+ * @param p_owner Pointer to the owner instance.
+ * @return Computed floating-point value.
  */
 double pifAds1x1x_Voltage(PifAds1x1x* p_owner);
 
 /**
  * @fn pifAds1x1x_VoltageMux
- * @brief
- * @param p_owner
- * @param mux
- * @return
+ * @brief Converts the latest sample from ads1x1x voltage mux into a voltage value.
+ * @param p_owner Pointer to the owner instance.
+ * @param mux Input multiplexer channel selection.
+ * @return Computed floating-point value.
  */
 double pifAds1x1x_VoltageMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 
 /**
  * @fn pifAds1x1x_SetConfig
- * @brief
- * @param p_owner
- * @param config
- * @return
+ * @brief Sets configuration values required by ads1x1x set config.
+ * @param p_owner Pointer to the owner instance.
+ * @param config Configuration value to apply.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, uint16_t config);
 
 /**
  * @fn pifAds1x1x_SingleShotConvert
- * @brief
- * @param p_owner
- * @return
+ * @brief Performs the ads1x1x single shot convert operation.
+ * @param p_owner Pointer to the owner instance.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SingleShotConvert(PifAds1x1x* p_owner);
 
 /**
  * @fn pifAds1x1x_SetMux
- * @brief
- * @param p_owner
- * @param mux
- * @return
+ * @brief Sets configuration values required by ads1x1x set mux.
+ * @param p_owner Pointer to the owner instance.
+ * @param mux Input multiplexer channel selection.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 
 /**
  * @fn pifAds1x1x_SetGain
- * @brief
- * @param p_owner
- * @param pga
- * @return
+ * @brief Sets configuration values required by ads1x1x set gain.
+ * @param p_owner Pointer to the owner instance.
+ * @param pga Programmable gain amplifier setting.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetGain(PifAds1x1x* p_owner, PifAds1x1xPGA pga);
 
 /**
  * @fn pifAds1x1x_SetMode
- * @brief
- * @param p_owner
- * @param mode
- * @return
+ * @brief Sets configuration values required by ads1x1x set mode.
+ * @param p_owner Pointer to the owner instance.
+ * @param mode Task operating mode that controls scheduling behavior.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetMode(PifAds1x1x* p_owner, PifAds1x1xMode mode);
 
 /**
  * @fn pifAds1x1x_SetDataRate
- * @brief
- * @param p_owner
- * @param dr
- * @return
+ * @brief Sets configuration values required by ads1x1x set data rate.
+ * @param p_owner Pointer to the owner instance.
+ * @param dr Data rate configuration.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetDataRate(PifAds1x1x* p_owner, PifAds1x1xDR dr);
 
 /**
  * @fn pifAds1x1x_SetCompMode
- * @brief
- * @param p_owner
- * @param comp_mode
- * @return
+ * @brief Sets configuration values required by ads1x1x set comp mode.
+ * @param p_owner Pointer to the owner instance.
+ * @param comp_mode Comparator operating mode.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xCompMode comp_mode);
 
 /**
  * @fn pifAds1x1x_SetCompPol
- * @brief
- * @param p_owner
- * @param comp_pol
- * @return
+ * @brief Sets configuration values required by ads1x1x set comp pol.
+ * @param p_owner Pointer to the owner instance.
+ * @param comp_pol Comparator polarity setting.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xCompPol comp_pol);
 
 /**
  * @fn pifAds1x1x_SetCompLat
- * @brief
- * @param p_owner
- * @param comp_lat
- * @return
+ * @brief Sets configuration values required by ads1x1x set comp lat.
+ * @param p_owner Pointer to the owner instance.
+ * @param comp_lat Comparator latching behavior setting.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xCompLat compLat);
 
 /**
  * @fn pifAds1x1x_SetCompQue
- * @brief
- * @param p_owner
- * @param comp_que
- * @return
+ * @brief Sets configuration values required by ads1x1x set comp que.
+ * @param p_owner Pointer to the owner instance.
+ * @param comp_que Comparator queue setting.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetCompQue(PifAds1x1x* p_owner, PifAds1x1xCompQue comp_que);
 
 /**
  * @fn pifAds1x1x_SetLoThresh
- * @brief
- * @param p_owner
- * @param threshold
- * @return
+ * @brief Sets configuration values required by ads1x1x set lo thresh.
+ * @param p_owner Pointer to the owner instance.
+ * @param threshold Threshold value to apply.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetLoThresh(PifAds1x1x* p_owner, int16_t threshold);
 
 /**
  * @fn pifAds1x1x_GetLoThresh
- * @brief
- * @param p_owner
- * @return
+ * @brief Retrieves the current value from ads1x1x get lo thresh.
+ * @param p_owner Pointer to the owner instance.
+ * @return Computed integer value.
  */
 int16_t pifAds1x1x_GetLoThresh(PifAds1x1x* p_owner);
 
 /**
  * @fn pifAds1x1x_SetLoThreshVoltage
- * @brief
- * @param p_owner
- * @param threshold
- * @return
+ * @brief Sets configuration values required by ads1x1x set lo thresh voltage.
+ * @param p_owner Pointer to the owner instance.
+ * @param threshold Threshold value to apply.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetLoThreshVoltage(PifAds1x1x* p_owner, double threshold);
 
 /**
  * @fn pifAds1x1x_GetLoThreshVoltage
- * @brief
- * @param p_owner
- * @return
+ * @brief Retrieves the current value from ads1x1x get lo thresh voltage.
+ * @param p_owner Pointer to the owner instance.
+ * @return Computed floating-point value.
  */
 double pifAds1x1x_GetLoThreshVoltage(PifAds1x1x* p_owner);
 
 /**
  * @fn pifAds1x1x_SetHiThresh
- * @brief
- * @param p_owner
- * @param threshold
- * @return
+ * @brief Sets configuration values required by ads1x1x set hi thresh.
+ * @param p_owner Pointer to the owner instance.
+ * @param threshold Threshold value to apply.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetHiThresh(PifAds1x1x* p_owner, int16_t threshold);
 
 /**
  * @fn pifAds1x1x_GetHiThresh
- * @brief
- * @param p_owner
- * @return
+ * @brief Retrieves the current value from ads1x1x get hi thresh.
+ * @param p_owner Pointer to the owner instance.
+ * @return Computed integer value.
  */
 int16_t pifAds1x1x_GetHiThresh(PifAds1x1x* p_owner);
 
 /**
  * @fn pifAds1x1x_SetHiThreshVoltage
- * @brief
- * @param p_owner
- * @param threshold
- * @return
+ * @brief Sets configuration values required by ads1x1x set hi thresh voltage.
+ * @param p_owner Pointer to the owner instance.
+ * @param threshold Threshold value to apply.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetHiThreshVoltage(PifAds1x1x* p_owner, double threshold);
 
 /**
  * @fn pifAds1x1x_GetHiThreshVoltage
- * @brief
- * @param p_owner
- * @return
+ * @brief Retrieves the current value from ads1x1x get hi thresh voltage.
+ * @param p_owner Pointer to the owner instance.
+ * @return Computed floating-point value.
  */
 double pifAds1x1x_GetHiThreshVoltage(PifAds1x1x* p_owner);
 

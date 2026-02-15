@@ -133,7 +133,7 @@ typedef struct StPifBmp280CalibParam
 
 /**
  * @class StPifBmp280
- * @brief
+ * @brief Defines the st pif bmp280 data structure.
  */
 typedef struct StPifBmp280
 {
@@ -172,51 +172,51 @@ extern "C" {
 
 /**
  * @fn pifBmp280_Config
- * @brief
- * @param p_owner
- * @param id
- * @return
+ * @brief Performs the bmp280 config operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmp280_Config(PifBmp280* p_owner, PifId id);
 
 /**
  * @fn pifBmp280_SetOverSamplingRate
- * @brief
- * @param p_owner
- * @param osrs_p
- * @param osrs_t
+ * @brief Sets configuration values required by bmp280 set over sampling rate.
+ * @param p_owner Pointer to the owner instance.
+ * @param osrs_p Parameter osrs_p used by this operation.
+ * @param osrs_t Parameter osrs_t used by this operation.
  */
 void pifBmp280_SetOverSamplingRate(PifBmp280* p_owner, uint8_t osrs_p, uint8_t osrs_t);
 
 /**
  * @fn pifBmp280_ReadRawData
- * @brief
- * @param p_owner
- * @param p_pressure
- * @param p_temperature
- * @return
+ * @brief Reads raw data from bmp280 read raw data.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_pressure Pointer to pressure.
+ * @param p_temperature Pointer to temperature.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmp280_ReadRawData(PifBmp280* p_owner, int32_t* p_pressure, int32_t* p_temperature);
 
 /**
  * @fn pifBmp280_ReadBarometric
- * @brief
- * @param p_owner
- * @param p_pressure
- * @param p_temperature
- * @return
+ * @brief Reads raw data from bmp280 read barometric.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_pressure Pointer to pressure.
+ * @param p_temperature Pointer to temperature.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmp280_ReadBarometric(PifBmp280* p_owner, float* p_pressure, float* p_temperature);
 
 /**
  * @fn pifBmp280_AttachTaskForReading
- * @brief
- * @param p_owner
- * @param id
- * @param read_period
- * @param evt_read
- * @param start
- * @return
+ * @brief Creates and attaches a task for bmp280 attach task for reading processing.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param read_period Parameter read_period used by this operation.
+ * @param evt_read Parameter evt_read used by this operation.
+ * @param start Set to TRUE to start the task immediately.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmp280_AttachTaskForReading(PifBmp280* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
 

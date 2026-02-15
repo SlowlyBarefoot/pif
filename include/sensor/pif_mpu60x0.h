@@ -430,7 +430,7 @@ typedef enum EnPifMpu60x0LpWakeCtrl
 
 /**
  * @class StPifMpu60x0
- * @brief
+ * @brief Defines the st pif mpu60x0 data structure.
  */
 typedef struct StPifMpu60x0
 {
@@ -454,113 +454,113 @@ extern "C" {
 
 /**
  * @fn pifMpu60x0_Detect
- * @brief
- * @param p_i2c
- * @param addr
- * @param p_client
- * @return
+ * @brief Performs the mpu60x0 detect operation.
+ * @param p_i2c Pointer to i2c.
+ * @param addr Device address on the bus.
+ * @param p_client Pointer to optional client context data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client);
 
 /**
  * @fn pifMpu60x0_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_i2c
- * @param addr
- * @param p_client
- * @param p_imu_sensor
- * @return
+ * @brief Initializes mpu60x0 init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param p_i2c Pointer to i2c.
+ * @param addr Device address on the bus.
+ * @param p_client Pointer to optional client context data.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu60x0_Clear
- * @brief
- * @param p_owner
- * @return
+ * @brief Releases resources used by mpu60x0 clear.
+ * @param p_owner Pointer to the owner instance.
+ * @return None.
  */
 void pifMpu60x0_Clear(PifMpu60x0* p_owner);
 
 /**
  * @fn pifMpu60x0_SetGyroConfig
- * @brief
- * @param p_owner
- * @param gyro_config
- * @return
+ * @brief Sets configuration values required by mpu60x0 set gyro config.
+ * @param p_owner Pointer to the owner instance.
+ * @param gyro_config Parameter gyro_config used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_SetGyroConfig(PifMpu60x0* p_owner, uint8_t gyro_config);
 
 /**
  * @fn pifMpu60x0_SetFsSel
- * @brief
- * @param p_owner
- * @param fs_sel
- * @return
+ * @brief Sets configuration values required by mpu60x0 set fs sel.
+ * @param p_owner Pointer to the owner instance.
+ * @param fs_sel Gyroscope full-scale range selection.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_SetFsSel(PifMpu60x0* p_owner, PifMpu60x0FsSel fs_sel);
 
 /**
  * @fn pifMpu60x0_SetAccelConfig
- * @brief
- * @param p_owner
- * @param accel_config
- * @return
+ * @brief Sets configuration values required by mpu60x0 set accel config.
+ * @param p_owner Pointer to the owner instance.
+ * @param accel_config Parameter accel_config used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_SetAccelConfig(PifMpu60x0* p_owner, uint8_t accel_config);
 
 /**
  * @fn pifMpu60x0_SetAfsSel
- * @brief
- * @param p_owner
- * @param afs_sel
- * @return
+ * @brief Sets configuration values required by mpu60x0 set afs sel.
+ * @param p_owner Pointer to the owner instance.
+ * @param afs_sel Accelerometer full-scale range selection.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_SetAfsSel(PifMpu60x0* p_owner, PifMpu60x0AfsSel afs_sel);
 
 /**
  * @fn pifMpu60x0_ReadGyro
- * @brief
- * @param p_owner
- * @param p_gyro
- * @return
+ * @brief Reads raw data from mpu60x0 read gyro.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_gyro Pointer to gyro.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_ReadGyro(PifMpu60x0* p_owner, int16_t* p_gyro);
 
 /**
  * @fn pifMpu60x0_ReadAccel
- * @brief
- * @param p_owner
- * @param p_accel
- * @return
+ * @brief Reads raw data from mpu60x0 read accel.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_accel Pointer to accel.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_ReadAccel(PifMpu60x0* p_owner, int16_t* p_accel);
 
 /**
  * @fn pifMpu60x0_ReadTemperature
- * @brief
- * @param p_owner
- * @param p_temperature
- * @return
+ * @brief Reads raw data from mpu60x0 read temperature.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_temperature Pointer to temperature.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_ReadTemperature(PifMpu60x0* p_owner, int16_t* p_temperature);
 
 /**
  * @fn pifMpu60x0_CalibrationGyro
- * @brief
- * @param p_owner
- * @param samples
- * @return
+ * @brief Performs the mpu60x0 calibration gyro operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param samples Parameter samples used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_CalibrationGyro(PifMpu60x0* p_owner, uint8_t samples);
 
 /**
  * @fn pifMpu60x0_SetThreshold
- * @brief
- * @param p_owner
- * @param multiple
- * @return
+ * @brief Sets configuration values required by mpu60x0 set threshold.
+ * @param p_owner Pointer to the owner instance.
+ * @param multiple Parameter multiple used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_SetThreshold(PifMpu60x0* p_owner, uint8_t multiple);
 

@@ -216,7 +216,7 @@ typedef enum EnPifMpu30x0ClkSel
 
 /**
  * @class StPifMpu30x0
- * @brief
+ * @brief Defines the st pif mpu30x0 data structure.
  */
 typedef struct StPifMpu30x0
 {
@@ -238,85 +238,85 @@ extern "C" {
 
 /**
  * @fn pifMpu30x0_Detect
- * @brief
- * @param p_i2c
- * @param addr
- * @param p_client
- * @return
+ * @brief Performs the mpu30x0 detect operation.
+ * @param p_i2c Pointer to i2c.
+ * @param addr Device address on the bus.
+ * @param p_client Pointer to optional client context data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu30x0_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client);
 
 /**
  * @fn pifMpu30x0_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_i2c
- * @param addr
- * @param p_imu_sensor
- * @return
+ * @brief Initializes mpu30x0 init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param p_i2c Pointer to i2c.
+ * @param addr Device address on the bus.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu30x0_Clear
- * @brief
- * @param p_owner
- * @return
+ * @brief Releases resources used by mpu30x0 clear.
+ * @param p_owner Pointer to the owner instance.
+ * @return None.
  */
 void pifMpu30x0_Clear(PifMpu30x0* p_owner);
 
 /**
  * @fn pifMpu30x0_SetDlpfFsSync
- * @brief
- * @param p_owner
- * @param dlpf_fs_sync
- * @return
+ * @brief Sets configuration values required by mpu30x0 set dlpf fs sync.
+ * @param p_owner Pointer to the owner instance.
+ * @param dlpf_fs_sync Parameter dlpf_fs_sync used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu30x0_SetDlpfFsSync(PifMpu30x0* p_owner, uint8_t dlpf_fs_sync);
 
 /**
  * @fn pifMpu30x0_SetFsSel
- * @brief
- * @param p_owner
- * @param fs_sel
- * @return
+ * @brief Sets configuration values required by mpu30x0 set fs sel.
+ * @param p_owner Pointer to the owner instance.
+ * @param fs_sel Gyroscope full-scale range selection.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu30x0_SetFsSel(PifMpu30x0* p_owner, PifMpu30x0FsSel fs_sel);
 
 /**
  * @fn pifMpu30x0_ReadGyro
- * @brief
- * @param p_owner
- * @param p_gyro
- * @return
+ * @brief Reads raw data from mpu30x0 read gyro.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_gyro Pointer to gyro.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu30x0_ReadGyro(PifMpu30x0* p_owner, int16_t* p_gyro);
 
 /**
  * @fn pifMpu30x0_ReadTemperature
- * @brief
- * @param p_owner
- * @param p_temperature
- * @return
+ * @brief Reads raw data from mpu30x0 read temperature.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_temperature Pointer to temperature.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu30x0_ReadTemperature(PifMpu30x0* p_owner, float* p_temperature);
 
 /**
  * @fn pifMpu30x0_CalibrationGyro
- * @brief
- * @param p_owner
- * @param samples
- * @return
+ * @brief Performs the mpu30x0 calibration gyro operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param samples Parameter samples used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu30x0_CalibrationGyro(PifMpu30x0* p_owner, uint8_t samples);
 
 /**
  * @fn pifMpu30x0_SetThreshold
- * @brief
- * @param p_owner
- * @param multiple
- * @return
+ * @brief Sets configuration values required by mpu30x0 set threshold.
+ * @param p_owner Pointer to the owner instance.
+ * @param multiple Parameter multiple used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu30x0_SetThreshold(PifMpu30x0* p_owner, uint8_t multiple);
 

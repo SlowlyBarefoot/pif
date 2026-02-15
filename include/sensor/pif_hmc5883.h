@@ -104,7 +104,7 @@ typedef enum EnPifHmc5883Mode
 
 /**
  * @class StPifHmc5883
- * @brief
+ * @brief Defines the st pif hmc5883 data structure.
  */
 typedef struct StPifHmc5883
 {
@@ -126,47 +126,47 @@ extern "C" {
 
 /**
  * @fn pifHmc5883_Detect
- * @brief
- * @param p_i2c
- * @param p_client
- * @return
+ * @brief Performs the hmc5883 detect operation.
+ * @param p_i2c Pointer to i2c.
+ * @param p_client Pointer to optional client context data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifHmc5883_Detect(PifI2cPort* p_i2c, void *p_client);
 
 /**
  * @fn pifHmc5883_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_i2c
- * @param p_client
- * @param p_imu_sensor
- * @return
+ * @brief Initializes hmc5883 init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param p_i2c Pointer to i2c.
+ * @param p_client Pointer to optional client context data.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_client, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifHmc5883_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources used by hmc5883 clear.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifHmc5883_Clear(PifHmc5883* p_owner);
 
 /**
  * @fn pifHmc5883_SetGain
- * @brief
- * @param p_owner
- * @param gain
- * @return
+ * @brief Sets configuration values required by hmc5883 set gain.
+ * @param p_owner Pointer to the owner instance.
+ * @param gain Gain configuration value.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifHmc5883_SetGain(PifHmc5883* p_owner, PifHmc5883Gain gain);
 
 /**
  * @fn pifHmc5883_ReadMag
- * @brief
- * @param p_owner
- * @param p_mag
- * @return
+ * @brief Reads raw data from hmc5883 read mag.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_mag Pointer to mag.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifHmc5883_ReadMag(PifHmc5883* p_owner, int16_t* p_mag);
 

@@ -87,7 +87,7 @@ typedef enum EnPifQmc5883Osr
 
 /**
  * @class StPifQmc5883
- * @brief
+ * @brief Defines the st pif qmc5883 data structure.
  */
 typedef struct StPifQmc5883
 {
@@ -108,47 +108,47 @@ extern "C" {
 
 /**
  * @fn pifQmc5883_Detect
- * @brief
- * @param p_i2c
- * @param p_client
- * @return
+ * @brief Performs the qmc5883 detect operation.
+ * @param p_i2c Pointer to i2c.
+ * @param p_client Pointer to optional client context data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifQmc5883_Detect(PifI2cPort* p_i2c, void *p_client);
 
 /**
  * @fn pifQmc5883_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_i2c
- * @param p_client
- * @param p_imu_sensor
- * @return
+ * @brief Initializes qmc5883 init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param p_i2c Pointer to i2c.
+ * @param p_client Pointer to optional client context data.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifQmc5883_Init(PifQmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_client, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifQmc5883_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources used by qmc5883 clear.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifQmc5883_Clear(PifQmc5883* p_owner);
 
 /**
  * @fn pifQmc5883_SetControl1
- * @brief
- * @param p_owner
- * @param contorl_1
- * @return
+ * @brief Sets configuration values required by qmc5883 set control1.
+ * @param p_owner Pointer to the owner instance.
+ * @param contorl_1 Parameter contorl_1 used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifQmc5883_SetControl1(PifQmc5883* p_owner, uint8_t contorl_1);
 
 /**
  * @fn pifQmc5883_ReadMag
- * @brief
- * @param p_owner
- * @param p_mag
- * @return
+ * @brief Reads raw data from qmc5883 read mag.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_mag Pointer to mag.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifQmc5883_ReadMag(PifQmc5883* p_owner, int16_t* p_mag);
 

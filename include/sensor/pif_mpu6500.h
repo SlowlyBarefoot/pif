@@ -512,7 +512,7 @@ typedef enum EnPifMpu6500LpWakeCtrl
 
 /**
  * @class StPifMpu6500
- * @brief
+ * @brief Defines the st pif mpu6500 data structure.
  */
 typedef struct StPifMpu6500
 {
@@ -542,92 +542,92 @@ extern "C" {
 
 /**
  * @fn pifMpu6500_Config
- * @brief
- * @param p_owner
- * @param id
- * @param p_imu_sensor
- * @return
+ * @brief Performs the mpu6500 config operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500_Config(PifMpu6500* p_owner, PifId id, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu6500_SetGyroConfig
- * @brief
- * @param p_owner
- * @param gyro_config
- * @return
+ * @brief Sets configuration values required by mpu6500 set gyro config.
+ * @param p_owner Pointer to the owner instance.
+ * @param gyro_config Parameter gyro_config used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500_SetGyroConfig(PifMpu6500* p_owner, uint8_t gyro_config);
 
 /**
  * @fn pifMpu6500_SetGyroFsSel
- * @brief
- * @param p_owner
- * @param gyro_fs_sel
- * @return
+ * @brief Sets configuration values required by mpu6500 set gyro fs sel.
+ * @param p_owner Pointer to the owner instance.
+ * @param gyro_fs_sel Gyroscope full-scale range selection.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500_SetGyroFsSel(PifMpu6500* p_owner, PifMpu6500GyroFsSel gyro_fs_sel);
 
 /**
  * @fn pifMpu6500_SetAccelConfig
- * @brief
- * @param p_owner
- * @param accel_config
- * @return
+ * @brief Sets configuration values required by mpu6500 set accel config.
+ * @param p_owner Pointer to the owner instance.
+ * @param accel_config Parameter accel_config used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500_SetAccelConfig(PifMpu6500* p_owner, uint8_t accel_config);
 
 /**
  * @fn pifMpu6500_SetaAccelFsSel
- * @brief
- * @param p_owner
- * @param accel_fs_sel
- * @return
+ * @brief Sets configuration values required by mpu6500 seta accel fs sel.
+ * @param p_owner Pointer to the owner instance.
+ * @param accel_fs_sel Accelerometer full-scale range selection.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500_SetaAccelFsSel(PifMpu6500* p_owner, PifMpu6500AccelFsSel accel_fs_sel);
 
 /**
  * @fn pifMpu6500_ReadGyro
- * @brief
- * @param p_owner
- * @param p_gyro
- * @return
+ * @brief Reads raw data from mpu6500 read gyro.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_gyro Pointer to gyro.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500_ReadGyro(PifMpu6500* p_owner, int16_t* p_gyro);
 
 /**
  * @fn pifMpu6500_ReadAccel
- * @brief
- * @param p_owner
- * @param p_accel
- * @return
+ * @brief Reads raw data from mpu6500 read accel.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_accel Pointer to accel.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500_ReadAccel(PifMpu6500* p_owner, int16_t* p_accel);
 
 /**
  * @fn pifMpu6500_ReadTemperature
- * @brief
- * @param p_owner
- * @param p_temperature
- * @return
+ * @brief Reads raw data from mpu6500 read temperature.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_temperature Pointer to temperature.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500_ReadTemperature(PifMpu6500* p_owner, int16_t* p_temperature);
 
 /**
  * @fn pifMpu6500_CalibrationGyro
- * @brief
- * @param p_owner
- * @param samples
- * @return
+ * @brief Performs the mpu6500 calibration gyro operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param samples Parameter samples used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500_CalibrationGyro(PifMpu6500* p_owner, uint8_t samples);
 
 /**
  * @fn pifMpu6500_SetThreshold
- * @brief
- * @param p_owner
- * @param multiple
- * @return
+ * @brief Sets configuration values required by mpu6500 set threshold.
+ * @param p_owner Pointer to the owner instance.
+ * @param multiple Parameter multiple used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500_SetThreshold(PifMpu6500* p_owner, uint8_t multiple);
 

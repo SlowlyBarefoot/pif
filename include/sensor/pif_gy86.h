@@ -11,7 +11,7 @@
 
 /**
  * @class StPifGy86Param
- * @brief
+ * @brief Defines the st pif gy86 param data structure.
  */
 typedef struct StPifGy86Param
 {
@@ -35,7 +35,7 @@ typedef struct StPifGy86Param
 
 /**
  * @class StPifGy86
- * @brief
+ * @brief Defines the st pif gy86 data structure.
  */
 typedef struct StPifGy86
 {
@@ -58,37 +58,37 @@ extern "C" {
 
 /**
  * @fn pifGy86_Detect
- * @brief
- * @param p_i2c
- * @return
+ * @brief Performs the gy86 detect operation.
+ * @param p_i2c Pointer to i2c.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifGy86_Detect(PifI2cPort* p_i2c);
 
 /**
  * @fn pifGy86_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_i2c
- * @param p_param
- * @param p_imu_sensor
- * @return
+ * @brief Initializes gy86 init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param p_i2c Pointer to i2c.
+ * @param p_param Pointer to param.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifGy86Param* p_param, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifGy86_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources used by gy86 clear.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifGy86_Clear(PifGy86* p_owner);
 
 /**
  * @fn pifGy86_ReadMag
- * @brief
- * @param p_owner
- * @param p_mag
- * @return
+ * @brief Reads raw data from gy86 read mag.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_mag Pointer to mag.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifGy86_ReadMag(PifGy86* p_owner, int16_t* p_mag);
 

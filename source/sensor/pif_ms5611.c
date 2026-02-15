@@ -3,6 +3,12 @@
 #include <math.h>
 
 
+/**
+ * @fn _checkPromCrc
+ * @brief Checks internal state for check prom crc and reports the result.
+ * @param p_owner Pointer to the owner instance.
+ * @return TRUE on success, FALSE on failure.
+ */
 static BOOL _checkPromCrc(PifMs5611* p_owner)
 {
     int32_t i, j;
@@ -36,6 +42,14 @@ static BOOL _checkPromCrc(PifMs5611* p_owner)
     return FALSE;
 }
 
+/**
+ * @fn _calcurateBarometric
+ * @brief Internal helper that supports calcurate barometric logic.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_pressure Pointer to pressure.
+ * @param p_temperature Pointer to temperature.
+ * @return None.
+ */
 static void _calcurateBarometric(PifMs5611* p_owner, float* p_pressure, float* p_temperature)
 {
 	int32_t dT;
@@ -69,6 +83,12 @@ static void _calcurateBarometric(PifMs5611* p_owner, float* p_pressure, float* p
 	*p_pressure = (float)(((((int64_t)p_owner->__D1 * sens) >> 21) - off) >> 15);
 }
 
+/**
+ * @fn _doTask
+ * @brief Internal helper that supports do task logic.
+ * @param p_task Pointer to the task instance that invokes this callback.
+ * @return Computed integer value.
+ */
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifMs5611* p_owner = p_task->_p_client;

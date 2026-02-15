@@ -38,7 +38,7 @@ typedef struct StPifSensorSwitchColSig
 
 /**
  * @class StPifSensorSwitch
- * @brief
+ * @brief Defines the st pif sensor switch data structure.
  */
 struct StPifSensorSwitch
 {
@@ -63,54 +63,54 @@ extern "C" {
 
 /**
  * @fn pifSensorSwitch_Init
- * @brief 
- * @param p_owner
- * @param id
- * @param init_state
- * @param act_acquire
- * @return 
+ * @brief Initializes sensor switch init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param init_state Parameter init_state used by this operation.
+ * @param act_acquire Parameter act_acquire used by this operation.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state, PifActSensorAcquire act_acquire);
 
 /**
  * @fn pifSensorSwitch_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources used by sensor switch clear.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifSensorSwitch_Clear(PifSensorSwitch* p_owner);
 
 /**
  * @fn pifSensorSwitch_InitialState
- * @brief
- * @param p_owner
+ * @brief Initializes sensor switch initial state and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner);
 
 /**
  * @fn pifSensorSwitch_sigData
- * @brief
- * @param p_owner
- * @param swState
+ * @brief Performs the sensor switch sig data operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param swState Parameter swState used by this operation.
  */
 void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state);
 
 /**
  * @fn pifSensorSwitch_ProcessAcquire
- * @brief
- * @param p_owner
- * @return
+ * @brief Processes one acquisition cycle for sensor switch process acquire.
+ * @param p_owner Pointer to the owner instance.
+ * @return Computed integer value.
  */
 uint16_t pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner);
 
 /**
  * @fn pifSensorSwitch_AttachTaskAcquire
- * @brief Task를 추가한다.
- * @param p_owner
- * @param id Task의 ID를 설정한다.
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
+ * @brief Creates and attaches a task for sensor switch attach task acquire processing.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param mode Task operating mode that controls scheduling behavior.
+ * @param period Task period value; its unit depends on the selected mode.
+ * @param start Set to TRUE to start the task immediately.
+ * @return Pointer to the created or selected object, or NULL on failure.
  */
 PifTask *pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifId id, PifTaskMode mode, uint32_t period, BOOL start);
 
@@ -119,31 +119,31 @@ PifTask *pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifId id, P
 
 /**
  * @fn pifSensorSwitch_SetCsFlag
- * @brief
- * @param p_owner
- * @param flag
+ * @brief Sets configuration values required by sensor switch set cs flag.
+ * @param p_owner Pointer to the owner instance.
+ * @param flag Bit flag value to set or clear.
  */
 void pifSensorSwitch_SetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
 
 /**
  * @fn pifSensorSwitch_ResetCsFlag
- * @brief
- * @param p_owner
- * @param flag
+ * @brief Sets configuration values required by sensor switch reset cs flag.
+ * @param p_owner Pointer to the owner instance.
+ * @param flag Bit flag value to set or clear.
  */
 void pifSensorSwitch_ResetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
 
 /**
  * @fn pifSensorSwitchColSig_SetFlag
- * @brief
- * @param flag
+ * @brief Sets configuration values required by sensor switch col sig set flag.
+ * @param flag Bit flag value to set or clear.
  */
 void pifSensorSwitchColSig_SetFlag(PifSensorSwitchCsFlag flag);
 
 /**
  * @fn pifSensorSwitchColSig_ResetFlag
- * @brief
- * @param flag
+ * @brief Sets configuration values required by sensor switch col sig reset flag.
+ * @param flag Bit flag value to set or clear.
  */
 void pifSensorSwitchColSig_ResetFlag(PifSensorSwitchCsFlag flag);
 

@@ -669,7 +669,7 @@ typedef enum EnPifBmi270CCmd
 
 /**
  * @class StPifBmi270
- * @brief
+ * @brief Defines the st pif bmi270 data structure.
  */
 typedef struct StPifBmi270
 {
@@ -699,46 +699,46 @@ extern "C" {
 
 /**
  * @fn pifBmi270_Config
- * @brief
- * @param p_owner
- * @param id
- * @param p_imu_sensor
- * @return
+ * @brief Performs the bmi270 config operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmi270_Config(PifBmi270* p_owner, PifId id, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifBmi270_UploadConfig
- * @brief
- * @param p_owner
- * @return
+ * @brief Performs the bmi270 upload config operation.
+ * @param p_owner Pointer to the owner instance.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmi270_UploadConfig(PifBmi270 *p_owner);
 
 /**
  * @fn pifBmi270_ReadGyro
- * @brief
- * @param p_owner
- * @param p_gyro
- * @return
+ * @brief Reads raw data from bmi270 read gyro.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_gyro Pointer to gyro.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmi270_ReadGyro(PifBmi270* p_owner, int16_t* p_gyro);
 
 /**
  * @fn pifBmi270_ReadAccel
- * @brief
- * @param p_owner
- * @param p_accel
- * @return
+ * @brief Reads raw data from bmi270 read accel.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_accel Pointer to accel.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmi270_ReadAccel(PifBmi270* p_owner, int16_t* p_accel);
 
 /**
  * @fn pifBmi270_ReadTemperature
- * @brief
- * @param p_owner
- * @param p_temperature
- * @return
+ * @brief Reads raw data from bmi270 read temperature.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_temperature Pointer to temperature.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmi270_ReadTemperature(PifBmi270* p_owner, int16_t* p_temperature);
 

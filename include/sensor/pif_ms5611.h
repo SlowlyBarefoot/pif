@@ -41,7 +41,7 @@ typedef enum EnPifMs5611State
 
 /**
  * @class StPifMs5611
- * @brief
+ * @brief Defines the st pif ms5611 data structure.
  */
 typedef struct StPifMs5611
 {
@@ -72,68 +72,68 @@ extern "C" {
 
 /**
  * @fn pifMs5611_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_i2c
- * @param addr
- * @param p_client
- * @return
+ * @brief Initializes ms5611 init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param p_i2c Pointer to i2c.
+ * @param addr Device address on the bus.
+ * @param p_client Pointer to optional client context data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client);
 
 /**
  * @fn pifMs5611_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources used by ms5611 clear.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifMs5611_Clear(PifMs5611* p_owner);
 
 /**
  * @fn pifMs5611_SetOverSamplingRate
- * @brief
- * @param p_owner
- * @param osr
+ * @brief Sets configuration values required by ms5611 set over sampling rate.
+ * @param p_owner Pointer to the owner instance.
+ * @param osr Parameter osr used by this operation.
  */
 void pifMs5611_SetOverSamplingRate(PifMs5611* p_owner, uint16_t osr);
 
 /**
  * @fn pifMs5611_ReadRawTemperature
- * @brief
- * @param p_owner
- * @param p_data
- * @return
+ * @brief Reads raw data from ms5611 read raw temperature.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_data Pointer to data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMs5611_ReadRawTemperature(PifMs5611* p_owner, uint32_t* p_data);
 
 /**
  * @fn pifMs5611_ReadRawPressure
- * @brief
- * @param p_owner
- * @param p_data
- * @return
+ * @brief Reads raw data from ms5611 read raw pressure.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_data Pointer to data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMs5611_ReadRawPressure(PifMs5611* p_owner, uint32_t* p_data);
 
 /**
  * @fn pifMs5611_ReadBarometric
- * @brief
- * @param p_owner
- * @param p_pressure
- * @param p_temperature
- * @return
+ * @brief Reads raw data from ms5611 read barometric.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_pressure Pointer to pressure.
+ * @param p_temperature Pointer to temperature.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMs5611_ReadBarometric(PifMs5611* p_owner, float* p_pressure, float* p_temperature);
 
 /**
  * @fn pifMs5611_AttachTaskForReading
- * @brief
- * @param p_owner
- * @param id
- * @param read_period
- * @param evt_read
- * @param start
- * @return
+ * @brief Creates and attaches a task for ms5611 attach task for reading processing.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param read_period Parameter read_period used by this operation.
+ * @param evt_read Parameter evt_read used by this operation.
+ * @param start Set to TRUE to start the task immediately.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMs5611_AttachTaskForReading(PifMs5611* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
 

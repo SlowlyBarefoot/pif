@@ -2,6 +2,13 @@
 #include "sensor/pif_qmc5883.h"
 
 
+/**
+ * @fn _changeGain
+ * @brief Internal helper that supports change gain logic.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @param gain Gain configuration value.
+ * @return None.
+ */
 static void _changeGain(PifImuSensor* p_imu_sensor, PifQmc5883Rng gain)
 {
 	switch (gain) {

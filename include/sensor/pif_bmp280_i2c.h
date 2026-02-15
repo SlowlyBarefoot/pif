@@ -11,30 +11,30 @@ extern "C" {
 
 /**
  * @fn pifBmp280I2c_Detect
- * @brief
- * @param p_i2c
- * @param addr
- * @param p_client
- * @return
+ * @brief Performs the bmp280 i2c detect operation.
+ * @param p_i2c Pointer to i2c.
+ * @param addr Device address on the bus.
+ * @param p_client Pointer to optional client context data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmp280I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client);
 
 /**
  * @fn pifBmp280I2c_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_i2c
- * @param addr
- * @param p_client
- * @return
+ * @brief Initializes bmp280 i2c init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param p_i2c Pointer to i2c.
+ * @param addr Device address on the bus.
+ * @param p_client Pointer to optional client context data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmp280I2c_Init(PifBmp280* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client);
 
 /**
  * @fn pifBmp280I2c_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources used by bmp280 i2c clear.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifBmp280I2c_Clear(PifBmp280* p_owner);
 

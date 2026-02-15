@@ -39,7 +39,7 @@ typedef struct StPifMax31855ColSig
 
 /**
  * @class StPifMax31855
- * @brief
+ * @brief Defines the st pif max31855 data structure.
  */
 typedef struct StPifMax31855
 {
@@ -74,56 +74,56 @@ extern "C" {
 
 /**
  * @fn pifMax31855_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_port
- * @param p_client
- * @return
+ * @brief Initializes max31855 init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param p_port Pointer to the communication port interface.
+ * @param p_client Pointer to optional client context data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, void *p_client);
 
 /**
  * @fn pifMax31855_Clear
- * @brief
- * @param p_owner
+ * @brief Releases resources used by max31855 clear.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifMax31855_Clear(PifMax31855* p_owner);
 
 /**
  * @fn pifMax31855_Measure
- * @brief
- * @param p_owner
- * @param p_temperature
- * @param p_internal
- * @return
+ * @brief Performs the max31855 measure operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_temperature Pointer to temperature.
+ * @param p_internal Pointer to internal.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_internal);
 
 /**
  * @fn pifMax31855_StartMeasurement
- * @brief
- * @param p_owner
- * @param period1ms Mode에 따라 주기의 단위가 변경된다.
- * @param evt_measure
- * @param p_issuer
- * @return
+ * @brief Performs the max31855 start measurement operation.
+ * @param p_owner Pointer to the owner instance.
+ * @param period1ms Task period in units of 1 ms.
+ * @param evt_measure Parameter evt_measure used by this operation.
+ * @param p_issuer Pointer to issuer.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifEvtMax31855Measure evt_measure, PifIssuerP p_issuer);
 
 /**
  * @fn pifMax31855_StopMeasurement
- * @brief
- * @param p_owner
+ * @brief Performs the max31855 stop measurement operation.
+ * @param p_owner Pointer to the owner instance.
  */
 void pifMax31855_StopMeasurement(PifMax31855* p_owner);
 
 /**
  * @fn pifMax31855_SetThreshold
- * @brief
- * @param p_owner
- * @param low_threshold
- * @param high_threshold
+ * @brief Sets configuration values required by max31855 set threshold.
+ * @param p_owner Pointer to the owner instance.
+ * @param low_threshold Lower threshold level.
+ * @param high_threshold Upper threshold level.
  */
 void pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double high_threshold);
 
@@ -131,31 +131,31 @@ void pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double
 
 /**
  * @fn pifMax31855_SetCsFlag
- * @brief
- * @param p_owner
- * @param flag
+ * @brief Sets configuration values required by max31855 set cs flag.
+ * @param p_owner Pointer to the owner instance.
+ * @param flag Bit flag value to set or clear.
  */
 void pifMax31855_SetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag);
 
 /**
  * @fn pifMax31855_ResetCsFlag
- * @brief
- * @param p_owner
- * @param flag
+ * @brief Sets configuration values required by max31855 reset cs flag.
+ * @param p_owner Pointer to the owner instance.
+ * @param flag Bit flag value to set or clear.
  */
 void pifMax31855_ResetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag);
 
 /**
  * @fn pifMax31855ColSig_SetFlag
- * @brief
- * @param flag
+ * @brief Sets configuration values required by max31855 col sig set flag.
+ * @param flag Bit flag value to set or clear.
  */
 void pifMax31855ColSig_SetFlag(PifMax31855CsFlag flag);
 
 /**
  * @fn pifMax31855ColSig_ResetFlag
- * @brief
- * @param flag
+ * @brief Sets configuration values required by max31855 col sig reset flag.
+ * @param flag Bit flag value to set or clear.
  */
 void pifMax31855ColSig_ResetFlag(PifMax31855CsFlag flag);
 

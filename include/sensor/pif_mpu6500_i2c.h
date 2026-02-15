@@ -11,32 +11,32 @@ extern "C" {
 
 /**
  * @fn pifMpu6500I2c_Detect
- * @brief
- * @param p_i2c
- * @param addr
- * @param p_client
- * @return
+ * @brief Performs the mpu6500 i2c detect operation.
+ * @param p_i2c Pointer to i2c.
+ * @param addr Device address on the bus.
+ * @param p_client Pointer to optional client context data.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client);
 
 /**
  * @fn pifMpu6500I2c_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_i2c
- * @param addr
- * @param p_client
- * @param p_imu_sensor
- * @return
+ * @brief Initializes mpu6500 i2c init and prepares it for use.
+ * @param p_owner Pointer to the owner instance.
+ * @param id Unique identifier for the instance or task.
+ * @param p_i2c Pointer to i2c.
+ * @param addr Device address on the bus.
+ * @param p_client Pointer to optional client context data.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500I2c_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu6500I2c_Clear
- * @brief
- * @param p_owner
- * @return
+ * @brief Releases resources used by mpu6500 i2c clear.
+ * @param p_owner Pointer to the owner instance.
+ * @return None.
  */
 void pifMpu6500I2c_Clear(PifMpu6500* p_owner);
 

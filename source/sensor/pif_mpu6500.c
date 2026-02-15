@@ -5,6 +5,13 @@
 #include <math.h>
 
 
+/**
+ * @fn _changeFsSel
+ * @brief Internal helper that supports change fs sel logic.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @param gyro_fs_sel Gyroscope full-scale range selection.
+ * @return TRUE on success, FALSE on failure.
+ */
 static BOOL _changeFsSel(PifImuSensor* p_imu_sensor, PifMpu6500GyroFsSel gyro_fs_sel)
 {
 	if (!p_imu_sensor) return FALSE;
@@ -12,6 +19,13 @@ static BOOL _changeFsSel(PifImuSensor* p_imu_sensor, PifMpu6500GyroFsSel gyro_fs
 	return TRUE;
 }
 
+/**
+ * @fn _changeAccelFsSel
+ * @brief Internal helper that supports change accel fs sel logic.
+ * @param p_imu_sensor Pointer to imu sensor.
+ * @param accel_fs_sel Accelerometer full-scale range selection.
+ * @return TRUE on success, FALSE on failure.
+ */
 static BOOL _changeAccelFsSel(PifImuSensor* p_imu_sensor, PifMpu6500AccelFsSel accel_fs_sel)
 {
 	if (!p_imu_sensor) return FALSE;
