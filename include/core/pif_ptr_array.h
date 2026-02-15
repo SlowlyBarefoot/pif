@@ -108,7 +108,7 @@ PifPtrArrayIterator pifPtrArray_Find(PifPtrArray* p_owner, void *p_data);
  * @param it
  * @return
  */
-#define pifPtrArray_Next(it)	(it) ? (it)->p_next : NULL
+#define pifPtrArray_Next(it)	((it) ? (it)->p_next : NULL)
 
 #ifdef __cplusplus
 }
