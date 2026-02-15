@@ -1,69 +1,178 @@
 # PIF
 
-PIF(Platform-independent framework)는 각종 디바이스를 제어하는 프레임워크로써 플랫폼에 비종속적인 코드만으로 구성된다. 그래서 모든 플랫폼에서 사용 가능하게 구현하는 것을 목적으로 한다. 
+PIF (Platform-independent framework) is a portable C framework for embedded systems.
 
-PIF의 기본 방침.
-1. ~~메모리 할당은 메인 루프 진입전 초기 동작에서만 실행한다.~~
-2. C로 작성되었기에 구조체내 선언된 변수의 접근 권한을 부여할 수 없다. 
-   그래서 private 변수는 변수명 앞에 __를 붙이고 외부에서 이 변수를 되도록 읽거나 쓰지 않도록 한다.
-   또한 읽기 전용 변수명 앞에는 _를 붙이고 외부에서 이 변수를 되도록 변경하지 않도록 한다.
-3. 모든 디바이스에 디바이스 코드를 부여하여 관리할 수 있게 한다.
-4. Main Loop에서 동작하는 기능들을 Task로 분류하고 각 Task는 동작 주기를 설정할 수 있게하여 MCU를 효율을 높인다.
+It helps you keep business logic and reusable modules independent from MCU/board-specific code.
 
-PIF는 플랫폼에 종속적인 코드와 application 사이에 존재한다. 그래서 이 두 개의 층과 연결하는 방법이 필요하다.
-1. 플랫폼에 종속적인 코드 -> PIF : signal. PIF 함수명앞에 sig를 붙인 함수.
-2. PIF -> 플랫폼에 종속적인 코드 : action. 함수 포인터로써 변수명 앞에 act가 붙어 있다. 
-                            : event. 함수 포인터로써 변수명 앞에 evt가 붙어 있다.
-3. Application -> PIF : PIF의 일반 함수.
-4. PIF -> Application : event. 함수 포인터로써 변수명 앞에 evt가 붙어 있다.
+## TL;DR
 
-이 framework를 사용한 예제는 아래 주소를 참조한다.
+- Keep platform code thin.
+- Put reusable logic in PIF modules.
+- Connect both sides with `sig*`, `act*`, and `evt*` callbacks.
+- Drive periodic signals (for example 1 ms tick) and run tasks in your main loop.
 
-https://github.com/SlowlyBarefoot/pif-example
+## 5-Minute Quick Start
 
-## 감사의 글
+### 1. Add PIF to your build
 
-이 프로젝트를 진행하기 위해 모든 기능을 알고 진행하기 어렵다.
-그래서 일부 기능은 이미 개발된 프로그램들을 참고하여 작성하였다. 이들 노력에 감사의 뜻을 표한다.
+Include these directories in your project:
 
-Interpreter
-  * basic : https://github.com/jwillia3/BASIC ( Jerry Williams Jr )
+- `include/`
+- `source/`
 
-Protocol
-  * ibus : https://github.com/bmelink/IBusBM
-  * msp : https://github.com/multiwii/baseflight
-  * sbus : https://github.com/zendes/SBUS
-  * sumd : https://github.com/Benoit3/Sumd-for-Arduino
-  * spektrum : https://github.com/SpektrumRC/SRXL2
+### 2. Create your config header
 
-Sensor
-  * bmp280 : https://github.com/MartinL1/BMP280_DEV
-  * bmp280외 : https://github.com/multiwii/baseflight
+Start from `include/pif_conf_temp.h` and create `pif_conf.h` in your include path.
 
-Sound
-  * buzzer : https://github.com/multiwii/baseflight
+Enable only the macros you need for your target.
 
-아쉽게도 위에 나열한 개발자외에도 더 많은 개발자가 있을 것 같은데 기억이 나질 않는 점 양해하시기 바랍니다.
+### 3. Implement platform hooks
 
----
+Provide platform-specific functions used by selected modules, such as:
 
-PIF (Platform-independent framework) is a framework that controls various devices, and consists of only code independent of the platform. So, it aims to be implemented so that it can be used on all platforms.
+- high-resolution timer callback
+- GPIO access callbacks
+- communication transport callbacks (UART/SPI/I2C, etc.)
 
-PIF's basic policy.
-1. ~~Memory allocation is executed only in the initial operation before entering the main loop.~~
-2. Since it is written in C, it is not possible to grant access rights to variables declared in the structure.
-   So, for private variables, prefix the variable name with __ and avoid reading or writing this variable from outside.
-   Also, add _ in front of the name of a read-only variable, and do not change this variable externally.
-3. Assign device codes to all devices so they can be managed.
-4. The functions that operate in the main loop are classified into tasks, and each task can set the operation period to increase the efficiency of the MCU.
+### 4. Initialize core
 
-PIF exists between platform-dependent code and application. So we need a way to connect these two layers.
-1. Platform dependent code -> PIF: signal. A function with sig in front of the PIF function name.
-2. PIF -> Platform dependent code: action. As a function pointer, act is attached in front of the variable name.
-                            : event. As a function pointer, evt is attached in front of the variable name.
-3. Application -> PIF: General function of PIF.
-4. PIF -> Application: event. As a function pointer, evt is attached in front of the variable name.
+Initialize PIF during startup (before entering the main loop):
 
-See the address below for an example using this framework.
+```c
+#include "core/pif.h"
 
-https://github.com/SlowlyBarefoot/pif-example
+static uint32_t platform_timer1us(void)
+{
+    // Return current 1 us tick from your platform.
+    return 0;
+}
+
+void app_init(void)
+{
+    if (!pif_Init(platform_timer1us)) {
+        // Handle initialization failure
+        while (1) {}
+    }
+}
+```
+
+### 5. Drive periodic signals and tasks
+
+Feed the framework tick signal and execute module tasks:
+
+- call `pif_sigTimer1ms()` from your 1 ms timer/ISR context (or equivalent timing path)
+- run enabled module task handlers from your main loop
+
+## Build and Integration Examples
+
+This repository does not include a single official build script because integration is usually done from your firmware project.
+
+### GCC (manual compile) example
+
+Use this when you want a quick local compile test:
+
+```bash
+gcc -std=c11 -Iinclude -c source/core/pif.c -o build/pif.o
+```
+
+To compile with more modules, add additional source files from `source/`:
+
+```bash
+gcc -std=c11 -Iinclude \
+  -c source/core/pif.c \
+  -c source/core/pif_task.c \
+  -c source/storage/pif_storage.c
+```
+
+### CMake integration example
+
+In your firmware project `CMakeLists.txt`, add PIF as a library:
+
+```cmake
+cmake_minimum_required(VERSION 3.16)
+project(my_firmware C)
+
+set(PIF_ROOT ${CMAKE_CURRENT_LIST_DIR}/third_party/pif)
+
+file(GLOB_RECURSE PIF_SOURCES
+    ${PIF_ROOT}/source/*.c
+)
+
+add_library(pif STATIC ${PIF_SOURCES})
+target_include_directories(pif PUBLIC
+    ${PIF_ROOT}/include
+)
+
+# Your target
+add_executable(app src/main.c)
+target_link_libraries(app PRIVATE pif)
+```
+
+If you want faster build times, replace `GLOB_RECURSE` with an explicit source list for only the modules you use.
+
+## Integration Model
+
+PIF sits between platform code and application code.
+
+1. Platform -> PIF: `sig*` functions (signals/ticks/inputs).
+2. PIF -> Platform: callback pointers.
+3. Application -> PIF: public API calls.
+4. PIF -> Application: `evt*` callbacks.
+
+Callback naming conventions:
+
+- `act*`: PIF requests an action from platform/app code.
+- `evt*`: PIF notifies an event.
+
+## Project Layout
+
+- `include/`: public headers grouped by domain
+- `source/`: implementation files grouped by domain
+
+Representative domains:
+
+- `core`, `communication`, `protocol`, `sensor`, `input`, `storage`
+- `display`, `motor`, `sound`, `gps`, `filter`, `interpreter`
+- `markup`, `rc`, `osd`, `actulator`
+
+## Coding Conventions Used in PIF
+
+Since C has no built-in member visibility, PIF uses naming rules:
+
+- `__name`: private/internal field (do not access outside owner module)
+- `_name`: externally read-only field (do not modify directly)
+
+## Example Project
+
+Working example:
+
+- https://github.com/SlowlyBarefoot/pif-example
+
+## Upstream References and Credits
+
+Some modules were influenced by these projects.
+
+### Interpreter
+
+- basic: https://github.com/jwillia3/BASIC (Jerry Williams Jr)
+
+### Protocol
+
+- ibus: https://github.com/bmelink/IBusBM
+- msp: https://github.com/multiwii/baseflight
+- sbus: https://github.com/zendes/SBUS
+- sumd: https://github.com/Benoit3/Sumd-for-Arduino
+- spektrum: https://github.com/SpektrumRC/SRXL2
+
+### Sensor
+
+- bmp280: https://github.com/MartinL1/BMP280_DEV
+- bmp280 reference: https://github.com/multiwii/baseflight
+
+### Sound
+
+- buzzer: https://github.com/multiwii/baseflight
+
+## License
+
+See `LICENSE`.

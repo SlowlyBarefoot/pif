@@ -41,14 +41,14 @@
 
 // -------- pifModbus ----------------------------
 
-// 한 packet을 보내고 응답을 받는 시간 제한
-// pifModbus[Rtu/Ascii]Master_Init에서 받은 타이머의 단위를 곱한 시간
-// 기본값은 500이고 타이머 단위가 1ms이기에 500 * 1ms = 500ms이다.
+// Timeout used after sending one packet while waiting for a response.
+// This value is multiplied by the timer unit configured in pifModbus[Rtu/Ascii]Master_Init().
+// Default is 500 ticks, which equals 500 ms when the timer unit is 1 ms.
 //#define PIF_MODBUS_MASTER_TIMEOUT 	    500
 
-// 한 packet을 전부 받는 시간 제한
-// pifModbus[Rtu/Ascii]Slave_Init에서 받은 타이머의 단위를 곱한 시간
-// 기본값은 300이고 타이머 단위가 1ms이기에 300 * 1ms = 300ms이다.
+// Timeout used to receive one complete packet.
+// This value is multiplied by the timer unit configured in pifModbus[Rtu/Ascii]Slave_Init().
+// Default is 300 ticks, which equals 300 ms when the timer unit is 1 ms.
 //#define PIF_MODBUS_SLAVE_TIMEOUT  	    300
 
 
