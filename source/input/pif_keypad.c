@@ -1,6 +1,12 @@
 #include "input/pif_keypad.h"
 
 
+/**
+ * @brief Updates the state machine of a single key and emits events as needed.
+ * @param p_owner Pointer to the keypad owner instance.
+ * @param idx Key index to process.
+ * @param button Current hardware state (`ON` when pressed, `OFF` otherwise).
+ */
 static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 {
 	uint32_t time;
@@ -107,6 +113,11 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 	}
 }
 
+/**
+ * @brief Periodic keypad task that acquires hardware states and processes each key.
+ * @param p_task Task context that contains a `PifKeypad` client pointer.
+ * @return Always returns `0` to keep the periodic task active.
+ */
 static uint32_t _doTask(PifTask* p_task)
 {
 	int idx, b, c;

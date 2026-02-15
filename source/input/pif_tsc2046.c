@@ -1,6 +1,12 @@
 #include "input/pif_tsc2046.h"
 
 
+/**
+ * @brief Reads raw touch coordinates from the TSC2046 over SPI.
+ * @param p_parent Pointer to the parent touch-screen instance.
+ * @param x Output pointer for raw X coordinate.
+ * @param y Output pointer for raw Y coordinate.
+ */
 static void _actTouchPosition(PifTouchScreen* p_parent, int16_t* x, int16_t* y)
 {
 	PifTsc2046* p_owner = (PifTsc2046*)p_parent;
@@ -15,6 +21,11 @@ static void _actTouchPosition(PifTouchScreen* p_parent, int16_t* x, int16_t* y)
 	*y = ((read[0] << 8) | read[1]) >> 3;
 }
 
+/**
+ * @brief Returns the current pen state from the external pen callback.
+ * @param p_parent Pointer to the parent touch-screen instance.
+ * @return `TRUE` when pen/touch is detected, otherwise `FALSE`.
+ */
 static BOOL _actTouchPressure(PifTouchScreen* p_parent)
 {
 	PifTsc2046* p_owner = (PifTsc2046*)p_parent;

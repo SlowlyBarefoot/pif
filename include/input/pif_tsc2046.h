@@ -10,7 +10,7 @@ typedef BOOL (*PifActTsc2046Pen)();
 
 /**
  * @class StPifTsc2046
- * @brief Keypad 관리용 구조체
+ * @brief TSC2046 touch controller context built on top of `PifTouchScreen`.
  */
 typedef struct StPifTsc2046
 {
@@ -38,25 +38,25 @@ extern "C" {
 
 /**
  * @fn pifTsc2046_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_lcd
- * @param left_x
- * @param right_x
- * @param top_y
- * @param bottom_y
- * @param p_port
- * @param p_client
- * @param act_pen
- * @return
+ * @brief Initializes a TSC2046 touch controller and binds SPI/pen callbacks.
+ * @param p_owner Pointer to the TSC2046 instance to initialize.
+ * @param id Instance ID. Use `PIF_ID_AUTO` to assign an ID automatically.
+ * @param p_lcd Target LCD descriptor used for coordinate scaling.
+ * @param left_x Raw touch value at the left edge.
+ * @param right_x Raw touch value at the right edge.
+ * @param top_y Raw touch value at the top edge.
+ * @param bottom_y Raw touch value at the bottom edge.
+ * @param p_port SPI port used to communicate with the TSC2046.
+ * @param p_client User SPI client context passed to the SPI device.
+ * @param act_pen Callback that returns the current pen interrupt state.
+ * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
 BOOL pifTsc2046_Init(PifTsc2046* p_owner, PifId id, PifTftLcd* p_lcd, int16_t left_x, int16_t right_x, int16_t top_y, int16_t bottom_y, PifSpiPort* p_port, void *p_client, PifActTsc2046Pen act_pen);
 
 /**
  * @fn pifTsc2046_Clear
- * @brief
- * @param p_owner
+ * @brief Removes the SPI device associated with the TSC2046 instance.
+ * @param p_owner Pointer to the TSC2046 instance.
  */
 void pifTsc2046_Clear(PifTsc2046* p_owner);
 

@@ -2,12 +2,24 @@
 #include "input/pif_touch_screen.h"
 
 
+/**
+ * @brief Draws a calibration crosshair on the LCD.
+ * @param p_owner Pointer to the LCD instance.
+ * @param x Horizontal center coordinate.
+ * @param y Vertical center coordinate.
+ * @param color Drawing color for the crosshair.
+ */
 static void _drawCrossHair(PifTftLcd* p_owner, uint16_t x, uint16_t y, PifColor color)
 {
 	(*p_owner->_fn_draw_hor_line)(p_owner, x - 5, y, 11, color);
 	(*p_owner->_fn_draw_ver_line)(p_owner, x, y - 5, 11, color);
 }
 
+/**
+ * @brief Reads pressure repeatedly until the state is stable.
+ * @param p_owner Pointer to the touch-screen instance.
+ * @return Stable pressed state (`TRUE` when pressed).
+ */
 static BOOL _isPressed(PifTouchScreen* p_owner)
 {
     int count = 0;
@@ -23,6 +35,15 @@ static BOOL _isPressed(PifTouchScreen* p_owner)
     return oldstate;
 }
 
+/**
+ * @brief Performs one calibration sampling step at a target screen point.
+ * @param p_owner Pointer to the touch-screen instance.
+ * @param x Target X coordinate for user touch.
+ * @param y Target Y coordinate for user touch.
+ * @param p_rx Output pointer for averaged raw X value.
+ * @param p_ry Output pointer for averaged raw Y value.
+ * @return `TRUE` if a valid sample is collected, otherwise `FALSE`.
+ */
 static BOOL _calibrate(PifTouchScreen* p_owner, uint16_t x, uint16_t y, uint16_t* p_rx, uint16_t* p_ry)
 {
     int iter = 5000;
@@ -71,6 +92,11 @@ static BOOL _calibrate(PifTouchScreen* p_owner, uint16_t x, uint16_t y, uint16_t
     return TRUE;
 }
 
+/**
+ * @brief Periodic touch task that acquires, filters, and converts touch data.
+ * @param p_task Task context that contains a `PifTouchScreen` client pointer.
+ * @return Always returns `0` to keep the periodic task active.
+ */
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifTouchScreen* p_owner = p_task->_p_client;

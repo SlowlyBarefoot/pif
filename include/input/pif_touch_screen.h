@@ -23,7 +23,7 @@ typedef void (*PifEvtTouchData)(int16_t x, int16_t y);
 
 /**
  * @class StPifTouchScreen
- * @brief Keypad 관리용 구조체
+ * @brief Touch-screen controller context for coordinate conversion and polling.
  */
 struct StPifTouchScreen
 {
@@ -59,83 +59,83 @@ extern "C" {
 
 /**
  * @fn pifTouchScreen_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_lcd
- * @param left_x
- * @param right_x
- * @param top_y
- * @param bottom_y
- * @return
+ * @brief Initializes a touch-screen instance and calibration bounds.
+ * @param p_owner Pointer to the touch-screen instance to initialize.
+ * @param id Instance ID. Use `PIF_ID_AUTO` to assign an ID automatically.
+ * @param p_lcd Target LCD descriptor used for coordinate scaling.
+ * @param left_x Raw touch value at the left edge.
+ * @param right_x Raw touch value at the right edge.
+ * @param top_y Raw touch value at the top edge.
+ * @param bottom_y Raw touch value at the bottom edge.
+ * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
 BOOL pifTouchScreen_Init(PifTouchScreen* p_owner, PifId id, PifTftLcd* p_lcd, int16_t left_x, int16_t right_x, int16_t top_y, int16_t bottom_y);
 
 /**
  * @fn pifTouchScreen_Clear
- * @brief
- * @param p_owner
+ * @brief Releases task resources used by the touch-screen instance.
+ * @param p_owner Pointer to the touch-screen instance.
  */
 void pifTouchScreen_Clear(PifTouchScreen* p_owner);
 
 /**
  * @fn pifTouchScreen_AttachAction
- * @brief
- * @param p_owner
- * @param act_position
- * @param act_pressure
- * @return
+ * @brief Attaches hardware callbacks for touch position and pressure sensing.
+ * @param p_owner Pointer to the touch-screen instance.
+ * @param act_position Callback that acquires raw touch coordinates.
+ * @param act_pressure Callback that reports whether the panel is currently pressed.
+ * @return `TRUE` if callbacks are valid and attached, otherwise `FALSE`.
  */
 BOOL pifTouchScreen_AttachAction(PifTouchScreen* p_owner, PifActTouchPosition act_position, PifActTouchPressure act_pressure);
 
 /**
  * @fn pifTouchScreen_AttachFilter
- * @brief
- * @param p_owner
- * @param p_filter_x
- * @param p_filter_y
- * @return
+ * @brief Attaches optional noise filters for X and Y raw data streams.
+ * @param p_owner Pointer to the touch-screen instance.
+ * @param p_filter_x Filter applied to raw X values.
+ * @param p_filter_y Filter applied to raw Y values.
+ * @return `TRUE` if both filters are valid and attached, otherwise `FALSE`.
  */
 BOOL pifTouchScreen_AttachFilter(PifTouchScreen* p_owner, PifNoiseFilter* p_filter_x, PifNoiseFilter* p_filter_y);
 
 /**
  * @fn pifTouchScreen_SetControlPeriod
- * @brief
- * @param p_owner
- * @param period1ms
- * @return
+ * @brief Sets the periodic sampling interval of the touch task.
+ * @param p_owner Pointer to the touch-screen instance.
+ * @param period1ms New sampling period in milliseconds. Must be greater than zero.
+ * @return `TRUE` if the period is valid and applied, otherwise `FALSE`.
  */
 BOOL pifTouchScreen_SetControlPeriod(PifTouchScreen* p_owner, uint16_t period1ms);
 
 /**
  * @fn pifTouchScreen_Start
- * @brief
- * @param p_owner
- * @param p_name
- * @return
+ * @brief Starts or resumes periodic touch sampling.
+ * @param p_owner Pointer to the touch-screen instance.
+ * @param p_name Optional task name. If `NULL`, `"Touch"` is used.
+ * @return `TRUE` if sampling starts successfully, otherwise `FALSE`.
  */
 BOOL pifTouchScreen_Start(PifTouchScreen* p_owner, const char* p_name);
 
 /**
  * @fn pifTouchScreen_Stop
- * @brief
- * @param p_owner
+ * @brief Pauses periodic touch sampling.
+ * @param p_owner Pointer to the touch-screen instance.
  */
 void pifTouchScreen_Stop(PifTouchScreen* p_owner);
 
 /**
  * @fn pifTouchScreen_SetRotation
- * @brief
- * @param p_owner
- * @param rotation
+ * @brief Recomputes calibration parameters after display rotation changes.
+ * @param p_owner Pointer to the touch-screen instance.
+ * @param rotation Target display rotation.
  */
 void pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotation);
 
 /**
  * @fn pifTouchScreen_Calibration
- * @brief
- * @param p_owner
- * @return
+ * @brief Runs interactive calibration and stores updated calibration values.
+ * @param p_owner Pointer to the touch-screen instance.
+ * @return `TRUE` if calibration completes with valid ranges, otherwise `FALSE`.
  */
 BOOL pifTouchScreen_Calibration(PifTouchScreen* p_owner);
 

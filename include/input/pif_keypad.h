@@ -39,7 +39,7 @@ typedef void (*PifEvtKeypadLongReleased)(char ch, uint32_t on_time);
 
 /**
  * @class StPifKey
- * @brief
+ * @brief Runtime state for one key in the keypad matrix.
  */
 typedef struct StPifKey
 {
@@ -54,7 +54,7 @@ typedef struct StPifKey
 
 /**
  * @class StPifKeypad
- * @brief Keypad 관리용 구조체
+ * @brief Keypad controller context used to scan keys and generate key events.
  */
 typedef struct StPifKeypad
 {
@@ -92,88 +92,88 @@ extern "C" {
 
 /**
  * @fn pifKeypad_Init
- * @brief
- * @param p_owner
- * @param id
- * @param act_acquire
- * @return
+ * @brief Initializes a keypad instance.
+ * @param p_owner Pointer to the keypad instance to initialize.
+ * @param id Instance ID. Use `PIF_ID_AUTO` to assign an ID automatically.
+ * @param act_acquire Callback that reads the keypad bit-state array.
+ * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
 BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, PifActKeypadAcquire act_acquire);
 
 /**
  * @fn pifKeypad_Clear
- * @brief
- * @param p_owner
+ * @brief Releases runtime resources held by the keypad instance.
+ * @param p_owner Pointer to the keypad instance.
  */
 void pifKeypad_Clear(PifKeypad* p_owner);
 
 /**
  * @fn pifKeypad_GetControlPeriod
- * @brief
- * @param p_owner
- * @return
+ * @brief Gets the current keypad scan period.
+ * @param p_owner Pointer to the keypad instance.
+ * @return Scan period in milliseconds.
  */
 uint16_t pifKeypad_GetControlPeriod(PifKeypad* p_owner);
 
 /**
  * @fn pifKeypad_SetControlPeriod
- * @brief
- * @param p_owner
- * @param period1ms
- * @return
+ * @brief Updates the keypad scan period.
+ * @param p_owner Pointer to the keypad instance.
+ * @param period1ms New scan period in milliseconds. Must be greater than zero.
+ * @return `TRUE` if the period is valid and applied, otherwise `FALSE`.
  */
 BOOL pifKeypad_SetControlPeriod(PifKeypad* p_owner, uint16_t period1ms);
 
 /**
  * @fn pifKeypad_SetKeymap
- * @brief
- * @param p_owner
- * @param num
- * @param p_user_keymap
- * @return
+ * @brief Configures the key count and index-to-character mapping.
+ * @param p_owner Pointer to the keypad instance.
+ * @param num Number of keys to manage.
+ * @param p_user_keymap Character mapping table indexed by key position.
+ * @return `TRUE` on success, otherwise `FALSE`.
  */
 BOOL pifKeypad_SetKeymap(PifKeypad* p_owner, uint8_t num, const char* p_user_keymap);
 
 /**
  * @fn pifKeypad_SetHoldTime
- * @brief
- * @param p_owner
- * @param hold_time1ms
- * @return
+ * @brief Sets the threshold for entering hold state.
+ * @param p_owner Pointer to the keypad instance.
+ * @param hold_time1ms Hold threshold in milliseconds.
+ * @return `TRUE` if the value is valid, otherwise `FALSE`.
  */
 BOOL pifKeypad_SetHoldTime(PifKeypad* p_owner, uint16_t hold_time1ms);
 
 /**
  * @fn pifKeypad_SetLongTime
- * @brief
- * @param p_owner
- * @param long_time1ms
- * @return
+ * @brief Sets the threshold used for long-release detection.
+ * @param p_owner Pointer to the keypad instance.
+ * @param long_time1ms Long-release threshold in milliseconds.
+ * @return `TRUE` if the value is valid, otherwise `FALSE`.
  */
 BOOL pifKeypad_SetLongTime(PifKeypad* p_owner, uint16_t long_time1ms);
 
 /**
  * @fn pifKeypad_SetDoubleTime
- * @brief
- * @param p_owner
- * @param double_time1ms
- * @return
+ * @brief Sets the interval used for double-press detection.
+ * @param p_owner Pointer to the keypad instance.
+ * @param double_time1ms Double-press interval in milliseconds.
+ * @return `TRUE` if the value is valid, otherwise `FALSE`.
  */
 BOOL pifKeypad_SetDoubleTime(PifKeypad* p_owner, uint16_t double_time1ms);
 
 /**
  * @fn pifKeypad_Start
- * @brief
- * @param p_owner
- * @param p_name
- * @return
+ * @brief Starts or resumes periodic keypad scanning.
+ * @param p_owner Pointer to the keypad instance.
+ * @param p_name Optional task name. If `NULL`, `"Keypad"` is used.
+ * @return `TRUE` if scanning starts successfully, otherwise `FALSE`.
  */
 BOOL pifKeypad_Start(PifKeypad* p_owner, const char* p_name);
 
 /**
  * @fn pifKeypad_Stop
- * @brief
- * @param p_owner
+ * @brief Pauses periodic keypad scanning.
+ * @param p_owner Pointer to the keypad instance.
  */
 void pifKeypad_Stop(PifKeypad* p_owner);
 
