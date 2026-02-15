@@ -2,12 +2,14 @@
 
 #include <string.h>
 
+// Byte ring buffer with overflow policies and transactional put support.
 
 static BOOL _chopOff(PifRingBuffer* p_owner, uint16_t count)
 {
 	uint16_t length;
 	uint16_t size, tail;
 
+	// Drop old data according to the configured overflow policy.
 	switch (p_owner->_bt.chop_off) {
 	case RB_CHOP_OFF_CHAR:
 		size = 0;
@@ -141,6 +143,7 @@ void pifRingBuffer_Clear(PifRingBuffer* p_owner)
 
 void pifRingBuffer_Empty(PifRingBuffer* p_owner)
 {
+	// Make the buffer empty without clearing allocated memory.
 	p_owner->__tail = p_owner->__head;
 }
 
@@ -250,6 +253,7 @@ uint16_t pifRingBuffer_GetRemainSize(PifRingBuffer* p_owner)
 
 void pifRingBuffer_BeginPutting(PifRingBuffer* p_owner)
 {
+	// Start a transactional put session by saving current head.
 	if (p_owner->__backup_head < p_owner->_size) {
 		p_owner->__head = p_owner->__backup_head;
 	}
@@ -258,11 +262,13 @@ void pifRingBuffer_BeginPutting(PifRingBuffer* p_owner)
 
 void pifRingBuffer_CommitPutting(PifRingBuffer* p_owner)
 {
+	// Mark transactional put as committed.
 	p_owner->__backup_head = p_owner->_size;
 }
 
 void pifRingBuffer_RollbackPutting(PifRingBuffer* p_owner)
 {
+	// Restore head to the saved position and discard pending writes.
 	p_owner->__head = p_owner->__backup_head;
 	p_owner->__backup_head = p_owner->_size;
 }
@@ -276,6 +282,7 @@ BOOL pifRingBuffer_PutByte(PifRingBuffer* p_owner, uint8_t data)
 {
     uint16_t next;
 
+    // Keep one slot empty to distinguish full vs empty state.
     next = p_owner->__head + 1;
 	if (next >= p_owner->_size) next = 0;
     if (next == p_owner->__tail) {
@@ -400,6 +407,7 @@ BOOL pifRingBuffer_CopyLength(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16
 		return FALSE;
 	}
 
+	// Start copying from the source offset after range validation.
 	uint16_t usTail = (p_src->__tail + pos) % p_src->_size;
 	while (usTail != p_src->__head) {
 		pifRingBuffer_PutByte(p_dst, p_src->__p_buffer[usTail]);

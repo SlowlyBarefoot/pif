@@ -11,108 +11,108 @@ extern "C" {
 
 /**
  * @fn pifTaskManager_Init
- * @brief Task용 구조체를 초기화한다.
- * @param max_count 추가할 task의 수를 지정한다..
- * @return
+ * @brief Initializes the task manager instance and prepares all internal fields for safe use.
+ * @param max_count Maximum number of elements to manage.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTaskManager_Init(int max_count);
 
 /**
  * @fn pifTaskManager_Clear
- * @brief Task용 메모리를 반환한다.
+ * @brief Clears the task manager state and releases resources currently owned by the instance.
  */
 void pifTaskManager_Clear();
 
 /**
  * @fn pifTaskManager_Add
- * @brief Task를 추가한다.
- * @param id Task의 ID를 설정한다.
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param evt_loop Task 함수
- * @param p_client 한 Task에서 통합 관리할 경우에는 NULL을 전달하고 개별관리하고자 한다면 해당 구조체의 포인터를 전달한다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
+ * @brief Adds an item to the task manager and updates internal bookkeeping for subsequent operations.
+ * @param id Identifier value for the object or task.
+ * @param mode Operating mode configuration value.
+ * @param period Execution period value for scheduling.
+ * @param evt_loop Task loop callback executed by the scheduler.
+ * @param p_client User-defined context pointer owned by the caller.
+ * @param start Set to TRUE to start the task immediately after registration.
+ * @return Pointer to the resulting object or data, or NULL if unavailable.
  */
 PifTask *pifTaskManager_Add(PifId id, PifTaskMode mode, uint32_t period, PifEvtTaskLoop evt_loop, void *p_client, BOOL start);
 
 /**
  * @fn pifTaskManager_Remove
- * @brief Task를 추가한다.
- * @param p_task Task의 Mode를 설정한다.
+ * @brief Removes an item from the task manager and updates internal bookkeeping for consistency.
+ * @param p_task Pointer to the task object.
  */
 void pifTaskManager_Remove(PifTask *p_task);
 
 /**
  * @fn pifTaskManager_Count
- * @brief 등록된 task의 수를 구한다.
- * @return 등록된 task의 수를 반환한다.
+ * @brief Returns the current number of valid items managed by the task manager.
+ * @return Result value returned by this API.
  */
 int pifTaskManager_Count();
 
 /**
  * @fn pifTaskManager_Count
- * @brief 등록된 task의 수를 구한다.
- * @return 등록된 task의 수를 반환한다.
+ * @brief Returns the current number of valid items managed by the task manager.
+ * @return Return value of this API.
  */
 PifTask *pifTaskManager_CurrentTask();
 
 /**
  * @fn pifTaskManager_Loop
- * @brief Main loop에서 수행해야 하는 Task 함수이다.
+ * @brief Runs one scheduling loop iteration and dispatches eligible tasks in the manager.
  */
 void pifTaskManager_Loop();
 
 /**
  * @fn pifTaskManager_Yield
- * @brief Task내에서 대기중에 다른 Task를 호출하고자 할 경우에 사용하는 함수이다.
+ * @brief Yields execution from the current task context so other schedulable tasks can run.
  */
 void pifTaskManager_Yield();
 
 /**
  * @fn pifTaskManager_YieldMs
- * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
- * @param time
+ * @brief Yields execution from the current task context so other schedulable tasks can run.
+ * @param time Time value used by yield or delay operations.
  */
 void pifTaskManager_YieldMs(uint32_t time);
 
 /**
  * @fn pifTaskManager_YieldUs
- * @brief loop내에서 지정한 시간동안 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
- * @param time
+ * @brief Yields execution from the current task context so other schedulable tasks can run.
+ * @param time Time value used by yield or delay operations.
  */
 void pifTaskManager_YieldUs(uint32_t time);
 
 /**
  * @fn pifTaskManager_YieldAbort
- * @brief loop내에서 중단 조건 함수가 TRUE를 반환할 때까지 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
- * @param p_check_abort
- * @param p_issuer
+ * @brief Yields execution from the current task context so other schedulable tasks can run.
+ * @param p_check_abort Callback that returns TRUE when waiting should abort.
+ * @param p_issuer User context pointer passed to callbacks.
  */
 void pifTaskManager_YieldAbort(PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
 
 /**
  * @fn pifTaskManager_YieldAbortMs
- * @brief loop내에서 지정한 시간과 중단 조건 함수가 TRUE를 반환할 때까지 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
- * @param time
- * @param p_check_abort
- * @param p_issuer
+ * @brief Yields execution from the current task context so other schedulable tasks can run.
+ * @param time Time value used by yield or delay operations.
+ * @param p_check_abort Callback that returns TRUE when waiting should abort.
+ * @param p_issuer User context pointer passed to callbacks.
  */
 void pifTaskManager_YieldAbortMs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
 
 /**
  * @fn pifTaskManager_YieldAbortUs
- * @brief loop내에서 지정한 시간과 중단 조건 함수가 TRUE를 반환할 때까지 다른 Task를 실행하고자 할 경우에 사용하는 함수이다.
- * @param time
- * @param p_check_abort
- * @param p_issuer
+ * @brief Yields execution from the current task context so other schedulable tasks can run.
+ * @param time Time value used by yield or delay operations.
+ * @param p_check_abort Callback that returns TRUE when waiting should abort.
+ * @param p_issuer User context pointer passed to callbacks.
  */
 void pifTaskManager_YieldAbortUs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
 
 /**
  * @fn pifTaskManager_AllTask
- * @brief 
- * @param callback
+ * @brief Executes the pifTaskManager_AllTask operation for the task manager module according to the API contract.
+ * @param callback Callback function invoked for each task entry.
  */
 void pifTaskManager_AllTask(void (*callback)(PifTask *p_task));
 
@@ -120,7 +120,7 @@ void pifTaskManager_AllTask(void (*callback)(PifTask *p_task));
 
 /**
  * @fn pifTaskManager_Print
- * @brief Task 할당 정보를 출력한다.
+ * @brief Formats and writes output related to the task manager using the provided destination.
  */
 void pifTaskManager_Print();
 

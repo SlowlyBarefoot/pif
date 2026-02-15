@@ -4,6 +4,7 @@
 
 #include <string.h>
 
+// Signal collection and periodic transfer support for debug/monitoring.
 
 #ifdef PIF_COLLECT_SIGNAL
 

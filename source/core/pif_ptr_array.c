@@ -1,5 +1,6 @@
 #include "core/pif_ptr_array.h"
 
+// Fixed-capacity pointer array with free-list style allocation tracking.
 
 BOOL pifPtrArray_Init(PifPtrArray* p_owner, int max_count, PifEvtPtrArrayClear evt_clear)
 {

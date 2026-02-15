@@ -6,6 +6,7 @@
 
 #include <string.h>
 
+// Core runtime globals, timekeeping, and shared utility functions.
 
 PifError pif_error = E_SUCCESS;
 

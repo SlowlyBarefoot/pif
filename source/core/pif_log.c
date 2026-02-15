@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <string.h>
 
+// Logging backend with UART output and optional command-line parser.
 
 typedef struct StPifLog
 {

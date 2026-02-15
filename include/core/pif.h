@@ -110,11 +110,11 @@ typedef enum EnPifPulseState
 
 /**
  * @struct StPifDateTime
- * @brief 날짜 시간 정보
+ * @brief Represents the date time data structure used by this module.
  */
 typedef struct StPifDateTime
 {
-    uint8_t year;				// 2000년 기준
+    uint8_t year;				// As of 2000
     uint8_t month;
     uint8_t day;
     uint8_t hour;
@@ -173,178 +173,178 @@ extern "C" {
 
 /**
  * @fn pif_Init
- * @brief pif의 전역 변수를 초기화한다.
- * @param act_timer1us
- * @return
+ * @brief Initializes the core instance and prepares all internal fields for safe use.
+ * @param act_timer1us Callback that returns the current 1us tick count.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pif_Init(PifActTimer1us act_timer1us);
 
 /**
  * @fn pif_Exit
- * @brief
+ * @brief Executes the pif_Exit operation for the core module according to the API contract.
  */
 void pif_Exit();
 
 /**
  * @fn pif_sigTimer1ms
- * @brief 1ms 타이머 인터럽트에서 실행할 pif 함수이다.
+ * @brief Processes an external signal or tick for the core and updates runtime timing state.
  */
 void pif_sigTimer1ms();
 
 /**
  * @fn pif_Delay1ms
- * @brief
- * @param delay
+ * @brief Performs a delay operation in the core context for the requested time interval.
+ * @param delay Delay duration value.
  */
 void pif_Delay1ms(uint16_t delay);
 
 /**
  * @fn pif_Delay1us
- * @brief
- * @param delay
+ * @brief Performs a delay operation in the core context for the requested time interval.
+ * @param delay Delay duration value.
  */
 void pif_Delay1us(uint16_t delay);
 
 /**
  * @fn pif_ChangeStatusLed
- * @brief 
- * @param num
- * @param state
+ * @brief Changes runtime configuration of the core while preserving object ownership semantics.
+ * @param num Index number of the status LED to control.
+ * @param state Target state value to apply.
  */
 void PIF_WEAK pif_ChangeStatusLed(int num, BOOL state);
 
 /**
  * @fn pif_ToggleStatusLed
- * @brief 
- * @param num
+ * @brief Executes the pif_ToggleStatusLed operation for the core module according to the API contract.
+ * @param num Index number of the status LED to control.
  */
 void PIF_WEAK pif_ToggleStatusLed(int num);
 
 /**
  * @fn pif_ClearError
- * @brief Error를 정리하다.
+ * @brief Executes the pif_ClearError operation for the core module according to the API contract.
  */
 void pif_ClearError();
 
 /**
  * @fn pif_BinToString
- * @brief
- * @param p_buffer
- * @param value
- * @param str_cnt
- * @return
+ * @brief Executes the pif_BinToString operation for the core module according to the API contract.
+ * @param p_buffer Pointer to the caller-provided buffer.
+ * @param value Input numeric value to convert or process.
+ * @param str_cnt Maximum number of characters to write to the output string.
+ * @return Result value returned by this API.
  */
 int pif_BinToString(char* p_buffer, uint32_t value, uint16_t str_cnt);
 
 /**
  * @fn pif_DecToString
- * @brief
- * @param p_buffer
- * @param value
- * @param str_cnt
- * @return
+ * @brief Executes the pif_DecToString operation for the core module according to the API contract.
+ * @param p_buffer Pointer to the caller-provided buffer.
+ * @param value Input numeric value to convert or process.
+ * @param str_cnt Maximum number of characters to write to the output string.
+ * @return Result value returned by this API.
  */
 int pif_DecToString(char* p_buffer, uint32_t value, uint16_t str_cnt);
 
 /**
  * @fn pif_HexToString
- * @brief
- * @param p_buffer
- * @param value
- * @param str_cnt
- * @param upper
- * @return
+ * @brief Executes the pif_HexToString operation for the core module according to the API contract.
+ * @param p_buffer Pointer to the caller-provided buffer.
+ * @param value Input numeric value to convert or process.
+ * @param str_cnt Maximum number of characters to write to the output string.
+ * @param upper Set to TRUE to use uppercase alphabetic digits.
+ * @return Result value returned by this API.
  */
 int pif_HexToString(char* p_buffer, uint32_t value, uint16_t str_cnt, BOOL upper);
 
 /**
  * @fn pif_FloatToString
- * @brief
- * @param p_buffer
- * @param value
- * @param point
- * @return
+ * @brief Executes the pif_FloatToString operation for the core module according to the API contract.
+ * @param p_buffer Pointer to the caller-provided buffer.
+ * @param value Input numeric value to convert or process.
+ * @param point Number of digits to place after the decimal point.
+ * @return Result value returned by this API.
  */
 int pif_FloatToString(char* p_buffer, double value, uint16_t point);
 
 /**
  * @fn pif_PrintFormat
- * @brief
- * @param p_buffer
- * @param p_data
- * @param buffer_size
- * @param p_format
+ * @brief Formats and writes output related to the core using the provided destination.
+ * @param p_buffer Pointer to the caller-provided buffer.
+ * @param p_data Pointer to input or output data buffer.
+ * @param buffer_size Size of the destination buffer in bytes.
+ * @param p_format Format string used for text generation.
  */
 void pif_PrintFormat(char* p_buffer, size_t buffer_size, va_list* data, const char* p_format);
 
 /**
  * @fn pif_Printf
- * @brief
- * @param p_buffer
- * @param buffer_size
- * @param p_format
+ * @brief Formats and writes output related to the core using the provided destination.
+ * @param p_buffer Pointer to the caller-provided buffer.
+ * @param buffer_size Size of the destination buffer in bytes.
+ * @param p_format Format string used for text generation.
  */
 void pif_Printf(char* p_buffer, size_t buffer_size, const char* p_format, ...);
 
 /**
  * @fn pifCrc7_Add
- * @brief 이전 7비트 CRC값에 데이타를 추가한다.
- * @param crc 7비트 CRC의 이전값.
- * @param data 7비트 CRC할 데이터.
- * @return 데이타를 추가한 7비트 CRC값.
+ * @brief Adds an item to the crc7 and updates internal bookkeeping for subsequent operations.
+ * @param crc Current CRC accumulator value.
+ * @param data Input byte value used in CRC accumulation.
+ * @return Return value of this API.
  */
 uint8_t pifCrc7_Add(uint8_t crc, uint8_t data);
 
 /**
  * @fn pifCrc7_Result
- * @brief 계산된 7비트 CRC 결과를 반환한다.
- * @param crc 7비트 CRC의 이전값.
- * @return 7비트 CRC 결과값.
+ * @brief Executes the pifCrc7_Result operation for the crc7 module according to the API contract.
+ * @param crc Current CRC accumulator value.
+ * @return Return value of this API.
  */
 uint8_t pifCrc7_Result(uint8_t crc);
 
 /**
  * @fn pifCrc7
- * @brief Buffer에 있는 데이타의 7비트 CRC 결과를 반환한다.
- * @param p_data 7비트 CRC할 데이터의 시작 포인터.
- * @param length 7비트 CRC할 데이터의 크기.
- * @return 7비트 CRC 결과값.
+ * @brief Executes the pifCrc7 operation for the crc7 module according to the API contract.
+ * @param p_data Pointer to the data buffer used by this operation.
+ * @param length Number of bytes to process.
+ * @return Return value of this API.
  */
 uint8_t pifCrc7(uint8_t* p_data, uint16_t length);
 
 /**
  * @fn pifCrc16_Add
- * @brief 이전 16비트 CRC값에 데이타를 추가한다.
- * @param crc 16비트 CRC의 이전값.
- * @param data 16비트 CRC할 데이터.
- * @return 데이타를 추가한 16비트 CRC값.
+ * @brief Adds an item to the crc16 and updates internal bookkeeping for subsequent operations.
+ * @param crc Current CRC accumulator value.
+ * @param data Input byte value used in CRC accumulation.
+ * @return Return value of this API.
  */
 uint16_t pifCrc16_Add(uint16_t crc, uint8_t data);
 
 /**
  * @fn pifCrc16
- * @brief Buffer에 있는 데이타의 16비트 CRC 결과를 반환한다.
- * @param p_data 16비트 CRC할 데이터의 시작 포인터.
- * @param length 16비트 CRC할 데이터의 크기.
- * @return 데이타를 추가한 16비트 CRC값.
+ * @brief Executes the pifCrc16 operation for the crc16 module according to the API contract.
+ * @param p_data Pointer to the data buffer used by this operation.
+ * @param length Number of bytes to process.
+ * @return Return value of this API.
  */
 uint16_t pifCrc16(uint8_t* p_data, uint16_t length);
 
 /**
  * @fn pifCheckSum
- * @brief Buffer에서의 byte 단위로 합산한 결과를 반환한다.
- * @param p_data Checksum할 데이터의 시작 포인터.
- * @param length Checksum할 데이터의 크기.
- * @return 데이타를 추가한 16비트 CRC값.
+ * @brief Executes the pifCheckSum operation for the check sum module according to the API contract.
+ * @param p_data Pointer to the data buffer used by this operation.
+ * @param length Number of bytes to process.
+ * @return Return value of this API.
  */
 uint32_t pifCheckSum(uint8_t* p_data, uint16_t length);
 
 /**
  * @fn pifCheckXor
- * @brief Buffer에서의 byte 단위로 Xor한 결과를 반환한다.
- * @param p_data CheckXor할 데이터의 시작 포인터.
- * @param length CheckXor할 데이터의 크기.
- * @return 데이타를 추가한 16비트 CRC값.
+ * @brief Executes the pifCheckXor operation for the check xor module according to the API contract.
+ * @param p_data Pointer to the data buffer used by this operation.
+ * @param length Number of bytes to process.
+ * @return Return value of this API.
  */
 uint8_t pifCheckXor(uint8_t* p_data, uint16_t length);
 

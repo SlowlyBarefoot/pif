@@ -32,7 +32,7 @@ typedef enum EnPifTimerStep
 
 /**
  * @struct StPifTimer
- * @brief 한 Timer내에 항목을 관리하는 구조체
+ * @brief Represents the timer data structure used by this module.
  */
 typedef struct StPifTimer
 {
@@ -64,66 +64,66 @@ extern "C" {
 
 /**
  * @fn pifTimer_Start
- * @brief Timer를 시작한다.
- * @param p_owner Timer 포인터
- * @param target 이동 pulse 수
- * @return
+ * @brief Starts the timer operation using the current timing, trigger, or mode configuration.
+ * @param p_owner Pointer to the target object instance.
+ * @param target Target tick count to run before completion.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTimer_Start(PifTimer* p_owner, uint32_t pulse);
 
 /**
  * @fn pifTimer_Stop
- * @brief Timer를 종료한다.
- * @param p_owner Timer 포인터
+ * @brief Stops the timer operation and transitions it into an inactive state.
+ * @param p_owner Pointer to the target object instance.
  */
 void pifTimer_Stop(PifTimer* p_owner);
 
 /**
  * @fn pifTimer_Reset
- * @brief Timer를 다시 시작한다.
- * @param p_owner Timer 포인터
+ * @brief Resets runtime state in the timer to an initial or configured baseline.
+ * @param p_owner Pointer to the target object instance.
  */
 void pifTimer_Reset(PifTimer* p_owner);
 
 /**
  * @fn pifTimer_SetPwmDuty
- * @brief Timer의 이동 pulse를 재설정한다.
- * @param p_owner Timer 포인터
- * @param duty 이동 pulse수. 단, 현재 동작에는 영향이 없고 다음 동작부터 변경된다.
+ * @brief Sets configuration or runtime state for the timer based on the provided parameters.
+ * @param p_owner Pointer to the target object instance.
+ * @param duty PWM duty ratio value.
  */
 void pifTimer_SetPwmDuty(PifTimer* p_owner, uint16_t duty);
 
 /**
  * @fn pifTimer_Remain
- * @brief Timer의 남은 pulse 수를 얻는다.
- * @param p_owner Timer 포인터
- * @return 남은 pulse 수를 반환한다.
+ * @brief Executes the pifTimer_Remain operation for the timer module according to the API contract.
+ * @param p_owner Pointer to the target object instance.
+ * @return Return value of this API.
  */
 uint32_t pifTimer_Remain(PifTimer* p_owner);
 
 /**
  * @fn pifTimer_Elapsed
- * @brief Timer의 경과한 pulse 수를 얻는다.
- * @param p_owner Timer 포인터
- * @return 경과한 pulse 수를 반환한다.
+ * @brief Executes the pifTimer_Elapsed operation for the timer module according to the API contract.
+ * @param p_owner Pointer to the target object instance.
+ * @return Return value of this API.
  */
 uint32_t pifTimer_Elapsed(PifTimer* p_owner);
 
 /**
  * @fn pifTimer_AttachEvtFinish
- * @brief 이동 완료후 task에서 발생시킬 이벤트를 연결한다.
- * @param p_owner Timer 포인터
- * @param evt_finish 연결시킬 이벤트
- * @param p_issuer 이벤트 발생시 전달할 발행자
+ * @brief Attaches a callback, device, or external resource to the timer for integration.
+ * @param p_owner Pointer to the target object instance.
+ * @param evt_finish Callback invoked when timer operation completes.
+ * @param p_issuer User context pointer passed to callback functions.
  */
 void pifTimer_AttachEvtFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssuerP p_issuer);
 
 /**
  * @fn pifTimer_AttachEvtIntFinish
- * @brief 이동 완료후 interrupt에서 즉시 발생시킬 이벤트를 연결한다. 단, 이벤트의 실행코드는 최소화하여야 한다.
- * @param p_owner Timer 포인터
- * @param evt_finish 연결시킬 이벤트
- * @param p_issuer 이벤트 발생시 전달할 발행자
+ * @brief Attaches a callback, device, or external resource to the timer for integration.
+ * @param p_owner Pointer to the target object instance.
+ * @param evt_finish Callback invoked when timer operation completes.
+ * @param p_issuer User context pointer passed to callback functions.
  */
 void pifTimer_AttachEvtIntFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssuerP p_issuer);
 

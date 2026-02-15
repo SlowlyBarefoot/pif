@@ -9,7 +9,7 @@
 
 /**
  * @struct StPifSListNode
- * @brief
+ * @brief Represents the slist node data structure used by this module.
  */
 typedef struct StPifSListNode
 {
@@ -21,7 +21,7 @@ typedef PifSListNode* PifSListIterator;
 
 /**
  * @struct StPifSList
- * @brief
+ * @brief Represents the slist data structure used by this module.
  */
 typedef struct StPifSList
 {
@@ -39,83 +39,83 @@ extern "C" {
 
 /**
  * @fn pifSList_Init
- * @brief
- * @param p_owner
- * @return
+ * @brief Initializes the slist instance and prepares all internal fields for safe use.
+ * @param p_owner List instance to initialize.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifSList_Init(PifSList* p_owner);
 
 /**
  * @fn pifSList_Clear
- * @brief
- * @param p_owner
- * @param evt_clear
+ * @brief Clears the slist state and releases resources currently owned by the instance.
+ * @param p_owner Target list.
+ * @param evt_clear Optional callback invoked for each node payload before free.
  */
 void pifSList_Clear(PifSList* p_owner, PifEvtSListClear evt_clear);
 
 /**
  * @fn pifSList_AddFirst
- * @brief
- * @param p_owner
- * @param data_size
- * @return
+ * @brief Adds an item to the slist and updates internal bookkeeping for subsequent operations.
+ * @param p_owner Target list.
+ * @param data_size Payload size in bytes.
+ * @return Pointer to payload area of the inserted node, or NULL on failure.
  */
 void* pifSList_AddFirst(PifSList* p_owner, int data_size);
 
 /**
  * @fn pifSList_AddLast
- * @brief
- * @param p_owner
- * @param data_size
- * @return
+ * @brief Adds an item to the slist and updates internal bookkeeping for subsequent operations.
+ * @param p_owner Target list.
+ * @param data_size Payload size in bytes.
+ * @return Pointer to payload area of the inserted node, or NULL on failure.
  */
 void* pifSList_AddLast(PifSList* p_owner, int data_size);
 
 /**
  * @fn pifSList_RemoveFirst
- * @brief
- * @param p_owner
+ * @brief Removes an item from the slist and updates internal bookkeeping for consistency.
+ * @param p_owner Target list.
  */
 void pifSList_RemoveFirst(PifSList* p_owner);
 
 /**
  * @fn pifSList_Size
- * @brief
- * @param p_owner
- * @return
+ * @brief Returns the current number of valid items managed by the slist.
+ * @param p_owner Target list.
+ * @return Current node count.
  */
 int pifSList_Size(PifSList* p_owner);
 
 /**
  * @fn pifSList_Begin
- * @brief
- * @param p_owner
- * @return
+ * @brief Returns an iterator pointing to the first valid item in the slist.
+ * @param p_owner Target list.
+ * @return Head iterator, or NULL if empty.
  */
 PifSListIterator pifSList_Begin(PifSList* p_owner);
 
 /**
  * @fn pifSList_End
- * @brief
- * @param p_owner
- * @return
+ * @brief Returns an iterator pointing to the last valid item in the slist.
+ * @param p_owner Target list.
+ * @return Tail iterator, or NULL if empty.
  */
 PifSListIterator pifSList_End(PifSList* p_owner);
 
 /**
  * @fn pifSList_Next
- * @brief
- * @param it
- * @return
+ * @brief Advances an iterator and returns the next valid item in the slist sequence.
+ * @param it Current iterator.
+ * @return Next iterator, or NULL at end.
  */
 PifSListIterator pifSList_Next(PifSListIterator it);
 
 /**
  * @fn pifSList_Find
- * @brief
- * @param p_owner
- * @param index
- * @return
+ * @brief Finds an item in the slist by index or key and returns its iterator or pointer.
+ * @param p_owner Target list.
+ * @param index Zero-based node index.
+ * @return Iterator at index, or NULL if out of range.
  */
 PifSListIterator pifSList_Find(PifSList* p_owner, int index);
 
@@ -128,7 +128,7 @@ PifSListIterator pifSList_Find(PifSList* p_owner, int index);
 
 /**
  * @struct StPifDListNode
- * @brief
+ * @brief Represents the dlist node data structure used by this module.
  */
 typedef struct StPifDListNode
 {
@@ -141,7 +141,7 @@ typedef PifDListNode* PifDListIterator;
 
 /**
  * @struct StPifDList
- * @brief
+ * @brief Represents the dlist data structure used by this module.
  */
 typedef struct StPifDList
 {
@@ -159,124 +159,124 @@ extern "C" {
 
 /**
  * @fn pifDList_Init
- * @brief
- * @param p_owner
- * @return
+ * @brief Initializes the dlist instance and prepares all internal fields for safe use.
+ * @param p_owner List instance to initialize.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifDList_Init(PifDList* p_owner);
 
 /**
  * @fn pifDList_Clear
- * @brief
- * @param p_owner
- * @param evt_clear
+ * @brief Clears the dlist state and releases resources currently owned by the instance.
+ * @param p_owner Target list.
+ * @param evt_clear Optional callback invoked for each node payload before free.
  */
 void pifDList_Clear(PifDList* p_owner, PifEvtDListClear evt_clear);
 
 /**
  * @fn pifDList_AddFirst
- * @brief
- * @param p_owner
- * @param data_size
- * @return
+ * @brief Adds an item to the dlist and updates internal bookkeeping for subsequent operations.
+ * @param p_owner Target list.
+ * @param data_size Payload size in bytes.
+ * @return Pointer to payload area of the inserted node, or NULL on failure.
  */
 void* pifDList_AddFirst(PifDList* p_owner, int data_size);
 
 /**
  * @fn pifDList_AddLast
- * @brief
- * @param p_owner
- * @param data_size
- * @return
+ * @brief Adds an item to the dlist and updates internal bookkeeping for subsequent operations.
+ * @param p_owner Target list.
+ * @param data_size Payload size in bytes.
+ * @return Pointer to payload area of the inserted node, or NULL on failure.
  */
 void* pifDList_AddLast(PifDList* p_owner, int data_size);
 
 /**
  * @fn pifDList_Add
- * @brief
- * @param p_owner
- * @param data_size
- * @param it
- * @return
+ * @brief Adds an item to the dlist and updates internal bookkeeping for subsequent operations.
+ * @param p_owner Target list.
+ * @param data_size Payload size in bytes.
+ * @param it Insert position; if NULL, append to tail.
+ * @return Pointer to payload area of the inserted node, or NULL on failure.
  */
 void* pifDList_Add(PifDList* p_owner, int data_size, PifDListIterator it);
 
 /**
  * @fn pifDList_RemoveFirst
- * @brief
- * @param p_owner
+ * @brief Removes an item from the dlist and updates internal bookkeeping for consistency.
+ * @param p_owner Target list.
  */
 void pifDList_RemoveFirst(PifDList* p_owner);
 
 /**
  * @fn pifDList_RemoveLast
- * @brief
- * @param p_owner
+ * @brief Removes an item from the dlist and updates internal bookkeeping for consistency.
+ * @param p_owner Target list.
  */
 void pifDList_RemoveLast(PifDList* p_owner);
 
 /**
  * @fn pifDList_RemoveIterator
- * @brief
- * @param p_owner
- * @param it
+ * @brief Removes an item from the dlist and updates internal bookkeeping for consistency.
+ * @param p_owner Target list.
+ * @param it Iterator to remove.
  */
 void pifDList_RemoveIterator(PifDList* p_owner, PifDListIterator it);
 
 /**
  * @fn pifDList_Remove
- * @brief
- * @param p_owner
- * @param p_data
+ * @brief Removes an item from the dlist and updates internal bookkeeping for consistency.
+ * @param p_owner Target list.
+ * @param p_data Pointer to node payload.
  */
 void pifDList_Remove(PifDList* p_owner, void* p_data);
 
 /**
  * @fn pifDList_Size
- * @brief
- * @param p_owner
- * @return
+ * @brief Returns the current number of valid items managed by the dlist.
+ * @param p_owner Target list.
+ * @return Current node count.
  */
 int pifDList_Size(PifDList* p_owner);
 
 /**
  * @fn pifDList_Begin
- * @brief
- * @param p_owner
- * @return
+ * @brief Returns an iterator pointing to the first valid item in the dlist.
+ * @param p_owner Target list.
+ * @return Head iterator, or NULL if empty.
  */
 PifDListIterator pifDList_Begin(PifDList* p_owner);
 
 /**
  * @fn pifDList_Next
- * @brief
- * @param p_owner
- * @return
+ * @brief Advances an iterator and returns the next valid item in the dlist sequence.
+ * @param it Current iterator.
+ * @return Next iterator, or NULL at end.
  */
 PifDListIterator pifDList_Next(PifDListIterator it);
 
 /**
  * @fn pifDList_End
- * @brief
- * @param p_owner
- * @return
+ * @brief Returns an iterator pointing to the last valid item in the dlist.
+ * @param p_owner Target list.
+ * @return Tail iterator, or NULL if empty.
  */
 PifDListIterator pifDList_End(PifDList* p_owner);
 
 /**
  * @fn pifDList_Prev
- * @brief
- * @param p_owner
- * @return
+ * @brief Moves an iterator backward and returns the previous valid item in the dlist sequence.
+ * @param it Current iterator.
+ * @return Previous iterator, or NULL at begin.
  */
 PifDListIterator pifDList_Prev(PifDListIterator it);
 
 /**
  * @fn pifDList_Find
- * @brief
- * @param p_owner
- * @param index
- * @return
+ * @brief Finds an item in the dlist by index or key and returns its iterator or pointer.
+ * @param p_owner Target list.
+ * @param index Zero-based node index.
+ * @return Iterator at index, or NULL if out of range.
  */
 PifDListIterator pifDList_Find(PifDList* p_owner, int index);
 

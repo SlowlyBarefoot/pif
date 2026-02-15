@@ -7,6 +7,7 @@
 	#include "core/pif_log.h"
 #endif
 
+// Pulse input abstraction with edge tracking and optional signal collection.
 
 #ifdef PIF_COLLECT_SIGNAL
 	static PifDList s_cs_list;

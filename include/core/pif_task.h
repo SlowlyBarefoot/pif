@@ -31,14 +31,14 @@ typedef BOOL (*PifTaskCheckAbort)(PifIssuerP p_issuer);
 
 /**
  * @struct StPifTask
- * @brief Task를 관리하는 구조체
+ * @brief Represents the task data structure used by this module.
  */
 struct StPifTask
 {
 	// Public Member Variable
 	const char* name;
 	BOOL pause;
-	uint8_t disallow_yield_id;		// 0 : 모두 허용, 1->255 : 해당 id는 허용하지 않음.
+	uint8_t disallow_yield_id;		// 0: Allow all, 1->255: Do not allow the corresponding id.
 
 	// Read-only Member Variable
 	PifId _id;
@@ -91,80 +91,80 @@ extern "C" {
 
 /**
  * @fn pifTask_Init
- * @brief
- * @param p_owner
- * @param id
+ * @brief Initializes the task instance and prepares all internal fields for safe use.
+ * @param p_owner Pointer to the target object instance.
+ * @param id Identifier value for the object or task.
  */
 void pifTask_Init(PifTask* p_owner, PifId id);
 
 /**
  * @fn pifTask_CheckParam
- * @brief 
- * @param p_mode
- * @param period
- * @return 성공 여부를 반환한다.
+ * @brief Executes the pifTask_CheckParam operation for the task module according to the API contract.
+ * @param p_mode Pointer to task mode output or mode selector.
+ * @param period Execution period value for scheduling.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTask_CheckParam(PifTaskMode* p_mode, uint32_t period);
 
 /**
  * @fn pifTask_SetParam
- * @brief 
- * @param p_owner Task 자신
- * @param mode Task의 Mode를 설정한다.
- * @param period Task 주기 (ms, us)
- * @return 성공 여부를 반환한다.
+ * @brief Sets configuration or runtime state for the task based on the provided parameters.
+ * @param p_owner Pointer to the target object instance.
+ * @param mode Operating mode configuration value.
+ * @param period Execution period value for scheduling.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTask_SetParam(PifTask* p_owner, PifTaskMode mode, uint32_t period);
 
 /**
  * @fn pifTask_ChangeMode
- * @brief Task의 Mode를 변경한다.
- * @param p_owner Task 자신
- * @param mode Task의 Mode를 설정한다.
- * @param period Task 주기 (ms, us)
- * @return 성공 여부를 반환한다.
+ * @brief Changes runtime configuration of the task while preserving object ownership semantics.
+ * @param p_owner Pointer to the target object instance.
+ * @param mode Operating mode configuration value.
+ * @param period Execution period value for scheduling.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint32_t period);
 
 /**
  * @fn pifTask_ChangePeriod
- * @brief Task의 주기를 변경한다.
- * @param p_owner Task 자신
- * @param period Task 주기 (ms, us)
- * @return 성공 여부를 반환한다.
+ * @brief Changes runtime configuration of the task while preserving object ownership semantics.
+ * @param p_owner Pointer to the target object instance.
+ * @param period Execution period value for scheduling.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period);
 
 /**
  * @fn pifTask_SetTrigger
- * @brief 
- * @param p_owner Task 자신
- * @param delay
- * @return 
+ * @brief Sets configuration or runtime state for the task based on the provided parameters.
+ * @param p_owner Pointer to the target object instance.
+ * @param delay Delay duration value.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay);
 
 /**
  * @fn pifTask_SetCutinTrigger
- * @brief
- * @param p_owner Task 자신
- * @return
+ * @brief Sets configuration or runtime state for the task based on the provided parameters.
+ * @param p_owner Pointer to the target object instance.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTask_SetCutinTrigger(PifTask *p_owner);
 
 /**
  * @fn pifTask_SetTriggerForTimer
- * @brief
- * @param p_owner Task 자신
- * @return
+ * @brief Sets configuration or runtime state for the task based on the provided parameters.
+ * @param p_owner Pointer to the target object instance.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTask_SetTriggerForTimer(PifTask *p_owner);
 
 /**
  * @fn pifTask_DelayMs
- * @brief ms단위의 일정 시간동안 Task를 정지시킨다.
- * @param p_owner Task 자신
- * @param delay 정지시킬 시간
+ * @brief Performs a delay operation in the task context for the requested time interval.
+ * @param p_owner Pointer to the target object instance.
+ * @param delay Delay duration value.
  */
 void pifTask_DelayMs(PifTask* p_owner, uint16_t delay);
 
@@ -172,25 +172,25 @@ void pifTask_DelayMs(PifTask* p_owner, uint16_t delay);
 
 /**
  * @fn pifTask_GetAverageDeltaTime
- * @brief
- * @param p_owner Task 자신
- * @return
+ * @brief Retrieves the requested value or pointer from the task without changing ownership.
+ * @param p_owner Pointer to the target object instance.
+ * @return Result value returned by this API.
  */
 uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner);
 
 /**
  * @fn pifTask_GetAverageExecuteTime
- * @brief
- * @param p_owner Task 자신
- * @return
+ * @brief Retrieves the requested value or pointer from the task without changing ownership.
+ * @param p_owner Pointer to the target object instance.
+ * @return Result value returned by this API.
  */
 uint32_t pifTask_GetAverageExecuteTime(PifTask* p_owner);
 
 /**
  * @fn pifTask_GetAverageTriggerTime
- * @brief
- * @param p_owner Task 자신
- * @return
+ * @brief Retrieves the requested value or pointer from the task without changing ownership.
+ * @param p_owner Pointer to the target object instance.
+ * @return Result value returned by this API.
  */
 uint32_t pifTask_GetAverageTriggerTime(PifTask* p_owner);
 

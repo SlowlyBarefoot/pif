@@ -7,6 +7,7 @@
 	#include "core/pif_log.h"
 #endif
 
+// GPIO creation, state control, and optional signal collection integration.
 
 #ifdef PIF_COLLECT_SIGNAL
 	static PifDList s_cs_list;

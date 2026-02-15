@@ -1,5 +1,6 @@
 #include "core/pif_ring_data.h"
 
+// Ring container for fixed-size records with FIFO add/remove operations.
 
 PifRingData* pifRingData_Create(PifId id, uint16_t data_size, uint16_t data_count)
 {
@@ -71,6 +72,7 @@ void* pifRingData_GetData(PifRingData* p_owner, uint16_t index)
 
 void* pifRingData_GetFirstData(PifRingData* p_owner)
 {
+	// Prepare iteration from the current tail element.
 	if (p_owner->__head == p_owner->__tail) return NULL;
 	p_owner->__index = p_owner->__tail;
 	return p_owner->__p_data + (p_owner->__index * p_owner->_data_size);
@@ -78,6 +80,7 @@ void* pifRingData_GetFirstData(PifRingData* p_owner)
 
 void* pifRingData_GetNextData(PifRingData* p_owner)
 {
+	// Iterate circularly until the head position is reached.
 	p_owner->__index++;
 	if (p_owner->__index >= p_owner->_data_count) p_owner->__index = 0;
 	if (p_owner->__index == p_owner->__head) return NULL;
@@ -111,6 +114,7 @@ void* pifRingData_Add(PifRingData* p_owner)
 {
 	uint16_t next =	p_owner->__head + 1;
 
+	// Keep one slot reserved to prevent head/tail ambiguity.
 	if (next >= p_owner->_data_count) next = 0;
 	if (next == p_owner->__tail) {
 		pif_error = E_OVERFLOW_BUFFER;
@@ -124,6 +128,7 @@ void* pifRingData_Add(PifRingData* p_owner)
 
 void* pifRingData_Remove(PifRingData* p_owner)
 {
+	// Pop from tail in FIFO order.
 	if (p_owner->__head == p_owner->__tail) {
 		pif_error = E_EMPTY_IN_BUFFER;
 		return NULL;

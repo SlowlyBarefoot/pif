@@ -9,7 +9,7 @@
 
 /**
  * @struct StPifTimerManager
- * @brief Timer를 관리하기 위한 구조체
+ * @brief Represents the timer manager data structure used by this module.
  */
 typedef struct StPifTimerManager
 {
@@ -31,49 +31,49 @@ extern "C" {
 
 /**
  * @fn pifTimerManager_Init
- * @brief Timer manager를 추가한다.
- * @param p_manager
- * @param id
- * @param period1us
- * @return 성공 여부를 반환한다.
+ * @brief Initializes the timer manager instance and prepares all internal fields for safe use.
+ * @param p_manager Pointer to the timer manager instance.
+ * @param id Identifier value for the object or task.
+ * @param period1us Tick period in microseconds for timer updates.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTimerManager_Init(PifTimerManager *p_manager, PifId id, uint32_t period1us, int max_count);
 
 /**
  * @fn pifTimerManager_Clear
- * @brief 모든 Timer용 메모리를 반환한다.
- * @param p_manager Timer manager 자신
+ * @brief Clears the timer manager state and releases resources currently owned by the instance.
+ * @param p_manager Pointer to the timer manager instance.
  */
 void pifTimerManager_Clear(PifTimerManager *p_manager);
 
 /**
  * @fn pifTimerManager_Add
- * @brief Timer를 추가한다.
- * @param p_manager Timer manager 자신
- * @param type Timer의 종류
- * @return Timer 구조체 포인터를 반환한다.
+ * @brief Adds an item to the timer manager and updates internal bookkeeping for subsequent operations.
+ * @param p_manager Pointer to the timer manager instance.
+ * @param type Timer type configuration value.
+ * @return Return value of this API.
  */
 PifTimer *pifTimerManager_Add(PifTimerManager *p_manager, PifTimerType type);
 
 /**
  * @fn pifTimerManager_Remove
- * @brief Timer를 삭제한다.
- * @param p_timer Timer 포인터
+ * @brief Removes an item from the timer manager and updates internal bookkeeping for consistency.
+ * @param p_timer Pointer to the timer instance.
  */
 void pifTimerManager_Remove(PifTimer *p_timer);
 
 /**
  * @fn pifTimerManager_Count
- * @brief Timer 갯수를 구한다.
- * @param p_manager Timer manager 자신
- * @return Timer 갯수를 반환한다.
+ * @brief Returns the current number of valid items managed by the timer manager.
+ * @param p_manager Pointer to the timer manager instance.
+ * @return Return value of this API.
  */
 int pifTimerManager_Count(PifTimerManager *p_manager);
 
 /**
  * @fn pifTimerManager_sigTick
- * @brief Timer를 발생하는 Interrupt 함수에서 호출한다.
- * @param p_manager Timer manager 자신
+ * @brief Processes an external signal or tick for the timer manager and updates runtime timing state.
+ * @param p_manager Pointer to the timer manager instance.
  */
 void pifTimerManager_sigTick(PifTimerManager *p_manager);
 

@@ -46,7 +46,7 @@ typedef struct
 
 /**
  * @struct StPifPulseData
- * @brief
+ * @brief Represents the pulse data data structure used by this module.
  */
 typedef struct StPifPulsData
 {
@@ -56,7 +56,7 @@ typedef struct StPifPulsData
 
 /**
  * @struct StPifPulse
- * @brief Pulse를 관리하기 위한 구조체
+ * @brief Represents the pulse data structure used by this module.
  */
 struct StPifPulse
 {
@@ -93,93 +93,93 @@ extern "C" {
 
 /**
  * @fn pifPulse_Init
- * @brief Pulse를 초기화한다.
- * @param p_owner
- * @return 성공 여부를 반환한다.
+ * @brief Initializes the pulse instance and prepares all internal fields for safe use.
+ * @param p_owner Pointer to the target object instance.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifPulse_Init(PifPulse* p_owner, PifId id);
 
 /**
  * @fn pifPulse_Clear
- * @brief Pulse내에 할당 메모리를 반환한다.
- * @param p_owner Pulse 자신
+ * @brief Clears the pulse state and releases resources currently owned by the instance.
+ * @param p_owner Pointer to the target object instance.
  */
 void pifPulse_Clear(PifPulse* p_owner);
 
 /**
  * @fn pifPulse_SetMeasureMode
- * @brief
- * @param p_owner
- * @param measure_mode
- * @return
+ * @brief Sets configuration or runtime state for the pulse based on the provided parameters.
+ * @param p_owner Pointer to the target object instance.
+ * @param measure_mode Measurement mode bitmask or selector.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifPulse_SetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
 
 /**
  * @fn pifPulse_ResetMeasureMode
- * @brief
- * @param p_owner
- * @param measure_mode
+ * @brief Resets runtime state in the pulse to an initial or configured baseline.
+ * @param p_owner Pointer to the target object instance.
+ * @param measure_mode Measurement mode bitmask or selector.
  */
 void pifPulse_ResetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
 
 /**
  * @fn pifPulse_SetValidRange
- * @brief
- * @param p_owner
- * @param measure_mode
- * @param min
- * @param max
- * @return
+ * @brief Sets configuration or runtime state for the pulse based on the provided parameters.
+ * @param p_owner Pointer to the target object instance.
+ * @param measure_mode Measurement mode bitmask or selector.
+ * @param min Minimum accepted measurement value.
+ * @param max Maximum accepted measurement value.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint32_t min, uint32_t max);
 
 /**
  * @fn pifPulse_ResetMeasureValue
- * @brief
- * @param p_owner
+ * @brief Resets runtime state in the pulse to an initial or configured baseline.
+ * @param p_owner Pointer to the target object instance.
  */
 void pifPulse_ResetMeasureValue(PifPulse* p_owner);
 
 /**
  * @fn pifPulse_GetPeriod
- * @brief
- * @param p_owner
- * @return
+ * @brief Retrieves the requested value or pointer from the pulse without changing ownership.
+ * @param p_owner Pointer to the target object instance.
+ * @return Result value returned by this API.
  */
 uint16_t pifPulse_GetPeriod(PifPulse* p_owner);
 
 /**
  * @fn pifPulse_GetLowWidth
- * @brief
- * @param p_owner
- * @return
+ * @brief Retrieves the requested value or pointer from the pulse without changing ownership.
+ * @param p_owner Pointer to the target object instance.
+ * @return Result value returned by this API.
  */
 uint16_t pifPulse_GetLowWidth(PifPulse* p_owner);
 
 /**
  * @fn pifPulse_GetHighWidth
- * @brief
- * @param p_owner
- * @return
+ * @brief Retrieves the requested value or pointer from the pulse without changing ownership.
+ * @param p_owner Pointer to the target object instance.
+ * @return Result value returned by this API.
  */
 uint16_t pifPulse_GetHighWidth(PifPulse* p_owner);
 
 /**
  * @fn pifPulse_sigEdge
- * @param p_owner
- * @param state	PS_RISING_EDGE, PS_FALLING_EDGE
- * @param time_us
- * @return
+ * @param p_owner Pointer to the target object instance.
+ * @param state Current edge state value captured from the pulse input.
+ * @param time_us Timestamp or interval value in microseconds.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifPulse_sigEdge(PifPulse* p_owner, PifPulseState state, uint32_t time_us);
 
 /**
  * @fn pifPulse_AttachEvtEdge
- * @brief
- * @param p_owner Pulse 포인터
- * @param evt_edge
- * @param p_issuer 이벤트 발생시 전달할 발행자
+ * @brief Attaches a callback, device, or external resource to the pulse for integration.
+ * @param p_owner Pointer to the target object instance.
+ * @param evt_edge Callback invoked on detected signal edge events.
+ * @param p_issuer User context pointer passed to callbacks.
  */
 void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssuerP p_issuer);
 
@@ -187,31 +187,31 @@ void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssu
 
 /**
  * @fn pifPulse_SetCsFlag
- * @brief
- * @param p_owner
- * @param flag
+ * @brief Sets configuration or runtime state for the pulse based on the provided parameters.
+ * @param p_owner Pointer to the target object instance.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifPulse_SetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag);
 
 /**
  * @fn pifPulse_ResetCsFlag
- * @brief
- * @param p_owner
- * @param flag
+ * @brief Resets runtime state in the pulse to an initial or configured baseline.
+ * @param p_owner Pointer to the target object instance.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifPulse_ResetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag);
 
 /**
  * @fn pifPulse_SetCsFlagAll
- * @brief
- * @param flag
+ * @brief Sets configuration or runtime state for the pulse based on the provided parameters.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifPulseColSig_SetFlag(PifPulseCsFlag flag);
 
 /**
  * @fn pifPulse_ResetCsFlagAll
- * @brief
- * @param flag
+ * @brief Resets runtime state in the pulse to an initial or configured baseline.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifPulseColSig_ResetFlag(PifPulseCsFlag flag);
 

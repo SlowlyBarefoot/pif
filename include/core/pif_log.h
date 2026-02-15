@@ -33,7 +33,7 @@ typedef void (*PifEvtLogControlChar)(char ch);
 
 /**
  * @class StPifLogCmdEntry
- * @brief
+ * @brief Provides a type or declaration used by this module.
  */
 typedef struct StPifLogCmdEntry
 {
@@ -52,7 +52,7 @@ typedef struct StPifLogCmdEntry
 
 /**
  * @struct StPifLogFlag
- * @brief 항목별 Log 출력 여부
+ * @brief Represents the log flag data structure used by this module.
  */
 typedef union StPifLogFlag
 {
@@ -76,31 +76,31 @@ extern "C" {
 
 /**
  * @fn pifLog_Init
- * @brief Log 구조체 초기화한다.
- * @return
+ * @brief Initializes the log instance and prepares all internal fields for safe use.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifLog_Init();
 
 /**
  * @fn pifLog_InitHeap
- * @brief Log 구조체 초기화한다.
- * @param size
- * @return
+ * @brief Initializes the log with heap memory allocation and default runtime state.
+ * @param size Size value used for allocation or capacity.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifLog_InitHeap(uint16_t size);
 
 /**
  * @fn pifLog_InitStatic
- * @brief Log 구조체 초기화한다.
- * @param size
- * @param p_buffer
- * @return
+ * @brief Initializes the log with caller-provided static memory and default runtime state.
+ * @param size Size value used for allocation or capacity.
+ * @param p_buffer Pointer to the caller-provided buffer.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifLog_InitStatic(uint16_t size, uint8_t* p_buffer);
 
 /**
  * @fn pifLog_Clear
- * @brief Log 구조체를 파기하다.
+ * @brief Clears the log state and releases resources currently owned by the instance.
  */
 void pifLog_Clear();
 
@@ -108,18 +108,18 @@ void pifLog_Clear();
 
 /**
  * @fn pifLog_UseCommad
- * @brief
- * @param size
- * @param p_cmd_table
- * @param p_prompt
- * @return
+ * @brief Executes the pifLog_UseCommad operation for the log module according to the API contract.
+ * @param size Size value used for allocation or capacity.
+ * @param p_cmd_table Pointer to the command table definition.
+ * @param p_prompt Prompt string shown by the command interface.
+ * @return Return value of this API.
  */
 BOOL pifLog_UseCommand(uint8_t size, const PifLogCmdEntry* p_cmd_table, const char* p_prompt);
 
 /**
  * @fn pifLog_AttachEvent
- * @brief
- * @param evt_control_char
+ * @brief Attaches a callback, device, or external resource to the log for integration.
+ * @param evt_control_char Callback invoked when a control character is received.
  */
 void pifLog_AttachEvent(PifEvtLogControlChar evt_control_char);
 
@@ -127,103 +127,103 @@ void pifLog_AttachEvent(PifEvtLogControlChar evt_control_char);
 
 /**
  * @fn pifLog_Enable
- * @brief
+ * @brief Enables runtime behavior for the log so it can actively process operations.
  */
 void pifLog_Enable();
 
 /**
  * @fn pifLog_Disable
- * @brief
+ * @brief Disables runtime behavior for the log without destroying object state.
  */
 void pifLog_Disable();
 
 /**
  * @fn pifLog_IsEmpty
- * @brief
- * @return
+ * @brief Checks whether the log currently satisfies the requested condition.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifLog_IsEmpty();
 
 /**
  * @fn pifLog_PrintChar
- * @brief
- * @param ch
+ * @brief Formats and writes output related to the log using the provided destination.
+ * @param ch Single character value to output.
  */
 void pifLog_PrintChar(char ch);
 
 /**
  * @fn pifLog_Print
- * @brief
- * @param type
- * @param p_string
+ * @brief Formats and writes output related to the log using the provided destination.
+ * @param type Log message type selector.
+ * @param p_string Pointer to a null-terminated text string.
  */
 void pifLog_Print(PifLogType type, const char* p_string);
 
 /**
  * @fn pifLog_Printf
- * @brief
- * @param type
- * @param p_format
+ * @brief Formats and writes output related to the log using the provided destination.
+ * @param type Log message type selector.
+ * @param p_format Format string used for text generation.
  */
 void pifLog_Printf(PifLogType type, const char* p_format, ...);
 
 /**
  * @fn pifLog_PrintInBuffer
- * @brief
+ * @brief Formats and writes output related to the log using the provided destination.
  */
 void pifLog_PrintInBuffer();
 
 /**
  * @fn pifLog_AttachUart
- * @brief
- * @param p_uart
- * @param size
- * @return
+ * @brief Attaches a callback, device, or external resource to the log for integration.
+ * @param p_uart Pointer to the UART interface object.
+ * @param size Size value used for allocation or capacity.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifLog_AttachUart(PifUart* p_uart, uint16_t size);
 
 /**
  * @fn pifLog_SendAndExit
- * @brief
+ * @brief Executes the pifLog_SendAndExit operation for the log module according to the API contract.
  */
 void pifLog_SendAndExit();
 
 /**
  * @fn pifLog_DetachUart
- * @brief
+ * @brief Detaches a callback, device, or external resource from the log.
  */
 void pifLog_DetachUart();
 
 /**
  * @fn pifLog_CmdHelp
- * @brief
- * @param argc
- * @param argv
- * @return
+ * @brief Executes the pifLog_CmdHelp operation for the log module according to the API contract.
+ * @param argc Number of command arguments.
+ * @param argv Array of command argument strings.
+ * @return Result value returned by this API.
  */
 int pifLog_CmdHelp(int argc, char *argv[]);
 
 /**
  * @fn pifLog_CmdPrintVersion
- * @param argc
- * @param argv
- * @return
+ * @param argc Number of command arguments.
+ * @param argv Array of command argument strings.
+ * @return Result value returned by this API.
  */
 int pifLog_CmdPrintVersion(int argc, char* argv[]);
 
 /**
  * @fn pifLog_CmdPrintTask
- * @param argc
- * @param argv
- * @return
+ * @param argc Number of command arguments.
+ * @param argv Array of command argument strings.
+ * @return Result value returned by this API.
  */
 int pifLog_CmdPrintTask(int argc, char* argv[]);
 
 /**
  * @fn pifLog_CmdSetStatus
- * @param argc
- * @param argv
- * @return
+ * @param argc Number of command arguments.
+ * @param argv Array of command argument strings.
+ * @return Result value returned by this API.
  */
 int pifLog_CmdSetStatus(int argc, char* argv[]);
 

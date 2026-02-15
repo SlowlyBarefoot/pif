@@ -42,7 +42,7 @@ typedef struct
 
 /**
  * @class StPifGpio
- * @brief
+ * @brief Provides a type or declaration used by this module.
  */
 struct StPifGpio
 {
@@ -77,91 +77,91 @@ extern "C" {
 
 /**
  * @fn pifGpio_Init
- * @brief
- * @param p_owner
- * @param id
- * @param count
- * @return
+ * @brief Initializes the gpio instance and prepares all internal fields for safe use.
+ * @param p_owner Pointer to the target object instance.
+ * @param id Identifier value for the object or task.
+ * @param count Number of items or channels.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count);
 
 /**
  * @fn pifGpio_Clear
- * @brief
- * @param p_owner
+ * @brief Clears the gpio state and releases resources currently owned by the instance.
+ * @param p_owner Pointer to the target object instance.
  */
 void pifGpio_Clear(PifGpio* p_owner);
 
 /**
  * @fn pifGpio_ReadAll
- * @brief
- * @param p_owner
- * @return
+ * @brief Executes the pifGpio_ReadAll operation for the gpio module according to the API contract.
+ * @param p_owner Pointer to the target object instance.
+ * @return Result value returned by this API.
  */
 uint8_t pifGpio_ReadAll(PifGpio* p_owner);
 
 /**
  * @fn pifGpio_ReadCell
- * @brief
- * @param p_owner
- * @param index
- * @return
+ * @brief Executes the pifGpio_ReadCell operation for the gpio module according to the API contract.
+ * @param p_owner Pointer to the target object instance.
+ * @param index Zero-based index of the target item.
+ * @return Return value of this API.
  */
 SWITCH pifGpio_ReadCell(PifGpio* p_owner, uint8_t index);
 
 /**
  * @fn pifGpio_WriteAll
- * @brief
- * @param p_owner
- * @param state
- * @return
+ * @brief Executes the pifGpio_WriteAll operation for the gpio module according to the API contract.
+ * @param p_owner Pointer to the target object instance.
+ * @param state Target state value to apply.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifGpio_WriteAll(PifGpio* p_owner, uint8_t state);
 
 /**
  * @fn pifGpio_WriteCell
- * @brief
- * @param p_owner
- * @param ucIndex
- * @param swState
- * @return
+ * @brief Executes the pifGpio_WriteCell operation for the gpio module according to the API contract.
+ * @param p_owner Pointer to the target object instance.
+ * @param ucIndex Zero-based index of the target item.
+ * @param swState Switch state value to write or compare.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifGpio_WriteCell(PifGpio* p_owner, uint8_t index, SWITCH state);
 
 /**
  * @fn pifGpio_sigData
- * @brief
- * @param p_owner
- * @param index
- * @param state
+ * @brief Processes an external signal or tick for the gpio and updates runtime timing state.
+ * @param p_owner Pointer to the target object instance.
+ * @param index Zero-based index of the target item.
+ * @param state Target state value to apply.
  */
 void pifGpio_sigData(PifGpio* p_owner, uint8_t index, SWITCH state);
 
 /**
  * @fn pifGpio_AttachActIn
- * @brief
- * @param p_owner
- * @param act_in
+ * @brief Attaches a callback, device, or external resource to the gpio for integration.
+ * @param p_owner Pointer to the target object instance.
+ * @param act_in Input callback function to read GPIO state.
  */
 void pifGpio_AttachActIn(PifGpio* p_owner, PifActGpioIn act_in);
 
 /**
  * @fn pifGpio_AttachActOut
- * @brief
- * @param p_owner
- * @param act_out
+ * @brief Attaches a callback, device, or external resource to the gpio for integration.
+ * @param p_owner Pointer to the target object instance.
+ * @param act_out Output callback function to write GPIO state.
  */
 void pifGpio_AttachActOut(PifGpio* p_owner, PifActGpioOut act_out);
 
 /**
  * @fn pifGpio_AttachTaskIn
- * @brief Task를 추가한다.
- * @param p_owner
- * @param mode Task의 Mode를 설정한다.
- * @param id Task의 ID를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
+ * @brief Attaches a callback, device, or external resource to the gpio for integration.
+ * @param p_owner Pointer to the target object instance.
+ * @param mode Operating mode configuration value.
+ * @param id Identifier value for the object or task.
+ * @param period Execution period value for scheduling.
+ * @param start Set to TRUE to start immediately after configuration.
+ * @return Pointer to the resulting object or data, or NULL if unavailable.
  */
 PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifId id, PifTaskMode mode, uint16_t period, BOOL start);
 
@@ -170,31 +170,31 @@ PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifId id, PifTaskMode mode, uint
 
 /**
  * @fn pifGpio_SetCsFlag
- * @brief
- * @param p_owner
- * @param flag
+ * @brief Sets configuration or runtime state for the gpio based on the provided parameters.
+ * @param p_owner Pointer to the target object instance.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifGpio_SetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag);
 
 /**
  * @fn pifGpio_ResetCsFlag
- * @brief
- * @param p_owner
- * @param flag
+ * @brief Resets runtime state in the gpio to an initial or configured baseline.
+ * @param p_owner Pointer to the target object instance.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifGpio_ResetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag);
 
 /**
  * @fn pifGpioColSig_SetFlag
- * @brief
- * @param flag
+ * @brief Sets configuration or runtime state for the gpio col sig based on the provided parameters.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifGpioColSig_SetFlag(PifGpioCsFlag flag);
 
 /**
  * @fn pifGpioColSig_ResetFlag
- * @brief
- * @param flag
+ * @brief Resets runtime state in the gpio col sig to an initial or configured baseline.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifGpioColSig_ResetFlag(PifGpioCsFlag flag);
 

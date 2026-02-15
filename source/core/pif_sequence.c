@@ -7,6 +7,7 @@
 	#include "core/pif_log.h"
 #endif
 
+// Step-based sequence runner with task-driven execution.
 
 #ifdef PIF_COLLECT_SIGNAL
 	static PifDList s_cs_list;

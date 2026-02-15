@@ -1,5 +1,6 @@
 #include "core/pif_timer_manager.h"
 
+// Timer manager task and timer object lifecycle handling.
 
 static uint32_t _doTask(PifTask *p_task)
 {

@@ -1,5 +1,6 @@
 #include "core/pif_obj_array.h"
 
+// Fixed-capacity object array with contiguous storage and iterator access.
 
 BOOL pifObjArray_Init(PifObjArray* p_owner, int size, int max_count, PifEvtObjArrayClear evt_clear)
 {

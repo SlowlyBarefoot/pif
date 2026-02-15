@@ -1,5 +1,6 @@
 #include "core/pif_pid_control.h"
 
+// PID controller initialization and output calculation.
 
 void pifPidControl_Init(PifPidControl *p_owner, float kp, float ki, float kd, float max_integration)
 {

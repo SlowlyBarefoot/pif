@@ -4,6 +4,7 @@
 
 #include <string.h>
 
+// Central task scheduler and runtime execution loop management.
 
 #ifndef PIF_TASK_STACK_SIZE
 #define PIF_TASK_STACK_SIZE		5

@@ -65,63 +65,63 @@ extern "C" {
 
 /**
  * @fn pifSequence_Init
- * @brief Sequence를 추가한다.
- * @param p_owner
- * @param id
- * @param p_timer_manager
- * @param p_param
- * @return Sequence 구조체 포인터를 반환한다.
+ * @brief Initializes the sequence instance and prepares all internal fields for safe use.
+ * @param p_owner Pointer to the target object instance.
+ * @param id Identifier value for the object or task.
+ * @param p_timer_manager Pointer to the timer manager instance.
+ * @param p_param Pointer to user-defined parameter block.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_manager, void* p_param);
 
 /**
  * @fn pifSequence_Clear
- * @brief Sequence용 메모리를 반환한다.
- * @param p_owner
+ * @brief Clears the sequence state and releases resources currently owned by the instance.
+ * @param p_owner Pointer to the target object instance.
  */
 void pifSequence_Clear(PifSequence* p_owner);
 
 /**
  * @fn pifSequence_IsRunning
- * @brief
- * @param p_owner
- * @return
+ * @brief Checks whether the sequence currently satisfies the requested condition.
+ * @param p_owner Pointer to the target object instance.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifSequence_IsRunning(PifSequence *p_owner);
 
 /**
  * @fn pifSequence_Start
- * @brief
- * @param p_owner
- * @param process
- * @return
+ * @brief Starts the sequence operation using the current timing, trigger, or mode configuration.
+ * @param p_owner Pointer to the target object instance.
+ * @param process Sequence processing callback function.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifSequence_Start(PifSequence *p_owner, PifSequenceProcess process);
 
 /**
  * @fn pifSequence_NextDelay
- * @brief
- * @param p_owner
- * @param process
- * @param delay1ms
- * @return
+ * @brief Executes the pifSequence_NextDelay operation for the sequence module according to the API contract.
+ * @param p_owner Pointer to the target object instance.
+ * @param process Sequence processing callback function.
+ * @param delay1ms Delay value in milliseconds before next step.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifSequence_NextDelay(PifSequence *p_owner, PifSequenceProcess process, uint16_t delay1ms);
 
 /**
  * @fn pifSequence_NextEvent
- * @brief
- * @param p_owner
- * @param process
- * @param timeout1ms
- * @return
+ * @brief Executes the pifSequence_NextEvent operation for the sequence module according to the API contract.
+ * @param p_owner Pointer to the target object instance.
+ * @param process Sequence processing callback function.
+ * @param timeout1ms Timeout value in milliseconds for event wait.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifSequence_NextEvent(PifSequence *p_owner, PifSequenceProcess process, uint16_t timeout1ms);
 
 /**
  * @fn pifSequence_TriggerEvent
- * @brief
- * @param p_owner
+ * @brief Triggers a pending event or transition in the sequence according to current state.
+ * @param p_owner Pointer to the target object instance.
  */
 void pifSequence_TriggerEvent(PifSequence *p_owner);
 
@@ -130,31 +130,31 @@ void pifSequence_TriggerEvent(PifSequence *p_owner);
 
 /**
  * @fn pifSequence_SetCsFlag
- * @brief
- * @param p_owner
- * @param flag
+ * @brief Sets configuration or runtime state for the sequence based on the provided parameters.
+ * @param p_owner Pointer to the target object instance.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifSequence_SetCsFlag(PifSequence* p_owner, PifSequenceCsFlag flag);
 
 /**
  * @fn pifSequence_ResetCsFlag
- * @brief
- * @param p_owner
- * @param flag
+ * @brief Resets runtime state in the sequence to an initial or configured baseline.
+ * @param p_owner Pointer to the target object instance.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifSequence_ResetCsFlag(PifSequence* p_owner, PifSequenceCsFlag flag);
 
 /**
  * @fn pifSequenceColSig_SetFlag
- * @brief
- * @param flag
+ * @brief Sets configuration or runtime state for the sequence col sig based on the provided parameters.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifSequenceColSig_SetFlag(PifSequenceCsFlag flag);
 
 /**
  * @fn pifSequenceColSig_ResetFlag
- * @brief
- * @param flag
+ * @brief Resets runtime state in the sequence col sig to an initial or configured baseline.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifSequenceColSig_ResetFlag(PifSequenceCsFlag flag);
 

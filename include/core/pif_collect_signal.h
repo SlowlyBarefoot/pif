@@ -71,136 +71,136 @@ extern "C" {
 
 /**
  * @fn pifCollectSignal_Init
- * @brief CollectSignal 구조체 초기화한다.
- * @param p_module_name
+ * @brief Initializes the collect signal instance and prepares all internal fields for safe use.
+ * @param p_module_name Module name string for logging or registration.
  */
 void pifCollectSignal_Init(const char* p_module_name);
 
 /**
  * @fn pifCollectSignal_InitHeap
- * @brief CollectSignal 구조체 초기화한다.
- * @param p_module_name
- * @param size
- * @return
+ * @brief Initializes the collect signal with heap memory allocation and default runtime state.
+ * @param p_module_name Module name string for logging or registration.
+ * @param size Size value used for allocation or capacity.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifCollectSignal_InitHeap(const char* p_module_name, uint16_t size);
 
 /**
  * @fn pifCollectSignal_InitStatic
- * @brief CollectSignal 구조체 초기화한다.
- * @param p_module_name
- * @param size
- * @param p_buffer
- * @return
+ * @brief Initializes the collect signal with caller-provided static memory and default runtime state.
+ * @param p_module_name Module name string for logging or registration.
+ * @param size Size value used for allocation or capacity.
+ * @param p_buffer Pointer to the caller-provided buffer.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifCollectSignal_InitStatic(const char* p_module_name, uint16_t size, uint8_t* p_buffer);
 
 /**
  * @fn pifCollectSignal_Clear
- * @brief CollectSignal 구조체를 파기하다.
+ * @brief Clears the collect signal state and releases resources currently owned by the instance.
  */
 void pifCollectSignal_Clear();
 
 /**
  * @fn pifCollectSignal_GetTransferPeriod
- * @brief
- * @return
+ * @brief Retrieves the requested value or pointer from the collect signal without changing ownership.
+ * @return Result value returned by this API.
  */
 uint16_t pifCollectSignal_GetTransferPeriod();
 
 /**
  * @fn pifCollectSignal_SetTransferPeriod
- * @brief
- * @param period1ms
- * @return
+ * @brief Sets configuration or runtime state for the collect signal based on the provided parameters.
+ * @param period1ms Transfer period in milliseconds.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifCollectSignal_SetTransferPeriod(uint16_t period1ms);
 
 /**
  * @fn pifCollectSignal_ChangeScale
- * @brief
- * @param scale
+ * @brief Changes runtime configuration of the collect signal while preserving object ownership semantics.
+ * @param scale Scale factor applied to collected values.
  */
 BOOL pifCollectSignal_ChangeScale(PifCollectSignalScale scale);
 
 /**
  * @fn pifCollectSignal_ChangeFlag
- * @brief
- * @param p_flag
- * @param index
- * @param flag
+ * @brief Changes runtime configuration of the collect signal while preserving object ownership semantics.
+ * @param p_flag Pointer to the flag field to modify.
+ * @param index Zero-based index of the target item.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifCollectSignal_ChangeFlag(uint8_t* p_flag, uint8_t index, uint8_t flag);
 
 /**
  * @fn pifCollectSignal_ChangeMethod
- * @brief
- * @param method
- * @return
+ * @brief Changes runtime configuration of the collect signal while preserving object ownership semantics.
+ * @param method Collection or processing method selector.
+ * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifCollectSignal_ChangeMethod(PifCollectSignalMethod method);
 
 /**
  * @fn pifCollectSignal_Attach
- * @brief
- * @param flag
- * @param add_device
+ * @brief Attaches a callback, device, or external resource to the collect signal for integration.
+ * @param flag Bit flag mask to set, clear, or query.
+ * @param add_device Callback used to add device metadata entries.
  */
 void pifCollectSignal_Attach(PifCollectSignalFlag flag, PifAddCollectSignalDevice add_device);
 
 /**
  * @fn pifCollectSignal_Detach
- * @brief
- * @param flag
+ * @brief Detaches a callback, device, or external resource from the collect signal.
+ * @param flag Bit flag mask to set, clear, or query.
  */
 void pifCollectSignal_Detach(PifCollectSignalFlag flag);
 
 /**
  * @fn pifCollectSignal_AddDevice
- * @brief
- * @param id
- * @param var_type
- * @param size
- * @param p_reference
- * @param initial_value
- * @return
+ * @brief Adds an item to the collect signal and updates internal bookkeeping for subsequent operations.
+ * @param id Identifier value for the object or task.
+ * @param var_type Variable type descriptor for signal registration.
+ * @param size Size value used for allocation or capacity.
+ * @param p_reference Pointer to the referenced runtime variable.
+ * @param initial_value Initial value used when creating the signal entry.
+ * @return Pointer to the resulting object or data, or NULL if unavailable.
  */
 void* pifCollectSignal_AddDevice(PifId id, PifCollectSignalVarType var_type, uint16_t size,
 		const char* p_reference, uint16_t initial_value);
 
 /**
  * @fn pifCollectSignal_Start
- * @brief
+ * @brief Starts the collect signal operation using the current timing, trigger, or mode configuration.
  */
 void pifCollectSignal_Start();
 
 /**
  * @fn pifCollectSignal_Stop
- * @brief
+ * @brief Stops the collect signal operation and transitions it into an inactive state.
  */
 void pifCollectSignal_Stop();
 
 /**
  * @fn pifCollectSignal_AddSignal
- * @brief
- * @param p_dev
- * @param state
+ * @brief Adds an item to the collect signal and updates internal bookkeeping for subsequent operations.
+ * @param p_dev Pointer to the target device descriptor.
+ * @param state Target state value to apply.
  */
 void pifCollectSignal_AddSignal(void* p_dev, uint16_t state);
 
 /**
  * @fn pifCollectSignal_PrintLog
- * @brief
+ * @brief Prints collected diagnostic data from the collect signal in a formatted log representation.
  */
 void pifCollectSignal_PrintLog();
 
 /**
  * @fn pifCollectSignal_AttachTask
- * @brief Task를 추가한다.
- * @param mode Task의 Mode를 설정한다.
- * @param period Mode에 따라 주기의 단위가 변경된다.
- * @param start 즉시 시작할지를 지정한다.
- * @return Task 구조체 포인터를 반환한다.
+ * @brief Attaches a callback, device, or external resource to the collect signal for integration.
+ * @param mode Operating mode configuration value.
+ * @param period Execution period value for scheduling.
+ * @param start Set to TRUE to start immediately after configuration.
+ * @return Pointer to the resulting object or data, or NULL if unavailable.
  */
 PifTask* pifCollectSignal_AttachTask(PifTaskMode mode, uint16_t period, BOOL start);
 

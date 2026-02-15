@@ -4,7 +4,7 @@
 
 /**
  * @struct StPifPidControl
- * @brief PID Control을 계산하기 위한 구조체
+ * @brief Represents the pid control data structure used by this module.
  */
 typedef struct StPifPidControl
 {
@@ -24,21 +24,21 @@ extern "C" {
 
 /**
  * @fn pifPidControl_Init
- * @brief PID 컨트롤에 사용되는 전역 변수를 초기화한다.
- * @param p_owner PidControl 자신
- * @param kp 비례 계수
- * @param ki 적분 계수
- * @param kd 미분 계수
- * @param max_integration 최대 적분 오차값
+ * @brief Initializes the pid control instance and prepares all internal fields for safe use.
+ * @param p_owner Pointer to the target object instance.
+ * @param kp Proportional gain coefficient.
+ * @param ki Integral gain coefficient.
+ * @param kd Derivative gain coefficient.
+ * @param max_integration Maximum absolute value allowed for the integral term.
  */
 void pifPidControl_Init(PifPidControl *p_owner, float kp, float ki, float kd, float max_integration);
 
 /**
  * @fn pifPidControl_Calcurate
- * @brief 입력된 오차로 조정값을 계산한다.
- * @param p_owner PidControl 자신
- * @param err 오차
- * @return 조정값
+ * @brief Executes the pifPidControl_Calcurate operation for the pid control module according to the API contract.
+ * @param p_owner Pointer to the target object instance.
+ * @param err Current control error value.
+ * @return Result value returned by this API.
  */
 float pifPidControl_Calcurate(PifPidControl *p_owner, float err);
 

@@ -1,5 +1,6 @@
 #include "core/pif_list.h"
 
+// Singly and doubly linked list implementations used across core modules.
 
 // ---------- PIF Singly Linked List ----------
 
@@ -20,6 +21,7 @@ void pifSList_Clear(PifSList* p_owner, PifEvtSListClear evt_clear)
 
 	if (!p_owner) return;
 
+	// Release all nodes from head to tail.
     while (p_owner->p_head) {
     	it = p_owner->p_head->p_next;
     	if (evt_clear) (*evt_clear)(p_owner->p_head->data);
@@ -74,6 +76,7 @@ void pifSList_RemoveFirst(PifSList* p_owner)
 
     if (!p_owner->p_head) return;
 
+    // Update tail when removing the only node.
     if (p_owner->p_tail == p_owner->p_head) {
     	p_owner->p_tail = NULL;
     }
@@ -134,6 +137,7 @@ void pifDList_Clear(PifDList* p_owner, PifEvtDListClear evt_clear)
 
 	if (!p_owner) return;
 
+	// Release all nodes while preserving optional payload callback.
     while (p_owner->p_head) {
     	it = p_owner->p_head->p_next;
     	if (evt_clear) (*evt_clear)(p_owner->p_head->data);
@@ -191,6 +195,7 @@ void* pifDList_AddLast(PifDList* p_owner, int data_size)
 void* pifDList_Add(PifDList* p_owner, int data_size, PifDListIterator it)
 {
     if (!it) {
+    	// NULL iterator means append to the end.
         return pifDList_AddLast(p_owner, data_size);
     }
 
@@ -282,6 +287,7 @@ void pifDList_Remove(PifDList* p_owner, void* p_data)
 {
     if (!p_data) return;
 
+    // Recover node address from flexible payload pointer.
     PifDListIterator p_node = (PifDListIterator)((char *)p_data - offsetof(PifDListNode, data));
     pifDList_RemoveIterator(p_owner, p_node);
 }
