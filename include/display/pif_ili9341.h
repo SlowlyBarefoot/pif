@@ -93,7 +93,7 @@ typedef uint8_t (*PifConvertColor)(PifIli9341* p_owner, PifColor color, uint32_t
 
 /**
  * @class StPifIli9341
- * @brief
+ * @brief ILI9341 controller driver state derived from the common TFT LCD base.
  */
 struct StPifIli9341
 {
@@ -125,101 +125,101 @@ extern "C" {
 
 /**
  * @fn pifIli9341_Init
- * @brief
- * @param p_owner
- * @param id
- * @param interface
- * @return
+ * @brief Initializes the ILI9341 driver and configures interface-specific defaults.
+ * @param p_owner Pointer to the ILI9341 instance to initialize.
+ * @param id Unique object identifier. Use `PIF_ID_AUTO` to assign one automatically.
+ * @param interface Bus/interface mode used to communicate with the controller.
+ * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
 BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interface);
 
 /**
  * @fn pifIli9341_AttachActParallel
- * @brief
- * @param p_owner
- * @param act_reset
- * @param act_chip_select
- * @param act_read_cmd
- * @param act_write_cmd
- * @param act_write_data
- * @param act_write_repeat
- * @return
+ * @brief Attaches parallel bus callback handlers used for low-level LCD transactions.
+ * @param p_owner Pointer to an initialized ILI9341 instance.
+ * @param act_reset Callback that resets the LCD controller.
+ * @param act_chip_select Callback that toggles the chip-select line.
+ * @param act_read_cmd Callback that reads command response data.
+ * @param act_write_cmd Callback that writes one command and optional parameters.
+ * @param act_write_data Callback that writes data payload bytes.
+ * @param act_write_repeat Callback that repeats the same data payload multiple times.
+ * @return `TRUE` if all required callbacks are valid and attached, otherwise `FALSE`.
  */
 BOOL pifIli9341_AttachActParallel(PifIli9341* p_owner, PifActLcdReset act_reset, PifActLcdChipSelect act_chip_select, PifActLcdReadCmd act_read_cmd,
 		PifActLcdWriteCmd act_write_cmd, PifActLcdWriteData act_write_data, PifActLcdWriteRepeat act_write_repeat);
 
 /**
  * @fn pifIli9341_Setup
- * @brief
- * @param p_owner
- * @param p_setup
- * @param p_rotation
- * @return
+ * @brief Applies controller initialization commands and optional rotation register values.
+ * @param p_owner Pointer to an initialized ILI9341 instance with attached callbacks.
+ * @param p_setup Pointer to a setup command stream terminated by `0`.
+ * @param p_rotation Pointer to rotation command values for 0/90/180/270 degrees, or `NULL`.
+ * @return `TRUE` if setup is applied successfully, otherwise `FALSE`.
  */
 BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation);
 
 /**
  * @fn pifIli9341_SetRotation
- * @brief
- * @param p_parent
- * @param rotation
- * @return
+ * @brief Updates panel rotation and applies matching controller address mode settings.
+ * @param p_parent Pointer to the base TFT LCD context.
+ * @param rotation Target rotation value.
+ * @return `TRUE` if the rotation is applied, otherwise `FALSE`.
  */
 BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 
 /**
  * @fn pifIli9341_DrawPixel
- * @brief
- * @param p_parent
- * @param x
- * @param y
- * @param color
+ * @brief Draws one pixel at the specified coordinate.
+ * @param p_parent Pointer to the base TFT LCD context.
+ * @param x Horizontal pixel coordinate.
+ * @param y Vertical pixel coordinate.
+ * @param color Pixel color value in `PifColor` format.
  */
 void pifIli9341_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor color);
 
 /**
  * @fn pifIli9341_DrawHorLine
- * @brief
- * @param p_parent
- * @param x
- * @param y
- * @param len
- * @param color
+ * @brief Draws a horizontal line starting at `(x, y)`.
+ * @param p_parent Pointer to the base TFT LCD context.
+ * @param x Start X coordinate.
+ * @param y Fixed Y coordinate.
+ * @param len Number of pixels to draw.
+ * @param color Line color in `PifColor` format.
  */
 void pifIli9341_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @fn pifIli9341_DrawVerLine
- * @brief
- * @param p_parent
- * @param x
- * @param y
- * @param len
- * @param color
+ * @brief Draws a vertical line starting at `(x, y)`.
+ * @param p_parent Pointer to the base TFT LCD context.
+ * @param x Fixed X coordinate.
+ * @param y Start Y coordinate.
+ * @param len Number of pixels to draw.
+ * @param color Line color in `PifColor` format.
  */
 void pifIli9341_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @fn pifIli9341_DrawFillRect
- * @brief
- * @param p_parent
- * @param x1
- * @param y1
- * @param x2
- * @param y2
- * @param color
+ * @brief Fills a rectangular region with a constant color.
+ * @param p_parent Pointer to the base TFT LCD context.
+ * @param x1 Left X coordinate of the rectangle.
+ * @param y1 Top Y coordinate of the rectangle.
+ * @param x2 Right X coordinate of the rectangle.
+ * @param y2 Bottom Y coordinate of the rectangle.
+ * @param color Fill color in `PifColor` format.
  */
 void pifIli9341_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color);
 
 /**
  * @fn pifIli9341_DrawArea
- * @brief
- * @param p_parent
- * @param x1
- * @param y1
- * @param x2
- * @param y2
- * @param p_color_map
+ * @brief Writes a rectangular pixel block from a source color map.
+ * @param p_parent Pointer to the base TFT LCD context.
+ * @param x1 Left X coordinate of the destination area.
+ * @param y1 Top Y coordinate of the destination area.
+ * @param x2 Right X coordinate of the destination area.
+ * @param y2 Bottom Y coordinate of the destination area.
+ * @param p_color_map Pointer to source pixel data in row-major order.
  */
 void pifIli9341_DrawArea(PifTftLcd *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map);
 

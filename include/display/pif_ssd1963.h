@@ -116,7 +116,7 @@ typedef uint8_t (*PifConvertColor)(PifColor color, uint32_t* p_data);
 
 /**
  * @class StPifSsd1963
- * @brief
+ * @brief SSD1963 controller driver state built on top of the generic TFT LCD base.
  */
 struct StPifSsd1963
 {
@@ -143,91 +143,91 @@ extern "C" {
 
 /**
  * @fn pifSsd1963_Init
- * @brief
- * @param p_owner
- * @param id
- * @return
+ * @brief Initializes the SSD1963 driver instance and binds drawing callbacks.
+ * @param p_owner Pointer to the SSD1963 instance to initialize.
+ * @param id Unique object identifier. Use `PIF_ID_AUTO` to assign one automatically.
+ * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
 BOOL pifSsd1963_Init(PifSsd1963* p_owner, PifId id);
 
 /**
  * @fn pifSsd1963_AttachActParallel
- * @brief
- * @param p_owner
- * @param act_reset
- * @param act_chip_select
- * @param act_read_cmd
- * @param act_write_cmd
- * @param act_write_data
- * @param act_write_repeat
- * @return
+ * @brief Attaches low-level parallel bus control callbacks required by the SSD1963 driver.
+ * @param p_owner Pointer to an initialized SSD1963 instance.
+ * @param act_reset Callback that resets the LCD controller hardware.
+ * @param act_chip_select Callback that enables or disables the LCD chip-select line.
+ * @param act_read_cmd Callback that reads command response data from the controller.
+ * @param act_write_cmd Callback that writes one command and optional parameters.
+ * @param act_write_data Callback that writes raw pixel/data payload bytes.
+ * @param act_write_repeat Callback that repeats the same pixel/data sequence multiple times.
+ * @return `TRUE` if all required callbacks are valid and attached, otherwise `FALSE`.
  */
 BOOL pifSsd1963_AttachActParallel(PifSsd1963* p_owner, PifActLcdReset act_reset, PifActLcdChipSelect act_chip_select, PifActLcdReadCmd act_read_cmd,
 		PifActLcdWriteCmd act_write_cmd, PifActLcdWriteData act_write_data, PifActLcdWriteRepeat act_write_repeat);
 
 /**
  * @fn pifSsd1963_Setup
- * @brief
- * @param p_owner
- * @param p_setup
- * @param p_rotation
- * @return
+ * @brief Applies panel initialization commands and optional rotation mapping data.
+ * @param p_owner Pointer to an initialized SSD1963 instance with attached hardware callbacks.
+ * @param p_setup Pointer to a setup command stream terminated by `0`.
+ * @param p_rotation Pointer to rotation register values for 0/90/180/270 degrees, or `NULL`.
+ * @return `TRUE` if setup commands are parsed and applied successfully, otherwise `FALSE`.
  */
 BOOL pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation);
 
 /**
  * @fn pifSsd1963_DrawPixel
- * @brief
- * @param p_parent
- * @param x
- * @param y
- * @param color
+ * @brief Draws a single pixel at the specified coordinate.
+ * @param p_parent Pointer to the base TFT LCD context.
+ * @param x Horizontal pixel coordinate.
+ * @param y Vertical pixel coordinate.
+ * @param color Pixel color value in `PifColor` format.
  */
 void pifSsd1963_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor color);
 
 /**
  * @fn pifSsd1963_DrawHorLine
- * @brief
- * @param p_parent
- * @param x
- * @param y
- * @param len
- * @param color
+ * @brief Draws a horizontal line using repeated pixel writes.
+ * @param p_parent Pointer to the base TFT LCD context.
+ * @param x Start X coordinate.
+ * @param y Fixed Y coordinate.
+ * @param len Number of pixels to draw.
+ * @param color Line color in `PifColor` format.
  */
 void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @fn pifSsd1963_DrawVerLine
- * @brief
- * @param p_parent
- * @param x
- * @param y
- * @param len
- * @param color
+ * @brief Draws a vertical line using repeated pixel writes.
+ * @param p_parent Pointer to the base TFT LCD context.
+ * @param x Fixed X coordinate.
+ * @param y Start Y coordinate.
+ * @param len Number of pixels to draw.
+ * @param color Line color in `PifColor` format.
  */
 void pifSsd1963_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @fn pifSsd1963_DrawFillRect
- * @brief
- * @param p_parent
- * @param x1
- * @param y1
- * @param x2
- * @param y2
- * @param color
+ * @brief Fills a rectangular area with a single color.
+ * @param p_parent Pointer to the base TFT LCD context.
+ * @param x1 Left X coordinate of the rectangle.
+ * @param y1 Top Y coordinate of the rectangle.
+ * @param x2 Right X coordinate of the rectangle.
+ * @param y2 Bottom Y coordinate of the rectangle.
+ * @param color Fill color in `PifColor` format.
  */
 void pifSsd1963_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color);
 
 /**
  * @fn pifSsd1963_DrawArea
- * @brief
- * @param p_parent
- * @param x1
- * @param y1
- * @param x2
- * @param y2
- * @param p_color_map
+ * @brief Draws a rectangular bitmap area from a color buffer.
+ * @param p_parent Pointer to the base TFT LCD context.
+ * @param x1 Left X coordinate of the destination area.
+ * @param y1 Top Y coordinate of the destination area.
+ * @param x2 Right X coordinate of the destination area.
+ * @param y2 Bottom Y coordinate of the destination area.
+ * @param p_color_map Pointer to source pixel data in row-major order.
  */
 void pifSsd1963_DrawArea(PifTftLcd *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map);
 

@@ -58,7 +58,7 @@ typedef void (*PifTftLcdDrawFillRect)(PifTftLcd* p_parent, uint16_t x1, uint16_t
 
 /**
  * @class StPifTftLcd
- * @brief
+ * @brief Base TFT LCD driver context shared by controller-specific implementations.
  */
 struct StPifTftLcd
 {
@@ -98,13 +98,13 @@ extern "C" {
 
 /**
  * @fn pifTftLcd_Init
- * @brief
- * @param p_owner
- * @param id
- * @param width
- * @param height
- * @param rotation
- * @return
+ * @brief Initializes the common TFT LCD context with geometry and initial rotation.
+ * @param p_owner Pointer to the TFT LCD instance to initialize.
+ * @param id Unique object identifier. Use `PIF_ID_AUTO` to assign one automatically.
+ * @param width Native panel width in pixels.
+ * @param height Native panel height in pixels.
+ * @param rotation Initial display rotation to apply after initialization.
+ * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
 BOOL pifTftLcd_Init(PifTftLcd* p_owner, PifId id, uint16_t width, uint16_t height, PifTftLcdRotation rotation);
 
