@@ -8,43 +8,41 @@
 
 /**
  * @class StPifStepMotorPosStage
- * @brief
+ * @brief Stage profile for pulse-position step motor control.
  */
 typedef struct StPifStepMotorPosStage
 {
-	uint8_t mode;				// PifMotorMode
+    uint8_t mode;               // PifMotorMode bit field
 
-    // Sensor
+    // Optional stage sensors
     PifSensor* p_start_sensor;
     PifSensor* p_reduce_sensor;
     PifSensor* p_stop_sensor;
 
-	// 가속 구간 (Gained speed range)
-	uint16_t gs_start_pps;		// 초기 기동 P/S 설정
-	uint16_t gs_ctrl_pps;		// 가속 P/S 설정. 이 값이 0인 경우 가속 구간을 생략함.
+    // Acceleration stage
+    uint16_t gs_start_pps;      // Initial pulses-per-second at start
+    uint16_t gs_ctrl_pps;       // Increment per control period (0 disables acceleration stage)
 
-	// 정속 구간 (Fixed speed range)
-	uint16_t fs_high_pps;		// 정해진 P/S
-	uint32_t fs_pulse_count;	// 정속 구간까지의 이동 pulse
+    // Constant-speed stage
+    uint16_t fs_high_pps;       // High-speed pulses-per-second
+    uint32_t fs_pulse_count;    // Pulse count at which deceleration begins
 
-	// 감속 구간 (Reduce speed range)
-    uint16_t rs_low_pps;		// 정위치에 정지하기 위한 저속 P/S
-	uint16_t rs_ctrl_pps;		// 감속 P/S 설정. 이 값이 0인 경우 감속 구간을 생략함.
-    uint16_t rs_break_time;		// 전자식 또는 기계식 브레이크 사용시 브레이크 잡는 시간 설정.
+    // Deceleration stage
+    uint16_t rs_low_pps;        // Low-speed pulses-per-second near final position
+    uint16_t rs_ctrl_pps;       // Decrement per control period (0 disables ramped deceleration)
+    uint16_t rs_break_time;     // Break hold time for mechanical/electrical brake
 
-	uint32_t total_pulse;		// 총 이동 pulse
+    uint32_t total_pulse;       // Total pulses for the move
 } PifStepMotorPosStage;
 
 /**
  * @class StPifStepMotorPos
- * @brief
+ * @brief Position-control extension of `PifStepMotor`.
  */
 typedef struct StPifStepMotorPos
 {
 	// The parent variable must be at the beginning of this structure.
 	PifStepMotor parent;
-
-	// Public Member Variable
 
 	// Read-only Member Variable
     uint8_t _stage_index;
@@ -62,56 +60,56 @@ extern "C" {
 
 /**
  * @fn pifStepMotorPos_Init
- * @brief 
- * @param p_owner
- * @param id
- * @param p_timer_manager
- * @param resolution
- * @param operation
- * @param period1ms
- * @return
+ * @brief Initializes a position-control step motor instance.
+ * @param p_owner Pointer to the object to initialize.
+ * @param id Motor identifier, or `PIF_ID_AUTO` for auto allocation.
+ * @param p_timer_manager Timer manager used to allocate timers.
+ * @param resolution Motor resolution in pulses-per-revolution.
+ * @param operation Step operation mode.
+ * @param period1ms Control task period in milliseconds.
+ * @return `TRUE` on success, otherwise `FALSE`.
  */
 BOOL pifStepMotorPos_Init(PifStepMotorPos* p_owner, PifId id, PifTimerManager* p_timer_manager, uint8_t resolution,
 		PifStepMotorOperation operation, uint16_t period1ms);
 
 /**
  * @fn pifStepMotorPos_Clear
- * @brief
- * @param p_owner
+ * @brief Releases all resources owned by the position-control motor.
+ * @param p_owner Pointer to the position-control motor instance.
  */
 void pifStepMotorPos_Clear(PifStepMotorPos* p_owner);
 
 /**
  * @fn pifStepMotorPos_AddStages
- * @brief 
- * @param p_owner
- * @param stage_size
- * @param p_stages
- * @return 
+ * @brief Registers the stage table used for position-control operation.
+ * @param p_owner Pointer to the position-control motor instance.
+ * @param stage_size Number of entries in `p_stages`.
+ * @param p_stages Pointer to a valid stage array.
+ * @return `TRUE` if all stages are valid and stored, otherwise `FALSE`.
  */
 BOOL pifStepMotorPos_AddStages(PifStepMotorPos* p_owner, uint8_t stage_size, const PifStepMotorPosStage* p_stages);
 
 /**
  * @fn pifStepMotorPos_Start
- * @brief 
- * @param p_owner
- * @param stage_index
- * @param operating_time
- * @return 
+ * @brief Starts motion using the selected position stage profile.
+ * @param p_owner Pointer to the position-control motor instance.
+ * @param stage_index Index of the stage profile to run.
+ * @param operating_time Runtime limit when the stage uses time-based stop mode.
+ * @return `TRUE` when startup succeeds, otherwise `FALSE`.
  */
 BOOL pifStepMotorPos_Start(PifStepMotorPos* p_owner, uint8_t stage_index, uint32_t operating_time);
 
 /**
  * @fn pifStepMotorPos_Stop
- * @brief 
- * @param p_owner
+ * @brief Requests stop sequence according to the active stage settings.
+ * @param p_owner Pointer to the position-control motor instance.
  */
 void pifStepMotorPos_Stop(PifStepMotorPos* p_owner);
 
 /**
  * @fn pifStepMotorPos_Emergency
- * @brief
- * @param p_owner
+ * @brief Forces immediate emergency break state.
+ * @param p_owner Pointer to the position-control motor instance.
  */
 void pifStepMotorPos_Emergency(PifStepMotorPos* p_owner);
 

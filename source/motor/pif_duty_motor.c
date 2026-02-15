@@ -4,6 +4,10 @@
 #include "motor/pif_duty_motor.h"
 
 
+/**
+ * @brief Processes runtime errors and stop-state cleanup for the duty motor.
+ * @param p_owner Pointer to the duty motor instance.
+ */
 void pifDutyMotor_Control(PifDutyMotor* p_owner)
 {
     if (p_owner->__error) {
@@ -32,6 +36,10 @@ void pifDutyMotor_Control(PifDutyMotor* p_owner)
 	}
 }
 
+/**
+ * @brief Break timer callback that transitions to reduce state or releases break.
+ * @param p_issuer Issuer pointer cast to `PifDutyMotor*`.
+ */
 static void _evtTimerBreakFinish(PifIssuerP p_issuer)
 {
     PifDutyMotor* p_owner = (PifDutyMotor*)p_issuer;

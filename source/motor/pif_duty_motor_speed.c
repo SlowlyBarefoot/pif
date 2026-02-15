@@ -5,6 +5,10 @@
 #include "motor/pif_duty_motor_speed.h"
 
 
+/**
+ * @brief Delay timer callback used during overrun and break transitions.
+ * @param p_issuer Issuer pointer cast to `PifDutyMotor*`.
+ */
 static void _evtTimerDelayFinish(PifIssuerP p_issuer)
 {
     PifDutyMotor* p_parent = (PifDutyMotor*)p_issuer;
@@ -34,6 +38,11 @@ static void _evtTimerDelayFinish(PifIssuerP p_issuer)
 	}
 }
 
+/**
+ * @brief Periodic control task for duty-motor speed stages.
+ * @param p_task Task context containing the parent motor instance.
+ * @return Always returns `0` because scheduling is managed by task manager.
+ */
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifDutyMotor* p_parent = p_task->_p_client;
@@ -142,6 +151,13 @@ static uint32_t _doTask(PifTask* p_task)
 	return 0;
 }
 
+/**
+ * @brief Reduce-sensor callback that requests controlled stop.
+ * @param p_owner Sensor that generated the event.
+ * @param state New switch state.
+ * @param p_value Optional sensor payload.
+ * @param p_issuer Issuer pointer cast to `PifDutyMotorSpeed*`.
+ */
 static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, PifIssuerP p_issuer)
 {
 	PifDutyMotorSpeed* p_motor = (PifDutyMotorSpeed*)p_issuer;
@@ -156,6 +172,13 @@ static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorVa
 	}
 }
 
+/**
+ * @brief Stop-sensor callback that forces break state.
+ * @param p_owner Sensor that generated the event.
+ * @param state New switch state.
+ * @param p_value Optional sensor payload.
+ * @param p_issuer Issuer pointer cast to `PifDutyMotor*`.
+ */
 static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, void *p_issuer)
 {
 	PifDutyMotor* p_motor = (PifDutyMotor*)p_issuer;

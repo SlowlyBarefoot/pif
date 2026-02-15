@@ -52,6 +52,10 @@ const uint16_t kOperation_5P_PG[] = {
 #endif
 
 
+/**
+ * @brief Advances or reverses one commutation step and applies the phase output.
+ * @param p_owner Pointer to the step motor instance.
+ */
 static void _setStep(PifStepMotor* p_owner)
 {
     if (p_owner->_direction == 0) {
@@ -72,6 +76,10 @@ static void _setStep(PifStepMotor* p_owner)
 	(*p_owner->act_set_step)(p_owner->__p_phase_operation[p_owner->__current_step]);
 }
 
+/**
+ * @brief Timer callback that emits one step and stops at the configured target pulse.
+ * @param p_issuer Issuer pointer cast to `PifStepMotor*`.
+ */
 static void _evtTimerStepFinish(PifIssuerP p_issuer)
 {
     PifStepMotor* p_owner = (PifStepMotor*)p_issuer;
@@ -100,6 +108,10 @@ void pifStepMotor_Control(PifStepMotor* p_owner)
 	}
 }
 
+/**
+ * @brief Break-timer callback that requests reduction or releases motor hold.
+ * @param p_issuer Issuer pointer cast to `PifStepMotor*`.
+ */
 static void _evtTimerBreakFinish(void *p_issuer)
 {
     PifStepMotor* p_owner = (PifStepMotor*)p_issuer;
