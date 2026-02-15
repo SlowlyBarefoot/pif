@@ -252,7 +252,7 @@ typedef enum EnPifMax7456RiseAndFallTime
 #define MAX7456_RISE_AND_FALL_TIME_MASK			0x38
 
 
-// Register : Row N Vrightness (RB0 - RB15)
+// Register : Row N Brightness (RB0 - RB15)
 
 typedef enum EnPifMax7456CharWhiteLevel
 {
@@ -330,7 +330,10 @@ typedef enum EnPifMax7456CharMemStatus
 
 /**
  * @class StPifMax7456
- * @brief
+ * @brief Runtime context for a MAX7456 OSD device instance.
+ *
+ * This structure stores device detection state, SPI binding, display mode cache,
+ * and internal values used to avoid redundant register writes.
  */
 typedef struct StPifMax7456
 {
@@ -359,54 +362,54 @@ extern "C" {
 
 /**
  * @fn pifMax7456_Init
- * @brief
- * @param p_owner
- * @param id
- * @param p_port
- * @param p_client
- * @return
+ * @brief Initializes a MAX7456 instance and registers it on an SPI port.
+ * @param p_owner Pointer to the instance storage to initialize.
+ * @param id Requested object ID. If `PIF_ID_AUTO`, an ID is assigned automatically.
+ * @param p_port Pointer to the SPI port used by the MAX7456 device.
+ * @param p_client Opaque SPI client handle passed through to the SPI layer.
+ * @return `TRUE` on success, or `FALSE` if parameters are invalid or device registration fails.
  */
 BOOL pifMax7456_Init(PifMax7456* p_owner, PifId id, PifSpiPort* p_port, void *p_client);
 
 /**
  * @fn pifMax7456_Clear
- * @brief
- * @param p_owner
+ * @brief Releases SPI resources associated with a MAX7456 instance.
+ * @param p_owner Pointer to an initialized MAX7456 instance.
  */
 void pifMax7456_Clear(PifMax7456* p_owner);
 
 /**
  * @fn pifMax7456_WriteNvm
- * @brief
- * @param p_owner
- * @param char_address
- * @param font_data
- * @return
+ * @brief Writes one character font pattern from shadow RAM to character NVM.
+ * @param p_owner Pointer to an initialized and detected MAX7456 instance.
+ * @param char_address Character index in MAX7456 character memory.
+ * @param font_data Pointer to 54-byte character bitmap data.
+ * @return `TRUE` when the write sequence completes, otherwise `FALSE`.
  */
 BOOL pifMax7456_WriteNvm(PifMax7456* p_owner, uint8_t char_address, const uint8_t *font_data);
 
 /**
  * @fn pifMax7456_Invert
- * @brief Sets inversion of black and white pixels.
- * @param p_owner
- * @param invert
- * @return
+ * @brief Enables or disables black/white inversion in display memory mode.
+ * @param p_owner Pointer to an initialized MAX7456 instance.
+ * @param invert `TRUE` to invert pixels, `FALSE` to keep normal polarity.
+ * @return `TRUE` if a register update was applied, otherwise `FALSE`.
  */
 BOOL pifMax7456_Invert(PifMax7456* p_owner, BOOL invert);
 
 /**
  * @fn pifMax7456_InitBrightness
- * @brief
- * @param p_owner
+ * @brief Resets the cached brightness state.
+ * @param p_owner Pointer to an initialized MAX7456 instance.
  */
 void pifMax7456_InitBrightness(PifMax7456* p_owner);
 
 /**
  * @fn pifMax7456_Brightness
- * @brief Sets the brightness of black and white pixels.
- * @param p_owner
- * @param black Black brightness (0-3, 0 is darkest)
- * @param white White brightness (0-3, 0 is darkest)
+ * @brief Updates row brightness registers for black and white character levels.
+ * @param p_owner Pointer to an initialized MAX7456 instance.
+ * @param black Black level value in range 0 to 3.
+ * @param white White level value in range 0 to 3.
  */
 void pifMax7456_Brightness(PifMax7456* p_owner, uint8_t black, uint8_t white);
 
