@@ -7,6 +7,12 @@
 #define DATA_NODE_NULL	0xFFFF
 
 
+/**
+ * @fn _getNewDataNode
+ * @brief Allocates one metadata node from the free-node list.
+ * @param p_owner Pointer to the variable storage instance.
+ * @return New node index, or `DATA_NODE_NULL` if no free node is available.
+ */
 static uint16_t _getNewDataNode(PifStorageVar* p_owner)
 {
 	uint16_t node;
@@ -21,6 +27,16 @@ static uint16_t _getNewDataNode(PifStorageVar* p_owner)
 	return node;
 }
 
+/**
+ * @fn _readData
+ * @brief Reads a byte range from media in sector-limited chunks.
+ * @param p_owner Pointer to the variable storage instance.
+ * @param dst Destination buffer.
+ * @param src Source byte offset in media.
+ * @param size Number of bytes to read.
+ * @param sector_size Maximum chunk size per low-level read.
+ * @return `TRUE` on success, otherwise `FALSE`.
+ */
 static BOOL _readData(PifStorageVar* p_owner, uint8_t* dst, uint32_t src, size_t size, uint16_t sector_size)
 {
 	uint32_t ptr, len;
@@ -36,6 +52,15 @@ static BOOL _readData(PifStorageVar* p_owner, uint8_t* dst, uint32_t src, size_t
 	return TRUE;
 }
 
+/**
+ * @fn _writeData
+ * @brief Writes a byte range to media in sector-limited chunks.
+ * @param p_owner Pointer to the variable storage instance.
+ * @param dst Destination byte offset in media.
+ * @param src Source buffer.
+ * @param size Number of bytes to write.
+ * @return `TRUE` on success, otherwise `FALSE`.
+ */
 static BOOL _writeData(PifStorageVar* p_owner, uint32_t dst, uint8_t* src, size_t size)
 {
 	uint16_t sector_size = p_owner->_p_info->sector_size;

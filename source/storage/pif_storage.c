@@ -2,6 +2,15 @@
 #include "storage/pif_storage.h"
 
 
+/**
+ * @fn _actStorageI2c_Read_1
+ * @brief Reads bytes through I2C using a 1-byte internal address.
+ * @param p_owner Pointer to the storage instance.
+ * @param dst Destination buffer.
+ * @param src Source offset in storage media.
+ * @param size Number of bytes to read.
+ * @return `TRUE` on success, otherwise `FALSE`.
+ */
 static BOOL _actStorageI2c_Read_1(PifStorage* p_owner, uint8_t* dst, uint32_t src, size_t size)
 {
 	p_owner->_p_i2c->addr = p_owner->__addr | (src >> 8);
@@ -9,6 +18,15 @@ static BOOL _actStorageI2c_Read_1(PifStorage* p_owner, uint8_t* dst, uint32_t sr
 	return TRUE;
 }
 
+/**
+ * @fn _actStorageI2c_Write_1
+ * @brief Writes bytes through I2C using a 1-byte internal address.
+ * @param p_owner Pointer to the storage instance.
+ * @param dst Destination offset in storage media.
+ * @param src Source buffer.
+ * @param size Number of bytes to write.
+ * @return `TRUE` on success, otherwise `FALSE`.
+ */
 static BOOL _actStorageI2c_Write_1(PifStorage* p_owner, uint32_t dst, uint8_t* src, size_t size)
 {
 	p_owner->_p_i2c->addr = p_owner->__addr | (dst >> 8);
@@ -17,6 +35,15 @@ static BOOL _actStorageI2c_Write_1(PifStorage* p_owner, uint32_t dst, uint8_t* s
 	return TRUE;
 }
 
+/**
+ * @fn _actStorageI2c_Read_2
+ * @brief Reads bytes through I2C using a 2-byte internal address.
+ * @param p_owner Pointer to the storage instance.
+ * @param dst Destination buffer.
+ * @param src Source offset in storage media.
+ * @param size Number of bytes to read.
+ * @return `TRUE` on success, otherwise `FALSE`.
+ */
 static BOOL _actStorageI2c_Read_2(PifStorage* p_owner, uint8_t* dst, uint32_t src, size_t size)
 {
 	p_owner->_p_i2c->addr = p_owner->__addr | (src >> 16);
@@ -24,6 +51,15 @@ static BOOL _actStorageI2c_Read_2(PifStorage* p_owner, uint8_t* dst, uint32_t sr
 	return TRUE;
 }
 
+/**
+ * @fn _actStorageI2c_Write_2
+ * @brief Writes bytes through I2C using a 2-byte internal address.
+ * @param p_owner Pointer to the storage instance.
+ * @param dst Destination offset in storage media.
+ * @param src Source buffer.
+ * @param size Number of bytes to write.
+ * @return `TRUE` on success, otherwise `FALSE`.
+ */
 static BOOL _actStorageI2c_Write_2(PifStorage* p_owner, uint32_t dst, uint8_t* src, size_t size)
 {
 	p_owner->_p_i2c->addr = p_owner->__addr | (dst >> 16);

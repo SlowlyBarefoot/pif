@@ -31,7 +31,7 @@ typedef BOOL (*PifStorage_Write)(PifStorage* p_owner, PifStorageDataInfoP p_dst,
 
 /**
  * @class StPifStorage
- * @brief
+ * @brief Base storage interface that abstracts fixed and variable storage backends.
  */
 struct StPifStorage
 {
@@ -67,97 +67,97 @@ extern "C" {
 
 /**
  * @fn pifStorage_AttachActStorage
- * @brief
- * @param p_owner
- * @param act_read
- * @param act_write
- * @return
+ * @brief Attaches low-level read and write callbacks to a storage instance.
+ * @param p_owner Pointer to the storage instance.
+ * @param act_read Callback used to read bytes from the underlying media.
+ * @param act_write Callback used to write bytes to the underlying media.
+ * @return `TRUE` if callbacks are valid and attached, otherwise `FALSE`.
  */
 BOOL pifStorage_AttachActStorage(PifStorage* p_owner, PifActStorageRead act_read, PifActStorageWrite act_write);
 
 /**
  * @fn pifStorage_AttachI2c
- * @brief
- * @param p_owner
- * @param p_port
- * @param addr
- * @param p_client
- * @param i_addr_size
- * @param write_delay_ms
- * @return
+ * @brief Attaches an I2C device and configures internal address handling callbacks.
+ * @param p_owner Pointer to the storage instance.
+ * @param p_port Pointer to the I2C port used to access the storage device.
+ * @param addr Device I2C address or address base.
+ * @param p_client Optional client pointer passed to the I2C device registration.
+ * @param i_addr_size Internal storage address width in bytes.
+ * @param write_delay_ms Delay in milliseconds applied after each write operation.
+ * @return `TRUE` if the I2C device is attached successfully, otherwise `FALSE`.
  */
 BOOL pifStorage_AttachI2c(PifStorage* p_owner, PifI2cPort* p_port, uint8_t addr, void *p_client, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms);
 
 /**
  * @fn pifStorage_DetachI2c
- * @brief
- * @param p_owner
+ * @brief Detaches the currently attached I2C device and clears access callbacks.
+ * @param p_owner Pointer to the storage instance.
  */
 void pifStorage_DetachI2c(PifStorage* p_owner);
 
 /**
  * @fn pifStorage_IsFormat
- * @brief
- * @param p_owner
- * @return
+ * @brief Checks whether the storage media is currently formatted.
+ * @param p_owner Pointer to the storage instance.
+ * @return `TRUE` when media format metadata is valid, otherwise `FALSE`.
  */
 BOOL pifStorage_IsFormat(PifStorage* p_owner);
 
 /**
  * @fn pifStorage_Format
- * @brief
- * @param p_owner
- * @return
+ * @brief Formats the storage media and initializes allocation metadata.
+ * @param p_owner Pointer to the storage instance.
+ * @return `TRUE` on success, otherwise `FALSE`.
  */
 BOOL pifStorage_Format(PifStorage* p_owner);
 
 /**
  * @fn pifStorage_Create
- * @brief
- * @param p_owner
- * @param id
- * @param size
- * @return
+ * @brief Creates a data entry in storage with the requested id and size.
+ * @param p_owner Pointer to the storage instance.
+ * @param id Logical data identifier.
+ * @param size Requested payload size in bytes.
+ * @return Opaque data info pointer on success, or `NULL` on failure.
  */
 PifStorageDataInfoP pifStorage_Create(PifStorage* p_owner, uint16_t id, uint16_t size);
 
 /**
  * @fn pifStorage_Delete
- * @brief
- * @param p_owner
- * @param id
- * @return
+ * @brief Deletes a data entry identified by id from storage metadata.
+ * @param p_owner Pointer to the storage instance.
+ * @param id Logical data identifier to remove.
+ * @return `TRUE` if the entry is removed, otherwise `FALSE`.
  */
 BOOL pifStorage_Delete(PifStorage* p_owner, uint16_t id);
 
 /**
  * @fn pifStorage_Open
- * @brief
- * @param p_owner
- * @param id
- * @return
+ * @brief Opens an existing data entry and returns its metadata handle.
+ * @param p_owner Pointer to the storage instance.
+ * @param id Logical data identifier to open.
+ * @return Opaque data info pointer on success, or `NULL` if not found.
  */
 PifStorageDataInfoP pifStorage_Open(PifStorage* p_owner, uint16_t id);
 
 /**
  * @fn pifStorage_Read
- * @brief
- * @param p_owner
- * @param p_dst
- * @param p_src
- * @param size
- * @return
+ * @brief Reads bytes from a storage entry into a destination buffer.
+ * @param p_owner Pointer to the storage instance.
+ * @param p_dst Destination buffer.
+ * @param p_src Opaque metadata handle of the source storage entry.
+ * @param size Number of bytes to read.
+ * @return `TRUE` if read succeeds, otherwise `FALSE`.
  */
 BOOL pifStorage_Read(PifStorage* p_owner, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size);
 
 /**
  * @fn pifStorage_Write
- * @brief
- * @param p_owner
- * @param p_dst
- * @param p_src
- * @param size
- * @return
+ * @brief Writes bytes from a source buffer into a storage entry.
+ * @param p_owner Pointer to the storage instance.
+ * @param p_dst Opaque metadata handle of the destination storage entry.
+ * @param p_src Source buffer.
+ * @param size Number of bytes to write.
+ * @return `TRUE` if write succeeds, otherwise `FALSE`.
  */
 BOOL pifStorage_Write(PifStorage* p_owner, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size);
 
