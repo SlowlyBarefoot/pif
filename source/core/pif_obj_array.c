@@ -19,7 +19,10 @@ BOOL pifObjArray_Init(PifObjArray* p_owner, int size, int max_count, PifEvtObjAr
 	}
 
 	p_buffer = calloc(2 * len + size, max_count);
-	if (!p_buffer) return FALSE;
+	if (!p_buffer) {
+		pif_error = E_OUT_OF_HEAP;
+		return FALSE;
+	}
 
 	p_owner->_p_node = (PifObjArrayIterator)p_buffer;
 	p_owner->_size = size;
@@ -45,6 +48,8 @@ BOOL pifObjArray_Init(PifObjArray* p_owner, int size, int max_count, PifEvtObjAr
 
 void pifObjArray_Clear(PifObjArray* p_owner)
 {
+	if (!p_owner) return;
+
 	if (p_owner->_p_node) {
 		if (p_owner->__evt_clear) {
 			PifObjArrayIterator it = p_owner->_p_first;
@@ -60,16 +65,20 @@ void pifObjArray_Clear(PifObjArray* p_owner)
 
 	p_owner->_size = 0;
 	p_owner->_max_count = 0;
+	p_owner->_count = 0;
 }
 
 PifObjArrayIterator pifObjArray_Add(PifObjArray* p_owner)
 {
+	if (!p_owner) return NULL;
+
 	if (p_owner->_p_free == NULL) return NULL;
 
 	PifObjArrayIterator p_node = p_owner->_p_free;
 	p_owner->_p_free = p_node->p_next;
 
 	p_node->p_next = p_owner->_p_first;
+	p_node->p_prev = NULL;
 	if (p_owner->_p_first) {
 		p_owner->_p_first->p_prev = p_node;
 	}

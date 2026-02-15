@@ -13,7 +13,7 @@ typedef struct StPifObjArrayNode
 {
 	struct StPifObjArrayNode* p_next;
 	struct StPifObjArrayNode* p_prev;
-	char data[1];
+	char data[];
 } PifObjArrayNode;
 
 typedef PifObjArrayNode* PifObjArrayIterator;
@@ -100,7 +100,7 @@ void pifObjArray_Remove(PifObjArray* p_owner, void* p_data);
  * @param it
  * @return
  */
-#define pifObjArray_Next(it)	(it) ? (it)->p_next : NULL
+#define pifObjArray_Next(it)	((it) ? (it)->p_next : NULL)
 
 #ifdef __cplusplus
 }
