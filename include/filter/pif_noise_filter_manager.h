@@ -8,7 +8,10 @@
 
 /**
  * @class StPifNoiseFilterManager
- * @brief
+ * @brief Container and lifecycle manager for multiple noise filter instances.
+ *
+ * The manager owns filter objects through an internal pointer array and
+ * releases them using the registered clear callback.
  */
 typedef struct StPifNoiseFilterManager
 {
@@ -30,17 +33,17 @@ extern "C" {
 
 /**
  * @fn pifNoiseFilterManager_Init
- * @brief
- * @param p_owner
- * @param count
- * @return
+ * @brief Initializes a noise filter manager with fixed capacity.
+ * @param p_owner Pointer to the manager instance to initialize.
+ * @param count Maximum number of filters that can be registered.
+ * @return TRUE if initialization succeeds, FALSE otherwise.
  */
 BOOL pifNoiseFilterManager_Init(PifNoiseFilterManager* p_owner, uint8_t count);
 
 /**
  * @fn pifNoiseFilterManager_Clear
- * @brief
- * @param p_owner
+ * @brief Clears and deallocates all filters owned by the manager.
+ * @param p_owner Pointer to an initialized manager instance.
  */
 void pifNoiseFilterManager_Clear(PifNoiseFilterManager* p_owner);
 

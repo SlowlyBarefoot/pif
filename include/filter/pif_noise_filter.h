@@ -27,7 +27,10 @@ typedef PifNoiseFilterValueP (*PifNoiseFiler_Process)(PifNoiseFilter* p_parent, 
 
 /**
  * @class StPifNoiseFilter
- * @brief
+ * @brief Base interface for all noise filter implementations.
+ *
+ * This structure stores the runtime filter type and internal function pointers
+ * used by derived filter objects to clear, reset, and process samples.
  */
 struct StPifNoiseFilter
 {
@@ -51,17 +54,18 @@ extern "C" {
 
 /**
  * @fn pifNoiseFilter_Reset
- * @brief
- * @param p_parent
+ * @brief Resets a filter instance to its initial state.
+ * @param p_parent Pointer to the filter instance to reset.
  */
 void pifNoiseFilter_Reset(PifNoiseFilter* p_parent);
 
 /**
  * @fn pifNoiseFilter_Process
- * @brief
- * @param p_parent
- * @param p_value
- * @return
+ * @brief Processes one input sample and updates the filter output.
+ * @param p_parent Pointer to the filter instance.
+ * @param p_value Pointer to the input value to process.
+ * @return Pointer to the filtered result value, or NULL when output is not
+ *         yet available for the current sample.
  */
 PifNoiseFilterValueP pifNoiseFilter_Process(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value);
 

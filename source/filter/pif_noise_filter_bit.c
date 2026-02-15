@@ -1,6 +1,13 @@
 #include "filter/pif_noise_filter_bit.h"
 
 
+/**
+ * @fn _addMethod
+ * @brief Allocates and registers a bit filter instance in the manager.
+ * @param p_manager Pointer to the filter manager.
+ * @param size Bit history length used by the filter.
+ * @return Pointer to the allocated bit filter object, or NULL on failure.
+ */
 static PifNfBit* _addMethod(PifNoiseFilterManager* p_manager, uint8_t size)
 {
 	PifNfBit* p_owner;
@@ -31,6 +38,11 @@ fail:
 	return NULL;
 }
 
+/**
+ * @fn _resetMethod
+ * @brief Clears the runtime history state of a bit filter.
+ * @param p_parent Pointer to the base noise filter object.
+ */
 static void _resetMethod(PifNoiseFilter* p_parent)
 {
 	PifNfBit* p_owner = (PifNfBit*)p_parent;
@@ -39,6 +51,13 @@ static void _resetMethod(PifNoiseFilter* p_parent)
 	p_owner->__list = 0L;
 }
 
+/**
+ * @fn _processCount
+ * @brief Updates the output using majority counting over the bit window.
+ * @param p_parent Pointer to the base noise filter object.
+ * @param p_value Pointer to the latest SWITCH input sample.
+ * @return Pointer to the debounced SWITCH result.
+ */
 static PifNoiseFilterValueP _processCount(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value)
 {
 	PifNfBit* p_owner = (PifNfBit*)p_parent;
@@ -56,6 +75,13 @@ static PifNoiseFilterValueP _processCount(PifNoiseFilter* p_parent, PifNoiseFilt
     return &p_owner->_result;
 }
 
+/**
+ * @fn _processContinue
+ * @brief Suppresses short state glitches before updating the bit output.
+ * @param p_parent Pointer to the base noise filter object.
+ * @param p_value Pointer to the latest SWITCH input sample.
+ * @return Pointer to the debounced SWITCH result.
+ */
 static PifNoiseFilterValueP _processContinue(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value)
 {
 	PifNfBit* p_owner = (PifNfBit*)p_parent;

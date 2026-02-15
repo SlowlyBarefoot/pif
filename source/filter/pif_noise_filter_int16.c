@@ -1,6 +1,13 @@
 #include "filter/pif_noise_filter_int16.h"
 
 
+/**
+ * @fn _allocBuffer
+ * @brief Allocates the sample buffer used by a 16-bit filter.
+ * @param p_common Pointer to the shared 16-bit filter state.
+ * @param size Number of samples to allocate.
+ * @return TRUE if allocation succeeds, otherwise FALSE.
+ */
 static BOOL _allocBuffer(PifNfInt16Common* p_common, uint8_t size)
 {
 	p_common->p_buffer = calloc(size, sizeof(int16_t));
@@ -13,6 +20,11 @@ static BOOL _allocBuffer(PifNfInt16Common* p_common, uint8_t size)
 	return TRUE;
 }
 
+/**
+ * @fn _clearAverage
+ * @brief Releases resources owned by a 16-bit trimmed-average filter.
+ * @param p_parent Pointer to the base noise filter object.
+ */
 static void _clearAverage(PifNoiseFilter* p_parent)
 {
 	PifNfInt16Common* p_common = &((PifNfInt16Average*)p_parent)->common;
@@ -23,6 +35,11 @@ static void _clearAverage(PifNoiseFilter* p_parent)
 	}
 }
 
+/**
+ * @fn _resetAverage
+ * @brief Resets the runtime state of a 16-bit trimmed-average filter.
+ * @param p_parent Pointer to the base noise filter object.
+ */
 static void _resetAverage(PifNoiseFilter* p_parent)
 {
 	PifNfInt16Average* p_owner = (PifNfInt16Average*)p_parent;
@@ -33,6 +50,13 @@ static void _resetAverage(PifNoiseFilter* p_parent)
 	p_owner->len = 0;
 }
 
+/**
+ * @fn _processAverage
+ * @brief Processes a sample using trimmed average (excluding min and max).
+ * @param p_parent Pointer to the base noise filter object.
+ * @param p_value Pointer to the latest int16_t input sample.
+ * @return Pointer to the filtered int16_t result, or NULL until the window is full.
+ */
 static PifNoiseFilterValueP _processAverage(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value)
 {
 	PifNfInt16Average* p_owner = (PifNfInt16Average*)p_parent;
@@ -69,6 +93,11 @@ static PifNoiseFilterValueP _processAverage(PifNoiseFilter* p_parent, PifNoiseFi
 	return &p_common->result;
 }
 
+/**
+ * @fn _clearWeightFactor
+ * @brief Releases resources owned by a 16-bit weighted filter.
+ * @param p_parent Pointer to the base noise filter object.
+ */
 static void _clearWeightFactor(PifNoiseFilter* p_parent)
 {
 	PifNfInt16WeightFactor* p_owner = (PifNfInt16WeightFactor*)p_parent;
@@ -84,6 +113,11 @@ static void _clearWeightFactor(PifNoiseFilter* p_parent)
 	}
 }
 
+/**
+ * @fn _resetWeightFactor
+ * @brief Resets the runtime state of a 16-bit weighted filter.
+ * @param p_parent Pointer to the base noise filter object.
+ */
 static void _resetWeightFactor(PifNoiseFilter* p_parent)
 {
 	PifNfInt16WeightFactor* p_owner = (PifNfInt16WeightFactor*)p_parent;
@@ -94,6 +128,13 @@ static void _resetWeightFactor(PifNoiseFilter* p_parent)
 	p_owner->total = 0;
 }
 
+/**
+ * @fn _processWeightFactor
+ * @brief Processes a sample using weighted moving average.
+ * @param p_parent Pointer to the base noise filter object.
+ * @param p_value Pointer to the latest int16_t input sample.
+ * @return Pointer to the filtered int16_t result.
+ */
 static PifNoiseFilterValueP _processWeightFactor(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value)
 {
 	PifNfInt16WeightFactor* p_owner = (PifNfInt16WeightFactor*)p_parent;
@@ -114,6 +155,11 @@ static PifNoiseFilterValueP _processWeightFactor(PifNoiseFilter* p_parent, PifNo
 	return &p_common->result;
 }
 
+/**
+ * @fn _clearNoiseCancel
+ * @brief Releases resources owned by a 16-bit noise-cancel filter.
+ * @param p_parent Pointer to the base noise filter object.
+ */
 static void _clearNoiseCancel(PifNoiseFilter* p_parent)
 {
 	PifNfInt16NoiseCancel* p_owner = (PifNfInt16NoiseCancel*)p_parent;
@@ -129,6 +175,11 @@ static void _clearNoiseCancel(PifNoiseFilter* p_parent)
 	}
 }
 
+/**
+ * @fn _resetNoiseCancel
+ * @brief Resets the runtime state of a 16-bit noise-cancel filter.
+ * @param p_parent Pointer to the base noise filter object.
+ */
 static void _resetNoiseCancel(PifNoiseFilter* p_parent)
 {
 	PifNfInt16NoiseCancel* p_owner = (PifNfInt16NoiseCancel*)p_parent;
@@ -140,6 +191,13 @@ static void _resetNoiseCancel(PifNoiseFilter* p_parent)
 	p_owner->before = 0;
 }
 
+/**
+ * @fn _processNoiseCancel
+ * @brief Processes a sample using adaptive difference-based noise cancellation.
+ * @param p_parent Pointer to the base noise filter object.
+ * @param p_value Pointer to the latest int16_t input sample.
+ * @return Pointer to the filtered int16_t result.
+ */
 static PifNoiseFilterValueP _processNoiseCancel(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value)
 {
 	PifNfInt16NoiseCancel* p_owner = (PifNfInt16NoiseCancel*)p_parent;

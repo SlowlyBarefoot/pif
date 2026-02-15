@@ -1,6 +1,11 @@
 #include "filter/pif_noise_filter_manager.h"
 
 
+/**
+ * @fn _evtClear
+ * @brief Callback that clears and frees one filter entry from the manager array.
+ * @param it Pointer-array iterator for the item being removed.
+ */
 static void _evtClear(PifPtrArrayIterator it)
 {
 	PifNoiseFilter* p_filter = (PifNoiseFilter*)it->p_data;
