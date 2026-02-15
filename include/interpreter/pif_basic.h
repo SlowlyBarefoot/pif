@@ -189,18 +189,18 @@ extern "C" {
 
 /**
  * @fn pifBasic_Init
- * @brief
- * @param p_process
- * @param evt_result
- * @return
+ * @brief Initializes the BASIC interpreter and creates its task context.
+ * @param p_process Optional external process function table, terminated by NULL.
+ * @param evt_result Optional completion callback invoked after execution stops.
+ * @return TRUE if initialization succeeds; otherwise FALSE.
  */
 BOOL pifBasic_Init(PifBasicProcess* p_process, PifEvtBasicResult evt_result);
 
 /**
  * @fn pifBasic_Execute
- * @brief
- * @param p_program
- * @param p_opcode
+ * @brief Schedules parsing, compilation, and execution of a BASIC program string.
+ * @param p_program Null-terminated BASIC source text.
+ * @param opcode Opcode budget per scheduler slice; default is used when the value is non-positive.
  */
 void pifBasic_Execute(char* p_program, int opcode);
 

@@ -87,6 +87,10 @@ int	(*funhook)(char *kwd, int n);		/* FUNCTION CALL HOOK */
 static PifBasic s_basic;
 
 
+/**
+ * @brief Initializes interpreter runtime and compiler state.
+ * @param comp Non-zero to enable compile mode, zero to run in immediate mode.
+ */
 static void initbasic(int comp)
 {
 	pc = prg;
@@ -99,46 +103,81 @@ static void initbasic(int comp)
 	s_basic._varable_count = 0;
 }
 
+/**
+ * @brief Reports a runtime error using the current program counter mapping and aborts execution.
+ * @param msg Null-terminated runtime error message.
+ */
 static void err(char* msg)
 {
 	pifLog_Printf(LT_ERROR, "%d: %s", lmap[pc - prg - 1], msg);
 	longjmp(trap, 2);
 }
 
+/**
+ * @brief Validates a 1-based array index and returns a pointer to that element.
+ * @param mem Pointer to array memory where index 0 stores the array length.
+ * @param n Requested 1-based index.
+ * @return Pointer to the indexed element when the index is valid.
+ */
 static Val* bound(Val* mem, int n)
 {
 	if (n < 1 || n > *mem) err("BOUNDS");
 	return mem + n;
 }
 
+/**
+ * @brief Reports a syntax or lexical error at the current input line and aborts parsing.
+ * @param msg Null-terminated parser error message.
+ */
 static void bad(char* msg)
 {
 	pifLog_Printf(LT_ERROR, "%d: %s", lnum, msg);
 	longjmp(trap, 1);
 }
 
+/**
+ * @brief Emits one opcode entry into the compiled program buffer.
+ * @param opcode Function pointer for the opcode implementation.
+ */
 static void emit(int opcode())
 {
 	lmap[cpc] = lnum;
 	prg[cpc++] = opcode;
 }
 
+/**
+ * @brief Emits an opcode followed by an immediate operand value.
+ * @param opcode Function pointer for the opcode implementation.
+ * @param x Immediate operand stored after the opcode.
+ */
 static void inst(int opcode(), Val x)
 {
 	emit(opcode);
 	emit((Code)x);
 }
 
+/**
+ * @brief Terminates the interpreter by triggering the BYE trap.
+ * @return This function does not return normally because it long-jumps.
+ */
 static int BYE_()
 {
 	longjmp(trap, 4);
 }
 
+/**
+ * @brief Interrupts current execution and returns control to the immediate driver.
+ * @return This function does not return normally because it long-jumps.
+ */
 static int BREAK_()
 {
 	longjmp(trap, 3);
 }
 
+/**
+ * @brief Restores execution state after BREAK and resumes interpretation.
+ * @return Always returns 1 to keep the opcode loop running.
+ */
 static int RESUME_()
 {
 	pc = opc ? opc : pc;
@@ -147,6 +186,10 @@ static int RESUME_()
 	return 1;
 }
 
+/**
+ * @brief Pushes an immediate numeric value onto the runtime stack.
+ * @return Always returns 1 to continue execution.
+ */
 static int NUMBER_()
 {
 	*--sp = PCV;
@@ -154,6 +197,10 @@ static int NUMBER_()
 	return 1;
 }
 
+/**
+ * @brief Pushes a variable value onto the runtime stack.
+ * @return Always returns 1 to continue execution.
+ */
 static int LOAD_()
 {
 	*--sp = value[PCV];
@@ -161,18 +208,30 @@ static int LOAD_()
 	return 1;
 }
 
+/**
+ * @brief Pops the runtime stack top into a variable slot.
+ * @return Always returns 1 to continue execution.
+ */
 static int STORE_()
 {
 	value[PCV] = *sp++;
 	return 1;
 }
 
+/**
+ * @brief Prints the top stack value as an integer and pops it.
+ * @return Returns 0 to stop the current immediate statement run.
+ */
 static int ECHO_()
 {
 	pifLog_Printf(LT_INFO, "%d\n", *sp++);
 	return 0;
 }
 
+/**
+ * @brief Prints a formatted string using stack arguments for % (int) and $ (string).
+ * @return Always returns 1 to continue execution.
+ */
 static int FORMAT_()
 {
 	char *f;
@@ -186,6 +245,10 @@ static int FORMAT_()
 	return 1;
 }
 
+/**
+ * @brief Adds the right operand to the left operand on the stack.
+ * @return Always returns 1 to continue execution.
+ */
 static int ADD_()
 {
 	A += B;
@@ -193,6 +256,10 @@ static int ADD_()
 	return 1;
 }
 
+/**
+ * @brief Subtracts the right operand from the left operand on the stack.
+ * @return Always returns 1 to continue execution.
+ */
 static int SUBS_()
 {
 	A -= B;
@@ -200,6 +267,10 @@ static int SUBS_()
 	return 1;
 }
 
+/**
+ * @brief Multiplies two top stack operands.
+ * @return Always returns 1 to continue execution.
+ */
 static int MUL_()
 {
 	A *= B;
@@ -207,6 +278,10 @@ static int MUL_()
 	return 1;
 }
 
+/**
+ * @brief Divides the left operand by the right operand with zero-check protection.
+ * @return Always returns 1 when successful; otherwise raises a runtime error.
+ */
 static int DIV_()
 {
 	if (!B) {
@@ -218,6 +293,10 @@ static int DIV_()
 	return 1;
 }
 
+/**
+ * @brief Computes modulus of the left operand by the right operand with zero-check protection.
+ * @return Always returns 1 when successful; otherwise raises a runtime error.
+ */
 static int MOD_()
 {
 	if (!B) {
@@ -229,6 +308,10 @@ static int MOD_()
 	return 1;
 }
 
+/**
+ * @brief Compares two operands for equality and stores BASIC boolean result.
+ * @return Always returns 1 to continue execution.
+ */
 static int EQ_()
 {
 	A = (A == B) ? -1 : 0;
@@ -236,6 +319,10 @@ static int EQ_()
 	return 1;
 }
 
+/**
+ * @brief Compares whether left operand is less than right operand.
+ * @return Always returns 1 to continue execution.
+ */
 static int LT_()
 {
 	A = (A < B) ? -1 : 0;
@@ -243,6 +330,10 @@ static int LT_()
 	return 1;
 }
 
+/**
+ * @brief Compares whether left operand is greater than right operand.
+ * @return Always returns 1 to continue execution.
+ */
 static int GT_()
 {
 	A = (A > B) ? -1 : 0;
@@ -250,6 +341,10 @@ static int GT_()
 	return 1;
 }
 
+/**
+ * @brief Compares two operands for inequality.
+ * @return Always returns 1 to continue execution.
+ */
 static int NE_()
 {
 	A = (A != B) ? -1 : 0;
@@ -257,6 +352,10 @@ static int NE_()
 	return 1;
 }
 
+/**
+ * @brief Compares whether left operand is less than or equal to right operand.
+ * @return Always returns 1 to continue execution.
+ */
 static int LE_()
 {
 	A = (A <= B) ? -1 : 0;
@@ -264,6 +363,10 @@ static int LE_()
 	return 1;
 }
 
+/**
+ * @brief Compares whether left operand is greater than or equal to right operand.
+ * @return Always returns 1 to continue execution.
+ */
 static int GE_()
 {
 	A = (A >= B) ? -1 : 0;
@@ -271,6 +374,10 @@ static int GE_()
 	return 1;
 }
 
+/**
+ * @brief Applies bitwise/logical AND semantics used by BASIC boolean values.
+ * @return Always returns 1 to continue execution.
+ */
 static int AND_()
 {
 	A &= B;
@@ -278,6 +385,10 @@ static int AND_()
 	return 1;
 }
 
+/**
+ * @brief Applies bitwise/logical OR semantics used by BASIC boolean values.
+ * @return Always returns 1 to continue execution.
+ */
 static int OR_()
 {
 	A |= B;
@@ -285,12 +396,20 @@ static int OR_()
 	return 1;
 }
 
+/**
+ * @brief Jumps to an absolute bytecode address stored in the immediate operand.
+ * @return Always returns 1 to continue execution.
+ */
 static int JMP_()
 {
 	pc = prg + (int)*pc;
 	return 1;
 }
 
+/**
+ * @brief Branches when the evaluated condition is false (0).
+ * @return Always returns 1 to continue execution.
+ */
 static int FALSE_()
 {
 	if (*sp++) pc++;
@@ -298,6 +417,10 @@ static int FALSE_()
 	return 1;
 }
 
+/**
+ * @brief Evaluates FOR loop termination against the stored high bound.
+ * @return Always returns 1 to continue execution.
+ */
 static int FOR_()
 {
 	if (value[PCV] >= *sp) {
@@ -310,12 +433,20 @@ static int FOR_()
 	return 1;
 }
 
+/**
+ * @brief Increments FOR loop control variable.
+ * @return Always returns 1 to continue execution.
+ */
 static int NEXT_()
 {
 	value[PCV]++;
 	return 1;
 }
 
+/**
+ * @brief Invokes a BASIC subroutine, preserving/restoring argument and local variable slots.
+ * @return Always returns 1 to continue execution.
+ */
 static int CALL_()
 {
 	Val v = PCV, n = sub[v][1], x, *ap = sp;
@@ -332,6 +463,10 @@ static int CALL_()
 	return 1;
 }
 
+/**
+ * @brief Returns from a BASIC subroutine and restores caller context.
+ * @return Always returns 1 to continue execution.
+ */
 static int RETURN_()
 {
 	int v = PCV, n = sub[v][0];
@@ -341,12 +476,20 @@ static int RETURN_()
 	return 1;
 }
 
+/**
+ * @brief Saves top-of-stack value as the subroutine return value.
+ * @return Always returns 1 to continue execution.
+ */
 static int SETRET_()
 {
 	ret = *sp++;
 	return 1;
 }
 
+/**
+ * @brief Pushes the saved return value onto the runtime stack.
+ * @return Always returns 1 to continue execution.
+ */
 static int RV_()
 {
 	*--sp = ret;
@@ -354,12 +497,20 @@ static int RV_()
 	return 1;
 }
 
+/**
+ * @brief Drops the specified number of temporary stack values.
+ * @return Always returns 1 to continue execution.
+ */
 static int DROP_()
 {
 	sp += PCV;
 	return 1;
 }
 
+/**
+ * @brief Allocates array storage for a DIM variable and stores its base pointer.
+ * @return Always returns 1 when allocation succeeds; otherwise raises an error.
+ */
 static int DIM_()
 {
 	int v = PCV, n = *sp++;
@@ -371,6 +522,10 @@ static int DIM_()
 	return 1;
 }
 
+/**
+ * @brief Loads a value from a DIM array by runtime index.
+ * @return Always returns 1 to continue execution.
+ */
 static int LOADI_()
 {
 	Val x = *sp++;
@@ -381,6 +536,10 @@ static int LOADI_()
 	return 1;
 }
 
+/**
+ * @brief Stores a value into a DIM array by runtime index.
+ * @return Always returns 1 to continue execution.
+ */
 static int STOREI_()
 {
 	Val x = *sp++, i = *sp++;
@@ -389,6 +548,10 @@ static int STOREI_()
 	return 1;
 }
 
+/**
+ * @brief Pushes the upper bound (array length) of a DIM variable.
+ * @return Always returns 1 to continue execution.
+ */
 static int UBOUND_()
 {
 	*--sp = *(Val*)value[PCV];
@@ -396,6 +559,10 @@ static int UBOUND_()
 	return 1;
 }
 
+/**
+ * @brief Calls an external process function without using a return value.
+ * @return Always returns 1 to continue execution.
+ */
 static int EXEC_()
 {
 	int p, i, param[PIF_BASIC_EXEC_SIZE];
@@ -409,6 +576,10 @@ static int EXEC_()
 	return 1;
 }
 
+/**
+ * @brief Calls an external process function and pushes its return value.
+ * @return Always returns 1 to continue execution.
+ */
 static int EXECR_()
 {
 	int p, i, param[PIF_BASIC_EXEC_SIZE];
@@ -427,6 +598,11 @@ static int EXECR_()
 	return 1;
 }
 
+/**
+ * @brief Finds or creates a symbol table entry for a variable name.
+ * @param var Uppercase variable/subroutine identifier.
+ * @return Index in the variable symbol table.
+ */
 static int find(char* var)
 {
 	int	i;
@@ -436,6 +612,10 @@ static int find(char* var)
 	return i;
 }
 
+/**
+ * @brief Reads the next token from the current source line.
+ * @return Token type identifier, or 0 when the line ends.
+ */
 static int read()											/* READ TOKEN */
 {
 	char *p;
@@ -477,20 +657,36 @@ static int read()											/* READ TOKEN */
 	}
 }
 
+/**
+ * @brief Checks whether the next token matches the requested type.
+ * @param type Expected token type.
+ * @return Non-zero when the token matches; otherwise zero and token is left ungot.
+ */
 static int want(int type)
 {
 	return !(ungot = read() != type);
 }
 
+/**
+ * @brief Enforces that the next token matches a required type.
+ * @param type Required token type.
+ */
 static void need(int type)
 {
 	if (!want(type)) bad("SYNTAX ERROR");
 }
 
+/**
+ * @brief Parses a full expression including logical AND/OR precedence.
+ * @return Always returns 0 after emitting bytecode for the expression.
+ */
 static int expr();
 
 #define LIST(BODY) if (!want(0)) do { BODY; } while (want(COMMA))
 
+/**
+ * @brief Parses and emits bytecode for base-level expressions (literals, variables, calls, grouping).
+ */
 static void base()					/* BASIC EXPRESSION */
 {
 	int neg = want(SUBS) ? (inst(NUMBER_, 0), 1) : 0;
@@ -539,6 +735,10 @@ static void base()					/* BASIC EXPRESSION */
 
 static int (*bin[])() = { ADD_, SUBS_, MUL_, DIV_, MOD_, EQ_, LT_, GT_, NE_, LE_, GE_, AND_, OR_};
 
+/**
+ * @brief Parses multiplicative-precedence expression terms.
+ * @return Always returns 0 after emitting bytecode for the parsed term.
+ */
 static int factor()
 {
 	int (*o)();
@@ -553,6 +753,10 @@ static int factor()
 	return 0;
 }
 
+/**
+ * @brief Parses additive-precedence expression terms.
+ * @return Always returns 0 after emitting bytecode for the parsed term.
+ */
 static int addition()
 {
 	int (*o)();
@@ -567,6 +771,10 @@ static int addition()
 	return 0;
 }
 
+/**
+ * @brief Parses relational operators (=, <, >, <=, >=, <>).
+ * @return Always returns 0 after emitting bytecode for the parsed term.
+ */
 static int relation()
 {
 	int (*o)();
@@ -581,6 +789,10 @@ static int relation()
 	return 0;
 }
 
+/**
+ * @brief Parses a full expression including logical AND/OR precedence.
+ * @return Always returns 0 after emitting bytecode for the expression.
+ */
 static int expr()
 {
 	int (*o)();
@@ -595,6 +807,9 @@ static int expr()
 	return 0;
 }
 
+/**
+ * @brief Parses one BASIC statement and emits/executes corresponding bytecode.
+ */
 static void stmt()	/* STATEMENT */
 {
 	int	n, var;
@@ -781,12 +996,21 @@ static void stmt()	/* STATEMENT */
 
 #if USE_KWDHOOK
 
+/**
+ * @brief Prints a string value from the runtime stack (debug keyword hook helper).
+ * @return Always returns 1 to continue execution.
+ */
 static int PRINTS_()
 {
 	pifLog_Print(LT_NONE, (char*)*sp++);
 	return 1;
 }
 
+/**
+ * @brief Handles optional custom keywords enabled by USE_KWDHOOK.
+ * @param msg Keyword text in uppercase form.
+ * @return Non-zero when the keyword is handled; otherwise zero.
+ */
 static int kwdhook_(char *msg)
 {
 	if (!strcmp(msg, "PRINTS")) {
@@ -799,6 +1023,11 @@ static int kwdhook_(char *msg)
 
 #endif
 
+/**
+ * @brief Task callback that parses, compiles, and executes a BASIC program.
+ * @param p_task Task context containing the owner instance.
+ * @return Always returns 0 for the task manager scheduler.
+ */
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifBasic* p_owner = (PifBasic*)p_task->_p_client;
