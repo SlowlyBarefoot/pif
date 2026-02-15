@@ -14,13 +14,15 @@ BOOL pifSList_Init(PifSList* p_owner)
 	return TRUE;
 }
 
-void pifSList_Clear(PifSList* p_owner, PifEvtSListClear* evt_clear)
+void pifSList_Clear(PifSList* p_owner, PifEvtSListClear evt_clear)
 {
 	PifSListIterator it;
 
+	if (!p_owner) return;
+
     while (p_owner->p_head) {
     	it = p_owner->p_head->p_next;
-    	if (evt_clear) (*evt_clear)(it->data);
+    	if (evt_clear) (*evt_clear)(p_owner->p_head->data);
 
         free(p_owner->p_head);
         p_owner->p_head = it;
@@ -54,12 +56,11 @@ void* pifSList_AddLast(PifSList* p_owner, int data_size)
     	return NULL;
     }
 
+    p_node->p_next = NULL;
     if (!p_owner->p_head) {
-    	p_node->p_next = p_owner->p_head;
         p_owner->p_head = p_node;
     }
     else {
-    	p_node->p_next = p_owner->p_tail->p_next;
         p_owner->p_tail->p_next = p_node;
     }
     p_owner->p_tail = p_node;
@@ -127,13 +128,15 @@ BOOL pifDList_Init(PifDList* p_owner)
 	return TRUE;
 }
 
-void pifDList_Clear(PifDList* p_owner, PifEvtDListClear* evt_clear)
+void pifDList_Clear(PifDList* p_owner, PifEvtDListClear evt_clear)
 {
 	PifDListIterator it;
 
+	if (!p_owner) return;
+
     while (p_owner->p_head) {
     	it = p_owner->p_head->p_next;
-    	if (evt_clear) (*evt_clear)(it->data);
+    	if (evt_clear) (*evt_clear)(p_owner->p_head->data);
 
     	free(p_owner->p_head);
         p_owner->p_head = it;
@@ -171,14 +174,13 @@ void* pifDList_AddLast(PifDList* p_owner, int data_size)
     	return NULL;
     }
 
+    p_node->p_next = NULL;
     if (!p_owner->p_head) {
     	p_node->p_prev = NULL;
-    	p_node->p_next = p_owner->p_head;
         p_owner->p_head = p_node;
     }
     else {
     	p_node->p_prev = p_owner->p_tail;
-    	p_node->p_next = p_owner->p_tail->p_next;
         p_owner->p_tail->p_next = p_node;
     }
     p_owner->p_tail = p_node;
@@ -202,6 +204,9 @@ void* pifDList_Add(PifDList* p_owner, int data_size, PifDListIterator it)
     p_node->p_next = it;
     if (it->p_prev) {
         it->p_prev->p_next = p_node;
+    }
+    else {
+        p_owner->p_head = p_node;
     }
     it->p_prev = p_node;
     p_owner->size++;
@@ -241,6 +246,9 @@ void pifDList_RemoveLast(PifDList* p_owner)
     if (it_prev) {
         it_prev->p_next = it_next;
     }
+    else {
+        p_owner->p_head = NULL;
+    }
     p_owner->p_tail = it_prev;
     p_owner->size--;
 }
@@ -272,14 +280,10 @@ void pifDList_RemoveIterator(PifDList* p_owner, PifDListIterator it)
 
 void pifDList_Remove(PifDList* p_owner, void* p_data)
 {
-	PifDListIterator it = pifDList_Begin(p_owner);
-	while (it) {
-		if (it->data == p_data) {
-			pifDList_RemoveIterator(p_owner, it);
-			return;
-		}
-		it = pifDList_Next(it);
-	}
+    if (!p_data) return;
+
+    PifDListIterator p_node = (PifDListIterator)((char *)p_data - offsetof(PifDListNode, data));
+    pifDList_RemoveIterator(p_owner, p_node);
 }
 
 PIF_INLINE int pifDList_Size(PifDList* p_owner)

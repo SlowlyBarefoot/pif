@@ -14,7 +14,7 @@
 typedef struct StPifSListNode
 {
 	struct StPifSListNode* p_next;
-	char data[1];
+	char data[];
 } PifSListNode;
 
 typedef PifSListNode* PifSListIterator;
@@ -51,7 +51,7 @@ BOOL pifSList_Init(PifSList* p_owner);
  * @param p_owner
  * @param evt_clear
  */
-void pifSList_Clear(PifSList* p_owner, PifEvtSListClear* evt_clear);
+void pifSList_Clear(PifSList* p_owner, PifEvtSListClear evt_clear);
 
 /**
  * @fn pifSList_AddFirst
@@ -134,7 +134,7 @@ typedef struct StPifDListNode
 {
     struct StPifDListNode* p_prev;
     struct StPifDListNode* p_next;
-    char data[1];
+    char data[];
 } PifDListNode;
 
 typedef PifDListNode* PifDListIterator;
@@ -171,7 +171,7 @@ BOOL pifDList_Init(PifDList* p_owner);
  * @param p_owner
  * @param evt_clear
  */
-void pifDList_Clear(PifDList* p_owner, PifEvtDListClear* evt_clear);
+void pifDList_Clear(PifDList* p_owner, PifEvtDListClear evt_clear);
 
 /**
  * @fn pifDList_AddFirst
@@ -212,8 +212,6 @@ void pifDList_RemoveFirst(PifDList* p_owner);
  * @fn pifDList_RemoveLast
  * @brief
  * @param p_owner
- * @param index
- * @return
  */
 void pifDList_RemoveLast(PifDList* p_owner);
 
