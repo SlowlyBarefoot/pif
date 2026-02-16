@@ -2,7 +2,7 @@
 #ifdef PIF_COLLECT_SIGNAL
 	#include "core/pif_collect_signal.h"
 #endif
-#include "core/pif_list.h"
+#include "core/pif_dlist.h"
 #ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
@@ -26,7 +26,7 @@ static void _addDeviceInCollectSignal()
 		for (int f = 0; f < PL_CSF_COUNT; f++) {
 			if (p_colsig->flag & (1 << f)) {
 				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_WIRE, 1,
-						prefix[f], PE_FALLING);
+						prefix[f], PS_LOW_LEVEL);
 			}
 		}
 #ifndef PIF_NO_LOG
@@ -218,7 +218,7 @@ BOOL pifPulse_sigEdge(PifPulse* p_owner, PifPulseState state, uint32_t time_us)
 
 #ifdef PIF_COLLECT_SIGNAL
 	if (p_owner->__p_colsig->flag & PL_CSF_STATE_BIT) {
-		pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[PL_CSF_STATE_IDX], edge);
+		pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[PL_CSF_STATE_IDX], state);
 	}
 #endif
 

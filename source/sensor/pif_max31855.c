@@ -2,6 +2,7 @@
 #ifdef PIF_COLLECT_SIGNAL
 	#include "core/pif_collect_signal.h"
 #endif
+#include "core/pif_dlist.h"
 #ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
@@ -116,7 +117,7 @@ BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, void *
 
 #ifdef PIF_COLLECT_SIGNAL
 fail:
-	pifMax31855_Destroy((PifSensor**)&p_owner);
+	pifMax31855_Clear(p_owner);
 	return FALSE;
 #endif
 }

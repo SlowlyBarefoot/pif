@@ -2,7 +2,7 @@
 #ifdef PIF_COLLECT_SIGNAL
 	#include "core/pif_collect_signal.h"
 #endif
-#include "core/pif_list.h"
+#include "core/pif_dlist.h"
 #ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
