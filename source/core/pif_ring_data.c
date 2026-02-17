@@ -36,7 +36,7 @@ BOOL pifRingData_Init(PifRingData* p_owner, PifId id, uint16_t data_size, uint16
 	memset(p_owner, 0, sizeof(PifRingData));
 
 	p_owner->__p_data = calloc(data_size, data_count);
-	if (!p_owner) {
+	if (!p_owner->__p_data) {
 		pif_error = E_OUT_OF_HEAP;
 	    goto fail;
 	}
@@ -89,7 +89,7 @@ void* pifRingData_GetNextData(PifRingData* p_owner)
 
 uint16_t pifRingData_GetFillSize(PifRingData* p_owner)
 {
-	if (p_owner->__head > p_owner->__tail) {
+	if (p_owner->__head >= p_owner->__tail) {
     	return p_owner->__head - p_owner->__tail;
     }
     else {
