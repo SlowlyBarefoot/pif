@@ -16,7 +16,7 @@ static BOOL _chopOff(PifRingBuffer* p_owner, uint16_t count)
 		tail = p_owner->__tail;
 		while (tail != p_owner->__head) {
 			if (p_owner->__p_buffer[tail] == p_owner->__ui.chop_off_char) {
-				if (size > count) {
+				if (size >= count) {
 					p_owner->__tail = tail;
 					return TRUE;
 				}
@@ -380,10 +380,13 @@ uint16_t pifRingBuffer_CopyToArray(uint8_t* p_dst, uint16_t count, PifRingBuffer
 
 uint16_t pifRingBuffer_CopyAll(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16_t pos)
 {
-	uint16_t fill = pifRingBuffer_GetFillSize(p_src) - pos;
+	uint16_t fill = pifRingBuffer_GetFillSize(p_src);
 	uint16_t remain = pifRingBuffer_GetRemainSize(p_dst);
-	uint16_t length = remain < fill ? remain : fill;
 
+    if (pos >= fill) return 0;
+
+    fill -= pos;
+	uint16_t length = remain < fill ? remain : fill;
 	uint16_t tail = p_src->__tail + pos;
 	if (tail >= p_src->_size) tail -= p_src->_size;
 	for (uint16_t i = 0; i < length; i++) {
@@ -409,7 +412,7 @@ BOOL pifRingBuffer_CopyLength(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16
 
 	// Start copying from the source offset after range validation.
 	uint16_t usTail = (p_src->__tail + pos) % p_src->_size;
-	while (usTail != p_src->__head) {
+	for (uint16_t i = 0; i < length; i++) {
 		pifRingBuffer_PutByte(p_dst, p_src->__p_buffer[usTail]);
 		usTail++;
 		if (usTail >= p_src->_size) usTail = 0;
