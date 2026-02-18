@@ -106,7 +106,7 @@ void pifCollectSignal_Clear();
  * @brief Retrieves the requested value or pointer from the collect signal without changing ownership.
  * @return Result value returned by this API.
  */
-uint16_t pifCollectSignal_GetTransferPeriod();
+uint32_t pifCollectSignal_GetTransferPeriod();
 
 /**
  * @fn pifCollectSignal_SetTransferPeriod
@@ -193,16 +193,6 @@ void pifCollectSignal_AddSignal(void* p_dev, uint16_t state);
  * @brief Prints collected diagnostic data from the collect signal in a formatted log representation.
  */
 void pifCollectSignal_PrintLog();
-
-/**
- * @fn pifCollectSignal_AttachTask
- * @brief Attaches a callback, device, or external resource to the collect signal for integration.
- * @param mode Operating mode configuration value.
- * @param period Execution period value for scheduling.
- * @param start Set to TRUE to start immediately after configuration.
- * @return Pointer to the resulting object or data, or NULL if unavailable.
- */
-PifTask* pifCollectSignal_AttachTask(PifTaskMode mode, uint16_t period, BOOL start);
 
 #ifdef __cplusplus
 }

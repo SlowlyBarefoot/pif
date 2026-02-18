@@ -34,7 +34,7 @@ typedef struct StPifCollectSignal
 	PifCollectSignalMethod method;
 	PifCollectSignalStep step;
 	PifTask* p_task;
-	uint16_t transfer_period_1ms;	// PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS
+	uint32_t transfer_period_1us;	// PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS
 	uint8_t device_count;
 	uint32_t timer;
 	PifRingBuffer buffer;
@@ -166,6 +166,7 @@ BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size)
 
 	s_collect_signal.p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS * 1000, _doTask, &s_collect_signal, FALSE);
 	if (s_collect_signal.p_task == NULL) goto fail;
+    s_collect_signal.transfer_period_1us = PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS * 1000;
 	s_collect_signal.p_task->name = "CollectSignalHeap";
 	return TRUE;
 
@@ -184,6 +185,7 @@ BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8
 
 	s_collect_signal.p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS * 1000, _doTask, &s_collect_signal, FALSE);
 	if (s_collect_signal.p_task == NULL) goto fail;
+    s_collect_signal.transfer_period_1us = PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS * 1000;
 	s_collect_signal.p_task->name = "CollectSignalStatic";
 	return TRUE;
 
@@ -199,11 +201,12 @@ void pifCollectSignal_Clear()
 		s_collect_signal.p_task = NULL;
 	}
 	pifRingBuffer_Clear(&s_collect_signal.buffer);
+    pifDList_Clear(&s_collect_signal.device, NULL);
 }
 
-uint16_t pifCollectSignal_GetTransferPeriod()
+uint32_t pifCollectSignal_GetTransferPeriod()
 {
-	return s_collect_signal.transfer_period_1ms;
+	return s_collect_signal.transfer_period_1us;
 }
 
 BOOL pifCollectSignal_SetTransferPeriod(uint16_t period1ms)
@@ -213,8 +216,8 @@ BOOL pifCollectSignal_SetTransferPeriod(uint16_t period1ms)
         return FALSE;
 	}
 
-	s_collect_signal.transfer_period_1ms = period1ms;
-   	pifTask_ChangePeriod(s_collect_signal.p_task, s_collect_signal.transfer_period_1ms);
+	s_collect_signal.transfer_period_1us = period1ms * 1000;
+    if (s_collect_signal.p_task) pifTask_ChangePeriod(s_collect_signal.p_task, s_collect_signal.transfer_period_1us);
 	return TRUE;
 }
 
@@ -282,7 +285,7 @@ void* pifCollectSignal_AddDevice(PifId id, PifCollectSignalVarType var_type, uin
 	p_device->initial_value = initial_value;
 	s_collect_signal.device_count++;
 #ifndef PIF_NO_LOG
-	pifLog_Printf(LT_INFO, "CS:Add(ID:%u VT:%u SZ:%u) DC:%d", id, var_type, size, p_device->size);
+	pifLog_Printf(LT_INFO, "CS:Add(ID:%u VT:%u SZ:%u) DC:%d", id, var_type, size, s_collect_signal.device_count);
 #endif
 	return p_device;
 }
