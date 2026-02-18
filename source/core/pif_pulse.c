@@ -105,7 +105,7 @@ void pifPulse_ResetMeasureMode(PifPulse* p_owner, uint8_t measure_mode)
 	p_owner->_measure_mode &= ~measure_mode;
 }
 
-BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint32_t min, uint32_t max)
+BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint16_t min, uint16_t max)
 {
 	int index = -1;
 
@@ -142,10 +142,10 @@ void pifPulse_ResetMeasureValue(PifPulse* p_owner)
 	p_owner->__count = 0;
 }
 
-uint16_t pifPulse_GetPeriod(PifPulse* p_owner)
+uint32_t pifPulse_GetPeriod(PifPulse* p_owner)
 {
 	uint8_t prev;
-	uint16_t value = 0;
+	uint32_t value = 0;
 
 	if (p_owner->__count < PIF_PULSE_DATA_SIZE) return 0;
 
@@ -160,10 +160,10 @@ uint16_t pifPulse_GetPeriod(PifPulse* p_owner)
 	return value;
 }
 
-uint16_t pifPulse_GetLowWidth(PifPulse* p_owner)
+uint32_t pifPulse_GetLowWidth(PifPulse* p_owner)
 {
 	uint8_t prev;
-	uint16_t value = 0;
+	uint32_t value = 0;
 
 	if (p_owner->__count < PIF_PULSE_DATA_SIZE) return 0;
 
@@ -178,9 +178,9 @@ uint16_t pifPulse_GetLowWidth(PifPulse* p_owner)
 	return value;
 }
 
-uint16_t pifPulse_GetHighWidth(PifPulse* p_owner)
+uint32_t pifPulse_GetHighWidth(PifPulse* p_owner)
 {
-	uint16_t value = 0;
+	uint32_t value = 0;
 
 	if (p_owner->__count < PIF_PULSE_DATA_SIZE) return 0;
 

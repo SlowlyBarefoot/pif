@@ -48,7 +48,7 @@ typedef struct
  * @struct StPifPulseData
  * @brief Represents the pulse data data structure used by this module.
  */
-typedef struct StPifPulsData
+typedef struct StPifPulseData
 {
 	uint32_t rising;
 	uint32_t falling;
@@ -72,8 +72,8 @@ struct StPifPulse
 	uint8_t __ptr, __last_ptr;
 	uint8_t __count;
 	struct {
-		unsigned int check	: 1;
-		unsigned int min	: 15;
+		BOOL check;
+		uint16_t min;
 		uint16_t max;
 	} __valid_range[3];
 	PifIssuerP __p_issuer;
@@ -132,7 +132,7 @@ void pifPulse_ResetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
  * @param max Maximum accepted measurement value.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint32_t min, uint32_t max);
+BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint16_t min, uint16_t max);
 
 /**
  * @fn pifPulse_ResetMeasureValue
@@ -147,7 +147,7 @@ void pifPulse_ResetMeasureValue(PifPulse* p_owner);
  * @param p_owner Pointer to the target object instance.
  * @return Result value returned by this API.
  */
-uint16_t pifPulse_GetPeriod(PifPulse* p_owner);
+uint32_t pifPulse_GetPeriod(PifPulse* p_owner);
 
 /**
  * @fn pifPulse_GetLowWidth
@@ -155,7 +155,7 @@ uint16_t pifPulse_GetPeriod(PifPulse* p_owner);
  * @param p_owner Pointer to the target object instance.
  * @return Result value returned by this API.
  */
-uint16_t pifPulse_GetLowWidth(PifPulse* p_owner);
+uint32_t pifPulse_GetLowWidth(PifPulse* p_owner);
 
 /**
  * @fn pifPulse_GetHighWidth
@@ -163,7 +163,7 @@ uint16_t pifPulse_GetLowWidth(PifPulse* p_owner);
  * @param p_owner Pointer to the target object instance.
  * @return Result value returned by this API.
  */
-uint16_t pifPulse_GetHighWidth(PifPulse* p_owner);
+uint32_t pifPulse_GetHighWidth(PifPulse* p_owner);
 
 /**
  * @fn pifPulse_sigEdge
@@ -202,14 +202,26 @@ void pifPulse_SetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag);
 void pifPulse_ResetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag);
 
 /**
- * @fn pifPulse_SetCsFlagAll
+ * @fn pifPulseColSig_Init
+ * @brief 
+ */
+void pifPulseColSig_Init();
+
+/**
+ * @fn pifPulseColSig_Clear
+ * @brief 
+ */
+void pifPulseColSig_Clear();
+
+/**
+ * @fn pifPulseColSig_SetFlag
  * @brief Sets configuration or runtime state for the pulse based on the provided parameters.
  * @param flag Bit flag mask to set, clear, or query.
  */
 void pifPulseColSig_SetFlag(PifPulseCsFlag flag);
 
 /**
- * @fn pifPulse_ResetCsFlagAll
+ * @fn pifPulseColSig_ResetFlag
  * @brief Resets runtime state in the pulse to an initial or configured baseline.
  * @param flag Bit flag mask to set, clear, or query.
  */
