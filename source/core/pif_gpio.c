@@ -116,7 +116,7 @@ SWITCH pifGpio_ReadCell(PifGpio* p_owner, uint8_t index)
 	}
 
 	uint8_t state = (p_owner->__ui.act_in(p_owner->_id) >> index) & 1;
-	p_owner->__read_state = (p_owner->__read_state & (1 << index)) | state;
+	p_owner->__read_state = (p_owner->__read_state & ~(1 << index)) | (state << index);
 
 #ifdef PIF_COLLECT_SIGNAL
 	if (p_owner->__p_colsig->flag & GP_CSF_STATE_BIT) {
@@ -180,7 +180,7 @@ static uint32_t _doTask(PifTask* p_task)
 	for (int i = 0; i < p_owner->count; i++) {
 		bit = 1 << i;
 		if ((state & bit) != (p_owner->__read_state & bit)) {
-			if (p_owner->evt_in) (*p_owner->evt_in)(i, (state >> 1) & 1);
+			if (p_owner->evt_in) (*p_owner->evt_in)(i, (state >> i) & 1);
 #ifdef PIF_COLLECT_SIGNAL
 			change = TRUE;
 #endif
@@ -200,7 +200,7 @@ static uint32_t _doTask(PifTask* p_task)
 void pifGpio_sigData(PifGpio* p_owner, uint8_t index, SWITCH state)
 {
 	if (state != ((p_owner->__read_state >> index) & 1)) {
-		p_owner->__read_state = (p_owner->__read_state & (1 << index)) | state;
+		p_owner->__read_state = (p_owner->__read_state & ~(1 << index)) | (state << index);
 		if (p_owner->evt_in) (*p_owner->evt_in)(index, state);
 
 #ifdef PIF_COLLECT_SIGNAL
