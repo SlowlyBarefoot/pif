@@ -36,6 +36,7 @@ static void _evtTimerTimeoutFinish(PifIssuerP p_issuer)
 	pif_error = E_TIMEOUT;
 	if (p_owner->evt_error) (*p_owner->evt_error)(p_owner);
 	p_owner->__process = NULL;
+	p_owner->__next_process = NULL;
 }
 
 #ifdef PIF_COLLECT_SIGNAL
@@ -101,11 +102,13 @@ fail:
 void pifSequence_Clear(PifSequence* p_owner)
 {
 #ifdef PIF_COLLECT_SIGNAL
-	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
-	if (!pifDList_Size(&s_cs_list)) {
-		pifCollectSignal_Detach(CSF_SEQUENCE);
-	}
-	p_owner->__p_colsig = NULL;
+    if (p_owner->__p_colsig) {
+    	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
+    	if (!pifDList_Size(&s_cs_list)) {
+    		pifCollectSignal_Detach(CSF_SEQUENCE);
+    	}
+    	p_owner->__p_colsig = NULL;
+    }
 #endif
 	if (p_owner->__p_task) {
 		pifTaskManager_Remove(p_owner->__p_task);
@@ -155,7 +158,6 @@ void pifSequence_TriggerEvent(PifSequence *p_owner)
 {
 	if (p_owner->__p_timer_timeout)	{
 		pifTimer_Stop(p_owner->__p_timer_timeout);
-		p_owner->__p_timer_timeout = NULL;
 	}
 	pifTask_SetTrigger(p_owner->__p_task, 0);
 }
