@@ -60,6 +60,19 @@ static uint16_t _actSendData(PifUart* p_owner, uint8_t* p_data, uint16_t size)
 	return 0;
 }
 
+static void _sendXonXoff(PifUart* p_owner, uint8_t data)
+{
+	if (p_owner->act_send_data) {
+		(*p_owner->act_send_data)(p_owner, &data, 1);
+	}
+	else if (p_owner->_p_tx_buffer) {
+		if (p_owner->act_start_transfer) {
+			pifRingBuffer_PutData(p_owner->_p_tx_buffer, &data, 1);
+			if ((*p_owner->act_start_transfer)(p_owner)) p_owner->__tx_state = UTS_SENDING;
+		}
+	}
+}
+
 BOOL pifUart_Init(PifUart* p_owner, PifId id, uint32_t baudrate)
 {
 	if (!p_owner || !baudrate) {
@@ -222,7 +235,7 @@ BOOL pifUart_ChangeRxFlowState(PifUart* p_owner, SWITCH state)
 		return pifUart_SendTxData(p_owner, &state, 1);
 	}
 	else if (p_owner->_flow_control == UFC_DEVICE_HARDWARE) {
-		(*p_owner->act_device_flow_state)(p_owner->__p_client, state);
+		(*p_owner->act_device_flow_state)(p_owner, state);
 	}
 	return TRUE;
 }
@@ -394,14 +407,14 @@ static uint32_t _doRxTask(PifTask* p_task)
 				if (rate > p_owner->fc_limit) {
 					p_owner->_fc_state = OFF;
 					tx = ASCII_XOFF;
-					pifUart_SendTxData(p_owner, &tx, 1);
+					_sendXonXoff(p_owner, tx);
 				}
 			}
 			else {
 				if (rate == 0) {
 					p_owner->_fc_state = ON;
 					tx = ASCII_XON;
-					pifUart_SendTxData(p_owner, &tx, 1);
+					_sendXonXoff(p_owner, tx);
 					period = 1;
 				}
 			}
@@ -494,7 +507,7 @@ PifTask *pifUart_AttachRxTask(PifUart *p_owner, PifId id, PifTaskMode mode, uint
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
-	    return FALSE;
+	    return NULL;
 	}
 
     if (p_owner->_p_rx_task) {
@@ -514,7 +527,7 @@ PifTask *pifUart_AttachTxTask(PifUart *p_owner, PifId id, PifTaskMode mode, uint
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
-	    return FALSE;
+	    return NULL;
 	}
 
     if (p_owner->_p_tx_task) {
