@@ -438,6 +438,7 @@ static void _printTime()
 	tmp_buf[offset++] = ':';
 	offset += pif_DecToString(tmp_buf + offset, (uint32_t)pif_datetime.minute, 2);
 	tmp_buf[offset++] = ' ';
+	tmp_buf[offset] = 0;
 
 	_printLog(tmp_buf, FALSE);
 }
@@ -500,7 +501,7 @@ BOOL pifLog_UseCommand(uint8_t size, const PifLogCmdEntry* p_cmd_table, const ch
 		return FALSE;
     }
 
-    s_log.p_rx_buffer = calloc(sizeof(char), size);
+    s_log.p_rx_buffer = calloc(size, sizeof(char));
     if (!s_log.p_rx_buffer) {
         pif_error = E_OUT_OF_HEAP;
 		return FALSE;
@@ -594,7 +595,7 @@ void pifLog_Printf(PifLogType type, const char* p_format, ...)
     }
 
 	va_start(data, p_format);
-	pif_PrintFormat(tmp_buf + offset, PIF_LOG_LINE_SIZE, &data, p_format);
+	pif_PrintFormat(tmp_buf + offset, PIF_LOG_LINE_SIZE - offset, &data, p_format);
 	va_end(data);
 
 	_printLog(tmp_buf, type == LT_VCD);
@@ -618,7 +619,7 @@ void pifLog_PrintInBuffer()
 
 BOOL pifLog_AttachUart(PifUart* p_uart, uint16_t size)
 {
-    if (!size) {
+    if (!p_uart || !size) {
     	pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
@@ -630,14 +631,18 @@ BOOL pifLog_AttachUart(PifUart* p_uart, uint16_t size)
 	pifUart_AttachClient(p_uart, &s_log, _evtParsing, _evtSending);
 
 #ifdef PIF_LOG_COMMAND
-	pifRingBuffer_PutString(s_log.p_tx_buffer, (char *)s_log.p_prompt);
-	pifTask_SetTrigger(s_log.p_uart->_p_tx_task, 0);
+	if (s_log.p_prompt) {
+        pifRingBuffer_PutString(s_log.p_tx_buffer, (char *)s_log.p_prompt);
+	    pifTask_SetTrigger(s_log.p_uart->_p_tx_task, 0);
+    }
 #endif
     return TRUE;
 }
 
 void pifLog_DetachUart()
 {
+    if (!s_log.p_uart) return;
+
 	pifUart_DetachClient(s_log.p_uart);
 	s_log.p_uart = NULL;
 
