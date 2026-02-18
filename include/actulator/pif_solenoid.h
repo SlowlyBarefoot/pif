@@ -153,8 +153,9 @@ BOOL pifSolenoid_SetOnTime(PifSolenoid* p_owner, uint16_t on_time);
  * @brief Turns the solenoid ON immediately or after a delay.
  * @param p_owner Solenoid instance to control.
  * @param delay Delay before activation in milliseconds.
+ * @return TRUE if the value is accepted; otherwise FALSE.
  */
-void pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay);
+BOOL pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay);
 
 /**
  * @fn pifSolenoid_ActionOnDir
@@ -162,8 +163,9 @@ void pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay);
  * @param p_owner Solenoid instance to control.
  * @param delay Delay before activation in milliseconds.
  * @param dir Direction to apply when activating the solenoid.
+ * @return TRUE if the value is accepted; otherwise FALSE.
  */
-void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDir dir);
+BOOL pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDir dir);
 
 /**
  * @fn pifSolenoid_ActionOff
@@ -190,6 +192,18 @@ void pifSolenoid_SetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
  * @param flag Bit mask of channels to disable.
  */
 void pifSolenoid_ResetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
+
+/**
+ * @fn pifSolenoidColSig_Init
+ * @brief 
+ */
+void pifSolenoidColSig_Init();
+
+/**
+ * @fn pifSolenoidColSig_Clear
+ * @brief 
+ */
+void pifSolenoidColSig_Clear();
 
 /**
  * @fn pifSolenoidColSig_SetFlag

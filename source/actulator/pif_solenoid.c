@@ -181,11 +181,13 @@ fail:
 void pifSolenoid_Clear(PifSolenoid* p_owner)
 {
 #ifdef PIF_COLLECT_SIGNAL
-	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
-	if (!pifDList_Size(&s_cs_list)) {
-		pifCollectSignal_Detach(CSF_SOLENOID);
-	}
-	p_owner->__p_colsig = NULL;
+    if (p_owner->__p_colsig) {
+    	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
+    	if (!pifDList_Size(&s_cs_list)) {
+    		pifCollectSignal_Detach(CSF_SOLENOID);
+    	}
+    	p_owner->__p_colsig = NULL;
+    }
 #endif
 	if (p_owner->__p_timer_on) {
 		pifTimerManager_Remove(p_owner->__p_timer_on);
@@ -221,7 +223,7 @@ BOOL pifSolenoid_SetOnTime(PifSolenoid* p_owner, uint16_t on_time)
     return TRUE;
 }
 
-void pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay)
+BOOL pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay)
 {
 	PifSolenoidContent *pstContent;
 	int32_t time;
@@ -230,15 +232,19 @@ void pifSolenoid_ActionOn(PifSolenoid* p_owner, uint16_t delay)
 		if (p_owner->__p_timer_delay->_step == TS_RUNNING) {
 			time = _calcurateTime(p_owner);
 			pstContent = pifRingData_Add(p_owner->__p_buffer);
+            if (!pstContent) return FALSE;
+
 			pstContent->delay = delay > time ? delay - time : 0;
-			return;
+			pstContent->dir = SD_INVALID;
+			return TRUE;
 		}
 	}
 
 	_actionOn(p_owner, delay, SD_INVALID);
+    return TRUE;
 }
 
-void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDir dir)
+BOOL pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDir dir)
 {
 	PifSolenoidContent *pstContent;
 	int32_t time;
@@ -247,13 +253,16 @@ void pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint16_t delay, PifSolenoidDi
 		if (p_owner->__p_timer_delay->_step == TS_RUNNING) {
 			time = _calcurateTime(p_owner);
 			pstContent = pifRingData_Add(p_owner->__p_buffer);
-			pstContent->delay = delay >= time ? delay - time : 0;
+            if (!pstContent) return FALSE;
+
+			pstContent->delay = delay > time ? delay - time : 0;
 			pstContent->dir = dir;
-			return;
+			return TRUE;
 		}
 	}
 
     _actionOn(p_owner, delay, dir);
+	return TRUE;
 }
 
 void pifSolenoid_ActionOff(PifSolenoid* p_owner)
