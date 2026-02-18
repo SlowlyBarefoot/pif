@@ -34,13 +34,13 @@ extern "C" {
 void pifPidControl_Init(PifPidControl *p_owner, float kp, float ki, float kd, float max_integration);
 
 /**
- * @fn pifPidControl_Calcurate
- * @brief Executes the pifPidControl_Calcurate operation for the pid control module according to the API contract.
+ * @fn pifPidControl_Calculate
+ * @brief Executes the pifPidControl_Calculate operation for the pid control module according to the API contract.
  * @param p_owner Pointer to the target object instance.
  * @param err Current control error value.
  * @return Result value returned by this API.
  */
-float pifPidControl_Calcurate(PifPidControl *p_owner, float err);
+float pifPidControl_Calculate(PifPidControl *p_owner, float err);
 
 #ifdef __cplusplus
 }

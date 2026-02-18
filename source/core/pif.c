@@ -2,7 +2,7 @@
 #ifndef	PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
-#include "core/pif_task.h"
+#include "core/pif_task_manager.h"
 
 #include <string.h>
 
@@ -32,7 +32,7 @@ PifActTimer1us pif_act_timer1us = NULL;
 PifActGpioRead pif_act_gpio_read = NULL;
 PifActGpioWrite pif_act_gpio_write = NULL;
 
-const char* kPifMonth3[12] = { "Jan", "Fab", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+const char* kPifMonth3[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
 const char* kPifHexUpperChar = "0123456789ABCDEF";
 const char* kPifHexLowerChar = "0123456789abcdef";
@@ -87,8 +87,6 @@ BOOL pif_Init(PifActTimer1us act_timer1us)
 
 void pif_Exit()
 {
-	extern void pifTaskManager_Clear();
-
 	pifTaskManager_Clear();
 
 #ifdef PIF_COLLECT_SIGNAL
@@ -125,9 +123,9 @@ void pif_sigTimer1ms()
     				days = kDaysInMonth[pif_datetime.month - 1];
     				if (pif_datetime.month == 2) {
     					year = 2000 + pif_datetime.year;
-    					if (year / 4 == 0) {
-    						if (year / 100 == 0) {
-    							if (year / 400 == 0) days++;
+    					if (year % 4 == 0) {
+    						if (year % 100 == 0) {
+    							if (year % 400 == 0) days++;
     						}
     						else days++;
     					}
@@ -321,10 +319,10 @@ void pif_PrintFormat(char* p_buffer, size_t buffer_size, va_list* p_data, const 
 	uint16_t num_str_cnt;
 	BOOL is_long;
 	char *p_var_str;
-	int offset = 0;
+	size_t offset = 0;
 	size_t size;
 
-	while (*p_format) {
+	while (*p_format && offset < buffer_size - 1) {
         if (*p_format == '%') {
             num_str_cnt = 0;
         	is_long = FALSE;
@@ -350,12 +348,14 @@ NEXT_STR:
 					goto NEXT_STR;
 
                 case 'b':
-                	if (is_long) {
-						offset += pif_BinToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt);
-                	}
-                	else {
-						offset += pif_BinToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt);
-                	}
+					if (offset + (num_str_cnt ? num_str_cnt : 32) < buffer_size - 1) {
+                    	if (is_long) {
+    						offset += pif_BinToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt);
+                    	}
+                    	else {
+    						offset += pif_BinToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt);
+                    	}
+                    }
                     break;
 
                 case 'd':
@@ -366,7 +366,9 @@ NEXT_STR:
             				long_val *= -1;
             				if (num_str_cnt) num_str_cnt--;
             			}
-            			offset += pif_DecToString(p_buffer + offset, long_val, num_str_cnt);
+    					if (offset + (num_str_cnt ? num_str_cnt : 11) < buffer_size - 1) {
+                			offset += pif_DecToString(p_buffer + offset, long_val, num_str_cnt);
+                        }
                 	}
                 	else {
             			int_val = va_arg(*p_data, int);
@@ -375,39 +377,55 @@ NEXT_STR:
                 			int_val *= -1;
                 			if (num_str_cnt) num_str_cnt--;
             			}
-            			offset += pif_DecToString(p_buffer + offset, int_val, num_str_cnt);
+    					if (offset + (num_str_cnt ? num_str_cnt : 6) < buffer_size - 1) {
+                			offset += pif_DecToString(p_buffer + offset, int_val, num_str_cnt);
+                        }
                 	}
                     break;
 
                 case 'u':
                 	if (is_long) {
-						offset += pif_DecToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt);
+    					if (offset + (num_str_cnt ? num_str_cnt : 10) < buffer_size - 1) {
+    						offset += pif_DecToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt);
+                        }
                 	}
                 	else {
-						offset += pif_DecToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt);
+    					if (offset + (num_str_cnt ? num_str_cnt : 5) < buffer_size - 1) {
+    						offset += pif_DecToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt);
+                        }
                 	}
                     break;
 
                 case 'x':
                 	if (is_long) {
-						offset += pif_HexToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt, FALSE);
+    					if (offset + (num_str_cnt ? num_str_cnt : 8) < buffer_size - 1) {
+    						offset += pif_HexToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt, FALSE);
+                        }
                 	}
                 	else {
-						offset += pif_HexToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt, FALSE);
+    					if (offset + (num_str_cnt ? num_str_cnt : 4) < buffer_size - 1) {
+    						offset += pif_HexToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt, FALSE);
+                        }
                 	}
                     break;
 
                 case 'X':
                 	if (is_long) {
-                		offset += pif_HexToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt, TRUE);
+    					if (offset + (num_str_cnt ? num_str_cnt : 8) < buffer_size - 1) {
+                    		offset += pif_HexToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt, TRUE);
+                        }
                 	}
                 	else {
-                		offset += pif_HexToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt, TRUE);
+    					if (offset + (num_str_cnt ? num_str_cnt : 4) < buffer_size - 1) {
+                    		offset += pif_HexToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt, TRUE);
+                        }
                 	}
                     break;
 
                 case 'f':
-					offset += pif_FloatToString(p_buffer + offset, va_arg(*p_data, double), num_str_cnt);
+					if (offset + (num_str_cnt ? num_str_cnt + 12 : 20) < buffer_size - 1) {
+    					offset += pif_FloatToString(p_buffer + offset, va_arg(*p_data, double), num_str_cnt);
+                    }
                     break;
 
                 case 's':
@@ -426,16 +444,22 @@ NEXT_STR:
                     break;
 
                 case 'c':
-                	p_buffer[offset++] = va_arg(*p_data, int);
+					if (offset + 1 < buffer_size - 1) {
+    					p_buffer[offset++] = va_arg(*p_data, int);
+                    }
                     break;
 
                 case '%':
-                	p_buffer[offset++] = '%';
+					if (offset + 1 < buffer_size - 1) {
+                    	p_buffer[offset++] = '%';
+                    }
                     break;
             }
         }
         else {
-        	p_buffer[offset++] = *p_format;
+			if (offset + 1 < buffer_size - 1) {
+            	p_buffer[offset++] = *p_format;
+            }
         }
         p_format = p_format + 1;
 	}
@@ -515,10 +539,10 @@ uint32_t pifCheckSum(uint8_t* p_data, uint16_t length)
 uint8_t pifCheckXor(uint8_t* p_data, uint16_t length)
 {
 	uint16_t i;
-	uint8_t xor = 0;
+	uint8_t val = 0;
 
 	for (i = 0; i < length; i++) {
-		xor ^= p_data[i];
+		val ^= p_data[i];
 	}
-	return xor;
+	return val;
 }

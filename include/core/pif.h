@@ -271,11 +271,11 @@ int pif_FloatToString(char* p_buffer, double value, uint16_t point);
  * @fn pif_PrintFormat
  * @brief Formats and writes output related to the core using the provided destination.
  * @param p_buffer Pointer to the caller-provided buffer.
- * @param p_data Pointer to input or output data buffer.
  * @param buffer_size Size of the destination buffer in bytes.
+ * @param p_data Pointer to input or output data buffer.
  * @param p_format Format string used for text generation.
  */
-void pif_PrintFormat(char* p_buffer, size_t buffer_size, va_list* data, const char* p_format);
+void pif_PrintFormat(char* p_buffer, size_t buffer_size, va_list* p_data, const char* p_format);
 
 /**
  * @fn pif_Printf
