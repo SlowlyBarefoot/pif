@@ -30,6 +30,11 @@ BOOL pifTimerManager_Init(PifTimerManager *p_manager, PifId id, uint32_t period1
     }
 
 	memset(p_manager, 0, sizeof(PifTimerManager));
+    p_manager->__pp_remove = (PifTimer **)calloc(sizeof(PifTimer *), max_count);
+    if (!p_manager->__pp_remove) {
+        pif_error = E_OUT_OF_HEAP;
+        return FALSE;
+    }
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_manager->_id = id;
@@ -53,6 +58,10 @@ void pifTimerManager_Clear(PifTimerManager *p_manager)
 		p_manager->__p_task = NULL;
 	}
 	pifObjArray_Clear(&p_manager->__timers);
+    if (p_manager->__pp_remove) {
+        free(p_manager->__pp_remove);
+        p_manager->__pp_remove = NULL;
+    }
 }
 
 PifTimer *pifTimerManager_Add(PifTimerManager *p_manager, PifTimerType type)
@@ -63,6 +72,7 @@ PifTimer *pifTimerManager_Add(PifTimerManager *p_manager, PifTimerType type)
 	PifTimer *p_timer = (PifTimer *)it->data;
     p_timer->_type = type;
     p_timer->_step = TS_STOP;
+    p_timer->__p_task = p_manager->__p_task;
     return p_timer;
 }
 
@@ -78,16 +88,16 @@ int pifTimerManager_Count(PifTimerManager *p_manager)
 
 void pifTimerManager_sigTick(PifTimerManager *p_manager)
 {
-	PifTimer *p_remove = NULL;
+	int i;
 
-    if (!p_manager) return;
+	if (!p_manager) return;
 
-    PifObjArrayIterator it = pifObjArray_Begin(&p_manager->__timers);
+	PifObjArrayIterator it = pifObjArray_Begin(&p_manager->__timers);
 	while (it) {
 		PifTimer *p_timer = (PifTimer *)it->data;
 
 		if (p_timer->_step == TS_REMOVE) {
-			if (!p_remove) p_remove = p_timer;
+			p_manager->__pp_remove[p_manager->__remove_count++] = p_timer;
 		}
 		else if (p_timer->__current) {
 			p_timer->__current--;
@@ -98,7 +108,7 @@ void pifTimerManager_sigTick(PifTimerManager *p_manager)
 					if (p_timer->__event_into_int) {
 						(*p_timer->__evt_finish)(p_timer->__p_finish_issuer);
 					}
-					else {
+					else if (!p_timer->__event) {
 						p_timer->__event = TRUE;
 						pifTask_SetTriggerForTimer(p_manager->__p_task);
 					}
@@ -111,7 +121,7 @@ void pifTimerManager_sigTick(PifTimerManager *p_manager)
 					if (p_timer->__event_into_int) {
 						(*p_timer->__evt_finish)(p_timer->__p_finish_issuer);
 					}
-					else {
+					else if (!p_timer->__event) {
 						p_timer->__event = TRUE;
 						pifTask_SetTriggerForTimer(p_manager->__p_task);
 					}
@@ -121,11 +131,11 @@ void pifTimerManager_sigTick(PifTimerManager *p_manager)
 			case TT_PWM:
 				if (p_timer->__pwm_duty != p_timer->target) {
 					if (!p_timer->__current) {
-						(*p_timer->act_pwm)(OFF);
+						if (p_timer->act_pwm) (*p_timer->act_pwm)(OFF);
 						p_timer->__current = p_timer->target;
 					}
 					if (p_timer->__current == p_timer->__pwm_duty) {
-						(*p_timer->act_pwm)(ON);
+						if (p_timer->act_pwm) (*p_timer->act_pwm)(ON);
 					}
 				}
 				else {
@@ -140,5 +150,8 @@ void pifTimerManager_sigTick(PifTimerManager *p_manager)
 		it = pifObjArray_Next(it);
 	}
 
-	if (p_remove) pifObjArray_Remove(&p_manager->__timers, p_remove);
+	for (i = 0; i < p_manager->__remove_count; i++) {
+		pifObjArray_Remove(&p_manager->__timers, p_manager->__pp_remove[i]);
+	}
+    p_manager->__remove_count = 0;
 }

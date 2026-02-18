@@ -22,6 +22,8 @@ typedef struct StPifTimerManager
 	// Private Member Variable
     PifObjArray __timers;
 	PifTask *__p_task;
+    int __remove_count;
+	PifTimer **__pp_remove;
 } PifTimerManager;
 
 

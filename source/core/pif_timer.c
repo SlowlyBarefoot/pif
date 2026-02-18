@@ -9,9 +9,14 @@ BOOL pifTimer_Start(PifTimer* p_owner, uint32_t target)
 	    return FALSE;
     }
 
+    if (p_owner->__event) {
+    	p_owner->__event = FALSE;
+		if (p_owner->__evt_finish) (*p_owner->__evt_finish)(p_owner->__p_finish_issuer);
+        if (p_owner->__p_task) p_owner->__p_task->__timer_trigger--;
+    }
+
     if (p_owner->_step == TS_STOP) {
     	p_owner->_step = TS_RUNNING;
-    	p_owner->__event = FALSE;
     }
     p_owner->target = target;
     p_owner->__current = target;
@@ -29,7 +34,7 @@ void pifTimer_Stop(PifTimer* p_owner)
 	p_owner->_step = TS_STOP;
 	if (p_owner->_type == TT_PWM) {
 		// Ensure PWM output is turned off on stop.
-		(*p_owner->act_pwm)(OFF);
+		if (p_owner->act_pwm) (*p_owner->act_pwm)(OFF);
 	}
 }
 
@@ -44,7 +49,7 @@ void pifTimer_SetPwmDuty(PifTimer* p_owner, uint16_t duty)
 	// Convert duty ratio to an absolute on-time based on target period.
 	p_owner->__pwm_duty = p_owner->target * duty / PIF_PWM_MAX_DUTY;
 	if (p_owner->__pwm_duty == p_owner->target) {
-		(*p_owner->act_pwm)(ON);
+		if (p_owner->act_pwm) (*p_owner->act_pwm)(ON);
 	}
 }
 

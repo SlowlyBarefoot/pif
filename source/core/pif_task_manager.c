@@ -103,6 +103,7 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	p_owner->_running = FALSE;
 	s_task_stack_ptr--;
 	s_task_stack[s_task_stack_ptr] = NULL;
+    s_current_task = (s_task_stack_ptr > 0) ? s_task_stack[s_task_stack_ptr - 1] : NULL;
 
 #ifdef PIF_DEBUG
     if (pif_act_task_signal) (*pif_act_task_signal)(FALSE);
@@ -243,7 +244,7 @@ fail:
 
 void pifTaskManager_Remove(PifTask *p_task)
 {
-	if (p_task == (PifTask *)s_it_current->data) s_it_current = NULL;
+	if (s_it_current && p_task == (PifTask *)s_it_current->data) s_it_current = NULL;
 
 	pifObjArray_Remove(&s_tasks, p_task);
 

@@ -2,7 +2,7 @@
 #define PIF_TIMER_H
 
 
-#include "core/pif.h"
+#include "core/pif_task.h"
 
 
 #ifndef PIF_PWM_MAX_DUTY
@@ -52,6 +52,7 @@ typedef struct StPifTimer
     uint32_t __pwm_duty;
     BOOL __event_into_int;
 	BOOL __event;
+    PifTask *__p_task;
 
     // Private Event Function
     PifEvtTimerFinish __evt_finish;
@@ -69,7 +70,7 @@ extern "C" {
  * @param target Target tick count to run before completion.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifTimer_Start(PifTimer* p_owner, uint32_t pulse);
+BOOL pifTimer_Start(PifTimer* p_owner, uint32_t target);
 
 /**
  * @fn pifTimer_Stop

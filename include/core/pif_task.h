@@ -58,7 +58,7 @@ struct StPifTask
 	PifTaskProcessing __processing;
 	uint32_t __period;
 	BOOL __trigger;
-    int __timer_trigger;
+    volatile int __timer_trigger;
 	uint32_t __delay_us;
 	uint32_t __current_time;
 	uint32_t __pretime;

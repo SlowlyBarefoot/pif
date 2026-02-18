@@ -51,7 +51,7 @@ void pifTaskManager_Remove(PifTask *p_task);
 int pifTaskManager_Count();
 
 /**
- * @fn pifTaskManager_Count
+ * @fn pifTaskManager_CurrentTask
  * @brief Returns the current number of valid items managed by the task manager.
  * @return Return value of this API.
  */
