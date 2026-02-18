@@ -180,7 +180,7 @@ BOOL pifSpiDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, 
  * @param p_data Output pointer for the extracted 16-bit field value.
  * @return `TRUE` on success, otherwise `FALSE`.
  */
-BOOL pifSpiDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask field, uint16_t* p_data);
+BOOL pifSpiDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint16_t* p_data);
 
 /**
  * @fn pifSpiDevice_Write
@@ -259,9 +259,10 @@ BOOL pifSpiDevice_IsBusy(PifDevice* p_owner);
  * @fn pifSpiDevice_Wait
  * @brief Waits until the SPI device finishes an outstanding transfer.
  * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
+ * @param timeout1ms
  * @return `TRUE` if the device becomes ready before timeout, otherwise `FALSE`.
  */
-BOOL pifSpiDevice_Wait(PifDevice* p_owner);
+BOOL pifSpiDevice_Wait(PifDevice* p_owner, uint16_t timeout1ms);
 
 #ifdef __cplusplus
 }

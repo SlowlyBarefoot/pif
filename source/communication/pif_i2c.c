@@ -33,11 +33,11 @@ PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr, 
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
-		return FALSE;
+		return NULL;
 	}
 
 	PifObjArrayIterator it = pifObjArray_Add(&p_owner->__devices);
-    if (!it) return FALSE;
+    if (!it) return NULL;
 
     PifI2cDevice* p_device = (PifI2cDevice*)it->data;
     if (id == PIF_ID_AUTO) id = pif_id++;
@@ -77,7 +77,9 @@ void pifI2cPort_ScanAddress(PifI2cPort* p_owner)
 	int i, count = 0;
 	PifI2cDevice device;
 
+    memset(&device, 0, sizeof(PifI2cDevice));
 	device._p_port = p_owner;
+    device.timeout = 100;       // 100ms
 	for (i = 1; i < 127; i++) {
 		device.addr = i;
 		device._state = IS_IDLE;

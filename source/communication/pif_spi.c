@@ -29,11 +29,11 @@ PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id, void *p_client
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
-		return FALSE;
+		return NULL;
 	}
 
 	PifObjArrayIterator it = pifObjArray_Add(&p_owner->__devices);
-    if (!it) return FALSE;
+    if (!it) return NULL;
 
     PifSpiDevice* p_device = (PifSpiDevice*)it->data;
     if (id == PIF_ID_AUTO) id = pif_id++;
@@ -218,7 +218,7 @@ BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask
 	if (!pifSpiDevice_ReadRegWord(p_owner, reg, &org)) return FALSE;
 
 	if ((org & mask) != data) {
-		org = (org & ~mask) | data;
+		SET_BIT_FILED(org, mask, data);
 		tmp[0] = org >> 8;
 		tmp[1] = org & 0xFF;
 		if (!pifSpiDevice_Write(p_owner, reg, 1, tmp, 2)) return FALSE;
@@ -236,13 +236,19 @@ BOOL pifSpiDevice_IsBusy(PifDevice* p_owner)
 	return TRUE;
 }
 
-BOOL pifSpiDevice_Wait(PifDevice* p_owner)
+BOOL pifSpiDevice_Wait(PifDevice* p_owner, uint16_t timeout1ms)
 {
 	PifSpiPort* p_port = ((PifSpiDevice*)p_owner)->_p_port;
 
 	if (!p_port->act_is_busy) return FALSE;
 
-	while ((*p_port->act_is_busy)(p_owner));
+    uint32_t timer1ms = pif_cumulative_timer1ms;
+	while ((*p_port->act_is_busy)(p_owner)) {
+        if (pif_cumulative_timer1ms - timer1ms > timeout1ms) {
+            pif_error = E_TIMEOUT;
+            return FALSE;
+        }
+    };
 	return TRUE;
 }
 
