@@ -124,7 +124,7 @@ static uint32_t _doTask(PifTask* p_task)
 
 	if (p_stage->mode & MM_SC_MASK) {
 		if ((p_parent->_state == MS_STABLE) || (p_parent->_state == MS_CONST)) {
-			ctrl_duty = pifPidControl_Calcurate(&p_owner->__pid_control, p_stage->fs_pulses_per_period - tmp_enc);
+			ctrl_duty = pifPidControl_Calculate(&p_owner->__pid_control, p_stage->fs_pulses_per_period - tmp_enc);
 
 			if (ctrl_duty > 0) {
 				if (tmp_duty + ctrl_duty < p_stage->fs_high_duty) {

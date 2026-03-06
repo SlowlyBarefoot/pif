@@ -259,7 +259,7 @@ BOOL pifSpiDevice_IsBusy(PifDevice* p_owner);
  * @fn pifSpiDevice_Wait
  * @brief Waits until the SPI device finishes an outstanding transfer.
  * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param timeout1ms
+ * @param timeout1ms Maximum time to wait in milliseconds before returning `FALSE` with `E_TIMEOUT`.
  * @return `TRUE` if the device becomes ready before timeout, otherwise `FALSE`.
  */
 BOOL pifSpiDevice_Wait(PifDevice* p_owner, uint16_t timeout1ms);

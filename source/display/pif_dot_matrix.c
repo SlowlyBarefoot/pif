@@ -36,14 +36,11 @@ static void _setPattern(PifDotMatrix* p_owner, uint16_t position_x, uint16_t pos
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifDotMatrix* p_owner = p_task->_p_client;
-	uint8_t* p_pattern;
 	uint8_t off = 0;
 
 	if (p_owner->__bt.led) {
-		p_pattern = p_owner->__p_paper;
 		int index = p_owner->__row_index * p_owner->__col_bytes;
-		(*p_owner->__act_display)(p_owner->__row_index, p_pattern + index);
-		p_pattern += p_owner->__total_bytes;
+		(*p_owner->__act_display)(p_owner->__row_index, p_owner->__p_paper + index);
 	}
 	else {
 		(*p_owner->__act_display)(p_owner->__row_index, &off);
@@ -292,7 +289,7 @@ void pifDotMatrix_Stop(PifDotMatrix* p_owner)
 
 BOOL pifDotMatrix_SelectPattern(PifDotMatrix* p_owner, uint8_t pattern_index)
 {
-	if (pattern_index >= p_owner->__pattern_size) {
+	if (pattern_index >= p_owner->__pattern_count) {
         pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
