@@ -148,12 +148,12 @@ void pifFnd_SetFillZero(PifFnd* p_owner, BOOL fill_zero);
 void pifFnd_SetFloat(PifFnd* p_owner, double value);
 
 /**
- * @fn pifFnd_SetInterger
+ * @fn pifFnd_SetInteger
  * @brief Converts and displays a signed integer value on the FND.
  * @param p_owner Pointer to an initialized FND instance.
  * @param value Integer value to render.
  */
-void pifFnd_SetInterger(PifFnd* p_owner, int32_t value);
+void pifFnd_SetInteger(PifFnd* p_owner, int32_t value);
 
 /**
  * @fn pifFnd_SetString

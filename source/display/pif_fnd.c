@@ -65,7 +65,7 @@ BOOL pifFnd_Init(PifFnd* p_owner, PifId id, PifTimerManager* p_timer_manager, ui
 
 	memset(p_owner, 0, sizeof(PifFnd));
 
-    p_owner->__p_string = calloc(sizeof(uint8_t), digit_size);
+    p_owner->__p_string = calloc(digit_size, sizeof(uint8_t));
     if (!p_owner->__p_string) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
@@ -134,7 +134,7 @@ void pifFnd_Stop(PifFnd* p_owner)
 	int i;
 
 	for (i = 0; i < p_owner->_digit_size; i++) {
-		(*p_owner->__act_display)(0, 1 << i);
+		(*p_owner->__act_display)(0, i);
 	}
 	p_owner->__p_task->pause = TRUE;
     if (p_owner->__bt.blink) {
@@ -210,6 +210,7 @@ void pifFnd_SetFloat(PifFnd* p_owner, double value)
     		value -= sd;
     	}
     	sp -= p_owner->sub_numeric_digits;
+    	p_owner->__p_string[p_owner->_digit_size - 1 - p_owner->sub_numeric_digits] |= 0x80;
     }
     sp--;
 	BOOL first = TRUE;
@@ -226,17 +227,16 @@ void pifFnd_SetFloat(PifFnd* p_owner, double value)
 		else {
 			uint8_t digit = num % 10;
 			p_owner->__p_string[p] = '0' + digit;
-			if (digit) first = FALSE;
+			if (num) first = FALSE;
 		}
 		num = num / 10;
 	}
-	p_owner->__p_string[p_owner->_digit_size - 1 - p_owner->sub_numeric_digits] |= 0x80;
 	if (num || minus) {
 		p_owner->__p_string[p_owner->_digit_size - 1] = '_';
 	}
 }
 
-void pifFnd_SetInterger(PifFnd* p_owner, int32_t value)
+void pifFnd_SetInteger(PifFnd* p_owner, int32_t value)
 {
     BOOL minus = FALSE;
 
@@ -246,7 +246,7 @@ void pifFnd_SetInterger(PifFnd* p_owner, int32_t value)
     }
     int sp = p_owner->_digit_size - 1;
     if (p_owner->sub_numeric_digits) {
-    	for (int p = sp; p >= sp - p_owner->sub_numeric_digits; p--) {
+    	for (int p = sp; p > sp - p_owner->sub_numeric_digits; p--) {
     		p_owner->__p_string[p] = '0';
     	}
     	sp -= p_owner->sub_numeric_digits;
@@ -279,7 +279,7 @@ void pifFnd_SetInterger(PifFnd* p_owner, int32_t value)
         	else {
             	uint8_t digit = value % 10;
             	p_owner->__p_string[p] = '0' + digit;
-            	if (digit) first = FALSE;
+            	if (value) first = FALSE;
         	}
         	value = value / 10;
         }
