@@ -72,7 +72,7 @@ void pifLed_Clear(PifLed* p_owner);
  * @param p_owner Pointer to an initialized LED controller.
  * @param bits Bit mask selecting target LED channels.
  */
-void pifLed_PartOn(PifLed* p_owner, uint8_t bits);
+void pifLed_PartOn(PifLed* p_owner, uint32_t bits);
 
 /**
  * @fn pifLed_PartOff
@@ -80,7 +80,7 @@ void pifLed_PartOn(PifLed* p_owner, uint8_t bits);
  * @param p_owner Pointer to an initialized LED controller.
  * @param bits Bit mask selecting target LED channels.
  */
-void pifLed_PartOff(PifLed* p_owner, uint8_t bits);
+void pifLed_PartOff(PifLed* p_owner, uint32_t bits);
 
 /**
  * @fn pifLed_PartChange
@@ -89,7 +89,7 @@ void pifLed_PartOff(PifLed* p_owner, uint8_t bits);
  * @param bits Bit mask selecting target LED channels.
  * @param state Target state (`ON` or `OFF`) for selected channels.
  */
-void pifLed_PartChange(PifLed* p_owner, uint8_t bits, SWITCH state);
+void pifLed_PartChange(PifLed* p_owner, uint32_t bits, SWITCH state);
 
 /**
  * @fn pifLed_PartToggle
@@ -97,7 +97,7 @@ void pifLed_PartChange(PifLed* p_owner, uint8_t bits, SWITCH state);
  * @param p_owner Pointer to an initialized LED controller.
  * @param bits Bit mask selecting target LED channels.
  */
-void pifLed_PartToggle(PifLed* p_owner, uint8_t bits);
+void pifLed_PartToggle(PifLed* p_owner, uint32_t bits);
 
 /**
  * @fn pifLed_AllOn
@@ -170,7 +170,7 @@ BOOL pifLed_ChangeBlinkPeriod(PifLed* p_owner, uint16_t period1ms);
  * @param p_owner Pointer to an initialized LED controller.
  * @param bits Bit mask selecting channels that should blink.
  */
-void pifLed_SBlinkOn(PifLed* p_owner, uint8_t bits);
+void pifLed_SBlinkOn(PifLed* p_owner, uint32_t bits);
 
 /**
  * @fn pifLed_MBlinkOn
@@ -179,7 +179,7 @@ void pifLed_SBlinkOn(PifLed* p_owner, uint8_t bits);
  * @param bits Bit mask selecting channels that should blink.
  * @param index Blink profile index to apply.
  */
-void pifLed_MBlinkOn(PifLed* p_owner, uint8_t bits, uint8_t index);
+void pifLed_MBlinkOn(PifLed* p_owner, uint32_t bits, uint8_t index);
 
 /**
  * @fn pifLed_SBlinkOff
@@ -188,7 +188,7 @@ void pifLed_MBlinkOn(PifLed* p_owner, uint8_t bits, uint8_t index);
  * @param bits Bit mask selecting channels to stop blinking.
  * @param state Final LED state to apply after blink is disabled.
  */
-void pifLed_SBlinkOff(PifLed* p_owner, uint8_t bits, SWITCH state);
+void pifLed_SBlinkOff(PifLed* p_owner, uint32_t bits, SWITCH state);
 
 /**
  * @fn pifLed_MBlinkOff
@@ -198,7 +198,7 @@ void pifLed_SBlinkOff(PifLed* p_owner, uint8_t bits, SWITCH state);
  * @param index Blink profile index to disable.
  * @param state Final LED state to apply after blink is disabled.
  */
-void pifLed_MBlinkOff(PifLed* p_owner, uint8_t bits, uint8_t index, SWITCH state);
+void pifLed_MBlinkOff(PifLed* p_owner, uint32_t bits, uint8_t index, SWITCH state);
 
 #ifdef __cplusplus
 }

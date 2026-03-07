@@ -70,25 +70,29 @@ BOOL pifLed_Init(PifLed* p_owner, PifId id, PifTimerManager* p_timer_manager, ui
 
 void pifLed_Clear(PifLed* p_owner)
 {
+    if (p_owner->__p_blinks) {
+        free(p_owner->__p_blinks);
+        p_owner->__p_blinks = NULL;
+    }
 	if (p_owner->__p_timer_blink) {
 		pifTimerManager_Remove(p_owner->__p_timer_blink);
 		p_owner->__p_timer_blink = NULL;
 	}
 }
 
-void pifLed_PartOn(PifLed* p_owner, uint8_t bits)
+void pifLed_PartOn(PifLed* p_owner, uint32_t bits)
 {
 	p_owner->__state |= bits;
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
-void pifLed_PartOff(PifLed* p_owner, uint8_t bits)
+void pifLed_PartOff(PifLed* p_owner, uint32_t bits)
 {
 	p_owner->__state &= ~bits;
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
-void pifLed_PartChange(PifLed* p_owner, uint8_t bits, SWITCH state)
+void pifLed_PartChange(PifLed* p_owner, uint32_t bits, SWITCH state)
 {
 	if (state) {
 		p_owner->__state |= bits;
@@ -99,7 +103,7 @@ void pifLed_PartChange(PifLed* p_owner, uint8_t bits, SWITCH state)
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
-void pifLed_PartToggle(PifLed* p_owner, uint8_t bits)
+void pifLed_PartToggle(PifLed* p_owner, uint32_t bits)
 {
 	p_owner->__state ^= bits;
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
@@ -107,7 +111,7 @@ void pifLed_PartToggle(PifLed* p_owner, uint8_t bits)
 
 void pifLed_AllOn(PifLed* p_owner)
 {
-	p_owner->__state = (1 << p_owner->count) - 1;
+	p_owner->__state = (p_owner->count == 32) ? 0xFFFFFFFFUL : (1UL << p_owner->count) - 1;
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
@@ -125,7 +129,7 @@ void pifLed_AllChange(PifLed* p_owner, uint32_t state)
 
 void pifLed_AllToggle(PifLed* p_owner)
 {
-	p_owner->__state ^= (1 << p_owner->count) - 1;
+	p_owner->__state ^= (p_owner->count == 32) ? 0xFFFFFFFFUL : (1UL << p_owner->count) - 1;
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
@@ -151,6 +155,10 @@ BOOL pifLed_AttachMBlink(PifLed* p_owner, uint16_t period1ms, uint8_t count, ...
 
     pifTimer_Start(p_owner->__p_timer_blink, period1ms * 1000L / p_owner->__p_timer_manager->_period1us);
 
+    if (p_owner->__p_blinks) {
+        free(p_owner->__p_blinks);
+        p_owner->__p_blinks = NULL;
+    }
     p_owner->__p_blinks = calloc(count, sizeof(PifLedBlink));
     if (!p_owner->__p_blinks) {
     	pif_error = E_OUT_OF_HEAP;
@@ -212,14 +220,18 @@ BOOL pifLed_ChangeBlinkPeriod(PifLed* p_owner, uint16_t period1ms)
 	return TRUE;
 }
 
-void pifLed_SBlinkOn(PifLed* p_owner, uint8_t bits)
+void pifLed_SBlinkOn(PifLed* p_owner, uint32_t bits)
 {
+    if (!p_owner->__p_blinks) return;
+
     p_owner->__p_blinks[0].flag |= bits;
 }
 
-void pifLed_MBlinkOn(PifLed* p_owner, uint8_t bits, uint8_t index)
+void pifLed_MBlinkOn(PifLed* p_owner, uint32_t bits, uint8_t index)
 {
 	uint8_t b;
+
+    if (!p_owner->__p_blinks || index >= p_owner->__blink_count) return; 
 
     p_owner->__p_blinks[index].flag |= bits;
     for (b = 0; b < p_owner->__blink_count; b++) {
@@ -229,14 +241,18 @@ void pifLed_MBlinkOn(PifLed* p_owner, uint8_t bits, uint8_t index)
     }
 }
 
-void pifLed_SBlinkOff(PifLed* p_owner, uint8_t bits, SWITCH state)
+void pifLed_SBlinkOff(PifLed* p_owner, uint32_t bits, SWITCH state)
 {
+    if (!p_owner->__p_blinks) return;
+
 	p_owner->__p_blinks[0].flag &= ~bits;
 	pifLed_PartChange(p_owner, bits, state);
 }
 
-void pifLed_MBlinkOff(PifLed* p_owner, uint8_t bits, uint8_t index, SWITCH state)
+void pifLed_MBlinkOff(PifLed* p_owner, uint32_t bits, uint8_t index, SWITCH state)
 {
+    if (!p_owner->__p_blinks || index >= p_owner->__blink_count) return; 
+
 	p_owner->__p_blinks[index].flag &= ~bits;
 	pifLed_PartChange(p_owner, bits, state);
 }
