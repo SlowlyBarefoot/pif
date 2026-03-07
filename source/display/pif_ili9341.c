@@ -133,8 +133,8 @@ static uint8_t _convertColorMcuI_18bit(PifIli9341* p_owner, PifColor color, uint
 static uint8_t _convertColorMcuII_8bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
 {
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
-		p_data[0] = color << 2;
-		p_data[1] = (color & 0xFF) << 10;
+		p_data[0] = (color & 0xFF00) << 2;
+		p_data[1] = (color & 0x00FF) << 10;
 		return 2;
 	}
 	else {
@@ -379,7 +379,7 @@ static uint8_t _convertColorMcuII_18bit(PifIli9341* p_owner, PifColor color, uin
 
 BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interface)
 {
-	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
+	PifTftLcd* p_parent;
 
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -429,6 +429,7 @@ BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interfac
 		return FALSE;
 	}
 
+    p_parent = (PifTftLcd*)p_owner;
 	pifTftLcd_Init(&p_owner->parent, id, ILI9341_WIDTH, ILI9341_HEIGHT, TLR_0_DEGREE);
 	p_parent->_fn_set_rotation = pifIli9341_SetRotation;
 	p_parent->_fn_draw_pixel = pifIli9341_DrawPixel;
@@ -444,13 +445,14 @@ BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interfac
 BOOL pifIli9341_AttachActParallel(PifIli9341* p_owner, PifActLcdReset act_reset, PifActLcdChipSelect act_chip_select, PifActLcdReadCmd act_read_cmd,
 		PifActLcdWriteCmd act_write_cmd, PifActLcdWriteData act_write_data, PifActLcdWriteRepeat act_write_repeat)
 {
-	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
+	PifTftLcd* p_parent;
 
 	if (!p_owner || !act_reset || !act_chip_select || !act_write_cmd || !act_write_data || !act_write_repeat) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
+    p_parent = (PifTftLcd*)p_owner;
     p_parent->__act_reset = act_reset;
     p_parent->__act_chip_select = act_chip_select;
     p_parent->__act_read_cmd = act_read_cmd;
@@ -593,7 +595,7 @@ void pifIli9341_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 	size = (*p_owner->__fn_convert_color)(p_owner, color, data);
 
 	(*p_parent->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x, y, x + len, y);
+	_setAddress(p_owner, x, y, x + len - 1, y);
 	(*p_parent->__act_write_repeat)(data, size, len);
 	(*p_parent->__act_chip_select)(FALSE);
 }
@@ -607,7 +609,7 @@ void pifIli9341_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 	size = (*p_owner->__fn_convert_color)(p_owner, color, data);
 
 	(*p_parent->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x, y, x, y + len);
+	_setAddress(p_owner, x, y, x, y + len - 1);
 	(*p_parent->__act_write_repeat)(data, size, len);
 	(*p_parent->__act_chip_select)(FALSE);
 }
