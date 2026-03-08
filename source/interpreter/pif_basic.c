@@ -93,6 +93,10 @@ static PifBasic s_basic;
  */
 static void initbasic(int comp)
 {
+    lnum = 0;
+    ungot = 0;
+    tok = 0;
+
 	pc = prg;
 	sp = stk + PIF_BASIC_STACK;
 	min_sp = sp;
@@ -100,7 +104,7 @@ static void initbasic(int comp)
 	stabp = stab;
 	cpc = 0;
 	compile = comp;
-	s_basic._varable_count = 0;
+	s_basic._variable_count = 0;
 }
 
 /**
@@ -514,7 +518,7 @@ static int DROP_()
 static int DIM_()
 {
 	int v = PCV, n = *sp++;
-	Val* mem = calloc(sizeof(Val), n + 1);
+	Val* mem = calloc(n + 1, sizeof(Val));
 
 	if (!mem) err("MEMORY IS LACK");
 	mem[0] = n;
@@ -570,7 +574,8 @@ static int EXEC_()
 
 	p = *ap - 1;
 	ap--;
-	if (p >= s_basic.__process_size) err("UNKNOWN PROCESS");
+    if (n - 1 > PIF_BASIC_EXEC_SIZE) err("TOO MANY ARGS");
+	if (p < 0 || p >= s_basic.__process_size) err("UNKNOWN PROCESS");
 	for (i = 0; i < n - 1; i++) param[i] = *ap--;
 	(*s_basic.__p_process[p])(n - 1, param);
 	return 1;
@@ -587,7 +592,8 @@ static int EXECR_()
 
 	p = *ap - 1;
 	ap--;
-	if (p >= s_basic.__process_size) {
+    if (n - 1 > PIF_BASIC_EXEC_SIZE) err("TOO MANY ARGS");
+	if (p < 0 || p >= s_basic.__process_size) {
 		*--sp = 0;
 		if (sp < min_sp) min_sp = sp;
 		err("UNKNOWN PROCESS");
@@ -607,8 +613,8 @@ static int find(char* var)
 {
 	int	i;
 
-	for (i = 0; i < s_basic._varable_count && strcmp(var, name[i]); i++);
-	if (i == s_basic._varable_count) strcpy(name[s_basic._varable_count++], var);
+	for (i = 0; i < s_basic._variable_count && strcmp(var, name[i]); i++);
+	if (i == s_basic._variable_count) strcpy(name[s_basic._variable_count++], var);
 	return i;
 }
 
@@ -1031,8 +1037,8 @@ static int kwdhook_(char *msg)
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifBasic* p_owner = (PifBasic*)p_task->_p_client;
-	char *p_current = p_owner->__p_program, *p_nl, *p_cr;
-	int n, cnt;
+	volatile  char *p_current = p_owner->__p_program, *p_nl, *p_cr;
+	volatile int n, cnt;
 
 	p_owner->__start_time = pif_cumulative_timer1ms;
 

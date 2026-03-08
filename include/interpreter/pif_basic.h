@@ -167,7 +167,7 @@ struct StPifBasic
     uint32_t _process_time;
     BOOL _result;
     uint16_t _program_size;
-    int _varable_count;
+    int _variable_count;
     int _string_count;
     int _stack_count;
 
