@@ -131,11 +131,11 @@ static uint32_t _doTask(PifTask* p_task)
 
     p_owner->_x = (tpx - p_owner->__clx) / p_owner->__px;
 	if (p_owner->_x < 0) p_owner->_x = 0;
-	else if (p_owner->_x > p_lcd->_width) p_owner->_x = p_lcd->_width - 1;
+	else if (p_owner->_x >= p_lcd->_width) p_owner->_x = p_lcd->_width - 1;
 
 	p_owner->_y = (tpy - p_owner->__cty) / p_owner->__py;
 	if (p_owner->_y < 0) p_owner->_y = 0;
-	else if (p_owner->_y > p_lcd->_height) p_owner->_y = p_lcd->_height - 1;
+	else if (p_owner->_y >= p_lcd->_height) p_owner->_y = p_lcd->_height - 1;
 
 	p_owner->_pressure = TRUE;
 
@@ -189,7 +189,7 @@ BOOL pifTouchScreen_AttachAction(PifTouchScreen* p_owner, PifActTouchPosition ac
 
 BOOL pifTouchScreen_AttachFilter(PifTouchScreen* p_owner, PifNoiseFilter* p_filter_x, PifNoiseFilter* p_filter_y)
 {
-    if (!p_filter_x || !p_filter_y) {
+    if (!p_owner || !p_filter_x || !p_filter_y) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
@@ -207,7 +207,9 @@ BOOL pifTouchScreen_SetControlPeriod(PifTouchScreen* p_owner, uint16_t period1ms
 	}
 
 	p_owner->_control_period_1ms = period1ms;
-   	pifTask_ChangePeriod(p_owner->_p_task, p_owner->_control_period_1ms);
+    if (p_owner->_p_task) {
+       	pifTask_ChangePeriod(p_owner->_p_task, p_owner->_control_period_1ms);
+    }
 	return TRUE;
 }
 

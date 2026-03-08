@@ -59,4 +59,5 @@ void pifTsc2046_Clear(PifTsc2046* p_owner)
 		pifSpiPort_RemoveDevice(p_owner->_p_spi->_p_port, p_owner->_p_spi);
     	p_owner->_p_spi = NULL;
 	}
+    pifTouchScreen_Clear(&p_owner->parent);
 }
