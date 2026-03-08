@@ -38,7 +38,7 @@ long pifModbusAscii_AsciiToShort(uint8_t *p_ascii)
 
 	for (i = 0; i < 4; i++) {
 		v = _AsciiToBinary(p_ascii[i]);
-		if (v > 0) binary = (binary << 4) + v;
+		if (v >= 0) binary = (binary << 4) + v;
 	}
 	return i < 4 ? -1L : binary;
 }

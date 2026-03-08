@@ -41,17 +41,17 @@ void pifModbusSlave_AttachHoldingRegisters(PifModbusSlave *p_owner, uint16_t *p_
 
 BOOL pifModbusSlave_AllocTmpBits(PifModbusSlave *p_owner, uint16_t quantity)
 {
-	uint8_t p_tmp;
+	uint8_t *p_tmp;
 	uint16_t length = (quantity + 7) / 8;
 
 	if (!p_owner->__p_tmp_bits) {
-		p_owner->__p_tmp_bits = malloc(p_owner->__tmp_bits_size);
+		p_owner->__p_tmp_bits = malloc(length);
 		if (!p_owner->__p_tmp_bits) return FALSE;
 		p_owner->__tmp_bits_size = length;
 		memset(p_owner->__p_tmp_bits, 0, length);
 	}
 	else if (p_owner->__tmp_bits_size < length) {
-		p_tmp = realloc(p_owner->__p_tmp_bits, p_owner->__tmp_bits_size);
+		p_tmp = realloc(p_owner->__p_tmp_bits, length);
 		if (p_tmp) {
 			p_owner->__p_tmp_bits = p_tmp;
 			p_owner->__tmp_bits_size = length;
@@ -204,7 +204,7 @@ PifModbusError pifModbusSlave_ReadWriteMultipleRegisters(PifModbusSlave *p_owner
 	*p_read_quantity = pifModbus_StreamToShort(&p_owner->__p_buffer[4]);
 	write_address = pifModbus_StreamToShort(&p_owner->__p_buffer[6]);
 	write_quantity = pifModbus_StreamToShort(&p_owner->__p_buffer[8]);
-	if (*p_read_address + *p_read_quantity >= p_owner->__holding_registers_size && write_address + write_quantity < p_owner->__holding_registers_size) return MBE_ILLEGAL_DATA_ADDRESS;
+	if (*p_read_address + *p_read_quantity >= p_owner->__holding_registers_size || write_address + write_quantity >= p_owner->__holding_registers_size) return MBE_ILLEGAL_DATA_ADDRESS;
 
 	pos = 11;
 	for (i = 0; i < write_quantity; i++, pos += 2) {
