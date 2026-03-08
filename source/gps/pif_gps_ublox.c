@@ -6,8 +6,6 @@
 #endif
 #include "gps/pif_gps_ublox.h"
 
-#include <string.h>
-
 
 #define DIGIT_TO_VAL(_x)        (_x - '0')
 

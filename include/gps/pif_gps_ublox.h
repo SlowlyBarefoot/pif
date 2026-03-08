@@ -1,5 +1,5 @@
-#ifndef PIF_GPS_UBLOXX_H
-#define PIF_GPS_UBLOXX_H
+#ifndef PIF_GPS_UBLOX_H
+#define PIF_GPS_UBLOX_H
 
 
 #include "communication/pif_uart.h"
@@ -618,4 +618,4 @@ BOOL pifGpsUblox_SendUbxMsg(PifGpsUblox* p_owner, uint8_t class_id, uint8_t msg_
 #endif
 
 
-#endif  // PIF_GPS_UBLOXX_H
+#endif  // PIF_GPS_UBLOX_H

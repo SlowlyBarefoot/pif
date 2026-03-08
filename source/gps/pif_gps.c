@@ -82,7 +82,7 @@ static double _convertString2Float(char* str)
 static int _convertString2Interger(char* str)
 {
 	char* p;
-	int value = 0.0;
+	int value = 0;
 
 	p = str;
 	if (*p == '-') p++;
@@ -246,7 +246,7 @@ BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 		p_owner->__string[p_owner->__offset] = 0;
 		if (p_owner->__param == 0) {
 			if (p_owner->__offset >= 5) {
-				if (p_owner->__string[2] == 'D' && p_owner->__string[3] == 'T' && p_owner->__string[4] == 'M') c = PIF_GPS_NMEA_MSG_ID_DTM;
+				if (p_owner->__string[2] == 'D' && p_owner->__string[3] == 'T' && p_owner->__string[4] == 'M') p_owner->__msg_id = PIF_GPS_NMEA_MSG_ID_DTM;
 				else if (p_owner->__string[2] == 'G' && p_owner->__string[3] == 'B' && p_owner->__string[4] == 'S') p_owner->__msg_id = PIF_GPS_NMEA_MSG_ID_GBS;
 				else if (p_owner->__string[2] == 'G' && p_owner->__string[3] == 'G' && p_owner->__string[4] == 'A') p_owner->__msg_id = PIF_GPS_NMEA_MSG_ID_GGA;
 				else if (p_owner->__string[2] == 'G' && p_owner->__string[3] == 'L' && p_owner->__string[4] == 'L') p_owner->__msg_id = PIF_GPS_NMEA_MSG_ID_GLL;
