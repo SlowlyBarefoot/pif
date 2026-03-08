@@ -47,7 +47,7 @@ static uint8_t _convertColor16bit565(PifColor color, uint32_t* p_data)
 
 static uint8_t _convertColor18bit(PifColor color, uint32_t* p_data)
 {
-	p_data[0] = ((color & 0xF800) << 2) | ((color & 0x07E0) << 1) | ((color & 0x001F) << 3);
+	p_data[0] = ((color & 0xF800) << 2) | ((color & 0x07E0) << 1) | ((color & 0x001F) << 1);
 	return 1;
 }
 
@@ -258,7 +258,7 @@ void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 	size = (*p_owner->__fn_convert_color)(color, data);
 
 	(*p_parent->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x, y, x + len, y);
+	_setAddress(p_owner, x, y, x + len - 1, y);
 	(*p_parent->__act_write_repeat)(data, size, len);
 	(*p_parent->__act_chip_select)(FALSE);
 }
@@ -272,7 +272,7 @@ void pifSsd1963_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 	size = (*p_owner->__fn_convert_color)(color, data);
 
 	(*p_parent->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x, y, x, y + len);
+	_setAddress(p_owner, x, y, x, y + len - 1);
 	(*p_parent->__act_write_repeat)(data, size, len);
 	(*p_parent->__act_chip_select)(FALSE);
 }
