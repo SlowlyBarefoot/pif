@@ -91,6 +91,7 @@ static void _convertString(PifSrml *p_owner, char *p_str, PifSrmlAlign align, in
                 offset = sprintf(p_buffer, form, p_str);
                 for (i = 0; i < str_cnt - offset; i++) p_buffer[offset + i] = ' ';
             }
+            else str_cnt = 0;
             break;
 
         case SRMLA_RIGHT:
@@ -99,14 +100,14 @@ static void _convertString(PifSrml *p_owner, char *p_str, PifSrmlAlign align, in
             break;
 
         default:
-            offset = sprintf(p_buffer, p_str);
+            offset = sprintf(p_buffer, "%s", p_str);
             for (i = 0; i < str_cnt - offset; i++) p_buffer[offset + i] = ' ';
             break;
         }
         p_owner->__offset += str_cnt;
     }
     else {
-    	p_owner->__offset += sprintf(p_buffer, p_str);
+    	p_owner->__offset += sprintf(p_buffer, "%s", p_str);
     }
 }
 
@@ -129,7 +130,7 @@ static void _convertInteger(PifSrml *p_owner, long value, PifSrmlAlign align, in
         value *= -1;
     }
 
-    _numberToString(num_str, value, 0, p_owner->ch_thousand);
+    _numberToString(num_str + idx, value, 0, p_owner->ch_thousand);
     _convertString(p_owner, num_str, align, str_cnt);
 }
 
@@ -163,7 +164,7 @@ static void _convertReal(PifSrml *p_owner, double value, PifSrmlAlign align, int
         value -= num;
         for (i = 0; i < fraction; i++) value *= 10;
 
-        idx += _numberToString(num_str + idx, (long)(value + 0.5), 0, 0);
+        idx += _numberToString(num_str + idx, (long)(value + 0.5), fraction, 0);
     }
     _convertString(p_owner, num_str, align, str_cnt);
 }
@@ -196,7 +197,7 @@ NEXT_STR:
         goto NEXT_STR;
 
     case '#':
-    	p_owner->__buffer[p_owner->__offset++] = '#';
+    	p_owner->__buffer[p_owner->__offset++] = '@';
         break;
 
     default:
@@ -284,6 +285,25 @@ NEXT_STR:
     }
 }
 
+static void _srmlNewline(PifSrml *p_owner, char *p_loop_command, const char *p_loop_fp)
+{
+    if (p_owner->__offset) {
+    	p_owner->__buffer[p_owner->__offset++] = '\r';
+    	p_owner->__buffer[p_owner->__offset++] = '\n';
+    	p_owner->__buffer[p_owner->__offset] = 0;
+        (*p_owner->__f_print_line)(p_owner->__buffer, p_owner->__offset);
+    }
+    p_owner->__offset = 0;
+    p_owner->__p_format++;
+    if (*p_loop_command) {
+    	p_owner->loop_idx++;
+        if (p_owner->__f_process_loop) {
+        	if ((*p_owner->__f_process_loop)(p_owner, *p_loop_command)) *p_loop_command = 0;
+        	else p_owner->__p_format = p_loop_fp;
+        }
+    }
+}
+
 BOOL pifSrml_Init(PifSrml *p_owner, FSrmlProcessData f_process_data, FSrmlProcessLoop f_process_loop, FSrmlProcessIf f_process_if, FSrmlPrintLine f_print_line)
 {
 	if (!p_owner || !f_process_data || !f_print_line) {
@@ -354,22 +374,14 @@ void pifSrml_Parsing(PifSrml *p_owner, const char *p_format)
             break;
 
         case '\n':
+        	_srmlNewline(p_owner, &loop_command, loop_fp);
+        	first = 1;
+        	ignore = 0;
+            break;
+
         case '\r':
-            if (p_owner->__offset) {
-            	p_owner->__buffer[p_owner->__offset++] = '\r';
-            	p_owner->__buffer[p_owner->__offset++] = '\n';
-            	p_owner->__buffer[p_owner->__offset] = 0;
-                (*p_owner->__f_print_line)(p_owner->__buffer, p_owner->__offset);
-            }
-            p_owner->__offset = 0;
-            p_owner->__p_format++;
-            if (loop_command) {
-            	p_owner->loop_idx++;
-                if (p_owner->__f_process_loop) {
-                	if ((*p_owner->__f_process_loop)(p_owner, loop_command)) loop_command = 0;
-                	else p_owner->__p_format = loop_fp;
-                }
-            }
+        	_srmlNewline(p_owner, &loop_command, loop_fp);
+        	if (*p_owner->__p_format == '\n') p_owner->__p_format++;
         	first = 1;
         	ignore = 0;
             break;
@@ -383,4 +395,5 @@ void pifSrml_Parsing(PifSrml *p_owner, const char *p_format)
             break;
         }
     }
+    if (!first) _srmlNewline(p_owner, &loop_command, loop_fp);
 }
