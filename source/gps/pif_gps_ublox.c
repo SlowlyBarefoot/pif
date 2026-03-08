@@ -9,7 +9,7 @@
 
 #define DIGIT_TO_VAL(_x)        (_x - '0')
 
-#define PKT_ERR_BIG_LENGHT		0
+#define PKT_ERR_BIG_LENGTH		0
 #define PKT_ERR_INVALID_DATA    1
 #define PKT_ERR_WRONG_CRC    	2
 #define PKT_ERR_UNKNOWE_ID   	3
@@ -132,7 +132,7 @@ static BOOL _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 		}
 		else {
 #ifndef PIF_NO_LOG
-			pkt_err = PKT_ERR_BIG_LENGHT;
+			pkt_err = PKT_ERR_BIG_LENGTH;
 			line = __LINE__;
 #endif
 			goto fail;

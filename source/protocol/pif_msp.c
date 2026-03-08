@@ -37,7 +37,7 @@ static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 
 #endif
 
-#define PKT_ERR_BIG_LENGHT		0
+#define PKT_ERR_BIG_LENGTH		0
 #define PKT_ERR_INVALID_DATA    1
 #define PKT_ERR_WRONG_CRC    	2
 #define PKT_ERR_NONE	    	3
@@ -72,7 +72,7 @@ static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_da
 		switch (p_owner->__rx.state) {
 		case MRS_IDLE:
 			if (data == '$') {
-				p_owner->__rx.state = MRS_HEADER_CHAR_1;
+				p_owner->__rx.state = MRS_HEADER_CHAR;
 #if PIF_MSP_RECEIVE_TIMEOUT
 				pifTimer_Start(p_owner->__rx.p_timer, PIF_MSP_RECEIVE_TIMEOUT);
 #endif
@@ -89,21 +89,8 @@ static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_da
 			}
 			break;
 
-		case MRS_HEADER_CHAR_1:
+		case MRS_HEADER_CHAR:
 			if (data == 'M') {
-				p_owner->__rx.state = MRS_HEADER_CHAR_2;
-			}
-			else {
-				pkt_err = PKT_ERR_INVALID_DATA;
-#ifndef PIF_NO_LOG
-				line = __LINE__;
-#endif
-				goto fail;
-			}
-			break;
-
-		case MRS_HEADER_CHAR_2:
-			if (data == '<') {
 				p_owner->__rx.state = MRS_DIRECTION;
 			}
 			else {
@@ -116,14 +103,11 @@ static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_da
 			break;
 
 		case MRS_DIRECTION:
-			if (data < PIF_MSP_RX_PACKET_SIZE - 3) {
-				p_packet->data_count = data;
-				p_owner->__rx.p_packet[0] = data;
-				p_owner->__rx.packet_count = 1;
+			if (data == '<') {
 				p_owner->__rx.state = MRS_LENGTH;
 			}
 			else {
-				pkt_err = PKT_ERR_BIG_LENGHT;
+				pkt_err = PKT_ERR_INVALID_DATA;
 #ifndef PIF_NO_LOG
 				line = __LINE__;
 #endif
@@ -132,13 +116,29 @@ static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_da
 			break;
 
 		case MRS_LENGTH:
-			p_packet->command = data;
-			p_owner->__rx.p_packet[p_owner->__rx.packet_count] = data;
-			p_owner->__rx.packet_count++;
-			p_owner->__rx.state = MRS_MESSAGE_TYPE;
+			if (data <= PIF_MSP_RX_PACKET_SIZE - 3) {
+				p_packet->data_count = data;
+				p_owner->__rx.p_packet[0] = data;
+				p_owner->__rx.packet_count = 1;
+				p_owner->__rx.state = MRS_MESSAGE_TYPE;
+			}
+			else {
+				pkt_err = PKT_ERR_BIG_LENGTH;
+#ifndef PIF_NO_LOG
+				line = __LINE__;
+#endif
+				goto fail;
+			}
 			break;
 
 		case MRS_MESSAGE_TYPE:
+			p_packet->command = data;
+			p_owner->__rx.p_packet[p_owner->__rx.packet_count] = data;
+			p_owner->__rx.packet_count++;
+			p_owner->__rx.state = MRS_DATA;
+			break;
+
+		case MRS_DATA:
 			p_owner->__rx.p_packet[p_owner->__rx.packet_count] = data;
 			p_owner->__rx.packet_count++;
 			if (p_owner->__rx.packet_count >= 3 + p_packet->data_count) {
@@ -267,7 +267,7 @@ BOOL pifMsp_Init(PifMsp* p_owner, PifTimerManager* p_timer, PifId id)
 
 	memset(p_owner, 0, sizeof(PifMsp));
 
-    p_owner->__rx.p_packet = calloc(sizeof(uint8_t), PIF_MSP_RX_PACKET_SIZE);
+    p_owner->__rx.p_packet = calloc(PIF_MSP_RX_PACKET_SIZE, sizeof(uint8_t));
     if (!p_owner->__rx.p_packet) {
         pif_error = E_OUT_OF_HEAP;
         goto fail;

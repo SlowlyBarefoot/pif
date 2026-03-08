@@ -29,11 +29,11 @@
 typedef enum EnPifMspRxState
 {
 	MRS_IDLE			= 0,
-	MRS_HEADER_CHAR_1	= 1,
-	MRS_HEADER_CHAR_2	= 2,
-	MRS_DIRECTION		= 3,
-	MRS_LENGTH			= 4,
-	MRS_MESSAGE_TYPE	= 5,
+	MRS_HEADER_CHAR 	= 1,
+	MRS_DIRECTION		= 2,
+	MRS_LENGTH			= 3,
+	MRS_MESSAGE_TYPE	= 4,
+	MRS_DATA        	= 5,
 	MRS_DONE			= 6
 } PifMspRxState;
 
