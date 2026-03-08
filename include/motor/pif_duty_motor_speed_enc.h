@@ -1,5 +1,5 @@
-#ifndef PIF_MOTOR_ENCODER_H
-#define PIF_MOTOR_ENCODER_H
+#ifndef PIF_DUTY_MOTOR_SPEED_ENC_H
+#define PIF_DUTY_MOTOR_SPEED_ENC_H
 
 
 #include "core/pif_pid_control.h"
@@ -145,4 +145,4 @@ void pifDutyMotorSpeedEnc_Emergency(PifDutyMotorSpeedEnc* p_owner);
 #endif
 
 
-#endif  // PIF_MOTOR_ENCODER_H
+#endif  // PIF_DUTY_MOTOR_SPEED_ENC_H

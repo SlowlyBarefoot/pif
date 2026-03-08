@@ -283,7 +283,7 @@ BOOL pifDutyMotorSpeedEnc_Init(PifDutyMotorSpeedEnc* p_owner, PifId id, PifTimer
 
     p_parent->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000, _doTask, p_owner, FALSE);
 	if (!p_parent->__p_task) goto fail;
-	p_parent->__p_task->name = "DutyMotorSpeecEnc";
+	p_parent->__p_task->name = "DutyMotorSpeedEnc";
 
 	p_owner->__p_encoder = p_encoder;
 #ifndef PIF_NO_LOG
@@ -295,7 +295,7 @@ BOOL pifDutyMotorSpeedEnc_Init(PifDutyMotorSpeedEnc* p_owner, PifId id, PifTimer
 
 fail:
 	pifDutyMotorSpeedEnc_Clear(p_owner);
-    return TRUE;
+    return FALSE;
 }
 
 void pifDutyMotorSpeedEnc_Clear(PifDutyMotorSpeedEnc* p_owner)
