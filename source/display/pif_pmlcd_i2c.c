@@ -84,7 +84,7 @@ static BOOL _send(PifPmlcdI2c* p_owner, uint8_t value, uint8_t mode)
 
 BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_t addr, void *p_client)
 {
-    if (!p_owner && !p_port) {
+    if (!p_owner || !p_port) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -212,7 +212,7 @@ BOOL pifPmlcdI2c_SetCursor(PifPmlcdI2c* p_owner, uint8_t col, uint8_t row)
 {
 	int row_offsets[] = { 0x00, 0x40, 0x14, 0x54 };
 
-	if (row > p_owner->__num_lines) {
+	if (row >= p_owner->__num_lines) {
 		row = p_owner->__num_lines - 1;    // we count rows starting w/0
 	}
 	return _send(p_owner, LCD_SET_DDRAM_ADDR | (col + row_offsets[row]), 0);
