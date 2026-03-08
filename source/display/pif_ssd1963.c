@@ -3,8 +3,9 @@
 #include "display/pif_ssd1963.h"
 
 
-static void _setAddress(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
+static void _setAddress(PifSsd1963* p_owner, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
+	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
 	uint32_t data[4];
 
 	data[0] = x1 >> 8;
@@ -47,7 +48,7 @@ static uint8_t _convertColor16bit565(PifColor color, uint32_t* p_data)
 
 static uint8_t _convertColor18bit(PifColor color, uint32_t* p_data)
 {
-	p_data[0] = ((color & 0xF800) << 2) | ((color & 0x07E0) << 1) | ((color & 0x001F) << 1);
+	p_data[0] = ((color & 0xF800) << 2) | ((color & 0x07E0) << 1) | ((color & 0x001F) << 3);
 	return 1;
 }
 
@@ -110,7 +111,7 @@ static uint8_t _convertColor9bit(PifColor color, uint32_t* p_data)
 
 BOOL pifSsd1963_Init(PifSsd1963* p_owner, PifId id)
 {
-	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
+	PifTftLcd* p_parent;
 
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -119,6 +120,7 @@ BOOL pifSsd1963_Init(PifSsd1963* p_owner, PifId id)
 
 	memset(p_owner, 0, sizeof(PifSsd1963));
 
+	p_parent = (PifTftLcd*)p_owner;
 	pifTftLcd_Init(&p_owner->parent, id, SSD1963_WIDTH, SSD1963_HEIGHT, TLR_0_DEGREE);
 	p_parent->_fn_draw_pixel = pifSsd1963_DrawPixel;
 	p_parent->_fn_draw_hor_line = pifSsd1963_DrawHorLine;
@@ -133,13 +135,14 @@ BOOL pifSsd1963_Init(PifSsd1963* p_owner, PifId id)
 BOOL pifSsd1963_AttachActParallel(PifSsd1963* p_owner, PifActLcdReset act_reset, PifActLcdChipSelect act_chip_select, PifActLcdReadCmd act_read_cmd,
 		PifActLcdWriteCmd act_write_cmd, PifActLcdWriteData act_write_data, PifActLcdWriteRepeat act_write_repeat)
 {
-	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
+	PifTftLcd* p_parent;
 
 	if (!p_owner || !act_reset || !act_chip_select || !act_write_cmd || !act_write_data || !act_write_repeat) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
+	p_parent = (PifTftLcd*)p_owner;
     p_parent->__act_reset = act_reset;
     p_parent->__act_chip_select = act_chip_select;
     p_parent->__act_read_cmd = act_read_cmd;
@@ -258,7 +261,7 @@ void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 	size = (*p_owner->__fn_convert_color)(color, data);
 
 	(*p_parent->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x, y, x + len - 1, y);
+	_setAddress(p_owner, x, y, x + len, y);
 	(*p_parent->__act_write_repeat)(data, size, len);
 	(*p_parent->__act_chip_select)(FALSE);
 }
@@ -272,7 +275,7 @@ void pifSsd1963_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 	size = (*p_owner->__fn_convert_color)(color, data);
 
 	(*p_parent->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x, y, x, y + len - 1);
+	_setAddress(p_owner, x, y, x, y + len);
 	(*p_parent->__act_write_repeat)(data, size, len);
 	(*p_parent->__act_chip_select)(FALSE);
 }
