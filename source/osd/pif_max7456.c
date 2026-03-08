@@ -31,6 +31,7 @@ void pifMax7456_Clear(PifMax7456* p_owner)
 BOOL pifMax7456_WriteNvm(PifMax7456* p_owner, uint8_t char_address, const uint8_t *font_data)
 {
     uint8_t data;
+    BOOL ret = TRUE;
 
     if (!p_owner->detected) {
         return FALSE;
@@ -55,10 +56,12 @@ BOOL pifMax7456_WriteNvm(PifMax7456* p_owner, uint8_t char_address, const uint8_
 
     // Wait until bit 5 in the status register returns to 0 (12ms)
     do {
-        pifSpiDevice_ReadRegByte(p_owner->_p_spi, MAX7456_REG_R_STAT, &data);
+        ret = pifSpiDevice_ReadRegByte(p_owner->_p_spi, MAX7456_REG_R_STAT, &data);
+        if (!ret) break;
     } while ((data & MAX7456_CHAR_MEM_STATUS_MASK) != 0x00);
+    p_owner->_font_is_loading = FALSE;
 
-    return TRUE;
+    return ret;
 }
 
 BOOL pifMax7456_Invert(PifMax7456* p_owner, BOOL invert)
