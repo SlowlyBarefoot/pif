@@ -77,6 +77,7 @@ typedef struct StPifKeypad
 	const char* __p_user_keymap;
 	uint8_t __num_block;
 	uint8_t __num_cell;
+	uint8_t __num_key;
 	uint16_t* __p_state;
 	PifKey* __p_key;
     uint16_t __control_period_1ms;					// PIF_KEYPAD_CONTROL_PERIOD

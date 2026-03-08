@@ -130,6 +130,8 @@ static uint32_t _doTask(PifTask* p_task)
 
 	for (idx = 0, b = 0; b < p_owner->__num_block; b++) {
 		for (c = 0; c < p_owner->__num_cell; c++, idx++) {
+            if (idx >= p_owner->__num_key) break;
+
 			_checkKeyState(p_owner, idx, (p_owner->__p_state[b] >> c) & 1);
 		}
 	}
@@ -184,7 +186,9 @@ BOOL pifKeypad_SetControlPeriod(PifKeypad* p_owner, uint16_t period1ms)
 	}
 
 	p_owner->__control_period_1ms = period1ms;
-   	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__control_period_1ms);
+    if (p_owner->__p_task) {
+       	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__control_period_1ms);
+    }
 	return TRUE;
 }
 
@@ -195,15 +199,24 @@ BOOL pifKeypad_SetKeymap(PifKeypad* p_owner, uint8_t num, const char* p_user_key
 		return FALSE;
 	}
 
+    p_owner->__num_key = num;
     p_owner->__num_block = (num + 15) / 16;
     p_owner->__num_cell = num < 16 ? num : 16;
 
+    if (p_owner->__p_key) {
+        free(p_owner->__p_key);
+        p_owner->__p_key = NULL;
+    }
 	p_owner->__p_key = calloc(sizeof(PifKey), num);
 	if (!p_owner->__p_key) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
 
+    if (p_owner->__p_state) {
+        free(p_owner->__p_state);
+        p_owner->__p_state = NULL;
+    }
 	p_owner->__p_state = calloc(sizeof(uint16_t), p_owner->__num_block);
 	if (!p_owner->__p_state) {
 		pif_error = E_OUT_OF_HEAP;
