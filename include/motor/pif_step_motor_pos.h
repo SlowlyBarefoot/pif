@@ -69,7 +69,7 @@ extern "C" {
  * @param period1ms Control task period in milliseconds.
  * @return `TRUE` on success, otherwise `FALSE`.
  */
-BOOL pifStepMotorPos_Init(PifStepMotorPos* p_owner, PifId id, PifTimerManager* p_timer_manager, uint8_t resolution,
+BOOL pifStepMotorPos_Init(PifStepMotorPos* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t resolution,
 		PifStepMotorOperation operation, uint16_t period1ms);
 
 /**

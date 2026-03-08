@@ -241,7 +241,7 @@ static void _fnStopStep(PifStepMotor* p_parent)
 #endif
 }
 
-BOOL pifStepMotorPos_Init(PifStepMotorPos* p_owner, PifId id, PifTimerManager* p_timer_manager, uint8_t resolution,
+BOOL pifStepMotorPos_Init(PifStepMotorPos* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t resolution,
 		PifStepMotorOperation operation, uint16_t period1ms)
 {
     if (!p_timer_manager) {
@@ -301,7 +301,7 @@ BOOL pifStepMotorPos_Start(PifStepMotorPos* p_owner, uint8_t stage_index, uint32
     const PifStepMotorPosStage *pstStage;
     uint8_t state;
 
-    if (!p_parent->act_set_step) {
+    if (!p_parent->act_set_step || stage_index >= p_owner->__stage_size) {
     	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
