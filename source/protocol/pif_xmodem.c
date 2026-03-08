@@ -25,7 +25,7 @@ static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 {
 	PifXmodem* p_owner = (PifXmodem*)p_issuer;
 
-	switch (p_owner->__tx.state) {
+	switch (p_owner->__rx.state) {
 	default:
 #ifndef PIF_NO_LOG
 		pifLog_Printf(LT_ERROR, "XM(%u) RxTimeout State:%u Cnt:%u", p_owner->_id,
@@ -50,8 +50,8 @@ static void _evtTimerTxTimeout(PifIssuerP p_issuer)
 	switch (p_owner->__tx.state) {
 	case XTS_WAIT_RESPONSE:
 #ifndef PIF_NO_LOG
-		pifLog_Printf(LT_WARN, "XM(%u) TxTimeout State:%u Count=%u", p_owner->_id,
-				p_owner->__tx.state, p_owner->__rx.count);
+		pifLog_Printf(LT_WARN, "XM(%u) TxTimeout State:%u", p_owner->_id,
+				p_owner->__tx.state);
 #endif
 		p_owner->__tx.state = XTS_IDLE;
 		if (p_owner->__tx.evt_receive) {
@@ -229,6 +229,7 @@ static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 {
 	PifXmodem* p_owner = (PifXmodem*)p_client;
 	uint8_t data;
+    BOOL ret;
 
 	if (p_owner->__tx.state == XTS_WAIT_RESPONSE) {
 		if ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
@@ -259,7 +260,8 @@ static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 		}
 	}
 	else {
-		if (_parsingPacket(p_owner, act_receive_data)) {
+        ret = _parsingPacket(p_owner, act_receive_data);
+		if (ret) {
 			pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
 		}
 
@@ -293,7 +295,7 @@ static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 		default:
 			break;
 		}
-		return TRUE;
+		return ret;
 	}
 	return FALSE;
 }
@@ -331,6 +333,12 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 		p_owner->__tx.data_pos += length;
 		if (p_owner->__tx.data_pos >= p_owner->__packet_size) {
 			p_owner->__tx.state = XTS_WAIT_RESPONSE;
+
+        	if (!pifTimer_Start(p_owner->__tx.p_timer, p_owner->__tx.timeout * 1000L / p_owner->__p_timer_manager->_period1us)) {
+#ifndef PIF_NO_LOG
+		        pifLog_Printf(LT_WARN, "XM(%u) Not start timer", p_owner->_id);
+#endif
+	        }
 		}
 		break;
 
@@ -525,12 +533,6 @@ BOOL pifXmodem_SendData(PifXmodem* p_owner, uint8_t packet_no, uint8_t* p_data, 
 	p_owner->__tx.data_pos = 0;
 	p_owner->__tx.state = XTS_SENDING;
 	pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
-
-	if (!pifTimer_Start(p_owner->__tx.p_timer, p_owner->__tx.timeout * 1000L / p_owner->__p_timer_manager->_period1us)) {
-#ifndef PIF_NO_LOG
-		pifLog_Printf(LT_WARN, "XM(%u) Not start timer", p_owner->_id);
-#endif
-	}
 	return TRUE;
 }
 
