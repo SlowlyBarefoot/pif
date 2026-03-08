@@ -64,7 +64,7 @@ typedef struct StPifNfInt32NoiseCancel
 	PifNfInt32Common common;
 
 	int8_t before;
-	int16_t* diff;
+	int32_t* diff;
 } PifNfInt32NoiseCancel;
 
 

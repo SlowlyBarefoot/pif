@@ -21,9 +21,9 @@ typedef void* PifNoiseFilterValueP;
 struct StPifNoiseFilter;
 typedef struct StPifNoiseFilter PifNoiseFilter;
 
-typedef void (*PifNoiseFiler_Clear)(PifNoiseFilter* p_parent);
-typedef void (*PifNoiseFiler_Reset)(PifNoiseFilter* p_parent);
-typedef PifNoiseFilterValueP (*PifNoiseFiler_Process)(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value);
+typedef void (*PifNoiseFilter_Clear)(PifNoiseFilter* p_parent);
+typedef void (*PifNoiseFilter_Reset)(PifNoiseFilter* p_parent);
+typedef PifNoiseFilterValueP (*PifNoiseFilter_Process)(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value);
 
 /**
  * @class StPifNoiseFilter
@@ -42,9 +42,9 @@ struct StPifNoiseFilter
 	// Private Member Variable
 
 	// Private Function
-	PifNoiseFiler_Clear __fn_clear;
-	PifNoiseFiler_Reset __fn_reset;
-	PifNoiseFiler_Process __fn_process;
+	PifNoiseFilter_Clear __fn_clear;
+	PifNoiseFilter_Reset __fn_reset;
+	PifNoiseFilter_Process __fn_process;
 };
 
 

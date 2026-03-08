@@ -259,7 +259,7 @@ PifNoiseFilter* pifNoiseFilterInt16_AddAverage(PifNoiseFilterManager* p_manager,
 	PifNfInt16Average* p_owner;
 	PifPtrArrayIterator it;
 
-	if (!p_manager || !size) {
+	if (!p_manager || size < 3) {
 		pif_error = E_INVALID_PARAM;
 		return NULL;
 	}

@@ -186,7 +186,7 @@ static void _resetNoiseCancel(PifNoiseFilter* p_parent)
 	PifNfInt32Common* p_common = &p_owner->common;
 
 	memset(p_common->p_buffer, 0, p_common->size * sizeof(int32_t));
-	memset(p_owner->diff, 0, p_common->size * 3 * sizeof(int16_t));
+	memset(p_owner->diff, 0, p_common->size * 3 * sizeof(int32_t));
 	p_common->current = 0;
 	p_owner->before = 0;
 }
@@ -204,9 +204,9 @@ static PifNoiseFilterValueP _processNoiseCancel(PifNoiseFilter* p_parent, PifNoi
 	PifNfInt32Common* p_common = &p_owner->common;
 	int i, count;
 	int32_t sum;
-	int16_t* p_current;
-	int16_t* p_before;
-	int16_t current[3];
+	int32_t* p_current;
+	int32_t* p_before;
+	int32_t current[3];
 
 	p_before = p_owner->diff + p_common->current * 3;
 
@@ -259,7 +259,7 @@ PifNoiseFilter* pifNoiseFilterInt32_AddAverage(PifNoiseFilterManager* p_manager,
 	PifNfInt32Average* p_owner;
 	PifPtrArrayIterator it;
 
-	if (!p_manager || !size) {
+	if (!p_manager || size < 3) {
 		pif_error = E_INVALID_PARAM;
 		return NULL;
 	}
@@ -357,7 +357,7 @@ PifNoiseFilter* pifNoiseFilterInt32_AddNoiseCancel(PifNoiseFilterManager* p_mana
 		return NULL;
 	}
 
-	p_owner->diff = calloc(size * 3, sizeof(int16_t));
+	p_owner->diff = calloc(size * 3, sizeof(int32_t));
 	if (!p_owner->diff) {
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
