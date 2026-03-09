@@ -81,6 +81,9 @@ struct StPifRcIbus
     PifRcIbusRxState __rx_state;
     uint8_t __rx_buffer[IBUS_FRAME_SIZE];
     uint32_t __last_time;
+	uint8_t __ptr;                      // pointer in buffer
+	uint16_t __chksum;                  // checksum calculation
+	uint8_t __lchksum;                  // checksum lower byte received
 };
 
 

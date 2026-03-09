@@ -14,9 +14,6 @@
 static void _ParsingPacket(PifRcIbus *p_owner, PifActUartReceiveData act_receive_data)
 {
 	uint8_t data;
-	static uint8_t ptr;                      // pointer in buffer
-	static uint16_t chksum;                  // checksum calculation
-	static uint8_t lchksum;                  // checksum lower byte received
 
 	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
 		switch (p_owner->__rx_state) {
@@ -33,36 +30,36 @@ static void _ParsingPacket(PifRcIbus *p_owner, PifActUartReceiveData act_receive
 			}
 			if (p_owner->__rx_state != IRS_GET_LENGTH) {
 				p_owner->__rx_buffer[0] = data;
-				ptr = 1;
-				chksum = data;
+				p_owner->__ptr = 1;
+				p_owner->__chksum = data;
 			}
 			break;
 
 		case IRS_GET_COMMAND:
-			p_owner->__rx_buffer[ptr++] = data;
-			chksum += data;
+			p_owner->__rx_buffer[p_owner->__ptr++] = data;
+			p_owner->__chksum += data;
 			p_owner->__rx_state = IRS_GET_DATA;
 			break;
 
 		case IRS_GET_DATA:
-			p_owner->__rx_buffer[ptr++] = data;
-			chksum += data;
-			if (ptr == p_owner->_length - 2) {
+			p_owner->__rx_buffer[p_owner->__ptr++] = data;
+			p_owner->__chksum += data;
+			if (p_owner->__ptr == p_owner->_length - 2) {
 				p_owner->__rx_state = IRS_GET_CHKSUML;
 			}
 			break;
 
 		case IRS_GET_CHKSUML:
-			lchksum = data;
+			p_owner->__lchksum = data;
 			p_owner->__rx_state = IRS_GET_CHKSUMH;
 			break;
 
 		case IRS_GET_CHKSUMH:
 			// Validate checksum
 			if (p_owner->_model == IBUS_MODEL_IA6B) {
-				chksum = 0xFFFF - chksum;
+				p_owner->__chksum = 0xFFFF - p_owner->__chksum;
 			}
-			if (chksum == ((uint16_t)data << 8) + lchksum) {
+			if (p_owner->__chksum == ((uint16_t)data << 8) + p_owner->__lchksum) {
 				p_owner->parent._good_frames++;
 				p_owner->__rx_state = IRS_DONE;
 			}
@@ -96,8 +93,6 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 	uint16_t chksum;
 	BOOL rtn = FALSE;
 
-    if (!p_owner->parent.__evt_receive) return rtn;
-
 	if (pif_cumulative_timer1ms - p_owner->__last_time >= IBUS_RETRY_TIMEOUT) {
 		p_owner->__rx_state = IRS_GET_LENGTH;
 	}
@@ -126,9 +121,9 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 
 	    	if (p_owner->parent.__evt_receive) (*p_owner->parent.__evt_receive)(&p_owner->parent, channel, p_owner->parent.__p_issuer);
 		} 
-		else if (p_owner->__p_uart->_p_tx_buffer && adr <= p_owner->_number_sensors && adr > 0 && p_owner->_length == 1) {
+		else if (p_owner->__p_uart->_p_tx_buffer && adr <= p_owner->_number_sensors && adr > 0 && p_owner->_length == IBUS_TELEMETRY_SIZE) {
 			// all sensor data commands go here
-			// we only process the length==1 commands (=message length is 4 bytes incl overhead) to prevent the case the
+			// we only process the length==IBUS_TELEMETRY_SIZE commands (=message length is 4 bytes incl overhead) to prevent the case the
 			// return messages from the UART TX port loop back to the RX port and are processed again. This is extra
 			// precaution as it will also be prevented by the IBUS_TIMEGAP required
 			switch (command) {
