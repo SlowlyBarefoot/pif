@@ -44,7 +44,7 @@ static uint16_t _processRcPpm(PifRcPpm* p_owner, uint16_t diff)
 					rtn = diff;
 				}
 
-				if (rtn && p_owner->_channel + 1 >= p_owner->parent._channel_count) {
+				if (p_owner->_channel + 1 >= p_owner->parent._channel_count) {
 					if (p_owner->parent.__evt_receive) {
 						(*p_owner->parent.__evt_receive)(&p_owner->parent, p_owner->__p_channel, p_owner->parent.__p_issuer);
 					}
@@ -69,7 +69,7 @@ BOOL pifRcPpm_Init(PifRcPpm* p_owner, PifId id, uint8_t channel_count, uint16_t 
 
 	memset(p_owner, 0, sizeof(PifRcPpm));
 
-    p_owner->__p_channel = calloc(sizeof(uint16_t), channel_count);
+    p_owner->__p_channel = calloc(channel_count, sizeof(uint16_t));
     if (!p_owner->__p_channel) {
 		pif_error = E_OUT_OF_HEAP;
         return FALSE;
@@ -95,8 +95,8 @@ void pifRcPpm_Clear(PifRcPpm* p_owner)
 BOOL pifRcPpm_SetValidRange(PifRcPpm* p_owner, uint32_t min, uint32_t max)
 {
 	p_owner->__valid_range.check = TRUE;
-	p_owner->__valid_range.min = min;
-	p_owner->__valid_range.max = max;
+	p_owner->__valid_range.min = min > UINT16_MAX / 2 ? UINT16_MAX / 2 : min;
+	p_owner->__valid_range.max = max > UINT16_MAX ? UINT16_MAX : max;
 	return TRUE;
 }
 
@@ -105,19 +105,21 @@ void pifRcPpm_ResetMeasureValue(PifRcPpm* p_owner)
 	memset(p_owner->__pulse, 0, sizeof(p_owner->__pulse));
 	p_owner->__ptr = 0;
 	p_owner->__last_ptr = 0;
-	p_owner->__count = 0;
+	p_owner->_count = 0;
 }
 
 uint16_t pifRcPpm_sigTick(PifRcPpm* p_owner, uint32_t time_us)
 {
 	uint16_t rtn = 0;
+    uint32_t diff;
 
 	p_owner->__pulse[p_owner->__ptr].falling = time_us;
-	rtn = _processRcPpm(p_owner, p_owner->__pulse[p_owner->__ptr].falling - p_owner->__pulse[p_owner->__last_ptr].falling);
+    diff = p_owner->__pulse[p_owner->__ptr].falling - p_owner->__pulse[p_owner->__last_ptr].falling;
+	rtn = _processRcPpm(p_owner, diff > UINT16_MAX ? UINT16_MAX : diff);
 	p_owner->__last_ptr = p_owner->__ptr;
 	p_owner->__ptr = (p_owner->__ptr + 1) & PIF_RC_PPM_DATA_MASK;
 
-	if (p_owner->__count < PIF_RC_PPM_DATA_SIZE) p_owner->__count++;
+	if (p_owner->_count < PIF_RC_PPM_DATA_SIZE) p_owner->_count++;
 
 	return rtn;
 }

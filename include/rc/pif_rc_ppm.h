@@ -30,6 +30,7 @@ typedef struct StPifRcPpm
 
 	// Read-only Member Variable
 	int8_t _channel;
+	uint8_t _count;
 
 	// Private Member Variable
 	struct {
@@ -38,7 +39,7 @@ typedef struct StPifRcPpm
 		uint16_t max;
 	} __valid_range;
 	PifRcPpmPulse __pulse[PIF_RC_PPM_DATA_SIZE];
-	uint8_t __ptr, __last_ptr, __count;
+	uint8_t __ptr, __last_ptr;
 	uint8_t __max_channel;
 	uint8_t __process_step;
 	uint16_t __threshold_1us;
