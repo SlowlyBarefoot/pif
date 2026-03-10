@@ -31,20 +31,20 @@ typedef enum EnPifAds1x1xReg
 
 typedef enum EnPifAds1x1xSscs
 {
-    ADS1X1X_SSCS_NO_EFECT			= 0 << 15,
+    ADS1X1X_SSCS_NO_EFFECT			= 0 << 15,
 	ADS1X1X_SSCS_SINGLE				= 1 << 15
 } PifAds1x1xSscs;
 
 typedef enum ENPifAds1x1xMux
 {
-    ADS1X1X_MUX_DIFF_0_1			= 0 < 12, 	// default
-	ADS1X1X_MUX_DIFF_0_3			= 1 < 12,
-	ADS1X1X_MUX_DIFF_1_3			= 2 < 12,
-	ADS1X1X_MUX_DIFF_2_3			= 3 < 12,
-	ADS1X1X_MUX_SINGLE_0			= 4 < 12,
-	ADS1X1X_MUX_SINGLE_1			= 5 < 12,
-	ADS1X1X_MUX_SINGLE_2			= 6 < 12,
-	ADS1X1X_MUX_SINGLE_3			= 7 < 12
+    ADS1X1X_MUX_DIFF_0_1			= 0 << 12, 	// default
+	ADS1X1X_MUX_DIFF_0_3			= 1 << 12,
+	ADS1X1X_MUX_DIFF_1_3			= 2 << 12,
+	ADS1X1X_MUX_DIFF_2_3			= 3 << 12,
+	ADS1X1X_MUX_SINGLE_0			= 4 << 12,
+	ADS1X1X_MUX_SINGLE_1			= 5 << 12,
+	ADS1X1X_MUX_SINGLE_2			= 6 << 12,
+	ADS1X1X_MUX_SINGLE_3			= 7 << 12
 } PifAds1x1xMux;
 
 typedef enum EnPifAds1x1xPGA
@@ -281,7 +281,7 @@ BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xCompPol comp_pol);
  * @param comp_lat Comparator latching behavior setting.
  * @return TRUE on success, FALSE on failure.
  */
-BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xCompLat compLat);
+BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xCompLat comp_lat);
 
 /**
  * @fn pifAds1x1x_SetCompQue

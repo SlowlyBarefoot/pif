@@ -188,7 +188,7 @@ BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xCompMode comp_mode)
 {
 	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
-	SET_BIT_FILED(p_owner->_config, ADS1X1X_MODE_MASK, comp_mode);
+	SET_BIT_FILED(p_owner->_config, ADS1X1X_COMP_MODE_MASK, comp_mode);
 	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config);
 }
 
