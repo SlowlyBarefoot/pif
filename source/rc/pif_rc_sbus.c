@@ -21,8 +21,6 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 	uint16_t channels[PIF_SBUS_CHANNEL_COUNT]; 	// servo data received
 	BOOL rtn = FALSE;
 
-    if (!p_owner->parent.__evt_receive) return rtn;
-
 	if (pif_cumulative_timer1ms - p_owner->__last_time >= SBUS_RETRY_TIMEOUT) {
 		p_owner->__index = 0;
 	}

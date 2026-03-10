@@ -57,7 +57,7 @@ void pifRcSbus_AttachUart(PifRcSbus* p_owner, PifUart* p_uart);
 void pifRcSbus_DetachUart(PifRcSbus* p_owner);
 
 /**
- * @fn pifRcSbus_DetachUart
+ * @fn pifRcSbus_SendFrame
  * @brief Encodes and transmits one SBUS frame.
  * @param p_owner Pointer to the SBUS receiver object.
  * @param p_channel Pointer to channel values.
