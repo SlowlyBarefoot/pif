@@ -38,6 +38,7 @@ typedef struct StPifRcSpektrum
     uint8_t __pos_mask;
     uint16_t __channel[PIF_SPEKTRUM_CHANNEL_COUNT];
 	uint32_t __last_time;
+	uint8_t __last_ch;
 } PifRcSpektrum;
 
 
@@ -69,14 +70,6 @@ void pifRcSpektrum_AttachUart(PifRcSpektrum* p_owner, PifUart* p_uart);
  * @param p_owner Pointer to the Spektrum receiver object.
  */
 void pifRcSpektrum_DetachUart(PifRcSpektrum* p_owner);
-
-/**
- * @fn pifRcSpektrum_CheckFailSafe
- * @brief Checks whether Spektrum failsafe is active.
- * @param p_owner Pointer to the Spektrum receiver object.
- * @return TRUE if failsafe is active, otherwise FALSE.
- */
-BOOL pifRcSpektrum_CheckFailSafe(PifRcSpektrum* p_owner);
 
 /**
  * @fn pifRcSpektrum_SendFrame

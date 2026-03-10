@@ -18,8 +18,6 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 	int index;
 	BOOL rtn = FALSE;
 
-    if (!p_owner->parent.__evt_receive) return rtn;
-
 	if (pif_cumulative_timer1ms - p_owner->__last_time >= SPEKTRUM_RETRY_TIMEOUT) {
 		p_owner->__index = 0;
 	}
@@ -73,6 +71,7 @@ BOOL pifRcSpektrum_Init(PifRcSpektrum* p_owner, PifId id, uint8_t protocol_id)
     p_owner->parent._id = id;
 	p_owner->parent._failsafe = FALSE;
 	p_owner->_protocol_id = protocol_id;
+	p_owner->__last_ch = 6;
 	switch (protocol_id) {
 	case PIF_SPEKTRUM_PROTOCOL_ID_22MS_1024_DSM2:
 		p_owner->parent._channel_count = 7;
@@ -125,7 +124,6 @@ BOOL pifRcSpektrum_SendFrame(PifRcSpektrum* p_owner, uint16_t* p_channel, uint8_
 {
 	uint8_t i, buffer[SPEKTRUM_FRAME_SIZE];
 	uint8_t p = 0;
-	static int last_ch = 6;
 
 	buffer[p++] = 0;
 	buffer[p++] = p_owner->_protocol_id;
@@ -134,9 +132,9 @@ BOOL pifRcSpektrum_SendFrame(PifRcSpektrum* p_owner, uint16_t* p_channel, uint8_
 		buffer[p++] = p_channel[i] & 0xFF;
 	}
 	if (count >= 7) {
-		buffer[p++] = (last_ch << p_owner->__id_shift) | ((p_channel[last_ch] >> 8) & p_owner->__pos_mask);
-		buffer[p++] = p_channel[last_ch] & 0xFF;
-		if (p_owner->parent._channel_count >= 8 && count >= 8) last_ch ^= 1;
+		buffer[p++] = (p_owner->__last_ch << p_owner->__id_shift) | ((p_channel[p_owner->__last_ch] >> 8) & p_owner->__pos_mask);
+		buffer[p++] = p_channel[p_owner->__last_ch] & 0xFF;
+		if (p_owner->parent._channel_count >= 8 && count >= 8) p_owner->__last_ch ^= 1;
 	}
 	
 	return pifUart_SendTxData(p_owner->__p_uart, buffer, p);
