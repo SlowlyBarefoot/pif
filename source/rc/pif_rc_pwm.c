@@ -84,7 +84,7 @@ BOOL pifRcPwm_Init(PifRcPwm* p_owner, PifId id, uint8_t channel_count)
     p_owner->__p_channel = calloc(sizeof(uint16_t), channel_count);
     if (!p_owner->__p_channel) {
 		pif_error = E_OUT_OF_HEAP;
-        return FALSE;
+        goto fail;
 	}
 
     if (id == PIF_ID_AUTO) id = pif_id++;
@@ -110,10 +110,10 @@ void pifRcPwm_Clear(PifRcPwm* p_owner)
 	}
 }
 
-BOOL pifRcPwm_SetValidRange(PifRcPwm* p_owner, uint32_t min, uint32_t max)
+BOOL pifRcPwm_SetValidRange(PifRcPwm* p_owner, uint16_t min, uint16_t max)
 {
 	p_owner->__valid_range.check = TRUE;
-	p_owner->__valid_range.min = min;
+	p_owner->__valid_range.min = min > 0x7FFF ? 0x7FFF : min;
 	p_owner->__valid_range.max = max;
 	return TRUE;
 }

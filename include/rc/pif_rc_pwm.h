@@ -80,7 +80,7 @@ void pifRcPwm_Clear(PifRcPwm* p_owner);
  * @param max Maximum accepted pulse width in microseconds.
  * @return TRUE after the range is applied.
  */
-BOOL pifRcPwm_SetValidRange(PifRcPwm* p_owner, uint32_t min, uint32_t max);
+BOOL pifRcPwm_SetValidRange(PifRcPwm* p_owner, uint16_t min, uint16_t max);
 
 /**
  * @fn pifRcPwm_ResetMeasureValue
