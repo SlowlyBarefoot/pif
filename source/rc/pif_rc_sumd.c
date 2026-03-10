@@ -25,8 +25,6 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 	int index;
 	BOOL rtn = FALSE;
 
-    if (!p_owner->parent.__evt_receive) return rtn;
-
 	if (pif_cumulative_timer1ms - p_owner->__last_time >= SUMD_RETRY_TIMEOUT) {
 		p_owner->__index = 0;
 	}
@@ -55,7 +53,7 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 			}
 		}
 		else if (p_owner->__index == 3) {
-			if (p_buffer[2] < 2 || p_buffer[2] > PIF_SUMD_CHANNEL_COUNT) {		// 2 < channels < PIF_SUMD_CHANNEL_COUNT
+			if (p_buffer[2] < 2 || p_buffer[2] > PIF_SUMD_CHANNEL_COUNT) {		// 2 <= channels <= PIF_SUMD_CHANNEL_COUNT
 				p_owner->parent._error_frames++;
 				p_owner->__index = 0;
 				continue;

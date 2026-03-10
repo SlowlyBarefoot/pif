@@ -62,14 +62,6 @@ void pifRcSumd_AttachUart(PifRcSumd* p_owner, PifUart* p_uart);
 void pifRcSumd_DetachUart(PifRcSumd* p_owner);
 
 /**
- * @fn pifRcSumd_CheckFailSafe
- * @brief Checks whether SUMD failsafe is active.
- * @param p_owner Pointer to the SUMD receiver object.
- * @return TRUE if failsafe is active, otherwise FALSE.
- */
-BOOL pifRcSumd_CheckFailSafe(PifRcSumd* p_owner);
-
-/**
  * @fn pifRcSumd_SendFrame
  * @brief Encodes and transmits one SUMD frame.
  * @param p_owner Pointer to the SUMD receiver object.
