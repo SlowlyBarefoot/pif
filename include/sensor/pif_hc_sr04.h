@@ -34,7 +34,7 @@ typedef struct StPifHcSr04
 
 	// Private Member Variable
     PifHcSr04State __state;
-    uint32_t __tigger_time_us;
+    uint32_t __trigger_time_us;
 	int32_t __distance;
 } PifHcSr04;
 
@@ -63,8 +63,9 @@ void pifHcSr04_Clear(PifHcSr04* p_owner);
  * @fn pifHcSr04_Trigger
  * @brief Performs the hc sr04 trigger operation.
  * @param p_owner Pointer to the owner instance.
+ * @return TRUE on success, FALSE on failure.
  */
-void pifHcSr04_Trigger(PifHcSr04* p_owner);
+BOOL pifHcSr04_Trigger(PifHcSr04* p_owner);
 
 /**
  * @fn pifHcSr04_StartTrigger

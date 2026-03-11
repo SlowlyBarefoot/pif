@@ -56,12 +56,15 @@ void pifHcSr04_Clear(PifHcSr04* p_owner)
 	}
 }
 
-void pifHcSr04_Trigger(PifHcSr04* p_owner)
+BOOL pifHcSr04_Trigger(PifHcSr04* p_owner)
 {
+    if (!p_owner->act_trigger) return FALSE;
+
 	(*p_owner->act_trigger)(ON);
 	pif_Delay1us(11);
 	(*p_owner->act_trigger)(OFF);
 	p_owner->__state = HSS_TRIGGER;
+    return TRUE;
 }
 
 BOOL pifHcSr04_StartTrigger(PifHcSr04* p_owner, uint16_t period)
@@ -83,7 +86,7 @@ void pifHcSr04_StopTrigger(PifHcSr04* p_owner)
 
 void pifHcSr04_SetTemperature(PifHcSr04* p_owner, float temperature)
 {
-	p_owner->_transform_const = 2.0f / ((331.6f + 0.6f * temperature) / 10000.0f);		// 2: round trip, 10000: m/s -> cm/ms
+	p_owner->_transform_const = 2.0f / ((331.6f + 0.6f * temperature) / 10000.0f);		// 2: round trip, 10000: m/s -> cm/us
 }
 
 void pifHcSr04_sigReceiveEcho(PifHcSr04* p_owner, SWITCH state)
@@ -91,14 +94,14 @@ void pifHcSr04_sigReceiveEcho(PifHcSr04* p_owner, SWITCH state)
 	switch (p_owner->__state) {
 	case HSS_TRIGGER:
 		if (state) {
-			p_owner->__tigger_time_us = (*pif_act_timer1us)();
+			p_owner->__trigger_time_us = (*pif_act_timer1us)();
 			p_owner->__state = HSS_HIGH;
 		}
 		break;
 
 	case HSS_HIGH:
 		if (!state) {
-			p_owner->__distance = ((*pif_act_timer1us)() - p_owner->__tigger_time_us) / p_owner->_transform_const;
+			p_owner->__distance = ((*pif_act_timer1us)() - p_owner->__trigger_time_us) / p_owner->_transform_const;
 			p_owner->__state = HSS_LOW;
 			pifTask_SetTrigger(p_owner->_p_task, 0);
 		}
