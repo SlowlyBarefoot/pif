@@ -187,8 +187,8 @@ BOOL pifBmp280_ReadBarometric(PifBmp280* p_owner, float* p_pressure, float* p_te
 
 	if (!pifBmp280_ReadRawData(p_owner, &pressure, &temperature)) return FALSE;
 
-    if (p_pressure) *p_pressure = _compensate_P(p_owner, pressure);
     if (p_temperature) *p_temperature = _compensate_T(p_owner, temperature);
+    if (p_pressure) *p_pressure = _compensate_P(p_owner, pressure);
 	return TRUE;
 }
 
