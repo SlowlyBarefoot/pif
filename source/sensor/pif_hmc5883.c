@@ -127,7 +127,7 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_c
         }
     }
 
-    if (bret) {                	// Something went wrong so get a best guess
+    if (bret) {                	// No saturation, calculate scale factors
         if (xyz_total[AXIS_X]) p_owner->scale[AXIS_X] = fabsf(660.0f * HMC58X3_X_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[AXIS_X]);
         if (xyz_total[AXIS_Y]) p_owner->scale[AXIS_Y] = fabsf(660.0f * HMC58X3_Y_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[AXIS_Y]);
         if (xyz_total[AXIS_Z]) p_owner->scale[AXIS_Z] = fabsf(660.0f * HMC58X3_Z_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[AXIS_Z]);
@@ -136,6 +136,12 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_c
 #ifndef PIF_NO_LOG
     pifLog_Printf(LT_INFO, "Mag scale: X=%f Y=%f Z=%f", (double)p_owner->scale[AXIS_X], (double)p_owner->scale[AXIS_Y], (double)p_owner->scale[AXIS_Z]);
 #endif
+
+    // Restore normal measurement mode and enable continuous output
+    if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, HMC5883_REG_CONFIG_A,
+    		HMC5883_MEASURE_MODE_MASK, HMC5883_MEASURE_MODE_NORMAL)) goto fail;
+    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, HMC5883_REG_MODE,
+    		HMC5883_MODE_CONTINOUS)) goto fail;
 
 	p_imu_sensor->_measure |= IMU_MEASURE_MAGNETO;
 
