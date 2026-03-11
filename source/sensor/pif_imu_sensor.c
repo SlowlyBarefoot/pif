@@ -16,9 +16,9 @@ static void _alignBoard(PifImuSensor* p_owner, float* vec)
     float y = vec[AXIS_Y];
     float z = vec[AXIS_Z];
 
-    vec[AXIS_X] = lrintf(p_owner->__board_rotation[0][0] * x + p_owner->__board_rotation[1][0] * y + p_owner->__board_rotation[2][0] * z);
-    vec[AXIS_Y] = lrintf(p_owner->__board_rotation[0][1] * x + p_owner->__board_rotation[1][1] * y + p_owner->__board_rotation[2][1] * z);
-    vec[AXIS_Z] = lrintf(p_owner->__board_rotation[0][2] * x + p_owner->__board_rotation[1][2] * y + p_owner->__board_rotation[2][2] * z);
+    vec[AXIS_X] = lrintf(p_owner->__board_rotation[0][0] * x + p_owner->__board_rotation[0][1] * y + p_owner->__board_rotation[0][2] * z);
+    vec[AXIS_Y] = lrintf(p_owner->__board_rotation[1][0] * x + p_owner->__board_rotation[1][1] * y + p_owner->__board_rotation[1][2] * z);
+    vec[AXIS_Z] = lrintf(p_owner->__board_rotation[2][0] * x + p_owner->__board_rotation[2][1] * y + p_owner->__board_rotation[2][2] * z);
 }
 
 /**
@@ -175,9 +175,9 @@ BOOL pifImuSensor_ReadGyro(PifImuSensor* p_owner, float* p_gyro)
 	}
 
 	if (p_owner->__actual_threshold) {
-		if (fabs(gyro[AXIS_X]) < p_owner->__threshold_gyro[AXIS_X]) gyro[AXIS_X] = 0;
-		if (fabs(gyro[AXIS_Y]) < p_owner->__threshold_gyro[AXIS_Y]) gyro[AXIS_Y] = 0;
-		if (fabs(gyro[AXIS_Z]) < p_owner->__threshold_gyro[AXIS_Z]) gyro[AXIS_Z] = 0;
+		if (fabsf(gyro[AXIS_X]) < p_owner->__threshold_gyro[AXIS_X]) gyro[AXIS_X] = 0;
+		if (fabsf(gyro[AXIS_Y]) < p_owner->__threshold_gyro[AXIS_Y]) gyro[AXIS_Y] = 0;
+		if (fabsf(gyro[AXIS_Z]) < p_owner->__threshold_gyro[AXIS_Z]) gyro[AXIS_Z] = 0;
 	}
 
 	_alignSensors(p_owner, gyro, p_gyro, p_owner->__gyro_info.align);
