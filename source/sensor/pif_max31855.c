@@ -67,7 +67,7 @@ static uint32_t _doTask(PifTask* p_task)
  */
 static void _addDeviceInCollectSignal()
 {
-	const char* prefix[M3_CSF_COUNT] = { "M3L", "M3H" };
+	const char* prefix[M3_CSF_COUNT] = { "M3" };
 
 	PifDListIterator it = pifDList_Begin(&s_cs_list);
 	while (it) {
