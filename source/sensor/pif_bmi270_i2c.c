@@ -8,7 +8,7 @@ BOOL pifBmi270I2c_Detect(PifI2cPort *p_i2c, uint8_t addr, void *p_client)
 
     p_device = pifI2cPort_TemporaryDevice(p_i2c, addr, p_client);
 
-	if (!pifI2cDevice_ReadRegByte(p_device, BMI270_REG_WHO_AM_I | 0x80, &data)) return FALSE;
+	if (!pifI2cDevice_ReadRegByte(p_device, BMI270_REG_CHIP_ID | 0x80, &data)) return FALSE;
 	if (data != BMI270_WHO_AM_I_CONST) return FALSE;
 	return TRUE;
 }

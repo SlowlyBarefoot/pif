@@ -124,7 +124,7 @@ BOOL pifBmi270_ReadTemperature(PifBmi270* p_owner, int16_t* p_temperature)
 {
 	uint8_t data[2];
     const int16_t RoomTemp_Offset = 21;
-    const int16_t Temp_Sensitivity = 333.87;
+    const float Temp_Sensitivity = 333.87f;
 
     if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, BMI270_REG_TEMPERATURE_LSB, data, 2)) return FALSE;
     *p_temperature = (RoomTemp_Offset + (*(int16_t *)data - RoomTemp_Offset) / Temp_Sensitivity) * p_owner->temp_scale;
