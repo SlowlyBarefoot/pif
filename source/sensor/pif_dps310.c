@@ -105,7 +105,7 @@ static uint32_t _doTask(PifTask* p_task)
 		temperature = _compensate_T(p_owner, p_owner->__raw_temperature);
 		pressure = _compensate_P(p_owner, p_owner->__raw_pressure);
 
-		if (p_owner->__evt_read) (*p_owner->__evt_read)(pressure, temperature * 100);
+		if (p_owner->__evt_read) (*p_owner->__evt_read)(pressure, temperature);
 
 		gap = pif_cumulative_timer1ms - p_owner->__start_time;
 		if (gap < p_owner->__read_period) {
@@ -135,7 +135,7 @@ BOOL pifDps310_Config(PifDps310* p_owner, PifId id)
     	return FALSE;
 	}
 
-	if (!(p_owner->_fn.write_bit)(p_owner->_fn.p_device, DPS310_REG_RESET, DPS310_RESET_SOFT_RST, TRUE)) return FALSE;
+	if (!(p_owner->_fn.write_bit)(p_owner->_fn.p_device, DPS310_REG_RESET, DPS310_SOFT_RST_MASK, DPS310_RESET_SOFT_RST)) return FALSE;
 	pif_Delay1ms(40);
 
 	if (!(p_owner->_fn.read_byte)(p_owner->_fn.p_device, DPS310_REG_MEAS_CFG, &data)) return FALSE;
