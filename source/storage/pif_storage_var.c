@@ -198,7 +198,7 @@ BOOL pifStorageVar_IsFormat(PifStorage* p_parent)
 BOOL pifStorageVar_Format(PifStorage* p_parent)
 {
 	PifStorageVar* p_owner = (PifStorageVar*)p_parent;
-    PifStorageVarInfo* p_info = p_owner->_p_info;
+    PifStorageVarInfo* p_info;
     PifStorageVarDataInfo* p_data_info;
     uint8_t ptr, remain, k, len, data[16];
 
@@ -207,6 +207,7 @@ BOOL pifStorageVar_Format(PifStorage* p_parent)
 	    return FALSE;
     }
 
+    p_info = p_owner->_p_info;
 	p_info->first_node = DATA_NODE_NULL;
 	p_info->free_node = 0;
     p_info->crc_16 = pifCrc16((uint8_t*)p_info, sizeof(PifStorageVarInfo) - 6);
@@ -251,11 +252,10 @@ BOOL pifStorageVar_Format(PifStorage* p_parent)
 PifStorageDataInfoP pifStorageVar_Create(PifStorage* p_parent, uint16_t id, uint16_t size)
 {
 	PifStorageVar* p_owner = (PifStorageVar*)p_parent;
-	PifStorageVarInfo* p_info = p_owner->_p_info;
+	PifStorageVarInfo* p_info;
 	PifStorageVarDataInfo* p_cur_data;
 	PifStorageVarDataInfo* p_new_data;
-	uint16_t cur_node, new_node, last, sector_size = p_info->sector_size;
-	uint16_t sectors = (size + sector_size - 1) / sector_size;
+	uint16_t cur_node, new_node, last, sector_size, sectors;
 
     if (!p_owner || id == 0xFF) {
     	pif_error = E_INVALID_PARAM;
@@ -267,6 +267,9 @@ PifStorageDataInfoP pifStorageVar_Create(PifStorage* p_parent, uint16_t id, uint
 		return NULL;
 	}
 
+	p_info = p_owner->_p_info;
+	sector_size = p_info->sector_size;
+	sectors = (size + sector_size - 1) / sector_size;
 	if (p_info->first_node == DATA_NODE_NULL) {
 		if (sectors > p_owner->_p_info->max_sector_count) {
 			pif_error = E_OVERFLOW_BUFFER;
@@ -276,6 +279,7 @@ PifStorageDataInfoP pifStorageVar_Create(PifStorage* p_parent, uint16_t id, uint
 		last = p_owner->__info_sectors;
 
 		new_node = _getNewDataNode(p_owner);
+        if (new_node == DATA_NODE_NULL) return NULL;
 
 		p_new_data = &p_owner->__p_data_info[new_node];
 		p_new_data->next_node = p_info->first_node;

@@ -51,7 +51,7 @@ BOOL pifStorageFix_SetMedia(PifStorageFix* p_owner, uint32_t sector_size, uint32
 	}
 
 	count = storage_volume / sector_size;
-    p_owner->__p_data_info = calloc(sizeof(PifStorageFixDataInfo), count);
+    p_owner->__p_data_info = calloc(count, sizeof(PifStorageFixDataInfo));
     if (!p_owner->__p_data_info) {
 		pif_error = E_OUT_OF_HEAP;
         return FALSE;
