@@ -52,7 +52,7 @@ static BOOL _checkPromCrc(PifMs5611* p_owner)
  */
 static void _calcurateBarometric(PifMs5611* p_owner, float* p_pressure, float* p_temperature)
 {
-	int32_t dT;
+	int64_t dT;
 	int64_t temp;
 	int64_t off, sens;
 	int64_t delt;
@@ -64,8 +64,6 @@ static void _calcurateBarometric(PifMs5611* p_owner, float* p_pressure, float* p
 	sens = ((int64_t)p_owner->_prom[1] << 15) + (((int64_t)p_owner->_prom[3] * dT) >> 8);
 
 	if (temp < 2000) {
-		temp -= ((int64_t)dT * dT) / 2147483648L;
-
 		delt = temp - 2000;
 		delt = 5 * delt * delt;
 		off -= delt >> 1;
@@ -77,6 +75,8 @@ static void _calcurateBarometric(PifMs5611* p_owner, float* p_pressure, float* p
 			off -= 7 * delt;
 			sens -= (11 * delt) >> 1;
 		}
+
+        temp -= ((int64_t)dT * dT) / 2147483648L;
 	}
 
     *p_temperature = temp / 100.0;
@@ -149,6 +149,7 @@ static uint32_t _doTask(PifTask* p_task)
 BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client)
 {
 	int i;
+    uint8_t cmd = MS5611_REG_RESET;
 
 	if (!p_owner || !p_i2c) {
 		pif_error = E_INVALID_PARAM;
@@ -160,7 +161,7 @@ BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t add
     p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
     if (!p_owner->_p_i2c) return FALSE;
 
-	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MS5611_REG_RESET, 0)) goto fail;
+	if (!pifI2cDevice_Write(p_owner->_p_i2c, 0, 0, &cmd, 1)) goto fail;
 	pifTaskManager_YieldMs(100);
 
 	for (i = 0; i < 8; i++) {
