@@ -159,11 +159,9 @@ BOOL pifMpu6500_ReadAccel(PifMpu6500* p_owner, int16_t* p_accel)
 BOOL pifMpu6500_ReadTemperature(PifMpu6500* p_owner, int16_t* p_temperature)
 {
 	uint8_t data[2];
-    const int16_t RoomTemp_Offset = 21;
-    const int16_t Temp_Sensitivity = 333.87;
 
     if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, MPU6500_REG_TEMP_OUT_H, data, 2)) return FALSE;
-    *p_temperature = (RoomTemp_Offset + ((int16_t)((data[0] << 8) | data[1]) - RoomTemp_Offset) / Temp_Sensitivity) * p_owner->temp_scale;
+    *p_temperature = (21 + (int16_t)((data[0] << 8) | data[1]) / 333.87f) * p_owner->temp_scale;
 	return TRUE;
 }
 
@@ -199,9 +197,9 @@ BOOL pifMpu6500_CalibrationGyro(PifMpu6500* p_owner, uint8_t samples)
     p_imu_sensor->__delta_gyro[AXIS_Z] = sumZ / samples;
 
     // Calculate threshold vectors
-    p_imu_sensor->__threshold[AXIS_X] = sqrt((sigmaX / 50) - (p_imu_sensor->__delta_gyro[AXIS_X] * p_imu_sensor->__delta_gyro[AXIS_X]));
-    p_imu_sensor->__threshold[AXIS_Y] = sqrt((sigmaY / 50) - (p_imu_sensor->__delta_gyro[AXIS_Y] * p_imu_sensor->__delta_gyro[AXIS_Y]));
-    p_imu_sensor->__threshold[AXIS_Z] = sqrt((sigmaZ / 50) - (p_imu_sensor->__delta_gyro[AXIS_Z] * p_imu_sensor->__delta_gyro[AXIS_Z]));
+    p_imu_sensor->__threshold[AXIS_X] = sqrt((sigmaX / samples) - (p_imu_sensor->__delta_gyro[AXIS_X] * p_imu_sensor->__delta_gyro[AXIS_X]));
+    p_imu_sensor->__threshold[AXIS_Y] = sqrt((sigmaY / samples) - (p_imu_sensor->__delta_gyro[AXIS_Y] * p_imu_sensor->__delta_gyro[AXIS_Y]));
+    p_imu_sensor->__threshold[AXIS_Z] = sqrt((sigmaZ / samples) - (p_imu_sensor->__delta_gyro[AXIS_Z] * p_imu_sensor->__delta_gyro[AXIS_Z]));
 
     // Set calibrate
 	p_imu_sensor->__use_calibrate = TRUE;

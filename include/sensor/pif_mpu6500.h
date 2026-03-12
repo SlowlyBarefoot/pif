@@ -17,12 +17,12 @@ typedef enum EnPifMpu6500Reg
 	MPU6500_REG_SELF_TEST_X_GYRO  	= 0x00,
 	MPU6500_REG_SELF_TEST_Y_GYRO  	= 0x01,
 	MPU6500_REG_SELF_TEST_Z_GYRO  	= 0x02,
-	MPU6050_REG_XA_OFFSET_H        	= 0x06,
-	MPU6050_REG_XA_OFFSET_L        	= 0x07,
-	MPU6050_REG_YA_OFFSET_H        	= 0x08,
-	MPU6050_REG_YA_OFFSET_L        	= 0x09,
-	MPU6050_REG_ZA_OFFSET_H        	= 0x0A,
-	MPU6050_REG_ZA_OFFSET_L        	= 0x0B,
+	MPU6500_REG_XA_OFFSET_H        	= 0x06,
+	MPU6500_REG_XA_OFFSET_L        	= 0x07,
+	MPU6500_REG_YA_OFFSET_H        	= 0x08,
+	MPU6500_REG_YA_OFFSET_L        	= 0x09,
+	MPU6500_REG_ZA_OFFSET_H        	= 0x0A,
+	MPU6500_REG_ZA_OFFSET_L        	= 0x0B,
 	MPU6500_REG_SELF_TEST_X_ACCEL  	= 0x0D,
 	MPU6500_REG_SELF_TEST_Y_ACCEL  	= 0x0E,
 	MPU6500_REG_SELF_TEST_Z_ACCEL  	= 0x0F,
@@ -146,7 +146,7 @@ typedef enum EnPifMpu6500ExtSyncSet
 	MPU6500_EXT_SYNC_SET_GYRO_ZOUT_L	= 4 << 3,
 	MPU6500_EXT_SYNC_SET_ACCEL_XOUT_L	= 5 << 3,
     MPU6500_EXT_SYNC_SET_ACCEL_YOUT_L	= 6 << 3,
-    MPU6500_EXT_SYNC_SET_ACCEL_ZOUT_	= 7 << 3L
+    MPU6500_EXT_SYNC_SET_ACCEL_ZOUT_L	= 7 << 3
 } PifMpu6500ExtSyncSet;
 
 #define MPU6500_FIFO_MODE(N)			((N) << 6)
@@ -578,13 +578,13 @@ BOOL pifMpu6500_SetGyroFsSel(PifMpu6500* p_owner, PifMpu6500GyroFsSel gyro_fs_se
 BOOL pifMpu6500_SetAccelConfig(PifMpu6500* p_owner, uint8_t accel_config);
 
 /**
- * @fn pifMpu6500_SetaAccelFsSel
- * @brief Sets configuration values required by mpu6500 seta accel fs sel.
+ * @fn pifMpu6500_SetAccelFsSel
+ * @brief Sets configuration values required by mpu6500 set accel fs sel.
  * @param p_owner Pointer to the owner instance.
  * @param accel_fs_sel Accelerometer full-scale range selection.
  * @return TRUE on success, FALSE on failure.
  */
-BOOL pifMpu6500_SetaAccelFsSel(PifMpu6500* p_owner, PifMpu6500AccelFsSel accel_fs_sel);
+BOOL pifMpu6500_SetAccelFsSel(PifMpu6500* p_owner, PifMpu6500AccelFsSel accel_fs_sel);
 
 /**
  * @fn pifMpu6500_ReadGyro
