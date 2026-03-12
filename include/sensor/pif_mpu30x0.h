@@ -253,10 +253,11 @@ BOOL pifMpu30x0_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client);
  * @param id Unique identifier for the instance or task.
  * @param p_i2c Pointer to i2c.
  * @param addr Device address on the bus.
+ * @param p_client Pointer to optional client context data.
  * @param p_imu_sensor Pointer to imu sensor.
  * @return TRUE on success, FALSE on failure.
  */
-BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor);
+BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu30x0_Clear

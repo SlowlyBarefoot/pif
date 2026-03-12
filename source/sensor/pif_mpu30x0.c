@@ -32,7 +32,7 @@ BOOL pifMpu30x0_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client)
 	if (!pifI2cDevice_ReadRegByte(p_device, MPU30X0_REG_WHO_AM_I, &data)) return FALSE;
 	if (data != addr) return FALSE;
 #ifndef PIF_NO_LOG	
-	if (data < 32) {
+	if (data < 64) {
 		pifLog_Printf(LT_INFO, "%s%Xh", ident, data >> 1);
 	}
 	else {
@@ -42,7 +42,7 @@ BOOL pifMpu30x0_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client)
 	return TRUE;
 }
 
-BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, PifImuSensor* p_imu_sensor)
+BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client, PifImuSensor* p_imu_sensor)
 {
 	uint8_t data;
 	BOOL change;
@@ -54,7 +54,7 @@ BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
 
 	memset(p_owner, 0, sizeof(PifMpu30x0));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, addr);
+    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
     if (!p_owner->_p_i2c) return FALSE;
 
     if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU30X0_REG_DLPF_FS_SYNC, MPU30X0_FS_SEL_MASK, &data)) goto fail;
@@ -146,7 +146,7 @@ BOOL pifMpu30x0_ReadTemperature(PifMpu30x0* p_owner, float* p_temperature)
 	uint8_t data[2];
 
     if (!pifI2cDevice_ReadRegBytes(p_owner->_p_i2c, MPU30X0_REG_TEMP_OUT_H, data, 2)) return FALSE;
-    *p_temperature = 35.0f + (((data[0] << 8) + data[1]) + 13200.0f) / 280.0f;
+    *p_temperature = 35.0f + ((int16_t)((data[0] << 8) + data[1]) + 13200.0f) / 280.0f;
 	return TRUE;
 }
 
@@ -182,9 +182,9 @@ BOOL pifMpu30x0_CalibrationGyro(PifMpu30x0* p_owner, uint8_t samples)
     p_imu_sensor->__delta_gyro[AXIS_Z] = sumZ / samples;
 
     // Calculate threshold vectors
-    p_imu_sensor->__threshold[AXIS_X] = sqrt((sigmaX / 50) - (p_imu_sensor->__delta_gyro[AXIS_X] * p_imu_sensor->__delta_gyro[AXIS_X]));
-    p_imu_sensor->__threshold[AXIS_Y] = sqrt((sigmaY / 50) - (p_imu_sensor->__delta_gyro[AXIS_Y] * p_imu_sensor->__delta_gyro[AXIS_Y]));
-    p_imu_sensor->__threshold[AXIS_Z] = sqrt((sigmaZ / 50) - (p_imu_sensor->__delta_gyro[AXIS_Z] * p_imu_sensor->__delta_gyro[AXIS_Z]));
+    p_imu_sensor->__threshold[AXIS_X] = sqrt((sigmaX / samples) - (p_imu_sensor->__delta_gyro[AXIS_X] * p_imu_sensor->__delta_gyro[AXIS_X]));
+    p_imu_sensor->__threshold[AXIS_Y] = sqrt((sigmaY / samples) - (p_imu_sensor->__delta_gyro[AXIS_Y] * p_imu_sensor->__delta_gyro[AXIS_Y]));
+    p_imu_sensor->__threshold[AXIS_Z] = sqrt((sigmaZ / samples) - (p_imu_sensor->__delta_gyro[AXIS_Z] * p_imu_sensor->__delta_gyro[AXIS_Z]));
 
     // Set calibrate
 	p_imu_sensor->__use_calibrate = TRUE;
