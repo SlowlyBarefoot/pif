@@ -21,6 +21,7 @@ BOOL pifQmc5883_Detect(PifI2cPort* p_i2c, void *p_client)
 {
 	uint8_t data;
 	PifI2cDevice* p_device;
+    BOOL ack;
 
     p_device = pifI2cPort_TemporaryDevice(p_i2c, QMC5883_I2C_ADDR, p_client);
 
@@ -30,7 +31,7 @@ BOOL pifQmc5883_Detect(PifI2cPort* p_i2c, void *p_client)
     if (!pifI2cDevice_ReadRegBytes(p_device, QMC5883_REG_CHIP_ID, &data, 1)) return FALSE;
 	if (data != 0xFF) return FALSE;
 
-	BOOL ack = pifI2cDevice_ReadRegByte(p_device, QMC5883_REG_CONTROL_1, &data);
+	ack = pifI2cDevice_ReadRegByte(p_device, QMC5883_REG_CONTROL_1, &data);
 	if (ack && (data & QMC5883_MODE_MASK) != QMC5883_MODE_STANDBY) return FALSE;
 	return TRUE;
 }
@@ -49,7 +50,7 @@ BOOL pifQmc5883_Init(PifQmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_c
     p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, QMC5883_I2C_ADDR, p_client);
     if (!p_owner->_p_i2c) return FALSE;
 
-    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, QMC5883_REG_SET_RESET_PERIOD, 1)) return FALSE;
+    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, QMC5883_REG_SET_RESET_PERIOD, 1)) goto fail;
 
     if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, QMC5883_REG_CONTROL_1, QMC5883_RNG_MASK, &data)) goto fail;
     _changeGain(p_imu_sensor, data);
