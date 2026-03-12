@@ -35,7 +35,7 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifGy86Param* p
     }
 
     if (!pifI2cDevice_WriteRegBit8(p_owner->_mpu6050._p_i2c, MPU60X0_REG_I2C_MST_CTRL,
-    		MPU60X0_I2C_MST_CLK_MASK, p_param->mpu60x0_i2c_mst_clk)) goto fail;
+    		MPU60X0_I2C_MST_CLK_MASK, p_param ? p_param->mpu60x0_i2c_mst_clk : MPU60X0_I2C_MST_CLK_DEFAULT)) goto fail;
 
     if (!pifI2cDevice_WriteRegBit8(p_owner->_mpu6050._p_i2c, MPU60X0_REG_INT_PIN_CFG,
     		MPU60X0_INT_RD_CLEAR_MASK | MPU60X0_I2C_BYPASS_EN_MASK,
