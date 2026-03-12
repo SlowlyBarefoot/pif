@@ -11,22 +11,21 @@ static uint32_t _doTask(PifTask* p_task)
 {
 	PifBuzzer* p_owner = (PifBuzzer*)p_task->_p_client;
 	uint8_t repeat;
-	static uint16_t count;
 
 	if (p_owner->evt_period) (*p_owner->evt_period)(p_owner->_id);
 
 	switch (p_owner->_state) {
 	case BS_START:
-		count = p_owner->__p_sequence[p_owner->__pos++];
+		p_owner->__count = p_owner->__p_sequence[p_owner->__pos++];
 		(*p_owner->__act_action)(ON);
 		if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, ON);
 		p_owner->_state = BS_ON;
 		break;
 
 	case BS_ON:
-		if (count) count--;
+		if (p_owner->__count) p_owner->__count--;
 		else {
-			count = p_owner->__p_sequence[p_owner->__pos++];
+			p_owner->__count = p_owner->__p_sequence[p_owner->__pos++];
 			(*p_owner->__act_action)(OFF);
 			if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, OFF);
 			p_owner->_state = BS_OFF;
@@ -34,19 +33,19 @@ static uint32_t _doTask(PifTask* p_task)
 		break;
 
 	case BS_OFF:
-		if (count) count--;
+		if (p_owner->__count) p_owner->__count--;
 		else {
-			count = p_owner->__p_sequence[p_owner->__pos++];
-			if (count < PIF_BUZZER_STOP) {
+			p_owner->__count = p_owner->__p_sequence[p_owner->__pos++];
+			if (p_owner->__count < PIF_BUZZER_STOP) {
 				(*p_owner->__act_action)(ON);
 				if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, ON);
 				p_owner->_state = BS_ON;
 			}
-			else if (count == PIF_BUZZER_STOP) {
+			else if (p_owner->__count == PIF_BUZZER_STOP) {
 				p_owner->_state = BS_STOP;
 			}
 			else {
-				repeat = count - PIF_BUZZER_STOP;
+				repeat = p_owner->__count - PIF_BUZZER_STOP;
 				if (p_owner->__repeat < repeat) {
 					p_owner->__pos = 0;
 					p_owner->__repeat++;
@@ -100,7 +99,7 @@ void pifBuzzer_Clear(PifBuzzer* p_owner)
 
 BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sequence)
 {
-	if (!p_owner->_p_task) return FALSE;
+	if (!p_owner || !p_owner->_p_task) return FALSE;
 
 	p_owner->__p_sequence = p_sequence;
 	p_owner->__pos = 0;
@@ -113,7 +112,7 @@ void pifBuzzer_Stop(PifBuzzer* p_owner)
 {
 	(*p_owner->__act_action)(OFF);
 	if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, OFF);
-	p_owner->_state = BS_STOP;
+	p_owner->_state = BS_IDLE;
 }
 
 BOOL pifBuzzer_State(PifBuzzer* p_owner)

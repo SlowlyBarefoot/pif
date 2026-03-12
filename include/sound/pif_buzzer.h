@@ -6,7 +6,7 @@
 
 
 #define PIF_BUZZER_STOP			0xF0
-#define PIF_BUZZER_REPEAT(N)	(0xF0 + (N - 1))
+#define PIF_BUZZER_REPEAT(N)	(0xF0 + ((N) - 1))
 
 
 typedef void (*PifActBuzzerAction)(BOOL action);
@@ -46,6 +46,7 @@ typedef struct StPifBuzzer
     const uint8_t* __p_sequence;
     uint8_t __pos;
     uint8_t __repeat;
+	uint16_t __count;
 
 	// Private Action Function
     PifActBuzzerAction __act_action;
