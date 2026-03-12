@@ -223,9 +223,9 @@ BOOL pifMpu60x0_CalibrationGyro(PifMpu60x0* p_owner, uint8_t samples)
     p_imu_sensor->__delta_gyro[AXIS_Z] = sumZ / samples;
 
     // Calculate threshold vectors
-    p_imu_sensor->__threshold[AXIS_X] = sqrt((sigmaX / 50) - (p_imu_sensor->__delta_gyro[AXIS_X] * p_imu_sensor->__delta_gyro[AXIS_X]));
-    p_imu_sensor->__threshold[AXIS_Y] = sqrt((sigmaY / 50) - (p_imu_sensor->__delta_gyro[AXIS_Y] * p_imu_sensor->__delta_gyro[AXIS_Y]));
-    p_imu_sensor->__threshold[AXIS_Z] = sqrt((sigmaZ / 50) - (p_imu_sensor->__delta_gyro[AXIS_Z] * p_imu_sensor->__delta_gyro[AXIS_Z]));
+    p_imu_sensor->__threshold[AXIS_X] = sqrt((sigmaX / samples) - (p_imu_sensor->__delta_gyro[AXIS_X] * p_imu_sensor->__delta_gyro[AXIS_X]));
+    p_imu_sensor->__threshold[AXIS_Y] = sqrt((sigmaY / samples) - (p_imu_sensor->__delta_gyro[AXIS_Y] * p_imu_sensor->__delta_gyro[AXIS_Y]));
+    p_imu_sensor->__threshold[AXIS_Z] = sqrt((sigmaZ / samples) - (p_imu_sensor->__delta_gyro[AXIS_Z] * p_imu_sensor->__delta_gyro[AXIS_Z]));
 
     // Set calibrate
 	p_imu_sensor->__use_calibrate = TRUE;
