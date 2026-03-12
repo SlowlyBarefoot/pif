@@ -134,6 +134,18 @@ void pifSensorSwitch_SetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag f
 void pifSensorSwitch_ResetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
 
 /**
+ * @fn pifSensorSwitchColSig_Init
+ * @brief 
+ */
+void pifSensorSwitchColSig_Init();
+
+/**
+ * @fn pifSensorSwitchColSig_Clear
+ * @brief 
+ */
+void pifSensorSwitchColSig_Clear();
+
+/**
  * @fn pifSensorSwitchColSig_SetFlag
  * @brief Sets configuration values required by sensor switch col sig set flag.
  * @param flag Bit flag value to set or clear.

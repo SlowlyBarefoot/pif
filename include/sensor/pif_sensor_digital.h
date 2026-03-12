@@ -3,7 +3,6 @@
 
 
 #include "core/pif_task_manager.h"
-#include "core/pif_timer.h"
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
 
@@ -51,7 +50,6 @@ struct StPifSensorDigital
 	uint16_t __low_threshold;
 	uint16_t __high_threshold;
     uint16_t __curr_level;
-    uint16_t __prev_level;
 
 #ifdef PIF_COLLECT_SIGNAL
     PifSensorDigitalColSig* __p_colsig;
@@ -144,6 +142,18 @@ void pifSensorDigital_SetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFla
  * @param flag Bit flag value to set or clear.
  */
 void pifSensorDigital_ResetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag);
+
+/**
+ * @fn pifSensorDigitalColSig_Init
+ * @brief 
+ */
+void pifSensorDigitalColSig_Init();
+
+/**
+ * @fn pifSensorDigitalColSig_Clear
+ * @brief 
+ */
+void pifSensorDigitalColSig_Clear();
 
 /**
  * @fn pifSensorDigitalColSig_SetFlag

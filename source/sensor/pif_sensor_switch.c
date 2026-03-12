@@ -58,6 +58,11 @@ static void _addDeviceInCollectSignal()
 
 BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state, PifActSensorAcquire act_acquire)
 {
+    if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+	    return FALSE;
+	}
+
     memset(p_owner, 0, sizeof(PifSensorSwitch));
 
     PifSensor *p_parent = &p_owner->parent;
@@ -141,12 +146,12 @@ uint16_t pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner)
 	if (p_owner->__state != p_parent->_curr_state) {
 		if (p_parent->__evt_change) {
 			(*p_parent->__evt_change)(p_parent, p_owner->__state, NULL, p_parent->__p_issuer);
-#ifdef PIF_COLLECT_SIGNAL
-			if (p_owner->__p_colsig->flag & SS_CSF_FILTER_BIT) {
-				pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SS_CSF_FILTER_IDX], p_owner->__state);
-			}
-#endif
 		}
+#ifdef PIF_COLLECT_SIGNAL
+		if (p_owner->__p_colsig->flag & SS_CSF_FILTER_BIT) {
+			pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SS_CSF_FILTER_IDX], p_owner->__state);
+		}
+#endif
 		p_parent->_curr_state = p_owner->__state;
 	}
 	return 0;
