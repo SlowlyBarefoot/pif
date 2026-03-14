@@ -50,7 +50,7 @@ struct StPifTask
 	uint32_t _last_execute_time;
 #ifdef PIF_USE_TASK_STATISTICS
     uint32_t _total_execution_time;		// total time consumed by task since boot
-    int32_t _max_execution_time;
+    uint32_t _max_execution_time;
 	uint32_t _max_trigger_delay;
 #endif
 

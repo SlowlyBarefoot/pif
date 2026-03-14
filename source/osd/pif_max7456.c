@@ -38,7 +38,7 @@ BOOL pifMax7456_WriteNvm(PifMax7456* p_owner, uint8_t char_address, const uint8_
     }
 
     // Block pending completion of any prior SPI access
-    pifSpiDevice_Wait(p_owner->_p_spi);
+    while (pifSpiDevice_IsBusy(p_owner->_p_spi));
 
     // disable display
     p_owner->_font_is_loading = TRUE;

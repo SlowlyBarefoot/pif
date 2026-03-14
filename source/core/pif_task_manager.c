@@ -44,7 +44,7 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 #ifdef PIF_USE_TASK_STATISTICS
 	uint16_t trigger_delay;
 	uint32_t start_time;
-	int32_t execute_time;
+	uint32_t execute_time;
 #else
 	(void)trigger;
 #endif
