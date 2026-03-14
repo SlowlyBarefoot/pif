@@ -169,6 +169,29 @@ void pifTask_DelayMs(PifTask* p_owner, uint16_t delay)
 
 #ifdef PIF_USE_TASK_STATISTICS
 
+void pifTask_ResetStatistics(PifTask* p_owner)
+{
+    p_owner->_total_execution_time = 0UL;
+    p_owner->_max_execution_time = 0L;
+	p_owner->_max_trigger_delay = 0UL;
+
+	p_owner->__total_delta_time[0] = 0UL;
+	p_owner->__total_delta_time[1] = 0UL;
+    p_owner->__sum_execution_time[0] = 0UL;
+    p_owner->__sum_execution_time[1] = 0UL;
+	p_owner->__total_trigger_delay[0] = 0UL;
+	p_owner->__total_trigger_delay[1] = 0UL;
+	p_owner->__execution_count = 0;
+	p_owner->__trigger_count = 0;
+	p_owner->__execute_index = 0;
+	p_owner->__trigger_index = 0;
+}
+
+void pifTask_ResetMaxExecutionTime(PifTask* p_owner)
+{
+    p_owner->_max_execution_time = 0L;
+}
+
 PIF_INLINE uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner)
 {
 	if (p_owner->__execution_count < 20) return 0;

@@ -171,6 +171,25 @@ void pifTask_DelayMs(PifTask* p_owner, uint16_t delay);
 #ifdef PIF_USE_TASK_STATISTICS
 
 /**
+ * @fn pifTask_ResetStatistics
+ * @brief Resets all accumulated statistics for the task, including total execution time,
+ *        maximum execution time, maximum trigger delay, delta time counters, and execution
+ *        count. Use this to clear historical data when measuring performance from a new baseline.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifTask_ResetStatistics(PifTask* p_owner);
+
+/**
+ * @fn pifTask_ResetMaxExecutionTime
+ * @brief Resets only the maximum execution time statistic for the task to zero,
+ *        leaving all other accumulated statistics unchanged.
+ *        Use this to start tracking a new peak execution time without discarding
+ *        total execution time or delta time history.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifTask_ResetMaxExecutionTime(PifTask* p_owner);
+
+/**
  * @fn pifTask_GetAverageDeltaTime
  * @brief Retrieves the requested value or pointer from the task without changing ownership.
  * @param p_owner Pointer to the target object instance.
