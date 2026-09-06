@@ -5,6 +5,27 @@
 #include "core/pif_task.h"
 
 
+typedef void (*PifEvtTaskTimer)(void *p_client);
+
+/**
+ * @struct StPifTaskTimer
+ * @brief Represents the task timer data structure used by this module.
+ */
+typedef struct StPifTaskTimer
+{
+	// Read-only Member Variable
+    void *_p_client;
+
+	// Read-only Event Function
+    PifEvtTaskTimer _p_evt_timer;
+} PifTaskTimer;
+
+typedef void (*PifEvtTaskIdle)(void);
+
+
+extern PifEvtTaskIdle pif_evt_task_idle;
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -13,9 +34,10 @@ extern "C" {
  * @fn pifTaskManager_Init
  * @brief Initializes the task manager instance and prepares all internal fields for safe use.
  * @param max_count Maximum number of elements to manage.
+ * @param timer_count Maximum number of timer elements to manage.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifTaskManager_Init(int max_count);
+BOOL pifTaskManager_Init(int max_count, int timer_count);
 
 /**
  * @fn pifTaskManager_Clear
@@ -56,6 +78,29 @@ int pifTaskManager_Count();
  * @return Return value of this API.
  */
 PifTask *pifTaskManager_CurrentTask();
+
+/**
+ * @fn pifTaskManager_AddTimerProcess
+ * @brief Adds a timer process to the task manager.
+ * @param evt_timer The timer process callback function.
+ * @param p_client User-defined context pointer owned by the caller.
+ * @return Pointer to the resulting timer object or data, or NULL if unavailable.
+ */
+PifTaskTimer *pifTaskManager_AddTimer(PifEvtTaskTimer evt_timer, void *p_client);
+
+/**
+ * @fn pifTaskManager_RemoveTimer
+ * @brief Removes a timer process from the task manager.
+ * @param p_timer Pointer to the timer object.
+ */
+void pifTaskManager_RemoveTimer(PifTaskTimer *p_timer);
+
+/**
+ * @fn pifTaskManager_SetIdle
+ * @brief Sets the idle process callback for the task manager.
+ * @param evt_idle The idle process callback function.
+ */
+void pifTaskManager_SetIdle(PifEvtTaskIdle evt_idle);
 
 /**
  * @fn pifTaskManager_Loop

@@ -9,12 +9,8 @@ typedef enum EnPifTaskMode
 {
 	TM_NONE				= 0,
 
-	TM_ALWAYS			= 0x04,
-	TM_TIMER			= 0x08,		// Do not use it for other purposes because it is a mode used by the timer.
-
 	TM_EXTERNAL			= 0x10,
-	TM_PERIOD			= 0x20,
-	TM_IDLE				= 0x80		// If at least one TM_ALWAYS task exists, the TM_IDLE_MS task is not executed.
+	TM_PERIOD			= 0x20
 } PifTaskMode;
 
 
@@ -58,7 +54,6 @@ struct StPifTask
 	PifTaskProcessing __processing;
 	uint32_t __period;
 	BOOL __trigger;
-    volatile int __timer_trigger;
 	uint32_t __delay_us;
 	uint32_t __current_time;
 	uint32_t __pretime;
@@ -151,22 +146,6 @@ BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay);
  * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTask_SetCutinTrigger(PifTask *p_owner);
-
-/**
- * @fn pifTask_SetTriggerForTimer
- * @brief Sets configuration or runtime state for the task based on the provided parameters.
- * @param p_owner Pointer to the target object instance.
- * @return TRUE on success, otherwise FALSE.
- */
-BOOL pifTask_SetTriggerForTimer(PifTask *p_owner);
-
-/**
- * @fn pifTask_DelayMs
- * @brief Performs a delay operation in the task context for the requested time interval.
- * @param p_owner Pointer to the target object instance.
- * @param delay Delay duration value.
- */
-void pifTask_DelayMs(PifTask* p_owner, uint16_t delay);
 
 #ifdef PIF_USE_TASK_STATISTICS
 

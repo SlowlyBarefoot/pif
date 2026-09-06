@@ -52,7 +52,6 @@ typedef struct StPifTimer
     uint32_t __pwm_duty;
     BOOL __event_into_int;
 	BOOL __event;
-    PifTask *__p_task;
 
     // Private Event Function
     PifEvtTimerFinish __evt_finish;

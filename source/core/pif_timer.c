@@ -12,7 +12,6 @@ BOOL pifTimer_Start(PifTimer* p_owner, uint32_t target)
     if (p_owner->__event) {
     	p_owner->__event = FALSE;
 		if (p_owner->__evt_finish) (*p_owner->__evt_finish)(p_owner->__p_finish_issuer);
-        if (p_owner->__p_task) p_owner->__p_task->__timer_trigger--;
     }
 
     if (p_owner->_step == TS_STOP) {

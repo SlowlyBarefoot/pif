@@ -19,6 +19,8 @@ volatile uint32_t pif_cumulative_timer1ms = 0L;
 
 PifPerformance pif_performance = {
 		._count = 0,
+		._task_time1us = 0UL,
+		._task_load = 0,
 		.__state = FALSE,
 #ifdef PIF_DEBUG
 		.__max_loop_time1us = 0UL

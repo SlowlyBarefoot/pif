@@ -2,9 +2,12 @@
 
 // Timer manager task and timer object lifecycle handling.
 
-static uint32_t _doTask(PifTask *p_task)
+static void _doTask(void *p_client)
 {
-	PifTimerManager *p_manager = p_task->_p_client;
+	PifTimerManager *p_manager = (PifTimerManager *)p_client;
+
+	if (!p_manager->__pending) return;
+	p_manager->__pending = FALSE;
 
 	PifObjArrayIterator it = pifObjArray_Begin(&p_manager->__timers);
 	while (it) {
@@ -12,14 +15,12 @@ static uint32_t _doTask(PifTask *p_task)
 
 		if (p_timer->__event) {
 			p_timer->__event = FALSE;
-			p_task->__timer_trigger--;
 
 			if (p_timer->__evt_finish) (*p_timer->__evt_finish)(p_timer->__p_finish_issuer);
 		}
 
 		it = pifObjArray_Next(it);
 	}
-	return 0;
 }
 
 BOOL pifTimerManager_Init(PifTimerManager *p_manager, PifId id, uint32_t period1us, int max_count)
@@ -41,9 +42,8 @@ BOOL pifTimerManager_Init(PifTimerManager *p_manager, PifId id, uint32_t period1
     if (!pifObjArray_Init(&p_manager->__timers, sizeof(PifTimer), max_count, NULL)) goto fail;
     p_manager->_period1us = period1us;
 
-    p_manager->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_TIMER, 0, _doTask, p_manager, FALSE);
+    p_manager->__p_task = pifTaskManager_AddTimer(_doTask, p_manager);
     if (!p_manager->__p_task) goto fail;
-    p_manager->__p_task->name = "Timer";
     return TRUE;
 
 fail:
@@ -54,7 +54,7 @@ fail:
 void pifTimerManager_Clear(PifTimerManager *p_manager)
 {
 	if (p_manager->__p_task) {
-		pifTaskManager_Remove(p_manager->__p_task);
+		pifTaskManager_RemoveTimer(p_manager->__p_task);
 		p_manager->__p_task = NULL;
 	}
 	pifObjArray_Clear(&p_manager->__timers);
@@ -72,7 +72,6 @@ PifTimer *pifTimerManager_Add(PifTimerManager *p_manager, PifTimerType type)
 	PifTimer *p_timer = (PifTimer *)it->data;
     p_timer->_type = type;
     p_timer->_step = TS_STOP;
-    p_timer->__p_task = p_manager->__p_task;
     return p_timer;
 }
 
@@ -110,7 +109,7 @@ void pifTimerManager_sigTick(PifTimerManager *p_manager)
 					}
 					else if (!p_timer->__event) {
 						p_timer->__event = TRUE;
-						pifTask_SetTriggerForTimer(p_manager->__p_task);
+						p_manager->__pending = TRUE;
 					}
 				}
 				break;
@@ -123,7 +122,7 @@ void pifTimerManager_sigTick(PifTimerManager *p_manager)
 					}
 					else if (!p_timer->__event) {
 						p_timer->__event = TRUE;
-						pifTask_SetTriggerForTimer(p_manager->__p_task);
+						p_manager->__pending = TRUE;
 					}
 				}
 				break;

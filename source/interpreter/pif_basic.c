@@ -1037,7 +1037,7 @@ static int kwdhook_(char *msg)
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifBasic* p_owner = (PifBasic*)p_task->_p_client;
-	volatile  char *p_current = p_owner->__p_program, *p_nl, *p_cr;
+	char *p_current = p_owner->__p_program, *p_nl, *p_cr;
 	volatile int n, cnt;
 
 	p_owner->__start_time = pif_cumulative_timer1ms;

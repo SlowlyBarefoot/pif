@@ -129,6 +129,8 @@ typedef struct StPifPerformance
 
 	// Read-only Member Variable
 	volatile uint32_t _count;
+	uint32_t _task_time1us;     // Accumulated task time in the current CPU load measurement window.
+	uint8_t _task_load;         // Task execution ratio, expressed as a percentage.
 	uint8_t _use_rate;
 
 	// Private Member Variable
