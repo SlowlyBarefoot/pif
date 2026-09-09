@@ -5,12 +5,27 @@
 #include "core/pif.h"
 
 
+// Measures the longest run of each task, timer callback and idle callback without yielding.
+// The full statistics include it.
+#if defined(PIF_USE_TASK_STATISTICS) && !defined(PIF_USE_BLOCK_TIME)
+#define PIF_USE_BLOCK_TIME
+#endif
+
+// Samples the moving average needs before pifTask_GetAverage*() reports a value.
+#define PIF_TASK_AVERAGE_MIN_COUNT		20
+
+// Returned by pifTask_GetAverage*() while there are not enough samples yet. It is distinct from
+// an average of 0, which a task short enough to measure as 0 microseconds can produce.
+#define PIF_TASK_AVERAGE_NONE			0xFFFFFFFFUL
+
+
 typedef enum EnPifTaskMode
 {
 	TM_NONE				= 0,
 
 	TM_EXTERNAL			= 0x10,
-	TM_PERIOD			= 0x20
+	TM_PERIOD			= 0x20,
+	TM_REALTIME			= 0x40
 } PifTaskMode;
 
 
@@ -49,6 +64,9 @@ struct StPifTask
     uint32_t _max_execution_time;
 	uint32_t _max_trigger_delay;
 #endif
+#ifdef PIF_USE_BLOCK_TIME
+	uint32_t _max_block_time;			// longest run without yielding, the delay this task can cause
+#endif
 
 	// Private Member Variable
 	PifTaskProcessing __processing;
@@ -60,6 +78,9 @@ struct StPifTask
 	uint32_t __trigger_time;
 	uint32_t __trigger_delay;
 #ifdef PIF_USE_TASK_STATISTICS
+	// Moving average buckets. The pair holds up to 199 samples, so their sum overflows once the
+	// average sample passes about 21 seconds. A task with a period that long reports a wrong
+	// average delta time.
 	uint32_t __total_delta_time[2];
     uint32_t __sum_execution_time[2];
 	uint32_t __total_trigger_delay[2];
@@ -72,12 +93,6 @@ struct StPifTask
 	// Private Event Function
 	PifEvtTaskLoop __evt_loop;
 };
-
-#ifdef PIF_DEBUG
-
-extern PifActTaskSignal pif_act_task_signal;
-
-#endif
 
 
 #ifdef __cplusplus
@@ -152,8 +167,9 @@ BOOL pifTask_SetCutinTrigger(PifTask *p_owner);
 /**
  * @fn pifTask_ResetStatistics
  * @brief Resets all accumulated statistics for the task, including total execution time,
- *        maximum execution time, maximum trigger delay, delta time counters, and execution
- *        count. Use this to clear historical data when measuring performance from a new baseline.
+ *        maximum execution time, maximum trigger delay, maximum block time, delta time
+ *        counters, and execution count. Use this to clear historical data when measuring
+ *        performance from a new baseline.
  * @param p_owner Pointer to the target object instance.
  */
 void pifTask_ResetStatistics(PifTask* p_owner);
@@ -170,27 +186,43 @@ void pifTask_ResetMaxExecutionTime(PifTask* p_owner);
 
 /**
  * @fn pifTask_GetAverageDeltaTime
- * @brief Retrieves the requested value or pointer from the task without changing ownership.
+ * @brief Retrieves the average time between the executions of the task.
  * @param p_owner Pointer to the target object instance.
- * @return Result value returned by this API.
+ * @return Average in microseconds, or PIF_TASK_AVERAGE_NONE until PIF_TASK_AVERAGE_MIN_COUNT
+ *         samples are collected.
  */
 uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner);
 
 /**
  * @fn pifTask_GetAverageExecuteTime
- * @brief Retrieves the requested value or pointer from the task without changing ownership.
+ * @brief Retrieves the average execution time of the task. It includes the time a yield waited,
+ *        so it is a wall clock value. Use _max_block_time for the time the CPU is actually held.
  * @param p_owner Pointer to the target object instance.
- * @return Result value returned by this API.
+ * @return Average in microseconds, or PIF_TASK_AVERAGE_NONE until PIF_TASK_AVERAGE_MIN_COUNT
+ *         samples are collected.
  */
 uint32_t pifTask_GetAverageExecuteTime(PifTask* p_owner);
 
 /**
  * @fn pifTask_GetAverageTriggerTime
- * @brief Retrieves the requested value or pointer from the task without changing ownership.
+ * @brief Retrieves the average delay between a trigger and the execution it caused.
  * @param p_owner Pointer to the target object instance.
- * @return Result value returned by this API.
+ * @return Average in microseconds, or PIF_TASK_AVERAGE_NONE until PIF_TASK_AVERAGE_MIN_COUNT
+ *         samples are collected.
  */
 uint32_t pifTask_GetAverageTriggerTime(PifTask* p_owner);
+
+#endif
+
+#ifdef PIF_USE_BLOCK_TIME
+
+/**
+ * @fn pifTask_ResetMaxBlockTime
+ * @brief Clears the longest run measured for the task. A single outlier stays in the value
+ *        forever, so reset it after a one off long run such as an initialization path.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifTask_ResetMaxBlockTime(PifTask *p_owner);
 
 #endif
 

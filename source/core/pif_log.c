@@ -98,7 +98,7 @@ int pifLog_CmdSetStatus(int argc, char* argv[])
 	int i;
 
 	if (argc == 0) {
-    	pifLog_Printf(LT_NONE, "Use Rate: %u%%\n", pif_performance._use_rate);
+		pifLog_Printf(LT_NONE, "Task Load: %u%%\n", pif_performance._task_load);
 	   	pifLog_Printf(LT_NONE, "Error: %d\n", pif_error);
 	   	pifLog_Printf(LT_NONE, "Flag:\n");
 	   	i = 0;

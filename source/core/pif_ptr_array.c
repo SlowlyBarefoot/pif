@@ -58,6 +58,10 @@ void pifPtrArray_Clear(PifPtrArray* p_owner)
 
 	p_owner->_max_count = 0;
 	p_owner->_count = 0;
+	// The nodes are gone with the buffer, so both lists have to be dropped as well. Otherwise
+	// pifPtrArray_Begin() keeps handing out the first node of the freed buffer.
+	p_owner->_p_first = NULL;
+	p_owner->_p_free = NULL;
 }
 
 PifPtrArrayIterator pifPtrArray_Add(PifPtrArray* p_owner, void *p_data)

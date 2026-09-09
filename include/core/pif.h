@@ -130,8 +130,12 @@ typedef struct StPifPerformance
 	// Read-only Member Variable
 	volatile uint32_t _count;
 	uint32_t _task_time1us;     // Accumulated task time in the current CPU load measurement window.
-	uint8_t _task_load;         // Task execution ratio, expressed as a percentage.
-	uint8_t _use_rate;
+	uint32_t _max_delay;		// Longest delay in microseconds from the release to the dispatch
+	uint32_t _miss_count;		// Number of releases that were delayed by more than one period
+	uint8_t _task_load;         // Ratio of the last measurement window spent in tasks and in the
+								// timer and idle callbacks, as a percentage. Scheduling is not
+								// a task and is excluded, so a saturated system stays a little
+								// under 100%.
 
 	// Private Member Variable
 	uint8_t __state;	// 0 : nomal, 1 : 1 ms, 2 : 1 second, 4: 1 minute

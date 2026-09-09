@@ -67,6 +67,10 @@ void pifObjArray_Clear(PifObjArray* p_owner)
 	p_owner->_size = 0;
 	p_owner->_max_count = 0;
 	p_owner->_count = 0;
+	// The nodes are gone with the buffer, so both lists have to be dropped as well. Otherwise
+	// pifObjArray_Begin() keeps handing out the first node of the freed buffer.
+	p_owner->_p_first = NULL;
+	p_owner->_p_free = NULL;
 }
 
 PifObjArrayIterator pifObjArray_Add(PifObjArray* p_owner)

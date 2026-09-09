@@ -67,6 +67,12 @@
 
 //#define PIF_USE_TASK_STATISTICS
 
+// Measures the longest run of each task without yielding. That is what the realtime task can be
+// delayed by, and TM_REALTIME uses it to skip a task that would not finish before the release.
+// The timer and idle callbacks are measured and held back by the same rule.
+// PIF_USE_TASK_STATISTICS enables it as well.
+//#define PIF_USE_BLOCK_TIME
+
 
 // -------- pifTftLcd ----------------------------
 

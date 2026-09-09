@@ -15,15 +15,21 @@ typedef struct StPifTaskTimer
 {
 	// Read-only Member Variable
     void *_p_client;
+#ifdef PIF_USE_BLOCK_TIME
+	uint32_t _max_block_time;	// longest run of the callback, the delay it can cause
+#endif
 
 	// Read-only Event Function
-    PifEvtTaskTimer _p_evt_timer;
+    PifEvtTaskTimer _evt_timer;
 } PifTaskTimer;
 
 typedef void (*PifEvtTaskIdle)(void);
 
+#ifdef PIF_DEBUG
 
-extern PifEvtTaskIdle pif_evt_task_idle;
+extern PifActTaskSignal pif_act_task_signal;
+
+#endif
 
 
 #ifdef __cplusplus
@@ -44,6 +50,24 @@ BOOL pifTaskManager_Init(int max_count, int timer_count);
  * @brief Clears the task manager state and releases resources currently owned by the instance.
  */
 void pifTaskManager_Clear();
+
+/**
+ * @fn pifTaskManager_ResetRealtime
+ * @brief Clears the monitoring result accumulated in pif_task_realtime.
+ */
+void pifTaskManager_ResetRealtime();
+
+#ifdef PIF_USE_BLOCK_TIME
+
+/**
+ * @fn pifTaskManager_ResetBlockTime
+ * @brief Clears the longest run measured for every task and for the timer and idle callbacks.
+ *        A single outlier stays in those values forever and keeps delaying the run it belongs
+ *        to, so reset it after a one off long run such as an initialization path.
+ */
+void pifTaskManager_ResetBlockTime();
+
+#endif
 
 /**
  * @fn pifTaskManager_Add
@@ -80,8 +104,12 @@ int pifTaskManager_Count();
 PifTask *pifTaskManager_CurrentTask();
 
 /**
- * @fn pifTaskManager_AddTimerProcess
- * @brief Adds a timer process to the task manager.
+ * @fn pifTaskManager_AddTimer
+ * @brief Adds a timer process to the task manager. It runs at the start of every loop, before
+ *        any task, and its execution time counts towards pif_performance._task_load.
+ *        The callback must not yield: it is not a task, so a yield inside it would be accounted
+ *        as if the waiting were CPU time. With PIF_USE_BLOCK_TIME a TM_REALTIME task delays a
+ *        timer whose measured run does not fit in the time left before its next release.
  * @param evt_timer The timer process callback function.
  * @param p_client User-defined context pointer owned by the caller.
  * @return Pointer to the resulting timer object or data, or NULL if unavailable.
@@ -97,10 +125,17 @@ void pifTaskManager_RemoveTimer(PifTaskTimer *p_timer);
 
 /**
  * @fn pifTaskManager_SetIdle
- * @brief Sets the idle process callback for the task manager.
+ * @brief Sets the idle process callback for the task manager. It runs only in a loop where no
+ *        task was dispatched, which makes it the place for work to be done with the time left
+ *        over. That work is work all the same, so its execution time counts towards
+ *        pif_performance._task_load.
+ *        The callback must not yield, for the same reason as a timer callback, and with
+ *        PIF_USE_BLOCK_TIME a TM_REALTIME task delays it when its measured run does not fit in
+ *        the time left before the release.
  * @param evt_idle The idle process callback function.
+ * @param period_ms The idle period in milliseconds. Zero runs the callback in every idle loop.
  */
-void pifTaskManager_SetIdle(PifEvtTaskIdle evt_idle);
+void pifTaskManager_SetIdle(PifEvtTaskIdle evt_idle, uint32_t period_ms);
 
 /**
  * @fn pifTaskManager_Loop
