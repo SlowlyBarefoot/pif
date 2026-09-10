@@ -25,8 +25,35 @@ typedef enum EnPifTaskMode
 
 	TM_EXTERNAL			= 0x10,
 	TM_PERIOD			= 0x20,
+	// Takes priority over every other task at its release. The release comes from the period,
+	// from pifTask_SetTrigger(), or from both, so a period of zero means released by trigger
+	// alone. A non zero period is also the window kept free before the release, which is why a
+	// task released by trigger alone is protected only while a delayed trigger is pending.
 	TM_REALTIME			= 0x40
 } PifTaskMode;
+
+
+#ifdef PIF_USE_BLOCK_TIME
+
+/**
+ * @struct StPifBlockTime
+ * @brief Longest run without yielding, measured over a moving window rather than since boot.
+ *        Two buckets take turns holding the maximum, and the one being replaced is cleared, so
+ *        a single outlier is forgotten after 100 to 200 runs. Without that a one off long run,
+ *        an initialization path or a flash erase, would hold its owner back for good.
+ */
+typedef struct StPifBlockTime
+{
+	// Read-only Member Variable
+	uint32_t _max;				// Longest run of the window, the delay this owner can cause
+
+	// Private Member Variable
+	uint32_t __bucket[2];
+	uint16_t __count;
+	uint8_t __index;
+} PifBlockTime;
+
+#endif
 
 
 struct StPifTask;
@@ -63,9 +90,11 @@ struct StPifTask
     uint32_t _total_execution_time;		// total time consumed by task since boot
     uint32_t _max_execution_time;
 	uint32_t _max_trigger_delay;
+	uint32_t _max_delay;				// Longest start past the period of this task. A release by
+										// a trigger is measured by _max_trigger_delay instead.
 #endif
 #ifdef PIF_USE_BLOCK_TIME
-	uint32_t _max_block_time;			// longest run without yielding, the delay this task can cause
+	PifBlockTime _block_time;			// longest run without yielding, the delay this task can cause
 #endif
 
 	// Private Member Variable
@@ -77,6 +106,9 @@ struct StPifTask
 	uint32_t __pretime;
 	uint32_t __trigger_time;
 	uint32_t __trigger_delay;
+#ifdef PIF_USE_BLOCK_TIME
+	BOOL __ignore_block;
+#endif
 #ifdef PIF_USE_TASK_STATISTICS
 	// Moving average buckets. The pair holds up to 199 samples, so their sum overflows once the
 	// average sample passes about 21 seconds. A task with a period that long reports a wrong
@@ -196,7 +228,7 @@ uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner);
 /**
  * @fn pifTask_GetAverageExecuteTime
  * @brief Retrieves the average execution time of the task. It includes the time a yield waited,
- *        so it is a wall clock value. Use _max_block_time for the time the CPU is actually held.
+ *        so it is a wall clock value. Use _block_time._max for the time the CPU is really held.
  * @param p_owner Pointer to the target object instance.
  * @return Average in microseconds, or PIF_TASK_AVERAGE_NONE until PIF_TASK_AVERAGE_MIN_COUNT
  *         samples are collected.
@@ -217,12 +249,43 @@ uint32_t pifTask_GetAverageTriggerTime(PifTask* p_owner);
 #ifdef PIF_USE_BLOCK_TIME
 
 /**
+ * @fn pifTask_ResetBlockTime
+ * @brief Clears a block time measurement, both buckets of its moving window.
+ * @param p_owner Pointer to the target measurement.
+ */
+void pifTask_ResetBlockTime(PifBlockTime *p_owner);
+
+/**
+ * @fn pifTask_UpdateBlockTime
+ * @brief Adds one run to a block time measurement. The scheduler calls this at every point
+ *        where a run ends, which is a yield or the return of the task, so a task is not
+ *        credited with the time a yield spent waiting.
+ * @param p_owner Pointer to the target measurement.
+ * @param block_time Length of the run in microseconds.
+ */
+void pifTask_UpdateBlockTime(PifBlockTime *p_owner, uint32_t block_time);
+
+/**
  * @fn pifTask_ResetMaxBlockTime
- * @brief Clears the longest run measured for the task. A single outlier stays in the value
- *        forever, so reset it after a one off long run such as an initialization path.
+ * @brief Clears the longest run measured for the task, both buckets of the moving window.
+ *        The window forgets an outlier on its own, so this is for starting a measurement from
+ *        a known baseline rather than for undoing one long run: pifTask_IgnoreBlockTime()
+ *        keeps that run out of the value in the first place.
  * @param p_owner Pointer to the target object instance.
  */
 void pifTask_ResetMaxBlockTime(PifTask *p_owner);
+
+/**
+ * @fn pifTask_IgnoreBlockTime
+ * @brief Leaves the whole current execution out of the block time of the task, including the
+ *        runs either side of a yield within it. Call it from inside the task when the run is
+ *        not representative, such as an initialization path or a flash erase.
+ *        The time still counts towards the CPU load, because the CPU was held either way, and
+ *        the execution time statistics are unaffected. Only the value the scheduler uses to
+ *        decide whether this task fits before a realtime release is left untouched.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifTask_IgnoreBlockTime(PifTask *p_owner);
 
 #endif
 

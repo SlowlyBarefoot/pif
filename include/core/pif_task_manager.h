@@ -16,7 +16,7 @@ typedef struct StPifTaskTimer
 	// Read-only Member Variable
     void *_p_client;
 #ifdef PIF_USE_BLOCK_TIME
-	uint32_t _max_block_time;	// longest run of the callback, the delay it can cause
+	PifBlockTime _block_time;	// longest run of the callback, the delay it can cause
 #endif
 
 	// Read-only Event Function

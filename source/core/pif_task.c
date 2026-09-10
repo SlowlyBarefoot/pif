@@ -7,14 +7,15 @@ extern PifTask *g_task_cutin;
 extern PifTask *g_realtime_task;
 
 
+// Judged against the reading the scheduler took at the start of the pass rather than a new one.
+// A pass visits every task but dispatches at most one, so the visits that answer no would each
+// cost a timer read otherwise. The same reading becomes __pretime on a dispatch, which keeps the
+// release grid of every task measured on one clock.
 static PifTask* _processingPeriod(PifTask* p_owner)
 {
-	uint32_t current;
-
-	current = (*pif_act_timer1us)();
-	p_owner->_delta_time = current - p_owner->__pretime;
+	p_owner->_delta_time = pif_timer1us - p_owner->__pretime;
 	if (p_owner->_delta_time >= p_owner->__period) {
-		p_owner->__current_time = current;
+		p_owner->__current_time = pif_timer1us;
 		return p_owner;
 	}
 	return NULL;
@@ -35,10 +36,8 @@ BOOL pifTask_CheckParam(PifTaskMode* p_mode, uint32_t period)
 			pif_error = E_CANNOT_USE;
 			return FALSE;
 		}
-    	if (!period) {
-    		pif_error = E_INVALID_PARAM;
-		    return FALSE;
-    	}
+		// A period of zero is accepted here, unlike TM_PERIOD, and leaves the task released by
+		// pifTask_SetTrigger() alone.
     	break;
 
     case TM_PERIOD:
@@ -63,7 +62,9 @@ BOOL pifTask_SetParam(PifTask* p_owner, PifTaskMode mode, uint32_t period)
     switch (mode) {
 	case TM_REALTIME:
     	p_owner->__pretime = (*pif_act_timer1us)();
-    	p_owner->__processing = _processingPeriod;
+    	// With no period there is no release to poll for, only triggers. _processingPeriod would
+    	// report every pass as due.
+    	p_owner->__processing = period ? _processingPeriod : NULL;
 		g_realtime_task = p_owner;
 		break;
 
@@ -106,15 +107,25 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period)
 {
 	switch (p_owner->_mode) {
 	case TM_REALTIME:
+		// Dropping the period leaves the task released by trigger alone, so the periodic check
+		// has to go with it.
+		p_owner->__processing = period ? _processingPeriod : NULL;
+		break;
+
 	case TM_PERIOD:
-		p_owner->_default_period = period;
-		p_owner->__period = period;
+		if (!period) {
+			pif_error = E_INVALID_PARAM;
+			return FALSE;
+		}
 		break;
 
 	default:
 		pif_error = E_CANNOT_USE;
 		return FALSE;
 	}
+
+	p_owner->_default_period = period;
+	p_owner->__period = period;
 	return TRUE;
 }
 
@@ -151,6 +162,7 @@ void pifTask_ResetStatistics(PifTask* p_owner)
     p_owner->_total_execution_time = 0UL;
     p_owner->_max_execution_time = 0L;
 	p_owner->_max_trigger_delay = 0UL;
+	p_owner->_max_delay = 0UL;
 	// PIF_USE_TASK_STATISTICS implies PIF_USE_BLOCK_TIME, and the block time of a task is
 	// owned by the function below.
 	pifTask_ResetMaxBlockTime(p_owner);
@@ -194,9 +206,44 @@ PIF_INLINE uint32_t pifTask_GetAverageTriggerTime(PifTask* p_owner)
 
 #ifdef PIF_USE_BLOCK_TIME
 
+void pifTask_ResetBlockTime(PifBlockTime *p_owner)
+{
+	p_owner->_max = 0UL;
+	p_owner->__bucket[0] = 0UL;
+	p_owner->__bucket[1] = 0UL;
+	p_owner->__count = 0;
+	p_owner->__index = 0;
+}
+
+// One bucket collects while the other still holds the previous 100 runs, and the incoming bucket
+// is cleared as they swap. The reported maximum is therefore the largest of the last 100 to 200
+// runs and an outlier leaves it once the bucket holding it is cleared.
+void pifTask_UpdateBlockTime(PifBlockTime *p_owner, uint32_t block_time)
+{
+	if (block_time > p_owner->__bucket[p_owner->__index]) {
+		p_owner->__bucket[p_owner->__index] = block_time;
+	}
+	p_owner->__count++;
+	if (p_owner->__count == 200) {
+		p_owner->__count -= 100;
+		p_owner->__index ^= 1;
+		p_owner->__bucket[p_owner->__index] = 0UL;
+	}
+	else if (p_owner->__count == 100) {
+		p_owner->__index ^= 1;
+	}
+	p_owner->_max = (p_owner->__bucket[0] > p_owner->__bucket[1]) ?
+			p_owner->__bucket[0] : p_owner->__bucket[1];
+}
+
 void pifTask_ResetMaxBlockTime(PifTask *p_owner)
 {
-    p_owner->_max_block_time = 0UL;
+	pifTask_ResetBlockTime(&p_owner->_block_time);
+}
+
+void pifTask_IgnoreBlockTime(PifTask *p_owner)
+{
+	p_owner->__ignore_block = TRUE;
 }
 
 #endif

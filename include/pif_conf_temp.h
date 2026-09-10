@@ -67,11 +67,22 @@
 
 //#define PIF_USE_TASK_STATISTICS
 
-// Measures the longest run of each task without yielding. That is what the realtime task can be
-// delayed by, and TM_REALTIME uses it to skip a task that would not finish before the release.
-// The timer and idle callbacks are measured and held back by the same rule.
-// PIF_USE_TASK_STATISTICS enables it as well.
+// Measures the longest run of each task without yielding, over a moving window of the last 100 to
+// 200 runs. That is what the realtime task can be delayed by, and TM_REALTIME uses it to skip a
+// task that would not finish before the release. The timer and idle callbacks are measured and
+// held back by the same rule. PIF_USE_TASK_STATISTICS enables it as well.
 //#define PIF_USE_BLOCK_TIME
+
+// Margin in microseconds that a run has to leave free before the realtime release, on top of its
+// own measured length. It stands for what the scheduler itself spends between deciding that the
+// run fits and dispatching the release, which no measurement of the run can see.
+// The margin is not fixed at the minimum: a release that turns out to have been late raises it and
+// on time releases lower it again, between these two bounds. Raise the minimum only if the very
+// first releases have to be on time as well, since the margin needs a few late ones to find its
+// level. pifTaskManager_Print() reports where it settled, next to the number of runs that were let
+// through although they do not fit.
+//#define PIF_TASK_GUARD_MIN_US		        2
+//#define PIF_TASK_GUARD_MAX_US		        100
 
 
 // -------- pifTftLcd ----------------------------
