@@ -77,6 +77,12 @@ struct StPifTask
 	const char* name;
 	BOOL pause;
 	uint8_t disallow_yield_id;		// 0: Allow all, 1->255: Do not allow the corresponding id.
+	// How many times in a row a release of this task may be held back because its measured run
+	// does not fit before the next realtime release. On the next visit after that it is let
+	// through and counted as a guard lapse, which turns an unbounded wait into a stated one: at
+	// most this many passes of the ring while the task is already due.
+	// 0 takes PIF_TASK_MAX_SKIP, which is what a task registered without an opinion gets.
+	uint16_t max_skip;
 
 	// Read-only Member Variable
 	PifId _id;
@@ -106,6 +112,7 @@ struct StPifTask
 	uint32_t __pretime;
 	uint32_t __trigger_time;
 	uint32_t __trigger_delay;
+	uint16_t __skip_count;			// Releases held back in a row, against max_skip
 #ifdef PIF_USE_BLOCK_TIME
 	BOOL __ignore_block;
 #endif

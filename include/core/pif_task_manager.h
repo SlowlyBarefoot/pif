@@ -13,6 +13,12 @@ typedef void (*PifEvtTaskTimer)(void *p_client);
  */
 typedef struct StPifTaskTimer
 {
+	// Public Member Variable
+	// As PifTask::max_skip, for the loops this callback may be held back in a row. A timer
+	// callback is meant to run at the start of every loop, so being held back without a bound
+	// would break that contract rather than merely delay it.
+	uint16_t max_skip;
+
 	// Read-only Member Variable
     void *_p_client;
 #ifdef PIF_USE_BLOCK_TIME
@@ -21,6 +27,9 @@ typedef struct StPifTaskTimer
 
 	// Read-only Event Function
     PifEvtTaskTimer _evt_timer;
+
+	// Private Member Variable
+	uint16_t __skip_count;		// Runs held back in a row, against max_skip
 } PifTaskTimer;
 
 typedef void (*PifEvtTaskIdle)(void);

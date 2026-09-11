@@ -84,6 +84,20 @@
 //#define PIF_TASK_GUARD_MIN_US		        2
 //#define PIF_TASK_GUARD_MAX_US		        100
 
+// How many times in a row the margin above may hold a release back before it is let through
+// anyway. The margin alone gives no bound: a run shorter than the realtime period but longer than
+// the slack it happens to be offered can be refused on every visit, and nothing in the rule makes
+// the next visit any more likely to succeed. With this, the wait a release can suffer is stated
+// instead: at most this many passes of the ring while it is already due.
+// It is a bound, not a target. Lower it and the wait tightens while realtime jitter grows, because
+// more runs are let through against the margin; raise it and the opposite. Runs let through this
+// way are counted with the ones that do not fit at all, which pifTaskManager_Print() reports as
+// lapses, so raise it if lapses climb with no task whose measured run exceeds the whole period.
+// PifTask::max_skip and PifTaskTimer::max_skip override it for one owner, where 0 means this
+// value and 1 means never held back. The idle callback is not bounded: having no time left over
+// is the answer for idle work, not a wait to cut short.
+//#define PIF_TASK_MAX_SKIP			        10
+
 
 // -------- pifTftLcd ----------------------------
 
