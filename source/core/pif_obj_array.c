@@ -75,9 +75,15 @@ void pifObjArray_Clear(PifObjArray* p_owner)
 
 PifObjArrayIterator pifObjArray_Add(PifObjArray* p_owner)
 {
-	if (!p_owner) return NULL;
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return NULL;
+	}
 
-	if (p_owner->_p_free == NULL) return NULL;
+	if (p_owner->_p_free == NULL) {
+		pif_error = E_OVERFLOW_BUFFER;
+		return NULL;
+	}
 
 	PifObjArrayIterator p_node = p_owner->_p_free;
 	p_owner->_p_free = p_node->p_next;
@@ -98,7 +104,7 @@ void pifObjArray_Remove(PifObjArray* p_owner, void* p_data)
 {
 	PifObjArrayIterator p_node;
 	
-	if (!p_data) return;
+	if (!p_owner || !p_data) return;
 
 	p_node = (PifObjArrayIterator)((char *)p_data - 2 * sizeof(PifObjArrayIterator));
 

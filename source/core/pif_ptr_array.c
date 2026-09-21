@@ -66,9 +66,15 @@ void pifPtrArray_Clear(PifPtrArray* p_owner)
 
 PifPtrArrayIterator pifPtrArray_Add(PifPtrArray* p_owner, void *p_data)
 {
-	if (!p_owner) return NULL;
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return NULL;
+	}
 
-	if (p_owner->_p_free == NULL) return NULL;
+	if (p_owner->_p_free == NULL) {
+		pif_error = E_OVERFLOW_BUFFER;
+		return NULL;
+	}
 
 	PifPtrArrayIterator p_node = p_owner->_p_free;
 	p_node->p_data = p_data;
@@ -110,7 +116,10 @@ PifPtrArrayIterator pifPtrArray_Find(PifPtrArray* p_owner, void *p_data)
 {
 	PifPtrArrayIterator p_node;
 
-	if (!p_owner) return NULL;
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return NULL;
+	}
 
 	p_node = p_owner->_p_first;
 	while (p_node) {

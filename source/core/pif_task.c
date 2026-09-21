@@ -131,7 +131,10 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period)
 
 BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay)
 {
-	if (!p_owner) return FALSE;
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
 
 	p_owner->__trigger_time = (*pif_act_timer1us)();
 	p_owner->__trigger = TRUE;
@@ -141,7 +144,10 @@ BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay)
 
 BOOL pifTask_SetCutinTrigger(PifTask *p_owner)
 {
-	if (!p_owner) return FALSE;
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
 
 	// The time is set in both paths so that the trigger statistics measure the cut in latency.
 	p_owner->__trigger_time = (*pif_act_timer1us)();
