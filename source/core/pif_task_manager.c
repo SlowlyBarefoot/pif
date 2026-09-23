@@ -199,9 +199,19 @@ static BOOL _fitsInSlack(uint32_t max_block_time, uint32_t slack, uint16_t *p_sk
 
 static BOOL _fitsInRealtimeSlack(PifTask *p_owner, uint32_t slack)
 {
+	uint32_t block_time;
+
 	if (p_owner == g_realtime_task) return TRUE;
 
-	return _fitsInSlack(PIF_TASK_BLOCK_TIME(p_owner), slack, &p_owner->__skip_count, p_owner->max_skip);
+	// What the task said its next run would be, when it said anything. The measurement is the
+	// longest of a window of runs, which is the right answer for a task whose runs are alike and
+	// the wrong one for a state machine whose states differ by an order of magnitude.
+	block_time = PIF_TASK_BLOCK_TIME(p_owner);
+#ifdef PIF_USE_BLOCK_TIME
+	if (p_owner->__next_block_time) block_time = p_owner->__next_block_time;
+#endif
+
+	return _fitsInSlack(block_time, slack, &p_owner->__skip_count, p_owner->max_skip);
 }
 
 // Time left before the next release of the realtime task, taken from a timer reading that the
@@ -364,6 +374,11 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	p_owner->_running = TRUE;
 	p_owner->_last_execute_time = start_time;
 	s_block_pretime = start_time;
+#ifdef PIF_USE_BLOCK_TIME
+	// Consumed here, so that a task which declared a length once and then stopped goes back to
+	// being judged by its measurement rather than keeping the old declaration for good.
+	p_owner->__next_block_time = 0;
+#endif
 	period = (*p_owner->__evt_loop)(p_owner);
 	end_time = (*pif_act_timer1us)();
 	// The run since the last scheduling point is the time the CPU was really held. Unlike the

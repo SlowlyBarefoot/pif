@@ -115,6 +115,7 @@ struct StPifTask
 	uint16_t __skip_count;			// Releases held back in a row, against max_skip
 #ifdef PIF_USE_BLOCK_TIME
 	BOOL __ignore_block;
+	uint32_t __next_block_time;		// Length the task declared for its next run, 0 to use _block_time._max
 #endif
 #ifdef PIF_USE_TASK_STATISTICS
 	// Moving average buckets. The pair holds up to 199 samples, so their sum overflows once the
@@ -281,6 +282,21 @@ void pifTask_UpdateBlockTime(PifBlockTime *p_owner, uint32_t block_time);
  * @param p_owner Pointer to the target object instance.
  */
 void pifTask_ResetMaxBlockTime(PifTask *p_owner);
+
+/**
+ * @fn pifTask_SetNextBlockTime
+ * @brief Declares how long the next run of the task will be, for the scheduler to judge against
+ *        the time left before the next realtime release. It replaces _block_time._max for that
+ *        one run only, and the declaration is consumed when the task is dispatched: a task that
+ *        says nothing is judged by its measurement again.
+ *        This is for a task whose runs are not interchangeable - a state machine whose states
+ *        differ by an order of magnitude, where the longest run seen would keep the short states
+ *        out for no reason. Call it at the end of a run, for the run that follows.
+ *        0 restores the measured value.
+ * @param p_owner Pointer to the target object instance.
+ * @param block_time Length of the next run in microseconds.
+ */
+void pifTask_SetNextBlockTime(PifTask *p_owner, uint32_t block_time);
 
 /**
  * @fn pifTask_IgnoreBlockTime

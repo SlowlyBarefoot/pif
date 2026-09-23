@@ -247,6 +247,11 @@ void pifTask_ResetMaxBlockTime(PifTask *p_owner)
 	pifTask_ResetBlockTime(&p_owner->_block_time);
 }
 
+void pifTask_SetNextBlockTime(PifTask *p_owner, uint32_t block_time)
+{
+	p_owner->__next_block_time = block_time;
+}
+
 void pifTask_IgnoreBlockTime(PifTask *p_owner)
 {
 	p_owner->__ignore_block = TRUE;

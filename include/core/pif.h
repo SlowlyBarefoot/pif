@@ -55,9 +55,20 @@
 
 #define REG_VALUE(V, SM)			((V) << ((SM) >> 8))
 
+// Left alone when the host project has already defined them. These evaluate
+// their arguments twice, so a host that offers safer ones - Betaflight's
+// common/maths.h wraps them in a statement expression with __typeof__ - must
+// win wherever both are in scope. PIF only needs them to be defined; it does
+// not need them to be its own.
+#ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+#ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+#ifndef ABS
 #define ABS(x) ((x) > 0 ? (x) : -(x))
+#endif
 
 #define _PIF_CONCAT2(x, y) 		x ## y
 #define PIF_CONCAT2(x, y) 		_PIF_CONCAT2(x, y)
