@@ -85,6 +85,14 @@ typedef enum EnPifQmc5883Osr
 #define QMC5883_SOFT_RST_MASK	0x80
 
 
+typedef enum EnPifQmc5883State
+{
+	QMC5883_STATE_IDLE,
+	QMC5883_STATE_READ_STATUS,
+	QMC5883_STATE_READ_DATA
+} PifQmc5883State;
+
+
 /**
  * @class StPifQmc5883
  * @brief Defines the st pif qmc5883 data structure.
@@ -96,9 +104,11 @@ typedef struct StPifQmc5883
 	// Read-only Member Variable
 	PifId _id;
 	PifI2cDevice* _p_i2c;
+	PifQmc5883State _state;			// pifQmc5883_ReadMagAsync() progress
 
 	// Private Member Variable
 	PifImuSensor* __p_imu_sensor;
+	uint8_t __buffer[6];
 } PifQmc5883;
 
 
@@ -151,6 +161,22 @@ BOOL pifQmc5883_SetControl1(PifQmc5883* p_owner, uint8_t contorl_1);
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifQmc5883_ReadMag(PifQmc5883* p_owner, int16_t* p_mag);
+
+/**
+ * @fn pifQmc5883_ReadMagAsync
+ * @brief Reads a sample as pifQmc5883_ReadMag() does, waiting for nothing. Each call moves the
+ *        read one step on: it starts the STATUS read, then, if DRDY is set, the read of the six
+ *        data bytes, and hands the sample over on the call after that one finished. FALSE means
+ *        no sample yet, so call again from a later release of the task rather than looping
+ *        here. A sample that was not ready, or a failed transfer, starts over at STATUS.
+ *        The I2C port has to finish a transfer through pifI2cPort_sigEndTransfer() or its
+ *        act_check, and stays taken by this device while _state is not QMC5883_STATE_IDLE, so
+ *        pifQmc5883_ReadMag() and other devices on the port fail meanwhile.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_mag Pointer to mag, which receives X, Y and Z only when TRUE is returned.
+ * @return TRUE when a new sample was stored in p_mag, otherwise FALSE.
+ */
+BOOL pifQmc5883_ReadMagAsync(PifQmc5883* p_owner, int16_t* p_mag);
 
 #ifdef __cplusplus
 }

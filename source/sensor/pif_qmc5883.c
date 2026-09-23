@@ -100,3 +100,43 @@ BOOL pifQmc5883_ReadMag(PifQmc5883* p_owner, int16_t* p_mag)
 	p_mag[AXIS_Z] = (int16_t)((data[5] << 8) + data[4]);
 	return TRUE;
 }
+
+BOOL pifQmc5883_ReadMagAsync(PifQmc5883* p_owner, int16_t* p_mag)
+{
+	uint8_t* data = p_owner->__buffer;
+	PifI2cState state;
+
+	switch (p_owner->_state) {
+	case QMC5883_STATE_IDLE:
+		if (pifI2cDevice_StartReadRegBytes(p_owner->_p_i2c, QMC5883_REG_STATUS, data, 1)) {
+			p_owner->_state = QMC5883_STATE_READ_STATUS;
+		}
+		break;
+
+	case QMC5883_STATE_READ_STATUS:
+		state = pifI2cDevice_CheckTransfer(p_owner->_p_i2c);
+		if (state == IS_RUN) break;
+
+		if (state == IS_COMPLETE && (data[0] & QMC5883_DRDY_MASK) &&
+				pifI2cDevice_StartReadRegBytes(p_owner->_p_i2c, QMC5883_REG_OUT_X_LSB, data, 6)) {
+			p_owner->_state = QMC5883_STATE_READ_DATA;
+		}
+		else {
+			p_owner->_state = QMC5883_STATE_IDLE;
+		}
+		break;
+
+	case QMC5883_STATE_READ_DATA:
+		state = pifI2cDevice_CheckTransfer(p_owner->_p_i2c);
+		if (state == IS_RUN) break;
+
+		p_owner->_state = QMC5883_STATE_IDLE;
+		if (state != IS_COMPLETE) break;
+
+		p_mag[AXIS_X] = (int16_t)((data[1] << 8) + data[0]);
+		p_mag[AXIS_Y] = (int16_t)((data[3] << 8) + data[2]);
+		p_mag[AXIS_Z] = (int16_t)((data[5] << 8) + data[4]);
+		return TRUE;
+	}
+	return FALSE;
+}

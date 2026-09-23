@@ -30,6 +30,8 @@ typedef struct StPifI2cPort PifI2cPort;
 
 typedef PifI2cReturn (*PifActI2cRead)(PifI2cDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
 typedef PifI2cReturn (*PifActI2cWrite)(PifI2cDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
+typedef PifI2cReturn (*PifActI2cCheck)(PifI2cDevice *p_owner);
+typedef void (*PifActI2cRecover)(PifI2cDevice *p_owner);
 
 /**
  * @class StPifI2cDevice
@@ -47,6 +49,9 @@ struct StPifI2cDevice
 	PifId _id;
 	PifI2cPort *_p_port;
 	void *_p_client;
+
+	// Private Member Variable
+	uint32_t __start_time1ms;
 };
 
 /**
@@ -61,6 +66,15 @@ struct StPifI2cPort
 	// Public Action Function
 	PifActI2cRead act_read;
 	PifActI2cWrite act_write;
+	// Optional. Polled while a transfer that act_read or act_write answered with IR_WAIT is
+	// running, for a port that cannot call pifI2cPort_sigEndTransfer() from an interrupt. It
+	// returns IR_WAIT until the transfer is over, then IR_COMPLETE or IR_ERROR.
+	PifActI2cCheck act_check;
+	// Optional. Called when a transfer that act_read or act_write answered with IR_WAIT runs past
+	// the device timeout, before the port is given back, so the port can stop the transfer and
+	// bring a stuck bus back (reset the peripheral, clock SDA free). A completion signalled after
+	// this is ignored.
+	PifActI2cRecover act_recover;
 
 	// Read-only Member Variable
 	PifId _id;
@@ -134,7 +148,10 @@ void pifI2cPort_ScanAddress(PifI2cPort* p_owner);
 
 /**
  * @fn pifI2cDevice_Read
- * @brief Reads a block from an indexed location of an I2C device.
+ * @brief Reads a block from an indexed location of an I2C device, waiting until it is over.
+ *        Fails with pif_error set to E_INVALID_STATE, without touching the bus, while the port
+ *        is held by a transfer from pifI2cDevice_StartRead() that pifI2cDevice_CheckTransfer()
+ *        has not reported over yet. The same goes for every blocking function built on it.
  * @param p_owner Pointer to a `PifDevice` backed by an I2C device.
  * @param iaddr Internal address (register/memory offset) to read from.
  * @param isize Number of bytes used for the internal address.
@@ -198,8 +215,51 @@ BOOL pifI2cDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, 
 BOOL pifI2cDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint16_t* p_data);
 
 /**
+ * @fn pifI2cDevice_StartRead
+ * @brief Starts a read from an indexed location of an I2C device and returns at once.
+ *        The port stays taken by this device until pifI2cDevice_CheckTransfer() reports that the
+ *        transfer is over, so ask it from later releases of the task instead of looping here.
+ *        p_data has to stay valid until then. The read is not split by max_transfer_size, so
+ *        size must not exceed it when it is set. Fails with pif_error set to E_INVALID_STATE
+ *        while the port is held by another transfer.
+ * @param p_owner Pointer to a `PifDevice` backed by an I2C device.
+ * @param iaddr Internal address (register/memory offset) to read from.
+ * @param isize Number of bytes used for the internal address.
+ * @param p_data Output buffer that receives data.
+ * @param size Number of bytes to read.
+ * @return `TRUE` if the read was started, otherwise `FALSE`.
+ */
+BOOL pifI2cDevice_StartRead(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
+
+/**
+ * @fn pifI2cDevice_StartReadRegBytes
+ * @brief Starts a read of multiple bytes from a register address, as pifI2cDevice_StartRead().
+ * @param p_owner Pointer to a `PifDevice` backed by an I2C device.
+ * @param reg Start register address.
+ * @param p_data Output buffer for the received bytes.
+ * @param size Number of bytes to read.
+ * @return `TRUE` if the read was started, otherwise `FALSE`.
+ */
+BOOL pifI2cDevice_StartReadRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
+
+/**
+ * @fn pifI2cDevice_CheckTransfer
+ * @brief Reports how a transfer begun with pifI2cDevice_StartRead() stands, waiting for nothing.
+ *        IS_COMPLETE and IS_ERROR are each reported once: they free the port, and the device
+ *        reads IS_IDLE again after that. A transfer that runs past the device timeout is
+ *        reported as IS_ERROR with pif_error set to E_TIMEOUT, after act_recover has been called.
+ * @param p_owner Pointer to a `PifDevice` backed by an I2C device.
+ * @return IS_RUN while the transfer is running, IS_COMPLETE or IS_ERROR when it is over, and
+ *         IS_IDLE when nothing was started.
+ */
+PifI2cState pifI2cDevice_CheckTransfer(PifDevice* p_owner);
+
+/**
  * @fn pifI2cDevice_Write
- * @brief Writes a block to an indexed location of an I2C device.
+ * @brief Writes a block to an indexed location of an I2C device, waiting until it is over.
+ *        Fails with pif_error set to E_INVALID_STATE, without touching the bus, while the port
+ *        is held by a transfer from pifI2cDevice_StartRead() that pifI2cDevice_CheckTransfer()
+ *        has not reported over yet. The same goes for every blocking function built on it.
  * @param p_owner Pointer to a `PifDevice` backed by an I2C device.
  * @param iaddr Internal address (register/memory offset) to write to.
  * @param isize Number of bytes used for the internal address.
