@@ -38,6 +38,9 @@ typedef struct StPifModbusAsciiMaster
 	PifTimer *__p_timer;
 	uint16_t __timeout;
 	uint8_t __buffer[520];
+	void* __p_result;				// Where the response of the request in progress is read out to
+	uint16_t __result_quantity;		// How many registers were asked for
+	PifModbusResultKind __result_kind;
 	uint16_t length;
 	uint16_t index;
 	uint8_t __tx_address;
@@ -91,6 +94,21 @@ void pifModbusAsciiMaster_AttachUart(PifModbusAsciiMaster *p_owner, PifUart *p_u
 void pifModbusAsciiMaster_DetachUart(PifModbusAsciiMaster *p_owner);
 
 /**
+ * @fn pifModbusAsciiMaster_Check
+ * @brief Carries the request that is on its way the rest of the way, and reports how far it has
+ *        got. Every request function returns as soon as its frame is queued, because sending it
+ *        and receiving the answer both need the UART task to run, so call this from a task until
+ *        it stops returning MBMR_BUSY.
+ *        On MBMR_DONE whatever the request asked for has been written into the buffer that was
+ *        handed to the request function, so that buffer has to stay valid until then. On
+ *        MBMR_ERROR the reason is in `_error`. Either one frees the master for the next request,
+ *        which means a request whose result is never collected blocks every later one.
+ * @param p_owner Pointer to the protocol instance.
+ * @return MBMR_BUSY while the request is still in progress.
+ */
+PifModbusMasterResult pifModbusAsciiMaster_Check(PifModbusAsciiMaster *p_owner);
+
+/**
  * @fn pifModbusAsciiMaster_ReadCoils
  * @brief Reads data from the protocol context.
  * @param p_owner Pointer to the protocol instance.
@@ -98,7 +116,9 @@ void pifModbusAsciiMaster_DetachUart(PifModbusAsciiMaster *p_owner);
  * @param address Start address of coils or registers.
  * @param quantity Number of coils or registers to process.
  * @param coils Bitfield buffer for coil values.
- * @return TRUE on success; otherwise FALSE.
+ * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
+ *         pifModbusAsciiMaster_Check() is what reports the outcome, and the buffers passed
+ *         here have to stay valid until it does.
  */
 BOOL pifModbusAsciiMaster_ReadCoils(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, PifModbusBitFieldP p_coils);
 
@@ -110,7 +130,9 @@ BOOL pifModbusAsciiMaster_ReadCoils(PifModbusAsciiMaster *p_owner, uint8_t slave
  * @param address Start address of coils or registers.
  * @param quantity Number of coils or registers to process.
  * @param inputs Bitfield buffer for discrete input values.
- * @return TRUE on success; otherwise FALSE.
+ * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
+ *         pifModbusAsciiMaster_Check() is what reports the outcome, and the buffers passed
+ *         here have to stay valid until it does.
  */
 BOOL pifModbusAsciiMaster_ReadDiscreteInputs(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, PifModbusBitFieldP p_inputs);
 
@@ -122,7 +144,9 @@ BOOL pifModbusAsciiMaster_ReadDiscreteInputs(PifModbusAsciiMaster *p_owner, uint
  * @param address Start address of coils or registers.
  * @param quantity Number of coils or registers to process.
  * @param p_registers Buffer for register values.
- * @return TRUE on success; otherwise FALSE.
+ * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
+ *         pifModbusAsciiMaster_Check() is what reports the outcome, and the buffers passed
+ *         here have to stay valid until it does.
  */
 BOOL pifModbusAsciiMaster_ReadHoldingRegisters(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, uint16_t *p_registers);
 
@@ -134,7 +158,9 @@ BOOL pifModbusAsciiMaster_ReadHoldingRegisters(PifModbusAsciiMaster *p_owner, ui
  * @param address Start address of coils or registers.
  * @param quantity Number of coils or registers to process.
  * @param p_registers Buffer for register values.
- * @return TRUE on success; otherwise FALSE.
+ * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
+ *         pifModbusAsciiMaster_Check() is what reports the outcome, and the buffers passed
+ *         here have to stay valid until it does.
  */
 BOOL pifModbusAsciiMaster_ReadInputRegisters(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, uint16_t *p_registers);
 
@@ -145,7 +171,9 @@ BOOL pifModbusAsciiMaster_ReadInputRegisters(PifModbusAsciiMaster *p_owner, uint
  * @param slave Target Modbus slave address.
  * @param address Start address of coils or registers.
  * @param value Value to write.
- * @return TRUE on success; otherwise FALSE.
+ * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
+ *         pifModbusAsciiMaster_Check() is what reports the outcome, and the buffers passed
+ *         here have to stay valid until it does.
  */
 BOOL pifModbusAsciiMaster_WriteSingleCoil(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, BOOL value);
 
@@ -156,7 +184,9 @@ BOOL pifModbusAsciiMaster_WriteSingleCoil(PifModbusAsciiMaster *p_owner, uint8_t
  * @param slave Target Modbus slave address.
  * @param address Start address of coils or registers.
  * @param value Value to write.
- * @return TRUE on success; otherwise FALSE.
+ * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
+ *         pifModbusAsciiMaster_Check() is what reports the outcome, and the buffers passed
+ *         here have to stay valid until it does.
  */
 BOOL pifModbusAsciiMaster_WriteSingleRegister(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t value);
 
@@ -168,7 +198,9 @@ BOOL pifModbusAsciiMaster_WriteSingleRegister(PifModbusAsciiMaster *p_owner, uin
  * @param address Start address of coils or registers.
  * @param quantity Number of coils or registers to process.
  * @param coils Bitfield buffer for coil values.
- * @return TRUE on success; otherwise FALSE.
+ * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
+ *         pifModbusAsciiMaster_Check() is what reports the outcome, and the buffers passed
+ *         here have to stay valid until it does.
  */
 BOOL pifModbusAsciiMaster_WriteMultipleCoils(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, PifModbusBitFieldP p_coils);
 
@@ -180,7 +212,9 @@ BOOL pifModbusAsciiMaster_WriteMultipleCoils(PifModbusAsciiMaster *p_owner, uint
  * @param address Start address of coils or registers.
  * @param quantity Number of coils or registers to process.
  * @param p_registers Buffer for register values.
- * @return TRUE on success; otherwise FALSE.
+ * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
+ *         pifModbusAsciiMaster_Check() is what reports the outcome, and the buffers passed
+ *         here have to stay valid until it does.
  */
 BOOL pifModbusAsciiMaster_WriteMultipleRegisters(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, uint16_t *p_registers);
 
@@ -195,7 +229,9 @@ BOOL pifModbusAsciiMaster_WriteMultipleRegisters(PifModbusAsciiMaster *p_owner, 
  * @param write_address Start address for the write section.
  * @param write_quantity Number of registers to write.
  * @param p_write_registers Buffer for register values.
- * @return TRUE on success; otherwise FALSE.
+ * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
+ *         pifModbusAsciiMaster_Check() is what reports the outcome, and the buffers passed
+ *         here have to stay valid until it does.
  */
 BOOL pifModbusAsciiMaster_ReadWriteMultipleRegisters(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t read_address, uint16_t read_quantity, uint16_t *p_read_registers,
 		uint8_t write_address, uint16_t write_quantity, uint16_t *p_write_registers);

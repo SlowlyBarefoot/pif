@@ -1,5 +1,16 @@
 #include "sensor/pif_bmp280.h"
 
+
+// How long to leave the device before asking again: after a transfer that failed, and between the
+// reads of the status register while the measurement is still running.
+#define BMP280_POLL_DELAY_US		1000UL
+
+// Asked for as soon as the ring comes round again, which is what a step that needs no wait of its
+// own wants. It is a period rather than pifTask_SetTrigger(), because a trigger is taken before
+// the pause flag and before the check that the run fits in the time left before a TM_REALTIME
+// release, and stepping a reading along is ordinary work that should be subject to both.
+#define BMP280_NEXT_STEP_US			1UL
+
 #include <math.h>
 
 
@@ -66,7 +77,7 @@ static uint32_t _doTask(PifTask* p_task)
 {
 	PifBmp280* p_owner = p_task->_p_client;
 	uint8_t data[6];
-	uint16_t delay = 1;
+	uint32_t delay = BMP280_POLL_DELAY_US;
 	uint16_t gap;
 	float pressure;
 	float temperature;
@@ -74,9 +85,8 @@ static uint32_t _doTask(PifTask* p_task)
 	switch (p_owner->__state) {
 	case BMP280_STATE_START:
 		p_owner->__start_time = pif_cumulative_timer1ms;
-		if ((p_owner->_fn.write_byte)(p_owner->_fn.p_device, BMP280_REG_CTRL_MEAS,
-				BMP280_MODE_FORCED | p_owner->_osrs_p | p_owner->_osrs_t)) {
-			delay = p_owner->__delay;
+		if (pifBmp280_StartMeasurement(p_owner)) {
+			delay = p_owner->__delay * 1000UL;
 			p_owner->__state = BMP280_STATE_WAIT;
 		}
 		break;
@@ -84,8 +94,9 @@ static uint32_t _doTask(PifTask* p_task)
 	case BMP280_STATE_WAIT:
 		if ((p_owner->_fn.read_byte)(p_owner->_fn.p_device, BMP280_REG_STATUS, data)) {
 			if (!(data[0] & BMP280_MEASURING_MASK)) {
+				// Nothing more has to be left for: the sample is sitting in the device.
 				p_owner->__state = BMP280_STATE_READ;
-				pifTask_SetTrigger(p_task, 0);
+				delay = BMP280_NEXT_STEP_US;
 			}
 		}
 		break;
@@ -95,7 +106,7 @@ static uint32_t _doTask(PifTask* p_task)
 			p_owner->__raw_pressure = (int32_t)((((uint32_t)(data[0])) << 12) | (((uint32_t)(data[1])) << 4) | ((uint32_t)data[2] >> 4));
 			p_owner->__raw_temperature = (int32_t)((((uint32_t)(data[3])) << 12) | (((uint32_t)(data[4])) << 4) | ((uint32_t)data[5] >> 4));
 			p_owner->__state = BMP280_STATE_CALCURATE;
-			pifTask_SetTrigger(p_task, 0);
+			delay = BMP280_NEXT_STEP_US;
 		}
 		break;
 
@@ -105,12 +116,14 @@ static uint32_t _doTask(PifTask* p_task)
 
 		if (p_owner->__evt_read) (*p_owner->__evt_read)(pressure, temperature);
 
+		// What is left of the read period, so that the readings keep to their grid however long the
+		// measurement took. A reading that already overran it starts the next one straight away.
 		gap = pif_cumulative_timer1ms - p_owner->__start_time;
 		if (gap < p_owner->__read_period) {
-			delay = p_owner->__read_period - gap;
+			delay = (p_owner->__read_period - gap) * 1000UL;
 		}
 		else {
-			pifTask_SetTrigger(p_task, 0);
+			delay = BMP280_NEXT_STEP_US;
 		}
 		p_owner->__state = BMP280_STATE_START;
 		break;
@@ -118,7 +131,7 @@ static uint32_t _doTask(PifTask* p_task)
 	default:
 		break;
 	}
-	return delay * 1000;
+	return delay;
 }
 
 BOOL pifBmp280_Config(PifBmp280* p_owner, PifId id)
@@ -158,21 +171,22 @@ void pifBmp280_SetOverSamplingRate(PifBmp280* p_owner, uint8_t osrs_p, uint8_t o
 	for (i = 1; i < b; i++) p_owner->__delay += 1 << b;
 }
 
+BOOL pifBmp280_StartMeasurement(PifBmp280* p_owner)
+{
+	return (p_owner->_fn.write_byte)(p_owner->_fn.p_device, BMP280_REG_CTRL_MEAS,
+			BMP280_MODE_FORCED | p_owner->_osrs_p | p_owner->_osrs_t);
+}
+
 BOOL pifBmp280_ReadRawData(PifBmp280* p_owner, int32_t* p_pressure, int32_t* p_temperature)
 {
 	uint8_t data[6];
-	int i;
 
-	if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, BMP280_REG_CTRL_MEAS,
-			BMP280_MODE_FORCED | p_owner->_osrs_p | p_owner->_osrs_t)) return FALSE;
-
-	for (i = 0; i < 10; i++) {
-		pifTaskManager_YieldMs(4);
-
-		if (!(p_owner->_fn.read_byte)(p_owner->_fn.p_device, BMP280_REG_STATUS, data)) return FALSE;
-		if (!(data[0] & BMP280_MEASURING_MASK)) break;
-	}
-	if (i >= 10) return FALSE;
+	// Nothing is waited for. The device says whether the measurement has finished, so a caller that
+	// finds it has not comes back on its next release instead of holding the CPU until it does.
+	// That is also what keeps the wait from having to be estimated: the measurement takes as long
+	// as it takes, and __delay is only how long to leave it before asking the first time.
+	if (!(p_owner->_fn.read_byte)(p_owner->_fn.p_device, BMP280_REG_STATUS, data)) return FALSE;
+	if (data[0] & BMP280_MEASURING_MASK) return FALSE;
 
 	if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, BMP280_REG_PRESS_MSB, data, 6)) return FALSE;
 

@@ -11,6 +11,33 @@
 	#define PIF_TOUCH_CONTROL_PERIOD		10
 #endif
 
+// Reads of the pressed state that have to agree before calibration accepts a press or a release.
+// One read happens per release of the task, so at the default control period this is the 100ms
+// the blocking calibration used to spend on it.
+#ifndef PIF_TOUCH_CALIBRATION_DEBOUNCE
+	#define PIF_TOUCH_CALIBRATION_DEBOUNCE	10
+#endif
+
+// Samples of one crosshair that calibration accepts before it moves on to the next.
+#ifndef PIF_TOUCH_CALIBRATION_SAMPLES
+	#define PIF_TOUCH_CALIBRATION_SAMPLES	400
+#endif
+
+// Reads calibration takes per release of the task while sampling a crosshair. The whole batch is
+// one uninterrupted run, so it trades how long calibration takes against how long it holds the
+// CPU: 400 samples need PIF_TOUCH_CALIBRATION_SAMPLES / this many releases.
+#ifndef PIF_TOUCH_CALIBRATION_BATCH
+	#define PIF_TOUCH_CALIBRATION_BATCH		40
+#endif
+
+// Reads of an unpressed panel that make calibration give up on a crosshair.
+#ifndef PIF_TOUCH_CALIBRATION_MAX_FAIL
+	#define PIF_TOUCH_CALIBRATION_MAX_FAIL	10000
+#endif
+
+// Crosshairs calibration asks for: the nine points of a 3x3 grid without its centre.
+#define PIF_TOUCH_CALIBRATION_POINTS		8
+
 
 struct StPifTouchScreen;
 typedef struct StPifTouchScreen PifTouchScreen;
@@ -19,6 +46,27 @@ typedef void (*PifActTouchPosition)(PifTouchScreen* p_owner, int16_t* x, int16_t
 typedef BOOL (*PifActTouchPressure)(PifTouchScreen* p_owner);
 
 typedef void (*PifEvtTouchData)(int16_t x, int16_t y);
+
+/**
+ * @brief Reports the outcome of a calibration that pifTouchScreen_StartCalibration() began.
+ * @param p_owner Pointer to the touch-screen instance.
+ * @param result TRUE when the calibration finished with usable ranges.
+ */
+typedef void (*PifEvtTouchCalibration)(PifTouchScreen* p_owner, BOOL result);
+
+/**
+ * @enum EnPifTouchCalibrationState
+ * @brief How far the calibration started by pifTouchScreen_StartCalibration() has got. It is
+ *        advanced by the touch task, one step per release, so the task has to be running for it
+ *        to move at all.
+ */
+typedef enum EnPifTouchCalibrationState
+{
+	TCS_IDLE = 0,			// Not calibrating: the task does its normal work
+	TCS_WAIT_PRESS,			// Waiting for the crosshair in front of the user to be pressed
+	TCS_SAMPLE,				// Collecting samples of that press
+	TCS_WAIT_RELEASE		// Waiting for the press to be released again
+} PifTouchCalibrationState;
 
 
 /**
@@ -39,6 +87,7 @@ struct StPifTouchScreen
 	int16_t _x, _y;
 	BOOL _pressure;
 	BOOL _calibration;
+	PifTouchCalibrationState _calibration_state;
 
 	// Private Member Variable
     PifTftLcd* __p_lcd;
@@ -46,10 +95,21 @@ struct StPifTouchScreen
 	float __px, __py;
     PifNoiseFilter* __p_filter_x;
     PifNoiseFilter* __p_filter_y;
+	uint16_t __cal_rx[PIF_TOUCH_CALIBRATION_POINTS];
+	uint16_t __cal_ry[PIF_TOUCH_CALIBRATION_POINTS];
+	uint32_t __cal_sum_x, __cal_sum_y;
+	uint16_t __cal_count;			// Accepted samples of the crosshair in progress
+	uint16_t __cal_fail_count;
+	uint8_t __cal_index;			// Which crosshair is in front of the user
+	uint8_t __cal_stable_count;		// Reads of the pressed state that have agreed so far
+	BOOL __cal_stable_state;
 
 	// Private Action Function
 	PifActTouchPosition __act_position;
 	PifActTouchPressure __act_pressure;
+
+	// Private Event Function
+	PifEvtTouchCalibration __evt_calibration;
 };
 
 
@@ -132,12 +192,17 @@ void pifTouchScreen_Stop(PifTouchScreen* p_owner);
 void pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotation);
 
 /**
- * @fn pifTouchScreen_Calibration
- * @brief Runs interactive calibration and stores updated calibration values.
+ * @fn pifTouchScreen_StartCalibration
+ * @brief Begins interactive calibration and returns at once. Eight crosshairs are drawn and the
+ *        user is asked for one press on each; the touch task advances that a step per release and
+ *        reports the outcome through the callback, so the task has to be running and the display
+ *        belongs to calibration until it finishes. No touch data is reported meanwhile.
+ *        Watch `_calibration_state` to see how far it has got, or wait for the callback.
  * @param p_owner Pointer to the touch-screen instance.
- * @return `TRUE` if calibration completes with valid ranges, otherwise `FALSE`.
+ * @param evt_calibration Called once with the result. May be NULL.
+ * @return `TRUE` if calibration was started, otherwise `FALSE`.
  */
-BOOL pifTouchScreen_Calibration(PifTouchScreen* p_owner);
+BOOL pifTouchScreen_StartCalibration(PifTouchScreen* p_owner, PifEvtTouchCalibration evt_calibration);
 
 #ifdef __cplusplus
 }

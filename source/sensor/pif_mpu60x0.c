@@ -71,7 +71,9 @@ BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
     if (!p_owner->_p_i2c) return FALSE;
 
 	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU60X0_REG_PWR_MGMT_1, MPU60X0_DEVICE_RESET(1))) goto fail;
-	pifTaskManager_YieldMs(100);
+	// The reset needs this long before any register may be read. Initialization runs before there
+	// is anything to schedule, so the wait holds the CPU and nothing is lost by it.
+	pif_Delay1ms(100);
 
     if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU60X0_REG_GYRO_CONFIG, MPU60X0_FS_SEL_MASK, &data)) goto fail;
     if (!_changeFsSel(p_imu_sensor, data)) goto fail;
@@ -214,7 +216,10 @@ BOOL pifMpu60x0_CalibrationGyro(PifMpu60x0* p_owner, uint8_t samples)
 		sigmaY += data[AXIS_Y] * data[AXIS_Y];
 		sigmaZ += data[AXIS_Z] * data[AXIS_Z];
 
-		pifTaskManager_YieldMs(5);
+		// Samples have to be spread over time to average out the noise, and the CPU is held for
+		// the whole run: samples * 5ms, so up to 1.275s. The sensor has to be motionless anyway,
+		// which makes this a mode of its own rather than something to interleave with other work.
+		pif_Delay1ms(5);
     }
 
     // Calculate delta vectors

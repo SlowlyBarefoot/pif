@@ -426,28 +426,34 @@ PifStorageDataInfoP pifStorageVar_Open(PifStorage* p_parent, uint16_t id)
 	return NULL;
 }
 
-BOOL pifStorageVar_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size)
+PifStorageStart pifStorageVar_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size)
 {
 	PifStorageVar* p_owner = (PifStorageVar*)p_parent;
+	uint16_t sector_size;
 
 	if (!p_owner->__is_format) {
 		pif_error = E_IS_NOT_FORMATED;
-		return FALSE;
+		return SS_START_FAILURE;
 	}
 
-	return _readData(p_owner, p_dst, ((PifStorageVarDataInfo*)p_src)->first_sector * p_owner->_p_info->sector_size, size, p_owner->_p_info->sector_size);
+	sector_size = p_owner->_p_info->sector_size;
+	return pifStorage_StartTransfer(p_parent, FALSE,
+			((PifStorageVarDataInfo*)p_src)->first_sector * sector_size, p_dst, size, sector_size);
 }
 
-BOOL pifStorageVar_Write(PifStorage* p_parent, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size)
+PifStorageStart pifStorageVar_Write(PifStorage* p_parent, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size)
 {
 	PifStorageVar* p_owner = (PifStorageVar*)p_parent;
+	uint16_t sector_size;
 
 	if (!p_owner->__is_format) {
 		pif_error = E_IS_NOT_FORMATED;
-		return FALSE;
+		return SS_START_FAILURE;
 	}
 
-	return _writeData(p_owner, ((PifStorageVarDataInfo*)p_dst)->first_sector * p_owner->_p_info->sector_size, p_src, size);
+	sector_size = p_owner->_p_info->sector_size;
+	return pifStorage_StartTransfer(p_parent, TRUE,
+			((PifStorageVarDataInfo*)p_dst)->first_sector * sector_size, p_src, size, sector_size);
 }
 
 #if defined(PIF_DEBUG) && !defined(PIF_NO_LOG)

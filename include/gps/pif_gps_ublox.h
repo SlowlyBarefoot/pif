@@ -464,6 +464,9 @@ struct StPifGpsUblox
     PifGpsUbxRx __rx;
 	PifGpsUbloxTx __tx;
 	PifGpsUbxMessageId __cfg_msg_id;
+	BOOL __request_response;		// The request on its way is one the receiver answers
+	uint32_t __request_pretime;		// When it was queued, in pif_cumulative_timer1ms
+	uint16_t __request_timeout;		// How long it may take, in milliseconds
     BOOL __next_fix;
     uint16_t __length;
 };
@@ -526,48 +529,58 @@ BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr
 void pifGpsUblox_DetachI2c(PifGpsUblox* p_owner);
 
 /**
+ * @fn pifGpsUblox_CheckRequest
+ * @brief Reports how far the request that is on its way has got. Every request function returns
+ *        as soon as the message is queued, because both sending it and reading its answer need
+ *        other tasks to run, so this is what says whether it is over and how it ended. Call it
+ *        from a task until it stops returning GURS_SEND.
+ *        GURS_ACK or GURS_NAK is the receiver answering. GURS_TIMEOUT means either that the
+ *        answer did not come within the time the request was given, or, for a message that is
+ *        not answered, that the last byte has left.
+ * @param p_owner Pointer to the wrapper instance.
+ * @return The state of the request: GURS_SEND while it is still on its way.
+ */
+PifGpsUbxRequestState pifGpsUblox_CheckRequest(PifGpsUblox* p_owner);
+
+/**
  * @fn pifGpsUblox_PollRequestGBQ
  * @brief Sends an NMEA `$GBGBQ` poll request for a specific message ID.
  * @param p_owner Pointer to the wrapper instance.
  * @param p_mag_id Target NMEA message identifier string.
- * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
- * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the request is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting);
+BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox* p_owner, const char* p_mag_id, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_PollRequestGLQ
  * @brief Sends an NMEA `$GLGLQ` poll request for a specific message ID.
  * @param p_owner Pointer to the wrapper instance.
  * @param p_mag_id Target NMEA message identifier string.
- * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
- * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the request is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting);
+BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox* p_owner, const char* p_mag_id, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_PollRequestGNQ
  * @brief Sends an NMEA `$GNGNQ` poll request for a specific message ID.
  * @param p_owner Pointer to the wrapper instance.
  * @param p_mag_id Target NMEA message identifier string.
- * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
- * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the request is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting);
+BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox* p_owner, const char* p_mag_id, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_PollRequestGPQ
  * @brief Sends an NMEA `$GPGPQ` poll request for a specific message ID.
  * @param p_owner Pointer to the wrapper instance.
  * @param p_mag_id Target NMEA message identifier string.
- * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
- * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the request is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting);
+BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_SetPubxConfig
@@ -577,11 +590,10 @@ BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
  * @param in_proto Input protocol mask.
  * @param out_proto Output protocol mask.
  * @param baudrate Serial baud rate to configure.
- * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
- * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the command is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t in_proto, uint16_t out_proto, uint32_t baudrate, BOOL blocking, uint16_t waiting);
+BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t in_proto, uint16_t out_proto, uint32_t baudrate, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_SetPubxRate
@@ -593,11 +605,10 @@ BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t i
  * @param rus2 Rate for UART2 output.
  * @param rusb Rate for USB output.
  * @param rspi Rate for SPI output.
- * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
- * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the command is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t rddc, uint8_t rus1, uint8_t rus2, uint8_t rusb, uint8_t rspi, BOOL blocking, uint16_t waiting);
+BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t rddc, uint8_t rus1, uint8_t rus2, uint8_t rusb, uint8_t rspi, uint16_t waiting);
 
 /**
  * @fn pifGpsUblox_SendUbxMsg
@@ -607,11 +618,10 @@ BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t
  * @param msg_id UBX message ID within the selected class.
  * @param length Payload size in bytes.
  * @param payload Pointer to payload bytes, or `NULL` when `length` is zero.
- * @param blocking If `TRUE`, wait until ongoing transmit activity is idle.
- * @param waiting Maximum wait time in milliseconds for send/response flow.
+ * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the packet is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_SendUbxMsg(PifGpsUblox* p_owner, uint8_t class_id, uint8_t msg_id, uint16_t length, uint8_t* payload, BOOL blocking, uint16_t waiting);
+BOOL pifGpsUblox_SendUbxMsg(PifGpsUblox* p_owner, uint8_t class_id, uint8_t msg_id, uint16_t length, uint8_t* payload, uint16_t waiting);
 
 #ifdef __cplusplus
 }

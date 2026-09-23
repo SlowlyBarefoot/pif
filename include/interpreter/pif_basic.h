@@ -154,6 +154,22 @@ EXEC:
 struct StPifBasic;
 typedef struct StPifBasic PifBasic;
 
+/**
+ * @enum EnPifBasicState
+ * @brief Where the interpreter has got to between the releases of its task. A program used to be
+ *        parsed and run to the end inside one release; now each release does at most
+ *        PIF_BASIC_OPCODE opcodes or one source line and asks for another, so that the rest of
+ *        the system keeps running while a program does.
+ */
+typedef enum EnPifBasicState
+{
+	BS_IDLE				= 0,	// No program is running
+	BS_START			= 1,	// A program was handed over and nothing has been done with it yet
+	BS_LINE				= 2,	// Reading and compiling the next source line
+	BS_RUN_STATEMENT	= 3,	// Running the statement that line compiled to, in immediate mode
+	BS_RUN_PROGRAM		= 4		// Running the compiled program
+} PifBasicState;
+
 typedef int (*PifBasicProcess)(int count, int* p_params);
 
 typedef void (*PifEvtBasicResult)(PifBasic* p_owner);
@@ -173,6 +189,8 @@ struct StPifBasic
 
 	// Private Member Variable
     char* __p_program;
+    char* __p_current;			// Where the parsing of the program has got to
+    PifBasicState __state;
     uint32_t __start_time;
     PifBasicProcess* __p_process;
     int __opcode;

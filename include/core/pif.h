@@ -210,17 +210,21 @@ void pif_sigTimer1ms();
 
 /**
  * @fn pif_Delay1ms
- * @brief Performs a delay operation in the core context for the requested time interval.
- * @param delay Delay duration value.
+ * @brief Waits for the requested time with the CPU held. Nothing else runs meanwhile, so the whole
+ *        wait is added to the block time of whichever task is executing and delays a TM_REALTIME
+ *        release by that much. Keep it to initialization and to waits a device cannot be asked
+ *        about; a wait a task can be released from again belongs in the return value of its loop
+ *        callback instead.
+ * @param delay Delay duration in milliseconds.
  */
-void pif_Delay1ms(uint16_t delay);
+void pif_Delay1ms(uint32_t delay);
 
 /**
  * @fn pif_Delay1us
- * @brief Performs a delay operation in the core context for the requested time interval.
- * @param delay Delay duration value.
+ * @brief Waits for the requested time with the CPU held, as pif_Delay1ms() does.
+ * @param delay Delay duration in microseconds.
  */
-void pif_Delay1us(uint16_t delay);
+void pif_Delay1us(uint32_t delay);
 
 /**
  * @fn pif_ChangeStatusLed

@@ -61,6 +61,60 @@ static uint32_t _conversionDelay(PifAds1x1x* p_owner)
     return delay;
 }
 
+/**
+ * @fn _conversionTicks
+ * @brief The conversion time of the current data rate, in ticks of the timer manager.
+ * @param p_owner Pointer to the owner instance.
+ * @return Ticks to wait.
+ */
+static uint32_t _conversionTicks(PifAds1x1x* p_owner)
+{
+	uint32_t period = p_owner->__p_timer_manager->_period1us;
+
+	// Rounded up: a tick too many leaves the sample sitting in the device a little longer, which
+	// costs nothing, while a tick too few would read the previous sample instead.
+	// It cannot round down to zero, which pifTimer_Start() would reject, because only a conversion
+	// longer than PIF_ADS1X1X_SPIN_LIMIT_US is timed at all and the rest are waited out.
+	return (p_owner->__conversion_delay + period - 1) / period;
+}
+
+/**
+ * @fn _readConversion
+ * @brief Reads the conversion that has finished into _value. Handing the sample on is left to the
+ *        caller, which is what keeps the waited path from having to call the read event at all.
+ * @param p_owner Pointer to the owner instance.
+ * @return TRUE when the conversion register was read, otherwise FALSE.
+ */
+static BOOL _readConversion(PifAds1x1x* p_owner)
+{
+	uint16_t data;
+
+	p_owner->_state = ADS1X1X_STATE_IDLE;
+	if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONVERSION, &data)) return FALSE;
+
+	p_owner->_value = (int16_t)(data >> p_owner->__bit_offset);
+	return TRUE;
+}
+
+/**
+ * @fn _evtTimerFinish
+ * @brief Reads the conversion the timer was waiting out and hands the sample over.
+ * @param p_issuer Issuer pointer castable to PifAds1x1x.
+ */
+static void _evtTimerFinish(PifIssuerP p_issuer)
+{
+	PifAds1x1x* p_owner = (PifAds1x1x*)p_issuer;
+	BOOL result;
+
+	// Reached from the timer process of the task manager, which runs at the start of a loop with
+	// the CPU to itself, so the transfer below is in the same context as one inside any task.
+	result = _readConversion(p_owner);
+
+	// Reported either way. Saying nothing when the transfer fails would leave a caller that waits
+	// on the event waiting for a sample that is never coming.
+	if (p_owner->__evt_read) (*p_owner->__evt_read)(p_owner, result, p_owner->_value);
+}
+
 BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, uint8_t addr, void *p_client)
 {
 	if (!p_owner) {
@@ -100,6 +154,7 @@ fail:
 
 void pifAds1x1x_Clear(PifAds1x1x* p_owner)
 {
+	pifAds1x1x_DetachTimer(p_owner);
 	if (p_owner->_p_i2c) {
 		pifI2cPort_RemoveDevice(p_owner->_p_i2c->_p_port, p_owner->_p_i2c);
     	p_owner->_p_i2c = NULL;
@@ -114,32 +169,91 @@ int16_t pifAds1x1x_Read(PifAds1x1x* p_owner)
 	return data >> p_owner->__bit_offset;
 }
 
-int16_t pifAds1x1x_ReadMux(PifAds1x1x* p_owner, PifAds1x1xMux mux)
+BOOL pifAds1x1x_AttachTimer(PifAds1x1x* p_owner, PifTimerManager* p_timer_manager, PifEvtAds1x1xRead evt_read)
 {
-	uint16_t data;
+	if (!p_owner || !p_timer_manager) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+	if (p_owner->__p_timer) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
+
+	p_owner->__p_timer = pifTimerManager_Add(p_timer_manager, TT_ONCE);
+	if (!p_owner->__p_timer) return FALSE;
+
+	// Not pifTimer_AttachEvtIntFinish(): that one is called from inside
+	// pifTimerManager_sigTick(), and reading the conversion is an I2C transfer that has no
+	// business in a tick interrupt.
+	pifTimer_AttachEvtFinish(p_owner->__p_timer, _evtTimerFinish, p_owner);
+
+	p_owner->__p_timer_manager = p_timer_manager;
+	p_owner->__evt_read = evt_read;
+	p_owner->_state = ADS1X1X_STATE_IDLE;
+	return TRUE;
+}
+
+void pifAds1x1x_DetachTimer(PifAds1x1x* p_owner)
+{
+	if (p_owner->__p_timer) {
+		pifTimerManager_Remove(p_owner->__p_timer);
+		p_owner->__p_timer = NULL;
+	}
+	p_owner->__p_timer_manager = NULL;
+	p_owner->_state = ADS1X1X_STATE_IDLE;
+}
+
+PifAds1x1xStart pifAds1x1x_StartMux(PifAds1x1x* p_owner, PifAds1x1xMux mux)
+{
 	uint16_t config;
 
-	if (p_owner->__channels == 1 || (p_owner->_config & ADS1X1X_MODE_MASK) == ADS1X1X_MODE_CONTINUOUS) return 0;
+	if (!p_owner->__p_timer) {
+		pif_error = E_CANNOT_FOUND;
+		return ADS1X1X_START_FAILURE;
+	}
+	// A single channel part has no multiplexer to point anywhere, and in continuous mode the device
+	// converts on its own: there is no conversion to start and no wait to time.
+	if (p_owner->__channels == 1 || (p_owner->_config & ADS1X1X_MODE_MASK) == ADS1X1X_MODE_CONTINUOUS) {
+		pif_error = E_INVALID_STATE;
+		return ADS1X1X_START_FAILURE;
+	}
+	// There is one conversion register and one timer, so the one on its way has to be collected
+	// before the next may start.
+	if (p_owner->_state != ADS1X1X_STATE_IDLE) {
+		pif_error = E_INVALID_STATE;
+		return ADS1X1X_START_FAILURE;
+	}
 
 	SET_BIT_FILED(p_owner->_config, ADS1X1X_MUX_MASK, mux);
+	// The bit that starts the conversion is written to the device but kept out of _config, which
+	// describes the configuration rather than the one shot that used it.
 	config = p_owner->_config;
 	config |= ADS1X1X_SSCS_SINGLE;
-	if (!pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, config)) return 0;
-	if (p_owner->__conversion_delay) {
-		pifTaskManager_YieldUs(p_owner->__conversion_delay);
+	if (!pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, config)) return ADS1X1X_START_FAILURE;
+
+	// Too short for the timer to express, so it is waited out here. The answer goes back through
+	// the return value and _value rather than through the read event: an event called from inside
+	// this function could start the next conversion from within it, and a scan driven that way
+	// would nest one call per conversion. The wait is bounded by PIF_ADS1X1X_SPIN_LIMIT_US, which
+	// is less than the tick the timer would have rounded it up to.
+	if (p_owner->__conversion_delay <= PIF_ADS1X1X_SPIN_LIMIT_US) {
+		pif_Delay1us(p_owner->__conversion_delay);
+		if (!_readConversion(p_owner)) return ADS1X1X_START_FAILURE;
+		return ADS1X1X_START_DONE;
 	}
-	if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONVERSION, &data)) return 0;
-	return data >> p_owner->__bit_offset;
+
+	p_owner->_state = ADS1X1X_STATE_CONVERT;
+	if (!pifTimer_Start(p_owner->__p_timer, _conversionTicks(p_owner))) {
+		p_owner->_state = ADS1X1X_STATE_IDLE;
+		return ADS1X1X_START_FAILURE;
+	}
+	return ADS1X1X_START_TIMED;
 }
 
 double pifAds1x1x_Voltage(PifAds1x1x* p_owner)
 {
     return (double)pifAds1x1x_Read(p_owner) * p_owner->convert_voltage;
-}
-
-double pifAds1x1x_VoltageMux(PifAds1x1x* p_owner, PifAds1x1xMux mux)
-{
-    return (double)pifAds1x1x_ReadMux(p_owner, mux) * p_owner->convert_voltage;
 }
 
 BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, uint16_t config)

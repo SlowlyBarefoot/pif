@@ -188,7 +188,10 @@ BOOL pifMpu6500_CalibrationGyro(PifMpu6500* p_owner, uint8_t samples)
 		sigmaY += data[AXIS_Y] * data[AXIS_Y];
 		sigmaZ += data[AXIS_Z] * data[AXIS_Z];
 
-		pifTaskManager_YieldMs(5);
+		// Samples have to be spread over time to average out the noise, and the CPU is held for
+		// the whole run: samples * 5ms, so up to 1.275s. The sensor has to be motionless anyway,
+		// which makes this a mode of its own rather than something to interleave with other work.
+		pif_Delay1ms(5);
     }
 
     // Calculate delta vectors

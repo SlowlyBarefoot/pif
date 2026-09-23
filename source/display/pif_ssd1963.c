@@ -285,42 +285,22 @@ void pifSsd1963_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint
 	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
 	uint8_t size;
 	uint16_t i, lx, ly;
-	uint32_t area, data[3];
+	uint32_t data[3];
 
 	lx = x2 - x1 + 1;
 	ly = y2 - y1 + 1;
-	area = lx * ly;
 
 	size = (*p_owner->__fn_convert_color)(color, data);
 
-	if (area < p_owner->_view_size) {
-		(*p_parent->__act_chip_select)(TRUE);
-		_setAddress(p_owner, x1, y1, x2, y2);
-		for (i = 0; i < ly; i++) {
-			(*p_parent->__act_write_repeat)(data, size, lx);
-		}
-		(*p_parent->__act_chip_select)(FALSE);
+	// One address window for the whole rectangle. A larger area used to be filled a line at a
+	// time, each line its own window, purely so that there was somewhere to yield between them;
+	// without that the split only costs the extra window per line.
+	(*p_parent->__act_chip_select)(TRUE);
+	_setAddress(p_owner, x1, y1, x2, y2);
+	for (i = 0; i < ly; i++) {
+		(*p_parent->__act_write_repeat)(data, size, lx);
 	}
-	else {
-		if (lx > ly) {
-			for (i = y1; i <= y2; i++) {
-				(*p_parent->__act_chip_select)(TRUE);
-				_setAddress(p_owner, x1, i, x2, i);
-				(*p_parent->__act_write_repeat)(data, size, lx);
-				(*p_parent->__act_chip_select)(FALSE);
-				pifTaskManager_Yield();
-			}
-		}
-		else {
-			for (i = x1; i <= x2; i++) {
-				(*p_parent->__act_chip_select)(TRUE);
-				_setAddress(p_owner, i, y1, i, y2);
-				(*p_parent->__act_write_repeat)(data, size, ly);
-				(*p_parent->__act_chip_select)(FALSE);
-				pifTaskManager_Yield();
-			}
-		}
-	}
+	(*p_parent->__act_chip_select)(FALSE);
 }
 
 void pifSsd1963_DrawArea(PifTftLcd *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map)

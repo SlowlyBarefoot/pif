@@ -192,12 +192,54 @@ static void _evtTimerTimeout(PifIssuerP p_issuer)
 }
 
 /**
- * @brief Builds and sends a request frame, then waits for and validates the response.
+ * @brief Notes what the response of the request about to be sent has to be read out into.
  * @param p_owner Pointer to the protocol instance that owns this operation.
- * @param len Input argument used by this operation.
- * @return TRUE if the operation succeeds; otherwise FALSE.
+ * @param kind What the request asks the slave for.
+ * @param p_result Caller buffer the response is read out into. NULL for MBRK_NONE.
+ * @param quantity How many registers were asked for. Unused by the other kinds.
  */
-static BOOL _requestAndResponse(PifModbusAsciiMaster *p_owner, uint16_t len)
+static void _setResult(PifModbusAsciiMaster *p_owner, PifModbusResultKind kind, void *p_result, uint16_t quantity)
+{
+	p_owner->__result_kind = kind;
+	p_owner->__p_result = p_result;
+	p_owner->__result_quantity = quantity;
+}
+
+/**
+ * @brief Reads the response out into the buffer the caller gave the request function.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ */
+static void _copyResult(PifModbusAsciiMaster *p_owner)
+{
+	uint16_t i;
+
+	switch (p_owner->__result_kind) {
+	case MBRK_BITS:
+		// The response itself says how many bytes of bits it carries.
+		for (i = 0; i < p_owner->__buffer[2]; i++) {
+			((PifModbusBitFieldP)p_owner->__p_result)[i] = p_owner->__buffer[3 + i];
+		}
+		break;
+
+	case MBRK_REGISTERS:
+		for (i = 0; i < p_owner->__result_quantity; i++) {
+			((uint16_t *)p_owner->__p_result)[i] = pifModbus_StreamToShort(&p_owner->__buffer[3 + i * 2]);
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+/**
+ * @brief Builds a request frame and hands it to the UART. It does not wait: sending the frame and
+ *        receiving the response both need the UART task to run, which cannot happen from inside
+ *        this call. pifModbusAsciiMaster_Check() is what carries it the rest of the way.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ * @param len Length of the frame that was built in the buffer.
+ */
+static void _request(PifModbusAsciiMaster *p_owner, uint16_t len)
 {
 	p_owner->_error = MBE_NONE;
 
@@ -220,22 +262,6 @@ static BOOL _requestAndResponse(PifModbusAsciiMaster *p_owner, uint16_t len)
 	p_owner->__state = MBMS_REQUEST;
 	pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
 
-	while (1) {
-		if (p_owner->__state == MBMS_RESPONSE) break;
-		else if (p_owner->__state == MBMS_ERROR) goto fail;
-		pifTaskManager_YieldUs(p_owner->__p_uart->_transfer_time);
-	}
-
-	while (1) {
-		if (p_owner->__state == MBMS_FINISH)  break;
-		else if (p_owner->__state == MBMS_ERROR) goto fail;
-		pifTaskManager_YieldUs(p_owner->__p_uart->_transfer_time);
-	}
-
-fail:
-	if (p_owner->__p_uart->__act_direction) (*p_owner->__p_uart->__act_direction)(UD_TX);
-	p_owner->__state = MBMS_IDLE;
-	return p_owner->_error == MBE_NONE;
 }
 
 BOOL pifModbusAsciiMaster_Init(PifModbusAsciiMaster *p_owner, PifId id, PifTimerManager *p_timer_manager)
@@ -289,10 +315,22 @@ void pifModbusAsciiMaster_DetachUart(PifModbusAsciiMaster *p_owner)
 	p_owner->__p_uart = NULL;
 }
 
+PifModbusMasterResult pifModbusAsciiMaster_Check(PifModbusAsciiMaster *p_owner)
+{
+	if (p_owner->__state == MBMS_IDLE) return MBMR_IDLE;
+
+	// Everything before this is the request still going out or the response still coming in.
+	if (p_owner->__state != MBMS_FINISH && p_owner->__state != MBMS_ERROR) return MBMR_BUSY;
+
+	// The line goes back to being driven for transmission, whichever way the request ended.
+	if (p_owner->__p_uart->__act_direction) (*p_owner->__p_uart->__act_direction)(UD_TX);
+	if (p_owner->__state == MBMS_FINISH && p_owner->_error == MBE_NONE) _copyResult(p_owner);
+	p_owner->__state = MBMS_IDLE;
+	return p_owner->_error == MBE_NONE ? MBMR_DONE : MBMR_ERROR;
+}
+
 BOOL pifModbusAsciiMaster_ReadCoils(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, PifModbusBitFieldP p_coils)
 {
-	uint16_t i;
-
 	if (p_owner->__state != MBMS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -309,18 +347,13 @@ BOOL pifModbusAsciiMaster_ReadCoils(PifModbusAsciiMaster *p_owner, uint8_t slave
 	pifModbusAscii_ShortToAscii(address, &p_owner->__buffer[5]);
 	pifModbusAscii_ShortToAscii(quantity, &p_owner->__buffer[9]);
 
-	if (!_requestAndResponse(p_owner, 13)) return FALSE;
-
-	for (i = 0; i < p_owner->__buffer[2]; i++) {
-		p_coils[i] = p_owner->__buffer[3 + i];
-	}
+	_setResult(p_owner, MBRK_BITS, p_coils, 0);
+	_request(p_owner, 13);
 	return TRUE;
 }
 
 BOOL pifModbusAsciiMaster_ReadDiscreteInputs(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, PifModbusBitFieldP p_inputs)
 {
-	uint16_t i;
-
 	if (p_owner->__state != MBMS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -337,18 +370,13 @@ BOOL pifModbusAsciiMaster_ReadDiscreteInputs(PifModbusAsciiMaster *p_owner, uint
 	pifModbusAscii_ShortToAscii(address, &p_owner->__buffer[5]);
 	pifModbusAscii_ShortToAscii(quantity, &p_owner->__buffer[9]);
 
-	if (!_requestAndResponse(p_owner, 13)) return FALSE;
-
-	for (i = 0; i < p_owner->__buffer[2]; i++) {
-		p_inputs[i] = p_owner->__buffer[3 + i];
-	}
+	_setResult(p_owner, MBRK_BITS, p_inputs, 0);
+	_request(p_owner, 13);
 	return TRUE;
 }
 
 BOOL pifModbusAsciiMaster_ReadHoldingRegisters(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, uint16_t *p_registers)
 {
-	uint16_t i;
-
 	if (p_owner->__state != MBMS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -365,18 +393,13 @@ BOOL pifModbusAsciiMaster_ReadHoldingRegisters(PifModbusAsciiMaster *p_owner, ui
 	pifModbusAscii_ShortToAscii(address, &p_owner->__buffer[5]);
 	pifModbusAscii_ShortToAscii(quantity, &p_owner->__buffer[9]);
 
-	if (!_requestAndResponse(p_owner, 13)) return FALSE;
-
-	for (i = 0; i < quantity; i++) {
-		p_registers[i] = pifModbus_StreamToShort(&p_owner->__buffer[3 + i * 2]);
-	}
+	_setResult(p_owner, MBRK_REGISTERS, p_registers, quantity);
+	_request(p_owner, 13);
 	return TRUE;
 }
 
 BOOL pifModbusAsciiMaster_ReadInputRegisters(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, uint16_t *p_registers)
 {
-	uint16_t i;
-
 	if (p_owner->__state != MBMS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -393,11 +416,8 @@ BOOL pifModbusAsciiMaster_ReadInputRegisters(PifModbusAsciiMaster *p_owner, uint
 	pifModbusAscii_ShortToAscii(address, &p_owner->__buffer[5]);
 	pifModbusAscii_ShortToAscii(quantity, &p_owner->__buffer[9]);
 
-	if (!_requestAndResponse(p_owner, 13)) return FALSE;
-
-	for (i = 0; i < quantity; i++) {
-		p_registers[i] = pifModbus_StreamToShort(&p_owner->__buffer[3 + i * 2]);
-	}
+	_setResult(p_owner, MBRK_REGISTERS, p_registers, quantity);
+	_request(p_owner, 13);
 	return TRUE;
 }
 
@@ -419,7 +439,9 @@ BOOL pifModbusAsciiMaster_WriteSingleCoil(PifModbusAsciiMaster *p_owner, uint8_t
 	pifModbusAscii_ShortToAscii(address, &p_owner->__buffer[5]);
 	pifModbusAscii_ShortToAscii(value ? 0xFF00 : 0x0000, &p_owner->__buffer[9]);
 
-	return _requestAndResponse(p_owner, 13);
+	_setResult(p_owner, MBRK_NONE, NULL, 0);
+	_request(p_owner, 13);
+	return TRUE;
 }
 
 BOOL pifModbusAsciiMaster_WriteSingleRegister(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t value)
@@ -440,7 +462,9 @@ BOOL pifModbusAsciiMaster_WriteSingleRegister(PifModbusAsciiMaster *p_owner, uin
 	pifModbusAscii_ShortToAscii(address, &p_owner->__buffer[5]);
 	pifModbusAscii_ShortToAscii(value, &p_owner->__buffer[9]);
 
-	return _requestAndResponse(p_owner, 13);
+	_setResult(p_owner, MBRK_NONE, NULL, 0);
+	_request(p_owner, 13);
+	return TRUE;
 }
 
 BOOL pifModbusAsciiMaster_WriteMultipleCoils(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, PifModbusBitFieldP p_coils)
@@ -470,7 +494,9 @@ BOOL pifModbusAsciiMaster_WriteMultipleCoils(PifModbusAsciiMaster *p_owner, uint
 		pifModbusAscii_CharToAscii(p_coils[i], &p_owner->__buffer[pos]);
 	}
 
-	return _requestAndResponse(p_owner, pos);
+	_setResult(p_owner, MBRK_NONE, NULL, 0);
+	_request(p_owner, pos);
+	return TRUE;
 }
 
 BOOL pifModbusAsciiMaster_WriteMultipleRegisters(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, uint16_t *p_registers)
@@ -500,7 +526,9 @@ BOOL pifModbusAsciiMaster_WriteMultipleRegisters(PifModbusAsciiMaster *p_owner, 
 		pifModbusAscii_ShortToAscii(p_registers[i], &p_owner->__buffer[pos]);
 	}
 
-	return _requestAndResponse(p_owner, pos);
+	_setResult(p_owner, MBRK_NONE, NULL, 0);
+	_request(p_owner, pos);
+	return TRUE;
 }
 
 BOOL pifModbusAsciiMaster_ReadWriteMultipleRegisters(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t read_address, uint16_t read_quantity, uint16_t *p_read_registers,
@@ -534,10 +562,7 @@ BOOL pifModbusAsciiMaster_ReadWriteMultipleRegisters(PifModbusAsciiMaster *p_own
 		pifModbusAscii_ShortToAscii(p_write_registers[i], &p_owner->__buffer[pos]);
 	}
 
-	if (!_requestAndResponse(p_owner, pos)) return FALSE;
-
-	for (i = 0; i < read_quantity; i++) {
-		p_read_registers[i] = pifModbus_StreamToShort(&p_owner->__buffer[3 + i * 2]);
-	}
+	_setResult(p_owner, MBRK_REGISTERS, p_read_registers, read_quantity);
+	_request(p_owner, pos);
 	return TRUE;
 }

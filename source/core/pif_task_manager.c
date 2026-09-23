@@ -6,10 +6,6 @@
 
 // Central task scheduler and runtime execution loop management.
 
-#ifndef PIF_TASK_STACK_SIZE
-#define PIF_TASK_STACK_SIZE		5
-#endif
-
 // Margin a run has to leave free before the realtime release, on top of its own length. It stands
 // for what the scheduler spends between deciding that a run fits and dispatching the release that
 // follows it, which no block time can measure. The minimum is only a starting point: a release
@@ -55,10 +51,7 @@
 
 static PifObjArray s_tasks;
 static PifObjArrayIterator s_it_current;
-static PifTask *s_task_stack[PIF_TASK_STACK_SIZE];
-static int s_task_stack_ptr = 0;
 static PifTask *s_current_task = NULL;
-static uint32_t s_block_pretime = 0UL;		// Start of the run that is in progress between two scheduling points
 static uint32_t s_task_load_start_time = 0UL;
 
 static PifObjArray s_timers;
@@ -86,18 +79,6 @@ PifActTaskSignal pif_act_task_signal = NULL;
 
 #endif
 
-
-static BOOL _isSharedTaskRunning(PifTask *p_task)
-{
-	int i;
-
-	if (!p_task->disallow_yield_id) return FALSE;
-
-	for (i = 0; i < s_task_stack_ptr; i++) {
-		if (s_task_stack[i]->disallow_yield_id == p_task->disallow_yield_id) return TRUE;
-	}
-	return FALSE;
-}
 
 // Whether the realtime task is due, judged against a timer reading the caller already has. A
 // release comes from a trigger as well as from the period, and either one gives the task priority
@@ -161,8 +142,8 @@ static BOOL _fitsInSlack(uint32_t max_block_time, uint32_t slack, uint16_t *p_sk
 	// offered is a full period and the wait ends on its own.
 	if (!slack) return FALSE;
 
-	// This scheduler cannot preempt, so the delay a run imposes on the realtime task is its
-	// length without yielding. It may only start while that length, and the margin covering what
+	// A run cannot be interrupted once it has started, so the delay it imposes on the realtime
+	// task is its whole length. It may only start while that length, and the margin covering what
 	// the scheduler itself spends getting back here, both still fit in the time left before the
 	// next release.
 	guard = s_task_guard;
@@ -298,8 +279,6 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	uint32_t execute_time;
 #endif
 
-	if (s_task_stack_ptr >= PIF_TASK_STACK_SIZE) return;
-
 	// One reading serves both the release measurements below and the start of the run, so the
 	// dispatch is timed where it happens rather than where it was decided.
 	start_time = (*pif_act_timer1us)();
@@ -369,11 +348,7 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	p_owner->__skip_count = 0;
 
 	s_current_task = p_owner;
-    s_task_stack[s_task_stack_ptr] = p_owner;
-	s_task_stack_ptr++;
-	p_owner->_running = TRUE;
 	p_owner->_last_execute_time = start_time;
-	s_block_pretime = start_time;
 #ifdef PIF_USE_BLOCK_TIME
 	// Consumed here, so that a task which declared a length once and then stopped goes back to
 	// being judged by its measurement rather than keeping the old declaration for good.
@@ -381,11 +356,9 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 #endif
 	period = (*p_owner->__evt_loop)(p_owner);
 	end_time = (*pif_act_timer1us)();
-	// The run since the last scheduling point is the time the CPU was really held. Unlike the
-	// execution time it excludes what a yield spent waiting, so a yielding task no longer
-	// inflates the load, and a nested task is counted once in its own right.
-	block_time = end_time - s_block_pretime;
-	s_block_pretime = end_time;
+	// A run cannot give the CPU up before it returns, so the whole run is the time the CPU was
+	// held.
+	block_time = end_time - start_time;
 	pif_performance._task_time1us += block_time;
 #ifdef PIF_USE_BLOCK_TIME
 	// The longest such run is the delay this task can impose on the realtime task. A run the task
@@ -395,7 +368,7 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	p_owner->__ignore_block = FALSE;
 #endif
 #ifdef PIF_USE_TASK_STATISTICS
-	execute_time = end_time - start_time;
+	execute_time = block_time;
 	p_owner->_total_execution_time += execute_time;
 	if (execute_time > p_owner->_max_execution_time) p_owner->_max_execution_time = execute_time;
 	p_owner->__total_delta_time[p_owner->__execute_index] += p_owner->_delta_time;
@@ -411,10 +384,7 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 		p_owner->__execute_index ^= 1;
 	}
 #endif
-	p_owner->_running = FALSE;
-	s_task_stack_ptr--;
-	s_task_stack[s_task_stack_ptr] = NULL;
-    s_current_task = (s_task_stack_ptr > 0) ? s_task_stack[s_task_stack_ptr - 1] : NULL;
+	s_current_task = NULL;
 
 #ifdef PIF_DEBUG
     if (pif_act_task_signal) (*pif_act_task_signal)(FALSE);
@@ -461,8 +431,8 @@ static void _processingIdle(uint32_t slack)
 
 	s_idle_pretime = current;
 	(*evt_task_idle)();
-	// The callback must not yield, so the whole run is one block: the CPU it held, and the delay
-	// it can impose on the realtime task.
+	// The whole run is one block: the CPU it held, and the delay it can impose on the realtime
+	// task.
 	block_time = (*pif_act_timer1us)() - current;
 #ifdef PIF_USE_BLOCK_TIME
 	pifTask_UpdateBlockTime(&s_idle_block_time, block_time);
@@ -473,7 +443,6 @@ static void _processingIdle(uint32_t slack)
 static void _initCpuLoad()
 {
 	s_task_load_start_time = (*pif_act_timer1us)();
-	s_block_pretime = s_task_load_start_time;
 	pif_performance._task_time1us = 0UL;
 	pif_performance._task_load = 0;
 }
@@ -491,9 +460,9 @@ static void _updateCpuLoad()
 	if (elapsed_time < 1000000UL) return;
 
 	if (task_time > elapsed_time) {
-		// A run cannot outlast the window it is accounted in, so this is a callback that yielded
-		// against the rule. The overflow is handed to the next window while it stays plausible,
-		// and dropped beyond that so the load recovers instead of sticking at 100%.
+		// A single run longer than the window it is accounted in leaves the window nothing to
+		// measure against. The overflow is handed to the next window while it stays plausible, and
+		// dropped beyond that so the load recovers instead of sticking at 100%.
 		excess = task_time - elapsed_time;
 		if (excess >= elapsed_time) excess = 0UL;
 		task_time = elapsed_time;
@@ -760,8 +729,8 @@ void pifTaskManager_Loop()
 		if (p_timer->_evt_timer &&
 				_fitsInSlack(PIF_TIMER_BLOCK_TIME(p_timer), slack, &p_timer->__skip_count, p_timer->max_skip)) {
 			(*p_timer->_evt_timer)(p_timer->_p_client);
-			// The callback must not yield, so its whole run is one block. The end of one block is
-			// the start of the next, which keeps this to a single timer reading per callback.
+			// The end of one callback is the start of the next, which keeps this to a single
+			// timer reading per callback.
 			now = (*pif_act_timer1us)();
 			block_time = now - block_start;
 			block_start = now;
@@ -851,177 +820,6 @@ next:
 	_updateCpuLoad();
 }
 
-void pifTaskManager_Yield()
-{
-	PifTask *p_owner;
-	PifTask *p_select = NULL;
-	int i, count = pifObjArray_Count(&s_tasks);
-	uint32_t diff;
-	uint32_t slack = 0xFFFFFFFFUL;
-	BOOL trigger = FALSE;
-
-	// There is nothing to yield to before the ring exists, which is where boot is while the tasks
-	// are still being registered. A driver that waits with pifTaskManager_YieldMs() inside its own
-	// initialization therefore spins instead of dispatching, and the ring pointer below is safe to
-	// dereference: it is NULL only while no task is registered.
-	// Nothing is skipped by leaving here. No task can be running with none registered, so there is
-	// no block time to account for, and the CPU load window stays open until the first loop, which
-	// reports the boot as the idle time it was.
-	if (!s_it_current) return;
-
-	pif_timer1us = (*pif_act_timer1us)();
-
-	// The run that ends at this yield is CPU time the task really held, and it is what the
-	// realtime task would have had to wait for. Timer and idle callbacks must not yield, so a
-	// yield always happens inside a task and s_block_pretime always belongs to s_current_task.
-	if (s_current_task) {
-		diff = pif_timer1us - s_block_pretime;
-		pif_performance._task_time1us += diff;
-#ifdef PIF_USE_BLOCK_TIME
-		// The flag is cleared where the execution ends, so every run of an execution the task
-		// declared unrepresentative is skipped, not only the last one.
-		if (!s_current_task->__ignore_block) {
-			pifTask_UpdateBlockTime(&s_current_task->_block_time, diff);
-		}
-#endif
-	}
-	s_block_pretime = pif_timer1us;
-
-	// A task holding the same resource can be on the stack at a yield, and the cut in path was
-	// the one place that dispatched without asking. The request is left pending when it cannot be
-	// taken, so it is delayed rather than dropped, and the selection below still finds other work
-	// meanwhile. pifTaskManager_Loop() needs no such test: it is the outermost caller, so its
-	// stack is empty and nothing can be holding a resource.
-	if (g_task_cutin && !g_task_cutin->_running && !_isSharedTaskRunning(g_task_cutin)) {
-		_processingTrigger(g_task_cutin);
-		p_select = g_task_cutin;
-		g_task_cutin = NULL;
-		trigger = TRUE;
-	}
-	else {
-		// While the realtime task is the one that yielded there is no pending release to protect,
-		// so the slack does not limit anything and the waiting task must be allowed to run.
-		if (g_realtime_task && !g_realtime_task->_running) {
-			// Asked before the release is taken, because consuming a pending trigger and then
-			// finding the release undispatchable would drop it.
-			if (!_isSharedTaskRunning(g_realtime_task)) {
-				p_select = _processingRealTime(pif_timer1us, &trigger);
-			}
-			// Not taken here. _realtimeSlack() reports no slack while the release is due, which
-			// keeps the ring below from making the delay worse.
-			if (!p_select) slack = _realtimeSlack(pif_timer1us);
-		}
-
-		for (i = 0; i < count && !p_select; i++) {
-			p_owner = (PifTask *)s_it_current->data;
-
-			// See the same skip in pifTaskManager_Loop(). The block above is the only place the
-			// realtime task is released, here as there.
-			if (p_owner == g_realtime_task) goto next;
-			if (p_owner->_running) goto next;
-			if (_isSharedTaskRunning(p_owner)) goto next;
-
-			if (p_owner->__trigger) {
-				if (p_owner->__trigger_delay) {
-					// See the same test in pifTaskManager_Loop(): the wrapped case is a trigger
-					// newer than the reading, not a delay that expired long ago.
-					diff = pif_timer1us - p_owner->__trigger_time;
-					if ((int32_t)diff >= 0 && diff >= p_owner->__trigger_delay) {
-						p_owner->__trigger_delay = 0;
-					}
-				}
-				if (!p_owner->__trigger_delay) {
-					p_owner->__trigger = FALSE;
-					_processingTrigger(p_owner);
-					p_select = p_owner;
-					trigger = TRUE;
-				}
-			}
-			// Due first, slack second. The slack rule counts the releases it holds back, so
-			// asking it about a task that is not due yet would spend that count on a release
-			// that was never wanted and the bound would never reach a task that is waiting.
-			if (!p_select && !p_owner->pause && p_owner->__processing) {
-				PifTask *p_due = (*p_owner->__processing)(p_owner);
-				if (p_due && _fitsInRealtimeSlack(p_owner, slack)) p_select = p_due;
-			}
-
-next:
-			s_it_current = pifObjArray_Next(s_it_current);
-			if (!s_it_current) {
-				s_it_current = pifObjArray_Begin(&s_tasks);
-				if (s_task_stack_ptr) _checkLoopTime();
-			}
-		}
-	}
-
-	if (p_select) {
-	    _processingTask(p_select, trigger && s_task_stack_ptr);
-	}
-	_updateCpuLoad();
-}
-
-void pifTaskManager_YieldMs(uint32_t time)
-{
-    uint32_t start;
-
-    if (!time) return;
-
-    start = pif_cumulative_timer1ms;
-    do {
-		pifTaskManager_Yield();
-    } while (pif_cumulative_timer1ms - start <= time);
-}
-
-void pifTaskManager_YieldUs(uint32_t time)
-{
-    uint32_t start;
-
-    if (!time) return;
-
-	start = (*pif_act_timer1us)();
-	do {
-		pifTaskManager_Yield();
-	} while ((*pif_act_timer1us)() - start <= time);
-}
-
-void pifTaskManager_YieldAbort(PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer)
-{
-    if (!p_check_abort) return;
-
-    while (1) {
-		pifTaskManager_Yield();
-		if ((*p_check_abort)(p_issuer)) break;
-    }
-}
-
-void pifTaskManager_YieldAbortMs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer)
-{
-    uint32_t start;
-
-    if (!time) return;
-    if (!p_check_abort) return;
-
-    start = pif_cumulative_timer1ms;
-    do {
-		pifTaskManager_Yield();
-		if ((*p_check_abort)(p_issuer)) break;
-    } while (pif_cumulative_timer1ms - start <= time);
-}
-
-void pifTaskManager_YieldAbortUs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer)
-{
-    uint32_t start;
-
-    if (!time) return;
-    if (!p_check_abort) return;
-
-	start = (*pif_act_timer1us)();
-	do {
-		pifTaskManager_Yield();
-		if ((*p_check_abort)(p_issuer)) break;
-	} while ((*pif_act_timer1us)() - start <= time);
-}
-
 void pifTaskManager_AllTask(void (*callback)(PifTask *p_task))
 {
 	PifObjArrayIterator it;
@@ -1066,7 +864,7 @@ void pifTaskManager_Print()
 			pifLog_Printf(LT_NONE, " (%u): %s-%luus Pause=%d\n", p_owner->_id, mode, p_owner->_default_period, p_owner->pause);
 		}
 		else {
-			pifLog_Printf(LT_NONE, " (%u): %s-%1fms Pause=%d\n", p_owner->_id, mode, p_owner->_default_period / 1000.0L, p_owner->pause);
+			pifLog_Printf(LT_NONE, " (%u): %s-%1fms Pause=%d\n", p_owner->_id, mode, p_owner->_default_period / 1000.0, p_owner->pause);
 		}
 #ifdef PIF_USE_BLOCK_TIME
 		pifLog_Printf(LT_NONE, "    Block: M=%luus\n", p_owner->_block_time._max);

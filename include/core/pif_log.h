@@ -147,9 +147,26 @@ BOOL pifLog_IsEmpty();
 /**
  * @fn pifLog_PrintChar
  * @brief Formats and writes output related to the log using the provided destination.
+ *        The character is dropped when the transmit buffer is full, as a line is.
  * @param ch Single character value to output.
  */
 void pifLog_PrintChar(char ch);
+
+/**
+ * @fn pifLog_DropCount
+ * @brief Returns how many lines and characters have been dropped because the transmit buffer had
+ *        no room for them. Logging never waits for room, so this is the only place the loss is
+ *        visible: a count that keeps growing means the buffer or the baud rate is too small for
+ *        how much is being logged.
+ * @return Number of lines and characters dropped since the last reset.
+ */
+uint32_t pifLog_DropCount();
+
+/**
+ * @fn pifLog_ResetDropCount
+ * @brief Clears the count reported by pifLog_DropCount().
+ */
+void pifLog_ResetDropCount();
 
 /**
  * @fn pifLog_Print
@@ -169,9 +186,12 @@ void pifLog_Printf(PifLogType type, const char* p_format, ...);
 
 /**
  * @fn pifLog_PrintInBuffer
- * @brief Formats and writes output related to the log using the provided destination.
+ * @brief Hands as much of the retained log buffer to the UART as its transmit buffer will take
+ *        right now. Emptying the rest needs the UART task to run, so this does not do it all in
+ *        one call: keep calling it from a task while it returns TRUE.
+ * @return TRUE while the retained buffer still holds something to send.
  */
-void pifLog_PrintInBuffer();
+BOOL pifLog_PrintInBuffer();
 
 /**
  * @fn pifLog_AttachUart

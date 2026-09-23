@@ -399,23 +399,27 @@ fail:
 }
 
 /**
- * @brief Abort predicate that checks whether UART TX buffer is empty.
- * @param p_issuer Issuer pointer castable to `PifGpsUblox`.
- * @return `TRUE` when pending TX data is fully drained, otherwise `FALSE`.
+ * @brief Records a request as being on its way, so that pifGpsUblox_CheckRequest() can tell when
+ *        it is over.
+ * @param p_owner Pointer to the u-blox wrapper.
+ * @param response TRUE when the receiver is expected to answer with an ACK or a NAK.
+ * @param waiting How long the request may take, in milliseconds.
  */
-static BOOL _checkAbortSerial(PifIssuerP p_issuer)
+static void _beginRequest(PifGpsUblox* p_owner, BOOL response, uint16_t waiting)
 {
-	PifGpsUblox* p_owner = (PifGpsUblox*)p_issuer;
-
-	return pifRingBuffer_IsEmpty(&p_owner->__tx.buffer);
+	p_owner->__request_response = response;
+	p_owner->__request_pretime = pif_cumulative_timer1ms;
+	p_owner->__request_timeout = waiting;
+	p_owner->_request_state = GURS_SEND;
 }
 
 /**
  * @brief Finalizes, queues, and transmits an NMEA command packet.
  * @param p_owner Pointer to the u-blox wrapper.
  * @param p_data NMEA sentence buffer ending at `*` before checksum insertion.
- * @param waiting Wait time in milliseconds for transmission completion.
- * @return `TRUE` if packet handling succeeds, otherwise `FALSE`.
+ * @param waiting How long the request may take, in milliseconds.
+ * @return `TRUE` if the packet was queued, otherwise `FALSE`. Queued is not sent: over a UART the
+ *         request is only over once pifGpsUblox_CheckRequest() says so.
  */
 static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, uint16_t waiting)
 {
@@ -453,63 +457,25 @@ static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, uint16_t waiting
 	if (p_owner->__p_uart) {
 		pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
 
-		pifTaskManager_YieldAbortMs(waiting, _checkAbortSerial, p_owner);
+		// Draining the buffer needs the UART task to run, so the request is left on its way and
+		// pifGpsUblox_CheckRequest() is what sees it end. An NMEA command is not answered, so
+		// there is nothing to wait for beyond the last byte leaving.
+		_beginRequest(p_owner, FALSE, waiting);
 	}
 	else if (p_owner->_p_i2c_device) {
 		if (!pifI2cDevice_Write(p_owner->_p_i2c_device, 0, 0, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, 4), i)) goto fail;
 		pifRingBuffer_Remove(&p_owner->__tx.buffer, 4 + i);
+		// The write held the CPU until the bytes were gone, so the request is already over.
+		p_owner->_request_state = GURS_TIMEOUT;
 	}
 	else {
 		pif_error = E_CANNOT_FOUND;
 		goto fail;
 	}
-	p_owner->_request_state = GURS_TIMEOUT;
 	return TRUE;
 
 fail:
 	pifRingBuffer_RollbackPutting(&p_owner->__tx.buffer);
-	return FALSE;
-}
-
-/**
- * @brief Abort predicate for UART requests that expect ACK/NAK response.
- * @param p_issuer Issuer pointer castable to `PifGpsUblox`.
- * @return `TRUE` when request reached ACK/NAK state and TX queue is empty.
- */
-static BOOL _checkAbortSerialResponse(PifIssuerP p_issuer)
-{
-	PifGpsUblox* p_owner = (PifGpsUblox*)p_issuer;
-
-	if (pifRingBuffer_IsEmpty(&p_owner->__tx.buffer)) {
-		switch (p_owner->_request_state) {
-		case GURS_ACK:
-		case GURS_NAK:
-			return TRUE;
-
-		default:
-			break;
-		}
-	}
-	return FALSE;
-}
-
-/**
- * @brief Abort predicate for I2C requests that expect ACK/NAK response.
- * @param p_issuer Issuer pointer castable to `PifGpsUblox`.
- * @return `TRUE` when request state is ACK or NAK.
- */
-static BOOL _checkAbortI2cResponse(PifIssuerP p_issuer)
-{
-	PifGpsUblox* p_owner = (PifGpsUblox*)p_issuer;
-
-	switch (p_owner->_request_state) {
-	case GURS_ACK:
-	case GURS_NAK:
-		return TRUE;
-
-	default:
-		break;
-	}
 	return FALSE;
 }
 
@@ -519,10 +485,12 @@ static BOOL _checkAbortI2cResponse(PifIssuerP p_issuer)
  * @param p_header UBX frame header including sync, class, id, and length.
  * @param length Payload size in bytes.
  * @param p_payload Pointer to payload bytes.
- * @param waiting Wait time in milliseconds for transmission/response.
- * @return `TRUE` if packet handling succeeds, otherwise `FALSE`.
+ * @param response TRUE when the receiver is expected to answer this message with an ACK or NAK.
+ * @param waiting How long the request may take, in milliseconds.
+ * @return `TRUE` if the packet was queued, otherwise `FALSE`. Queued is not answered: the request
+ *         is only over once pifGpsUblox_CheckRequest() says so.
  */
-static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t length, uint8_t* p_payload, uint16_t waiting)
+static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t length, uint8_t* p_payload, BOOL response, uint16_t waiting)
 {
 	uint32_t info;
 	uint8_t tailer[2];
@@ -549,22 +517,18 @@ static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t len
 	if (p_owner->__p_uart) {
 		pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
 
-		if (p_owner->_request_state == GURS_SEND) {
-			pifTaskManager_YieldAbortMs(waiting, _checkAbortSerialResponse, p_owner);
-			if (p_owner->_request_state == GURS_SEND) p_owner->_request_state = GURS_TIMEOUT;
-		}
-		else {
-			pifTaskManager_YieldAbortMs(waiting, _checkAbortSerial, p_owner);
-			p_owner->_request_state = GURS_TIMEOUT;
-		}
+		// Both the sending and any answer need other tasks to run, so the request is left on its
+		// way either way and pifGpsUblox_CheckRequest() is what sees it end.
+		_beginRequest(p_owner, response, waiting);
 	}
 	else if (p_owner->_p_i2c_device) {
 		if (!pifI2cDevice_Write(p_owner->_p_i2c_device, 0, 0, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, 4), 8 + length)) goto fail;
 		pifRingBuffer_Remove(&p_owner->__tx.buffer, 12 + length);
 
-		if (p_owner->_request_state == GURS_SEND) {
-			pifTaskManager_YieldAbortMs(waiting, _checkAbortI2cResponse, p_owner);
-			if (p_owner->_request_state == GURS_SEND) p_owner->_request_state = GURS_TIMEOUT;
+		if (response) {
+			// The bytes are gone, but the answer still has to be read by the task that polls the
+			// device.
+			_beginRequest(p_owner, TRUE, waiting);
 		}
 		else {
 			p_owner->_request_state = GURS_TIMEOUT;
@@ -632,32 +596,18 @@ static void _evtAbortRx(void* p_client)
 }
 
 /**
- * @brief Abort predicate used while waiting for non-busy TX state.
- * @param p_issuer Issuer pointer castable to `PifGpsUblox`.
- * @return `TRUE` when TX state is idle.
- */
-static BOOL _checkAbortBlocking(PifIssuerP p_issuer)
-{
-	return ((PifGpsUblox*)p_issuer)->__tx.state == GUTS_IDLE;
-}
-
-/**
- * @brief Validates or waits for an idle TX state before sending new commands.
+ * @brief Whether a new request may be started. One is refused while the previous one is still
+ *        being sent or still waiting for its answer, because there is one transmit buffer and
+ *        one request state to hold it in.
  * @param p_owner Pointer to the u-blox wrapper.
- * @param blocking If `TRUE`, wait for idle state; otherwise fail when busy.
  * @return `TRUE` if sending is allowed, otherwise `FALSE`.
  */
-static BOOL _checkBlocking(PifGpsUblox* p_owner, BOOL blocking)
+static BOOL _beginPossible(PifGpsUblox* p_owner)
 {
-	if (blocking) {
-		pifTaskManager_YieldAbort(_checkAbortBlocking, p_owner);
-	}
-	else {
-		if (p_owner->__tx.state != GUTS_IDLE) {
-			p_owner->_request_state = GURS_FAILURE;
-			pif_error = E_INVALID_STATE;
-			return FALSE;
-		}
+	if (p_owner->__tx.state != GUTS_IDLE || p_owner->_request_state == GURS_SEND) {
+		p_owner->_request_state = GURS_FAILURE;
+		pif_error = E_INVALID_STATE;
+		return FALSE;
 	}
 	return TRUE;
 }
@@ -730,12 +680,28 @@ void pifGpsUblox_DetachI2c(PifGpsUblox* p_owner)
 	}
 }
 
-BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting)
+PifGpsUbxRequestState pifGpsUblox_CheckRequest(PifGpsUblox* p_owner)
+{
+	if (p_owner->_request_state != GURS_SEND) return p_owner->_request_state;
+
+	// An ACK or a NAK is set by the parser the moment it arrives, so what is left to decide here
+	// are the two ways a request ends without one.
+	if (!p_owner->__request_response) {
+		if (pifRingBuffer_IsEmpty(&p_owner->__tx.buffer)) p_owner->_request_state = GURS_TIMEOUT;
+	}
+	if (p_owner->_request_state == GURS_SEND &&
+			pif_cumulative_timer1ms - p_owner->__request_pretime >= p_owner->__request_timeout) {
+		p_owner->_request_state = GURS_TIMEOUT;
+	}
+	return p_owner->_request_state;
+}
+
+BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox* p_owner, const char* p_mag_id, uint16_t waiting)
 {
 	char data[16] = "$GBGBQ,";
 	int i;
 
-	if (!_checkBlocking(p_owner, blocking)) return FALSE;
+	if (!_beginPossible(p_owner)) return FALSE;
 
 	i = 0;
 	while (p_mag_id[i]) {
@@ -747,12 +713,12 @@ BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
 	return _makeNmeaPacket(p_owner, data, waiting);
 }
 
-BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting)
+BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox* p_owner, const char* p_mag_id, uint16_t waiting)
 {
 	char data[16] = "$GLGLQ,";
 	int i;
 
-	if (!_checkBlocking(p_owner, blocking)) return FALSE;
+	if (!_beginPossible(p_owner)) return FALSE;
 
 	i = 0;
 	while (p_mag_id[i]) {
@@ -764,12 +730,12 @@ BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
 	return _makeNmeaPacket(p_owner, data, waiting);
 }
 
-BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting)
+BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox* p_owner, const char* p_mag_id, uint16_t waiting)
 {
 	char data[16] = "$GNGNQ,";
 	int i;
 
-	if (!_checkBlocking(p_owner, blocking)) return FALSE;
+	if (!_beginPossible(p_owner)) return FALSE;
 
 	i = 0;
 	while (p_mag_id[i]) {
@@ -781,12 +747,12 @@ BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
 	return _makeNmeaPacket(p_owner, data, waiting);
 }
 
-BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL blocking, uint16_t waiting)
+BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, uint16_t waiting)
 {
 	char data[16] = "$GPGPQ,";
 	int i;
 
-	if (!_checkBlocking(p_owner, blocking)) return FALSE;
+	if (!_beginPossible(p_owner)) return FALSE;
 
 	i = 0;
 	while (p_mag_id[i]) {
@@ -798,46 +764,46 @@ BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, BOOL
 	return _makeNmeaPacket(p_owner, data, waiting);
 }
 
-BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t in_proto, uint16_t out_proto, uint32_t baudrate, BOOL blocking, uint16_t waiting)
+BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t in_proto, uint16_t out_proto, uint32_t baudrate, uint16_t waiting)
 {
 	char data[40];
 
-	if (!_checkBlocking(p_owner, blocking)) return FALSE;
+	if (!_beginPossible(p_owner)) return FALSE;
 
 	pif_Printf(data, sizeof(data), "$PUBX,41,%u,%4X,%4X,%lu,0*", port_id, in_proto, out_proto, baudrate);
 
 	return _makeNmeaPacket(p_owner, data, waiting);
 }
 
-BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t rddc, uint8_t rus1, uint8_t rus2, uint8_t rusb, uint8_t rspi, BOOL blocking, uint16_t waiting)
+BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t rddc, uint8_t rus1, uint8_t rus2, uint8_t rusb, uint8_t rspi, uint16_t waiting)
 {
 	char data[40];
 
-	if (!_checkBlocking(p_owner, blocking)) return FALSE;
+	if (!_beginPossible(p_owner)) return FALSE;
 
 	pif_Printf(data, sizeof(data), "$PUBX,40,%s,%u,%u,%u,%u,%u,0*", p_mag_id, rddc, rus1, rus2, rusb, rspi);
 
 	return _makeNmeaPacket(p_owner, data, waiting);
 }
 
-BOOL pifGpsUblox_SendUbxMsg(PifGpsUblox* p_owner, uint8_t class_id, uint8_t msg_id, uint16_t length, uint8_t* payload, BOOL blocking, uint16_t waiting)
+BOOL pifGpsUblox_SendUbxMsg(PifGpsUblox* p_owner, uint8_t class_id, uint8_t msg_id, uint16_t length, uint8_t* payload, uint16_t waiting)
 {
 	uint8_t header[6] = { 0xB5, 0x62 };
 
-	if (!_checkBlocking(p_owner, blocking)) return FALSE;
+	if (!_beginPossible(p_owner)) return FALSE;
 
 	header[2] = class_id;
 	header[3] = msg_id;
 	header[4] = length & 0xFF;
 	header[5] = length >> 8;
 
+	// Only a configuration message is acknowledged, and __cfg_msg_id is what the parser matches
+	// the acknowledgement against.
 	if (class_id == GUCI_CFG) {
-		p_owner->_request_state = GURS_SEND;
 		p_owner->__cfg_msg_id = msg_id;
-	}
-	else {
-		p_owner->_request_state = GURS_NONE;
+		return _makeUbxPacket(p_owner, header, length, payload, TRUE, waiting);
 	}
 
-	return _makeUbxPacket(p_owner, header, length, payload, waiting);
+	p_owner->_request_state = GURS_NONE;
+	return _makeUbxPacket(p_owner, header, length, payload, FALSE, waiting);
 }

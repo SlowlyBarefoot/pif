@@ -1030,111 +1030,160 @@ static int kwdhook_(char *msg)
 #endif
 
 /**
- * @brief Task callback that parses, compiles, and executes a BASIC program.
+ * @brief Records the outcome of a program and reports it.
+ * @param p_owner Pointer to the owner instance.
+ * @param result Whether the program ran to its end without a syntax error.
+ */
+static void _finish(PifBasic* p_owner, BOOL result)
+{
+	p_owner->_result = result;
+	p_owner->_stack_count = (int)(stk + PIF_BASIC_STACK - min_sp);
+	p_owner->_process_time = pif_cumulative_timer1ms - p_owner->__start_time - p_owner->_parsing_time;
+	p_owner->__state = BS_IDLE;
+
+	if (p_owner->__evt_result) (*p_owner->__evt_result)(p_owner);
+}
+
+/**
+ * @brief Reads the next source line into the lexer buffer and advances past it.
+ * @param p_owner Pointer to the owner instance.
+ */
+static void _readLine(PifBasic* p_owner)
+{
+	char *p_nl, *p_cr;
+	int n, len;
+
+	p_nl = strchr(p_owner->__p_current, '\n');
+	p_cr = strchr(p_owner->__p_current, '\r');
+	if (p_nl) {
+		if (p_cr) {
+			if (p_nl > p_cr) p_nl = p_cr;
+			len = 2;
+		}
+		else len = 1;
+	}
+	else {
+		if (p_cr) {
+			p_nl = p_cr;
+			len = 1;
+		}
+		else p_nl = NULL;
+	}
+	lp = lbuf;
+	if (p_nl) {
+		n = p_nl - p_owner->__p_current;
+		strncpy(lp, p_owner->__p_current, n);
+		lp[n] = 0;
+		p_owner->__p_current = p_nl + len;
+	}
+	else {
+		n = strlen(p_owner->__p_current);
+		strncpy(lp, p_owner->__p_current, n);
+		lp[n] = 0;
+		p_owner->__p_current = NULL;
+	}
+}
+
+/**
+ * @brief Task callback that parses, compiles, and executes a BASIC program. One release does at
+ *        most one source line or PIF_BASIC_OPCODE opcodes and then asks to be released again, so
+ *        that a long program does not hold the CPU. __state is where it left off; every piece of
+ *        interpreter state other than that already lives outside this call.
  * @param p_task Task context containing the owner instance.
- * @return Always returns 0 for the task manager scheduler.
+ * @return 1 to be released again, 0 when the program is over.
  */
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifBasic* p_owner = (PifBasic*)p_task->_p_client;
-	char *p_current = p_owner->__p_program, *p_nl, *p_cr;
-	volatile int n, cnt;
+	int code;
+	int cnt;
 
-	p_owner->__start_time = pif_cumulative_timer1ms;
+	if (p_owner->__state == BS_IDLE) return 0;
 
-	initbasic(1);
+	if (p_owner->__state == BS_START) {
+		p_owner->__p_current = p_owner->__p_program;
+		p_owner->__start_time = pif_cumulative_timer1ms;
+		p_owner->_parsing_time = 0UL;
+
+		initbasic(1);
 
 #if USE_KWDHOOK
-	kwdhook = kwdhook_;
+		kwdhook = kwdhook_;
 #endif
-
-	int code = setjmp(trap);					/* RETURN ON ERROR */
-	if (code == 1) {							/* FILE SYNTAX ERROR */
-		p_owner->_result = FALSE;
-		goto end;
+		p_owner->__state = BS_LINE;
 	}
-	if (code == 2) opc = pc;					/* FAULT */
+
+	// Set up again on every release, because a longjmp can only land in a call that is still on the
+	// stack. A trap used to drop the interpreter back at the top of the parsing loop, which is what
+	// putting it into BS_LINE means here.
+	code = setjmp(trap);						/* RETURN ON ERROR */
+	if (code == 1) {							/* FILE SYNTAX ERROR */
+		_finish(p_owner, FALSE);
+		return 0;
+	}
+	if (code == 2) {							/* FAULT */
+		opc = pc;
+		p_owner->__state = BS_LINE;
+	}
 	if (code == 3) {							/* "BREAK" */
 		pc = opc ? opc : pc;
 		cpc = ipc;
+		p_owner->__state = BS_LINE;
 	}
 	if (code == 4) {							/* "BYE" */
-		p_owner->_result = TRUE;
-		goto end;
+		_finish(p_owner, TRUE);
+		return 0;
 	}
-	while (p_current) {
-		p_nl = strchr(p_current, '\n');
-		p_cr = strchr(p_current, '\r');
-		if (p_nl) {
-			if (p_cr) {
-				if (p_nl > p_cr) p_nl = p_cr;
-				cnt = 2;
-			}
-			else cnt = 1;
-		}
-		else {
-			if (p_cr) {
-				p_nl = p_cr;
-				cnt = 1;
-			}
-			else p_nl = NULL;
-		}
-		lp = lbuf;
-		if (p_nl) {
-			n = p_nl - p_current;
-			strncpy(lp, p_current, n);
-			lp[n] = 0;
-			p_current = p_nl + cnt;
-		}
-		else {
-			n = strlen(p_current);
-			strncpy(lp, p_current, n);
-			lp[n] = 0;
-			p_current = NULL;
+
+	switch (p_owner->__state) {
+	case BS_LINE:
+		if (p_owner->__p_current) {
+			_readLine(p_owner);
+
+			lnum++;								/* PARSE AND COMPILE */
+			ungot = 0;
+			stmt();
+			if (compile) break;					/* CONTINUE COMPILING */
+			opc = pc;							/* START OF IMMEDIATE */
+			pc = prg + ipc;
+			emit(BREAK_);
+			p_owner->_program_size = cpc;
+			p_owner->_string_count = stabp - stab;
+			p_owner->_parsing_time = pif_cumulative_timer1ms - p_owner->__start_time;
+			p_owner->__state = BS_RUN_STATEMENT;
+			break;
 		}
 
-		lnum++;									/* PARSE AND COMPILE */
-		ungot = 0;
-		stmt();
-		pifTaskManager_Yield();
-		if (compile) continue;					/* CONTINUE COMPILING */
-		opc = pc;								/* START OF IMMEDIATE */
-		pc = prg + ipc;
-		emit(BREAK_);
+		ipc = cpc + 1;							/* DONE COMPILING */
+		compile = 0;
+		emit(BYE_);
 		p_owner->_program_size = cpc;
 		p_owner->_string_count = stabp - stab;
 		p_owner->_parsing_time = pif_cumulative_timer1ms - p_owner->__start_time;
-		cnt = s_basic.__opcode;
-		while ((*pc++)()) {						/* RUN STATEMENT */
-			if (cnt) cnt--;
-			else {
-				pifTaskManager_Yield();
-				cnt = s_basic.__opcode;
+		p_owner->__state = BS_RUN_PROGRAM;
+		break;
+
+	case BS_RUN_STATEMENT:						/* RUN STATEMENT */
+	case BS_RUN_PROGRAM:						/* RUN PROGRAM */
+		// A bounded number of opcodes, which is where the release ends and every other task gets
+		// its turn. What is left of the program is in pc, so the next release carries on from here.
+		for (cnt = s_basic.__opcode; cnt > 0; cnt--) {
+			if ((*pc++)()) continue;
+
+			// The statement or the program has run out.
+			if (p_owner->__state == BS_RUN_PROGRAM) {
+				_finish(p_owner, TRUE);
+				return 0;
 			}
+			p_owner->__state = BS_LINE;
+			break;
 		}
-	}
-	ipc = cpc + 1;								/* DONE COMPILING */
-	compile = 0;
-	emit(BYE_);
-	p_owner->_program_size = cpc;
-	p_owner->_string_count = stabp - stab;
-	p_owner->_parsing_time = pif_cumulative_timer1ms - p_owner->__start_time;
-	cnt = s_basic.__opcode;
-	while ((*pc++)()) {							/* RUN PROGRAM */
-		if (cnt) cnt--;
-		else {
-			pifTaskManager_Yield();
-			cnt = s_basic.__opcode;
-		}
-	}
-	p_owner->_result = TRUE;
+		break;
 
-end:
-	p_owner->_stack_count = (int)(stk + PIF_BASIC_STACK - min_sp);
-	p_owner->_process_time = pif_cumulative_timer1ms - p_owner->__start_time - p_owner->_parsing_time;
-
-	if (p_owner->__evt_result) (*p_owner->__evt_result)(p_owner);
-	return 0;
+	default:
+		break;
+	}
+	return 1;
 }
 
 BOOL pifBasic_Init(PifBasicProcess* p_process, PifEvtBasicResult evt_result)
@@ -1158,5 +1207,6 @@ void pifBasic_Execute(char* p_program, int opcode)
 	s_basic.__p_program = p_program;
 	if (opcode > 0) s_basic.__opcode = opcode;
 	else s_basic.__opcode = PIF_BASIC_OPCODE;
+	s_basic.__state = BS_START;
 	pifTask_SetTrigger(s_basic._p_task, 0);
 }

@@ -5,8 +5,8 @@
 #include "core/pif.h"
 
 
-// Measures the longest run of each task, timer callback and idle callback without yielding.
-// The full statistics include it.
+// Measures the longest run of each task, timer callback and idle callback. The full statistics
+// include it.
 #if defined(PIF_USE_TASK_STATISTICS) && !defined(PIF_USE_BLOCK_TIME)
 #define PIF_USE_BLOCK_TIME
 #endif
@@ -37,7 +37,7 @@ typedef enum EnPifTaskMode
 
 /**
  * @struct StPifBlockTime
- * @brief Longest run without yielding, measured over a moving window rather than since boot.
+ * @brief Longest single run, measured over a moving window rather than since boot.
  *        Two buckets take turns holding the maximum, and the one being replaced is cleared, so
  *        a single outlier is forgotten after 100 to 200 runs. Without that a one off long run,
  *        an initialization path or a flash erase, would hold its owner back for good.
@@ -64,8 +64,6 @@ typedef void (*PifActTaskSignal)(BOOL state);
 
 typedef PifTask* (*PifTaskProcessing)(PifTask* p_owner);
 
-typedef BOOL (*PifTaskCheckAbort)(PifIssuerP p_issuer);
-
 
 /**
  * @struct StPifTask
@@ -76,7 +74,6 @@ struct StPifTask
 	// Public Member Variable
 	const char* name;
 	BOOL pause;
-	uint8_t disallow_yield_id;		// 0: Allow all, 1->255: Do not allow the corresponding id.
 	// How many times in a row a release of this task may be held back because its measured run
 	// does not fit before the next realtime release. On the next visit after that it is let
 	// through and counted as a guard lapse, which turns an unbounded wait into a stated one: at
@@ -87,7 +84,6 @@ struct StPifTask
 	// Read-only Member Variable
 	PifId _id;
 	PifTaskMode _mode;
-	BOOL _running;
 	uint32_t _default_period;
 	uint32_t _delta_time;
 	void *_p_client;
@@ -100,7 +96,7 @@ struct StPifTask
 										// a trigger is measured by _max_trigger_delay instead.
 #endif
 #ifdef PIF_USE_BLOCK_TIME
-	PifBlockTime _block_time;			// longest run without yielding, the delay this task can cause
+	PifBlockTime _block_time;			// longest single run, the delay this task can cause
 #endif
 
 	// Private Member Variable
@@ -235,8 +231,7 @@ uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner);
 
 /**
  * @fn pifTask_GetAverageExecuteTime
- * @brief Retrieves the average execution time of the task. It includes the time a yield waited,
- *        so it is a wall clock value. Use _block_time._max for the time the CPU is really held.
+ * @brief Retrieves the average execution time of the task.
  * @param p_owner Pointer to the target object instance.
  * @return Average in microseconds, or PIF_TASK_AVERAGE_NONE until PIF_TASK_AVERAGE_MIN_COUNT
  *         samples are collected.
@@ -265,9 +260,8 @@ void pifTask_ResetBlockTime(PifBlockTime *p_owner);
 
 /**
  * @fn pifTask_UpdateBlockTime
- * @brief Adds one run to a block time measurement. The scheduler calls this at every point
- *        where a run ends, which is a yield or the return of the task, so a task is not
- *        credited with the time a yield spent waiting.
+ * @brief Adds one run to a block time measurement. The scheduler calls this where the run ends,
+ *        which is the return of the task or of the callback.
  * @param p_owner Pointer to the target measurement.
  * @param block_time Length of the run in microseconds.
  */
@@ -300,9 +294,9 @@ void pifTask_SetNextBlockTime(PifTask *p_owner, uint32_t block_time);
 
 /**
  * @fn pifTask_IgnoreBlockTime
- * @brief Leaves the whole current execution out of the block time of the task, including the
- *        runs either side of a yield within it. Call it from inside the task when the run is
- *        not representative, such as an initialization path or a flash erase.
+ * @brief Leaves the current execution out of the block time of the task. Call it from inside the
+ *        task when the run is not representative, such as an initialization path or a flash
+ *        erase.
  *        The time still counts towards the CPU load, because the CPU was held either way, and
  *        the execution time statistics are unaffected. Only the value the scheduler uses to
  *        decide whether this task fits before a realtime release is left untouched.

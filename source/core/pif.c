@@ -156,7 +156,7 @@ void pif_sigTimer1ms()
    	pif_performance.__state |= 1;
 }
 
-void pif_Delay1ms(uint16_t delay)
+void pif_Delay1ms(uint32_t delay)
 {
 	uint32_t start, diff;
 
@@ -166,7 +166,7 @@ void pif_Delay1ms(uint16_t delay)
 	} while (diff < delay);
 }
 
-void pif_Delay1us(uint16_t delay)
+void pif_Delay1us(uint32_t delay)
 {
 	uint32_t start, diff;
 

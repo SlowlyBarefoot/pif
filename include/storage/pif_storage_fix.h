@@ -135,25 +135,28 @@ PifStorageDataInfoP pifStorageFix_Open(PifStorage* p_parent, uint16_t id);
 
 /**
  * @fn pifStorageFix_Read
- * @brief Reads bytes from a fixed storage entry.
+ * @brief Reads a whole fixed storage entry. The first sector is read before this returns, and a longer
+ *        read is carried on by the timer. An entry is one sector, so anything longer is refused. See pifStorage_Read() for the whole contract.
  * @param p_parent Pointer to base storage interface.
- * @param p_dst Destination buffer.
+ * @param p_dst Destination buffer, which has to stay where it is until the transfer is over.
  * @param p_src Source entry metadata handle.
  * @param size Number of bytes to read.
- * @return `TRUE` on success, otherwise `FALSE`.
+ * @return SS_START_DONE, SS_START_TIMED or SS_START_FAILURE.
  */
-BOOL pifStorageFix_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size);
+PifStorageStart pifStorageFix_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size);
 
 /**
  * @fn pifStorageFix_Write
- * @brief Writes bytes to a fixed storage entry.
+ * @brief Writes a whole buffer to a fixed storage entry. The first sector is written before this returns, and a
+ *        longer write is carried on by the timer, so nothing has to be paged by the caller. An entry is one sector, so anything longer is refused.
+ *        See pifStorage_Write() for the whole contract.
  * @param p_parent Pointer to base storage interface.
  * @param p_dst Destination entry metadata handle.
- * @param p_src Source buffer.
+ * @param p_src Source buffer, which has to stay where it is until the transfer is over.
  * @param size Number of bytes to write.
- * @return `TRUE` on success, otherwise `FALSE`.
+ * @return SS_START_DONE, SS_START_TIMED or SS_START_FAILURE.
  */
-BOOL pifStorageFix_Write(PifStorage* p_parent, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size);
+PifStorageStart pifStorageFix_Write(PifStorage* p_parent, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size);
 
 #ifdef __cplusplus
 }

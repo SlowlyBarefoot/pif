@@ -117,16 +117,29 @@ PifStorageDataInfoP pifStorageFix_Open(PifStorage* p_parent, uint16_t id)
 	return (PifStorageDataInfoP)(p_owner->__p_data_info + id);
 }
 
-BOOL pifStorageFix_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size)
+PifStorageStart pifStorageFix_Read(PifStorage* p_parent, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size)
 {
 	PifStorageFix* p_owner = (PifStorageFix*)p_parent;
 
-	return (*p_owner->parent.__act_read)(p_parent, p_dst, ((PifStorageFixDataInfo*)p_src)->id * p_owner->__sector_size, size);
+	// One entry is one sector here, so anything longer would run into the entry that follows it.
+	if (size > p_owner->__sector_size) {
+		pif_error = E_INVALID_PARAM;
+		return SS_START_FAILURE;
+	}
+
+	return pifStorage_StartTransfer(p_parent, FALSE,
+			((PifStorageFixDataInfo*)p_src)->id * p_owner->__sector_size, p_dst, size, p_owner->__sector_size);
 }
 
-BOOL pifStorageFix_Write(PifStorage* p_parent, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size)
+PifStorageStart pifStorageFix_Write(PifStorage* p_parent, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size)
 {
 	PifStorageFix* p_owner = (PifStorageFix*)p_parent;
 
-	return (*p_owner->parent.__act_write)(p_parent, ((PifStorageFixDataInfo*)p_dst)->id * p_owner->__sector_size, p_src, size);
+	if (size > p_owner->__sector_size) {
+		pif_error = E_INVALID_PARAM;
+		return SS_START_FAILURE;
+	}
+
+	return pifStorage_StartTransfer(p_parent, TRUE,
+			((PifStorageFixDataInfo*)p_dst)->id * p_owner->__sector_size, p_src, size, p_owner->__sector_size);
 }

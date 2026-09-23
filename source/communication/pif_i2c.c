@@ -2,7 +2,6 @@
 #ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
-#include "core/pif_task_manager.h"
 
 
 BOOL pifI2cPort_Init(PifI2cPort *p_owner, PifId id, uint8_t device_count)
@@ -88,7 +87,10 @@ void pifI2cPort_ScanAddress(PifI2cPort* p_owner)
 			pifLog_Printf(LT_INFO, "I2C Addr:%Xh %u", i, data);
 			count++;
 		}
-		pifTaskManager_YieldMs(10);
+		// A diagnostic sweep of the whole bus, run from a log command or at boot. The pause lets a
+		// device that answered settle before the next address is probed, and it holds the CPU:
+		// nothing else can use the bus while the sweep owns it anyway.
+		pif_Delay1ms(10);
 	}
 	if (count) {
 		pifLog_Printf(LT_INFO, "I2C %d found", count);

@@ -3,9 +3,19 @@
 
 
 #include "communication/pif_i2c.h"
+#include "core/pif_timer_manager.h"
 
 
 #define ADS1X1X_I2C_ADDR(N)		(0x48 + (N))
+
+// Conversions no longer than this are waited out with the CPU held instead of through the timer.
+// The timer counts in ticks of its manager, so a wait this short either does not fit in one tick
+// at all or gets rounded up to one, and a tick can be many times the wait itself: at 3300 SPS the
+// conversion takes 303us, which a manager running at 1ms cannot express at all. Holding the CPU
+// for it is both shorter and more accurate than what the rounding would cost.
+#ifndef PIF_ADS1X1X_SPIN_LIMIT_US
+#define PIF_ADS1X1X_SPIN_LIMIT_US	1000UL
+#endif
 
 
 typedef enum EnPifAds1x1xType
@@ -122,11 +132,50 @@ typedef enum EnPifAds1x1xCompQue
 #define ADS1X1X_OS_SSCS_MASK		0x8000 	// Operational Status(R) or single-shot conversion start(W) */
 
 
+struct StPifAds1x1x;
+typedef struct StPifAds1x1x PifAds1x1x;
+
+/**
+ * @enum EnPifAds1x1xState
+ * @brief Whether a single shot conversion is on its way. Watching this is an alternative to the
+ *        read event: it leaves ADS1X1X_STATE_CONVERT once the sample has been read into _value.
+ */
+typedef enum EnPifAds1x1xState
+{
+	ADS1X1X_STATE_IDLE		= 0,	// Nothing is being converted
+	ADS1X1X_STATE_CONVERT	= 1		// A conversion is running and its timer has yet to finish
+} PifAds1x1xState;
+
+/**
+ * @enum EnPifAds1x1xStart
+ * @brief What became of a conversion that pifAds1x1x_StartMux() was asked for. A short enough one
+ *        is over by the time the call returns, and this is what says which of the two happened.
+ */
+typedef enum EnPifAds1x1xStart
+{
+	ADS1X1X_START_FAILURE	= 0,	// Nothing was started, and pif_error says why
+	ADS1X1X_START_TIMED		= 1,	// On its way: the read event brings the sample later
+	ADS1X1X_START_DONE		= 2		// Already over: _value holds the sample now
+} PifAds1x1xStart;
+
+/**
+ * @fn PifEvtAds1x1xRead
+ * @brief Reports a conversion that was timed rather than waited out. A conversion that finished
+ *        inside pifAds1x1x_StartMux() is reported by its return value instead, so this is never
+ *        called from inside that call and starting the next conversion from here is safe.
+ * @param p_owner Pointer to the owner instance.
+ * @param result TRUE when the conversion register was read; FALSE when that transfer failed, in
+ *        which case value carries the previous sample rather than a new one.
+ * @param value The raw sample, also left in _value. Multiply by convert_voltage for volts.
+ */
+typedef void (*PifEvtAds1x1xRead)(PifAds1x1x* p_owner, BOOL result, int16_t value);
+
+
 /**
  * @class StPifAds1x1x
  * @brief Defines the st pif ads1x1x data structure.
  */
-typedef struct StPifAds1x1x
+struct StPifAds1x1x
 {
 	// Public Member Variable
 	double convert_voltage;
@@ -136,13 +185,20 @@ typedef struct StPifAds1x1x
 	PifAds1x1xType _type;
 	PifI2cDevice* _p_i2c;
     uint16_t _config;
+	PifAds1x1xState _state;
+	int16_t _value;					// Sample of the most recent single shot conversion
 
 	// Private Member Variable
     uint8_t __resolution;
     uint8_t __channels;
     uint8_t __bit_offset;
     uint32_t __conversion_delay;
-} PifAds1x1x;
+	PifTimerManager* __p_timer_manager;
+	PifTimer* __p_timer;
+
+	// Private Event Function
+	PifEvtAds1x1xRead __evt_read;
+};
 
 
 #ifdef __cplusplus
@@ -178,15 +234,6 @@ void pifAds1x1x_Clear(PifAds1x1x* p_owner);
 int16_t pifAds1x1x_Read(PifAds1x1x* p_owner);
 
 /**
- * @fn pifAds1x1x_ReadMux
- * @brief Reads raw data from ads1x1x read mux.
- * @param p_owner Pointer to the owner instance.
- * @param mux Input multiplexer channel selection.
- * @return Computed integer value.
- */
-int16_t pifAds1x1x_ReadMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
-
-/**
  * @fn pifAds1x1x_Voltage
  * @brief Converts the latest sample from ads1x1x voltage into a voltage value.
  * @param p_owner Pointer to the owner instance.
@@ -195,13 +242,53 @@ int16_t pifAds1x1x_ReadMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 double pifAds1x1x_Voltage(PifAds1x1x* p_owner);
 
 /**
- * @fn pifAds1x1x_VoltageMux
- * @brief Converts the latest sample from ads1x1x voltage mux into a voltage value.
+ * @fn pifAds1x1x_AttachTimer
+ * @brief Gives the instance the timer it needs to convert one channel at a time without holding
+ *        the CPU. A single shot conversion takes the inverse of the data rate, up to 125ms at the
+ *        slowest of them, and there is nothing to ask the device in the meantime, so the wait is
+ *        left to a timer and the result arrives through the callback.
+ *        The callback then runs from the timer process of the task manager, which is the same
+ *        context a task runs in, so it may read the device, start the next conversion, and do
+ *        anything else a task may do.
+ *        A conversion of no more than PIF_ADS1X1X_SPIN_LIMIT_US is too short for the timer to
+ *        express and is waited out with the CPU held instead. That one is over before
+ *        pifAds1x1x_StartMux() returns, so it is reported by the return value and _value rather
+ *        than by this callback.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_timer_manager Timer manager the conversion timer is taken from.
+ * @param evt_read Called with the sample once each conversion is over. May be NULL, which leaves
+ *        the conversion running with nobody to collect it.
+ * @return TRUE on success, FALSE on failure.
+ */
+BOOL pifAds1x1x_AttachTimer(PifAds1x1x* p_owner, PifTimerManager* p_timer_manager, PifEvtAds1x1xRead evt_read);
+
+/**
+ * @fn pifAds1x1x_DetachTimer
+ * @brief Gives the conversion timer back. A conversion that is on its way is abandoned and its
+ *        callback never comes.
+ * @param p_owner Pointer to the owner instance.
+ */
+void pifAds1x1x_DetachTimer(PifAds1x1x* p_owner);
+
+/**
+ * @fn pifAds1x1x_StartMux
+ * @brief Points the multiplexer at one input and starts a single shot conversion there.
+ *        A conversion longer than PIF_ADS1X1X_SPIN_LIMIT_US is timed: ADS1X1X_START_TIMED comes
+ *        back at once and the sample arrives later through the callback given to
+ *        pifAds1x1x_AttachTimer().
+ *        A shorter one is waited out with the CPU held, because the timer cannot express it. That
+ *        one is finished by the time the call returns: ADS1X1X_START_DONE comes back and _value
+ *        already holds the sample, with no callback involved. Nothing therefore runs inside this
+ *        call that could start another conversion, so a scan may be driven straight from the
+ *        return value.
+ *        Only one conversion can be on its way at a time, and only in single shot mode: in
+ *        continuous mode the device converts on its own and pifAds1x1x_Read() is what reads it.
  * @param p_owner Pointer to the owner instance.
  * @param mux Input multiplexer channel selection.
- * @return Computed floating-point value.
+ * @return ADS1X1X_START_DONE when the sample is already in _value, ADS1X1X_START_TIMED while it
+ *         is still coming, ADS1X1X_START_FAILURE when nothing was started.
  */
-double pifAds1x1x_VoltageMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
+PifAds1x1xStart pifAds1x1x_StartMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 
 /**
  * @fn pifAds1x1x_SetConfig

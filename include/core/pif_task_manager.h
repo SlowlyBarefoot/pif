@@ -116,9 +116,8 @@ PifTask *pifTaskManager_CurrentTask();
  * @fn pifTaskManager_AddTimer
  * @brief Adds a timer process to the task manager. It runs at the start of every loop, before
  *        any task, and its execution time counts towards pif_performance._task_load.
- *        The callback must not yield: it is not a task, so a yield inside it would be accounted
- *        as if the waiting were CPU time. With PIF_USE_BLOCK_TIME a TM_REALTIME task delays a
- *        timer whose measured run does not fit in the time left before its next release.
+ *        With PIF_USE_BLOCK_TIME a TM_REALTIME task delays a timer whose measured run does not
+ *        fit in the time left before its next release.
  * @param evt_timer The timer process callback function.
  * @param p_client User-defined context pointer owned by the caller.
  * @return Pointer to the resulting timer object or data, or NULL if unavailable.
@@ -138,9 +137,8 @@ void pifTaskManager_RemoveTimer(PifTaskTimer *p_timer);
  *        task was dispatched, which makes it the place for work to be done with the time left
  *        over. That work is work all the same, so its execution time counts towards
  *        pif_performance._task_load.
- *        The callback must not yield, for the same reason as a timer callback, and with
- *        PIF_USE_BLOCK_TIME a TM_REALTIME task delays it when its measured run does not fit in
- *        the time left before the release.
+ *        With PIF_USE_BLOCK_TIME a TM_REALTIME task delays it when its measured run does not fit
+ *        in the time left before the release.
  * @param evt_idle The idle process callback function.
  * @param period_ms The idle period in milliseconds. Zero runs the callback in every idle loop.
  */
@@ -149,54 +147,12 @@ void pifTaskManager_SetIdle(PifEvtTaskIdle evt_idle, uint32_t period_ms);
 /**
  * @fn pifTaskManager_Loop
  * @brief Runs one scheduling loop iteration and dispatches eligible tasks in the manager.
+ *        A loop callback runs to its end before anything else does: there is no way to give the
+ *        CPU up in the middle of one and get it back later. A task that has to wait for something
+ *        returns instead, and is released again when the wait is over, either after the delay it
+ *        returned or by pifTask_SetTrigger().
  */
 void pifTaskManager_Loop();
-
-/**
- * @fn pifTaskManager_Yield
- * @brief Yields execution from the current task context so other schedulable tasks can run.
- */
-void pifTaskManager_Yield();
-
-/**
- * @fn pifTaskManager_YieldMs
- * @brief Yields execution from the current task context so other schedulable tasks can run.
- * @param time Time value used by yield or delay operations.
- */
-void pifTaskManager_YieldMs(uint32_t time);
-
-/**
- * @fn pifTaskManager_YieldUs
- * @brief Yields execution from the current task context so other schedulable tasks can run.
- * @param time Time value used by yield or delay operations.
- */
-void pifTaskManager_YieldUs(uint32_t time);
-
-/**
- * @fn pifTaskManager_YieldAbort
- * @brief Yields execution from the current task context so other schedulable tasks can run.
- * @param p_check_abort Callback that returns TRUE when waiting should abort.
- * @param p_issuer User context pointer passed to callbacks.
- */
-void pifTaskManager_YieldAbort(PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
-
-/**
- * @fn pifTaskManager_YieldAbortMs
- * @brief Yields execution from the current task context so other schedulable tasks can run.
- * @param time Time value used by yield or delay operations.
- * @param p_check_abort Callback that returns TRUE when waiting should abort.
- * @param p_issuer User context pointer passed to callbacks.
- */
-void pifTaskManager_YieldAbortMs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
-
-/**
- * @fn pifTaskManager_YieldAbortUs
- * @brief Yields execution from the current task context so other schedulable tasks can run.
- * @param time Time value used by yield or delay operations.
- * @param p_check_abort Callback that returns TRUE when waiting should abort.
- * @param p_issuer User context pointer passed to callbacks.
- */
-void pifTaskManager_YieldAbortUs(uint32_t time, PifTaskCheckAbort p_check_abort, PifIssuerP p_issuer);
 
 /**
  * @fn pifTaskManager_AllTask

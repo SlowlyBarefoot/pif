@@ -59,20 +59,6 @@
 
 // -------- pifTask ------------------------------
 
-//#define PIF_TASK_STACK_SIZE		        5
-
-#define DISALLOW_YIELD_ID_NONE		        0
-#define DISALLOW_YIELD_ID_I2C		        1
-#define DISALLOW_YIELD_ID_SPI		        2
-
-//#define PIF_USE_TASK_STATISTICS
-
-// Measures the longest run of each task without yielding, over a moving window of the last 100 to
-// 200 runs. That is what the realtime task can be delayed by, and TM_REALTIME uses it to skip a
-// task that would not finish before the release. The timer and idle callbacks are measured and
-// held back by the same rule. PIF_USE_TASK_STATISTICS enables it as well.
-//#define PIF_USE_BLOCK_TIME
-
 // Margin in microseconds that a run has to leave free before the realtime release, on top of its
 // own measured length. It stands for what the scheduler itself spends between deciding that the
 // run fits and dispatching the release, which no measurement of the run can see.
@@ -97,6 +83,14 @@
 // value and 1 means never held back. The idle callback is not bounded: having no time left over
 // is the answer for idle work, not a wait to cut short.
 //#define PIF_TASK_MAX_SKIP			        10
+
+//#define PIF_USE_TASK_STATISTICS
+
+// Measures the longest single run of each task, over a moving window of the last 100 to 200 runs.
+// That is what the realtime task can be delayed by, and TM_REALTIME uses it to skip a task that
+// would not finish before the release. The timer and idle callbacks are measured and held back by
+// the same rule. PIF_USE_TASK_STATISTICS enables it as well.
+//#define PIF_USE_BLOCK_TIME
 
 
 // -------- pifTftLcd ----------------------------

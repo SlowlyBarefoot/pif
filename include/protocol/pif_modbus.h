@@ -64,6 +64,32 @@ typedef enum EnPifModbusRxState
  * nanoMODBUS errors.
  * Values <= 0 are library errors, > 0 are modbus exceptions.
  */
+/**
+ * @enum EnPifModbusMasterResult
+ * @brief What a master is doing with the request it was given. A request function returns as soon
+ *        as the frame is queued, because sending it and receiving the answer both need the UART
+ *        task to run, so this is what says whether it is over and how it ended.
+ */
+typedef enum EnPifModbusMasterResult
+{
+	MBMR_IDLE			= 0,	// No request
+	MBMR_BUSY			= 1,	// The request is still being sent, or its answer is still awaited
+	MBMR_DONE			= 2,	// It finished, and whatever was asked for has been handed over
+	MBMR_ERROR			= 3		// It failed. _error says why
+} PifModbusMasterResult;
+
+/**
+ * @enum EnPifModbusResultKind
+ * @brief What the request in progress asked the slave for, which is what decides how its response
+ *        is read out into the caller's buffer.
+ */
+typedef enum EnPifModbusResultKind
+{
+	MBRK_NONE			= 0,	// Nothing comes back but the acknowledgement
+	MBRK_BITS			= 1,	// Coils or discrete inputs, as bytes of bits
+	MBRK_REGISTERS		= 2		// Holding or input registers
+} PifModbusResultKind;
+
 typedef enum EnPifModbusError
 {
     // Library errors

@@ -4,6 +4,7 @@
 
 #include "communication/pif_i2c.h"
 #include "core/pif_task_manager.h"
+#include "core/pif_timer_manager.h"
 #include "sensor/pif_sensor_event.h"
 
 
@@ -28,6 +29,15 @@ typedef enum EnPifMs5611Osr
 	MS5611_OSR_4096				= 0x08
 } PifMs5611Osr;
 
+/**
+ * @enum EnPifMs5611State
+ * @brief How far a barometric reading has got. A reading is two conversions and a calculation, and
+ *        this walks the same steps whichever of the two drivers is carrying it: the task added by
+ *        pifMs5611_AttachTaskForReading() or the timer added by pifMs5611_AttachTimer(). They
+ *        share this field, so attach one or the other rather than both.
+ *        MS5611_STATE_IDLE means no reading is on its way, which is where the timer leaves it
+ *        between readings.
+ */
 typedef enum EnPifMs5611State
 {
 	MS5611_STATE_IDLE,
@@ -38,12 +48,26 @@ typedef enum EnPifMs5611State
 	MS5611_STATE_CALCURATE
 } PifMs5611State;
 
+struct StPifMs5611;
+typedef struct StPifMs5611 PifMs5611;
+
+/**
+ * @fn PifEvtMs5611Read
+ * @brief Reports a barometric reading that pifMs5611_StartBarometric() asked for.
+ * @param p_owner Pointer to the owner instance.
+ * @param result TRUE when the reading finished; FALSE when one of its transfers failed, in which
+ *        case there are no values and the two below mean nothing.
+ * @param pressure unit : hPa
+ * @param temperature unit : degrees C
+ */
+typedef void (*PifEvtMs5611Read)(PifMs5611* p_owner, BOOL result, float pressure, float temperature);
+
 
 /**
  * @class StPifMs5611
  * @brief Defines the st pif ms5611 data structure.
  */
-typedef struct StPifMs5611
+struct StPifMs5611
 {
 	// Public Member Variable
 
@@ -54,16 +78,19 @@ typedef struct StPifMs5611
 	uint16_t _over_sampling_rate;
 	uint8_t _conversion_time;
 	PifTask* _p_task;
+	PifMs5611State _state;
 
 	// Private Member Variable
 	uint16_t __read_period;
-	PifMs5611State __state;
 	uint32_t __D1, __D2;
 	uint32_t __start_time;
+	PifTimerManager* __p_timer_manager;
+	PifTimer* __p_timer;
 
 	// Private Event Function
 	PifEvtBaroRead __evt_read;
-} PifMs5611;
+	PifEvtMs5611Read __evt_timer_read;
+};
 
 
 #ifdef __cplusplus
@@ -98,32 +125,41 @@ void pifMs5611_Clear(PifMs5611* p_owner);
 void pifMs5611_SetOverSamplingRate(PifMs5611* p_owner, uint16_t osr);
 
 /**
- * @fn pifMs5611_ReadRawTemperature
- * @brief Reads raw data from ms5611 read raw temperature.
+ * @fn pifMs5611_StartBarometric
+ * @brief Starts one barometric reading and returns at once. Both conversions and the calculation
+ *        that follows them are carried by the timer, and the values arrive through the callback
+ *        given to pifMs5611_AttachTimer().
+ *        Only one reading can be on its way at a time: _state says whether one is.
  * @param p_owner Pointer to the owner instance.
- * @param p_data Pointer to data.
- * @return TRUE on success, FALSE on failure.
+ * @return TRUE once the reading is started, otherwise FALSE.
  */
-BOOL pifMs5611_ReadRawTemperature(PifMs5611* p_owner, uint32_t* p_data);
+BOOL pifMs5611_StartBarometric(PifMs5611* p_owner);
 
 /**
- * @fn pifMs5611_ReadRawPressure
- * @brief Reads raw data from ms5611 read raw pressure.
+ * @fn pifMs5611_AttachTimer
+ * @brief Gives the instance the timer it needs to take a reading on demand without holding the
+ *        CPU. The device has no register to ask whether a conversion is over, so the only thing
+ *        to do is leave it for the conversion time, which is 2 to 11ms depending on the
+ *        oversampling rate and happens twice per reading. That wait is left to a timer and the
+ *        result arrives through the callback.
+ *        The callback runs from the timer process of the task manager, which is the same context
+ *        a task runs in, so it may read the device, ask for the next reading, and do anything
+ *        else a task may do.
  * @param p_owner Pointer to the owner instance.
- * @param p_data Pointer to data.
+ * @param p_timer_manager Timer manager the conversion timer is taken from.
+ * @param evt_read Called once per reading, and the only place the values are reported, so a
+ *        reading started without one is thrown away. _state says whether a reading is on its way.
  * @return TRUE on success, FALSE on failure.
  */
-BOOL pifMs5611_ReadRawPressure(PifMs5611* p_owner, uint32_t* p_data);
+BOOL pifMs5611_AttachTimer(PifMs5611* p_owner, PifTimerManager* p_timer_manager, PifEvtMs5611Read evt_read);
 
 /**
- * @fn pifMs5611_ReadBarometric
- * @brief Reads raw data from ms5611 read barometric.
+ * @fn pifMs5611_DetachTimer
+ * @brief Gives the conversion timer back. A reading on its way is abandoned and its callback
+ *        never comes.
  * @param p_owner Pointer to the owner instance.
- * @param p_pressure Pointer to pressure.
- * @param p_temperature Pointer to temperature.
- * @return TRUE on success, FALSE on failure.
  */
-BOOL pifMs5611_ReadBarometric(PifMs5611* p_owner, float* p_pressure, float* p_temperature);
+void pifMs5611_DetachTimer(PifMs5611* p_owner);
 
 /**
  * @fn pifMs5611_AttachTaskForReading

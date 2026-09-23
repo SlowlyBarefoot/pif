@@ -201,12 +201,54 @@ static void _evtTimerTimeout(PifIssuerP p_issuer)
 }
 
 /**
- * @brief Builds and sends a request frame, then waits for and validates the response.
+ * @brief Notes what the response of the request about to be sent has to be read out into.
  * @param p_owner Pointer to the protocol instance that owns this operation.
- * @param len Input argument used by this operation.
- * @return TRUE if the operation succeeds; otherwise FALSE.
+ * @param kind What the request asks the slave for.
+ * @param p_result Caller buffer the response is read out into. NULL for MBRK_NONE.
+ * @param quantity How many registers were asked for. Unused by the other kinds.
  */
-static BOOL _requestAndResponse(PifModbusRtuMaster *p_owner, uint16_t len)
+static void _setResult(PifModbusRtuMaster *p_owner, PifModbusResultKind kind, void *p_result, uint16_t quantity)
+{
+	p_owner->__result_kind = kind;
+	p_owner->__p_result = p_result;
+	p_owner->__result_quantity = quantity;
+}
+
+/**
+ * @brief Reads the response out into the buffer the caller gave the request function.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ */
+static void _copyResult(PifModbusRtuMaster *p_owner)
+{
+	uint16_t i;
+
+	switch (p_owner->__result_kind) {
+	case MBRK_BITS:
+		// The response itself says how many bytes of bits it carries.
+		for (i = 0; i < p_owner->__buffer[2]; i++) {
+			((PifModbusBitFieldP)p_owner->__p_result)[i] = p_owner->__buffer[3 + i];
+		}
+		break;
+
+	case MBRK_REGISTERS:
+		for (i = 0; i < p_owner->__result_quantity; i++) {
+			((uint16_t *)p_owner->__p_result)[i] = pifModbus_StreamToShort(&p_owner->__buffer[3 + i * 2]);
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+/**
+ * @brief Builds a request frame and hands it to the UART. It does not wait: sending the frame and
+ *        receiving the response both need the UART task to run, which cannot happen from inside
+ *        this call. pifModbusRtuMaster_Check() is what carries it the rest of the way.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ * @param len Length of the frame that was built in the buffer.
+ */
+static void _request(PifModbusRtuMaster *p_owner, uint16_t len)
 {
 	p_owner->_error = MBE_NONE;
 
@@ -225,23 +267,6 @@ static BOOL _requestAndResponse(PifModbusRtuMaster *p_owner, uint16_t len)
 	p_owner->__state = MBMS_REQUEST;
 	pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
 
-	while (1) {
-		if (p_owner->__state == MBMS_RESPONSE) break;
-		else if (p_owner->__state == MBMS_ERROR) goto fail;
-		pifTaskManager_YieldUs(p_owner->__p_uart->_transfer_time);
-	}
-
-	while (1) {
-		if (p_owner->__state == MBMS_RESPONSE_DELAY) {
-			if ((int32_t)(p_owner->__delay - (*pif_act_timer1us)()) <= 0) break;
-		}
-		else if (p_owner->__state == MBMS_ERROR) break;
-		pifTaskManager_YieldUs(p_owner->__p_uart->_transfer_time);
-	}
-
-fail:
-	p_owner->__state = MBMS_IDLE;
-	return p_owner->_error == MBE_NONE;
 }
 
 BOOL pifModbusRtuMaster_Init(PifModbusRtuMaster *p_owner, PifId id, PifTimerManager *p_timer_manager)
@@ -295,10 +320,29 @@ void pifModbusRtuMaster_DetachUart(PifModbusRtuMaster *p_owner)
 	p_owner->__p_uart = NULL;
 }
 
+PifModbusMasterResult pifModbusRtuMaster_Check(PifModbusRtuMaster *p_owner)
+{
+	if (p_owner->__state == MBMS_IDLE) return MBMR_IDLE;
+
+	if (p_owner->__state == MBMS_ERROR) {
+		p_owner->__state = MBMS_IDLE;
+		return MBMR_ERROR;
+	}
+
+	// Everything before this is the request still going out or the response still coming in.
+	if (p_owner->__state != MBMS_RESPONSE_DELAY) return MBMR_BUSY;
+
+	// The response is in, and the silent interval after it has to pass before the line may carry
+	// the next request.
+	if ((int32_t)(p_owner->__delay - (*pif_act_timer1us)()) > 0) return MBMR_BUSY;
+
+	if (p_owner->_error == MBE_NONE) _copyResult(p_owner);
+	p_owner->__state = MBMS_IDLE;
+	return p_owner->_error == MBE_NONE ? MBMR_DONE : MBMR_ERROR;
+}
+
 BOOL pifModbusRtuMaster_ReadCoils(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, PifModbusBitFieldP p_coils)
 {
-	uint16_t i;
-
 	if (p_owner->__state != MBMS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -315,18 +359,13 @@ BOOL pifModbusRtuMaster_ReadCoils(PifModbusRtuMaster *p_owner, uint8_t slave, ui
     pifModbus_ShortToStream(address, &p_owner->__buffer[2]);
     pifModbus_ShortToStream(quantity, &p_owner->__buffer[4]);
 
-	if (!_requestAndResponse(p_owner, 6)) return FALSE;
-
-	for (i = 0; i < p_owner->__buffer[2]; i++) {
-		p_coils[i] = p_owner->__buffer[3 + i];
-	}
+	_setResult(p_owner, MBRK_BITS, p_coils, 0);
+	_request(p_owner, 6);
 	return TRUE;
 }
 
 BOOL pifModbusRtuMaster_ReadDiscreteInputs(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, PifModbusBitFieldP p_inputs)
 {
-	uint16_t i;
-
 	if (p_owner->__state != MBMS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -343,18 +382,13 @@ BOOL pifModbusRtuMaster_ReadDiscreteInputs(PifModbusRtuMaster *p_owner, uint8_t 
     pifModbus_ShortToStream(address, &p_owner->__buffer[2]);
     pifModbus_ShortToStream(quantity, &p_owner->__buffer[4]);
 
-	if (!_requestAndResponse(p_owner, 6)) return FALSE;
-
-	for (i = 0; i < p_owner->__buffer[2]; i++) {
-		p_inputs[i] = p_owner->__buffer[3 + i];
-	}
+	_setResult(p_owner, MBRK_BITS, p_inputs, 0);
+	_request(p_owner, 6);
 	return TRUE;
 }
 
 BOOL pifModbusRtuMaster_ReadHoldingRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, uint16_t *p_registers)
 {
-	uint16_t i;
-
 	if (p_owner->__state != MBMS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -371,18 +405,13 @@ BOOL pifModbusRtuMaster_ReadHoldingRegisters(PifModbusRtuMaster *p_owner, uint8_
 	pifModbus_ShortToStream(address, &p_owner->__buffer[2]);
 	pifModbus_ShortToStream(quantity, &p_owner->__buffer[4]);
 
-	if (!_requestAndResponse(p_owner, 6)) return FALSE;
-
-	for (i = 0; i < quantity; i++) {
-		p_registers[i] = pifModbus_StreamToShort(&p_owner->__buffer[3 + i * 2]);
-	}
+	_setResult(p_owner, MBRK_REGISTERS, p_registers, quantity);
+	_request(p_owner, 6);
 	return TRUE;
 }
 
 BOOL pifModbusRtuMaster_ReadInputRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, uint16_t *p_registers)
 {
-	uint16_t i;
-
 	if (p_owner->__state != MBMS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -399,11 +428,8 @@ BOOL pifModbusRtuMaster_ReadInputRegisters(PifModbusRtuMaster *p_owner, uint8_t 
 	pifModbus_ShortToStream(address, &p_owner->__buffer[2]);
 	pifModbus_ShortToStream(quantity, &p_owner->__buffer[4]);
 
-	if (!_requestAndResponse(p_owner, 6)) return FALSE;
-
-	for (i = 0; i < quantity; i++) {
-		p_registers[i] = pifModbus_StreamToShort(&p_owner->__buffer[3 + i * 2]);
-	}
+	_setResult(p_owner, MBRK_REGISTERS, p_registers, quantity);
+	_request(p_owner, 6);
 	return TRUE;
 }
 
@@ -425,7 +451,9 @@ BOOL pifModbusRtuMaster_WriteSingleCoil(PifModbusRtuMaster *p_owner, uint8_t sla
     pifModbus_ShortToStream(address, &p_owner->__buffer[2]);
     pifModbus_ShortToStream(value ? 0xFF00 : 0x0000, &p_owner->__buffer[4]);
 
-	return _requestAndResponse(p_owner, 6);
+	_setResult(p_owner, MBRK_NONE, NULL, 0);
+	_request(p_owner, 6);
+	return TRUE;
 }
 
 BOOL pifModbusRtuMaster_WriteSingleRegister(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t value)
@@ -446,7 +474,9 @@ BOOL pifModbusRtuMaster_WriteSingleRegister(PifModbusRtuMaster *p_owner, uint8_t
 	pifModbus_ShortToStream(address, &p_owner->__buffer[2]);
 	pifModbus_ShortToStream(value, &p_owner->__buffer[4]);
 
-	return _requestAndResponse(p_owner, 6);
+	_setResult(p_owner, MBRK_NONE, NULL, 0);
+	_request(p_owner, 6);
+	return TRUE;
 }
 
 BOOL pifModbusRtuMaster_WriteMultipleCoils(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, PifModbusBitFieldP p_coils)
@@ -474,7 +504,9 @@ BOOL pifModbusRtuMaster_WriteMultipleCoils(PifModbusRtuMaster *p_owner, uint8_t 
 		p_owner->__buffer[pos] = p_coils[i];
 	}
 
-	return _requestAndResponse(p_owner, pos);
+	_setResult(p_owner, MBRK_NONE, NULL, 0);
+	_request(p_owner, pos);
+	return TRUE;
 }
 
 BOOL pifModbusRtuMaster_WriteMultipleRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, uint16_t *p_registers)
@@ -502,7 +534,9 @@ BOOL pifModbusRtuMaster_WriteMultipleRegisters(PifModbusRtuMaster *p_owner, uint
 		pifModbus_ShortToStream(p_registers[i], &p_owner->__buffer[pos]);
 	}
 
-	return _requestAndResponse(p_owner, pos);
+	_setResult(p_owner, MBRK_NONE, NULL, 0);
+	_request(p_owner, pos);
+	return TRUE;
 }
 
 BOOL pifModbusRtuMaster_ReadWriteMultipleRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t read_address, uint16_t read_quantity, uint16_t *p_read_registers,
@@ -534,10 +568,7 @@ BOOL pifModbusRtuMaster_ReadWriteMultipleRegisters(PifModbusRtuMaster *p_owner, 
 		pifModbus_ShortToStream(p_write_registers[i], &p_owner->__buffer[pos]);
 	}
 
-	if (!_requestAndResponse(p_owner, pos)) return FALSE;
-
-	for (i = 0; i < read_quantity; i++) {
-		p_read_registers[i] = pifModbus_StreamToShort(&p_owner->__buffer[3 + i * 2]);
-	}
+	_setResult(p_owner, MBRK_REGISTERS, p_read_registers, read_quantity);
+	_request(p_owner, pos);
 	return TRUE;
 }

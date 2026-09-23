@@ -29,8 +29,6 @@ typedef struct StPifGy86Param
 	PifMs5611Osr ms5611_osr;
 	uint16_t ms5611_read_period;
 	PifEvtBaroRead ms5611_evt_read;
-
-	uint8_t disallow_yield_id;
 } PifGy86Param;
 
 /**

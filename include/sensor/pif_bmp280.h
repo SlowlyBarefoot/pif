@@ -189,18 +189,37 @@ BOOL pifBmp280_Config(PifBmp280* p_owner, PifId id);
 void pifBmp280_SetOverSamplingRate(PifBmp280* p_owner, uint8_t osrs_p, uint8_t osrs_t);
 
 /**
+ * @fn pifBmp280_StartMeasurement
+ * @brief Asks the device for one measurement, in forced mode, and returns at once. It takes
+ *        roughly as long as pifBmp280_ReadRawData() should be left before it is first asked,
+ *        after which that call reports the result.
+ * @param p_owner Pointer to the owner instance.
+ * @return TRUE if the measurement was started, otherwise FALSE.
+ */
+BOOL pifBmp280_StartMeasurement(PifBmp280* p_owner);
+
+/**
  * @fn pifBmp280_ReadRawData
- * @brief Reads raw data from bmp280 read raw data.
+ * @brief Reads the measurement that pifBmp280_StartMeasurement() asked for, waiting for nothing.
+ *        FALSE means the sample is not there yet, so ask again from a later release of the task
+ *        rather than looping here: the device is what says when the measurement is over, and
+ *        holding the CPU until it does would delay every other task by the whole measurement.
+ *        FALSE also covers a failed transfer, which means the same thing to a caller that is
+ *        going to ask again.
+ *        pifBmp280_AttachTaskForReading() does all of this and hands over compensated values, so
+ *        prefer it unless the reading has to be driven by hand.
  * @param p_owner Pointer to the owner instance.
  * @param p_pressure Pointer to pressure.
  * @param p_temperature Pointer to temperature.
- * @return TRUE on success, FALSE on failure.
+ * @return TRUE when the sample was read, FALSE while it is not ready or on failure.
  */
 BOOL pifBmp280_ReadRawData(PifBmp280* p_owner, int32_t* p_pressure, int32_t* p_temperature);
 
 /**
  * @fn pifBmp280_ReadBarometric
- * @brief Reads raw data from bmp280 read barometric.
+ * @brief Compensates the measurement that pifBmp280_StartMeasurement() asked for. It waits for
+ *        nothing and reports FALSE while the sample is not ready, exactly as
+ *        pifBmp280_ReadRawData() does.
  * @param p_owner Pointer to the owner instance.
  * @param p_pressure Pointer to pressure.
  * @param p_temperature Pointer to temperature.

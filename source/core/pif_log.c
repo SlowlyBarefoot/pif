@@ -13,6 +13,7 @@ typedef struct StPifLog
 	PifRingBuffer buffer;
 	PifUart* p_uart;
     PifRingBuffer* p_tx_buffer;
+	uint32_t drop_count;		// Lines and characters the transmit buffer had no room for
 
 #ifdef PIF_LOG_COMMAND
     PifTask* p_task;
@@ -412,12 +413,11 @@ static void _printLog(char* p_string, BOOL vcd)
 	}
 
 	if (s_log.p_uart && (s_log.enable || vcd)) {
-        if (!pifRingBuffer_PutString(s_log.p_tx_buffer, p_string)) {
-            pifTask_SetTrigger(s_log.p_uart->_p_tx_task, 0);
-            while (!pifRingBuffer_PutString(s_log.p_tx_buffer, p_string)) {
-            	pifTaskManager_Yield();
-            }
-        }
+		// The line is dropped when the transmit buffer has no room for it. Waiting for room would
+		// mean holding the CPU until the UART task had drained the buffer, which lets a log line
+		// decide how long every other task waits. pifLog_DropCount() is where the loss shows up
+		// instead, and the buffer is still handed to the UART task so the next line has room.
+        if (!pifRingBuffer_PutString(s_log.p_tx_buffer, p_string)) s_log.drop_count++;
         pifTask_SetTrigger(s_log.p_uart->_p_tx_task, 0);
 	}
 }
@@ -542,10 +542,20 @@ void pifLog_PrintChar(char ch)
 	}
 
 	if (s_log.p_uart && s_log.enable) {
-        while (!pifRingBuffer_PutByte(s_log.p_tx_buffer, ch)) {
-        	pifTaskManager_Yield();
-        }
+		// Dropped when the transmit buffer is full, as a whole line is in _printLog().
+        if (!pifRingBuffer_PutByte(s_log.p_tx_buffer, ch)) s_log.drop_count++;
+        pifTask_SetTrigger(s_log.p_uart->_p_tx_task, 0);
 	}
+}
+
+uint32_t pifLog_DropCount()
+{
+	return s_log.drop_count;
+}
+
+void pifLog_ResetDropCount()
+{
+	s_log.drop_count = 0UL;
 }
 
 void pifLog_Print(PifLogType type, const char* p_string)
@@ -601,20 +611,22 @@ void pifLog_Printf(PifLogType type, const char* p_format, ...)
 	_printLog(tmp_buf, type == LT_VCD);
 }
 
-void pifLog_PrintInBuffer()
+BOOL pifLog_PrintInBuffer()
 {
 	uint16_t length;
 
-	if (!s_log.p_uart || !s_log.p_uart->_p_tx_task || !pifRingBuffer_IsBuffer(&s_log.buffer)) return;
+	if (!s_log.p_uart || !s_log.p_uart->_p_tx_task || !pifRingBuffer_IsBuffer(&s_log.buffer)) return FALSE;
+	if (pifRingBuffer_IsEmpty(&s_log.buffer)) return FALSE;
 
-	while (!pifRingBuffer_IsEmpty(&s_log.buffer)) {
-		while (!pifRingBuffer_IsEmpty(s_log.p_tx_buffer)) {
-			pifTaskManager_Yield();
-		}
-		length = pifRingBuffer_CopyAll(s_log.p_tx_buffer, &s_log.buffer, 0);
+	// As much of the retained buffer as the transmit buffer will take right now. Emptying the rest
+	// needs the UART task to run, so the caller is told to come back for the remainder instead of
+	// the CPU being held until it has.
+	length = pifRingBuffer_CopyAll(s_log.p_tx_buffer, &s_log.buffer, 0);
+	if (length) {
 		pifRingBuffer_Remove(&s_log.buffer, length);
 		pifTask_SetTrigger(s_log.p_uart->_p_tx_task, 0);
 	}
+	return !pifRingBuffer_IsEmpty(&s_log.buffer);
 }
 
 BOOL pifLog_AttachUart(PifUart* p_uart, uint16_t size)

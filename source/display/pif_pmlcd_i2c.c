@@ -63,7 +63,7 @@ static BOOL _pulseEnable(PifPmlcdI2c* p_owner, uint8_t data)
 	pif_Delay1us(1);										// enable pulse must be >450ns
 
 	if (!_expanderWrite(p_owner, data & ~En)) return FALSE;	// En low
-	pifTaskManager_YieldUs(50);								// commands need > 37us to settle
+	pif_Delay1us(50);										// commands need > 37us to settle
 	return TRUE;
 }
 
@@ -127,11 +127,11 @@ BOOL pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size)
 	// SEE PAGE 45/46 FOR INITIALIZATION SPECIFICATION!
 	// according to datasheet, we need at least 40ms after power rises above 2.7V
 	// before sending commands. Arduino can turn on way befer 4.5V so we'll wait 50
-	pifTaskManager_YieldMs(50);
+	pif_Delay1ms(50);
 
 	// Now we pull both RS and R/W low to begin commands
 	if (!_expanderWrite(p_owner, p_owner->__backlight_val)) return FALSE;	// reset expanderand turn backlight off (Bit 8 =1)
-	pifTaskManager_YieldMs(1000);
+	pif_Delay1ms(1000);
 
   	//put the LCD into 4 bit mode
 	// this is according to the hitachi HD44780 datasheet
@@ -139,15 +139,15 @@ BOOL pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size)
 
 	// we start in 8bit mode, try to set 4 bit mode
 	if (!_write4bits(p_owner, 0x03 << 4)) return FALSE;
-	pifTaskManager_YieldUs(4500); // wait min 4.1ms
+	pif_Delay1us(4500); // wait min 4.1ms
 
 	// second try
 	if (!_write4bits(p_owner, 0x03 << 4)) return FALSE;
-	pifTaskManager_YieldUs(4500); // wait min 4.1ms
+	pif_Delay1us(4500); // wait min 4.1ms
 
 	// third go!
 	if (!_write4bits(p_owner, 0x03 << 4)) return FALSE;
-	pifTaskManager_YieldUs(150);
+	pif_Delay1us(150);
 
 	// finally, set to 4-bit interface
 	if (!_write4bits(p_owner, 0x02 << 4)) return FALSE;
@@ -197,14 +197,14 @@ BOOL pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...)
 BOOL pifPmlcdI2c_DisplayClear(PifPmlcdI2c* p_owner)
 {
 	if (!_send(p_owner, LCD_CLEAR_DISPLAY, 0)) return FALSE;// clear display, set cursor position to zero
-	pifTaskManager_YieldMs(2);  							// this command takes a long time!
+	pif_Delay1ms(2);  										// this command takes a long time!
 	return TRUE;
 }
 
 BOOL pifPmlcdI2c_Home(PifPmlcdI2c* p_owner)
 {
 	if (!_send(p_owner, LCD_RETURN_HOME, 0)) return FALSE;  // set cursor position to zero
-	pifTaskManager_YieldMs(2);  							// this command takes a long time!
+	pif_Delay1ms(2);  										// this command takes a long time!
 	return TRUE;
 }
 
