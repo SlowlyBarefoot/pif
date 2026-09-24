@@ -268,7 +268,7 @@ BOOL pifUart_PutRxByte(PifUart* p_owner, uint8_t data)
 	if (!p_owner->_p_rx_buffer) return FALSE;
 
 	if (!pifRingBuffer_PutByte(p_owner->_p_rx_buffer, data)) return FALSE;
-	if (p_owner->__rx_state == URS_IDLE) {
+	if (p_owner->__rx_state == URS_IDLE && p_owner->_p_rx_task) {
 		p_owner->__rx_state = URS_FIRST;
 		pifTask_SetTrigger(p_owner->_p_rx_task, 0);
 	}
@@ -280,7 +280,7 @@ BOOL pifUart_PutRxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 	if (!p_owner->_p_rx_buffer) return FALSE;
 
 	if (!pifRingBuffer_PutData(p_owner->_p_rx_buffer, p_data, length)) return FALSE;
-	if (p_owner->__rx_state == URS_IDLE) {
+	if (p_owner->__rx_state == URS_IDLE && p_owner->_p_rx_task) {
 		p_owner->__rx_state = URS_FIRST;
 		pifTask_SetTrigger(p_owner->_p_rx_task, 0);
 	}
@@ -357,7 +357,7 @@ uint16_t pifUart_SendTxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 	else if (p_owner->_p_tx_buffer) {
 		len = pifRingBuffer_PutData(p_owner->_p_tx_buffer, p_data, length) ? length : 0;
 	}
-	if (len) pifTask_SetTrigger(p_owner->_p_tx_task, 0);
+	if (len && p_owner->_p_tx_task) pifTask_SetTrigger(p_owner->_p_tx_task, 0);
 	return len;
 }
 

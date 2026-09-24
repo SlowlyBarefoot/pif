@@ -140,6 +140,17 @@ uint8_t* pifRingBuffer_GetTailPointer(PifRingBuffer* p_owner, uint16_t pos);
 BOOL pifRingBuffer_MoveHeadForLinear(PifRingBuffer* p_owner, uint16_t size);
 
 /**
+ * @fn pifRingBuffer_MoveHead
+ * @brief Advances the head over bytes that were written straight into the buffer memory, by DMA for example.
+ * @param p_owner Pointer to the target object instance.
+ * @param size Number of bytes written after the current head.
+ * @return TRUE on success. FALSE if size is not less than the buffer size, in which case nothing changes, or if the
+ *         bytes ran over the tail, in which case the head still moves and the tail is moved just past it, dropping the
+ *         overwritten bytes.
+ */
+BOOL pifRingBuffer_MoveHead(PifRingBuffer* p_owner, uint16_t size);
+
+/**
  * @fn pifRingBuffer_ChopsOffNone
  * @brief Executes the pifRingBuffer_ChopsOffNone operation for the ring buffer module according to the API contract.
  * @param p_owner Pointer to the target object instance.

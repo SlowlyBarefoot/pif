@@ -186,6 +186,24 @@ BOOL pifRingBuffer_MoveHeadForLinear(PifRingBuffer* p_owner, uint16_t size)
 	return TRUE;
 }
 
+BOOL pifRingBuffer_MoveHead(PifRingBuffer* p_owner, uint16_t size)
+{
+	uint16_t remain;
+
+	// The bytes are already in the buffer memory; only the head catches up.
+	if (size >= p_owner->_size) return FALSE;
+
+	remain = pifRingBuffer_GetRemainSize(p_owner);
+	p_owner->__head = (p_owner->__head + size) % p_owner->_size;
+	if (size > remain) {
+		// The writer ran over the oldest bytes, so drop them.
+		p_owner->__tail = (p_owner->__head + 1) % p_owner->_size;
+		pif_error = E_OVERFLOW_BUFFER;
+		return FALSE;
+	}
+	return TRUE;
+}
+
 void pifRingBuffer_ChopsOffNone(PifRingBuffer* p_owner)
 {
 	p_owner->_bt.chop_off = RB_CHOP_OFF_NONE;
@@ -308,10 +326,14 @@ BOOL pifRingBuffer_PutData(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t len
     	}
     }
 
+    // Store the head once per byte, and only with a wrapped value, since a
+    // reader in an interrupt may be looking at it.
+    uint16_t head = p_owner->__head;
     for (uint16_t i = 0; i < length; i++) {
-    	p_owner->__p_buffer[p_owner->__head] = p_data[i];
-    	p_owner->__head++;
-    	if (p_owner->__head >= p_owner->_size) p_owner->__head = 0;
+    	p_owner->__p_buffer[head] = p_data[i];
+    	head++;
+    	if (head >= p_owner->_size) head = 0;
+    	p_owner->__head = head;
     }
     return TRUE;
 }
