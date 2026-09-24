@@ -20,6 +20,8 @@ typedef BOOL (*PifActSpiWrite)(PifSpiDevice *p_owner, uint32_t iaddr, uint8_t is
 
 typedef BOOL (*PifActSpiIsBusy)(PifSpiDevice *p_owner);
 
+typedef void (*PifEvtSpiTransferDone)(PifIssuerP p_issuer);
+
 /**
  * @class StPifSpiDevice
  * @brief Describes an SPI slave device managed by a PifSpiPort instance.
@@ -34,6 +36,12 @@ struct StPifSpiDevice
 	PifId _id;
 	PifSpiPort *_p_port;
 	void *_p_client;
+
+	// Private Member Variable
+	PifIssuerP __p_transfer_done_issuer;
+
+	// Private Event Function
+	PifEvtSpiTransferDone __evt_transfer_done;
 };
 
 /**
@@ -49,7 +57,9 @@ typedef struct StPifSpiPort
 	PifActSpiTransfer act_transfer;
 	// Optional. Starts a transfer like act_transfer and returns without waiting for it, for a
 	// port that can run it in the background (DMA, interrupts). It returns FALSE when the transfer
-	// could not be started, and act_is_busy has to report the transfer until it is over.
+	// could not be started, and act_is_busy has to report the transfer until it is over. When the
+	// transfer is over, the port calls pifSpiDevice_sigTransferDone() for the device, from the
+	// interrupt that ended it if it has one.
 	PifActSpiStartTransfer act_start_transfer;
 	PifActSpiRead act_read;
 	PifActSpiWrite act_write;
@@ -135,6 +145,8 @@ BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_r
  * @param p_write Buffer containing data to transmit (can be `NULL` for dummy writes).
  * @param p_read Buffer receiving incoming data (can be `NULL` if readback is not needed).
  * @param size Number of bytes to transfer.
+ *        The event attached with pifSpiDevice_AttachEvtTransferDone() is called once the
+ *        transfer is over.
  * @return `TRUE` if the transfer was started, otherwise `FALSE` with pif_error set to
  *         `E_INVALID_PARAM` for a bad request or `E_TRANSFER_FAILED` when the port could not
  *         start it.
@@ -288,6 +300,29 @@ BOOL pifSpiDevice_IsBusy(PifDevice* p_owner);
  * @return `TRUE` if the device becomes ready before timeout, otherwise `FALSE`.
  */
 BOOL pifSpiDevice_Wait(PifDevice* p_owner, uint16_t timeout1ms);
+
+/**
+ * @fn pifSpiDevice_AttachEvtTransferDone
+ * @brief Attaches the callback that is called when a transfer begun with
+ *        pifSpiDevice_StartTransfer() on this device is over. It is called from
+ *        pifSpiDevice_sigTransferDone(), which the port may call from an interrupt, so it has to
+ *        be short and safe to run there; it runs before pifSpiDevice_IsBusy() stops reporting
+ *        the transfer. On a port without act_start_transfer it is called from
+ *        pifSpiDevice_StartTransfer() before that returns. Transfers made any other way do not
+ *        call it.
+ * @param p_owner Pointer to the SPI device descriptor.
+ * @param evt_transfer_done Callback invoked when the transfer is over, or `NULL` to detach it.
+ * @param p_issuer User context pointer passed to the callback.
+ */
+void pifSpiDevice_AttachEvtTransferDone(PifSpiDevice* p_owner, PifEvtSpiTransferDone evt_transfer_done, PifIssuerP p_issuer);
+
+/**
+ * @fn pifSpiDevice_sigTransferDone
+ * @brief Signals that a transfer begun with act_start_transfer on the device is over. Called by
+ *        the port, from interrupt context if that is where it learns of it, once per transfer.
+ * @param p_owner Pointer to the SPI device whose transfer is over.
+ */
+void pifSpiDevice_sigTransferDone(PifSpiDevice* p_owner);
 
 #ifdef __cplusplus
 }

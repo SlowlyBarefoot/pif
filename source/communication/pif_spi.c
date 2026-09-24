@@ -84,6 +84,7 @@ BOOL pifSpiDevice_StartTransfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t
 
 	if (!p_port->act_start_transfer) {
 		(*p_port->act_transfer)(p_owner, p_write, p_read, size);
+		pifSpiDevice_sigTransferDone(p_owner);
 		return TRUE;
 	}
 
@@ -93,6 +94,20 @@ BOOL pifSpiDevice_StartTransfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t
 		return FALSE;
 	}
 	return TRUE;
+}
+
+void pifSpiDevice_AttachEvtTransferDone(PifSpiDevice* p_owner, PifEvtSpiTransferDone evt_transfer_done, PifIssuerP p_issuer)
+{
+	p_owner->__evt_transfer_done = NULL;
+	p_owner->__p_transfer_done_issuer = p_issuer;
+	p_owner->__evt_transfer_done = evt_transfer_done;
+}
+
+void pifSpiDevice_sigTransferDone(PifSpiDevice* p_owner)
+{
+	PifEvtSpiTransferDone evt_transfer_done = p_owner->__evt_transfer_done;
+
+	if (evt_transfer_done) (*evt_transfer_done)(p_owner->__p_transfer_done_issuer);
 }
 
 BOOL pifSpiDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
