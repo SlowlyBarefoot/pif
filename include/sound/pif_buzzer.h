@@ -5,6 +5,21 @@
 #include "core/pif_task_manager.h"
 
 
+/*
+ * Sequence format
+ *
+ * A sequence is an array of durations, counted in task periods (period1ms of
+ * pifBuzzer_Init), that alternate ON and OFF: entries 0, 2, 4... are ON
+ * durations and entries 1, 3, 5... are OFF durations. A duration of N holds
+ * its level for exactly N periods. A duration of 0 is skipped, so the output
+ * keeps its level; a sequence that starts with 0 therefore starts with a pause.
+ * Durations must be below PIF_BUZZER_STOP.
+ *
+ * The sequence ends with PIF_BUZZER_STOP or PIF_BUZZER_REPEAT(N), which may
+ * follow either an ON or an OFF duration. The output is turned off when the
+ * sequence ends. PIF_BUZZER_REPEAT(N) plays the whole sequence N times in all
+ * (1 to 16), so PIF_BUZZER_REPEAT(1) is the same as PIF_BUZZER_STOP.
+ */
 #define PIF_BUZZER_STOP			0xF0
 #define PIF_BUZZER_REPEAT(N)	(0xF0 + ((N) - 1))
 
@@ -21,7 +36,7 @@ typedef enum EnPifBuzzerState
 	BS_START		= 1,
 	BS_ON			= 2,
 	BS_OFF			= 3,
-	BS_STOP			= 4
+	BS_STOP			= 4		// No longer entered: a finished sequence goes straight to BS_IDLE.
 } PifBuzzerState;
 
 /**
@@ -41,6 +56,7 @@ typedef struct StPifBuzzer
     PifId _id;
     PifTask* _p_task;
     PifBuzzerState _state;
+    BOOL _output;				// Current output level, as last passed to the action.
 
 	// Private Member Variable
     const uint8_t* __p_sequence;
@@ -60,6 +76,8 @@ extern "C" {
 /**
  * @fn pifBuzzer_Init
  * @brief Initializes a buzzer instance and creates its periodic state-machine task.
+ * @details act_action and evt_change are called only when the output level changes. While
+ *          they handle the first edge of a sequence, _state is still BS_START.
  * @param p_owner Pointer to the buzzer instance to initialize.
  * @param id Identifier to assign to the instance. Use PIF_ID_AUTO for automatic assignment.
  * @param period1ms Task period in milliseconds used to advance buzzer sequence timing.
@@ -78,24 +96,29 @@ void pifBuzzer_Clear(PifBuzzer* p_owner);
 /**
  * @fn pifBuzzer_Start
  * @brief Starts buzzer playback using the given encoded ON/OFF sequence.
+ * @details Playback begins on the next task period. Starting while a sequence plays replaces
+ *          it from its first entry; the output changes only if the new sequence needs it.
  * @param p_owner Pointer to the buzzer instance.
- * @param p_sequence Pointer to sequence data encoded with durations and stop/repeat markers.
- * @return TRUE if playback is started, otherwise FALSE.
+ * @param p_sequence Pointer to sequence data, in the format described at PIF_BUZZER_STOP.
+ *                   It must stay valid while it plays.
+ * @return TRUE if playback is started, otherwise FALSE (E_INVALID_PARAM for a NULL argument,
+ *         E_INVALID_STATE if the buzzer has no task).
  */
 BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sequence);
 
 /**
  * @fn pifBuzzer_Stop
- * @brief Stops buzzer playback immediately and transitions the state machine to stop.
+ * @brief Stops buzzer playback immediately, drives the output OFF and returns to idle.
+ * @details evt_finish is not called.
  * @param p_owner Pointer to the buzzer instance.
  */
 void pifBuzzer_Stop(PifBuzzer* p_owner);
 
 /**
  * @fn pifBuzzer_State
- * @brief Checks whether the buzzer is currently active.
+ * @brief Checks whether the buzzer output is currently on.
  * @param p_owner Pointer to the buzzer instance.
- * @return TRUE if buzzer output sequence is in START or ON state, otherwise FALSE.
+ * @return TRUE if the output is ON, otherwise FALSE.
  */
 BOOL pifBuzzer_State(PifBuzzer* p_owner);
 

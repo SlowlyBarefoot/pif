@@ -2,6 +2,72 @@
 
 
 /**
+ * @fn _setOutput
+ * @brief Drives the buzzer output and reports the edge, only when the output actually changes.
+ * @param p_owner Pointer to the buzzer instance.
+ * @param on Requested output level.
+ */
+static void _setOutput(PifBuzzer* p_owner, BOOL on)
+{
+	if (p_owner->_output == on) return;
+
+	(*p_owner->__act_action)(on);
+	p_owner->_output = on;
+	if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, on);
+}
+
+/**
+ * @fn _finish
+ * @brief Ends the sequence: turns the output off, returns to idle and reports the finish.
+ * @param p_owner Pointer to the buzzer instance.
+ */
+static void _finish(PifBuzzer* p_owner)
+{
+	_setOutput(p_owner, OFF);
+	p_owner->_state = BS_IDLE;
+	if (p_owner->evt_finish) (*p_owner->evt_finish)(p_owner->_id);
+}
+
+/**
+ * @fn _nextStep
+ * @brief Loads the next non-zero duration of the sequence, handling end markers wherever they appear.
+ * @param p_owner Pointer to the buzzer instance.
+ */
+static void _nextStep(PifBuzzer* p_owner)
+{
+	uint8_t value, repeat;
+	BOOL on, restarted = FALSE;
+
+	for (;;) {
+		value = p_owner->__p_sequence[p_owner->__pos];
+		if (value >= PIF_BUZZER_STOP) {
+			repeat = value - PIF_BUZZER_STOP;
+			// A second restart within one step means the whole sequence has no duration.
+			if (p_owner->__repeat < repeat && !restarted) {
+				p_owner->__repeat++;
+				p_owner->__pos = 0;
+				restarted = TRUE;
+				continue;
+			}
+			_finish(p_owner);
+			return;
+		}
+
+		// Even positions are ON durations, odd positions are OFF durations.
+		on = !(p_owner->__pos & 1);
+		p_owner->__pos++;
+		if (value) {
+			// _state is still BS_START here for the first edge of a sequence.
+			_setOutput(p_owner, on);
+			p_owner->__count = value;
+			p_owner->_state = on ? BS_ON : BS_OFF;
+			return;
+		}
+		// A zero duration is skipped, so the output keeps its level.
+	}
+}
+
+/**
  * @fn _doTask
  * @brief Periodic buzzer state-machine task that processes sequence timing and transitions.
  * @param p_task Pointer to the scheduler task context containing the buzzer instance.
@@ -10,58 +76,18 @@
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifBuzzer* p_owner = (PifBuzzer*)p_task->_p_client;
-	uint8_t repeat;
 
 	if (p_owner->evt_period) (*p_owner->evt_period)(p_owner->_id);
 
 	switch (p_owner->_state) {
 	case BS_START:
-		p_owner->__count = p_owner->__p_sequence[p_owner->__pos++];
-		(*p_owner->__act_action)(ON);
-		if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, ON);
-		p_owner->_state = BS_ON;
+		_nextStep(p_owner);
 		break;
 
 	case BS_ON:
-		if (p_owner->__count) p_owner->__count--;
-		else {
-			p_owner->__count = p_owner->__p_sequence[p_owner->__pos++];
-			(*p_owner->__act_action)(OFF);
-			if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, OFF);
-			p_owner->_state = BS_OFF;
-		}
-		break;
-
 	case BS_OFF:
 		if (p_owner->__count) p_owner->__count--;
-		else {
-			p_owner->__count = p_owner->__p_sequence[p_owner->__pos++];
-			if (p_owner->__count < PIF_BUZZER_STOP) {
-				(*p_owner->__act_action)(ON);
-				if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, ON);
-				p_owner->_state = BS_ON;
-			}
-			else if (p_owner->__count == PIF_BUZZER_STOP) {
-				p_owner->_state = BS_STOP;
-			}
-			else {
-				repeat = p_owner->__count - PIF_BUZZER_STOP;
-				if (p_owner->__repeat < repeat) {
-					p_owner->__pos = 0;
-					p_owner->__repeat++;
-					p_owner->_state = BS_START;
-				}
-				else {
-					p_owner->_state = BS_STOP;
-				}
-			}
-		}
-		break;
-
-	case BS_STOP:
-		(*p_owner->__act_action)(OFF);
-		p_owner->_state = BS_IDLE;
-		if (p_owner->evt_finish) (*p_owner->evt_finish)(p_owner->_id);
+		if (!p_owner->__count) _nextStep(p_owner);
 		break;
 
 	default:
@@ -99,24 +125,37 @@ void pifBuzzer_Clear(PifBuzzer* p_owner)
 
 BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sequence)
 {
-	if (!p_owner || !p_owner->_p_task) return FALSE;
+	if (!p_owner || !p_sequence) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+	if (!p_owner->_p_task) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
 
 	p_owner->__p_sequence = p_sequence;
 	p_owner->__pos = 0;
 	p_owner->__repeat = 0;
+	p_owner->__count = 0;
 	p_owner->_state = BS_START;
 	return TRUE;
 }
 
 void pifBuzzer_Stop(PifBuzzer* p_owner)
 {
+	if (!p_owner || !p_owner->__act_action) return;
+
+	// Drive OFF even if the output is believed off, so the hardware is left silent.
 	(*p_owner->__act_action)(OFF);
-	if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, OFF);
+	if (p_owner->_output) {
+		p_owner->_output = OFF;
+		if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, OFF);
+	}
 	p_owner->_state = BS_IDLE;
 }
 
 BOOL pifBuzzer_State(PifBuzzer* p_owner)
 {
-    return p_owner->_state == BS_START || p_owner->_state == BS_ON;
+    return p_owner->_output;
 }
-
