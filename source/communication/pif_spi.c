@@ -72,6 +72,29 @@ BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_r
 	return TRUE;
 }
 
+BOOL pifSpiDevice_StartTransfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_read, size_t size)
+{
+	PifSpiPort* p_port = p_owner->_p_port;
+
+	if ((!p_port->act_start_transfer && !p_port->act_transfer) || !size || (!p_write && !p_read)
+			|| (p_owner->max_transfer_size && size > p_owner->max_transfer_size)) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	if (!p_port->act_start_transfer) {
+		(*p_port->act_transfer)(p_owner, p_write, p_read, size);
+		return TRUE;
+	}
+
+	if (!(*p_port->act_start_transfer)(p_owner, p_write, p_read, size)) {
+		p_port->error_count++;
+		pif_error = E_TRANSFER_FAILED;
+		return FALSE;
+	}
+	return TRUE;
+}
+
 BOOL pifSpiDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
 	PifSpiDevice* p_device = (PifSpiDevice*)p_owner;

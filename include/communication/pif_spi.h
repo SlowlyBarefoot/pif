@@ -13,6 +13,7 @@ struct StPifSpiPort;
 typedef struct StPifSpiPort PifSpiPort;
 
 typedef void (*PifActSpiTransfer)(PifSpiDevice *p_owner, uint8_t* p_write, uint8_t* p_read, size_t size);
+typedef BOOL (*PifActSpiStartTransfer)(PifSpiDevice *p_owner, uint8_t* p_write, uint8_t* p_read, size_t size);
 
 typedef BOOL (*PifActSpiRead)(PifSpiDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
 typedef BOOL (*PifActSpiWrite)(PifSpiDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
@@ -46,6 +47,10 @@ typedef struct StPifSpiPort
 
 	// Public Action Function
 	PifActSpiTransfer act_transfer;
+	// Optional. Starts a transfer like act_transfer and returns without waiting for it, for a
+	// port that can run it in the background (DMA, interrupts). It returns FALSE when the transfer
+	// could not be started, and act_is_busy has to report the transfer until it is over.
+	PifActSpiStartTransfer act_start_transfer;
 	PifActSpiRead act_read;
 	PifActSpiWrite act_write;
 	PifActSpiIsBusy act_is_busy;
@@ -116,6 +121,25 @@ PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, void *p_client);
  * @return `TRUE` if the transfer request is accepted and completed, otherwise `FALSE`.
  */
 BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_read, size_t size);
+
+/**
+ * @fn pifSpiDevice_StartTransfer
+ * @brief Starts a full-duplex SPI transfer and returns without waiting for it to finish.
+ *        pifSpiDevice_IsBusy() reports the transfer until it is over, so ask it from later
+ *        releases of the task instead of looping here. p_write and p_read have to stay valid
+ *        until then, so they must not be on the stack. The transfer is not split by
+ *        max_transfer_size, so size must not exceed it when it is set. On a port without
+ *        act_start_transfer the transfer is made with act_transfer and is already over when
+ *        this returns.
+ * @param p_owner Pointer to the SPI device descriptor.
+ * @param p_write Buffer containing data to transmit (can be `NULL` for dummy writes).
+ * @param p_read Buffer receiving incoming data (can be `NULL` if readback is not needed).
+ * @param size Number of bytes to transfer.
+ * @return `TRUE` if the transfer was started, otherwise `FALSE` with pif_error set to
+ *         `E_INVALID_PARAM` for a bad request or `E_TRANSFER_FAILED` when the port could not
+ *         start it.
+ */
+BOOL pifSpiDevice_StartTransfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_read, size_t size);
 
 /**
  * @fn pifSpiDevice_Read
@@ -251,7 +275,8 @@ BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask
  * @fn pifSpiDevice_IsBusy
  * @brief Checks whether the underlying SPI bus/device is busy.
  * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @return `TRUE` if a transfer is in progress, otherwise `FALSE`.
+ * @return `TRUE` if a transfer is in progress, including one begun with
+ *         pifSpiDevice_StartTransfer(), otherwise `FALSE`.
  */
 BOOL pifSpiDevice_IsBusy(PifDevice* p_owner);
 
