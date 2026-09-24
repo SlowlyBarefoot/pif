@@ -50,13 +50,17 @@ typedef struct StPifRcIbusSensorinfo
 typedef struct StPifRcIbus PifRcIbus;
 
 /**
- * @brief Callback used to produce telemetry payload for iBUS sensor requests.
+ * @brief Callback used to answer iBUS sensor requests.
+ *        It is called for IBUS_COMMAND_DISCOVER, IBUS_COMMAND_TYPE and IBUS_COMMAND_VALUE. For
+ *        IBUS_COMMAND_TYPE it fills type and length, for IBUS_COMMAND_VALUE length and value; for
+ *        IBUS_COMMAND_DISCOVER nothing is needed.
  * @param p_owner Pointer to the iBUS receiver object.
  * @param command iBUS command code.
  * @param address Sensor address.
  * @param p_sensor Output descriptor containing type/length/value payload.
+ * @return TRUE to send the reply, FALSE to leave the address unanswered.
  */
-typedef void (*PifEvtRcIbusTelemetry)(PifRcIbus* p_owner, uint8_t command, uint8_t address, PifRcIbusSensorinfo* p_sensor);
+typedef BOOL (*PifEvtRcIbusTelemetry)(PifRcIbus* p_owner, uint8_t command, uint8_t address, PifRcIbusSensorinfo* p_sensor);
 
 
 /**
@@ -73,7 +77,6 @@ struct StPifRcIbus
 
 	// Read-only Member Variable
     PifRcIbusModel _model;
-    uint8_t _number_sensors;  // Number of telemetry sensors.
     uint8_t _length;          // Current RX message length.
 
 	// Private Member Variable

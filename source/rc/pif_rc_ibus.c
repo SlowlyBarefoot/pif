@@ -14,6 +14,7 @@
 static void _ParsingPacket(PifRcIbus *p_owner, PifActUartReceiveData act_receive_data)
 {
 	uint8_t data;
+	int i;
 
 	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
 		switch (p_owner->__rx_state) {
@@ -58,6 +59,13 @@ static void _ParsingPacket(PifRcIbus *p_owner, PifActUartReceiveData act_receive
 			// Validate checksum
 			if (p_owner->_model == IBUS_MODEL_IA6B) {
 				p_owner->__chksum = 0xFFFF - p_owner->__chksum;
+			}
+			else {
+				// IA6 sums the channel words after the 0x55 header, not the bytes.
+				p_owner->__chksum = 0;
+				for (i = 1; i < p_owner->__ptr; i += 2) {
+					p_owner->__chksum += p_owner->__rx_buffer[i] | (p_owner->__rx_buffer[i + 1] << 8);
+				}
 			}
 			if (p_owner->__chksum == ((uint16_t)data << 8) + p_owner->__lchksum) {
 				p_owner->parent._good_frames++;
@@ -109,7 +117,7 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 		// Checksum is all fine Execute command - 
 		command = p_owner->__rx_buffer[1] & 0xf0;
 		adr = p_owner->__rx_buffer[1] & 0x0f;
-		if (command == IBUS_COMMAND_SERVO) {
+		if (p_owner->_model == IBUS_MODEL_IA6 || command == IBUS_COMMAND_SERVO) {
 			// Valid servo command received - extract channel data
 			offset = p_owner->_model == IBUS_MODEL_IA6B ? 2 : 1;
 			for (c = 0, i = offset; c < PIF_IBUS_CHANNEL_COUNT; c++, i += 2) {
@@ -121,20 +129,25 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 
 	    	if (p_owner->parent.__evt_receive) (*p_owner->parent.__evt_receive)(&p_owner->parent, channel, p_owner->parent.__p_issuer);
 		} 
-		else if (p_owner->__p_uart->_p_tx_buffer && adr <= p_owner->_number_sensors && adr > 0 && p_owner->_length == IBUS_TELEMETRY_SIZE) {
+		else if (p_owner->evt_telemetry && (p_owner->__p_uart->_p_tx_buffer || p_owner->__p_uart->act_send_data) &&
+				adr > 0 && p_owner->_length == IBUS_TELEMETRY_SIZE) {
 			// all sensor data commands go here
 			// we only process the length==IBUS_TELEMETRY_SIZE commands (=message length is 4 bytes incl overhead) to prevent the case the
 			// return messages from the UART TX port loop back to the RX port and are processed again. This is extra
 			// precaution as it will also be prevented by the IBUS_TIMEGAP required
+			// The client decides which addresses are its sensors: an address it declines gets no reply,
+			// discovery included, so the receiver does not go on to query it.
+			memset(&sensor, 0, sizeof(sensor));
 			switch (command) {
 			case IBUS_COMMAND_DISCOVER:
+				if (!(*p_owner->evt_telemetry)(p_owner, command, adr, &sensor)) break;
 				// echo discover command: 0x04, 0x81, 0x7A, 0xFF 
 				tx_buffer[p++] = 0x04;
 				tx_buffer[p++] = IBUS_COMMAND_DISCOVER + adr;
 				break;
 
 			case IBUS_COMMAND_TYPE:
-		    	if (p_owner->evt_telemetry) (*p_owner->evt_telemetry)(p_owner, command, adr, &sensor);
+				if (!(*p_owner->evt_telemetry)(p_owner, command, adr, &sensor)) break;
 				// echo sensor type command: 0x06 0x91 0x00 0x02 0x66 0xFF 
 				tx_buffer[p++] = 0x06;
 				tx_buffer[p++] = IBUS_COMMAND_TYPE + adr;
@@ -143,7 +156,8 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 				break;
 
 			case IBUS_COMMAND_VALUE:
-		    	if (p_owner->evt_telemetry) (*p_owner->evt_telemetry)(p_owner, command, adr, &sensor);
+				if (!(*p_owner->evt_telemetry)(p_owner, command, adr, &sensor)) break;
+				if (sensor.length > sizeof(sensor.value)) break;
 				// echo sensor value command: 0x06 0x91 0x00 0x02 0x66 0xFF 
 				tx_buffer[p++] = 0x04 + sensor.length;
 				tx_buffer[p++] = IBUS_COMMAND_VALUE + adr;
@@ -153,15 +167,15 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 				break;
 
 			default:
-				adr = 0; // unknown command, prevent sending chksum
-				break;
+				break;	// unknown command, nothing to send
 			}
-			if (adr > 0) {
+			if (p > 0) {
 				chksum = 0xFFFF - pifCheckSum(tx_buffer, p);
 				tx_buffer[p++] = chksum & 0x0ff;
 				tx_buffer[p++] = chksum >> 8;
 
-				pifRingBuffer_PutData(p_owner->__p_uart->_p_tx_buffer, tx_buffer, p);
+				// Through the UART rather than into its buffer, so the TX task is triggered.
+				pifUart_SendTxData(p_owner->__p_uart, tx_buffer, p);
 			}
 		}
 
