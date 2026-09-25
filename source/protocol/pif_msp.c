@@ -53,129 +53,26 @@ static const char *kPktErr[] = {
 #endif
 
 /**
- * @brief Parses an incoming protocol packet and updates parser state and outputs.
+ * @brief Drops the packet being received and logs why, once per run of the same error.
  * @param p_owner Pointer to the protocol instance that owns this operation.
- * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
+ * @param pkt_err One of PKT_ERR_*.
+ * @param line Source line that found the error.
+ * @param data Byte that caused the error.
  * @return None.
  */
-static void _parsingPacket(PifMsp *p_owner, PifActUartReceiveData act_receive_data)
+static void _failPacket(PifMsp* p_owner, uint8_t pkt_err, int line, uint8_t data)
 {
-	PifMspPacket* p_packet = &p_owner->__rx.packet;
-	uint8_t data;
-	uint8_t pkt_err;
-#ifndef PIF_NO_LOG
-	int line;
-#endif
-	static uint8_t pre_error = PKT_ERR_NONE;
-
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
-		switch (p_owner->__rx.state) {
-		case MRS_IDLE:
-			if (data == '$') {
-				p_owner->__rx.state = MRS_HEADER_CHAR;
-#if PIF_MSP_RECEIVE_TIMEOUT
-				pifTimer_Start(p_owner->__rx.p_timer, PIF_MSP_RECEIVE_TIMEOUT);
-#endif
-			}
-			else if (pre_error == PKT_ERR_NONE && p_owner->__evt_other_packet) {
-				(*p_owner->__evt_other_packet)(p_owner, data, p_owner->__p_issuer);
-			}
-			else {
-				pkt_err = PKT_ERR_INVALID_DATA;
-#ifndef PIF_NO_LOG
-				line = __LINE__;
-#endif
-				goto fail;
-			}
-			break;
-
-		case MRS_HEADER_CHAR:
-			if (data == 'M') {
-				p_owner->__rx.state = MRS_DIRECTION;
-			}
-			else {
-				pkt_err = PKT_ERR_INVALID_DATA;
-#ifndef PIF_NO_LOG
-				line = __LINE__;
-#endif
-				goto fail;
-			}
-			break;
-
-		case MRS_DIRECTION:
-			if (data == '<') {
-				p_owner->__rx.state = MRS_LENGTH;
-			}
-			else {
-				pkt_err = PKT_ERR_INVALID_DATA;
-#ifndef PIF_NO_LOG
-				line = __LINE__;
-#endif
-				goto fail;
-			}
-			break;
-
-		case MRS_LENGTH:
-			if (data <= PIF_MSP_RX_PACKET_SIZE - 3) {
-				p_packet->data_count = data;
-				p_owner->__rx.p_packet[0] = data;
-				p_owner->__rx.packet_count = 1;
-				p_owner->__rx.state = MRS_MESSAGE_TYPE;
-			}
-			else {
-				pkt_err = PKT_ERR_BIG_LENGTH;
-#ifndef PIF_NO_LOG
-				line = __LINE__;
-#endif
-				goto fail;
-			}
-			break;
-
-		case MRS_MESSAGE_TYPE:
-			p_packet->command = data;
-			p_owner->__rx.p_packet[p_owner->__rx.packet_count] = data;
-			p_owner->__rx.packet_count++;
-			p_owner->__rx.state = MRS_DATA;
-			break;
-
-		case MRS_DATA:
-			p_owner->__rx.p_packet[p_owner->__rx.packet_count] = data;
-			p_owner->__rx.packet_count++;
-			if (p_owner->__rx.packet_count >= 3 + p_packet->data_count) {
-				if (data == pifCheckXor(p_owner->__rx.p_packet, 2 + p_packet->data_count)) {
-#if PIF_MSP_RECEIVE_TIMEOUT
-					pifTimer_Stop(p_owner->__rx.p_timer);
-#endif
-					p_packet->p_data = p_owner->__rx.p_packet + 2;
-					p_owner->__rx.state = MRS_DONE;
-					return;
-				}
-				else {
-					pkt_err = PKT_ERR_WRONG_CRC;
-#ifndef PIF_NO_LOG
-					line = __LINE__;
-#endif
-					goto fail;
-				}
-			}
-			break;
-
-		default:
-			break;
-		}
-	}
-	pre_error = PKT_ERR_NONE;
-	return;
-
-fail:
-	if (pkt_err != pre_error) {
+	if (pkt_err != p_owner->__rx.pre_error) {
 #ifndef PIF_NO_LOG
 		pifLog_Printf(LT_ERROR, "MWP:%u(%u) %s D:%xh RS:%u Cnt:%u", line, p_owner->_id, kPktErr[pkt_err], data,
-				p_owner->__rx.state, p_packet->data_count);
+				p_owner->__rx.state, p_owner->__rx.packet.data_count);
+#else
+		(void)line;
+		(void)data;
 #endif
-		pre_error = pkt_err;
+		p_owner->__rx.pre_error = pkt_err;
 	}
-#if !defined( PIF_NO_LOG) && defined(__DEBUG_PACKET__)
+#if !defined(PIF_NO_LOG) && defined(__DEBUG_PACKET__)
 	pifLog_Printf(LT_NONE, "\n%x %x %x %x %x", p_owner->__rx.p_packet[0], p_owner->__rx.p_packet[1], p_owner->__rx.p_packet[2],
 			p_owner->__rx.p_packet[3], p_owner->__rx.p_packet[4]);
 #endif
@@ -187,6 +84,101 @@ fail:
 }
 
 /**
+ * @brief Runs one received byte through the MSPv1 command parser.
+ * @param p_parser The PifMsp instance.
+ * @param data Received byte.
+ * @return What the byte did.
+ */
+static PifMspFrame _parsingPacket(void* p_parser, uint8_t data)
+{
+	PifMsp* p_owner = (PifMsp*)p_parser;
+	PifMspPacket* p_packet = &p_owner->__rx.packet;
+
+	switch (p_owner->__rx.state) {
+	case MRS_IDLE:
+		if (data != '$') return MF_OTHER;
+
+		p_owner->__rx.state = MRS_HEADER_CHAR;
+#if PIF_MSP_RECEIVE_TIMEOUT
+		pifTimer_Start(p_owner->__rx.p_timer, PIF_MSP_RECEIVE_TIMEOUT);
+#endif
+		break;
+
+	case MRS_HEADER_CHAR:
+		if (data != 'M') {
+			_failPacket(p_owner, PKT_ERR_INVALID_DATA, __LINE__, data);
+			return MF_NONE;
+		}
+		p_owner->__rx.state = MRS_DIRECTION;
+		break;
+
+	case MRS_DIRECTION:
+		if (data != '<') {
+			_failPacket(p_owner, PKT_ERR_INVALID_DATA, __LINE__, data);
+			return MF_NONE;
+		}
+		p_owner->__rx.state = MRS_LENGTH;
+		break;
+
+	case MRS_LENGTH:
+		if (data + 3 > p_owner->__rx.packet_size) {
+			_failPacket(p_owner, PKT_ERR_BIG_LENGTH, __LINE__, data);
+			return MF_NONE;
+		}
+		p_packet->data_count = data;
+		p_owner->__rx.p_packet[0] = data;
+		p_owner->__rx.packet_count = 1;
+		p_owner->__rx.state = MRS_MESSAGE_TYPE;
+		break;
+
+	case MRS_MESSAGE_TYPE:
+		p_packet->command = data;
+		p_owner->__rx.p_packet[p_owner->__rx.packet_count] = data;
+		p_owner->__rx.packet_count++;
+		p_owner->__rx.state = MRS_DATA;
+		break;
+
+	case MRS_DATA:
+		p_owner->__rx.p_packet[p_owner->__rx.packet_count] = data;
+		p_owner->__rx.packet_count++;
+		if (p_owner->__rx.packet_count >= 3 + p_packet->data_count) {
+			if (data != pifCheckXor(p_owner->__rx.p_packet, 2 + p_packet->data_count)) {
+				_failPacket(p_owner, PKT_ERR_WRONG_CRC, __LINE__, data);
+				return MF_NONE;
+			}
+#if PIF_MSP_RECEIVE_TIMEOUT
+			pifTimer_Stop(p_owner->__rx.p_timer);
+#endif
+			p_packet->p_data = p_owner->__rx.p_packet + 2;
+			p_packet->flags = 0;
+			p_packet->version = MV_V1;
+			p_packet->type = MPT_COMMAND;
+			p_owner->__rx.state = MRS_IDLE;
+			return MF_PACKET;
+		}
+		break;
+
+	default:
+		p_owner->__rx.state = MRS_IDLE;
+		break;
+	}
+	p_owner->__rx.pre_error = PKT_ERR_NONE;
+	return MF_NONE;
+}
+
+/**
+ * @brief Wakes the TX task of the attached UART, if there is one.
+ * @param p_owner Pointer to the protocol instance.
+ * @return None.
+ */
+static void _triggerSending(PifMsp* p_owner)
+{
+	if (p_owner->__p_uart && p_owner->__p_uart->_p_tx_task) {
+		pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
+	}
+}
+
+/**
  * @brief Driver callback that consumes received bytes and dispatches parsed events.
  * @param p_client Opaque client pointer provided by the communication driver callback.
  * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
@@ -195,25 +187,14 @@ fail:
 static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifMsp *p_owner = (PifMsp *)p_client;
+	uint8_t data;
 
-    if (p_owner->__rx.state < MRS_DONE) {
-    	_parsingPacket(p_owner, act_receive_data);
-    }
-
-    if (p_owner->__rx.state == MRS_DONE) {
-#ifndef PIF_NO_LOG
-#ifdef __DEBUG_PACKET__
-    	pifLog_Printf(LT_NONE, "\n%u> %x %x %x %x %x", p_owner->_id, p_owner->__rx.p_packet[0],	p_owner->__rx.p_packet[1],
-    			p_owner->__rx.p_packet[2], p_owner->__rx.p_packet[3], p_owner->__rx.p_packet[4]);
-#endif
-#endif
-
-		p_owner->__rx.packet.p_pointer = p_owner->__rx.packet.p_data;
-    	if (p_owner->__evt_receive) (*p_owner->__evt_receive)(p_owner, &p_owner->__rx.packet, p_owner->__p_issuer);
-    	pifTask_SetTrigger(p_owner->__p_uart->_p_task, 0);
-    	p_owner->__rx.state = MRS_IDLE;
-		return TRUE;
-    }
+	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
+		if (pifMsp_ParsingPacket(p_owner, data) == MF_PACKET) {
+			_triggerSending(p_owner);
+			return TRUE;
+		}
+	}
 	return FALSE;
 }
 
@@ -260,20 +241,29 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 
 BOOL pifMsp_Init(PifMsp* p_owner, PifTimerManager* p_timer, PifId id)
 {
+	memset(p_owner, 0, sizeof(PifMsp));
+
+#if PIF_MSP_RECEIVE_TIMEOUT
     if (!p_timer) {
 		pif_error = E_INVALID_PARAM;
 		goto fail;
 	}
+#else
+    (void)p_timer;
+#endif
 
-	memset(p_owner, 0, sizeof(PifMsp));
-
+#if PIF_MSP_RX_PACKET_SIZE
     p_owner->__rx.p_packet = calloc(PIF_MSP_RX_PACKET_SIZE, sizeof(uint8_t));
     if (!p_owner->__rx.p_packet) {
         pif_error = E_OUT_OF_HEAP;
         goto fail;
     }
+    p_owner->__rx.packet_size = PIF_MSP_RX_PACKET_SIZE;
+#endif
 
+#if PIF_MSP_TX_ANSWER_SIZE
     if (!pifRingBuffer_InitHeap(&p_owner->__tx.answer_buffer, PIF_ID_AUTO, PIF_MSP_TX_ANSWER_SIZE)) goto fail;
+#endif
 
 #if PIF_MSP_RECEIVE_TIMEOUT
     p_owner->__rx.p_timer = pifTimerManager_Add(p_timer, TT_ONCE);
@@ -281,30 +271,66 @@ BOOL pifMsp_Init(PifMsp* p_owner, PifTimerManager* p_timer, PifId id)
     pifTimer_AttachEvtFinish(p_owner->__rx.p_timer, _evtTimerRxTimeout, p_owner);
 #endif
 
+    p_owner->__rx.pre_error = PKT_ERR_NONE;
+    p_owner->__p_parser = p_owner;
+    p_owner->__act_parsing = _parsingPacket;
+
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     return TRUE;
 
+#if PIF_MSP_RECEIVE_TIMEOUT || PIF_MSP_RX_PACKET_SIZE || PIF_MSP_TX_ANSWER_SIZE
 fail:
 	pifMsp_Clear(p_owner);
 #ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, id, pif_error);
 #endif
     return FALSE;
+#endif
 }
 
 void pifMsp_Clear(PifMsp* p_owner)
 {
 	if (p_owner->__rx.p_packet) {
-		free(p_owner->__rx.p_packet);
+		if (!p_owner->__rx.packet_static) free(p_owner->__rx.p_packet);
 		p_owner->__rx.p_packet = NULL;
 	}
+	p_owner->__rx.packet_size = 0;
 	pifRingBuffer_Clear(&p_owner->__tx.answer_buffer);
 #if PIF_MSP_RECEIVE_TIMEOUT
 	if (p_owner->__rx.p_timer) {
 		pifTimerManager_Remove(p_owner->__rx.p_timer);
+		p_owner->__rx.p_timer = NULL;
 	}
 #endif
+}
+
+BOOL pifMsp_AssignRxBuffer(PifMsp* p_owner, uint16_t size, uint8_t* p_buffer)
+{
+	if (!p_buffer || !size) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	if (p_owner->__rx.p_packet && !p_owner->__rx.packet_static) free(p_owner->__rx.p_packet);
+	p_owner->__rx.p_packet = p_buffer;
+	p_owner->__rx.packet_size = size;
+	p_owner->__rx.packet_static = TRUE;
+	p_owner->__rx.state = MRS_IDLE;
+	return TRUE;
+}
+
+BOOL pifMsp_AssignAnswerBuffer(PifMsp* p_owner, uint16_t size, uint8_t* p_buffer)
+{
+	if (!p_buffer || !size) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	pifRingBuffer_Clear(&p_owner->__tx.answer_buffer);
+	if (!pifRingBuffer_InitStatic(&p_owner->__tx.answer_buffer, PIF_ID_AUTO, size, p_buffer)) return FALSE;
+	p_owner->__tx.state = MTS_IDLE;
+	return TRUE;
 }
 
 void pifMsp_AttachUart(PifMsp* p_owner, PifUart *p_uart)
@@ -324,6 +350,35 @@ void pifMsp_AttachEvtReceive(PifMsp* p_owner, PifEvtMspReceive evt_receive, PifE
 	p_owner->__evt_receive = evt_receive;
 	p_owner->__evt_other_packet = evt_other_packet;
 	p_owner->__p_issuer = p_issuer;
+}
+
+PifMspFrame pifMsp_ParsingPacket(PifMsp* p_owner, uint8_t data)
+{
+	PifMspFrame frame;
+
+	if (!p_owner->__rx.p_packet) return MF_NONE;
+
+	frame = (*p_owner->__act_parsing)(p_owner->__p_parser, data);
+	switch (frame) {
+	case MF_PACKET:
+#ifndef PIF_NO_LOG
+#ifdef __DEBUG_PACKET__
+		pifLog_Printf(LT_NONE, "\n%u> %x %x %x", p_owner->_id, p_owner->__rx.packet.version, p_owner->__rx.packet.command,
+				p_owner->__rx.packet.data_count);
+#endif
+#endif
+		p_owner->__rx.packet.p_pointer = p_owner->__rx.packet.p_data;
+		if (p_owner->__evt_receive) (*p_owner->__evt_receive)(p_owner, &p_owner->__rx.packet, p_owner->__p_issuer);
+		break;
+
+	case MF_OTHER:
+		if (p_owner->__evt_other_packet) (*p_owner->__evt_other_packet)(p_owner, data, p_owner->__p_issuer);
+		break;
+
+	default:
+		break;
+	}
+	return frame;
 }
 
 uint8_t pifMsp_ReadData8(PifMspPacket* p_packet)
@@ -487,7 +542,7 @@ BOOL pifMsp_SendAnswer(PifMsp* p_owner)
 
 	pifRingBuffer_CommitPutting(&p_owner->__tx.answer_buffer);
 
-	pifTask_SetTrigger(p_owner->__p_uart->_p_task, 0);
+	_triggerSending(p_owner);
 	return TRUE;
 
 fail:
@@ -497,4 +552,18 @@ fail:
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) EC:%d", __LINE__, p_owner->_id, pif_error);
 #endif
 	return FALSE;
+}
+
+uint16_t pifMsp_GetAnswer(PifMsp* p_owner, uint8_t** pp_data)
+{
+	if (!pifRingBuffer_IsBuffer(&p_owner->__tx.answer_buffer)) return 0;
+	if (pifRingBuffer_IsEmpty(&p_owner->__tx.answer_buffer)) return 0;
+
+	*pp_data = pifRingBuffer_GetTailPointer(&p_owner->__tx.answer_buffer, 0);
+	return pifRingBuffer_GetLinerSize(&p_owner->__tx.answer_buffer, 0);
+}
+
+void pifMsp_RemoveAnswer(PifMsp* p_owner, uint16_t length)
+{
+	pifRingBuffer_Remove(&p_owner->__tx.answer_buffer, length);
 }
