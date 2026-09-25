@@ -102,6 +102,8 @@ static int _convertString2Interger(char* str)
 
 /**
  * @brief Converts an NMEA coordinate token (`ddmm.mmmm` or `dddmm.mmmm`) to degrees.
+ *        Every fractional digit of the minutes the receiver sends is kept, up to 7: receivers
+ *        send 4 or 5, and the fifth is 0.00001 minute, about 2 cm.
  * @param s Coordinate token string.
  * @return Decimal degree representation.
  */
@@ -109,9 +111,8 @@ static double _convertString2Degrees(char* s)
 {
 	char* p;
 	char* q;
-	uint8_t deg = 0, min = 0;
-	unsigned int frac_min = 0;
-	uint8_t i;
+	uint8_t i, deg = 0, min = 0;
+	uint32_t frac_min = 0, frac_div = 1;
 
 	// scan for decimal point or end of field
 	for (p = s; isdigit((int)*p); p++);
@@ -127,17 +128,15 @@ static double _convertString2Degrees(char* s)
 		if (min) min *= 10;
 		min += DIGIT_TO_VAL(*q++);
 	}
-	// convert fractional minutes
-	// expect up to four digits, result is in
-	// ten-thousandths of a minute
+	// convert fractional minutes, frac_min / frac_div of a minute
 	if (*p == '.') {
 		q = p + 1;
-		for (i = 0; i < 4; i++) {
-			frac_min *= 10;
-			if (isdigit((int)*q)) frac_min += *q++ - '0';
+		for (i = 0; i < 7 && isdigit((int)*q); i++) {
+			frac_min = frac_min * 10 + DIGIT_TO_VAL(*q++);
+			frac_div *= 10;
 		}
 	}
-	return deg + (min * 10000UL + frac_min) / 600000.0;
+	return deg + (min + (double)frac_min / frac_div) / 60;
 }
 
 /**
@@ -294,6 +293,9 @@ BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 				case 7: 
 					p_owner->_num_sat = _convertString2Interger(p_owner->__string);
 					break;
+				case 8:
+					p_owner->_hdop = _convertString2Float(p_owner->__string) * 100;
+					break;
 				case 9: 
 					p_owner->_altitude = _convertString2Float(p_owner->__string);
 					break;
@@ -417,7 +419,7 @@ BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 					if (p_owner->__string[0] == 'W') p_owner->_coord_deg[PIF_GPS_LON] = -p_owner->_coord_deg[PIF_GPS_LON];
 					break;
 				case 7:
-					p_owner->_ground_speed = _convertString2Float(p_owner->__string) * 51444L;	// knots -> cm/s
+					p_owner->_ground_speed = _convertString2Float(p_owner->__string) * 51444 / 1000;	// knots -> cm/s
 					break;
 				case 8:
 					p_owner->_ground_course = _convertString2Float(p_owner->__string);
@@ -459,7 +461,7 @@ BOOL pifGps_ParsingNmea(PifGps* p_owner, uint8_t c)
 					p_owner->_ground_course = _convertString2Float(p_owner->__string);
 					break;
 				case 5:
-					p_owner->_ground_speed = _convertString2Float(p_owner->__string) * 51444L;	// knots -> cm/s
+					p_owner->_ground_speed = _convertString2Float(p_owner->__string) * 51444 / 1000;	// knots -> cm/s
 					break;
 				}
 				break;

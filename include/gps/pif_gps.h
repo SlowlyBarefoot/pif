@@ -98,6 +98,7 @@ struct StPifGps
 	double _ground_course;			//                   	- unit: degree
 	uint32_t _horizontal_acc;       // Horizontal accuracy estimate (mm)
 	uint32_t _vertical_acc;         // Vertical accuracy estimate (mm)
+	uint16_t _hdop;					// Horizontal dilution of precision x 100 (NMEA GGA)
 	uint32_t _update_rate[2];       // GPS coordinates updating rate (column 0 = last update time, 1 = current update ms)
 	uint8_t _num_sat;
 	BOOL _fix		: 1;

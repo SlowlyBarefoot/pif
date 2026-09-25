@@ -14,6 +14,13 @@
 #define PIF_GPS_UBLOX_TX_SIZE				64
 #endif
 
+// Payload bytes a received UBX packet may carry. The largest message decoded here, NAV-SVINFO with
+// 32 channels, sets the size unless this asks for more. A longer packet is dropped whole, so a
+// client that reads NAV-SAT from a receiver tracking many satellites raises it.
+#ifndef PIF_GPS_UBLOX_RX_PAYLOAD_SIZE
+#define PIF_GPS_UBLOX_RX_PAYLOAD_SIZE		1
+#endif
+
 //#define __DEBUG_PACKET__
 
 
@@ -261,6 +268,13 @@ typedef enum EnPifGpsUbxRequestState
 	GURS_FAILURE		= 5
 } PifGpsUbxRequestState;
 
+typedef enum EnPifGpsUbxError
+{
+	GUE_BIG_LENGTH		= 0,	// The payload does not fit PIF_GPS_UBLOX_RX_PAYLOAD_SIZE; the packet is dropped
+	GUE_INVALID_DATA	= 1,	// 0xB5 was not followed by 0x62
+	GUE_WRONG_CRC		= 2		// The checksum did not match; the packet is dropped
+} PifGpsUbxError;
+
 
 typedef struct {
     uint32_t i_tow;			// ms, GPS time of week of the navigation epoch
@@ -399,7 +413,7 @@ typedef struct StPifGpsUbxPacket
 	    PifGpsUbxNavSvInfo sv_info;
 	    PifGpsUbxNavTimeUtc time_utc;
 		PifGpsUbxNavVelned velned;
-	    uint8_t bytes[1];
+	    uint8_t bytes[PIF_GPS_UBLOX_RX_PAYLOAD_SIZE];
 	} payload;
 } PifGpsUbxPacket;
 
@@ -410,6 +424,7 @@ typedef struct StPifGpsUblox PifGpsUblox;
 typedef BOOL (*PifEvtGpsUbxReceive)(PifGpsUblox* p_owner, PifGpsUbxPacket* p_packet);
 typedef void (*PifEvtGpsUbloxError)(PifId id);
 typedef void (*PifEvtGpsUbloxOtherPacket)(PifGpsUblox* p_owner, uint8_t data);
+typedef void (*PifEvtGpsUbxError)(PifGpsUblox* p_owner, PifGpsUbxError error);
 
 typedef struct StPifGpsUbxRx
 {
@@ -445,6 +460,7 @@ struct StPifGpsUblox
     // Public Event Function
 	PifEvtGpsUbxReceive evt_ubx_receive;
 	PifEvtGpsUbloxOtherPacket evt_other_packet;
+	PifEvtGpsUbxError evt_ubx_error;		// A packet was lost: called for every framing or checksum error
 
 	// Read-only Member Variable
     PifGps _gps;
@@ -527,6 +543,17 @@ BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr
  * @param p_owner Pointer to the wrapper instance.
  */
 void pifGpsUblox_DetachI2c(PifGpsUblox* p_owner);
+
+/**
+ * @fn pifGpsUblox_ParsingPacket
+ * @brief Feeds one received byte to the UBX parser, as the UART receive callback does. For a
+ *        client that gets the bytes some other way than through the attached PifUart, for
+ *        example while it passes a port through. Bytes that are not UBX go to the NMEA parser.
+ * @param p_owner Pointer to the wrapper instance.
+ * @param data One received byte.
+ * @return `TRUE` when the byte completed a valid UBX packet, otherwise `FALSE`.
+ */
+BOOL pifGpsUblox_ParsingPacket(PifGpsUblox* p_owner, uint8_t data);
 
 /**
  * @fn pifGpsUblox_CheckRequest

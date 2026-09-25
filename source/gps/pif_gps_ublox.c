@@ -9,9 +9,9 @@
 
 #define DIGIT_TO_VAL(_x)        (_x - '0')
 
-#define PKT_ERR_BIG_LENGTH		0
-#define PKT_ERR_INVALID_DATA    1
-#define PKT_ERR_WRONG_CRC    	2
+#define PKT_ERR_BIG_LENGTH		GUE_BIG_LENGTH
+#define PKT_ERR_INVALID_DATA    GUE_INVALID_DATA
+#define PKT_ERR_WRONG_CRC    	GUE_WRONG_CRC
 #define PKT_ERR_UNKNOWE_ID   	3
 #define PKT_ERR_NONE		   	4
 
@@ -77,8 +77,8 @@ static BOOL _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 	PifGps *p_parent = &p_owner->_gps;
     int i;
     BOOL rtn = FALSE;
-#ifndef PIF_NO_LOG
 	uint8_t pkt_err;
+#ifndef PIF_NO_LOG
 	int line;
 	static uint8_t pre_err = PKT_ERR_NONE;
 #endif
@@ -101,8 +101,8 @@ static BOOL _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 			p_owner->__rx.state = GURS_CLASS;
 		}
 		else {
-#ifndef PIF_NO_LOG
 			pkt_err = PKT_ERR_INVALID_DATA;
+#ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
 			goto fail;
@@ -126,13 +126,13 @@ static BOOL _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 
 	case GURS_LENGTH_HIGH:
 		p_packet->length |= data << 8;
-		if (p_packet->length < sizeof(PifGpsUbxPacket) - 4) {
+		if (p_packet->length <= sizeof(PifGpsUbxPacket) - 4) {
 			p_owner->__rx.payload_count = 0;
-			p_owner->__rx.state = GURS_PAYLOAD;
+			p_owner->__rx.state = p_packet->length ? GURS_PAYLOAD : GURS_CK_A;
 		}
 		else {
-#ifndef PIF_NO_LOG
 			pkt_err = PKT_ERR_BIG_LENGTH;
+#ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
 			goto fail;
@@ -158,8 +158,8 @@ static BOOL _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 			p_owner->__rx.state = GURS_DONE;
 		}
 		else {
-#ifndef PIF_NO_LOG
 			pkt_err = PKT_ERR_WRONG_CRC;
+#ifndef PIF_NO_LOG
 			line = __LINE__;
 #endif
 			goto fail;
@@ -293,6 +293,7 @@ static BOOL _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
 	return rtn;
 
 fail:
+	if (p_owner->evt_ubx_error) (*p_owner->evt_ubx_error)(p_owner, (PifGpsUbxError)pkt_err);
 #ifndef PIF_NO_LOG
 	if (pkt_err != pre_err) {
 		if (p_owner->__rx.state) {
@@ -598,14 +599,14 @@ static void _evtAbortRx(void* p_client)
 /**
  * @brief Whether a new request may be started. One is refused while the previous one is still
  *        being sent or still waiting for its answer, because there is one transmit buffer and
- *        one request state to hold it in.
+ *        one request state to hold it in. The refusal leaves that state alone: it belongs to the
+ *        request still on its way, whose ACK or NAK would otherwise be lost.
  * @param p_owner Pointer to the u-blox wrapper.
- * @return `TRUE` if sending is allowed, otherwise `FALSE`.
+ * @return `TRUE` if sending is allowed, otherwise `FALSE` with pif_error set to E_INVALID_STATE.
  */
 static BOOL _beginPossible(PifGpsUblox* p_owner)
 {
 	if (p_owner->__tx.state != GUTS_IDLE || p_owner->_request_state == GURS_SEND) {
-		p_owner->_request_state = GURS_FAILURE;
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
@@ -678,6 +679,11 @@ void pifGpsUblox_DetachI2c(PifGpsUblox* p_owner)
 		pifI2cPort_RemoveDevice(p_owner->__p_i2c_port, p_owner->_p_i2c_device);
 		p_owner->_p_i2c_device = NULL;
 	}
+}
+
+BOOL pifGpsUblox_ParsingPacket(PifGpsUblox* p_owner, uint8_t data)
+{
+	return _parsingPacket(p_owner, data);
 }
 
 PifGpsUbxRequestState pifGpsUblox_CheckRequest(PifGpsUblox* p_owner)
