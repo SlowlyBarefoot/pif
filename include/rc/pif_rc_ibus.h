@@ -30,9 +30,18 @@ typedef enum EnPifRcIbusRxState
 	IRS_GET_COMMAND	= 1,
 	IRS_GET_DATA	= 2,
 	IRS_GET_CHKSUML	= 3,
-	IRS_GET_CHKSUMH	= 4,
-	IRS_DONE		= 5
+	IRS_GET_CHKSUMH	= 4
 } PifRcIbusRxState;
+
+/**
+ * @brief What a byte given to pifRcIbus_ParsingPacket() completed.
+ */
+typedef enum EnPifRcIbusFrame
+{
+	IBUS_FRAME_NONE			= 0,	// No frame, or one that is not for us.
+	IBUS_FRAME_SERVO		= 1,	// A servo frame; its channels have gone to evt_receive.
+	IBUS_FRAME_TELEMETRY	= 2,	// A sensor request; see _tlm_command and _tlm_address.
+} PifRcIbusFrame;
 
 
 /**
@@ -78,6 +87,8 @@ struct StPifRcIbus
 	// Read-only Member Variable
     PifRcIbusModel _model;
     uint8_t _length;          // Current RX message length.
+    uint8_t _tlm_command;     // Command of the last sensor request received.
+    uint8_t _tlm_address;     // Sensor address of the last sensor request received.
 
 	// Private Member Variable
     PifUart* __p_uart;
@@ -124,6 +135,32 @@ void pifRcIbus_AttachUart(PifRcIbus* p_owner, PifUart* p_uart);
  * @param p_owner Pointer to the iBUS receiver object.
  */
 void pifRcIbus_DetachUart(PifRcIbus* p_owner);
+
+/**
+ * @fn pifRcIbus_ParsingPacket
+ * @brief Feeds one received byte to the iBUS parser, as the UART receive callback does. For a
+ *        client that gets the bytes some other way than through an attached PifUart, for example
+ *        from the receive interrupt. The channels of a servo frame go to evt_receive from here, so
+ *        called from an interrupt, evt_receive runs in it too. A sensor request is not answered:
+ *        IBUS_FRAME_TELEMETRY is returned, and the client answers it with
+ *        pifRcIbus_SendTelemetry() once it can send.
+ * @param p_owner Pointer to the iBUS receiver object.
+ * @param data Received byte.
+ * @return What the byte completed.
+ */
+PifRcIbusFrame pifRcIbus_ParsingPacket(PifRcIbus* p_owner, uint8_t data);
+
+/**
+ * @fn pifRcIbus_SendTelemetry
+ * @brief Answers a sensor request: gets the sensor from evt_telemetry, then builds the reply and
+ *        sends it through the attached PifUart. The attached UART path calls this itself.
+ * @param p_owner Pointer to the iBUS receiver object.
+ * @param command Command of the request (IBUS_COMMAND_DISCOVER, _TYPE or _VALUE).
+ * @param address Sensor address of the request.
+ * @return TRUE if a reply was sent, FALSE if evt_telemetry declined the address, the command is
+ *         unknown or there is no UART to send with.
+ */
+BOOL pifRcIbus_SendTelemetry(PifRcIbus* p_owner, uint8_t command, uint8_t address);
 
 /**
  * @fn pifRcIbus_SendFrame
