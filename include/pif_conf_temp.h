@@ -13,9 +13,26 @@
 //#define PIF_WEAK							__attribute__ ((weak))
 
 
+// -------- pifAdc -------------------------------
+
+//#define PIF_ADC_MAX_CHANNELS				8
+
+
 // -------- pifCollectSignal ---------------------
 
 //#define PIF_COLLECT_SIGNAL
+
+
+// -------- pifDshot -----------------------------
+
+//#define PIF_DSHOT_MAX_MOTORS				8
+//#define PIF_DSHOT_COMMAND_QUEUE_SIZE		3
+
+
+// -------- pifFlash -----------------------------
+
+// Largest program unit (flash word) a PifFlash accepts: 4 on STM32F4, 8 on G4, 32 on H743.
+//#define PIF_FLASH_MAX_PROGRAM_SIZE		32
 
 
 // -------- pifGpsNmea ---------------------------
