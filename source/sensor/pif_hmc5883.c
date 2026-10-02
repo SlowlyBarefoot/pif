@@ -8,6 +8,10 @@
 #define HMC58X3_Y_SELF_TEST_GAUSS (+1.16f)       // Y axis level when bias current is applied.
 #define HMC58X3_Z_SELF_TEST_GAUSS (+1.08f)       // Z axis level when bias current is applied.
 
+// Measurements asked for per bias direction before the self test gives up. A sample is only counted
+// once DRDY is set, so without a bound a chip that stopped answering would hold initialization forever.
+#define HMC5883_SELF_TEST_TRIES		20
+
 
 /**
  * @fn _changeGain
@@ -57,7 +61,7 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_c
 {
 	uint8_t data[4];
     int16_t adc[3];
-    int i;
+    int i, tries;
     int32_t xyz_total[3] = { 0, 0, 0 }; // 32 bit totals so they won't overflow.
     BOOL bret = TRUE;           // Error indicator
 
@@ -88,7 +92,11 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_c
     pifHmc5883_SetGain(p_owner, HMC5883_GAIN_2_5GA); // Set the Gain to 2.5Ga (7:5->011)
     pif_Delay1ms(100);
 
-    for (i = 0; i < 10;) {  // Collect 10 samples
+    for (i = 0, tries = 0; i < 10; tries++) {  // Collect 10 samples
+        if (tries >= HMC5883_SELF_TEST_TRIES) {
+            bret = FALSE;
+            break;
+        }
         pifI2cDevice_WriteRegByte(p_owner->_p_i2c, HMC5883_REG_MODE, HMC5883_MODE_SINGLE);
         pif_Delay1ms(50);
         if (pifHmc5883_ReadMag(p_owner, adc)) {       // Get the raw values in case the scales have already been changed.
@@ -109,7 +117,11 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_c
     // Apply the negative bias. (Same gain)
     pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, HMC5883_REG_CONFIG_A, 
     		HMC5883_MEASURE_MODE_MASK, HMC5883_MEASURE_MODE_NEG_BIAS);   // Reg A DOR = 0x010 + MS1, MS0 set to negative bias.
-    for (i = 0; i < 10;) {
+    for (i = 0, tries = 0; i < 10; tries++) {
+        if (tries >= HMC5883_SELF_TEST_TRIES) {
+            bret = FALSE;
+            break;
+        }
         pifI2cDevice_WriteRegByte(p_owner->_p_i2c, HMC5883_REG_MODE, HMC5883_MODE_SINGLE);
         pif_Delay1ms(50);
         if (pifHmc5883_ReadMag(p_owner, adc)) {                // Get the raw values in case the scales have already been changed.

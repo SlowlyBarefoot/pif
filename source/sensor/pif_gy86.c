@@ -4,7 +4,7 @@
 
 BOOL pifGy86_Detect(PifI2cPort* p_i2c)
 {
-    if (!pifMpu60x0_Detect(p_i2c, MPU60X0_I2C_ADDR(0), NULL)) return FALSE;
+    if (!pifMpu60x0I2c_Detect(p_i2c, MPU60X0_I2C_ADDR(0), NULL)) return FALSE;
 //    if (!pifHmc5883_Detect(p_i2c)) return FALSE;
     return TRUE;
 }
@@ -18,7 +18,7 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifGy86Param* p
 
 	memset(p_owner, 0, sizeof(PifGy86));
 
-    if (!pifMpu60x0_Init(&p_owner->_mpu6050, PIF_ID_AUTO, p_i2c, MPU60X0_I2C_ADDR(0), NULL, p_imu_sensor)) goto fail;
+    if (!pifMpu60x0I2c_Init(&p_owner->_mpu6050, PIF_ID_AUTO, p_i2c, MPU60X0_I2C_ADDR(0), NULL, p_imu_sensor)) goto fail;
 
     if (!pifI2cDevice_WriteRegByte(p_owner->_mpu6050._p_i2c, MPU60X0_REG_SMPLRT_DIV, 0)) goto fail;
 
@@ -99,7 +99,7 @@ void pifGy86_Clear(PifGy86* p_owner)
 {
     pifMs5611_Clear(&p_owner->_ms5611);
     pifHmc5883_Clear(&p_owner->_hmc5883);
-    pifMpu60x0_Clear(&p_owner->_mpu6050);
+    pifMpu60x0I2c_Clear(&p_owner->_mpu6050);
 }
 
 BOOL pifGy86_ReadMag(PifGy86* p_owner, int16_t* p_mag)

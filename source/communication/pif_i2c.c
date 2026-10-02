@@ -65,6 +65,9 @@ PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr, void
 	device.addr = addr;
 	device._p_client = p_client;
 	device._state = IS_IDLE;
+	// As pifI2cPort_AddDevice() sets it. Left at 0, a blocking transfer would time out as soon as
+	// the 1ms clock ticked while it waited, so a detect would fail now and then for nothing.
+	device.timeout = 10;		// 10ms
 	return &device;
 }
 
@@ -79,12 +82,16 @@ void pifI2cPort_ScanAddress(PifI2cPort* p_owner)
     memset(&device, 0, sizeof(PifI2cDevice));
 	device._p_port = p_owner;
     device.timeout = 100;       // 100ms
-	for (i = 1; i < 127; i++) {
+	// 0x00-0x07 and 0x78-0x7F are reserved addresses (general call, CBUS, HS mode master codes,
+	// 10 bit addressing), so only 0x08-0x77 is probed, as i2cdetect does.
+	for (i = 0x08; i <= 0x77; i++) {
 		device.addr = i;
 		device._state = IS_IDLE;
-		data = 0xFF;
-		if (pifI2cDevice_Write(&device, 0, 0, &data, 1)) {
-			pifLog_Printf(LT_INFO, "I2C Addr:%Xh %u", i, data);
+		// A one byte read with no register address: a device answers by acknowledging its address,
+		// and nothing is written to it. A write would have to carry a byte, which a device takes
+		// as a register address or a command.
+		if (pifI2cDevice_Read(&device, 0, 0, &data, 1)) {
+			pifLog_Printf(LT_INFO, "I2C Addr:%Xh", i);
 			count++;
 		}
 		// A diagnostic sweep of the whole bus, run from a log command or at boot. The pause lets a

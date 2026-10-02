@@ -3,14 +3,18 @@
 
 
 #include "communication/pif_i2c.h"
+#include "communication/pif_spi.h"
 #include "sensor/pif_imu_sensor.h"
 
 
 #define MPU60X0_I2C_ADDR(N)			(0x68 + (N))
 
+#define MPU60X0_WHO_AM_I_CONST		0x68
+
 
 typedef enum EnPifMpu60x0Reg
 {
+	MPU60X0_REG_PRODUCT_ID       	= 0x0C,		// Not in the register map, but read by the MPU-6000 drivers to tell its revisions apart
 	MPU60X0_REG_SELF_TEST_X     	= 0x0D,
 	MPU60X0_REG_SELF_TEST_Y      	= 0x0E,
 	MPU60X0_REG_SELF_TEST_Z     	= 0x0F,
@@ -441,7 +445,13 @@ typedef struct StPifMpu60x0
 
 	// Read-only Member Variable
 	PifId _id;
-	PifI2cDevice* _p_i2c;
+	union {
+		PifI2cDevice* _p_i2c;
+		PifSpiDevice* _p_spi;
+	};
+
+	// Read-only Function
+	PifDeviceReg8Func _fn;
 
 	// Private Member Variable
 	PifImuSensor* __p_imu_sensor;
@@ -453,35 +463,15 @@ extern "C" {
 #endif
 
 /**
- * @fn pifMpu60x0_Detect
- * @brief Performs the mpu60x0 detect operation.
- * @param p_i2c Pointer to i2c.
- * @param addr Device address on the bus.
- * @param p_client Pointer to optional client context data.
- * @return TRUE on success, FALSE on failure.
- */
-BOOL pifMpu60x0_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client);
-
-/**
- * @fn pifMpu60x0_Init
- * @brief Initializes mpu60x0 init and prepares it for use.
+ * @fn pifMpu60x0_Config
+ * @brief Reads the full-scale ranges and registers the sensor on the IMU sensor. Called by the
+ *        bus specific Init functions once _fn is set up and the chip has been reset.
  * @param p_owner Pointer to the owner instance.
  * @param id Unique identifier for the instance or task.
- * @param p_i2c Pointer to i2c.
- * @param addr Device address on the bus.
- * @param p_client Pointer to optional client context data.
  * @param p_imu_sensor Pointer to imu sensor.
  * @return TRUE on success, FALSE on failure.
  */
-BOOL pifMpu60x0_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client, PifImuSensor* p_imu_sensor);
-
-/**
- * @fn pifMpu60x0_Clear
- * @brief Releases resources used by mpu60x0 clear.
- * @param p_owner Pointer to the owner instance.
- * @return None.
- */
-void pifMpu60x0_Clear(PifMpu60x0* p_owner);
+BOOL pifMpu60x0_Config(PifMpu60x0* p_owner, PifId id, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifMpu60x0_SetGyroConfig

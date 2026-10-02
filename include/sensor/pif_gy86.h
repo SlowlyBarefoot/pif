@@ -5,7 +5,7 @@
 #include "communication/pif_i2c.h"
 #include "sensor/pif_imu_sensor.h"
 #include "sensor/pif_hmc5883.h"
-#include "sensor/pif_mpu60x0.h"
+#include "sensor/pif_mpu60x0_i2c.h"
 #include "sensor/pif_ms5611.h"
 
 

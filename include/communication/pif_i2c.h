@@ -140,6 +140,8 @@ PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr, void
 /**
  * @fn pifI2cPort_ScanAddress
  * @brief Scans bus addresses and logs discovered devices.
+ * @details Probes 0x08-0x77, the addresses that are not reserved, with a one byte read with no
+ *          register address, so the port has to support isize 0 reads. Nothing is written.
  * @param p_owner Pointer to the port to scan.
  */
 void pifI2cPort_ScanAddress(PifI2cPort* p_owner);
