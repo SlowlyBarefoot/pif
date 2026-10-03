@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Portions derived from Betaflight/Cleanflight gps.c and gps_conversion.c (MultiWii lineage), GPL-3.0-or-later.
+// See THIRD_PARTY_NOTICES.md.
+
 #ifndef PIF_GPS_H
 #define PIF_GPS_H
 

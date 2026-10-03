@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_RING_DATA_H
 #define PIF_RING_DATA_H
 

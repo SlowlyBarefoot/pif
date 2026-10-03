@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_RC_SBUS_H
 #define PIF_RC_SBUS_H
 

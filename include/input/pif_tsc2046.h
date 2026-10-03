@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_TSC2046_H
 #define PIF_TSC2046_H
 

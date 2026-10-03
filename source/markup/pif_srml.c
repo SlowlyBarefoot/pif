@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @file pif_srml.c
  * @brief Simple Receipt Markup Language (SRML) parser implementation.

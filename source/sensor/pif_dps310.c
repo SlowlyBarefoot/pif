@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BSD-3-Clause AND MIT
+
 #include "sensor/pif_dps310.h"
 
 #include <math.h>

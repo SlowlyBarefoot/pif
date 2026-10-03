@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BSD-3-Clause AND MIT
+
 #include "core/pif_log.h"
 #include "core/pif_task_manager.h"
 #include "interpreter/pif_basic.h"

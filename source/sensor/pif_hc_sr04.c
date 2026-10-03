@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include "sensor/pif_hc_sr04.h"
 
 

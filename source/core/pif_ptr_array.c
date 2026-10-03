@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_ptr_array.h"
 
 // Fixed-capacity pointer array with free-list style allocation tracking.

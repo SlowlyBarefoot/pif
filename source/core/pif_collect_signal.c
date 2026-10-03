@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_collect_signal.h"
 #include "core/pif_dlist.h"
 #include "core/pif_log.h"

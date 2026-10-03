@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Portions derived from Betaflight msp_serial.c, GPL-3.0-or-later.
+// See THIRD_PARTY_NOTICES.md.
+
 #ifndef PIF_MSP_V2_H
 #define PIF_MSP_V2_H
 

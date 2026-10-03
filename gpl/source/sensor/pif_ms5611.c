@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Portions derived from Baseflight barometer_ms5611.c, GPL-3.0-or-later.
+// See THIRD_PARTY_NOTICES.md.
+
 #include "sensor/pif_ms5611.h"
 
 #include <math.h>

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Portions derived from Baseflight/Cleanflight compass_hmc5883l.c (MultiWii lineage), GPL-3.0-or-later.
+// See THIRD_PARTY_NOTICES.md.
+
 #include "core/pif_log.h"
 #include "sensor/pif_hmc5883.h"
 

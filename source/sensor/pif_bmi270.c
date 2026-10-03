@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_log.h"
 #include "sensor/pif_bmi270.h"
 

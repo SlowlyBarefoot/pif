@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_MPU60X0_SPI_H
 #define PIF_MPU60X0_SPI_H
 

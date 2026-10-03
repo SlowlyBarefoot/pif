@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #ifndef PIF_GPS_NMEA_H
 #define PIF_GPS_NMEA_H
 

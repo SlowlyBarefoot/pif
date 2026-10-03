@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BSD-3-Clause AND MIT
+
 /*****************************************************************************
 Copyright 2011 Jerry Williams Jr
 

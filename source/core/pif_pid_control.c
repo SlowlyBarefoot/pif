@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_pid_control.h"
 
 // PID controller initialization and output calculation.

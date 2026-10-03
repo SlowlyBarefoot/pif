@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_QMC5883_H
 #define PIF_QMC5883_H
 

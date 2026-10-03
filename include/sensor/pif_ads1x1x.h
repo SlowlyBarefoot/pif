@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_ADS1X1X_H
 #define PIF_ADS1X1X_H
 

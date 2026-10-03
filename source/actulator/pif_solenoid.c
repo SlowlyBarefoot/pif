@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include "actulator/pif_solenoid.h"
 #ifdef PIF_COLLECT_SIGNAL
 	#include "core/pif_collect_signal.h"

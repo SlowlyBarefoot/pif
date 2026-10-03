@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_SSD1963_H
 #define PIF_SSD1963_H
 

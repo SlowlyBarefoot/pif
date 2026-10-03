@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_RC_PWM_H
 #define PIF_RC_PWM_H
 

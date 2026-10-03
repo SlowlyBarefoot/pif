@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Portions derived from Betaflight max7456.c, GPL-3.0-or-later.
+// See THIRD_PARTY_NOTICES.md.
+
 #ifndef PIF_MAX7456_H
 #define PIF_MAX7456_H
 

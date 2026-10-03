@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_OBJ_ARRAY_H
 #define PIF_OBJ_ARRAY_H
 

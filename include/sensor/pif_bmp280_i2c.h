@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_BMP280_I2C_H
 #define PIF_BMP280_I2C_H
 

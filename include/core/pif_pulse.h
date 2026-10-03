@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_PULSE_H
 #define PIF_PULSE_H
 

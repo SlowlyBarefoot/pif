@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #ifndef PIF_GY86_H
 #define PIF_GY86_H
 

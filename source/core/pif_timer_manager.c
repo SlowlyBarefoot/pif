@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_timer_manager.h"
 
 // Timer manager task and timer object lifecycle handling.

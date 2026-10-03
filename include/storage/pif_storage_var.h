@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_STORAGE_VAR_H
 #define PIF_STORAGE_VAR_H
 

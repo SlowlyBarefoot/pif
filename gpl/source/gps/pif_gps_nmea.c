@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 #ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif

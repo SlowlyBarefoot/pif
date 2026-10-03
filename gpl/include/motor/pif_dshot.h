@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Portions derived from Betaflight dshot.c, dshot_command.c, dshot_dpwm.c and dshot_bitbang_decode.c, GPL-3.0-or-later.
+// See THIRD_PARTY_NOTICES.md.
+
 #ifndef PIF_DSHOT_H
 #define PIF_DSHOT_H
 

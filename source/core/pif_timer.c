@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_timer.h"
 
 // Timer control helpers for one-shot, repeat, and PWM timer modes.

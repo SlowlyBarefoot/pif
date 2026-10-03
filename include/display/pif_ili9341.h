@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_ILI9341_H
 #define PIF_ILI9341_H
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_task_manager.h"
 #include "sensor/pif_ads1x1x.h"
 

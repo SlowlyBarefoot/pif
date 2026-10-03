@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_NOISE_FILTER_INT16_H
 #define PIF_NOISE_FILTER_INT16_H
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_BMI270_SPI_H
 #define PIF_BMI270_SPI_H
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_obj_array.h"
 
 // Fixed-capacity object array with contiguous storage and iterator access.

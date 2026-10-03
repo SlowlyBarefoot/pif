@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_DUTY_MOTOR_SPEED_H
 #define PIF_DUTY_MOTOR_SPEED_H
 

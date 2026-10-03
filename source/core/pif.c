@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif.h"
 #ifndef	PIF_NO_LOG
 	#include "core/pif_log.h"

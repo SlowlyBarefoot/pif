@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_TFT_LCD_H
 #define PIF_TFT_LCD_H
 

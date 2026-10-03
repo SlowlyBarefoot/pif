@@ -27,3 +27,13 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-------------------------------------------------------------------------------
+
+Scope
+
+The BSD 3-Clause License above applies to everything in this repository except
+the gpl/ directory. Files under gpl/ are licensed under the GNU General Public
+License v3.0 or later (see gpl/LICENSE). Each source file states its license
+with an SPDX-License-Identifier line. Some files also contain third-party code
+under other permissive licenses; see THIRD_PARTY_NOTICES.md.

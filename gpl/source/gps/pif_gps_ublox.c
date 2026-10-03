@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Portions derived from Betaflight/Cleanflight gps.c (u-blox NAV decoding), GPL-3.0-or-later.
+// See THIRD_PARTY_NOTICES.md.
+
 #include <ctype.h>
 #include <string.h>
 

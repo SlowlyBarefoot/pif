@@ -20,6 +20,13 @@ Include these directories in your project:
 - `include/`
 - `source/`
 
+Optionally, for the GPL-3.0 modules (GPS, DShot, MAX7456, MSPv2, HMC5883, MS5611, GY-86):
+
+- `gpl/include/`
+- `gpl/source/`
+
+Using any file under `gpl/` makes your firmware subject to the GPL-3.0. See [License](#license).
+
 ### 2. Create your config header
 
 Start from `include/pif_conf_temp.h` and create `pif_conf.h` in your include path.
@@ -126,8 +133,10 @@ Callback naming conventions:
 
 ## Project Layout
 
-- `include/`: public headers grouped by domain
-- `source/`: implementation files grouped by domain
+- `include/`: public headers grouped by domain (BSD-3-Clause)
+- `source/`: implementation files grouped by domain (BSD-3-Clause)
+- `gpl/include/`, `gpl/source/`: modules licensed under GPL-3.0-or-later, with the same domain layout
+- `LICENSES/`: full license texts referenced by the SPDX headers
 
 Representative domains:
 
@@ -175,4 +184,18 @@ Some modules were influenced by these projects.
 
 ## License
 
-See `LICENSE`.
+PIF uses two licenses, separated by directory:
+
+| Directory | License |
+| --- | --- |
+| `include/`, `source/` | BSD-3-Clause (`LICENSE`) |
+| `gpl/` | GPL-3.0-or-later (`gpl/LICENSE`) |
+
+Every source file starts with an `SPDX-License-Identifier` line. Files under `include/` and `source/` never include headers from `gpl/`.
+
+- To keep your firmware under BSD-3-Clause terms only, leave `gpl/include` and `gpl/source` out of your build.
+- If you build any file from `gpl/`, the resulting firmware must be distributed under the GPL-3.0.
+
+Because `gpl/include` mirrors the domain folders of `include/`, the include strings stay the same (for example `#include "osd/pif_max7456.h"`); only the include path `-Igpl/include` has to be added.
+
+Third-party code and its notices are listed in `THIRD_PARTY_NOTICES.md`.

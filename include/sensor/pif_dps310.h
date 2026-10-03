@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BSD-3-Clause AND MIT
+
 #ifndef PIF_DPS310_H
 #define PIF_DPS310_H
 

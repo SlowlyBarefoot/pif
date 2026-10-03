@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @file pif_srml.h
  * @brief Simple Receipt Markup Langeage
