@@ -17,7 +17,7 @@
 
 typedef enum EnPifImuSensorAlign
 {
-    IMUS_ALIGN_DEFAULT,			// driver-provided alignment
+    IMUS_ALIGN_DEFAULT,			// Keep the orientation the driver set
     IMUS_ALIGN_CW0_DEG,
     IMUS_ALIGN_CW90_DEG,
     IMUS_ALIGN_CW180_DEG,
@@ -61,13 +61,13 @@ typedef struct StPifImuSensor
 	PifImuSensorInfo __gyro_info;
 	PifImuSensorInfo __accel_info;
 	PifImuSensorInfo __mag_info;
-	int16_t __delta_gyro[AXIS_COUNT];
-	int16_t __threshold_gyro[AXIS_COUNT];
-	int16_t __threshold[AXIS_COUNT];
-	BOOL __use_calibrate;
-	float __actual_threshold;
-	BOOL __board_alignment;		// board orientation correction
-	float __board_rotation[3][3];
+	BOOL __gyro_calibrated;
+	uint8_t __deadband_multiple;		// Deadband width in multiples of the gyro noise
+	float __gyro_bias[AXIS_COUNT];		// Mean raw gyro reading at rest (LSB)
+	float __gyro_noise[AXIS_COUNT];		// Standard deviation of the raw gyro reading at rest (LSB)
+	float __gyro_deadband[AXIS_COUNT];	// Bias-corrected raw readings below this read as zero (LSB)
+	BOOL __board_alignment;
+	float __board_matrix[3][3];		// Board frame to body frame, Rz(-yaw) * Ry(-pitch) * Rx(-roll)
 } PifImuSensor;
 
 
@@ -84,13 +84,50 @@ void pifImuSensor_Init(PifImuSensor* p_owner);
 
 /**
  * @fn pifImuSensor_InitBoardAlignment
- * @brief Initializes imu sensor init board alignment and prepares it for use.
+ * @brief Sets the rotation of the board relative to the airframe.
+ *
+ * The board is rotated by yaw about Z, then by pitch about the new Y, then by roll
+ * about the new X (Z-Y-X order). Positive angles turn the board clockwise, seen from the
+ * positive end of the axis (from above for yaw), so a yaw of 90 matches
+ * IMUS_ALIGN_CW90_DEG, as Betaflight's board_align_* does. Readings
+ * are first corrected for the sensor mounting (IMUS_ALIGN_XXX), then for this rotation.
+ * All three angles at 0 turn board alignment off.
  * @param p_owner Pointer to the owner instance.
- * @param board_align_roll Parameter board_align_roll used by this operation.
- * @param board_align_pitch Parameter board_align_pitch used by this operation.
- * @param board_align_yaw Parameter board_align_yaw used by this operation.
+ * @param board_align_roll Roll angle of the board in degrees.
+ * @param board_align_pitch Pitch angle of the board in degrees.
+ * @param board_align_yaw Yaw angle of the board in degrees.
  */
 void pifImuSensor_InitBoardAlignment(PifImuSensor* p_owner, int16_t board_align_roll, int16_t board_align_pitch, int16_t board_align_yaw);
+
+/**
+ * @fn pifImuSensor_ResetGyroCalibration
+ * @brief Clears the gyro bias, noise and deadband.
+ * @param p_owner Pointer to the owner instance.
+ */
+void pifImuSensor_ResetGyroCalibration(PifImuSensor* p_owner);
+
+/**
+ * @fn pifImuSensor_CalibrateGyro
+ * @brief Measures the gyro bias and noise while the sensor is at rest.
+ *
+ * Blocks for samples * interval_ms. pifImuSensor_ReadGyro() subtracts the bias afterwards.
+ * @param p_owner Pointer to the owner instance.
+ * @param samples Number of samples to average. Must be at least 1.
+ * @param interval_ms Delay between samples in milliseconds.
+ * @return TRUE on success, FALSE on failure.
+ */
+BOOL pifImuSensor_CalibrateGyro(PifImuSensor* p_owner, uint16_t samples, uint16_t interval_ms);
+
+/**
+ * @fn pifImuSensor_SetGyroDeadband
+ * @brief Sets a deadband around the gyro bias, as a multiple of the measured noise.
+ *
+ * Takes effect once the gyro is calibrated. 0 turns the deadband off.
+ * @param p_owner Pointer to the owner instance.
+ * @param multiple Deadband width in multiples of the noise standard deviation.
+ * @return TRUE on success, FALSE on failure.
+ */
+BOOL pifImuSensor_SetGyroDeadband(PifImuSensor* p_owner, uint8_t multiple);
 
 /**
  * @fn pifImuSensor_SetGyroAlign

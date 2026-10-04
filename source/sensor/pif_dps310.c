@@ -61,12 +61,13 @@ static float _compensate_P(PifDps310* p_owner, int32_t adc_P)
  * @param length Number of valid bits in the raw value.
  * @return Computed integer value.
  */
+// Sign-extends a two's complement value of the given width (at most 31 bits) to 32 bits.
 static int32_t _getTwosComplement(uint32_t raw, uint8_t length)
 {
-	if (raw & ((int)1 << (length - 1)))	{
-		return ((int32_t)raw) - ((int32_t)1 << length);
-	}
-	return raw;
+	uint32_t sign = (uint32_t)1 << (length - 1);
+
+	raw &= (sign << 1) - 1;
+	return (int32_t)(raw ^ sign) - (int32_t)sign;
 }
 
 /**

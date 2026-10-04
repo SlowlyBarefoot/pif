@@ -119,7 +119,8 @@ extern "C" {
 
 /**
  * @fn pifQmc5883_Detect
- * @brief Performs the qmc5883 detect operation.
+ * @brief Checks for a QMC5883L at QMC5883_I2C_ADDR: soft-resets it, checks the chip ID
+ *        and writes and reads back the SET/RESET period register. Blocks for 20 ms.
  * @param p_i2c Pointer to i2c.
  * @param p_client Pointer to optional client context data.
  * @return TRUE on success, FALSE on failure.

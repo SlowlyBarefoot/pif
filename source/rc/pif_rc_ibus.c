@@ -3,11 +3,50 @@
 #include "rc/pif_rc_ibus.h"
 
 
-#define IBUS_RETRY_TIMEOUT		3		// 3ms, Packets are received very ~7ms so use ~half that for the gap
+// A receiver writes a frame out back to back and leaves several milliseconds between frames
+// (about 7 ms for servo frames). A pause of this many milliseconds inside a frame therefore
+// means the frame was lost, and the next byte starts a new one.
+#define IBUS_FRAME_GAP_MS		3
 
+// iA6 (the older receiver) frames: a 0x55 header, 14 channel words, then a checksum word.
+#define IBUS_IA6_HEADER			0x55
+#define IBUS_IA6_FRAME_SIZE		(1 + 2 * PIF_IBUS_CHANNEL_COUNT + 2)
+
+
+static uint16_t _getWord(const uint8_t* p_data)
+{
+	return p_data[0] | (p_data[1] << 8);
+}
+
+/**
+ * @brief Checks the trailing checksum word of the frame in the receive buffer.
+ *        iA6B frames carry 0xFFFF minus the byte sum of everything before the checksum.
+ *        iA6 frames carry the sum of the channel words that follow the header.
+ * @param p_owner Pointer to the receiver instance to operate on.
+ * @return TRUE when the checksum matches.
+ */
+static BOOL _isChecksumValid(PifRcIbus *p_owner)
+{
+	const uint8_t* p_frame = p_owner->__rx_buffer;
+	uint8_t body = p_owner->_length - 2;
+	uint16_t expected = 0;
+	int i;
+
+	if (p_owner->_model == IBUS_MODEL_IA6) {
+		for (i = 1; i < body; i += 2) expected += _getWord(p_frame + i);
+	}
+	else {
+		expected = 0xFFFF - (uint16_t)pifCheckSum((uint8_t*)p_frame, body);
+	}
+	return expected == _getWord(p_frame + body);
+}
 
 /**
  * @brief Hands a completed, checksum-verified frame to the client.
+ *
+ * Each channel word holds a 12-bit value. When the transmitter sends more than 14 channels,
+ * the spare top nibbles of the words carry channels 15 to 18: channel 15 + k is built from
+ * the top nibbles of words 3k, 3k + 1 and 3k + 2, lowest nibble first.
  * @param p_owner Pointer to the receiver instance to operate on.
  * @return IBUS_FRAME_SERVO after the channels went to evt_receive, IBUS_FRAME_TELEMETRY when the
  *         frame is a sensor request for us (its command and address are in _tlm_command and
@@ -15,118 +54,84 @@
  */
 static PifRcIbusFrame _processFrame(PifRcIbus *p_owner)
 {
-	uint16_t channel[PIF_IBUS_EXP_CHANNEL_COUNT]; 	// servo data received
-	uint8_t command, adr;
-	int i, c, offset;
+	uint16_t channel[PIF_IBUS_EXP_CHANNEL_COUNT];
+	uint16_t word[PIF_IBUS_CHANNEL_COUNT];
+	const uint8_t* p_words;
+	uint8_t command = p_owner->__rx_buffer[1] & 0xF0;
+	uint8_t address = p_owner->__rx_buffer[1] & 0x0F;
+	int c, k;
 
 	p_owner->parent._last_frame_time = pif_cumulative_timer1ms;
 
-	command = p_owner->__rx_buffer[1] & 0xf0;
-	adr = p_owner->__rx_buffer[1] & 0x0f;
-	if (p_owner->_model == IBUS_MODEL_IA6 || command == IBUS_COMMAND_SERVO) {
-		// Valid servo command received - extract channel data
-		offset = p_owner->_model == IBUS_MODEL_IA6B ? 2 : 1;
-		for (c = 0, i = offset; c < PIF_IBUS_CHANNEL_COUNT; c++, i += 2) {
-			channel[c] = p_owner->__rx_buffer[i] | (p_owner->__rx_buffer[i + 1] << 8);
+	if (p_owner->_model == IBUS_MODEL_IA6 || (p_owner->_length == IBUS_FRAME_SIZE && command == IBUS_COMMAND_SERVO)) {
+		// iA6 has no command byte, so its words start right after the header.
+		p_words = p_owner->__rx_buffer + (p_owner->_model == IBUS_MODEL_IA6 ? 1 : 2);
+		for (c = 0; c < PIF_IBUS_CHANNEL_COUNT; c++) {
+			word[c] = _getWord(p_words + 2 * c);
+			channel[c] = word[c] & 0x0FFF;
 		}
-		for (c = PIF_IBUS_CHANNEL_COUNT, i = offset + 1; c < PIF_IBUS_EXP_CHANNEL_COUNT; c++, i += 6) {
-			channel[c] = ((p_owner->__rx_buffer[i] & 0xF0) >> 4) | (p_owner->__rx_buffer[i + 2] & 0xF0) | ((p_owner->__rx_buffer[i + 4] & 0xF0) << 4);
+		for (k = 0; k < PIF_IBUS_EXP_CHANNEL_COUNT - PIF_IBUS_CHANNEL_COUNT; k++) {
+			channel[PIF_IBUS_CHANNEL_COUNT + k] = (word[3 * k] >> 12) | ((word[3 * k + 1] >> 12) << 4) | ((word[3 * k + 2] >> 12) << 8);
 		}
 
 		if (p_owner->parent.__evt_receive) (*p_owner->parent.__evt_receive)(&p_owner->parent, channel, p_owner->parent.__p_issuer);
 		return IBUS_FRAME_SERVO;
 	}
 
-	// We only take the length==IBUS_TELEMETRY_SIZE commands (=message length is 4 bytes incl
-	// overhead) to prevent the case the return messages from the UART TX port loop back to the RX
-	// port and are processed again. This is extra precaution as it will also be prevented by the
-	// IBUS_TIMEGAP required
-	if (adr > 0 && p_owner->_length == IBUS_TELEMETRY_SIZE) {
+	// A request from the receiver to a sensor is always a bare 4-byte frame. Longer frames with an
+	// address are sensor replies, which on a half-duplex line includes our own replies read back.
+	if (address && p_owner->_length == IBUS_TELEMETRY_SIZE) {
 		p_owner->_tlm_command = command;
-		p_owner->_tlm_address = adr;
+		p_owner->_tlm_address = address;
 		return IBUS_FRAME_TELEMETRY;
 	}
 	return IBUS_FRAME_NONE;
 }
 
 /**
- * @brief Advances the packet receive state machine by one byte.
+ * @brief Collects one byte into the receive buffer and checks the frame once it is complete.
+ *
+ * The first byte of a frame tells its size: 0x20 for an iA6B servo frame, 0x04 for a sensor
+ * request, or the 0x55 header of an iA6 frame. Any other first byte is skipped.
  * @param p_owner Pointer to the receiver instance to operate on.
  * @param data Received byte.
  * @return What the byte completed; see _processFrame().
  */
 static PifRcIbusFrame _parsingPacket(PifRcIbus *p_owner, uint8_t data)
 {
-	int i;
-
-	// A frame is sent in one go, so a gap this long in the middle of one means it was cut short.
-	if (p_owner->__rx_state != IRS_GET_LENGTH && pif_cumulative_timer1ms - p_owner->__last_time >= IBUS_RETRY_TIMEOUT) {
-		p_owner->__rx_state = IRS_GET_LENGTH;
+	if (p_owner->__ptr && pif_cumulative_timer1ms - p_owner->__last_time >= IBUS_FRAME_GAP_MS) {
+		p_owner->__ptr = 0;
 	}
 	p_owner->__last_time = pif_cumulative_timer1ms;
 
-	switch (p_owner->__rx_state) {
-	case IRS_GET_LENGTH:
-		if (data == IBUS_FRAME_SIZE || data == IBUS_TELEMETRY_SIZE) {
+	if (!p_owner->__ptr) {
+		switch (data) {
+		case IBUS_FRAME_SIZE:
+		case IBUS_TELEMETRY_SIZE:
 			p_owner->_model = IBUS_MODEL_IA6B;
 			p_owner->_length = data;
-			p_owner->__rx_state = IRS_GET_COMMAND;
-		}
-		else if (data == 0x55) {
+			break;
+
+		case IBUS_IA6_HEADER:
 			p_owner->_model = IBUS_MODEL_IA6;
-			p_owner->_length = 31;
-			p_owner->__rx_state = IRS_GET_DATA;
-		}
-		if (p_owner->__rx_state != IRS_GET_LENGTH) {
-			p_owner->__rx_buffer[0] = data;
-			p_owner->__ptr = 1;
-			p_owner->__chksum = data;
-		}
-		break;
+			p_owner->_length = IBUS_IA6_FRAME_SIZE;
+			break;
 
-	case IRS_GET_COMMAND:
-		p_owner->__rx_buffer[p_owner->__ptr++] = data;
-		p_owner->__chksum += data;
-		p_owner->__rx_state = IRS_GET_DATA;
-		break;
-
-	case IRS_GET_DATA:
-		p_owner->__rx_buffer[p_owner->__ptr++] = data;
-		p_owner->__chksum += data;
-		if (p_owner->__ptr == p_owner->_length - 2) {
-			p_owner->__rx_state = IRS_GET_CHKSUML;
+		default:
+			return IBUS_FRAME_NONE;
 		}
-		break;
-
-	case IRS_GET_CHKSUML:
-		p_owner->__lchksum = data;
-		p_owner->__rx_state = IRS_GET_CHKSUMH;
-		break;
-
-	case IRS_GET_CHKSUMH:
-		p_owner->__rx_state = IRS_GET_LENGTH;
-		// Validate checksum
-		if (p_owner->_model == IBUS_MODEL_IA6B) {
-			p_owner->__chksum = 0xFFFF - p_owner->__chksum;
-		}
-		else {
-			// IA6 sums the channel words after the 0x55 header, not the bytes.
-			p_owner->__chksum = 0;
-			for (i = 1; i < p_owner->__ptr; i += 2) {
-				p_owner->__chksum += p_owner->__rx_buffer[i] | (p_owner->__rx_buffer[i + 1] << 8);
-			}
-		}
-		if (p_owner->__chksum == ((uint16_t)data << 8) + p_owner->__lchksum) {
-			p_owner->parent._good_frames++;
-			return _processFrame(p_owner);
-		}
-		p_owner->parent._error_frames++;
-		break;
-
-	default:
-		break;
 	}
-	return IBUS_FRAME_NONE;
+
+	p_owner->__rx_buffer[p_owner->__ptr++] = data;
+	if (p_owner->__ptr < p_owner->_length) return IBUS_FRAME_NONE;
+
+	p_owner->__ptr = 0;
+	if (!_isChecksumValid(p_owner)) {
+		p_owner->parent._error_frames++;
+		return IBUS_FRAME_NONE;
+	}
+	p_owner->parent._good_frames++;
+	return _processFrame(p_owner);
 }
 
 /**
@@ -153,7 +158,7 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 			break;
 		}
 	}
-	return rtn || p_owner->__rx_state > IRS_GET_LENGTH;
+	return rtn || p_owner->__ptr > 0;
 }
 
 BOOL pifRcIbus_Init(PifRcIbus* p_owner, PifId id)
@@ -197,7 +202,7 @@ PifRcIbusFrame pifRcIbus_ParsingPacket(PifRcIbus* p_owner, uint8_t data)
 BOOL pifRcIbus_SendTelemetry(PifRcIbus* p_owner, uint8_t command, uint8_t address)
 {
 	PifRcIbusSensorinfo sensor;
-	uint8_t tx_buffer[IBUS_FRAME_SIZE + 1];		// tx message buffer
+	uint8_t tx_buffer[IBUS_FRAME_SIZE + 1];
 	uint16_t chksum;
 	uint8_t p = 0;
 	int i;
@@ -211,14 +216,14 @@ BOOL pifRcIbus_SendTelemetry(PifRcIbus* p_owner, uint8_t command, uint8_t addres
 	switch (command) {
 	case IBUS_COMMAND_DISCOVER:
 		if (!(*p_owner->evt_telemetry)(p_owner, command, address, &sensor)) return FALSE;
-		// echo discover command: 0x04, 0x81, 0x7A, 0xFF
+		// Reply: length 4, the command with our address, checksum
 		tx_buffer[p++] = 0x04;
 		tx_buffer[p++] = IBUS_COMMAND_DISCOVER + address;
 		break;
 
 	case IBUS_COMMAND_TYPE:
 		if (!(*p_owner->evt_telemetry)(p_owner, command, address, &sensor)) return FALSE;
-		// echo sensor type command: 0x06 0x91 0x00 0x02 0x66 0xFF
+		// Reply: length 6, the command with our address, sensor type, value size, checksum
 		tx_buffer[p++] = 0x06;
 		tx_buffer[p++] = IBUS_COMMAND_TYPE + address;
 		tx_buffer[p++] = sensor.type;
@@ -228,7 +233,7 @@ BOOL pifRcIbus_SendTelemetry(PifRcIbus* p_owner, uint8_t command, uint8_t addres
 	case IBUS_COMMAND_VALUE:
 		if (!(*p_owner->evt_telemetry)(p_owner, command, address, &sensor)) return FALSE;
 		if (sensor.length > sizeof(sensor.value)) return FALSE;
-		// echo sensor value command: 0x06 0x91 0x00 0x02 0x66 0xFF
+		// Reply: length 4 + value size, the command with our address, value bytes, checksum
 		tx_buffer[p++] = 0x04 + sensor.length;
 		tx_buffer[p++] = IBUS_COMMAND_VALUE + address;
 		for (i = 0; i < sensor.length; i++) {

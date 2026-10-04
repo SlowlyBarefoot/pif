@@ -3,8 +3,6 @@
 #include "core/pif_task_manager.h"
 #include "sensor/pif_mpu30x0.h"
 
-#include <math.h>
-
 
 /**
  * @fn _changeFsSel
@@ -85,17 +83,7 @@ BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
 	p_imu_sensor->__gyro_info.read = (PifImuSensorRead)pifMpu30x0_ReadGyro;
 	p_imu_sensor->__gyro_info.p_issuer = p_owner;
 
-    // Reset calibrate values
-    p_imu_sensor->__delta_gyro[AXIS_X] = 0;
-    p_imu_sensor->__delta_gyro[AXIS_Y] = 0;
-    p_imu_sensor->__delta_gyro[AXIS_Z] = 0;
-    p_imu_sensor->__use_calibrate = FALSE;
-
-    // Reset threshold values
-    p_imu_sensor->__threshold_gyro[AXIS_X] = 0;
-    p_imu_sensor->__threshold_gyro[AXIS_Y] = 0;
-    p_imu_sensor->__threshold_gyro[AXIS_Z] = 0;
-    p_imu_sensor->__actual_threshold = 0;
+    pifImuSensor_ResetGyroCalibration(p_imu_sensor);
     return TRUE;
 
 fail:
@@ -153,77 +141,16 @@ BOOL pifMpu30x0_ReadTemperature(PifMpu30x0* p_owner, float* p_temperature)
 
 BOOL pifMpu30x0_CalibrationGyro(PifMpu30x0* p_owner, uint8_t samples)
 {
-	int16_t data[3];
-    float sumX = 0;
-    float sumY = 0;
-    float sumZ = 0;
-    float sigmaX = 0;
-    float sigmaY = 0;
-    float sigmaZ = 0;
-	PifImuSensor* p_imu_sensor = p_owner->__p_imu_sensor;
-
-    // Read n-samples
-    for (uint8_t i = 0; i < samples; i++) {
-    	if (!pifMpu30x0_ReadGyro(p_owner, data)) return FALSE;
-
-		sumX += data[AXIS_X];
-		sumY += data[AXIS_Y];
-		sumZ += data[AXIS_Z];
-
-		sigmaX += data[AXIS_X] * data[AXIS_X];
-		sigmaY += data[AXIS_Y] * data[AXIS_Y];
-		sigmaZ += data[AXIS_Z] * data[AXIS_Z];
-
-		// Samples have to be spread over time to average out the noise, and the CPU is held for
-		// the whole run: samples * 5ms, so up to 1.275s. The sensor has to be motionless anyway,
-		// which makes this a mode of its own rather than something to interleave with other work.
-		pif_Delay1ms(5);
-    }
-
-    // Calculate delta vectors
-    p_imu_sensor->__delta_gyro[AXIS_X] = sumX / samples;
-    p_imu_sensor->__delta_gyro[AXIS_Y] = sumY / samples;
-    p_imu_sensor->__delta_gyro[AXIS_Z] = sumZ / samples;
-
-    // Calculate threshold vectors
-    p_imu_sensor->__threshold[AXIS_X] = sqrt((sigmaX / samples) - (p_imu_sensor->__delta_gyro[AXIS_X] * p_imu_sensor->__delta_gyro[AXIS_X]));
-    p_imu_sensor->__threshold[AXIS_Y] = sqrt((sigmaY / samples) - (p_imu_sensor->__delta_gyro[AXIS_Y] * p_imu_sensor->__delta_gyro[AXIS_Y]));
-    p_imu_sensor->__threshold[AXIS_Z] = sqrt((sigmaZ / samples) - (p_imu_sensor->__delta_gyro[AXIS_Z] * p_imu_sensor->__delta_gyro[AXIS_Z]));
-
-    // Set calibrate
-	p_imu_sensor->__use_calibrate = TRUE;
-
-    // If already set threshold, recalculate threshold vectors
-    if (p_imu_sensor->__actual_threshold > 0) {
-    	pifMpu30x0_SetThreshold(p_owner, p_imu_sensor->__actual_threshold);
-    }
-    return TRUE;
+	return pifImuSensor_CalibrateGyro(p_owner->__p_imu_sensor, samples, 5);
 }
 
 BOOL pifMpu30x0_SetThreshold(PifMpu30x0* p_owner, uint8_t multiple)
 {
 	PifImuSensor* p_imu_sensor = p_owner->__p_imu_sensor;
 
-	if (multiple > 0) {
-		// If not calibrated, need calibrate
-		if (!p_owner->__p_imu_sensor->__use_calibrate)
-		{
-			if (!pifMpu30x0_CalibrationGyro(p_owner, 50)) return FALSE;
-		}
-
-		// Calculate threshold vectors
-		p_imu_sensor->__threshold_gyro[AXIS_X] = p_imu_sensor->__threshold[AXIS_X] * multiple;
-		p_imu_sensor->__threshold_gyro[AXIS_Y] = p_imu_sensor->__threshold[AXIS_Y] * multiple;
-		p_imu_sensor->__threshold_gyro[AXIS_Z] = p_imu_sensor->__threshold[AXIS_Z] * multiple;
+	// A deadband needs the noise level, so calibrate first if that was not done yet.
+	if (multiple && !p_imu_sensor->__gyro_calibrated) {
+		if (!pifImuSensor_CalibrateGyro(p_imu_sensor, 50, 5)) return FALSE;
 	}
-	else {
-		// No threshold
-		p_imu_sensor->__threshold_gyro[AXIS_X] = 0;
-		p_imu_sensor->__threshold_gyro[AXIS_Y] = 0;
-		p_imu_sensor->__threshold_gyro[AXIS_Z] = 0;
-	}
-
-	// Remember old threshold value
-	p_imu_sensor->__actual_threshold = multiple;
-	return TRUE;
+	return pifImuSensor_SetGyroDeadband(p_imu_sensor, multiple);
 }

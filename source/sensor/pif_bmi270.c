@@ -5,6 +5,10 @@
 #include <math.h>
 
 
+// BMI270 configuration file (feature engine microcode), "maximum FIFO" variant, from the
+// Bosch Sensortec BMI270 Sensor API (https://github.com/boschsensortec/BMI270_SensorAPI).
+// Copyright (c) 2020 Bosch Sensortec GmbH. All rights reserved. BSD-3-Clause; see
+// THIRD_PARTY_NOTICES.md for the full license text.
 /*! @name  Global array that stores the configuration file of BMI270 */
 const uint8_t maximum_fifo_config_file[] = {
     0xc8, 0x2e, 0x00, 0x2e, 0x80, 0x2e, 0x1a, 0x00, 0xc8, 0x2e, 0x00, 0x2e, 0xc8, 0x2e, 0x00, 0x2e, 0xc8, 0x2e, 0x00,
@@ -37,8 +41,8 @@ BOOL pifBmi270_Config(PifBmi270* p_owner, PifId id, PifImuSensor* p_imu_sensor)
     	return FALSE;
 	}
 
-    // Perform a soft reset to set all configuration to default
-    // Delay 100ms before continuing configuration
+    // CMD 0xB6 resets the chip; every register then holds its power-on value. Wait well past
+    // the reset time before touching the chip again.
 	if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, BMI270_REG_CMD, BMI270_C_CMD_SOFT_RESET)) return FALSE;
 	pif_Delay1ms(100);
 
@@ -57,17 +61,7 @@ BOOL pifBmi270_Config(PifBmi270* p_owner, PifId id, PifImuSensor* p_imu_sensor)
 	p_imu_sensor->__accel_info.read = (PifImuSensorRead)pifBmi270_ReadAccel;
 	p_imu_sensor->__accel_info.p_issuer = p_owner;
 
-    // Reset calibrate values
-    p_imu_sensor->__delta_gyro[AXIS_X] = 0;
-    p_imu_sensor->__delta_gyro[AXIS_Y] = 0;
-    p_imu_sensor->__delta_gyro[AXIS_Z] = 0;
-    p_imu_sensor->__use_calibrate = FALSE;
-
-    // Reset threshold values
-    p_imu_sensor->__threshold_gyro[AXIS_X] = 0;
-    p_imu_sensor->__threshold_gyro[AXIS_Y] = 0;
-    p_imu_sensor->__threshold_gyro[AXIS_Z] = 0;
-    p_imu_sensor->__actual_threshold = 0;
+    pifImuSensor_ResetGyroCalibration(p_imu_sensor);
     return TRUE;
 }
 
@@ -78,7 +72,8 @@ BOOL pifBmi270_UploadConfig(PifBmi270 *p_owner)
     if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, BMI270_REG_INIT_CTRL, 0)) return FALSE;
 	pif_Delay1ms(1);
 
-    // Transfer the config file
+    // Burst the configuration file into INIT_DATA while INIT_CTRL is 0; INIT_CTRL = 1 then
+    // starts the feature engine on it.
     if (!(p_owner->_fn.write_bytes)(p_owner->_fn.p_device, BMI270_REG_INIT_DATA, (uint8_t *)maximum_fifo_config_file, sizeof(maximum_fifo_config_file))) return FALSE;
     pif_Delay1ms(10);
 

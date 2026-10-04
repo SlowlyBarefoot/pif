@@ -306,18 +306,20 @@ BOOL pifMpu30x0_ReadTemperature(PifMpu30x0* p_owner, float* p_temperature);
 
 /**
  * @fn pifMpu30x0_CalibrationGyro
- * @brief Performs the mpu30x0 calibration gyro operation.
+ * @brief Measures the gyro bias and noise at rest, taking a sample every 5 ms.
+ *        Wraps pifImuSensor_CalibrateGyro().
  * @param p_owner Pointer to the owner instance.
- * @param samples Parameter samples used by this operation.
+ * @param samples Number of samples to average.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu30x0_CalibrationGyro(PifMpu30x0* p_owner, uint8_t samples);
 
 /**
  * @fn pifMpu30x0_SetThreshold
- * @brief Sets configuration values required by mpu30x0 set threshold.
+ * @brief Sets the gyro deadband as a multiple of the measured noise, calibrating
+ *        with 50 samples first if needed. Wraps pifImuSensor_SetGyroDeadband().
  * @param p_owner Pointer to the owner instance.
- * @param multiple Parameter multiple used by this operation.
+ * @param multiple Deadband width in noise standard deviations. 0 turns it off.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu30x0_SetThreshold(PifMpu30x0* p_owner, uint8_t multiple);

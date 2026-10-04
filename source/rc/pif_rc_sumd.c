@@ -6,7 +6,7 @@
 #define SUMD_STATUS_VALID      	0x01
 #define SUMD_STATUS_FAILSAFE  	0x81
 
-#define SUMD_MAX_FRAME_PERIOD   750 	// 750ms, above this delay, switch to failsafe
+#define SUMD_MAX_FRAME_PERIOD   750 	// ms without a valid frame before the link counts as lost
 #define SUMD_RETRY_TIMEOUT		4		// 4ms
 
 
@@ -34,7 +34,6 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 	p_buffer = p_owner->__p_buffer;
 
 	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
-		//add byte to the ring buffer
 		p_buffer[p_owner->__index++] = data;
 
 		if (p_owner->__index == 1) {
@@ -64,19 +63,17 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 			}
 		}
 		else if (p_owner->__index >= SUMD_HEADER_SIZE + p_buffer[2] * 2 + SUMD_CRC_SIZE) {
-			//compute CRC with header and data
+			// The CRC covers the header and the channel data; run over the CRC bytes as well it ends at 0.
 			crc = pifCrc16(p_buffer, SUMD_HEADER_SIZE + 2 * p_owner->parent._channel_count + SUMD_CRC_SIZE);
-			//if frame is valid
 			if (crc == 0) {
 				p_owner->parent._good_frames++;
 
-				//update channel output values
+				// Each channel is 16 bits big-endian in 1/8 us steps.
 				for (index = 0; index < p_owner->parent._channel_count; index++) {
 					channel[index] = ((p_buffer[SUMD_HEADER_SIZE + 2 * index] << 8) + p_buffer[SUMD_HEADER_SIZE + 2 * index + 1]) / 8;
 				}
 				p_owner->parent._last_frame_time = pif_cumulative_timer1ms;
 
-				//forgot decoded bytes from the ring buffer
 				p_owner->__index = 0;
 
 		    	if (p_owner->parent.__evt_receive) (*p_owner->parent.__evt_receive)(&p_owner->parent, channel, p_owner->parent.__p_issuer);

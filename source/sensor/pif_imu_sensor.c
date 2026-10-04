@@ -4,80 +4,77 @@
 #include <math.h>
 
 
+// Mounting orientations as signed axis selections. Entry [align][i] gives the
+// sensor axis that feeds output axis i, as (axis + 1), negated when the sign flips.
+// CWn: the sensor is turned n degrees clockwise about its Z axis, seen from above.
+// FLIP: the sensor is first turned upside down about its Y axis, then turned CWn.
+static const int8_t c_mounting[][AXIS_COUNT] = {
+	{  1,  2,  3 },		// IMUS_ALIGN_DEFAULT (same as CW0)
+	{  1,  2,  3 },		// IMUS_ALIGN_CW0_DEG
+	{  2, -1,  3 },		// IMUS_ALIGN_CW90_DEG
+	{ -1, -2,  3 },		// IMUS_ALIGN_CW180_DEG
+	{ -2,  1,  3 },		// IMUS_ALIGN_CW270_DEG
+	{ -1,  2, -3 },		// IMUS_ALIGN_CW0_DEG_FLIP
+	{  2,  1, -3 },		// IMUS_ALIGN_CW90_DEG_FLIP
+	{  1, -2, -3 },		// IMUS_ALIGN_CW180_DEG_FLIP
+	{ -2, -1, -3 },		// IMUS_ALIGN_CW270_DEG_FLIP
+};
+
 /**
- * @fn _alignBoard
- * @brief Internal helper that supports align board logic.
+ * @fn _orient
+ * @brief Maps a sensor-frame vector to the body frame: first the mounting
+ *        orientation of the sensor on the board, then the board rotation.
  * @param p_owner Pointer to the owner instance.
- * @param vec Parameter vec used by this operation.
+ * @param p_in Vector in the sensor frame.
+ * @param p_out Vector in the body frame.
+ * @param align Mounting orientation of the sensor.
  * @return None.
  */
-static void _alignBoard(PifImuSensor* p_owner, float* vec)
+static void _orient(PifImuSensor* p_owner, const float* p_in, float* p_out, PifImuSensorAlign align)
 {
-    float x = vec[AXIS_X];
-    float y = vec[AXIS_Y];
-    float z = vec[AXIS_Z];
+	const int8_t* p_map = c_mounting[align < sizeof(c_mounting) / sizeof(c_mounting[0]) ? align : IMUS_ALIGN_DEFAULT];
+	float board[AXIS_COUNT];
+	int i;
 
-    vec[AXIS_X] = lrintf(p_owner->__board_rotation[0][0] * x + p_owner->__board_rotation[0][1] * y + p_owner->__board_rotation[0][2] * z);
-    vec[AXIS_Y] = lrintf(p_owner->__board_rotation[1][0] * x + p_owner->__board_rotation[1][1] * y + p_owner->__board_rotation[1][2] * z);
-    vec[AXIS_Z] = lrintf(p_owner->__board_rotation[2][0] * x + p_owner->__board_rotation[2][1] * y + p_owner->__board_rotation[2][2] * z);
+	for (i = 0; i < AXIS_COUNT; i++) {
+		board[i] = p_map[i] > 0 ? p_in[p_map[i] - 1] : -p_in[-p_map[i] - 1];
+	}
+
+	if (!p_owner->__board_alignment) {
+		memcpy(p_out, board, sizeof(board));
+		return;
+	}
+	for (i = 0; i < AXIS_COUNT; i++) {
+		p_out[i] = p_owner->__board_matrix[i][0] * board[AXIS_X]
+				+ p_owner->__board_matrix[i][1] * board[AXIS_Y]
+				+ p_owner->__board_matrix[i][2] * board[AXIS_Z];
+	}
 }
 
 /**
- * @fn _alignSensors
- * @brief Internal helper that supports align sensors logic.
- * @param p_owner Pointer to the owner instance.
- * @param src Pointer to source vector data.
- * @param dest Pointer to destination vector data.
- * @param rotation Rotation option used for axis alignment.
- * @return None.
+ * @fn _readSensor
+ * @brief Reads one sample from a sensor callback as floats.
+ * @param p_info Sensor callback and issuer.
+ * @param p_out Destination, AXIS_COUNT values.
+ * @return TRUE on success, FALSE on failure.
  */
-static void _alignSensors(PifImuSensor* p_owner, float* src, float* dest, uint8_t rotation)
+static BOOL _readSensor(PifImuSensorInfo* p_info, float* p_out)
 {
-    switch (rotation) {
-        case IMUS_ALIGN_CW90_DEG:
-            dest[AXIS_X] = src[AXIS_Y];
-            dest[AXIS_Y] = -src[AXIS_X];
-            dest[AXIS_Z] = src[AXIS_Z];
-            break;
-        case IMUS_ALIGN_CW180_DEG:
-            dest[AXIS_X] = -src[AXIS_X];
-            dest[AXIS_Y] = -src[AXIS_Y];
-            dest[AXIS_Z] = src[AXIS_Z];
-            break;
-        case IMUS_ALIGN_CW270_DEG:
-            dest[AXIS_X] = -src[AXIS_Y];
-            dest[AXIS_Y] = src[AXIS_X];
-            dest[AXIS_Z] = src[AXIS_Z];
-            break;
-        case IMUS_ALIGN_CW0_DEG_FLIP:
-            dest[AXIS_X] = -src[AXIS_X];
-            dest[AXIS_Y] = src[AXIS_Y];
-            dest[AXIS_Z] = -src[AXIS_Z];
-            break;
-        case IMUS_ALIGN_CW90_DEG_FLIP:
-            dest[AXIS_X] = src[AXIS_Y];
-            dest[AXIS_Y] = src[AXIS_X];
-            dest[AXIS_Z] = -src[AXIS_Z];
-            break;
-        case IMUS_ALIGN_CW180_DEG_FLIP:
-            dest[AXIS_X] = src[AXIS_X];
-            dest[AXIS_Y] = -src[AXIS_Y];
-            dest[AXIS_Z] = -src[AXIS_Z];
-            break;
-        case IMUS_ALIGN_CW270_DEG_FLIP:
-            dest[AXIS_X] = -src[AXIS_Y];
-            dest[AXIS_Y] = -src[AXIS_X];
-            dest[AXIS_Z] = -src[AXIS_Z];
-            break;
-        default:	// IMUS_ALIGN_CW0_DEG:
-            dest[AXIS_X] = src[AXIS_X];
-            dest[AXIS_Y] = src[AXIS_Y];
-            dest[AXIS_Z] = src[AXIS_Z];
-            break;
-    }
+	int16_t data[AXIS_COUNT];
+	int i;
 
-    if (p_owner->__board_alignment)
-        _alignBoard(p_owner, dest);
+	if (!(*p_info->read)(p_info->p_issuer, data)) return FALSE;
+	for (i = 0; i < AXIS_COUNT; i++) p_out[i] = data[i];
+	return TRUE;
+}
+
+static void _updateGyroDeadband(PifImuSensor* p_owner)
+{
+	int i;
+
+	for (i = 0; i < AXIS_COUNT; i++) {
+		p_owner->__gyro_deadband[i] = p_owner->__gyro_calibrated ? p_owner->__gyro_noise[i] * p_owner->__deadband_multiple : 0;
+	}
 }
 
 void pifImuSensor_Init(PifImuSensor* p_owner)
@@ -91,45 +88,83 @@ void pifImuSensor_Init(PifImuSensor* p_owner)
 
 void pifImuSensor_InitBoardAlignment(PifImuSensor* p_owner, int16_t board_align_roll, int16_t board_align_pitch, int16_t board_align_yaw)
 {
-    float roll, pitch, yaw;
-    float cosx, sinx, cosy, siny, cosz, sinz;
-    float coszcosx, coszcosy, sinzcosx, coszsinx, sinzsinx;
+	const float to_rad = PIF_PI / 180.0f;
+	float cr, sr, cp, sp, cy, sy;
 
-    // standard alignment, nothing to calculate
-    if (!board_align_roll && !board_align_pitch && !board_align_yaw) return;
+	p_owner->__board_alignment = board_align_roll || board_align_pitch || board_align_yaw;
+	if (!p_owner->__board_alignment) return;
 
-    p_owner->__board_alignment = TRUE;
+	cr = cosf(board_align_roll * to_rad);
+	sr = sinf(board_align_roll * to_rad);
+	cp = cosf(board_align_pitch * to_rad);
+	sp = sinf(board_align_pitch * to_rad);
+	cy = cosf(board_align_yaw * to_rad);
+	sy = sinf(board_align_yaw * to_rad);
 
-    // deg2rad
-    roll = board_align_roll * PIF_PI / 180.0f;
-    pitch = board_align_pitch * PIF_PI / 180.0f;
-    yaw = board_align_yaw * PIF_PI / 180.0f;
+	// Positive angles turn the board clockwise, seen from the positive end of the axis
+	// looking back at the origin (from above for yaw), the same sense as IMUS_ALIGN_CWn.
+	// A clockwise turn by a is a right-hand turn by -a, so a board-frame vector v maps
+	// to the body frame as R * v with R = Rz(-yaw) * Ry(-pitch) * Rx(-roll).
+	p_owner->__board_matrix[0][0] = cy * cp;
+	p_owner->__board_matrix[0][1] = cy * sp * sr + sy * cr;
+	p_owner->__board_matrix[0][2] = sy * sr - cy * sp * cr;
+	p_owner->__board_matrix[1][0] = -sy * cp;
+	p_owner->__board_matrix[1][1] = cy * cr - sy * sp * sr;
+	p_owner->__board_matrix[1][2] = sy * sp * cr + cy * sr;
+	p_owner->__board_matrix[2][0] = sp;
+	p_owner->__board_matrix[2][1] = -cp * sr;
+	p_owner->__board_matrix[2][2] = cp * cr;
+}
 
-    cosx = cosf(roll);
-    sinx = sinf(roll);
-    cosy = cosf(pitch);
-    siny = sinf(pitch);
-    cosz = cosf(yaw);
-    sinz = sinf(yaw);
+void pifImuSensor_ResetGyroCalibration(PifImuSensor* p_owner)
+{
+	p_owner->__gyro_calibrated = FALSE;
+	p_owner->__deadband_multiple = 0;
+	memset(p_owner->__gyro_bias, 0, sizeof(p_owner->__gyro_bias));
+	memset(p_owner->__gyro_noise, 0, sizeof(p_owner->__gyro_noise));
+	memset(p_owner->__gyro_deadband, 0, sizeof(p_owner->__gyro_deadband));
+}
 
-    coszcosx = cosz * cosx;
-    coszcosy = cosz * cosy;
-    sinzcosx = sinz * cosx;
-    coszsinx = sinx * cosz;
-    sinzsinx = sinx * sinz;
+BOOL pifImuSensor_CalibrateGyro(PifImuSensor* p_owner, uint16_t samples, uint16_t interval_ms)
+{
+	float sample[AXIS_COUNT];
+	float mean[AXIS_COUNT] = { 0, 0, 0 };
+	float m2[AXIS_COUNT] = { 0, 0, 0 };
+	float delta;
+	uint16_t n;
+	int i;
 
-    // define rotation matrix
-    p_owner->__board_rotation[0][0] = coszcosy;
-    p_owner->__board_rotation[0][1] = -cosy * sinz;
-    p_owner->__board_rotation[0][2] = siny;
+	if (!(p_owner->_measure & IMU_MEASURE_GYROSCOPE) || !samples) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
 
-    p_owner->__board_rotation[1][0] = sinzcosx + (coszsinx * siny);
-    p_owner->__board_rotation[1][1] = coszcosx - (sinzsinx * siny);
-    p_owner->__board_rotation[1][2] = -sinx * cosy;
+	// Welford's running mean and variance. The sensor has to stay still; the CPU is
+	// held for samples * interval_ms.
+	for (n = 1; n <= samples; n++) {
+		if (!_readSensor(&p_owner->__gyro_info, sample)) return FALSE;
+		for (i = 0; i < AXIS_COUNT; i++) {
+			delta = sample[i] - mean[i];
+			mean[i] += delta / n;
+			m2[i] += delta * (sample[i] - mean[i]);
+		}
+		if (interval_ms) pif_Delay1ms(interval_ms);
+	}
 
-    p_owner->__board_rotation[2][0] = (sinzsinx) - (coszcosx * siny);
-    p_owner->__board_rotation[2][1] = (coszsinx) + (sinzcosx * siny);
-    p_owner->__board_rotation[2][2] = cosy * cosx;
+	for (i = 0; i < AXIS_COUNT; i++) {
+		p_owner->__gyro_bias[i] = mean[i];
+		p_owner->__gyro_noise[i] = sqrtf(m2[i] / samples);
+	}
+	p_owner->__gyro_calibrated = TRUE;
+	_updateGyroDeadband(p_owner);
+	return TRUE;
+}
+
+BOOL pifImuSensor_SetGyroDeadband(PifImuSensor* p_owner, uint8_t multiple)
+{
+	p_owner->__deadband_multiple = multiple;
+	_updateGyroDeadband(p_owner);
+	return TRUE;
 }
 
 void pifImuSensor_SetGyroAlign(PifImuSensor* p_owner, PifImuSensorAlign align)
@@ -140,48 +175,31 @@ void pifImuSensor_SetGyroAlign(PifImuSensor* p_owner, PifImuSensorAlign align)
 
 BOOL pifImuSensor_ReadRawGyro(PifImuSensor* p_owner, float* p_gyro)
 {
-	int16_t data[AXIS_COUNT];
-    float gyro[AXIS_COUNT];
+	float raw[AXIS_COUNT];
 
 	if (!(p_owner->_measure & IMU_MEASURE_GYROSCOPE)) return FALSE;
+	if (!_readSensor(&p_owner->__gyro_info, raw)) return FALSE;
 
-	if (!(*p_owner->__gyro_info.read)(p_owner->__gyro_info.p_issuer, data)) return FALSE;
-
-	gyro[AXIS_X] = data[AXIS_X];
-	gyro[AXIS_Y] = data[AXIS_Y];
-	gyro[AXIS_Z] = data[AXIS_Z];
-
-	_alignSensors(p_owner, gyro, p_gyro, p_owner->__gyro_info.align);
+	_orient(p_owner, raw, p_gyro, p_owner->__gyro_info.align);
 	return TRUE;
 }
 
 BOOL pifImuSensor_ReadGyro(PifImuSensor* p_owner, float* p_gyro)
 {
-	int16_t data[AXIS_COUNT];
-    float gyro[AXIS_COUNT];
+	float rate[AXIS_COUNT];
+	int i;
 
 	if (!(p_owner->_measure & IMU_MEASURE_GYROSCOPE)) return FALSE;
+	if (!_readSensor(&p_owner->__gyro_info, rate)) return FALSE;
 
-	if (!(*p_owner->__gyro_info.read)(p_owner->__gyro_info.p_issuer, data)) return FALSE;
-
-	if (p_owner->__use_calibrate) {
-		gyro[AXIS_X] = (data[AXIS_X] - p_owner->__delta_gyro[AXIS_X]) / p_owner->_gyro_gain;
-		gyro[AXIS_Y] = (data[AXIS_Y] - p_owner->__delta_gyro[AXIS_Y]) / p_owner->_gyro_gain;
-		gyro[AXIS_Z] = (data[AXIS_Z] - p_owner->__delta_gyro[AXIS_Z]) / p_owner->_gyro_gain;
-	}
-	else {
-		gyro[AXIS_X] = data[AXIS_X] / p_owner->_gyro_gain;
-		gyro[AXIS_Y] = data[AXIS_Y] / p_owner->_gyro_gain;
-		gyro[AXIS_Z] = data[AXIS_Z] / p_owner->_gyro_gain;
+	// Bias and deadband are in raw LSB, so they apply before the gain.
+	for (i = 0; i < AXIS_COUNT; i++) {
+		rate[i] -= p_owner->__gyro_bias[i];
+		if (fabsf(rate[i]) < p_owner->__gyro_deadband[i]) rate[i] = 0;
+		rate[i] /= p_owner->_gyro_gain;
 	}
 
-	if (p_owner->__actual_threshold) {
-		if (fabsf(gyro[AXIS_X]) < p_owner->__threshold_gyro[AXIS_X]) gyro[AXIS_X] = 0;
-		if (fabsf(gyro[AXIS_Y]) < p_owner->__threshold_gyro[AXIS_Y]) gyro[AXIS_Y] = 0;
-		if (fabsf(gyro[AXIS_Z]) < p_owner->__threshold_gyro[AXIS_Z]) gyro[AXIS_Z] = 0;
-	}
-
-	_alignSensors(p_owner, gyro, p_gyro, p_owner->__gyro_info.align);
+	_orient(p_owner, rate, p_gyro, p_owner->__gyro_info.align);
 	return TRUE;
 }
 
@@ -193,35 +211,26 @@ void pifImuSensor_SetAccelAlign(PifImuSensor* p_owner, PifImuSensorAlign align)
 
 BOOL pifImuSensor_ReadRawAccel(PifImuSensor* p_owner, float* p_accel)
 {
-	int16_t data[AXIS_COUNT];
-    float accel[AXIS_COUNT];
+	float raw[AXIS_COUNT];
 
 	if (!(p_owner->_measure & IMU_MEASURE_ACCELERO)) return FALSE;
+	if (!_readSensor(&p_owner->__accel_info, raw)) return FALSE;
 
-	if (!(*p_owner->__accel_info.read)(p_owner->__accel_info.p_issuer, data)) return FALSE;
-
-	accel[AXIS_X] = data[AXIS_X];
-	accel[AXIS_Y] = data[AXIS_Y];
-	accel[AXIS_Z] = data[AXIS_Z];
-
-	_alignSensors(p_owner, accel, p_accel, p_owner->__accel_info.align);
+	_orient(p_owner, raw, p_accel, p_owner->__accel_info.align);
 	return TRUE;
 }
 
 BOOL pifImuSensor_ReadAccel(PifImuSensor* p_owner, float* p_accel)
 {
-	int16_t data[AXIS_COUNT];
-    float accel[AXIS_COUNT];
+	float accel[AXIS_COUNT];
+	int i;
 
 	if (!(p_owner->_measure & IMU_MEASURE_ACCELERO)) return FALSE;
+	if (!_readSensor(&p_owner->__accel_info, accel)) return FALSE;
 
-	if (!(*p_owner->__accel_info.read)(p_owner->__accel_info.p_issuer, data)) return FALSE;
+	for (i = 0; i < AXIS_COUNT; i++) accel[i] = 9.80665f * accel[i] / p_owner->_accel_gain;	// g to m/s^2
 
-	accel[AXIS_X] = 9.80665f * data[AXIS_X] / p_owner->_accel_gain;
-	accel[AXIS_Y] = 9.80665f * data[AXIS_Y] / p_owner->_accel_gain;
-	accel[AXIS_Z] = 9.80665f * data[AXIS_Z] / p_owner->_accel_gain;
-
-	_alignSensors(p_owner, accel, p_accel, p_owner->__accel_info.align);
+	_orient(p_owner, accel, p_accel, p_owner->__accel_info.align);
 	return TRUE;
 }
 
@@ -233,34 +242,25 @@ void pifImuSensor_SetMagAlign(PifImuSensor* p_owner, PifImuSensorAlign align)
 
 BOOL pifImuSensor_ReadRawMag(PifImuSensor* p_owner, float* p_mag)
 {
-	int16_t data[AXIS_COUNT];
-    float mag[AXIS_COUNT];
+	float raw[AXIS_COUNT];
 
 	if (!(p_owner->_measure & IMU_MEASURE_MAGNETO)) return FALSE;
+	if (!_readSensor(&p_owner->__mag_info, raw)) return FALSE;
 
-	if (!(*p_owner->__mag_info.read)(p_owner->__mag_info.p_issuer, data)) return FALSE;
-
-	mag[AXIS_X] = data[AXIS_X];
-	mag[AXIS_Y] = data[AXIS_Y];
-	mag[AXIS_Z] = data[AXIS_Z];
-
-	_alignSensors(p_owner, mag, p_mag, p_owner->__mag_info.align);
+	_orient(p_owner, raw, p_mag, p_owner->__mag_info.align);
 	return TRUE;
 }
 
 BOOL pifImuSensor_ReadMag(PifImuSensor* p_owner, float* p_mag)
 {
-	int16_t data[AXIS_COUNT];
-    float mag[AXIS_COUNT];
+	float mag[AXIS_COUNT];
+	int i;
 
 	if (!(p_owner->_measure & IMU_MEASURE_MAGNETO)) return FALSE;
+	if (!_readSensor(&p_owner->__mag_info, mag)) return FALSE;
 
-	if (!(*p_owner->__mag_info.read)(p_owner->__mag_info.p_issuer, data)) return FALSE;
+	for (i = 0; i < AXIS_COUNT; i++) mag[i] /= p_owner->_mag_gain;
 
-	mag[AXIS_X] = data[AXIS_X] / p_owner->_mag_gain;
-	mag[AXIS_Y] = data[AXIS_Y] / p_owner->_mag_gain;
-	mag[AXIS_Z] = data[AXIS_Z] / p_owner->_mag_gain;
-
-	_alignSensors(p_owner, mag, p_mag, p_owner->__mag_info.align);
+	_orient(p_owner, mag, p_mag, p_owner->__mag_info.align);
 	return TRUE;
 }

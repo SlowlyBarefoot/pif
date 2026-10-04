@@ -13,7 +13,7 @@
 #define SUMD_HEADER_SIZE        3
 #define SUMD_CRC_SIZE           2
 
-// SUMD decoding buffer size (+1 for ring buffer full/empty differentiation).
+// Receive buffer size: a frame with the most channels, plus one spare byte.
 #define SUMD_FRAME_SIZE         (SUMD_HEADER_SIZE + PIF_SUMD_CHANNEL_COUNT * 2 + SUMD_CRC_SIZE + 1)
 
 

@@ -616,18 +616,20 @@ BOOL pifMpu6500_ReadTemperature(PifMpu6500* p_owner, int16_t* p_temperature);
 
 /**
  * @fn pifMpu6500_CalibrationGyro
- * @brief Performs the mpu6500 calibration gyro operation.
+ * @brief Measures the gyro bias and noise at rest, taking a sample every 5 ms.
+ *        Wraps pifImuSensor_CalibrateGyro().
  * @param p_owner Pointer to the owner instance.
- * @param samples Parameter samples used by this operation.
+ * @param samples Number of samples to average.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500_CalibrationGyro(PifMpu6500* p_owner, uint8_t samples);
 
 /**
  * @fn pifMpu6500_SetThreshold
- * @brief Sets configuration values required by mpu6500 set threshold.
+ * @brief Sets the gyro deadband as a multiple of the measured noise, calibrating
+ *        with 50 samples first if needed. Wraps pifImuSensor_SetGyroDeadband().
  * @param p_owner Pointer to the owner instance.
- * @param multiple Parameter multiple used by this operation.
+ * @param multiple Deadband width in noise standard deviations. 0 turns it off.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu6500_SetThreshold(PifMpu6500* p_owner, uint8_t multiple);

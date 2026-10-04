@@ -20,21 +20,20 @@ static void _changeGain(PifImuSensor* p_imu_sensor, PifQmc5883Rng gain)
 
 BOOL pifQmc5883_Detect(PifI2cPort* p_i2c, void *p_client)
 {
-	uint8_t data;
-	PifI2cDevice* p_device;
-    BOOL ack;
+	PifI2cDevice* p_device = pifI2cPort_TemporaryDevice(p_i2c, QMC5883_I2C_ADDR, p_client);
+	uint8_t chip_id, period;
 
-    p_device = pifI2cPort_TemporaryDevice(p_i2c, QMC5883_I2C_ADDR, p_client);
-
+	// A soft reset puts every register back to its default, so the checks below see a known state.
 	if (!pifI2cDevice_WriteRegByte(p_device, QMC5883_REG_CONTROL_2, QMC5883_SOFT_RST_MASK)) return FALSE;
 	pif_Delay1ms(20);
 
-    if (!pifI2cDevice_ReadRegBytes(p_device, QMC5883_REG_CHIP_ID, &data, 1)) return FALSE;
-	if (data != 0xFF) return FALSE;
-
-	ack = pifI2cDevice_ReadRegByte(p_device, QMC5883_REG_CONTROL_1, &data);
-	if (ack && (data & QMC5883_MODE_MASK) != QMC5883_MODE_STANDBY) return FALSE;
-	return TRUE;
+	// The chip ID register of the QMC5883L reads 0xFF. A bus with pull-ups and no device on it can
+	// read the same, so a register is also written and read back: the SET/RESET period register,
+	// set to 0x01 as the datasheet recommends and as pifQmc5883_Init() does anyway.
+	if (!pifI2cDevice_ReadRegByte(p_device, QMC5883_REG_CHIP_ID, &chip_id) || chip_id != 0xFF) return FALSE;
+	if (!pifI2cDevice_WriteRegByte(p_device, QMC5883_REG_SET_RESET_PERIOD, 0x01)) return FALSE;
+	if (!pifI2cDevice_ReadRegByte(p_device, QMC5883_REG_SET_RESET_PERIOD, &period)) return FALSE;
+	return period == 0x01;
 }
 
 BOOL pifQmc5883_Init(PifQmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_client, PifImuSensor* p_imu_sensor)

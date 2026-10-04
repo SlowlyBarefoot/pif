@@ -15,8 +15,8 @@
 #include <math.h>
 
 
-// Returns temperature in DegC, float precision. Output value of 51.23 equals 51.23 DegC.
-// t_fine carries fine temperature as global value
+// Integer compensation from the BMP280 datasheet (section 3.11.3). The temperature comes out in
+// steps of 0.01 DegC and is returned in DegC. t_fine is kept for _compensate_P().
 /**
  * @fn _compensate_T
  * @brief Internal helper that supports compensate t logic.
@@ -57,7 +57,7 @@ static float _compensate_P(PifBmp280* p_owner, int32_t adc_P)
     var1 = ((var1 * var1 * (int64_t)p_calib_param->dig_P3) >> 8) + ((var1 * (int64_t)p_calib_param->dig_P2) << 12);
     var1 = (((((int64_t)1) << 47) + var1)) * ((int64_t)p_calib_param->dig_P1) >> 33;
     if (var1 == 0)
-        return 0; // avoid exception caused by division by zero
+        return 0; // dig_P1 of 0 (no valid trimming data) would divide by zero below
 
     p = 1048576 - adc_P;
     p = (((p << 31) - var2) * 3125) / var1;

@@ -25,15 +25,6 @@ typedef enum EnPifRcIbusModel
 	IBUS_MODEL_IA6	= 1,
 } PifRcIbusModel;
 
-typedef enum EnPifRcIbusRxState
-{
-	IRS_GET_LENGTH	= 0,
-	IRS_GET_COMMAND	= 1,
-	IRS_GET_DATA	= 2,
-	IRS_GET_CHKSUML	= 3,
-	IRS_GET_CHKSUMH	= 4
-} PifRcIbusRxState;
-
 /**
  * @brief What a byte given to pifRcIbus_ParsingPacket() completed.
  */
@@ -87,18 +78,15 @@ struct StPifRcIbus
 
 	// Read-only Member Variable
     PifRcIbusModel _model;
-    uint8_t _length;          // Current RX message length.
+    uint8_t _length;          // Size of the frame being received, checksum included.
     uint8_t _tlm_command;     // Command of the last sensor request received.
     uint8_t _tlm_address;     // Sensor address of the last sensor request received.
 
 	// Private Member Variable
     PifUart* __p_uart;
-    PifRcIbusRxState __rx_state;
-    uint8_t __rx_buffer[IBUS_FRAME_SIZE];
-    uint32_t __last_time;
-	uint8_t __ptr;                      // pointer in buffer
-	uint16_t __chksum;                  // checksum calculation
-	uint8_t __lchksum;                  // checksum lower byte received
+    uint8_t __rx_buffer[IBUS_FRAME_SIZE];	// Frame being received, checksum included
+    uint32_t __last_time;					// pif_cumulative_timer1ms of the last byte
+	uint8_t __ptr;							// Bytes of the frame received so far; 0 between frames
 };
 
 

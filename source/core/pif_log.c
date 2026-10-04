@@ -3,6 +3,7 @@
 #include "core/pif_ring_buffer.h"
 #include "core/pif_task_manager.h"
 
+#include <ctype.h>
 #include <stdarg.h>
 #include <string.h>
 
@@ -145,75 +146,129 @@ int pifLog_CmdSetStatus(int argc, char* argv[])
 	return PIF_LOG_CMD_TOO_FEW_ARGS;
 }
 
+static void _echoString(PifLog* p_owner, const char* p_string, uint8_t length)
+{
+	while (length--) pifRingBuffer_PutByte(p_owner->p_tx_buffer, *p_string++);
+}
+
+static void _redrawLine(PifLog* p_owner)
+{
+	pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)p_owner->p_prompt);
+	_echoString(p_owner, p_owner->p_rx_buffer, p_owner->char_idx);
+}
+
+static void _insertChar(PifLog* p_owner, char ch)
+{
+	// The first word is the command name, so a line never starts with a space.
+	// Three bytes stay free for the completion space, the terminator and a margin.
+	if (ch == ' ' && !p_owner->char_idx) return;
+	if (p_owner->char_idx >= p_owner->rx_buffer_size - 3) return;
+
+	p_owner->p_rx_buffer[p_owner->char_idx++] = ch;
+	pifRingBuffer_PutByte(p_owner->p_tx_buffer, ch);
+}
+
+static void _eraseChar(PifLog* p_owner)
+{
+	if (!p_owner->char_idx) return;
+
+	p_owner->p_rx_buffer[--p_owner->char_idx] = 0;
+	pifRingBuffer_PutString(p_owner->p_tx_buffer, "\b \b");		// Step back, blank the cell, step back again
+}
+
+static void _clearScreen(PifLog* p_owner)
+{
+	pifRingBuffer_PutString(p_owner->p_tx_buffer, "\033[2J\033[H");	// ANSI: erase display, cursor home
+	_redrawLine(p_owner);
+}
+
+/**
+ * @fn _completeCommand
+ * @brief Completes the command name typed so far against the command table.
+ *
+ * Every entry whose name starts with the typed text (ignoring case) is a candidate.
+ * The line grows to the longest prefix all candidates share. A single candidate is
+ * completed in full and followed by a space. With several candidates, or with an
+ * empty line, the candidates are listed on their own line and the line is redrawn.
+ * Completion only applies while the first word is typed.
+ * @param p_owner Pointer to the owner instance.
+ * @return None.
+ */
+static void _completeCommand(PifLog* p_owner)
+{
+	const PifLogCmdEntry* p_entry;
+	const char* p_first = NULL;
+	uint8_t typed = p_owner->char_idx;
+	uint8_t shared = 0;
+	uint8_t count = 0;
+	uint8_t limit = p_owner->rx_buffer_size - 3;
+	uint8_t n;
+
+	if (memchr(p_owner->p_rx_buffer, ' ', typed)) return;
+
+	for (p_entry = p_owner->p_cmd_table; p_entry->p_name; p_entry++) {
+		if (strncasecmp(p_entry->p_name, p_owner->p_rx_buffer, typed)) continue;
+
+		if (!p_first) {
+			p_first = p_entry->p_name;
+			shared = strlen(p_first);
+		}
+		else {
+			n = typed;
+			while (n < shared && tolower((unsigned char)p_entry->p_name[n]) == tolower((unsigned char)p_first[n])) n++;
+			shared = n;
+		}
+		count++;
+	}
+	if (!count) return;
+
+	if (shared > limit) shared = limit;
+	if (shared > typed) {
+		memcpy(p_owner->p_rx_buffer + typed, p_first + typed, shared - typed);
+		p_owner->char_idx = shared;
+	}
+
+	if (count == 1) {
+		if (p_owner->char_idx < limit) p_owner->p_rx_buffer[p_owner->char_idx++] = ' ';
+		_echoString(p_owner, p_owner->p_rx_buffer + typed, p_owner->char_idx - typed);
+		return;
+	}
+
+	if (shared > typed && typed) {
+		_echoString(p_owner, p_owner->p_rx_buffer + typed, p_owner->char_idx - typed);
+		return;
+	}
+
+	pifRingBuffer_PutString(p_owner->p_tx_buffer, "\r\n");
+	for (p_entry = p_owner->p_cmd_table; p_entry->p_name; p_entry++) {
+		if (strncasecmp(p_entry->p_name, p_owner->p_rx_buffer, p_owner->char_idx)) continue;
+		pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)p_entry->p_name);
+		pifRingBuffer_PutString(p_owner->p_tx_buffer, "  ");
+	}
+	pifRingBuffer_PutString(p_owner->p_tx_buffer, "\r\n");
+	_redrawLine(p_owner);
+}
+
 static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_data)
 {
     char tmp_char;
-    uint8_t i;
     BOOL str_get_done_flag = FALSE;
     uint8_t enter = 0;
     static uint8_t pre_enter = 0;
-    const PifLogCmdEntry *cmd, *pstart, *pend;
 
 	while ((*act_receive_data)(p_owner->p_uart, (uint8_t*)&tmp_char, 1)) {
 		if (tmp_char >= 32 && tmp_char <= 126) {
-			if (!p_owner->char_idx && tmp_char == ' ') continue;
-			if (p_owner->char_idx < p_owner->rx_buffer_size - 3) {
-				pifRingBuffer_PutByte(p_owner->p_tx_buffer, tmp_char);
-				p_owner->p_rx_buffer[p_owner->char_idx] = tmp_char;
-				p_owner->char_idx++;
-            }
+			_insertChar(p_owner, tmp_char);
 		}
 		else {
 			switch (tmp_char) {
 			case '\b':		// 0x08 / Backspace / CTRL-H
 			case 0x7F:		// Delete
-				if (p_owner->char_idx) {
-					p_owner->char_idx--;
-					p_owner->p_rx_buffer[p_owner->char_idx] = 0;
-					pifRingBuffer_PutString(p_owner->p_tx_buffer, "\b \b");
-				}
+				_eraseChar(p_owner);
 				break;
 
 			case '\t':		// 0x09 / Horizontal Tab / CTRL-I
-	            // do tab completion
-			    pstart = NULL;
-			    pend = NULL;
-	            i = p_owner->char_idx;
-	            cmd = p_owner->p_cmd_table;
-	            while (cmd->p_name) {
-	                if (!(p_owner->char_idx && (strncasecmp(p_owner->p_rx_buffer, cmd->p_name, p_owner->char_idx) != 0))) {
-						if (!pstart)
-							pstart = cmd;
-						pend = cmd;
-	                }
-	                cmd++;
-	            }
-	            if (pstart) {    /* Buffer matches one or more commands */
-	                for (; ; p_owner->char_idx++) {
-	                	if (!pstart->p_name[p_owner->char_idx]) break;
-	                    if (pstart->p_name[p_owner->char_idx] != pend->p_name[p_owner->char_idx])
-	                        break;
-	                    if (!pstart->p_name[p_owner->char_idx] && p_owner->char_idx < p_owner->rx_buffer_size - 2) {
-	                        /* Unambiguous -- append a space */
-	                    	p_owner->p_rx_buffer[p_owner->char_idx++] = ' ';
-	                        p_owner->p_rx_buffer[p_owner->char_idx] = '\0';
-	                        break;
-	                    }
-	                    p_owner->p_rx_buffer[p_owner->char_idx] = pstart->p_name[p_owner->char_idx];
-	                }
-	            }
-	            if (!p_owner->char_idx || pstart != pend) {
-	                /* Print list of ambiguous matches */
-	            	pifRingBuffer_PutString(p_owner->p_tx_buffer, "\r\033[K");
-	                for (cmd = pstart; cmd <= pend; cmd++) {
-	                	pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)cmd->p_name);
-	                	pifRingBuffer_PutByte(p_owner->p_tx_buffer, '\t');
-	                }
-					pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)p_owner->p_prompt);
-	                i = 0;    /* Redraw prompt */
-	            }
-	            for (; i < p_owner->char_idx; i++)
-	            	pifRingBuffer_PutByte(p_owner->p_tx_buffer, p_owner->p_rx_buffer[i]);
+				_completeCommand(p_owner);
 				break;
 
 			case '\n':		// 0x0A / Line Feed / CTRL-J
@@ -225,8 +280,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_d
 				break;
 
 			case 0x0C:		// Form Feed, New Page / CTRL-L
-				pifRingBuffer_PutString(p_owner->p_tx_buffer, "\033[2J\033[1;1H");
-				pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)p_owner->p_prompt);
+				_clearScreen(p_owner);
 				break;
 
 			default:
@@ -248,7 +302,7 @@ static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_d
 		}
 
         if (str_get_done_flag == TRUE) {
-        	// Strip trailing whitespace
+        	// Drop the spaces at the end of the line
             while (p_owner->char_idx > 0 && p_owner->p_rx_buffer[p_owner->char_idx - 1] == ' ') {
             	p_owner->char_idx--;
             }

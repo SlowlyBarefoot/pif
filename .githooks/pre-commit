@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Enable with: git config core.hooksPath .githooks
+exec "$(git rev-parse --show-toplevel)/tools/check_license_boundary.sh"

@@ -23,7 +23,7 @@ typedef struct StPifRcSbus
 
 	// Private Member Variable
     PifUart* __p_uart;
-    uint8_t __index;                    // Current message length.
+    uint8_t __index;                    // Bytes of the frame received so far
     uint8_t __buffer[SBUS_FRAME_SIZE];
     uint32_t __last_time;
 } PifRcSbus;

@@ -114,21 +114,23 @@ typedef enum EnPifBmp280State
 } PifBmp280State;
 
 
+// Trimming parameters read from registers 0x88 to 0x9F (datasheet table 17), and t_fine, the
+// intermediate temperature that the pressure compensation needs.
 typedef struct StPifBmp280CalibParam 
 {
-    uint16_t dig_T1;	/* calibration T1 data */
-    int16_t dig_T2;		/* calibration T2 data */
-    int16_t dig_T3;		/* calibration T3 data */
-    uint16_t dig_P1;	/* calibration P1 data */
-    int16_t dig_P2;		/* calibration P2 data */
-    int16_t dig_P3;		/* calibration P3 data */
-    int16_t dig_P4;		/* calibration P4 data */
-    int16_t dig_P5;		/* calibration P5 data */
-    int16_t dig_P6;		/* calibration P6 data */
-    int16_t dig_P7;		/* calibration P7 data */
-    int16_t dig_P8;		/* calibration P8 data */
-    int16_t dig_P9;		/* calibration P9 data */
-    int32_t t_fine;		/* calibration t_fine data */
+    uint16_t dig_T1;
+    int16_t dig_T2;
+    int16_t dig_T3;
+    uint16_t dig_P1;
+    int16_t dig_P2;
+    int16_t dig_P3;
+    int16_t dig_P4;
+    int16_t dig_P5;
+    int16_t dig_P6;
+    int16_t dig_P7;
+    int16_t dig_P8;
+    int16_t dig_P9;
+    int32_t t_fine;
 } PifBmp280CalibParam;
 
 

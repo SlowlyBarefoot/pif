@@ -199,3 +199,11 @@ Every source file starts with an `SPDX-License-Identifier` line. Files under `in
 Because `gpl/include` mirrors the domain folders of `include/`, the include strings stay the same (for example `#include "osd/pif_max7456.h"`); only the include path `-Igpl/include` has to be added.
 
 Third-party code and its notices are listed in `THIRD_PARTY_NOTICES.md`.
+
+### License boundary check
+
+`tools/check_license_boundary.sh` checks that every source file has an SPDX line, that `include/` and `source/` stay BSD-3-Clause, that `gpl/` stays GPL-3.0-or-later, and that no file under `include/` or `source/` includes a header that exists only under `gpl/include`. Run it before committing, or enable the bundled pre-commit hook once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```

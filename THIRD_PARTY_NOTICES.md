@@ -12,16 +12,18 @@ projects. They live under `gpl/` and are distributed under GPL-3.0-or-later.
 
 | File | Derived from |
 | --- | --- |
-| `gpl/source/gps/pif_gps.c` | Betaflight / Cleanflight `gps.c`, `gps_conversion.c` (MultiWii lineage) |
-| `gpl/source/gps/pif_gps_ublox.c` | Betaflight / Cleanflight `gps.c` (u-blox NAV decoding) |
+| `gpl/source/gps/pif_gps.c` | Betaflight / Cleanflight `gps.c`, `gps_conversion.c`; Baseflight `gps.c` (MultiWii lineage) |
+| `gpl/include/gps/pif_gps.h` | Baseflight `mw.c` (GPS state fields) |
+| `gpl/source/gps/pif_gps_ublox.c`, `gpl/include/gps/pif_gps_ublox.h` | Betaflight / Cleanflight / Baseflight `gps.c` (u-blox NAV decoding); Baseflight `mw.c` |
 | `gpl/source/motor/pif_dshot.c` | Betaflight `dshot.c`, `dshot_command.c`, `dshot_dpwm.c`, `dshot_bitbang_decode.c` |
 | `gpl/source/osd/pif_max7456.c` | Betaflight `max7456.c` |
 | `gpl/source/protocol/pif_msp_v2.c` | Betaflight `msp_serial.c` |
-| `gpl/source/sensor/pif_hmc5883.c` | Baseflight / Cleanflight `compass_hmc5883l.c` (MultiWii lineage) |
-| `gpl/source/sensor/pif_ms5611.c` | Baseflight `barometer_ms5611.c` |
+| `gpl/source/sensor/pif_hmc5883.c` | Baseflight `drv_hmc5883l.c` (also in Cleanflight `compass_hmc5883l.c`; MultiWii lineage) |
+| `gpl/source/sensor/pif_ms5611.c` | Baseflight `drv_ms5611.c` (PROM CRC check and compensation) |
+| `gpl/source/sensor/pif_gy86.c` | Baseflight `drv_mpu.c` (MPU setup comments) |
 
-`pif_gps_nmea`, `pif_gps_ublox` and `pif_gy86` are also placed under `gpl/`
-because they depend on the modules above.
+`pif_gps_nmea` is also placed under `gpl/` because it depends on `pif_gps`, and
+`pif_gy86` because it depends on `pif_hmc5883` and `pif_ms5611`.
 
 Upstream projects and copyright holders:
 
@@ -44,7 +46,7 @@ Upstream projects and copyright holders:
 - License: BSD-3-Clause
 
 ```
-Copyright (c) 2023 Bosch Sensortec GmbH. All rights reserved.
+Copyright (c) 2020 Bosch Sensortec GmbH. All rights reserved.
 
 BSD-3-Clause
 
@@ -82,7 +84,7 @@ POSSIBILITY OF SUCH DAMAGE.
 - Origin: Infineon DPS310 Pressure Sensor Arduino library,
   https://github.com/Infineon/DPS310-Pressure-Sensor
 - License: MIT (`LICENSES/MIT.txt`)
-- Copyright (c) 2018 Infineon Technologies AG
+- Copyright (c) 2017 Infineon Technologies AG
 
 ### BASIC interpreter
 
@@ -90,19 +92,3 @@ POSSIBILITY OF SUCH DAMAGE.
 - Origin: https://github.com/jwillia3/BASIC
 - License: MIT (`LICENSES/MIT.txt`)
 - Copyright 2011 Jerry Williams Jr
-
-## Pending review
-
-The following BSD-3-Clause files still contain small portions that resemble
-GPL-licensed code. They are scheduled to be rewritten from datasheets and
-specifications so that they can stay under BSD-3-Clause.
-
-| File | Portion |
-| --- | --- |
-| `source/core/pif_log.c` | CLI tab completion and line editing |
-| `source/sensor/pif_imu_sensor.c` | Rotation matrix construction and board alignment |
-| `source/sensor/pif_mpu60x0.c`, `pif_mpu6500.c`, `pif_mpu30x0.c` | Calibration routine (Jarzebski Arduino-MPU6050, GPL-3.0) |
-| `source/rc/pif_rc_sbus.c` | Channel scaling formula |
-| `source/rc/pif_rc_ibus.c` | Extended channel decoding and IA6 detection (IBusBM) |
-| `source/sensor/pif_qmc5883.c` | Device detection heuristic |
-| `source/sensor/pif_bmi270.c` | Comments taken from Betaflight |
