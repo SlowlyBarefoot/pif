@@ -26,27 +26,6 @@ static const char *kPktErr[] = {
 #endif
 
 /**
- * @brief Updates a CRC-8/DVB-S2 (polynomial 0xD5), the checksum of MSPv2.
- * @param crc CRC so far.
- * @param p_data Bytes to add.
- * @param length Number of bytes.
- * @return Updated CRC.
- */
-static uint8_t _crc8DvbS2(uint8_t crc, const uint8_t* p_data, uint16_t length)
-{
-	uint16_t i;
-	uint8_t bit;
-
-	for (i = 0; i < length; i++) {
-		crc ^= p_data[i];
-		for (bit = 0; bit < 8; bit++) {
-			crc = (crc & 0x80) ? (uint8_t)((crc << 1) ^ 0xD5) : (uint8_t)(crc << 1);
-		}
-	}
-	return crc;
-}
-
-/**
  * @brief Drops the packet being received and logs why, once per run of the same error.
  * @param p_owner Pointer to the protocol instance that owns this operation.
  * @param pkt_err One of PKT_ERR_*.
@@ -197,7 +176,7 @@ static PifMspFrame _parsingPacket(void* p_parser, uint8_t data)
 		// The MSPv2 header is MSPv1 payload, so both checksums take it.
 		p_owner->__header[p_owner->__offset++] = data;
 		p_owner->__checksum1 ^= data;
-		p_owner->__checksum2 = _crc8DvbS2(p_owner->__checksum2, &data, 1);
+		p_owner->__checksum2 = pifCrc8_Add(p_owner->__checksum2, data, PIF_CRC8_POLY_DVB_S2);
 		if (p_owner->__offset == 2 + 5) {
 			if (!_startPayload(p_owner, p_owner->__header[3] | (p_owner->__header[4] << 8), p_owner->__header[2],
 					p_owner->__header[5] | (p_owner->__header[6] << 8), MV2RS_PAYLOAD_V2_OVER_V1, MV2RS_CHECKSUM_V2_OVER_V1)) {
@@ -209,7 +188,7 @@ static PifMspFrame _parsingPacket(void* p_parser, uint8_t data)
 	case MV2RS_PAYLOAD_V2_OVER_V1:
 		p_parent->__rx.p_packet[p_owner->__offset++] = data;
 		p_owner->__checksum1 ^= data;
-		p_owner->__checksum2 = _crc8DvbS2(p_owner->__checksum2, &data, 1);
+		p_owner->__checksum2 = pifCrc8_Add(p_owner->__checksum2, data, PIF_CRC8_POLY_DVB_S2);
 		if (p_owner->__offset == p_packet->data_count) {
 			p_parent->__rx.state = MV2RS_CHECKSUM_V2_OVER_V1;
 		}
@@ -226,7 +205,7 @@ static PifMspFrame _parsingPacket(void* p_parser, uint8_t data)
 
 	case MV2RS_HEADER_V2_NATIVE:
 		p_owner->__header[p_owner->__offset++] = data;
-		p_owner->__checksum2 = _crc8DvbS2(p_owner->__checksum2, &data, 1);
+		p_owner->__checksum2 = pifCrc8_Add(p_owner->__checksum2, data, PIF_CRC8_POLY_DVB_S2);
 		if (p_owner->__offset == 5) {
 			if (!_startPayload(p_owner, p_owner->__header[1] | (p_owner->__header[2] << 8), p_owner->__header[0],
 					p_owner->__header[3] | (p_owner->__header[4] << 8), MV2RS_PAYLOAD_V2_NATIVE, MV2RS_CHECKSUM_V2_NATIVE)) {
@@ -237,7 +216,7 @@ static PifMspFrame _parsingPacket(void* p_parser, uint8_t data)
 
 	case MV2RS_PAYLOAD_V2_NATIVE:
 		p_parent->__rx.p_packet[p_owner->__offset++] = data;
-		p_owner->__checksum2 = _crc8DvbS2(p_owner->__checksum2, &data, 1);
+		p_owner->__checksum2 = pifCrc8_Add(p_owner->__checksum2, data, PIF_CRC8_POLY_DVB_S2);
 		if (p_owner->__offset == p_packet->data_count) {
 			p_parent->__rx.state = MV2RS_CHECKSUM_V2_NATIVE;
 		}
@@ -359,8 +338,8 @@ BOOL pifMspV2_MakePacket(PifMspV2* p_owner, PifMspVersion version, uint8_t direc
 		header[header_size++] = data_size >> 8;
 
 		// Covers the MSPv2 header and the payload.
-		trailer[trailer_size] = _crc8DvbS2(0, &header[v2_pos], 5);
-		if (data_size) trailer[trailer_size] = _crc8DvbS2(trailer[trailer_size], p_data, data_size);
+		trailer[trailer_size] = pifCrc8(&header[v2_pos], 5, PIF_CRC8_POLY_DVB_S2);
+		if (data_size) trailer[trailer_size] = pifCrc8_Update(trailer[trailer_size], p_data, data_size, PIF_CRC8_POLY_DVB_S2);
 		trailer_size++;
 	}
 

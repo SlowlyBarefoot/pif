@@ -140,7 +140,7 @@ Callback naming conventions:
 
 Representative domains:
 
-- `core`, `communication`, `protocol`, `sensor`, `input`, `storage`
+- `core`, `codec`, `communication`, `protocol`, `sensor`, `input`, `storage`
 - `display`, `motor`, `sound`, `gps`, `filter`, `interpreter`
 - `markup`, `rc`, `osd`, `actulator`
 
@@ -181,6 +181,22 @@ Some modules were influenced by these projects.
 ### Sound
 
 - buzzer: https://github.com/multiwii/baseflight
+
+### Math and Filter
+
+These modules are written from published formulas, not from other code:
+
+- pif_math (sin, cos, acos polynomials): M. Abramowitz and I. A. Stegun, "Handbook of Mathematical Functions", 4.3.97, 4.4.46
+- pif_biquad_filter: R. Bristow-Johnson, "Cookbook formulae for audio EQ biquad filter coefficients"
+- pif_encoding (base-128 varint, zigzag): Protocol Buffers encoding documentation, https://protobuf.dev/programming-guides/encoding/
+
+## Tools
+
+- `tools/gen_huffman_table.py`: generates a `PifHuffmanCode` table for `pif_huffman` from sample files that look like the data to compress. Every byte value gets a code of at most 16 bits.
+
+  ```bash
+  tools/gen_huffman_table.py -n g_log_huffman -o log_huffman.c log1.bin log2.bin
+  ```
 
 ## License
 

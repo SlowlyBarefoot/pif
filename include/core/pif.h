@@ -80,6 +80,10 @@
 #define RESET_BIT_FILED(V, M)	(V) = (V) & ~(M)
 #define SET_BIT_FILED(V, M, D)	(V) = ((V) & ~(M)) | (D)
 
+// CRC-8 polynomials for pifCrc8_Add() (MSB first, no reflection).
+#define PIF_CRC8_POLY_DVB_S2	0xD5	// MSPv2, CRSF, GHST
+#define PIF_CRC8_POLY_BA		0xBA	// CRSF command frames
+
 
 typedef uint16_t PifId;
 typedef void* PifIssuerP;
@@ -351,6 +355,60 @@ uint16_t pifCrc16_Add(uint16_t crc, uint8_t data);
  * @return Return value of this API.
  */
 uint16_t pifCrc16(uint8_t* p_data, uint16_t length);
+
+/**
+ * @fn pifCrc16_Update
+ * @brief Adds a block of bytes to a CRC-16/CCITT (polynomial 0x1021, MSB first).
+ *
+ * pifCrc16() is this function started from 0 (CRC-16/XMODEM). Start from 0xFFFF
+ * for CRC-16/CCITT-FALSE.
+ * @param crc Current CRC accumulator value.
+ * @param p_data Pointer to the data buffer used by this operation.
+ * @param length Number of bytes to process.
+ * @return Updated CRC accumulator value.
+ */
+uint16_t pifCrc16_Update(uint16_t crc, const uint8_t* p_data, uint16_t length);
+
+/**
+ * @fn pifCrc8_Add
+ * @brief Adds one byte to a CRC-8 with the given polynomial (MSB first, no reflection, no final XOR).
+ * @param crc Current CRC accumulator value.
+ * @param data Input byte value used in CRC accumulation.
+ * @param poly CRC polynomial without the x^8 term, for example PIF_CRC8_POLY_DVB_S2.
+ * @return Updated CRC accumulator value.
+ */
+uint8_t pifCrc8_Add(uint8_t crc, uint8_t data, uint8_t poly);
+
+/**
+ * @fn pifCrc8_Update
+ * @brief Adds a block of bytes to a CRC-8 with the given polynomial.
+ * @param crc Current CRC accumulator value.
+ * @param p_data Pointer to the data buffer used by this operation.
+ * @param length Number of bytes to process.
+ * @param poly CRC polynomial without the x^8 term, for example PIF_CRC8_POLY_DVB_S2.
+ * @return Updated CRC accumulator value.
+ */
+uint8_t pifCrc8_Update(uint8_t crc, const uint8_t* p_data, uint16_t length, uint8_t poly);
+
+/**
+ * @fn pifCrc8
+ * @brief Calculates a CRC-8 with the given polynomial over a block of bytes, starting from 0.
+ * @param p_data Pointer to the data buffer used by this operation.
+ * @param length Number of bytes to process.
+ * @param poly CRC polynomial without the x^8 term, for example PIF_CRC8_POLY_DVB_S2.
+ * @return CRC of the block.
+ */
+uint8_t pifCrc8(const uint8_t* p_data, uint16_t length, uint8_t poly);
+
+/**
+ * @fn pifCheckXor_Update
+ * @brief Adds a block of bytes to an XOR checksum.
+ * @param val Current XOR accumulator value.
+ * @param p_data Pointer to the data buffer used by this operation.
+ * @param length Number of bytes to process.
+ * @return Updated XOR accumulator value.
+ */
+uint8_t pifCheckXor_Update(uint8_t val, const uint8_t* p_data, uint16_t length);
 
 /**
  * @fn pifCheckSum

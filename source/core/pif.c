@@ -530,6 +530,43 @@ uint16_t pifCrc16(uint8_t* p_data, uint16_t length)
 	return crc;
 }
 
+uint16_t pifCrc16_Update(uint16_t crc, const uint8_t* p_data, uint16_t length)
+{
+	uint16_t i;
+
+	for (i = 0; i < length; i++) {
+		crc = pifCrc16_Add(crc, p_data[i]);
+	}
+	return crc;
+}
+
+uint8_t pifCrc8_Add(uint8_t crc, uint8_t data, uint8_t poly)
+{
+	uint8_t i;
+
+	crc ^= data;
+	for (i = 0; i < 8; i++) {
+		if (crc & 0x80) crc = (uint8_t)(crc << 1) ^ poly;
+		else crc <<= 1;
+	}
+	return crc;
+}
+
+uint8_t pifCrc8_Update(uint8_t crc, const uint8_t* p_data, uint16_t length, uint8_t poly)
+{
+	uint16_t i;
+
+	for (i = 0; i < length; i++) {
+		crc = pifCrc8_Add(crc, p_data[i], poly);
+	}
+	return crc;
+}
+
+uint8_t pifCrc8(const uint8_t* p_data, uint16_t length, uint8_t poly)
+{
+	return pifCrc8_Update(0, p_data, length, poly);
+}
+
 uint32_t pifCheckSum(uint8_t* p_data, uint16_t length)
 {
 	uint16_t i;
@@ -545,6 +582,16 @@ uint8_t pifCheckXor(uint8_t* p_data, uint16_t length)
 {
 	uint16_t i;
 	uint8_t val = 0;
+
+	for (i = 0; i < length; i++) {
+		val ^= p_data[i];
+	}
+	return val;
+}
+
+uint8_t pifCheckXor_Update(uint8_t val, const uint8_t* p_data, uint16_t length)
+{
+	uint16_t i;
 
 	for (i = 0; i < length; i++) {
 		val ^= p_data[i];
