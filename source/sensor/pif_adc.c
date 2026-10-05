@@ -5,6 +5,12 @@
 #define NO_VREFINT			0xFF
 #define MAX_FILTER_SHIFT	8
 
+// Largest __filtered and full scale for which __filtered * _vref_mv, with the rounding, fits in
+// 32 bits.
+#define MAX_32BIT_OPERAND		0xFFFFUL
+// Largest |__mul| for which _millivolt * __mul fits in an int32_t.
+#define MAX_32BIT_MUL			32768L
+
 
 /**
  * @fn _fullScale
@@ -52,12 +58,31 @@ static void _convert(PifAdc* p_owner, PifAdcChannel* p_channel)
 {
 	uint64_t scaled;
 	int64_t delta;
+	uint32_t full_scale;
 
-	p_channel->_millivolt = (uint16_t)(((uint64_t)p_channel->__filtered * p_owner->_vref_mv + _fullScale(p_owner) / 2) / _fullScale(p_owner));
+	// The 64-bit divisions are library calls on 32-bit MCUs, so they are only taken when a 32-bit
+	// product could overflow. Both ways give the same result.
+	full_scale = _fullScale(p_owner);
+	if (p_channel->__filtered <= MAX_32BIT_OPERAND && full_scale <= MAX_32BIT_OPERAND) {
+		// At most 0xFFFF * 0xFFFF + 0x7FFF, which fits.
+		p_channel->_millivolt = (uint16_t)((p_channel->__filtered * p_owner->_vref_mv + full_scale / 2) / full_scale);
+	}
+	else {
+		p_channel->_millivolt = (uint16_t)(((uint64_t)p_channel->__filtered * p_owner->_vref_mv + full_scale / 2) / full_scale);
+	}
 
 	switch (p_channel->_type) {
 	case ACH_VOLTAGE:
-		p_channel->_value = (int32_t)((int64_t)p_channel->_millivolt * p_channel->__mul / p_channel->__div) + p_channel->__offset;
+		if (p_channel->__mul == p_channel->__div) {
+			p_channel->_value = (int32_t)p_channel->_millivolt + p_channel->__offset;
+		}
+		else if (p_channel->__mul >= -MAX_32BIT_MUL && p_channel->__mul <= MAX_32BIT_MUL) {
+			// _millivolt < 2^16, so the product fits in 31 bits.
+			p_channel->_value = (int32_t)p_channel->_millivolt * p_channel->__mul / p_channel->__div + p_channel->__offset;
+		}
+		else {
+			p_channel->_value = (int32_t)((int64_t)p_channel->_millivolt * p_channel->__mul / p_channel->__div) + p_channel->__offset;
+		}
 		break;
 
 	case ACH_VREFINT:
