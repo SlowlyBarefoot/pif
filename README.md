@@ -167,6 +167,7 @@ Some modules were influenced by these projects.
 
 ### Protocol
 
+- crsf: TBS CRSF protocol specification, https://github.com/tbs-fpv/tbs-crsf-spec (written from the specification)
 - ibus: https://github.com/bmelink/IBusBM
 - msp: https://github.com/multiwii/baseflight
 - sbus: https://github.com/zendes/SBUS
@@ -189,6 +190,9 @@ These modules are written from published formulas, not from other code:
 - pif_math (sin, cos, acos polynomials): M. Abramowitz and I. A. Stegun, "Handbook of Mathematical Functions", 4.3.97, 4.4.46
 - pif_biquad_filter: R. Bristow-Johnson, "Cookbook formulae for audio EQ biquad filter coefficients"
 - pif_encoding (base-128 varint, zigzag): Protocol Buffers encoding documentation, https://protobuf.dev/programming-guides/encoding/
+- pif_sdft: E. Jacobsen and R. Lyons, "The Sliding DFT", IEEE Signal Processing Magazine, 2003
+- pif_ahrs: R. Mahony, T. Hamel and J.-M. Pflimlin, "Nonlinear Complementary Filters on the Special Orthogonal Group", IEEE Transactions on Automatic Control, 2008
+- pif_pid_control (derivative on measurement, anti-windup by clamping and back-calculation, feedforward): K. J. Åström and T. Hägglund, "Advanced PID Control", ISA, 2006
 
 ## Tools
 

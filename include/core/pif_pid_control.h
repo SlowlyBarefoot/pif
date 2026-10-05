@@ -3,6 +3,37 @@
 #define PIF_PID_CONTROL_H
 
 
+#include "core/pif.h"
+
+
+/*
+ * PID controller.
+ *
+ * pifPidControl_Calculate() is the original, sample-count form: it takes the error alone, sums it
+ * without a time step and limits the integral with max_integration.
+ *
+ * pifPidControl_Update() is the full form, with the time step, and the following, each off until
+ * set:
+ *   - derivative on measurement instead of on error, so that a step of the setpoint does not kick
+ *     the D term (pifPidControl_SetDerivativeOnMeasurement()),
+ *   - a first or second-order low-pass filter on the D term (pifPidControl_SetDtermFilter()),
+ *   - output limits (pifPidControl_SetOutputLimit()) with anti-windup by conditional integration
+ *     or by back-calculation (pifPidControl_SetAntiWindup()); max_integration still limits the
+ *     I term,
+ *   - feedforward of the setpoint and of its rate of change (pifPidControl_SetFeedforward()).
+ * The I term is kept as the integral of ki * error, so ki can be changed while running without a
+ * jump of the output. The two forms keep separate state and are not meant to be mixed.
+ */
+
+
+typedef enum EnPifPidAntiWindup
+{
+	PID_AW_NONE				= 0,	// Integrate always; max_integration still limits the I term
+	PID_AW_CLAMP			= 1,	// Stop integrating while the output is saturated in the error's direction
+	PID_AW_BACK_CALCULATION	= 2		// Bleed the I term by tracking_gain * (limited - unlimited output)
+} PifPidAntiWindup;
+
+
 /**
  * @struct StPifPidControl
  * @brief Represents the pid control data structure used by this module.
@@ -10,12 +41,39 @@
 typedef struct StPifPidControl
 {
 	float kp;				// Proportional gain
-	float ki;				// Integral gain
-	float kd; 		    	// Derivative gain
-    float max_integration;	// Maximum Integration
+	float ki;				// Integral gain (per second in pifPidControl_Update())
+	float kd; 		    	// Derivative gain (seconds in pifPidControl_Update())
+    float max_integration;	// Maximum Integration: largest absolute I term, 0 for no limit in pifPidControl_Update()
 
 	float err_sum;		    // Variable: Error Sum
 	float err_prev;	   		// History: Previous error
+
+	// Read-only Member Variable, pifPidControl_Update() only
+	float _p_term;
+	float _i_term;
+	float _d_term;
+	float _f_term;
+	float _output;
+	BOOL _saturated;		// The last output was limited
+
+	// Private Member Variable
+	BOOL __primed;			// The history below holds a previous sample
+	float __prev_error;
+	float __prev_measurement;
+	float __prev_setpoint;
+	BOOL __d_on_measurement;
+	uint8_t __d_order;		// 0 for no D-term filter
+	float __d_cutoff_hz;
+	float __d_state[2];
+	float __out_min;
+	float __out_max;
+	BOOL __limited;
+	PifPidAntiWindup __anti_windup;
+	float __tracking_gain;
+	float __kf;
+	float __kfd;
+	float __f_cutoff_hz;
+	float __f_state;
 } PifPidControl;
 
 
@@ -42,6 +100,86 @@ void pifPidControl_Init(PifPidControl *p_owner, float kp, float ki, float kd, fl
  * @return Result value returned by this API.
  */
 float pifPidControl_Calculate(PifPidControl *p_owner, float err);
+
+/**
+ * @fn pifPidControl_SetDerivativeOnMeasurement
+ * @brief Takes the D term from the change of the measurement instead of the error, for
+ *        pifPidControl_Update(). The two differ only by the change of the setpoint, which is what
+ *        kicks the output when the setpoint steps.
+ * @param p_owner Pointer to the target object instance.
+ * @param enable TRUE for derivative on measurement, FALSE for derivative on error.
+ */
+void pifPidControl_SetDerivativeOnMeasurement(PifPidControl *p_owner, BOOL enable);
+
+/**
+ * @fn pifPidControl_SetDtermFilter
+ * @brief Sets a low-pass filter on the D term, for pifPidControl_Update().
+ * @param p_owner Pointer to the target object instance.
+ * @param cutoff_hz Cutoff frequency in Hz, or 0 for no filter.
+ * @param order 1 or 2 identical first-order stages, 3 dB down at cutoff_hz either way.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifPidControl_SetDtermFilter(PifPidControl *p_owner, float cutoff_hz, uint8_t order);
+
+/**
+ * @fn pifPidControl_SetOutputLimit
+ * @brief Limits the output of pifPidControl_Update().
+ * @param p_owner Pointer to the target object instance.
+ * @param min Lowest output.
+ * @param max Highest output, above min.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifPidControl_SetOutputLimit(PifPidControl *p_owner, float min, float max);
+
+/**
+ * @fn pifPidControl_ClearOutputLimit
+ * @brief Removes the output limits.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifPidControl_ClearOutputLimit(PifPidControl *p_owner);
+
+/**
+ * @fn pifPidControl_SetAntiWindup
+ * @brief Chooses how the I term is kept from winding up while the output is limited.
+ * @param p_owner Pointer to the target object instance.
+ * @param mode Anti-windup method.
+ * @param tracking_gain For PID_AW_BACK_CALCULATION, how fast the I term follows the limit, per
+ *        second. Around ki / kp is a common start. Ignored otherwise.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifPidControl_SetAntiWindup(PifPidControl *p_owner, PifPidAntiWindup mode, float tracking_gain);
+
+/**
+ * @fn pifPidControl_SetFeedforward
+ * @brief Adds kf * setpoint + kfd * (rate of change of the setpoint) to the output of
+ *        pifPidControl_Update(), so that the output moves with the command before an error builds
+ *        up.
+ * @param p_owner Pointer to the target object instance.
+ * @param kf Static feedforward gain, 0 for none.
+ * @param kfd Rate feedforward gain in seconds, 0 for none.
+ * @param cutoff_hz Low-pass cutoff on the setpoint rate in Hz, or 0 for none.
+ */
+void pifPidControl_SetFeedforward(PifPidControl *p_owner, float kf, float kfd, float cutoff_hz);
+
+/**
+ * @fn pifPidControl_Reset
+ * @brief Clears the I term and the history of pifPidControl_Update(), and the error sum of
+ *        pifPidControl_Calculate().
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifPidControl_Reset(PifPidControl *p_owner);
+
+/**
+ * @fn pifPidControl_Update
+ * @brief Runs one step of the full PID.
+ * @param p_owner Pointer to the target object instance.
+ * @param setpoint Desired value.
+ * @param measurement Measured value.
+ * @param dt Time since the previous step in seconds. The D term and the setpoint rate are 0 on the
+ *        first step after an init or reset, and whenever dt is not positive.
+ * @return Output, within the limits if set.
+ */
+float pifPidControl_Update(PifPidControl *p_owner, float setpoint, float measurement, float dt);
 
 #ifdef __cplusplus
 }
