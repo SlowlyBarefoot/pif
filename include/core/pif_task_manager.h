@@ -35,6 +35,25 @@ typedef struct StPifTaskTimer
 
 typedef void (*PifEvtTaskIdle)(void);
 
+#ifdef PIF_USE_TASK_STATISTICS
+
+/**
+ * @struct StPifTaskIdleStatistics
+ * @brief The statistics of the idle callback. It runs outside the task ring, so it is not a
+ *        PifTask, but it keeps the same measurements over the same moving window so that a report
+ *        can put it next to the tasks.
+ */
+typedef struct StPifTaskIdleStatistics
+{
+	uint32_t total_execution_time;		// Sum of the run times since the callback was set (us)
+	uint32_t max_execution_time;		// Longest run since the last reset (us)
+	uint32_t average_execution_time;	// Average run time (us), or PIF_TASK_AVERAGE_NONE until
+										// PIF_TASK_AVERAGE_MIN_COUNT runs are collected
+	uint32_t average_delta_time;		// Average time between the starts of two runs (us), likewise
+} PifTaskIdleStatistics;
+
+#endif
+
 #ifdef PIF_DEBUG
 
 extern PifActTaskSignal pif_act_task_signal;
@@ -157,10 +176,31 @@ void pifTaskManager_Loop();
 
 /**
  * @fn pifTaskManager_AllTask
- * @brief Executes the pifTaskManager_AllTask operation for the task manager module according to the API contract.
+ * @brief Calls the callback once for every task in the manager, in ring order.
  * @param callback Callback function invoked for each task entry.
+ * @param p_arg Passed to every call of the callback unchanged, so the caller can carry state
+ *              such as a running total across the tasks without a static variable.
  */
-void pifTaskManager_AllTask(void (*callback)(PifTask *p_task));
+void pifTaskManager_AllTask(void (*callback)(PifTask *p_task, void *p_arg), void *p_arg);
+
+#ifdef PIF_USE_TASK_STATISTICS
+
+/**
+ * @fn pifTaskManager_GetIdleStatistics
+ * @brief Retrieves the statistics of the idle callback set by pifTaskManager_SetIdle().
+ * @param p_stat Filled in with the statistics. Left untouched when there is no idle callback.
+ * @return FALSE when no idle callback is set, so there is nothing to report.
+ */
+BOOL pifTaskManager_GetIdleStatistics(PifTaskIdleStatistics *p_stat);
+
+/**
+ * @fn pifTaskManager_ResetIdleMaxExecutionTime
+ * @brief Clears the longest run of the idle callback, as pifTask_ResetMaxExecutionTime() does
+ *        for a task.
+ */
+void pifTaskManager_ResetIdleMaxExecutionTime();
+
+#endif
 
 #if !defined(PIF_NO_LOG) || defined(PIF_LOG_COMMAND)
 

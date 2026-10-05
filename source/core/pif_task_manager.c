@@ -60,6 +60,18 @@ static PifObjArray s_timers;
 static PifEvtTaskIdle evt_task_idle = NULL;
 static uint32_t s_idle_period;		// Default idle period in microseconds
 static uint32_t s_idle_pretime;		// Idle timer in microseconds
+#ifdef PIF_USE_TASK_STATISTICS
+// What a PifTask keeps for itself, kept here for the idle callback. The two buckets take turns
+// exactly as the ones of a task do.
+static struct {
+	uint32_t total_execution_time;
+	uint32_t max_execution_time;
+	uint32_t sum_delta_time[2];
+	uint32_t sum_execution_time[2];
+	uint16_t count;
+	uint8_t index;
+} s_idle_stat;
+#endif
 #ifdef PIF_USE_BLOCK_TIME
 static PifBlockTime s_idle_block_time;			// Longest run of the idle callback
 
@@ -439,6 +451,24 @@ static void _processingIdle(uint32_t slack)
 	pifTask_UpdateBlockTime(&s_idle_block_time, block_time);
 #endif
 	pif_performance._task_time1us += block_time;
+#ifdef PIF_USE_TASK_STATISTICS
+	// delta is the time since the previous run started, which is what the delta time of a task
+	// measures as well.
+	s_idle_stat.total_execution_time += block_time;
+	if (block_time > s_idle_stat.max_execution_time) s_idle_stat.max_execution_time = block_time;
+	s_idle_stat.sum_delta_time[s_idle_stat.index] += delta;
+	s_idle_stat.sum_execution_time[s_idle_stat.index] += block_time;
+	s_idle_stat.count++;
+	if (s_idle_stat.count == 200) {
+		s_idle_stat.count -= 100;
+		s_idle_stat.index ^= 1;
+		s_idle_stat.sum_delta_time[s_idle_stat.index] = 0;
+		s_idle_stat.sum_execution_time[s_idle_stat.index] = 0;
+	}
+	else if (s_idle_stat.count == 100) {
+		s_idle_stat.index ^= 1;
+	}
+#endif
 }
 
 static void _initCpuLoad()
@@ -702,6 +732,10 @@ void pifTaskManager_SetIdle(PifEvtTaskIdle evt_idle, uint32_t period_ms)
 	// The measurement belongs to the callback that was set, not to the one replacing it.
 	pifTask_ResetBlockTime(&s_idle_block_time);
 #endif
+#ifdef PIF_USE_TASK_STATISTICS
+	// So do the statistics.
+	memset(&s_idle_stat, 0, sizeof(s_idle_stat));
+#endif
 }
 
 void pifTaskManager_Loop()
@@ -821,16 +855,44 @@ next:
 	_updateCpuLoad();
 }
 
-void pifTaskManager_AllTask(void (*callback)(PifTask *p_task))
+void pifTaskManager_AllTask(void (*callback)(PifTask *p_task, void *p_arg), void *p_arg)
 {
 	PifObjArrayIterator it;
 
 	it = pifObjArray_Begin(&s_tasks);
 	while (it) {
-	 	(*callback)((PifTask *)it->data);
+	 	(*callback)((PifTask *)it->data, p_arg);
 		it = pifObjArray_Next(it);
 	}
 }
+
+#ifdef PIF_USE_TASK_STATISTICS
+
+BOOL pifTaskManager_GetIdleStatistics(PifTaskIdleStatistics *p_stat)
+{
+	uint32_t count = s_idle_stat.count;
+
+	if (!evt_task_idle) return FALSE;
+
+	p_stat->total_execution_time = s_idle_stat.total_execution_time;
+	p_stat->max_execution_time = s_idle_stat.max_execution_time;
+	if (count < PIF_TASK_AVERAGE_MIN_COUNT) {
+		p_stat->average_execution_time = PIF_TASK_AVERAGE_NONE;
+		p_stat->average_delta_time = PIF_TASK_AVERAGE_NONE;
+	}
+	else {
+		p_stat->average_execution_time = (s_idle_stat.sum_execution_time[0] + s_idle_stat.sum_execution_time[1]) / count;
+		p_stat->average_delta_time = (s_idle_stat.sum_delta_time[0] + s_idle_stat.sum_delta_time[1]) / count;
+	}
+	return TRUE;
+}
+
+void pifTaskManager_ResetIdleMaxExecutionTime()
+{
+	s_idle_stat.max_execution_time = 0UL;
+}
+
+#endif
 
 #if !defined(PIF_NO_LOG) || defined(PIF_LOG_COMMAND)
 
@@ -843,6 +905,7 @@ void pifTaskManager_Print()
 #endif
 #ifdef PIF_USE_TASK_STATISTICS
 	uint32_t value;
+	PifTaskIdleStatistics stat;
 #endif
 
    	pifLog_Printf(LT_NONE, "Task count: %d\n", pifObjArray_Count(&s_tasks));
@@ -928,6 +991,13 @@ void pifTaskManager_Print()
 	if (block_time || s_idle_block_time._max) {
 		pifLog_Printf(LT_NONE, "Callback block: Timer=%luus Idle=%luus\n", block_time,
 				s_idle_block_time._max);
+	}
+#endif
+#ifdef PIF_USE_TASK_STATISTICS
+	if (s_idle_stat.count && pifTaskManager_GetIdleStatistics(&stat)) {
+		pifLog_Printf(LT_NONE, "Idle: M=%luus A=%luus Delta=%luus\n", stat.max_execution_time,
+				(stat.average_execution_time == PIF_TASK_AVERAGE_NONE) ? 0UL : stat.average_execution_time,
+				(stat.average_delta_time == PIF_TASK_AVERAGE_NONE) ? 0UL : stat.average_delta_time);
 	}
 #endif
 
