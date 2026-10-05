@@ -166,6 +166,9 @@ BOOL pifRingBuffer_ResizeHeap(PifRingBuffer* p_owner, uint16_t size)
 		return FALSE;
 	}
     p_owner->_size = size;
+	p_owner->__head = 0;
+	p_owner->__tail = 0;
+	p_owner->__backup_head = size;
 	return TRUE;
 }
 
