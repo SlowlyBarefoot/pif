@@ -56,3 +56,6 @@ dkms.conf
 .hg
 .hgignore
 .vscode
+
+# Unit test output
+test/build/
