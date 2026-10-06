@@ -58,6 +58,7 @@
 
 
 #include "communication/pif_uart.h"
+#include "core/pif_timer_manager.h"
 
 
 // Largest data size of one received packet. The buffer allocated in pifLink_Init() is

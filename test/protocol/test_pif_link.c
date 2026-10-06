@@ -55,7 +55,7 @@ static uint8_t s_data[MAX_DATA];
 
 static uint32_t _timer1us(void)
 {
-    return (uint32_t)(clock() * (1000000 / CLOCKS_PER_SEC));
+    return (uint32_t)clock() * (1000000 / CLOCKS_PER_SEC);
 }
 
 static uint16_t _sendA(PifUart *p_uart, uint8_t *p_data, uint16_t size)
