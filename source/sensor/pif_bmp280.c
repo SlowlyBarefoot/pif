@@ -209,7 +209,7 @@ BOOL pifBmp280_ReadBarometric(PifBmp280* p_owner, float* p_pressure, float* p_te
 
 BOOL pifBmp280_AttachTaskForReading(PifBmp280* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start)
 {
-	p_owner->_p_task = pifTaskManager_Add(id, TM_PERIOD, read_period * 1000, _doTask, p_owner, start);
+	p_owner->_p_task = pifTaskManager_Add(id, TM_PERIOD, read_period * 1000UL, _doTask, p_owner, start);
     if (!p_owner->_p_task) return FALSE;
 	p_owner->_p_task->name = "BMP280";
 

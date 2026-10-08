@@ -1,209 +1,178 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_sequence.h"
-#ifdef PIF_COLLECT_SIGNAL
-	#include "core/pif_collect_signal.h"
-#endif
-#include "core/pif_dlist.h"
-#ifndef PIF_NO_LOG
-	#include "core/pif_log.h"
-#endif
 
-// Step-based sequence runner with task-driven execution.
-
-#ifdef PIF_COLLECT_SIGNAL
-	static PifDList s_cs_list;
-#endif
+// Step-based sequence runner on a task of its own.
 
 
-static uint32_t _doTask(PifTask* p_task)
+// How long the pending step leaves before it is due, or 0 when the sequence is idle.
+static uint32_t _nextPoll(PifSequence *p_owner)
 {
-	PifSequence *p_owner = (PifSequence *)p_task->_p_client;
+	uint32_t elapsed, remain;
 
-	if (p_owner->__process) {
-		(*p_owner->__process)(p_owner);
-		p_owner->__process = NULL;
-		if (p_owner->__next_process) {
-			p_owner->__process = p_owner->__next_process;
-			p_owner->__next_process = NULL;
+	switch (p_owner->__state) {
+	case SQS_RUN:
+		return PIF_SEQUENCE_NEXT_US;
+
+	case SQS_DELAY:
+		elapsed = pif_cumulative_timer1ms - p_owner->__start_ms;
+		if (elapsed >= p_owner->__wait_ms) return PIF_SEQUENCE_NEXT_US;
+		return (p_owner->__wait_ms - elapsed) * 1000UL;
+
+	case SQS_WAIT:
+		// A signal raised since the wait began, even by an interrupt during the step that began
+		// it, is picked up at once rather than at the next look.
+		if (p_owner->__event) return PIF_SEQUENCE_NEXT_US;
+
+		// Without a timeout only the signal is looked for. With one, whichever comes first.
+		remain = PIF_SEQUENCE_WAIT_POLL_US;
+		if (p_owner->__wait_ms) {
+			elapsed = pif_cumulative_timer1ms - p_owner->__start_ms;
+			if (elapsed >= p_owner->__wait_ms) return PIF_SEQUENCE_NEXT_US;
+			if ((p_owner->__wait_ms - elapsed) * 1000UL < remain) remain = (p_owner->__wait_ms - elapsed) * 1000UL;
 		}
+		return remain;
+
+	default:
+		return 0;
 	}
-	return 0;
 }
 
-static void _evtTimerTimeoutFinish(PifIssuerP p_issuer)
+// Runs the pending step if it is due.
+static void _poll(PifSequence *p_owner)
 {
-    PifSequence* p_owner = (PifSequence*)p_issuer;
+	// The subtraction stays correct across a wrap of the counter.
+	uint32_t elapsed = pif_cumulative_timer1ms - p_owner->__start_ms;
+	PifSequenceStep step = NULL;
 
-	pif_error = E_TIMEOUT;
-	if (p_owner->evt_error) (*p_owner->evt_error)(p_owner);
-	p_owner->__process = NULL;
-	p_owner->__next_process = NULL;
-}
+	switch (p_owner->__state) {
+	case SQS_RUN:
+		step = p_owner->__step;
+		break;
 
-#ifdef PIF_COLLECT_SIGNAL
+	case SQS_DELAY:
+		if (elapsed >= p_owner->__wait_ms) step = p_owner->__step;
+		break;
 
-static void _addDeviceInCollectSignal()
-{
-	const char* prefix[SQ_CSF_COUNT] = { "SQ" };
-
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSequenceColSig* p_colsig = (PifSequenceColSig*)it->data;
-		PifSequence* p_owner = p_colsig->p_owner;
-		for (int f = 0; f < SQ_CSF_COUNT; f++) {
-			if (p_colsig->flag & (1 << f)) {
-				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_REG, 8, prefix[f], 0xFF);
+	case SQS_WAIT:
+		// The signal is only looked at here, so one raised during a delay cannot cut it short.
+		if (p_owner->__event) {
+			p_owner->__event = FALSE;
+			step = p_owner->__step;
+		}
+		else if (p_owner->__wait_ms && elapsed >= p_owner->__wait_ms) {
+			step = p_owner->__on_timeout;
+			if (!step) {
+				pif_error = E_TIMEOUT;
+				p_owner->__state = SQS_IDLE;
 			}
 		}
-#ifndef PIF_NO_LOG
-		pifLog_Printf(LT_INFO, "SQ_CS:Add(DC:%u F:%u)", p_owner->_id, p_colsig->flag);
-#endif
+		break;
+	}
 
-		it = pifDList_Next(it);
+	if (step) {
+		// A step that picks no successor leaves the sequence idle, which ends it.
+		p_owner->__state = SQS_IDLE;
+		(*step)(p_owner);
 	}
 }
 
-#endif	// PIF_COLLECT_SIGNAL
-
-BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_manager, void* p_param)
+static uint32_t _doTask(PifTask *p_task)
 {
-    if (!p_owner || !p_timer_manager) {
-        pif_error = E_INVALID_PARAM;
-	    return FALSE;
-    }
+	PifSequence *p_owner = (PifSequence *)p_task->_p_client;
+	uint32_t delay;
+
+	_poll(p_owner);
+	delay = _nextPoll(p_owner);
+	// Nothing to run until the sequence is started again.
+	if (!delay) p_task->pause = TRUE;
+	return delay;
+}
+
+BOOL pifSequence_Init(PifSequence *p_owner, PifId id, void *p_param)
+{
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
 
 	memset(p_owner, 0, sizeof(PifSequence));
+	if (id == PIF_ID_AUTO) id = pif_id++;
+	p_owner->_id = id;
+	p_owner->p_param = p_param;
 
-    p_owner->__p_timer_manager = p_timer_manager;
-
-    if (id == PIF_ID_AUTO) id = pif_id++;
-    p_owner->_id = id;
-    p_owner->p_param = p_param;
-
-    p_owner->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_EXTERNAL, 0, _doTask, p_owner, TRUE);
-	if (!p_owner->__p_task) goto fail;
-	p_owner->__p_task->name = "Sequence";
-
-#ifdef PIF_COLLECT_SIGNAL
-	if (!pifDList_Size(&s_cs_list)) {
-		pifCollectSignal_Attach(CSF_SEQUENCE, _addDeviceInCollectSignal);
-	}
-	PifSequenceColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSequenceColSig));
-	if (!p_colsig) goto fail;
-	p_colsig->p_owner = p_owner;
-	p_owner->__p_colsig = p_colsig;
-#endif
-    return TRUE;
-
-fail:
-	pifSequence_Clear(p_owner);
-	return FALSE;
+	// Kept until pifSequence_Clear() and paused in between, rather than removed when the
+	// sequence ends: the end is reached inside this task's own run, and the task manager still
+	// uses the task after the run returns.
+	p_owner->_p_task = pifTaskManager_Add(id, TM_PERIOD, PIF_SEQUENCE_WAIT_POLL_US, _doTask, p_owner, FALSE);
+	if (!p_owner->_p_task) return FALSE;
+	p_owner->_p_task->name = "Sequence";
+	return TRUE;
 }
 
-void pifSequence_Clear(PifSequence* p_owner)
+void pifSequence_Clear(PifSequence *p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
-    if (p_owner->__p_colsig) {
-    	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
-    	if (!pifDList_Size(&s_cs_list)) {
-    		pifCollectSignal_Detach(CSF_SEQUENCE);
-    	}
-    	p_owner->__p_colsig = NULL;
-    }
-#endif
-	if (p_owner->__p_task) {
-		pifTaskManager_Remove(p_owner->__p_task);
-		p_owner->__p_task = NULL;
+	p_owner->__state = SQS_IDLE;
+	if (p_owner->_p_task) {
+		pifTaskManager_Remove(p_owner->_p_task);
+		p_owner->_p_task = NULL;
 	}
-	if (p_owner->__p_timer_timeout) {
-		pifTimerManager_Remove(p_owner->__p_timer_timeout);
-		p_owner->__p_timer_timeout = NULL;
+}
+
+BOOL pifSequence_Start(PifSequence *p_owner, PifSequenceStep step)
+{
+	if (!step) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
 	}
+	if (p_owner->__state != SQS_IDLE || !p_owner->_p_task) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
+	pifSequence_Next(p_owner, step);
+
+	// The period may still be a long delay left from before a stop, so it is set back to the
+	// shortest one the task keeps.
+	pifTask_ChangePeriod(p_owner->_p_task, PIF_SEQUENCE_WAIT_POLL_US);
+	p_owner->_p_task->pause = FALSE;
+	return TRUE;
+}
+
+void pifSequence_Stop(PifSequence *p_owner)
+{
+	p_owner->__state = SQS_IDLE;
+	if (p_owner->_p_task) p_owner->_p_task->pause = TRUE;
 }
 
 BOOL pifSequence_IsRunning(PifSequence *p_owner)
 {
-	return p_owner->__process != NULL;
+	return p_owner->__state != SQS_IDLE;
 }
 
-BOOL pifSequence_Start(PifSequence *p_owner, PifSequenceProcess process)
+void pifSequence_Next(PifSequence *p_owner, PifSequenceStep next)
 {
-	if (p_owner->__process) return FALSE; 
-	if (!pifTask_SetTrigger(p_owner->__p_task, 0)) return FALSE;
-	p_owner->__process = process;
-	return TRUE;
+	p_owner->__step = next;
+	p_owner->__state = SQS_RUN;
 }
 
-BOOL pifSequence_NextDelay(PifSequence *p_owner, PifSequenceProcess process, uint16_t delay1ms)
+void pifSequence_Delay(PifSequence *p_owner, PifSequenceStep next, uint16_t delay1ms)
 {
-	if (!pifTask_SetTrigger(p_owner->__p_task, delay1ms * 1000)) return FALSE;
-	p_owner->__next_process = process;
-	return TRUE;
+	p_owner->__step = next;
+	p_owner->__start_ms = pif_cumulative_timer1ms;
+	p_owner->__wait_ms = delay1ms;
+	p_owner->__state = SQS_DELAY;
 }
 
-BOOL pifSequence_NextEvent(PifSequence *p_owner, PifSequenceProcess process, uint16_t timeout1ms)
+void pifSequence_Wait(PifSequence *p_owner, PifSequenceStep next, uint16_t timeout1ms, PifSequenceStep on_timeout)
 {
-	if (timeout1ms) {
-		if (!p_owner->__p_timer_timeout) {
-			p_owner->__p_timer_timeout = pifTimerManager_Add(p_owner->__p_timer_manager, TT_ONCE);
-			if (!p_owner->__p_timer_timeout) return FALSE;
-			pifTimer_AttachEvtFinish(p_owner->__p_timer_timeout, _evtTimerTimeoutFinish, p_owner);
-		}
-		pifTimer_Start(p_owner->__p_timer_timeout, timeout1ms);
-	}
-	p_owner->__next_process = process;
-	return TRUE;
+	p_owner->__step = next;
+	p_owner->__on_timeout = on_timeout;
+	p_owner->__start_ms = pif_cumulative_timer1ms;
+	p_owner->__wait_ms = timeout1ms;
+	p_owner->__event = FALSE;
+	p_owner->__state = SQS_WAIT;
 }
 
-void pifSequence_TriggerEvent(PifSequence *p_owner)
+void pifSequence_Signal(PifSequence *p_owner)
 {
-	if (p_owner->__p_timer_timeout)	{
-		pifTimer_Stop(p_owner->__p_timer_timeout);
-	}
-	pifTask_SetTrigger(p_owner->__p_task, 0);
+	p_owner->__event = TRUE;
 }
-
-
-#ifdef PIF_COLLECT_SIGNAL
-
-void pifSequence_SetCsFlag(PifSequence* p_owner, PifSequenceCsFlag flag)
-{
-	p_owner->__p_colsig->flag |= flag;
-}
-
-void pifSequence_ResetCsFlag(PifSequence* p_owner, PifSequenceCsFlag flag)
-{
-	p_owner->__p_colsig->flag &= ~flag;
-}
-
-void pifSequenceColSig_Init()
-{
-	pifDList_Init(&s_cs_list);
-}
-
-void pifSequenceColSig_Clear()
-{
-	pifDList_Clear(&s_cs_list, NULL);
-}
-
-void pifSequenceColSig_SetFlag(PifSequenceCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSequenceColSig* p_colsig = (PifSequenceColSig*)it->data;
-		p_colsig->flag |= flag;
-		it = pifDList_Next(it);
-	}
-}
-
-void pifSequenceColSig_ResetFlag(PifSequenceCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSequenceColSig* p_colsig = (PifSequenceColSig*)it->data;
-		p_colsig->flag &= ~flag;
-		it = pifDList_Next(it);
-	}
-}
-
-#endif	// PIF_COLLECT_SIGNAL

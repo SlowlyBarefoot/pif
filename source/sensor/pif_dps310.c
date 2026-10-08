@@ -80,7 +80,7 @@ static uint32_t _doTask(PifTask* p_task)
 {
 	PifDps310* p_owner = p_task->_p_client;
 	uint8_t data[6];
-	uint16_t delay = 1000;
+	uint32_t delay = 1000UL;
 	uint16_t gap;
 	float pressure;
 	float temperature;
@@ -112,7 +112,7 @@ static uint32_t _doTask(PifTask* p_task)
 
 		gap = pif_cumulative_timer1ms - p_owner->__start_time;
 		if (gap < p_owner->__read_period) {
-			delay = (p_owner->__read_period - gap) * 1000;
+			delay = (p_owner->__read_period - gap) * 1000UL;
 		}
 		else {
 			delay = 1;
@@ -224,7 +224,7 @@ BOOL pifDps310_ReadBarometric(PifDps310* p_owner, float* p_pressure, float* p_te
 
 BOOL pifDps310_AttachTaskForReading(PifDps310* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start)
 {
-	p_owner->_p_task = pifTaskManager_Add(id, TM_PERIOD, read_period * 1000, _doTask, p_owner, start);
+	p_owner->_p_task = pifTaskManager_Add(id, TM_PERIOD, read_period * 1000UL, _doTask, p_owner, start);
     if (!p_owner->_p_task) return FALSE;
 	p_owner->_p_task->name = "DPS310";
 

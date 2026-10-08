@@ -183,7 +183,7 @@ BOOL pifFnd_ChangeBlinkPeriod(PifFnd* p_owner, uint16_t period1ms)
 		return FALSE;
 	}
 
-	p_owner->__p_timer_blink->target = period1ms * 1000 / p_owner->__p_timer_manager->_period1us;
+	p_owner->__p_timer_blink->target = period1ms * 1000UL / p_owner->__p_timer_manager->_period1us;
 	return TRUE;
 }
 

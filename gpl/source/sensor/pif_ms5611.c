@@ -398,7 +398,7 @@ void pifMs5611_DetachTimer(PifMs5611* p_owner)
 
 BOOL pifMs5611_AttachTaskForReading(PifMs5611* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start)
 {
-	p_owner->_p_task = pifTaskManager_Add(id, TM_PERIOD, read_period * 1000, _doTask, p_owner, start);
+	p_owner->_p_task = pifTaskManager_Add(id, TM_PERIOD, read_period * 1000UL, _doTask, p_owner, start);
     if (!p_owner->_p_task) return FALSE;
     p_owner->_p_task->name = "MS5611";
 

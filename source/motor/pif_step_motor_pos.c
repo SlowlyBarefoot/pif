@@ -261,7 +261,7 @@ BOOL pifStepMotorPos_Init(PifStepMotorPos* p_owner, PifId id, PifTimerManager* p
 
     p_parent->__stop_step = _fnStopStep;
 
-    p_parent->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000, _doTask, p_owner, FALSE);
+    p_parent->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000UL, _doTask, p_owner, FALSE);
 	if (!p_parent->__p_task) goto fail;
 	p_parent->__p_task->name = "StepMotorPos";
     return TRUE;

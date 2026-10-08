@@ -4,59 +4,58 @@
 
 
 #include "core/pif_task_manager.h"
-#include "core/pif_timer_manager.h"
 
+
+// A sequence runs on a TM_PERIOD task of its own, added by pifSequence_Init(). The task is
+// paused while the sequence is idle, and while it runs it is released when the pending step is
+// due. Steps measure time against pif_cumulative_timer1ms.
+//
+// The task asks for its next release through the return value of its loop, never through
+// pifTask_SetTrigger(): a trigger is taken before the pause flag and before the check that the
+// run fits in the time left before a TM_REALTIME release, and a step is ordinary work that should
+// be subject to both.
+//
+// Each step decides what follows by calling pifSequence_Next(), pifSequence_Delay() or
+// pifSequence_Wait() before it returns. A step that calls none of them ends the sequence.
+
+// How often a wait looks for its signal. pifSequence_Signal() only raises a flag, so this is the
+// latency between the signal and the step that follows it.
+#ifndef PIF_SEQUENCE_WAIT_POLL_US
+#define PIF_SEQUENCE_WAIT_POLL_US		1000UL
+#endif
+
+// Returned for a step that is due at once: asked for as soon as the ring comes round again.
+#define PIF_SEQUENCE_NEXT_US			1UL
 
 struct StPifSequence;
 typedef struct StPifSequence PifSequence;
 
-typedef void (*PifSequenceProcess)(PifSequence* p_owner);
-typedef void (*PifEvtSequenceError)(PifSequence* p_owner);
+typedef void (*PifSequenceStep)(PifSequence *p_owner);
 
-
-#ifdef PIF_COLLECT_SIGNAL
-
-typedef enum EnPifSequenceCsFlag
+typedef enum EnPifSequenceState
 {
-    SQ_CSF_OFF			= 0,
-
-    SQ_CSF_PHASE_IDX	= 0,
-
-	SQ_CSF_PHASE_BIT	= 1,
-	SQ_CSF_ALL_BIT		= 1,
-
-    SQ_CSF_COUNT		= 1
-} PifSequenceCsFlag;
-
-typedef struct StPifSequenceColSig
-{
-	PifSequence* p_owner;
-	uint8_t flag;
-    void* p_device[SQ_CSF_COUNT];
-} PifSequenceColSig;
-
-#endif	// PIF_COLLECT_SIGNAL
+	SQS_IDLE		= 0,
+	SQS_RUN			= 1,
+	SQS_DELAY		= 2,
+	SQS_WAIT		= 3
+} PifSequenceState;
 
 struct StPifSequence
 {
 	// Public Member Variable
-	void* p_param;
-
-    // Public Event Function
-	PifEvtSequenceError evt_error;
+	void *p_param;
 
 	// Read-only Member Variable
 	PifId _id;
+	PifTask *_p_task;
 
 	// Private Member Variable
-	PifTask* __p_task;
-	PifTimerManager* __p_timer_manager;
-	PifTimer *__p_timer_timeout;
-	PifSequenceProcess __process;
-	PifSequenceProcess __next_process;
-#ifdef PIF_COLLECT_SIGNAL
-	PifSequenceColSig* __p_colsig;
-#endif
+	PifSequenceStep __step;
+	PifSequenceStep __on_timeout;
+	uint32_t __start_ms;
+	uint16_t __wait_ms;
+	uint8_t __state;
+	volatile uint8_t __event;
 };
 
 
@@ -66,100 +65,83 @@ extern "C" {
 
 /**
  * @fn pifSequence_Init
- * @brief Initializes the sequence instance and prepares all internal fields for safe use.
+ * @brief Initializes the sequence instance in the idle state and adds the task it runs on.
+ *        The task stays registered, paused while the sequence is idle, until pifSequence_Clear().
  * @param p_owner Pointer to the target object instance.
- * @param id Identifier value for the object or task.
- * @param p_timer_manager Pointer to the timer manager instance.
- * @param p_param Pointer to user-defined parameter block.
+ * @param id Identifier value for the object and its task.
+ * @param p_param Pointer to user-defined parameter block, available to the steps as p_owner->p_param.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifSequence_Init(PifSequence* p_owner, PifId id, PifTimerManager* p_timer_manager, void* p_param);
+BOOL pifSequence_Init(PifSequence *p_owner, PifId id, void *p_param);
 
 /**
  * @fn pifSequence_Clear
- * @brief Clears the sequence state and releases resources currently owned by the instance.
+ * @brief Stops the sequence and removes its task. Do not call it from a step.
  * @param p_owner Pointer to the target object instance.
  */
-void pifSequence_Clear(PifSequence* p_owner);
+void pifSequence_Clear(PifSequence *p_owner);
+
+/**
+ * @fn pifSequence_Start
+ * @brief Starts the sequence at the given step, which runs on the next poll.
+ * @param p_owner Pointer to the target object instance.
+ * @param step First step of the sequence.
+ * @return TRUE on success, FALSE when the sequence is already running, step is NULL or the
+ *         sequence has no task.
+ */
+BOOL pifSequence_Start(PifSequence *p_owner, PifSequenceStep step);
+
+/**
+ * @fn pifSequence_Stop
+ * @brief Stops the sequence. No further step runs until it is started again.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifSequence_Stop(PifSequence *p_owner);
 
 /**
  * @fn pifSequence_IsRunning
- * @brief Checks whether the sequence currently satisfies the requested condition.
+ * @brief Checks whether the sequence has a step pending.
  * @param p_owner Pointer to the target object instance.
- * @return TRUE on success, otherwise FALSE.
+ * @return TRUE while running, otherwise FALSE.
  */
 BOOL pifSequence_IsRunning(PifSequence *p_owner);
 
 /**
- * @fn pifSequence_Start
- * @brief Starts the sequence operation using the current timing, trigger, or mode configuration.
+ * @fn pifSequence_Next
+ * @brief Called from a step: runs the next step on the following poll.
  * @param p_owner Pointer to the target object instance.
- * @param process Sequence processing callback function.
- * @return TRUE on success, otherwise FALSE.
+ * @param next Step to run.
  */
-BOOL pifSequence_Start(PifSequence *p_owner, PifSequenceProcess process);
+void pifSequence_Next(PifSequence *p_owner, PifSequenceStep next);
 
 /**
- * @fn pifSequence_NextDelay
- * @brief Executes the pifSequence_NextDelay operation for the sequence module according to the API contract.
+ * @fn pifSequence_Delay
+ * @brief Called from a step: runs the next step once the delay has passed.
  * @param p_owner Pointer to the target object instance.
- * @param process Sequence processing callback function.
+ * @param next Step to run.
  * @param delay1ms Delay value in milliseconds before next step.
- * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifSequence_NextDelay(PifSequence *p_owner, PifSequenceProcess process, uint16_t delay1ms);
+void pifSequence_Delay(PifSequence *p_owner, PifSequenceStep next, uint16_t delay1ms);
 
 /**
- * @fn pifSequence_NextEvent
- * @brief Executes the pifSequence_NextEvent operation for the sequence module according to the API contract.
+ * @fn pifSequence_Wait
+ * @brief Called from a step: runs the next step once pifSequence_Signal() is called.
+ * @details Signals raised before this call are discarded, so call it before starting whatever
+ *          produces the signal, e.g. before sending a command whose answer raises it.
  * @param p_owner Pointer to the target object instance.
- * @param process Sequence processing callback function.
- * @param timeout1ms Timeout value in milliseconds for event wait.
- * @return TRUE on success, otherwise FALSE.
+ * @param next Step to run when the signal arrives.
+ * @param timeout1ms Timeout value in milliseconds for event wait. 0 waits forever.
+ * @param on_timeout Step to run on timeout. With NULL the sequence ends and pif_error is E_TIMEOUT.
  */
-BOOL pifSequence_NextEvent(PifSequence *p_owner, PifSequenceProcess process, uint16_t timeout1ms);
+void pifSequence_Wait(PifSequence *p_owner, PifSequenceStep next, uint16_t timeout1ms, PifSequenceStep on_timeout);
 
 /**
- * @fn pifSequence_TriggerEvent
- * @brief Triggers a pending event or transition in the sequence according to current state.
+ * @fn pifSequence_Signal
+ * @brief Raises the event a pifSequence_Wait() step waits for. It only sets a flag, so it may be
+ *        called from an interrupt.
  * @param p_owner Pointer to the target object instance.
  */
-void pifSequence_TriggerEvent(PifSequence *p_owner);
-
-
-#ifdef PIF_COLLECT_SIGNAL
-
-/**
- * @fn pifSequence_SetCsFlag
- * @brief Sets configuration or runtime state for the sequence based on the provided parameters.
- * @param p_owner Pointer to the target object instance.
- * @param flag Bit flag mask to set, clear, or query.
- */
-void pifSequence_SetCsFlag(PifSequence* p_owner, PifSequenceCsFlag flag);
-
-/**
- * @fn pifSequence_ResetCsFlag
- * @brief Resets runtime state in the sequence to an initial or configured baseline.
- * @param p_owner Pointer to the target object instance.
- * @param flag Bit flag mask to set, clear, or query.
- */
-void pifSequence_ResetCsFlag(PifSequence* p_owner, PifSequenceCsFlag flag);
-
-/**
- * @fn pifSequenceColSig_SetFlag
- * @brief Sets configuration or runtime state for the sequence col sig based on the provided parameters.
- * @param flag Bit flag mask to set, clear, or query.
- */
-void pifSequenceColSig_SetFlag(PifSequenceCsFlag flag);
-
-/**
- * @fn pifSequenceColSig_ResetFlag
- * @brief Resets runtime state in the sequence col sig to an initial or configured baseline.
- * @param flag Bit flag mask to set, clear, or query.
- */
-void pifSequenceColSig_ResetFlag(PifSequenceCsFlag flag);
-
-#endif	// PIF_COLLECT_SIGNAL
+void pifSequence_Signal(PifSequence *p_owner);
 
 #ifdef __cplusplus
 }
