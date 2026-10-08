@@ -19,6 +19,36 @@
 //#define PIF_ADC_MAX_CHANNELS				8
 
 
+// -------- pifAds1x1x ---------------------------
+
+// Conversions no longer than this (us) are waited out with the CPU held instead of through the timer.
+//#define PIF_ADS1X1X_SPIN_LIMIT_US			1000UL
+
+
+// -------- pifBasic -----------------------------
+
+//#define PIF_BASIC_LINE_SIZE				80		// The max size of a line in a program
+//#define PIF_BASIC_SYMBOL					16		// Maximum number of characters in the symbol
+//#define PIF_BASIC_PROGRAM					2048	// Program size
+//#define PIF_BASIC_STACK					64		// Stack size
+//#define PIF_BASIC_STRING					1024	// String table size
+//#define PIF_BASIC_VARIABLE				128		// Variable count
+//#define PIF_BASIC_LOCAL					8		// Local count
+//#define PIF_BASIC_EXEC_SIZE				4		// Maximum number of EXEC command parameters
+//#define PIF_BASIC_OPCODE					32		// Count of opcodes processed at one time
+
+
+// -------- pifBattery ---------------------------
+
+//#define PIF_BATTERY_MAX_CELLS				12
+
+
+// -------- pifBst -------------------------------
+
+// Key width in bits: 8, 16 or 32.
+//#define PIF_BST_KEY						32
+
+
 // -------- pifCollectSignal ---------------------
 
 //#define PIF_COLLECT_SIGNAL
@@ -30,16 +60,34 @@
 //#define PIF_DSHOT_COMMAND_QUEUE_SIZE		3
 
 
+// -------- pifDynNotch --------------------------
+
+// Samples in the analysis window. The frequency resolution is the analysis rate divided by this.
+//#define PIF_DYN_NOTCH_SDFT_SIZE			72
+//#define PIF_DYN_NOTCH_MAX_NOTCHES			7
+
+
 // -------- pifFlash -----------------------------
 
 // Largest program unit (flash word) a PifFlash accepts: 4 on STM32F4, 8 on G4, 32 on H743.
 //#define PIF_FLASH_MAX_PROGRAM_SIZE		32
 
 
-// -------- pifGpsNmea ---------------------------
+// -------- pifGps -------------------------------
 
-//#define PIF_GPS_NMEA_VALUE_SIZE			32
+//#define PIF_GPS_NMEA_VALUE_SIZE			64
 //#define PIF_GPS_NMEA_TEXT_SIZE			64
+
+//#define PIF_GPS_SV_MAXSATS				16
+
+
+// -------- pifGpsUblox --------------------------
+
+//#define PIF_GPS_UBLOX_TX_SIZE				64
+
+// Payload bytes a received UBX packet may carry. NAV-SVINFO with 32 channels sets the size unless
+// this asks for more. Raise it to read NAV-SAT from a receiver tracking many satellites.
+//#define PIF_GPS_UBLOX_RX_PAYLOAD_SIZE		1
 
 
 // -------- pifKeypad ----------------------------
@@ -47,6 +95,30 @@
 //#define PIF_KEYPAD_DEFAULT_HOLD_TIME		100
 //#define PIF_KEYPAD_DEFAULT_LONG_TIME		1000
 //#define PIF_KEYPAD_DEFAULT_DOUBLE_TIME	300
+
+
+// -------- pifLink ------------------------------
+
+// Largest data size of one received packet, without the header and CRC.
+//#define PIF_LINK_RX_PACKET_SIZE			32
+
+// Size of the ring buffer that holds the requests waiting to be sent or answered.
+//#define PIF_LINK_TX_REQUEST_SIZE			64
+
+// Size of the ring buffer that holds the answers and NAKs waiting to be sent.
+//#define PIF_LINK_TX_ANSWER_SIZE			32
+
+// Timeout used to receive one complete packet, in timer units. 0: no timeout limit.
+//#define PIF_LINK_RECEIVE_TIMEOUT			50
+
+// Delay before a request is sent again after a NAK or a broken response, in timer units. 0: at once.
+//#define PIF_LINK_RETRY_DELAY				10
+
+
+// -------- pifLinkFragment ----------------------
+
+// Default largest data size of one fragment sent by pifLink_MakeLargeRequest(), without its fragment byte.
+//#define PIF_LINK_TX_FRAGMENT_SIZE			(PIF_LINK_RX_PACKET_SIZE - 1)
 
 
 // -------- pifLog -------------------------------
@@ -68,6 +140,24 @@
 // This value is multiplied by the timer unit configured in pifModbus[Rtu/Ascii]Slave_Init().
 // Default is 300 ticks, which equals 300 ms when the timer unit is 1 ms.
 //#define PIF_MODBUS_SLAVE_TIMEOUT  	    300
+
+
+// -------- pifMsp -------------------------------
+
+// Size of the receive buffer of one packet. 0: the client gives one with pifMsp_AssignRxBuffer().
+//#define PIF_MSP_RX_PACKET_SIZE			128
+
+// Size of the answer ring buffer. 0: the client gives one with pifMsp_AssignAnswerBuffer().
+//#define PIF_MSP_TX_ANSWER_SIZE			128
+
+// Timeout used to receive one complete packet, in timer units. 0: no timeout limit.
+//#define PIF_MSP_RECEIVE_TIMEOUT			200
+
+
+// -------- pifSequence --------------------------
+
+// How often (us) a wait looks for its signal, which is the latency between the signal and the next step.
+//#define PIF_SEQUENCE_WAIT_POLL_US			1000UL
 
 
 // -------- pifSrml ------------------------------
@@ -120,6 +210,23 @@
 // -------- pifTimer -----------------------------
 
 //#define PIF_PWM_MAX_DUTY					1000
+
+
+// -------- pifTouchScreen -----------------------
+
+//#define PIF_TOUCH_CONTROL_PERIOD			10
+
+// Reads of the pressed state that have to agree before calibration accepts a press or a release.
+//#define PIF_TOUCH_CALIBRATION_DEBOUNCE	10
+
+// Samples of one crosshair that calibration accepts before it moves on to the next.
+//#define PIF_TOUCH_CALIBRATION_SAMPLES		400
+
+// Reads calibration takes per release of the task while sampling a crosshair.
+//#define PIF_TOUCH_CALIBRATION_BATCH		40
+
+// Reads of an unpressed panel that make calibration give up on a crosshair.
+//#define PIF_TOUCH_CALIBRATION_MAX_FAIL	10000
 
 
 #endif  // PIF_CONF_H

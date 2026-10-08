@@ -26,7 +26,7 @@ static uint8_t _nextSeq(uint8_t seq)
 
 static BOOL _isBroadcast(PifLink *p_owner, PifLinkPacket *p_packet)
 {
-	return p_owner->_type == LINK_T_MULTI && p_packet->dst_id == PIF_LINK_BROADCAST;
+	return p_owner->_type == LINK_T_MULTI && p_packet->dst_id == LINK_BROADCAST;
 }
 
 // Makes the frame of the current fragment of the large request in progress.
@@ -238,7 +238,7 @@ BOOL pifLink_SetTxFragmentSize(PifLink *p_owner, uint16_t fragment_size)
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
-	if (!fragment_size || fragment_size >= PIF_LINK_MAX_DATA_SIZE) {
+	if (!fragment_size || fragment_size >= LINK_MAX_DATA_SIZE) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -261,7 +261,7 @@ BOOL pifLink_MakeLargeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkReq
 		return FALSE;
 	}
 	if (p_owner->_type == LINK_T_MULTI) {
-		if (dst_id >= PIF_LINK_BROADCAST || dst_id == p_owner->_address) {
+		if (dst_id >= LINK_BROADCAST || dst_id == p_owner->_address) {
 			pif_error = E_INVALID_PARAM;
 			return FALSE;
 		}

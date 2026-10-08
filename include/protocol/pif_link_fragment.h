@@ -94,7 +94,7 @@ BOOL pifLink_EnableFragment(PifLink *p_owner, PifLinkFragmentMode rx_mode, uint1
  * @brief Changes the largest data size of a fragment sent by pifLink_MakeLargeRequest().
  *        The default is PIF_LINK_TX_FRAGMENT_SIZE.
  * @param p_owner Pointer to the link.
- * @param fragment_size Data bytes per fragment without the fragment byte, 1 to PIF_LINK_MAX_DATA_SIZE - 1.
+ * @param fragment_size Data bytes per fragment without the fragment byte, 1 to LINK_MAX_DATA_SIZE - 1.
  *        The fragment with its fragment byte has to fit in the receive packet of the other end.
  * @return TRUE on success, FALSE with pif_error set when fragmentation is not enabled, the size is invalid or
  *         a large request is in progress.
@@ -106,7 +106,7 @@ BOOL pifLink_SetTxFragmentSize(PifLink *p_owner, uint16_t fragment_size);
  * @brief Queues a request whose data is sent in fragments. Queued requests, large or not, are sent one at a
  *        time, each after the previous one is finished.
  * @param p_owner Pointer to the link.
- * @param dst_id LINK_T_MULTI: address of the receiver. PIF_LINK_BROADCAST is not allowed. Ignored for LINK_T_SINGLE.
+ * @param dst_id LINK_T_MULTI: address of the receiver. LINK_BROADCAST is not allowed. Ignored for LINK_T_SINGLE.
  * @param p_request Request to send. LINK_F_RESPONSE_NO applies to the last fragment only. The link keeps this
  *        pointer until the request is finished.
  * @param p_data Data to send. It is not copied: it is read while each fragment is made, so it must stay

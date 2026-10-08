@@ -110,8 +110,6 @@ static BOOL _pump(void)
 
     for (i = 0; i < 100000; i++) {
         _evtSending(&s_a, _sendA);
-        // A real UART takes time to send, so the response never arrives before s_a waits for it.
-        if (s_a.__tx.state == LINK_TS_WAIT_SENDED) _evtSending(&s_a, _sendA);
         _evtParsing(&s_b, _receiveB);
         _evtSending(&s_b, _sendB);
         _evtParsing(&s_a, _receiveA);
@@ -424,6 +422,30 @@ static void testTimeout(void)
     _tearDown();
 }
 
+// The response arrives before the sender runs again after handing over the last byte of the request.
+static void testImmediateResponse(void)
+{
+    static const PifLinkRequest req_no_response = { CMD_ECHO, LINK_F_RESPONSE_NO, 0, 0, NULL };
+
+    CHECK(_setUp());
+    CHECK(pifLink_MakeRequest(&s_a, 0, &s_req_echo, s_data, 20));
+    _evtSending(&s_a, _sendA);
+    _evtSending(&s_a, _sendA);
+    CHECK(s_a.__tx.state == LINK_TS_WAIT_RESPONSE);
+    _evtParsing(&s_b, _receiveB);
+    _evtSending(&s_b, _sendB);
+    _evtParsing(&s_a, _receiveA);
+    CHECK(s_resp_calls == 1 && s_err_calls == 0);
+    CHECK(s_a.__tx.state == LINK_TS_IDLE && pifRingBuffer_IsEmpty(&s_a.__tx.request_buffer));
+
+    // A request without a response is removed as soon as it is handed over.
+    CHECK(pifLink_MakeRequest(&s_a, 0, &req_no_response, s_data, 4));
+    _evtSending(&s_a, _sendA);
+    _evtSending(&s_a, _sendA);
+    CHECK(s_a.__tx.state == LINK_TS_IDLE && pifRingBuffer_IsEmpty(&s_a.__tx.request_buffer));
+    _tearDown();
+}
+
 
 // ---- Fragments ----
 
@@ -576,8 +598,8 @@ static void testFragmentParameters(void)
     CHECK(!pifLink_MakeLargeRequest(&s_a, 0, &s_req_echo, NULL, 10));
     CHECK(!pifLink_MakeLargeRequest(&s_a, 0, NULL, s_data, 10));
     CHECK(!pifLink_SetTxFragmentSize(&s_a, 0));
-    CHECK(!pifLink_SetTxFragmentSize(&s_a, PIF_LINK_MAX_DATA_SIZE));
-    CHECK(pifLink_SetTxFragmentSize(&s_a, PIF_LINK_MAX_DATA_SIZE - 1));
+    CHECK(!pifLink_SetTxFragmentSize(&s_a, LINK_MAX_DATA_SIZE));
+    CHECK(pifLink_SetTxFragmentSize(&s_a, LINK_MAX_DATA_SIZE - 1));
     _tearDown();
     CHECK(s_a.__p_fragment == NULL && s_a.__p_fragment_ops == NULL);
 }
@@ -598,6 +620,7 @@ static const TestCase s_tests[] = {
     { "error answers", testErrorAnswers },
     { "lost answer", testLostAnswer },
     { "timeout", testTimeout },
+    { "immediate response", testImmediateResponse },
     { "fragment not enabled", testFragmentNotEnabled },
     { "fragment reassemble", testFragmentReassemble },
     { "fragment stream", testFragmentStream },

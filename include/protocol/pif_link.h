@@ -27,8 +27,8 @@
  * A receiver sends NAK when it drops a broken frame while it has no request of its own in progress.
  * ACK and NAK carry no address, so LINK_T_MULTI neither sends nor accepts them and relies on the request timeout.
  *
- * Addressing (LINK_T_MULTI): each node has an address from 0x00 to PIF_LINK_MAX_ADDRESS. A node handles only the
- * frames sent to its own address or to PIF_LINK_BROADCAST and drops the others after their header. An answer
+ * Addressing (LINK_T_MULTI): each node has an address from 0x00 to LINK_MAX_ADDRESS. A node handles only the
+ * frames sent to its own address or to LINK_BROADCAST and drops the others after their header. An answer
  * goes back to the src_id of its question. A broadcast request is never answered, so it is always sent with
  * LINK_F_RESPONSE_NO. The link does not arbitrate the bus: the product has to keep two nodes from sending at the
  * same time, for example with a single master that polls the others.
@@ -62,7 +62,7 @@
 
 
 // Largest data size of one received packet. The buffer allocated in pifLink_Init() is
-// PIF_LINK_MULTI_HEADER_SIZE + 3 bytes larger to also hold the header and CRC. It can be changed later with pifLink_ResizeRxPacket().
+// LINK_MULTI_HEADER_SIZE + 3 bytes larger to also hold the header and CRC. It can be changed later with pifLink_ResizeRxPacket().
 #ifndef PIF_LINK_RX_PACKET_SIZE
 #define PIF_LINK_RX_PACKET_SIZE		32
 #endif
@@ -128,7 +128,7 @@ typedef enum EnPifLinkType
  * [2] command    0x20 to 0xFF
  * [3] packet_id  0x20 to 0xFF, incremented per request and copied into its answer
  * [4] src_id     0x80 | sender address
- * [5] dst_id     0x80 | receiver address, or 0x80 | PIF_LINK_BROADCAST
+ * [5] dst_id     0x80 | receiver address, or 0x80 | LINK_BROADCAST
  * [6] length L   0x80 | (data size & 0x7F)
  * [7] length H   0x80 | ((data size >> 7) & 0x7F)   data size: 0 to 16383
  * @endcode
@@ -136,12 +136,12 @@ typedef enum EnPifLinkType
  * Both are followed by the escaped data, the 3-byte CRC and ETX.
  * @{
  */
-#define PIF_LINK_SINGLE_HEADER_SIZE	6
-#define PIF_LINK_MULTI_HEADER_SIZE	8
-#define PIF_LINK_MAX_DATA_SIZE		0x3FFF
+#define LINK_SINGLE_HEADER_SIZE	6
+#define LINK_MULTI_HEADER_SIZE	8
+#define LINK_MAX_DATA_SIZE		0x3FFF
 
-#define PIF_LINK_MAX_ADDRESS		0x7E	// Largest node address.
-#define PIF_LINK_BROADCAST			0x7F	// dst_id that every node handles.
+#define LINK_MAX_ADDRESS		0x7E	// Largest node address.
+#define LINK_BROADCAST			0x7F	// dst_id that every node handles.
 /** @} */
 
 /**
@@ -262,7 +262,7 @@ typedef struct StPifLinkPacket
 							// itself unless the handler answers, for example with pifLink_MakeError().
 	uint8_t packet_id;		// Identifier of the request, copied into its answer.
 	uint8_t src_id;			// LINK_T_MULTI: address of the sender. 0 for LINK_T_SINGLE.
-	uint8_t dst_id;			// LINK_T_MULTI: own address or PIF_LINK_BROADCAST. 0 for LINK_T_SINGLE.
+	uint8_t dst_id;			// LINK_T_MULTI: own address or LINK_BROADCAST. 0 for LINK_T_SINGLE.
 	uint16_t data_count;	// Number of data bytes received.
 	uint16_t offset;		// LINK_FM_STREAM: position of p_data in the whole data of a fragmented question. 0 otherwise.
 	uint8_t *p_data;		// Unescaped data, or NULL when length is 0.
@@ -448,7 +448,7 @@ extern "C" {
  * @param p_timer_manager Timer manager that provides the receive and response timers. Its tick is the unit
  *        of PIF_LINK_RECEIVE_TIMEOUT, PIF_LINK_RETRY_DELAY and PifLinkRequest.timeout.
  * @param type Link type.
- * @param address Own address, 0x00 to PIF_LINK_MAX_ADDRESS, for LINK_T_MULTI. Ignored for LINK_T_SINGLE.
+ * @param address Own address, 0x00 to LINK_MAX_ADDRESS, for LINK_T_MULTI. Ignored for LINK_T_SINGLE.
  * @param p_questions Question table ending with a command of 0. It must stay valid while the link is used.
  * @return TRUE on success, FALSE with pif_error set otherwise.
  */
@@ -466,7 +466,7 @@ void pifLink_Clear(PifLink *p_owner);
  * @fn pifLink_ResizeRxPacket
  * @brief Changes the largest data size of a received packet. A packet being received is dropped.
  * @param p_owner Pointer to the link.
- * @param rx_packet_size New largest data size, 1 to PIF_LINK_MAX_DATA_SIZE (16383).
+ * @param rx_packet_size New largest data size, 1 to LINK_MAX_DATA_SIZE (16383).
  * @return TRUE on success, FALSE with pif_error set otherwise. The old buffer is kept on failure.
  */
 BOOL pifLink_ResizeRxPacket(PifLink *p_owner, uint16_t rx_packet_size);
@@ -510,11 +510,11 @@ void pifLink_DetachUart(PifLink *p_owner);
  * @brief Encodes a request and queues it. Queued requests are sent one at a time, each after the previous
  *        one is finished.
  * @param p_owner Pointer to the link.
- * @param dst_id LINK_T_MULTI: address of the receiver, or PIF_LINK_BROADCAST to send without waiting for a
+ * @param dst_id LINK_T_MULTI: address of the receiver, or LINK_BROADCAST to send without waiting for a
  *        response. Ignored for LINK_T_SINGLE.
  * @param p_request Request to send. The link keeps this pointer until the request is finished.
  * @param p_data Data to send. It is copied, so it can be reused after the call. Can be NULL when data_size is 0.
- * @param data_size Data size, up to PIF_LINK_MAX_DATA_SIZE (16383).
+ * @param data_size Data size, up to LINK_MAX_DATA_SIZE (16383).
  * @return TRUE when queued, FALSE with pif_error set when a parameter is invalid, no UART is attached or the
  *         request buffer is full.
  */
@@ -529,7 +529,7 @@ BOOL pifLink_MakeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkRequest 
  *        its src_id. A broadcast question cannot be answered.
  * @param flags LINK_F_LOG_PRINT_* and LINK_F_RLE_* bits. Other bits are set by the link.
  * @param p_data Data to send. It is copied, so it can be reused after the call. Can be NULL when data_size is 0.
- * @param data_size Data size, up to PIF_LINK_MAX_DATA_SIZE (16383).
+ * @param data_size Data size, up to LINK_MAX_DATA_SIZE (16383).
  * @return TRUE when queued, FALSE with pif_error set when a parameter is invalid, the question was broadcast,
  *         no UART is attached or the answer buffer is full.
  */

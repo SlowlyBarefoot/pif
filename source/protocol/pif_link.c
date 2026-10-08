@@ -12,7 +12,7 @@
 #define CRC_SIZE			3
 
 // Room in the receive buffer for the largest header and the CRC.
-#define RX_EXTRA_SIZE		(PIF_LINK_MULTI_HEADER_SIZE + CRC_SIZE)
+#define RX_EXTRA_SIZE		(LINK_MULTI_HEADER_SIZE + CRC_SIZE)
 
 // Control bytes that are sent as DLE followed by the byte + ESCAPE_OFFSET when they appear in the data.
 // XON and XOFF are included because a PifUart with software flow control acts on them wherever they appear.
@@ -297,7 +297,7 @@ static void _parsingPacket(PifLink *p_owner, PifActUartReceiveData act_receive_d
 						p_packet->dst_id = 0;
 					}
 					if (p_owner->_type == LINK_T_MULTI && p_packet->dst_id != p_owner->_address &&
-							p_packet->dst_id != PIF_LINK_BROADCAST) {
+							p_packet->dst_id != LINK_BROADCAST) {
 						// Not for this node. The rest of the frame has no STX, so it is skipped in LINK_RS_IDLE.
 #if PIF_LINK_RECEIVE_TIMEOUT
 						pifTimer_Stop(p_owner->__rx.p_timer);
@@ -423,7 +423,7 @@ fail:
 
 static BOOL _isBroadcast(PifLink *p_owner, PifLinkPacket *p_packet)
 {
-	return p_owner->_type == LINK_T_MULTI && p_packet->dst_id == PIF_LINK_BROADCAST;
+	return p_owner->_type == LINK_T_MULTI && p_packet->dst_id == LINK_BROADCAST;
 }
 
 static void _handleQuestion(PifLink *p_owner, PifLinkPacket *p_packet)
@@ -560,7 +560,7 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 {
 	PifLink *p_owner = (PifLink *)p_client;
 	PifLinkTx *p_tx = &p_owner->__tx;
-	uint8_t info[REQUEST_INFO_SIZE + PIF_LINK_MULTI_HEADER_SIZE];
+	uint8_t info[REQUEST_INFO_SIZE + LINK_MULTI_HEADER_SIZE];
 
 	if (!p_owner->__p_uart->_fc_state) return 0;
 	if (p_owner->__rx.state != LINK_RS_IDLE) return 0;
@@ -617,10 +617,11 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 	case LINK_TS_SENDING:
 		p_tx->pos += _sendBuffer(p_owner, act_send_data, p_tx->p_frame_buffer, p_tx->pos,
 				p_tx->frame_base + p_tx->length);
-		if (p_tx->pos >= p_tx->frame_base + p_tx->length) {
-			p_tx->state = LINK_TS_WAIT_SENDED;
-		}
-		break;
+		if (p_tx->pos < p_tx->frame_base + p_tx->length) break;
+		p_tx->state = LINK_TS_WAIT_SENDED;
+		// The response can arrive before the next call, and it is taken only in LINK_TS_WAIT_RESPONSE,
+		// so the wait starts as soon as the whole frame is handed to the UART.
+		// fall through
 
 	case LINK_TS_WAIT_SENDED:
 		if ((p_owner->__tx.flags & LINK_F_RESPONSE_MASK) == LINK_F_RESPONSE_NO) {
@@ -670,7 +671,7 @@ static BOOL _checkFrame(PifLink *p_owner, uint8_t command, uint8_t *p_data, uint
 		return FALSE;
 	}
 	if (command < 0x20 || (data_size && !p_data) ||
-			data_size > PIF_LINK_MAX_DATA_SIZE) {
+			data_size > LINK_MAX_DATA_SIZE) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -768,7 +769,7 @@ static BOOL _makeAnswer(PifLink *p_owner, PifLinkPacket *p_question, uint8_t fla
 {
 	PifRingBuffer *p_buffer = &p_owner->__tx.answer_buffer;
 	PifLinkLastQuestion *p_last = &p_owner->__last;
-	uint8_t header[PIF_LINK_MULTI_HEADER_SIZE];
+	uint8_t header[LINK_MULTI_HEADER_SIZE];
 	uint8_t packet_id;
 	uint16_t i, length, crc, crc_pos;
 
@@ -826,7 +827,7 @@ BOOL pifLink_Init(PifLink *p_owner, PifId id, PifTimerManager *p_timer_manager, 
 	const PifLinkQuestion *p_question = p_questions;
 
 	if (!p_owner || !p_timer_manager || !p_questions || (type != LINK_T_SINGLE && type != LINK_T_MULTI) ||
-			(type == LINK_T_MULTI && address > PIF_LINK_MAX_ADDRESS)) {
+			(type == LINK_T_MULTI && address > LINK_MAX_ADDRESS)) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -844,7 +845,7 @@ BOOL pifLink_Init(PifLink *p_owner, PifId id, PifTimerManager *p_timer_manager, 
     p_owner->__p_timer_manager = p_timer_manager;
     p_owner->_type = type;
     p_owner->_address = type == LINK_T_MULTI ? address : 0;
-    p_owner->__header_size = type == LINK_T_MULTI ? PIF_LINK_MULTI_HEADER_SIZE : PIF_LINK_SINGLE_HEADER_SIZE;
+    p_owner->__header_size = type == LINK_T_MULTI ? LINK_MULTI_HEADER_SIZE : LINK_SINGLE_HEADER_SIZE;
 
     p_owner->__rx.p_packet = calloc(sizeof(uint8_t), RX_EXTRA_SIZE + PIF_LINK_RX_PACKET_SIZE);
     if (!p_owner->__rx.p_packet) {
@@ -922,7 +923,7 @@ BOOL pifLink_ResizeRxPacket(PifLink *p_owner, uint16_t rx_packet_size)
 {
 	uint8_t *p_packet;
 
-    if (!rx_packet_size || rx_packet_size > PIF_LINK_MAX_DATA_SIZE) {
+    if (!rx_packet_size || rx_packet_size > LINK_MAX_DATA_SIZE) {
     	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
@@ -989,7 +990,7 @@ BOOL pifLink_MakeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkRequest 
 {
 	uint8_t flags;
 	uint8_t info[REQUEST_INFO_SIZE];
-	uint8_t header[PIF_LINK_MULTI_HEADER_SIZE];
+	uint8_t header[LINK_MULTI_HEADER_SIZE];
 	uint8_t packet_id;
 	uint16_t length, crc, crc_pos;
 
@@ -999,7 +1000,7 @@ BOOL pifLink_MakeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkRequest 
 	}
 	if (!_checkFrame(p_owner, p_request->command, p_data, data_size)) return FALSE;
 	if (p_owner->_type == LINK_T_MULTI) {
-		if (dst_id > PIF_LINK_BROADCAST || dst_id == p_owner->_address) {
+		if (dst_id > LINK_BROADCAST || dst_id == p_owner->_address) {
 			pif_error = E_INVALID_PARAM;
 			return FALSE;
 		}
@@ -1009,7 +1010,7 @@ BOOL pifLink_MakeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkRequest 
 	}
 
 	flags = LINK_F_TYPE_REQUEST | (p_request->flags & (LINK_F_RESPONSE_MASK | LINK_F_LOG_PRINT_MASK | LINK_F_RLE_MASK));
-	if (p_owner->_type == LINK_T_MULTI && dst_id == PIF_LINK_BROADCAST) flags |= LINK_F_RESPONSE_NO;
+	if (p_owner->_type == LINK_T_MULTI && dst_id == LINK_BROADCAST) flags |= LINK_F_RESPONSE_NO;
 	packet_id = p_owner->__packet_id;
 	_makeHeader(p_owner, header, flags, p_request->command, packet_id, dst_id, data_size);
 
@@ -1058,7 +1059,7 @@ uint16_t pifLink_PutFrame(PifLink *p_owner, PifRingBuffer *p_buffer, uint8_t fla
 		uint8_t packet_id, uint8_t dst_id, uint8_t *p_prefix, uint8_t *p_data, uint16_t data_size,
 		uint16_t *p_crc_pos)
 {
-	uint8_t header[PIF_LINK_MULTI_HEADER_SIZE];
+	uint8_t header[LINK_MULTI_HEADER_SIZE];
 	uint16_t crc;
 
 	_makeHeader(p_owner, header, flags, command, packet_id, dst_id, (p_prefix ? 1 : 0) + data_size);
