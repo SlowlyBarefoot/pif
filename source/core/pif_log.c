@@ -452,10 +452,12 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 {
 	PifLog* p_owner = (PifLog*)p_client;
 	uint16_t length = 0;
+	uint16_t size;
+	uint8_t* p_data;
 
 	if (!pifRingBuffer_IsEmpty(p_owner->p_tx_buffer)) {
-		length = (*act_send_data)(p_owner->p_uart, pifRingBuffer_GetTailPointer(p_owner->p_tx_buffer, 0),
-    			pifRingBuffer_GetLinerSize(p_owner->p_tx_buffer, 0));
+		p_data = pifRingBuffer_GetReadPointer(p_owner->p_tx_buffer, 0, &size);
+		length = (*act_send_data)(p_owner->p_uart, p_data, size);
 		pifRingBuffer_Remove(p_owner->p_tx_buffer, length);
 	}
 	return length > 0 ? length : !pifRingBuffer_IsEmpty(p_owner->p_tx_buffer);

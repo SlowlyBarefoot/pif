@@ -33,7 +33,7 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_link test_pif_link_nolog
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_link test_pif_link_nolog
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
 LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
@@ -61,7 +61,8 @@ all: run
 run: $(addprefix run-, $(NAMES))
 
 run-test_pif_bst_key8: run-test_pif_bst
-run-test_pif_sequence: run-test_pif_bst_key8
+run-test_pif_ring_buffer: run-test_pif_bst_key8
+run-test_pif_sequence: run-test_pif_ring_buffer
 run-test_pif_timer: run-test_pif_sequence
 run-test_pif_collect_signal: run-test_pif_timer
 run-test_pif_link: run-test_pif_collect_signal
@@ -75,6 +76,10 @@ $(BUILD)/test_pif_bst$(EXE): core/test_pif_bst.c $(ROOT)/source/core/pif_bst.c |
 
 $(BUILD)/test_pif_bst_key8$(EXE): core/test_pif_bst.c $(ROOT)/source/core/pif_bst.c | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_BST_KEY=8 $(INC) $^ -o $@
+
+$(BUILD)/test_pif_ring_buffer$(EXE): core/test_pif_ring_buffer.c $(ROOT)/source/core/pif_ring_buffer.c \
+                                    $(ROOT)/include/core/pif_ring_buffer.h | $(BUILD)
+	$(CC) $(CFLAGS) $(INC) $(filter %.c,$^) -o $@
 
 $(BUILD)/test_pif_sequence$(EXE): core/test_pif_sequence.c $(ROOT)/source/core/pif_sequence.c \
                                  $(ROOT)/include/core/pif_sequence.h | $(BUILD)

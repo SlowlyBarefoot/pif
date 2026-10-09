@@ -20,48 +20,59 @@ static void _setTxState(PifUart* p_owner, PifUartTxState state)
 }
 
 
+static BOOL _isTxBlocked(PifUart* p_owner)
+{
+	// With host flow control, _fc_state is OFF while the other side asks us not to send.
+	return (p_owner->_flow_control & UFC_HOST_MASK) && !p_owner->_fc_state;
+}
+
+static uint16_t _filterXonXoff(PifUart* p_owner, uint8_t* p_data, uint16_t len)
+{
+	uint16_t i, count = 0;
+
+	// XON / XOFF are control characters, so they are taken out of the data given to the client.
+	for (i = 0; i < len; i++) {
+		switch (p_data[i]) {
+		case ASCII_XON:
+			_setFcState(p_owner, ON);
+			if (p_owner->_p_tx_task) pifTask_SetTrigger(p_owner->_p_tx_task, 0);
+			if (p_owner->__evt_host_flow_state) (*p_owner->__evt_host_flow_state)(p_owner->__p_client, ON);
+			break;
+
+		case ASCII_XOFF:
+			_setFcState(p_owner, OFF);
+			if (p_owner->__evt_host_flow_state) (*p_owner->__evt_host_flow_state)(p_owner->__p_client, OFF);
+			break;
+
+		default:
+			p_data[count++] = p_data[i];
+			break;
+		}
+	}
+	return count;
+}
+
 static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
-	uint8_t i;
-	uint16_t len = 0;
+	uint16_t len;
 
-	if (p_owner->act_receive_data) {
-		len = (*p_owner->act_receive_data)(p_owner, p_data, length);
-		if (!len) return 0;
-		else if (p_owner->__rx_state == URS_IDLE) p_owner->__rx_state = URS_FIRST;
-	}
-	else if (p_owner->_p_rx_buffer) {
-		len = pifRingBuffer_GetBytes(p_owner->_p_rx_buffer, p_data, length);
-		if (!len) return 0;
-	}
-	else {
-		return 0;
-	}
-
-	switch (p_owner->_flow_control) {
-	case UFC_HOST_SOFTWARE:
-		for (i = 0; i < len; i++) {
-			switch (p_data[i]) {
-			case ASCII_XON:
-				_setFcState(p_owner, ON);
-				pifTask_SetTrigger(p_owner->_p_rx_task, 0);
-				if (p_owner->__evt_host_flow_state) (*p_owner->__evt_host_flow_state)(p_owner->__p_client, ON);
-				break;
-
-			case ASCII_XOFF:
-				_setFcState(p_owner, OFF);
-				if (p_owner->__evt_host_flow_state) (*p_owner->__evt_host_flow_state)(p_owner->__p_client, OFF);
-				break;
-
-			default:
-				break;
-			}
+	// Read again when every byte read was XON / XOFF, so that a return of 0 still means no data.
+	do {
+		if (p_owner->act_receive_data) {
+			len = (*p_owner->act_receive_data)(p_owner, p_data, length);
+			if (!len) return 0;
+			else if (p_owner->__rx_state == URS_IDLE) p_owner->__rx_state = URS_FIRST;
 		}
-		break;
+		else if (p_owner->_p_rx_buffer) {
+			len = pifRingBuffer_GetBytes(p_owner->_p_rx_buffer, p_data, length);
+			if (!len) return 0;
+		}
+		else {
+			return 0;
+		}
 
-	default:
-		break;
-	}
+		if (p_owner->_flow_control == UFC_HOST_SOFTWARE) len = _filterXonXoff(p_owner, p_data, len);
+	} while (!len);
 
 	return len;
 }
@@ -262,12 +273,23 @@ void pifUart_SetFlowControl(PifUart* p_owner, PifUartFlowControl flow_control, P
 
 BOOL pifUart_ChangeRxFlowState(PifUart* p_owner, SWITCH state)
 {
+	uint8_t data;
+
 	if (p_owner->_flow_control == UFC_DEVICE_SOFTWARE) {
-		return pifUart_SendTxData(p_owner, &state, 1);
+		data = state ? ASCII_XON : ASCII_XOFF;
+		if (!pifUart_SendTxData(p_owner, &data, 1)) return FALSE;
 	}
 	else if (p_owner->_flow_control == UFC_DEVICE_HARDWARE) {
+		if (!p_owner->act_device_flow_state) {
+			pif_error = E_INVALID_STATE;
+			return FALSE;
+		}
 		(*p_owner->act_device_flow_state)(p_owner, state);
 	}
+	else {
+		return TRUE;
+	}
+	_setFcState(p_owner, state);
 	return TRUE;
 }
 
@@ -323,6 +345,11 @@ uint8_t pifUart_GetTxByte(PifUart* p_owner, uint8_t* p_data)
 	uint8_t ucState;
 
     if (!p_owner->_p_tx_buffer) return PIF_UART_SEND_DATA_STATE_INIT;
+    if (_isTxBlocked(p_owner)) {
+    	// Stop here. The TX task starts the transfer again when the other side allows it.
+		_setTxState(p_owner, UTS_IDLE);
+    	return PIF_UART_SEND_DATA_STATE_EMPTY;
+    }
 
     ucState = pifRingBuffer_GetByte(p_owner->_p_tx_buffer, p_data);
 	if (ucState) {
@@ -343,13 +370,12 @@ uint8_t pifUart_StartGetTxData(PifUart* p_owner, uint8_t** pp_data, uint16_t* p_
 	uint16_t usLength;
 
     if (!p_owner->_p_tx_buffer) return PIF_UART_SEND_DATA_STATE_INIT;
-    if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) {
+    if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer) || _isTxBlocked(p_owner)) {
 		_setTxState(p_owner, UTS_IDLE);
     	return PIF_UART_SEND_DATA_STATE_EMPTY;
     }
 
-    *pp_data = pifRingBuffer_GetTailPointer(p_owner->_p_tx_buffer, 0);
-    usLength = pifRingBuffer_GetLinerSize(p_owner->_p_tx_buffer, 0);
+    *pp_data = pifRingBuffer_GetReadPointer(p_owner->_p_tx_buffer, 0, &usLength);
     if (!*p_length || usLength <= *p_length) *p_length = usLength;
 	return PIF_UART_SEND_DATA_STATE_DATA;
 }
@@ -366,16 +392,7 @@ uint8_t pifUart_EndGetTxData(PifUart* p_owner, uint16_t length)
 
 uint16_t pifUart_ReceiveRxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
-	uint16_t len;
-
-	if (p_owner->act_receive_data) {
-		return (*p_owner->act_receive_data)(p_owner, p_data, length);
-	}
-	else if (p_owner->_p_rx_buffer) {
-		len = pifRingBuffer_CopyToArray(p_data, length, p_owner->_p_rx_buffer, 0);
-		return len;
-	}
-	return 0;
+	return _actReceiveData(p_owner, p_data, length);
 }
 
 uint16_t pifUart_SendTxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
@@ -428,7 +445,7 @@ static uint32_t _doRxTask(PifTask* p_task)
 			rate = (*p_owner->act_get_rx_rate)(p_owner);
 		}
 		else if (p_owner->_p_rx_buffer) {
-			rate = 100 * pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) / p_owner->_p_rx_buffer->_size;
+			rate = 100UL * pifRingBuffer_GetFillSize(p_owner->_p_rx_buffer) / p_owner->_p_rx_buffer->_size;
 		}
 		else goto next1;
 
@@ -490,6 +507,12 @@ next1:
 	case URS_NEXT:
 		if (!rtn) {
 			p_owner->__rx_state = URS_IDLE;
+			// A byte put by the interrupt just before URS_IDLE was set did not trigger the task, since
+			// the state was still URS_NEXT. Check the buffer after the change so such a byte is not left behind.
+			if (p_owner->_p_rx_buffer && !pifRingBuffer_IsEmpty(p_owner->_p_rx_buffer)) {
+				p_owner->__rx_state = URS_FIRST;
+				period = 2 * p_owner->_transfer_time;
+			}
 		}
 		else {
 			period = 5 * p_owner->_transfer_time;
@@ -513,7 +536,10 @@ static uint32_t _doTxTask(PifTask* p_task)
 	}
 #endif
 
-	if (p_owner->act_send_data) {
+	if (_isTxBlocked(p_owner)) {
+		// XON or the CTS signal triggers this task again.
+	}
+	else if (p_owner->act_send_data) {
 		if (p_owner->__evt_sending) {
 			bytes = (*p_owner->__evt_sending)(p_owner->__p_client, p_owner->act_send_data);
 		}

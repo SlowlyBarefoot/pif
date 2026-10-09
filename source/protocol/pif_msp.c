@@ -209,6 +209,7 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 {
 	PifMsp *p_owner = (PifMsp *)p_client;
 	uint16_t length = 0;
+	uint8_t *p_data;
 
 	if (p_owner->__rx.state != MRS_IDLE) return 0;
 
@@ -223,8 +224,8 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 		break;
 
 	case MTS_SENDING:
-		length = (*act_send_data)(p_owner->__p_uart, pifRingBuffer_GetTailPointer(&p_owner->__tx.answer_buffer, p_owner->__tx.pos),
-				pifRingBuffer_GetLinerSize(&p_owner->__tx.answer_buffer, p_owner->__tx.pos));
+		p_data = pifRingBuffer_GetReadPointer(&p_owner->__tx.answer_buffer, p_owner->__tx.pos, &length);
+		length = (*act_send_data)(p_owner->__p_uart, p_data, length);
 		if (!length) return 0;
 
 		p_owner->__tx.pos += length;
@@ -560,8 +561,10 @@ uint16_t pifMsp_GetAnswer(PifMsp* p_owner, uint8_t** pp_data)
 	if (!pifRingBuffer_IsBuffer(&p_owner->__tx.answer_buffer)) return 0;
 	if (pifRingBuffer_IsEmpty(&p_owner->__tx.answer_buffer)) return 0;
 
-	*pp_data = pifRingBuffer_GetTailPointer(&p_owner->__tx.answer_buffer, 0);
-	return pifRingBuffer_GetLinerSize(&p_owner->__tx.answer_buffer, 0);
+	uint16_t length;
+
+	*pp_data = pifRingBuffer_GetReadPointer(&p_owner->__tx.answer_buffer, 0, &length);
+	return length;
 }
 
 void pifMsp_RemoveAnswer(PifMsp* p_owner, uint16_t length)

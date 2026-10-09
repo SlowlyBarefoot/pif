@@ -557,6 +557,7 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 {
 	PifGpsUblox *p_owner = (PifGpsUblox *)p_client;
 	uint16_t length = 0;
+	uint8_t *p_data;
 
 	switch (p_owner->__tx.state) {
 	case GUTS_IDLE:
@@ -569,8 +570,8 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 		break;
 
 	case GUTS_SENDING:
-		length = (*act_send_data)(p_owner->__p_uart, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, p_owner->__tx.pos),
-				pifRingBuffer_GetLinerSize(&p_owner->__tx.buffer, p_owner->__tx.pos));
+		p_data = pifRingBuffer_GetReadPointer(&p_owner->__tx.buffer, p_owner->__tx.pos, &length);
+		length = (*act_send_data)(p_owner->__p_uart, p_data, length);
 		p_owner->__tx.pos += length;
 		if (p_owner->__tx.pos >= 4 + p_owner->__tx.ui.st.length) {
 			p_owner->__tx.state = GUTS_WAIT_SENDED;

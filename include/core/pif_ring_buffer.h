@@ -11,11 +11,31 @@
 #define RB_CHOP_OFF_LENGTH	2
 
 
+typedef struct StPifRingBuffer PifRingBuffer;
+
+/**
+ * @fn PifActRingBufferLock
+ * @brief Keeps the other side of the buffer out while the tail moves, by masking its interrupt for example.
+ * @param p_owner Pointer to the ring buffer instance.
+ * @param lock TRUE to enter, FALSE to leave.
+ */
+typedef void (*PifActRingBufferLock)(PifRingBuffer* p_owner, BOOL lock);
+
 /**
  * @class StPifRingBuffer
- * @brief Provides a type or declaration used by this module.
+ * @brief Byte ring buffer for one writer and one reader.
+ *
+ * The writer owns __head and __put_head, the reader owns __tail. Each side may run in an interrupt
+ * as long as only it changes what it owns. A few writer calls also move the tail: a chop-off policy
+ * dropping old data, pifRingBuffer_SetHead() running over the tail and pifRingBuffer_MoveHeadForLinear().
+ * When one of those is used while the other side runs in an interrupt, attach a lock with
+ * pifRingBuffer_AttachActLock().
+ *
+ * Bytes read in place, by DMA for example, should be taken with pifRingBuffer_GetReadPointer(). They stay
+ * claimed until the reader removes them, and a chop-off fails rather than drop them, so new data is
+ * refused instead of overwriting bytes still on their way out.
  */
-typedef struct StPifRingBuffer
+struct StPifRingBuffer
 {
 	// Public Member Variable
 
@@ -24,20 +44,25 @@ typedef struct StPifRingBuffer
 	struct {
 		unsigned int is_static	: 1;
 		unsigned int chop_off	: 2;	// RB_CHOP_OFF_
+		unsigned int putting	: 1;	// Inside pifRingBuffer_BeginPutting() and its commit or rollback
 	} _bt;
     uint16_t _size;
 
 	// Private Member Variable
 	const char* __p_name;
     uint8_t* __p_buffer;
-    volatile uint16_t __head;
+    volatile uint16_t __head;		// End of the bytes the reader may take
     volatile uint16_t __tail;
-    uint16_t __backup_head;
+    uint16_t __put_head;			// Where the writer puts next; ahead of __head only inside a put session
+    volatile uint16_t __claim;		// Bytes from the tail handed out by pifRingBuffer_GetReadPointer()
     union {
 		char chop_off_char;
 		uint16_t chop_off_length;
     } __ui;
-} PifRingBuffer;
+
+	// Private Action Function
+	PifActRingBufferLock __act_lock;
+};
 
 
 #ifdef __cplusplus
@@ -123,6 +148,24 @@ BOOL pifRingBuffer_ResizeHeap(PifRingBuffer* p_owner, uint16_t size);
 void pifRingBuffer_SetName(PifRingBuffer* p_owner, const char* p_name);
 
 /**
+ * @fn pifRingBuffer_AttachActLock
+ * @brief Gives the instance a way to keep the other side out while the tail moves. Without one, no locking is done.
+ * @param p_owner Pointer to the target object instance.
+ * @param act_lock Enters and leaves the locked section, or NULL to remove it.
+ */
+void pifRingBuffer_AttachActLock(PifRingBuffer* p_owner, PifActRingBufferLock act_lock);
+
+/**
+ * @fn pifRingBuffer_GetBuffer
+ * @brief Returns the start of the buffer memory, _size bytes long, to hand to a circular DMA that
+ *        pifRingBuffer_SetHead() follows. A heap buffer moves on pifRingBuffer_ResizeHeap(), so set the DMA up again
+ *        after one.
+ * @param p_owner Pointer to the target object instance.
+ * @return Pointer to the buffer memory, or NULL if there is none.
+ */
+uint8_t* pifRingBuffer_GetBuffer(PifRingBuffer* p_owner);
+
+/**
  * @fn pifRingBuffer_GetTailPointer
  * @brief Retrieves the requested value or pointer from the ring buffer without changing ownership.
  * @param p_owner Pointer to the target object instance.
@@ -130,6 +173,17 @@ void pifRingBuffer_SetName(PifRingBuffer* p_owner, const char* p_name);
  * @return Pointer to the resulting object or data, or NULL if unavailable.
  */
 uint8_t* pifRingBuffer_GetTailPointer(PifRingBuffer* p_owner, uint16_t pos);
+
+/**
+ * @fn pifRingBuffer_GetReadPointer
+ * @brief Returns where the bytes from pos after the tail start and how many follow without wrapping, and claims
+ *        them so that a chop-off cannot drop them before the reader removes them.
+ * @param p_owner Pointer to the target object instance.
+ * @param pos Offset from the tail.
+ * @param p_length Receives the number of contiguous bytes, 0 if there is nothing from pos on.
+ * @return Pointer to the first byte.
+ */
+uint8_t* pifRingBuffer_GetReadPointer(PifRingBuffer* p_owner, uint16_t pos, uint16_t* p_length);
 
 /**
  * @fn pifRingBuffer_MoveHeadForLinear
@@ -141,15 +195,19 @@ uint8_t* pifRingBuffer_GetTailPointer(PifRingBuffer* p_owner, uint16_t pos);
 BOOL pifRingBuffer_MoveHeadForLinear(PifRingBuffer* p_owner, uint16_t size);
 
 /**
- * @fn pifRingBuffer_MoveHead
- * @brief Advances the head over bytes that were written straight into the buffer memory, by DMA for example.
+ * @fn pifRingBuffer_SetHead
+ * @brief Moves the head to where a writer outside the library, a circular DMA for example, has written up to.
+ *
+ * For a circular RX DMA over the whole buffer, pass _size minus the remaining transfer count from the half,
+ * complete and idle interrupts. Calls must come before the DMA writes a full buffer since the last one,
+ * since a whole lap looks the same as no bytes at all.
  * @param p_owner Pointer to the target object instance.
- * @param size Number of bytes written after the current head.
- * @return TRUE on success. FALSE if size is not less than the buffer size, in which case nothing changes, or if the
- *         bytes ran over the tail, in which case the head still moves and the tail is moved just past it, dropping the
+ * @param pos Index the next byte will be written to, below _size.
+ * @return TRUE on success. FALSE if pos is out of range, in which case nothing changes, or if the bytes ran over
+ *         the tail, in which case the head still moves and the tail is moved just past it, dropping the
  *         overwritten bytes.
  */
-BOOL pifRingBuffer_MoveHead(PifRingBuffer* p_owner, uint16_t size);
+BOOL pifRingBuffer_SetHead(PifRingBuffer* p_owner, uint16_t pos);
 
 /**
  * @fn pifRingBuffer_ChopsOffNone
@@ -192,24 +250,15 @@ BOOL pifRingBuffer_IsEmpty(PifRingBuffer* p_owner);
 
 /**
  * @fn pifRingBuffer_GetFillSize
- * @brief Retrieves the requested value or pointer from the ring buffer without changing ownership.
+ * @brief Returns the number of bytes the reader may take. Bytes of an open put session are not counted.
  * @param p_owner Pointer to the target object instance.
  * @return Result value returned by this API.
  */
 uint16_t pifRingBuffer_GetFillSize(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_GetLinerSize
- * @brief Retrieves the requested value or pointer from the ring buffer without changing ownership.
- * @param p_owner Pointer to the target object instance.
- * @param pos Offset position within the buffer.
- * @return Result value returned by this API.
- */
-uint16_t pifRingBuffer_GetLinerSize(PifRingBuffer* p_owner, uint16_t pos);
-
-/**
  * @fn pifRingBuffer_GetRemainSize
- * @brief Retrieves the requested value or pointer from the ring buffer without changing ownership.
+ * @brief Returns the room left for the writer. Bytes of an open put session count as used.
  * @param p_owner Pointer to the target object instance.
  * @return Result value returned by this API.
  */
@@ -217,30 +266,31 @@ uint16_t pifRingBuffer_GetRemainSize(PifRingBuffer* p_owner);
 
 /**
  * @fn pifRingBuffer_BeginPutting
- * @brief Executes the pifRingBuffer_BeginPutting operation for the ring buffer module according to the API contract.
+ * @brief Starts a put session. Bytes put until pifRingBuffer_CommitPutting() stay hidden from the reader, and
+ *        pifRingBuffer_RollbackPutting() discards them. An unfinished earlier session is discarded.
  * @param p_owner Pointer to the target object instance.
  */
 void pifRingBuffer_BeginPutting(PifRingBuffer* p_owner);
 
 /**
  * @fn pifRingBuffer_CommitPutting
- * @brief Commits staged changes in the ring buffer so subsequent reads use the updated state.
+ * @brief Ends the put session and hands all of its bytes to the reader at once.
  * @param p_owner Pointer to the target object instance.
  */
 void pifRingBuffer_CommitPutting(PifRingBuffer* p_owner);
 
 /**
  * @fn pifRingBuffer_RollbackPutting
- * @brief Rolls back staged changes in the ring buffer to the most recent committed state.
+ * @brief Ends the put session and discards its bytes. Does nothing outside a session.
  * @param p_owner Pointer to the target object instance.
  */
 void pifRingBuffer_RollbackPutting(PifRingBuffer* p_owner);
 
 /**
  * @fn pifRingBuffer_GetPointerPutting
- * @brief Retrieves the requested value or pointer from the ring buffer without changing ownership.
+ * @brief Returns a byte of the open put session, to patch it before the commit.
  * @param p_owner Pointer to the target object instance.
- * @param pos Offset position within the buffer.
+ * @param pos Offset from the start of the session.
  * @return Pointer to the resulting object or data, or NULL if unavailable.
  */
 uint8_t* pifRingBuffer_GetPointerPutting(PifRingBuffer* p_owner, uint16_t pos);
@@ -326,7 +376,7 @@ BOOL pifRingBuffer_CopyLength(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16
 
 /**
  * @fn pifRingBuffer_Remove
- * @brief Removes an item from the ring buffer and updates internal bookkeeping for consistency.
+ * @brief Drops bytes from the tail and releases what pifRingBuffer_GetReadPointer() claimed.
  * @param p_owner Pointer to the target object instance.
  * @param size Size value used for allocation or capacity.
  */

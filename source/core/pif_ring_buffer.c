@@ -5,22 +5,36 @@
 
 // Byte ring buffer with overflow policies and transactional put support.
 
+static void _lock(PifRingBuffer* p_owner, BOOL lock)
+{
+	if (p_owner->__act_lock) (*p_owner->__act_lock)(p_owner, lock);
+}
+
+static void _publish(PifRingBuffer* p_owner)
+{
+	// Outside a put session every byte becomes readable as soon as it is written.
+	if (!p_owner->_bt.putting) p_owner->__head = p_owner->__put_head;
+}
+
 static BOOL _chopOff(PifRingBuffer* p_owner, uint16_t count)
 {
 	uint16_t length;
 	uint16_t size, tail;
+	BOOL rtn = FALSE;
 
-	// Drop old data according to the configured overflow policy.
-	switch (p_owner->_bt.chop_off) {
+	// Drop old data according to the configured overflow policy. Only committed bytes, those before
+	// __head, can be dropped. The tail belongs to the reader, so it moves under the lock.
+	// Claimed bytes are the oldest, so nothing can be dropped while the reader holds any.
+	_lock(p_owner, TRUE);
+	switch (p_owner->__claim ? RB_CHOP_OFF_NONE : p_owner->_bt.chop_off) {
 	case RB_CHOP_OFF_CHAR:
 		size = 0;
 		tail = p_owner->__tail;
 		while (tail != p_owner->__head) {
-			if (p_owner->__p_buffer[tail] == p_owner->__ui.chop_off_char) {
-				if (size >= count) {
-					p_owner->__tail = tail;
-					return TRUE;
-				}
+			if (p_owner->__p_buffer[tail] == p_owner->__ui.chop_off_char && size >= count) {
+				p_owner->__tail = tail;
+				rtn = TRUE;
+				break;
 			}
 			tail++;
 			if (tail >= p_owner->_size) tail -= p_owner->_size;
@@ -29,6 +43,7 @@ static BOOL _chopOff(PifRingBuffer* p_owner, uint16_t count)
 		break;
 
 	case RB_CHOP_OFF_LENGTH:
+		if (!p_owner->__ui.chop_off_length) break;
 		length = pifRingBuffer_GetFillSize(p_owner);
 		size = p_owner->__ui.chop_off_length;
 		while (count > size) {
@@ -39,20 +54,21 @@ static BOOL _chopOff(PifRingBuffer* p_owner, uint16_t count)
 			tail += size;
 			if (tail >= p_owner->_size) tail -= p_owner->_size;
 			p_owner->__tail = tail;
-			return TRUE;
+			rtn = TRUE;
 		}
 		else if (count <= length) {
 			p_owner->__tail = p_owner->__head;
-			return TRUE;
+			rtn = TRUE;
 		}
 		break;
 	}
-	return FALSE;
+	_lock(p_owner, FALSE);
+	return rtn;
 }
 
 PifRingBuffer* pifRingBuffer_CreateHeap(PifId id, uint16_t size)
 {
-	PifRingBuffer* p_owner = malloc(sizeof(PifRingBuffer));
+	PifRingBuffer* p_owner = calloc(sizeof(PifRingBuffer), 1);
 	if (!p_owner) {
 		pif_error = E_OUT_OF_HEAP;
 		return NULL;
@@ -107,7 +123,6 @@ BOOL pifRingBuffer_InitHeap(PifRingBuffer* p_owner, PifId id, uint16_t size)
 	if (id == PIF_ID_AUTO) id = pif_id++;
 	p_owner->_id = id;
     p_owner->_size = size;
-	p_owner->__backup_head = size;
     return TRUE;
 
 fail:
@@ -130,7 +145,6 @@ BOOL pifRingBuffer_InitStatic(PifRingBuffer* p_owner, PifId id, uint16_t size, u
 	p_owner->_id = id;
     p_owner->_bt.is_static = TRUE;
     p_owner->_size = size;
-	p_owner->__backup_head = size;
     return TRUE;
 }
 
@@ -145,30 +159,39 @@ void pifRingBuffer_Clear(PifRingBuffer* p_owner)
 void pifRingBuffer_Empty(PifRingBuffer* p_owner)
 {
 	// Make the buffer empty without clearing allocated memory.
+	_lock(p_owner, TRUE);
 	p_owner->__tail = p_owner->__head;
+	p_owner->__claim = 0;
+	_lock(p_owner, FALSE);
 }
 
 BOOL pifRingBuffer_ResizeHeap(PifRingBuffer* p_owner, uint16_t size)
 {
+	uint8_t* p_buffer;
+
     if (p_owner->_bt.is_static) {
 		pif_error = E_INVALID_STATE;
     	return FALSE;
     }
-
-    if (p_owner->__p_buffer) {
-    	free(p_owner->__p_buffer);
-    	p_owner->__p_buffer = NULL;
+    if (!size) {
+		pif_error = E_INVALID_PARAM;
+    	return FALSE;
     }
 
-	p_owner->__p_buffer = calloc(sizeof(uint8_t), size);
-	if (!p_owner->__p_buffer) {
+	// Allocate first so a failure leaves the current buffer intact.
+	p_buffer = calloc(sizeof(uint8_t), size);
+	if (!p_buffer) {
 		pif_error = E_OUT_OF_HEAP;
 		return FALSE;
 	}
+    if (p_owner->__p_buffer) free(p_owner->__p_buffer);
+	p_owner->__p_buffer = p_buffer;
     p_owner->_size = size;
 	p_owner->__head = 0;
+	p_owner->__put_head = 0;
 	p_owner->__tail = 0;
-	p_owner->__backup_head = size;
+	p_owner->__claim = 0;
+	p_owner->_bt.putting = FALSE;
 	return TRUE;
 }
 
@@ -177,34 +200,87 @@ void pifRingBuffer_SetName(PifRingBuffer* p_owner, const char* p_name)
 	p_owner->__p_name = p_name;
 }
 
+void pifRingBuffer_AttachActLock(PifRingBuffer* p_owner, PifActRingBufferLock act_lock)
+{
+	p_owner->__act_lock = act_lock;
+}
+
+uint8_t* pifRingBuffer_GetBuffer(PifRingBuffer* p_owner)
+{
+	return p_owner->__p_buffer;
+}
+
 uint8_t *pifRingBuffer_GetTailPointer(PifRingBuffer* p_owner, uint16_t pos)
 {
 	return &p_owner->__p_buffer[(p_owner->__tail + pos) % p_owner->_size];
 }
 
-BOOL pifRingBuffer_MoveHeadForLinear(PifRingBuffer* p_owner, uint16_t size)
+uint8_t* pifRingBuffer_GetReadPointer(PifRingBuffer* p_owner, uint16_t pos, uint16_t* p_length)
 {
-	if (size >= p_owner->_size) return FALSE;
-	if (p_owner->__head != p_owner->__tail) return FALSE;
-	if (p_owner->_size - p_owner->__head < size) p_owner->__head = p_owner->__tail = 0;
-	return TRUE;
+	uint16_t fill, tail, length = 0;
+
+	// The pointer and the length come from the same tail, and the claim is set before the lock is left,
+	// so a chop-off in between cannot make them disagree or drop the bytes.
+	_lock(p_owner, TRUE);
+	fill = pifRingBuffer_GetFillSize(p_owner);
+	tail = (p_owner->__tail + pos) % p_owner->_size;
+	if (pos < fill) {
+		length = fill - pos;
+		if (length > p_owner->_size - tail) length = p_owner->_size - tail;
+		if (p_owner->__claim < pos + length) p_owner->__claim = pos + length;
+	}
+	_lock(p_owner, FALSE);
+	*p_length = length;
+	return &p_owner->__p_buffer[tail];
 }
 
-BOOL pifRingBuffer_MoveHead(PifRingBuffer* p_owner, uint16_t size)
+BOOL pifRingBuffer_MoveHeadForLinear(PifRingBuffer* p_owner, uint16_t size)
 {
-	uint16_t remain;
+	BOOL rtn = TRUE;
 
-	// The bytes are already in the buffer memory; only the head catches up.
-	if (size >= p_owner->_size) return FALSE;
+	if (size >= p_owner->_size || p_owner->_bt.putting) return FALSE;
 
+	// Rewinding an empty buffer moves the reader's tail too, so it is done under the lock.
+	_lock(p_owner, TRUE);
+	if (p_owner->__put_head != p_owner->__tail) {
+		rtn = FALSE;
+	}
+	else if (p_owner->_size - p_owner->__put_head < size) {
+		p_owner->__head = p_owner->__put_head = p_owner->__tail = 0;
+		p_owner->__claim = 0;
+	}
+	_lock(p_owner, FALSE);
+	return rtn;
+}
+
+BOOL pifRingBuffer_SetHead(PifRingBuffer* p_owner, uint16_t pos)
+{
+	uint16_t head = p_owner->__put_head;
+	uint16_t written, remain, tail;
+
+	// The bytes are already in the buffer memory; only the head catches up. No division, since this
+	// runs in the DMA interrupt.
+	if (pos >= p_owner->_size) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+	if (pos == head) return TRUE;
+
+	written = pos > head ? pos - head : p_owner->_size - head + pos;
 	remain = pifRingBuffer_GetRemainSize(p_owner);
-	p_owner->__head = (p_owner->__head + size) % p_owner->_size;
-	if (size > remain) {
+	p_owner->__put_head = pos;
+	if (written > remain) {
 		// The writer ran over the oldest bytes, so drop them.
-		p_owner->__tail = (p_owner->__head + 1) % p_owner->_size;
+		tail = pos + 1;
+		if (tail >= p_owner->_size) tail = 0;
+		_lock(p_owner, TRUE);
+		p_owner->__tail = tail;
+		_publish(p_owner);
+		_lock(p_owner, FALSE);
 		pif_error = E_OVERFLOW_BUFFER;
 		return FALSE;
 	}
+	_publish(p_owner);
 	return TRUE;
 }
 
@@ -237,67 +313,58 @@ BOOL pifRingBuffer_IsEmpty(PifRingBuffer* p_owner)
 
 uint16_t pifRingBuffer_GetFillSize(PifRingBuffer* p_owner)
 {
-	uint16_t fill;
+	// Read head and tail once each, since an interrupt may move either of them.
+	uint16_t head = p_owner->__head;
+	uint16_t tail = p_owner->__tail;
 
-    if (p_owner->__head >= p_owner->__tail) {
-    	fill = p_owner->__head - p_owner->__tail;
+    if (head >= tail) {
+    	return head - tail;
     }
     else {
-    	fill = p_owner->_size - p_owner->__tail + p_owner->__head;
-    }
-    return fill;
-}
-
-uint16_t pifRingBuffer_GetLinerSize(PifRingBuffer* p_owner, uint16_t pos)
-{
-	uint16_t tail = (p_owner->__tail + pos) % p_owner->_size;
-
-    if (p_owner->__head >= tail) {
-    	return p_owner->__head - tail;
-    }
-    else {
-    	return p_owner->_size - tail;
+    	return p_owner->_size - tail + head;
     }
 }
 
 uint16_t pifRingBuffer_GetRemainSize(PifRingBuffer* p_owner)
 {
-	uint16_t remain;
+	// Room for the writer, so it counts from the write cursor, which includes uncommitted bytes.
+	uint16_t head = p_owner->__put_head;
+	uint16_t tail = p_owner->__tail;
 
-    if (p_owner->__head < p_owner->__tail) {
-    	remain = p_owner->__tail - p_owner->__head;
+    if (head < tail) {
+    	return tail - head - 1;
     }
     else {
-    	remain = p_owner->_size - p_owner->__head + p_owner->__tail;
+    	return p_owner->_size - head + tail - 1;
     }
-    return remain - 1;
 }
 
 void pifRingBuffer_BeginPutting(PifRingBuffer* p_owner)
 {
-	// Start a transactional put session by saving current head.
-	if (p_owner->__backup_head < p_owner->_size) {
-		p_owner->__head = p_owner->__backup_head;
-	}
-	p_owner->__backup_head = p_owner->__head;
+	// Start a put session. Bytes put from now on stay hidden from the reader until the commit, since
+	// __head stays where the session started. An unfinished earlier session is dropped.
+	p_owner->__put_head = p_owner->__head;
+	p_owner->_bt.putting = TRUE;
 }
 
 void pifRingBuffer_CommitPutting(PifRingBuffer* p_owner)
 {
-	// Mark transactional put as committed.
-	p_owner->__backup_head = p_owner->_size;
+	// Hand every byte of the session to the reader at once.
+	p_owner->_bt.putting = FALSE;
+	p_owner->__head = p_owner->__put_head;
 }
 
 void pifRingBuffer_RollbackPutting(PifRingBuffer* p_owner)
 {
-	// Restore head to the saved position and discard pending writes.
-	p_owner->__head = p_owner->__backup_head;
-	p_owner->__backup_head = p_owner->_size;
+	// The reader never saw the session, so going back to __head discards it.
+	p_owner->__put_head = p_owner->__head;
+	p_owner->_bt.putting = FALSE;
 }
 
 uint8_t* pifRingBuffer_GetPointerPutting(PifRingBuffer* p_owner, uint16_t pos)
 {
-	return &p_owner->__p_buffer[(p_owner->__backup_head + pos) % p_owner->_size];
+	// __head is where the session started while it is open.
+	return &p_owner->__p_buffer[(p_owner->__head + pos) % p_owner->_size];
 }
 
 BOOL pifRingBuffer_PutByte(PifRingBuffer* p_owner, uint8_t data)
@@ -305,7 +372,7 @@ BOOL pifRingBuffer_PutByte(PifRingBuffer* p_owner, uint8_t data)
     uint16_t next;
 
     // Keep one slot empty to distinguish full vs empty state.
-    next = p_owner->__head + 1;
+    next = p_owner->__put_head + 1;
 	if (next >= p_owner->_size) next = 0;
     if (next == p_owner->__tail) {
     	if (!_chopOff(p_owner, 1)) {
@@ -314,8 +381,9 @@ BOOL pifRingBuffer_PutByte(PifRingBuffer* p_owner, uint8_t data)
     	}
     }
 
-    p_owner->__p_buffer[p_owner->__head] = data;
-    p_owner->__head = next;
+    p_owner->__p_buffer[p_owner->__put_head] = data;
+    p_owner->__put_head = next;
+    _publish(p_owner);
     return TRUE;
 }
 
@@ -332,74 +400,79 @@ BOOL pifRingBuffer_PutData(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t len
 
     // Store the head once per byte, and only with a wrapped value, since a
     // reader in an interrupt may be looking at it.
-    uint16_t head = p_owner->__head;
+    uint16_t head = p_owner->__put_head;
     for (uint16_t i = 0; i < length; i++) {
     	p_owner->__p_buffer[head] = p_data[i];
     	head++;
     	if (head >= p_owner->_size) head = 0;
-    	p_owner->__head = head;
+    	p_owner->__put_head = head;
+    	_publish(p_owner);
     }
     return TRUE;
 }
 
 BOOL pifRingBuffer_PutString(PifRingBuffer* p_owner, char* p_string)
 {
-	uint16_t remain = pifRingBuffer_GetRemainSize(p_owner);
-	uint16_t length = strlen(p_string);
+	size_t length = strlen(p_string);
 
-    if (length > remain) {
-    	if (!_chopOff(p_owner, length - remain)) {
-    		pif_error = E_OVERFLOW_BUFFER;
-    		return FALSE;
-    	}
-    }
-
-    for (uint16_t i = 0; i < length; i++) {
-    	p_owner->__p_buffer[p_owner->__head] = p_string[i];
-    	p_owner->__head++;
-    	if (p_owner->__head >= p_owner->_size) p_owner->__head = 0;
-    }
-    return TRUE;
+	if (length >= p_owner->_size) {
+		pif_error = E_OVERFLOW_BUFFER;
+		return FALSE;
+	}
+	return pifRingBuffer_PutData(p_owner, (uint8_t*)p_string, length);
 }
 
 BOOL pifRingBuffer_GetByte(PifRingBuffer* p_owner, uint8_t* p_data)
 {
-	uint16_t tail = p_owner->__tail;
+	uint16_t tail;
+	BOOL rtn = FALSE;
 
-	if (tail == p_owner->__head) return FALSE;
-
-	*p_data = p_owner->__p_buffer[tail];
-	tail++;
-	if (tail >= p_owner->_size) tail = 0;
-	p_owner->__tail = tail;
-	return TRUE;
+	// The writer may move the tail to drop old data, so the read and the store are done together.
+	_lock(p_owner, TRUE);
+	tail = p_owner->__tail;
+	if (tail != p_owner->__head) {
+		*p_data = p_owner->__p_buffer[tail];
+		tail++;
+		if (tail >= p_owner->_size) tail = 0;
+		p_owner->__tail = tail;
+		if (p_owner->__claim) p_owner->__claim--;
+		rtn = TRUE;
+	}
+	_lock(p_owner, FALSE);
+	return rtn;
 }
 
 uint16_t pifRingBuffer_GetBytes(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t length)
 {
-	uint16_t i, tail = p_owner->__tail;
+	uint16_t i, tail;
 
+	_lock(p_owner, TRUE);
+	tail = p_owner->__tail;
 	for (i = 0; i < length; i++) {
-		if (tail == p_owner->__head) return i;
+		if (tail == p_owner->__head) break;
 
 		p_data[i] = p_owner->__p_buffer[tail];
 		tail++;
 		if (tail >= p_owner->_size) tail = 0;
 	}
 	p_owner->__tail = tail;
+	p_owner->__claim = p_owner->__claim > i ? p_owner->__claim - i : 0;
+	_lock(p_owner, FALSE);
 	return i;
 }
 
 uint16_t pifRingBuffer_CopyToArray(uint8_t* p_dst, uint16_t count, PifRingBuffer* p_src, uint16_t pos)
 {
-	uint16_t tail = p_src->__tail + pos;
-	if (tail >= p_src->_size) tail -= p_src->_size;
+	uint16_t fill = pifRingBuffer_GetFillSize(p_src);
 
+	if (pos >= fill) return 0;
+	if (count > fill - pos) count = fill - pos;
+
+	uint16_t tail = (p_src->__tail + pos) % p_src->_size;
 	for (uint16_t i = 0; i < count; i++) {
 		p_dst[i] = p_src->__p_buffer[tail];
 		tail++;
 		if (tail >= p_src->_size) tail = 0;
-		if (tail == p_src->__head) return i + 1;
 	}
 	return count;
 }
@@ -448,12 +521,17 @@ BOOL pifRingBuffer_CopyLength(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16
 
 void pifRingBuffer_Remove(PifRingBuffer* p_owner, uint16_t size)
 {
-	uint16_t fill = pifRingBuffer_GetFillSize(p_owner);
+	uint16_t fill;
 
+	_lock(p_owner, TRUE);
+	fill = pifRingBuffer_GetFillSize(p_owner);
 	if (size >= fill) {
 		p_owner->__tail = p_owner->__head;
 	}
 	else {
 		p_owner->__tail = (p_owner->__tail + size) % p_owner->_size;
 	}
+	// The reader is done with what it was handed, whether it sent all of it or not.
+	p_owner->__claim = 0;
+	_lock(p_owner, FALSE);
 }

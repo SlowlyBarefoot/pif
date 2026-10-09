@@ -549,11 +549,12 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 static uint16_t _sendBuffer(PifLink *p_owner, PifActUartSendData act_send_data, PifRingBuffer *p_buffer,
 		uint16_t pos, uint16_t end)
 {
-	uint16_t length = pifRingBuffer_GetLinerSize(p_buffer, pos);
+	uint16_t length;
+	uint8_t *p_data = pifRingBuffer_GetReadPointer(p_buffer, pos, &length);
 
 	// Stop at the end of the current frame even if the next one follows it in the buffer.
 	if (length > end - pos) length = end - pos;
-	return (*act_send_data)(p_owner->__p_uart, pifRingBuffer_GetTailPointer(p_buffer, pos), length);
+	return (*act_send_data)(p_owner->__p_uart, p_data, length);
 }
 
 static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
