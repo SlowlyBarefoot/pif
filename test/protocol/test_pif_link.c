@@ -190,8 +190,9 @@ static BOOL _setUp(void)
     // A failed test returns before _tearDown(), so free what it left behind.
     pifLink_Clear(&s_a);
     pifLink_Clear(&s_b);
-    // Removed timers are freed on the next tick.
+    // Removed timers are freed by the manager task after the next tick.
     pifTimerManager_sigTick(&s_timer_manager);
+    pifTaskManager_Loop();
 
     memset(&s_uart_a, 0, sizeof(s_uart_a));
     memset(&s_uart_b, 0, sizeof(s_uart_b));

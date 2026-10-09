@@ -217,8 +217,7 @@ BOOL pifLed_ChangeBlinkPeriod(PifLed* p_owner, uint16_t period1ms)
 		return FALSE;
 	}
 
-	p_owner->__p_timer_blink->target = period1ms * 1000L / p_owner->__p_timer_manager->_period1us;
-	return TRUE;
+	return pifTimer_SetTarget(p_owner->__p_timer_blink, period1ms * 1000L / p_owner->__p_timer_manager->_period1us);
 }
 
 void pifLed_SBlinkOn(PifLed* p_owner, uint32_t bits)

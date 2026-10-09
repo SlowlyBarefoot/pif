@@ -284,7 +284,7 @@ BOOL pifStepMotor_SetPps(PifStepMotor* p_owner, uint16_t pps)
 		pif_error = E_WRONG_DATA;
 		return FALSE;
 	}
-	p_owner->__p_timer_step->target = period / p_owner->_p_timer_manager->_period1us;
+	pifTimer_SetTarget(p_owner->__p_timer_step, period / p_owner->_p_timer_manager->_period1us);
 
 	p_owner->_current_pps = pps;
 #ifdef PIF_COLLECT_SIGNAL

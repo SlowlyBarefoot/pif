@@ -24,8 +24,7 @@ typedef struct StPifTimerManager
     PifObjArray __timers;
 	PifTaskTimer *__p_task;
 	volatile BOOL __pending;
-    int __remove_count;
-	PifTimer **__pp_remove;
+	volatile BOOL __ready;		// The tick handler walks the timers only between Init and Clear.
 } PifTimerManager;
 
 
@@ -46,6 +45,8 @@ BOOL pifTimerManager_Init(PifTimerManager *p_manager, PifId id, uint32_t period1
 /**
  * @fn pifTimerManager_Clear
  * @brief Clears the timer manager state and releases resources currently owned by the instance.
+ *        Every timer is stopped first, which leaves a PWM output off, and no finish callback runs
+ *        for them any more. The tick may keep coming: pifTimerManager_sigTick() returns at once.
  * @param p_manager Pointer to the timer manager instance.
  */
 void pifTimerManager_Clear(PifTimerManager *p_manager);
@@ -53,6 +54,7 @@ void pifTimerManager_Clear(PifTimerManager *p_manager);
 /**
  * @fn pifTimerManager_Add
  * @brief Adds an item to the timer manager and updates internal bookkeeping for subsequent operations.
+ *        Call it from the main context: the manager task walks the same list there unguarded.
  * @param p_manager Pointer to the timer manager instance.
  * @param type Timer type configuration value.
  * @return Return value of this API.
@@ -61,7 +63,9 @@ PifTimer *pifTimerManager_Add(PifTimerManager *p_manager, PifTimerType type);
 
 /**
  * @fn pifTimerManager_Remove
- * @brief Removes an item from the timer manager and updates internal bookkeeping for consistency.
+ * @brief Marks a timer for removal. It stops counting and no finish callback runs for it from
+ *        then on. The manager task frees its slot after the next tick, so the count drops only
+ *        then. Safe to call from a finish callback, including one attached to run in the interrupt.
  * @param p_timer Pointer to the timer instance.
  */
 void pifTimerManager_Remove(PifTimer *p_timer);

@@ -330,7 +330,7 @@ void pifDotMatrix_BlinkOff(PifDotMatrix* p_owner)
 void pifDotMatrix_ChangeBlinkPeriod(PifDotMatrix* p_owner, uint16_t period1ms)
 {
 	if (p_owner->__p_timer_blink) {
-		p_owner->__p_timer_blink->target = period1ms * 1000UL / p_owner->__p_timer_manager->_period1us;
+		pifTimer_SetTarget(p_owner->__p_timer_blink, period1ms * 1000UL / p_owner->__p_timer_manager->_period1us);
 	}
 }
 
@@ -380,6 +380,6 @@ void pifDotMatrix_ShiftOff(PifDotMatrix* p_owner)
 void pifDotMatrix_ChangeShiftPeriod(PifDotMatrix* p_owner, uint16_t period1ms)
 {
 	if (p_owner->__p_timer_shift) {
-		p_owner->__p_timer_shift->target = period1ms * 1000UL / p_owner->__p_timer_manager->_period1us;
+		pifTimer_SetTarget(p_owner->__p_timer_shift, period1ms * 1000UL / p_owner->__p_timer_manager->_period1us);
 	}
 }
