@@ -117,6 +117,9 @@ static uint32_t _doTask(PifTask* p_task)
 	if (tmp_pps != p_parent->_current_pps) {
 		if (tmp_pps) pifStepMotor_SetPps(p_parent, tmp_pps);
 		p_parent->_current_pps = tmp_pps;
+#ifdef PIF_COLLECT_SIGNAL
+		pifCollectSignal_Put(&p_parent->__cs[SM_CSF_PPS_IDX], tmp_pps);
+#endif
 	}
 
     if (p_parent->_state == MS_BREAK) {
@@ -228,6 +231,9 @@ static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValu
 static void _fnStopStep(PifStepMotor* p_parent)
 {
 	p_parent->_current_pps = 0;
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_Put(&p_parent->__cs[SM_CSF_PPS_IDX], 0);
+#endif
 #ifndef PIF_NO_LOG
 	pifStepMotor_SetState(p_parent, MS_BREAK, "SMP");
 #else

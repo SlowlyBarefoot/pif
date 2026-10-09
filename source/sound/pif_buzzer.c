@@ -3,6 +3,20 @@
 
 
 /**
+ * @fn _setState
+ * @brief Sets the state and records it for pifCollectSignal.
+ * @param p_owner Pointer to the buzzer instance.
+ * @param state New state.
+ */
+static void _setState(PifBuzzer* p_owner, PifBuzzerState state)
+{
+	p_owner->_state = state;
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_Put(&p_owner->__cs[BZ_CSF_STATE_IDX], state);
+#endif
+}
+
+/**
  * @fn _setOutput
  * @brief Drives the buzzer output and reports the edge, only when the output actually changes.
  * @param p_owner Pointer to the buzzer instance.
@@ -14,6 +28,9 @@ static void _setOutput(PifBuzzer* p_owner, BOOL on)
 
 	(*p_owner->__act_action)(on);
 	p_owner->_output = on;
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_Put(&p_owner->__cs[BZ_CSF_OUTPUT_IDX], on);
+#endif
 	if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, on);
 }
 
@@ -25,7 +42,7 @@ static void _setOutput(PifBuzzer* p_owner, BOOL on)
 static void _finish(PifBuzzer* p_owner)
 {
 	_setOutput(p_owner, OFF);
-	p_owner->_state = BS_IDLE;
+	_setState(p_owner, BS_IDLE);
 	if (p_owner->evt_finish) (*p_owner->evt_finish)(p_owner->_id);
 }
 
@@ -61,7 +78,7 @@ static void _nextStep(PifBuzzer* p_owner)
 			// _state is still BS_START here for the first edge of a sequence.
 			_setOutput(p_owner, on);
 			p_owner->__count = value;
-			p_owner->_state = on ? BS_ON : BS_OFF;
+			_setState(p_owner, on ? BS_ON : BS_OFF);
 			return;
 		}
 		// A zero duration is skipped, so the output keeps its level.
@@ -118,6 +135,9 @@ BOOL pifBuzzer_Init(PifBuzzer* p_owner, PifId id, uint16_t period1ms, PifActBuzz
 
 void pifBuzzer_Clear(PifBuzzer* p_owner)
 {
+#ifdef PIF_COLLECT_SIGNAL
+	pifBuzzer_ResetCsFlag(p_owner, BZ_CSF_ALL_BIT);
+#endif
 	if (p_owner->_p_task) {
 		pifTaskManager_Remove(p_owner->_p_task);
 		p_owner->_p_task = NULL;
@@ -139,7 +159,7 @@ BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sequence)
 	p_owner->__pos = 0;
 	p_owner->__repeat = 0;
 	p_owner->__count = 0;
-	p_owner->_state = BS_START;
+	_setState(p_owner, BS_START);
 	return TRUE;
 }
 
@@ -151,12 +171,38 @@ void pifBuzzer_Stop(PifBuzzer* p_owner)
 	(*p_owner->__act_action)(OFF);
 	if (p_owner->_output) {
 		p_owner->_output = OFF;
+#ifdef PIF_COLLECT_SIGNAL
+		pifCollectSignal_Put(&p_owner->__cs[BZ_CSF_OUTPUT_IDX], OFF);
+#endif
 		if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, OFF);
 	}
-	p_owner->_state = BS_IDLE;
+	_setState(p_owner, BS_IDLE);
 }
 
 BOOL pifBuzzer_State(PifBuzzer* p_owner)
 {
     return p_owner->_output;
 }
+
+#ifdef PIF_COLLECT_SIGNAL
+
+BOOL pifBuzzer_SetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag)
+{
+	if (flag & BZ_CSF_STATE_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[BZ_CSF_STATE_IDX], "BZS", p_owner->_id, CSVT_REG, 3,
+				p_owner->_state)) return FALSE;
+	}
+	if (flag & BZ_CSF_OUTPUT_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[BZ_CSF_OUTPUT_IDX], "BZO", p_owner->_id, CSVT_WIRE, 1,
+				p_owner->_output)) return FALSE;
+	}
+	return TRUE;
+}
+
+void pifBuzzer_ResetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag)
+{
+	if (flag & BZ_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[BZ_CSF_STATE_IDX]);
+	if (flag & BZ_CSF_OUTPUT_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[BZ_CSF_OUTPUT_IDX]);
+}
+
+#endif	// PIF_COLLECT_SIGNAL

@@ -4,6 +4,9 @@
 
 
 #include "core/pif_task.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 #define PIF_PULSE_DATA_SIZE			4
@@ -24,7 +27,7 @@ typedef struct StPifPulse PifPulse;
 
 #ifdef PIF_COLLECT_SIGNAL
 
-typedef enum EnPifGpioCsFlag
+typedef enum EnPifPulseCsFlag
 {
     PL_CSF_OFF			= 0,
 
@@ -35,13 +38,6 @@ typedef enum EnPifGpioCsFlag
 
 	PL_CSF_COUNT		= 1
 } PifPulseCsFlag;
-
-typedef struct
-{
-	PifPulse* p_owner;
-    uint8_t flag;
-    void* p_device[PL_CSF_COUNT];
-} PifPulseColSig;
 
 #endif	// PIF_COLLECT_SIGNAL
 
@@ -80,7 +76,7 @@ struct StPifPulse
 	PifIssuerP __p_issuer;
 
 #ifdef PIF_COLLECT_SIGNAL
-	PifPulseColSig* __p_colsig;
+	PifCollectSignalChannel __cs[PL_CSF_COUNT];
 #endif
 
 	// Private Event Function
@@ -188,45 +184,20 @@ void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssu
 
 /**
  * @fn pifPulse_SetCsFlag
- * @brief Sets configuration or runtime state for the pulse based on the provided parameters.
- * @param p_owner Pointer to the target object instance.
- * @param flag Bit flag mask to set, clear, or query.
+ * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
+ * @param p_owner Pointer to the owner instance.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
  */
-void pifPulse_SetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag);
+BOOL pifPulse_SetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag);
 
 /**
  * @fn pifPulse_ResetCsFlag
- * @brief Resets runtime state in the pulse to an initial or configured baseline.
- * @param p_owner Pointer to the target object instance.
- * @param flag Bit flag mask to set, clear, or query.
+ * @brief Removes the selected signals of the instance from pifCollectSignal.
+ * @param p_owner Pointer to the owner instance.
+ * @param flag Bit mask of the signals to remove.
  */
 void pifPulse_ResetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag);
-
-/**
- * @fn pifPulseColSig_Init
- * @brief 
- */
-void pifPulseColSig_Init();
-
-/**
- * @fn pifPulseColSig_Clear
- * @brief 
- */
-void pifPulseColSig_Clear();
-
-/**
- * @fn pifPulseColSig_SetFlag
- * @brief Sets configuration or runtime state for the pulse based on the provided parameters.
- * @param flag Bit flag mask to set, clear, or query.
- */
-void pifPulseColSig_SetFlag(PifPulseCsFlag flag);
-
-/**
- * @fn pifPulseColSig_ResetFlag
- * @brief Resets runtime state in the pulse to an initial or configured baseline.
- * @param flag Bit flag mask to set, clear, or query.
- */
-void pifPulseColSig_ResetFlag(PifPulseCsFlag flag);
 
 #endif	// PIF_COLLECT_SIGNAL
 

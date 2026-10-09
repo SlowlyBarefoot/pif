@@ -7,6 +7,9 @@
 #include "core/pif_task_manager.h"
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 struct StPifMax31855;
@@ -28,13 +31,6 @@ typedef enum EnPifMax31855CsFlag
 
     M3_CSF_COUNT		= 1
 } PifMax31855CsFlag;
-
-typedef struct StPifMax31855ColSig
-{
-	PifMax31855* p_owner;
-    uint8_t flag;
-    void* p_device[M3_CSF_COUNT];
-} PifMax31855ColSig;
 
 #endif	// PIF_COLLECT_SIGNAL
 
@@ -61,7 +57,7 @@ typedef struct StPifMax31855
     PifIssuerP __p_issuer;
 
 #ifdef PIF_COLLECT_SIGNAL
-    PifMax31855ColSig* __p_colsig;
+    PifCollectSignalChannel __cs[M3_CSF_COUNT];
 #endif
 
 	// Private Event Function
@@ -132,33 +128,20 @@ void pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double
 
 /**
  * @fn pifMax31855_SetCsFlag
- * @brief Sets configuration values required by max31855 set cs flag.
+ * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
  * @param p_owner Pointer to the owner instance.
- * @param flag Bit flag value to set or clear.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
  */
-void pifMax31855_SetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag);
+BOOL pifMax31855_SetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag);
 
 /**
  * @fn pifMax31855_ResetCsFlag
- * @brief Sets configuration values required by max31855 reset cs flag.
+ * @brief Removes the selected signals of the instance from pifCollectSignal.
  * @param p_owner Pointer to the owner instance.
- * @param flag Bit flag value to set or clear.
+ * @param flag Bit mask of the signals to remove.
  */
 void pifMax31855_ResetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag);
-
-/**
- * @fn pifMax31855ColSig_SetFlag
- * @brief Sets configuration values required by max31855 col sig set flag.
- * @param flag Bit flag value to set or clear.
- */
-void pifMax31855ColSig_SetFlag(PifMax31855CsFlag flag);
-
-/**
- * @fn pifMax31855ColSig_ResetFlag
- * @brief Sets configuration values required by max31855 col sig reset flag.
- * @param flag Bit flag value to set or clear.
- */
-void pifMax31855ColSig_ResetFlag(PifMax31855CsFlag flag);
 
 #endif	// PIF_COLLECT_SIGNAL
 

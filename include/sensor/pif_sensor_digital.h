@@ -6,6 +6,9 @@
 #include "core/pif_task_manager.h"
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 struct StPifSensorDigital;
@@ -25,13 +28,6 @@ typedef enum EnPifSensorDigitalCsFlag
 
     SD_CSF_COUNT		= 1
 } PifSensorDigitalCsFlag;
-
-typedef struct StPifSensorDigitalColSig
-{
-	PifSensorDigital* p_owner;
-    uint8_t flag;
-    void* p_device[SD_CSF_COUNT];
-} PifSensorDigitalColSig;
 
 #endif	// PIF_COLLECT_SIGNAL
 
@@ -53,7 +49,7 @@ struct StPifSensorDigital
     uint16_t __curr_level;
 
 #ifdef PIF_COLLECT_SIGNAL
-    PifSensorDigitalColSig* __p_colsig;
+    PifCollectSignalChannel __cs[SD_CSF_COUNT];
 #endif
 
 	// Private Event Function
@@ -130,45 +126,20 @@ PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifId id,
 
 /**
  * @fn pifSensorDigital_SetCsFlag
- * @brief Sets configuration values required by sensor digital set cs flag.
+ * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
  * @param p_owner Pointer to the owner instance.
- * @param flag Bit flag value to set or clear.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
  */
-void pifSensorDigital_SetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag);
+BOOL pifSensorDigital_SetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag);
 
 /**
  * @fn pifSensorDigital_ResetCsFlag
- * @brief Sets configuration values required by sensor digital reset cs flag.
+ * @brief Removes the selected signals of the instance from pifCollectSignal.
  * @param p_owner Pointer to the owner instance.
- * @param flag Bit flag value to set or clear.
+ * @param flag Bit mask of the signals to remove.
  */
 void pifSensorDigital_ResetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag);
-
-/**
- * @fn pifSensorDigitalColSig_Init
- * @brief 
- */
-void pifSensorDigitalColSig_Init();
-
-/**
- * @fn pifSensorDigitalColSig_Clear
- * @brief 
- */
-void pifSensorDigitalColSig_Clear();
-
-/**
- * @fn pifSensorDigitalColSig_SetFlag
- * @brief Sets configuration values required by sensor digital col sig set flag.
- * @param flag Bit flag value to set or clear.
- */
-void pifSensorDigitalColSig_SetFlag(PifSensorDigitalCsFlag flag);
-
-/**
- * @fn pifSensorDigitalColSig_ResetFlag
- * @brief Sets configuration values required by sensor digital col sig reset flag.
- * @param flag Bit flag value to set or clear.
- */
-void pifSensorDigitalColSig_ResetFlag(PifSensorDigitalCsFlag flag);
 
 #endif	// PIF_COLLECT_SIGNAL
 

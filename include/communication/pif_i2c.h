@@ -5,6 +5,9 @@
 
 #include "communication/pif_comm.h"
 #include "core/pif_obj_array.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 typedef enum EnPifI2cState
@@ -21,6 +24,24 @@ typedef enum EnPifI2cReturn
 	IR_COMPLETE,
 	IR_ERROR
 } PifI2cReturn;
+
+#ifdef PIF_COLLECT_SIGNAL
+
+typedef enum EnPifI2cCsFlag
+{
+	I2_CSF_OFF			= 0,
+
+	I2_CSF_STATE_IDX	= 0,	// PifI2cState of the device using the port
+	I2_CSF_ADDR_IDX		= 1,	// Address of the device whose transfer started last
+
+	I2_CSF_STATE_BIT	= 1,
+	I2_CSF_ADDR_BIT		= 2,
+	I2_CSF_ALL_BIT		= 3,
+
+	I2_CSF_COUNT		= 2
+} PifI2cCsFlag;
+
+#endif	// PIF_COLLECT_SIGNAL
 
 
 struct StPifI2cDevice;
@@ -83,6 +104,9 @@ struct StPifI2cPort
 	// Private Member Variable
     PifObjArray __devices;
     volatile PifI2cDevice* __use_device;
+#ifdef PIF_COLLECT_SIGNAL
+	PifCollectSignalChannel __cs[I2_CSF_COUNT];
+#endif
 };
 
 
@@ -332,6 +356,29 @@ BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask
  * @param result Transfer result flag (`TRUE` for success, `FALSE` for error).
  */
 void pifI2cPort_sigEndTransfer(PifI2cPort* p_owner, BOOL result);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn pifI2cPort_SetCsFlag
+ * @brief Adds the selected signals of the port to pifCollectSignal as channels. They follow the
+ *        transfers of every device on the port.
+ * @param p_owner Pointer to the port.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifI2cPort_SetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag);
+
+/**
+ * @fn pifI2cPort_ResetCsFlag
+ * @brief Removes the selected signals of the port from pifCollectSignal.
+ * @param p_owner Pointer to the port.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifI2cPort_ResetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag);
+
+#endif	// PIF_COLLECT_SIGNAL
+
 
 #ifdef __cplusplus
 }

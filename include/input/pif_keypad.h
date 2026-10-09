@@ -4,6 +4,9 @@
 
 
 #include "core/pif_task_manager.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 #ifndef PIF_KEYPAD_DEFAULT_HOLD_TIME
@@ -29,6 +32,22 @@ typedef enum EnPifKeyState
 	KS_RELEASED
 } PifKeyState;
 
+#ifdef PIF_COLLECT_SIGNAL
+
+typedef enum EnPifKeypadCsFlag
+{
+	KP_CSF_OFF			= 0,
+
+	KP_CSF_STATE_IDX	= 0,	// PifKeyState of each key, named "KP_<key index>"
+
+	KP_CSF_STATE_BIT	= 1,
+	KP_CSF_ALL_BIT		= 1,
+
+	KP_CSF_COUNT		= 1
+} PifKeypadCsFlag;
+
+#endif	// PIF_COLLECT_SIGNAL
+
 
 typedef void (*PifActKeypadAcquire)(uint16_t* p_state);
 
@@ -51,6 +70,9 @@ typedef struct StPifKey
 	BOOL long_released;
 	uint32_t pressed_time;
 	uint32_t first_time;
+#ifdef PIF_COLLECT_SIGNAL
+	PifCollectSignalChannel __cs[KP_CSF_COUNT];
+#endif
 } PifKey;
 
 /**
@@ -178,6 +200,28 @@ BOOL pifKeypad_Start(PifKeypad* p_owner, const char* p_name);
  * @param p_owner Pointer to the keypad instance.
  */
 void pifKeypad_Stop(PifKeypad* p_owner);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn pifKeypad_SetCsFlag
+ * @brief Adds the selected signals of every key to pifCollectSignal as channels. Call it after
+ *        pifKeypad_SetKeymap(), which removes them again when it changes the keys.
+ * @param p_owner Pointer to the keypad instance.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifKeypad_SetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag);
+
+/**
+ * @fn pifKeypad_ResetCsFlag
+ * @brief Removes the selected signals of every key from pifCollectSignal.
+ * @param p_owner Pointer to the keypad instance.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifKeypad_ResetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag);
+
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

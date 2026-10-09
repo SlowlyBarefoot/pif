@@ -1,17 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "sensor/pif_sensor_digital.h"
-#ifdef PIF_COLLECT_SIGNAL
-	#include "core/pif_collect_signal.h"
-#endif
-#include "core/pif_dlist.h"
-#ifndef PIF_NO_LOG
-	#include "core/pif_log.h"
-#endif
-
-
-#ifdef PIF_COLLECT_SIGNAL
-	static PifDList s_cs_list;
-#endif
 
 
 /**
@@ -25,37 +13,6 @@ static uint32_t _doTaskAcquire(PifTask* p_task)
 	pifSensorDigital_ProcessAcquire((PifSensorDigital*)p_task->_p_client);
 	return 0;
 }
-
-#ifdef PIF_COLLECT_SIGNAL
-
-/**
- * @fn _addDeviceInCollectSignal
- * @brief Internal helper that supports add device in collect signal logic.
- * @return None.
- */
-static void _addDeviceInCollectSignal()
-{
-	const char* prefix[SD_CSF_COUNT] = { "SD" };
-
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSensorDigitalColSig* p_colsig = (PifSensorDigitalColSig*)it->data;
-		PifSensorDigital* p_owner = p_colsig->p_owner;
-		for (int f = 0; f < SD_CSF_COUNT; f++) {
-			if (p_colsig->flag & (1 << f)) {
-				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->parent._id, CSVT_WIRE, 1,
-						prefix[f], p_owner->parent._curr_state);
-			}
-		}
-#ifndef PIF_NO_LOG
-		pifLog_Printf(LT_INFO, "SD_CS:Add(DC:%u F:%u)", p_owner->parent._id, p_colsig->flag);
-#endif
-
-		it = pifDList_Next(it);
-	}
-}
-
-#endif	// PIF_COLLECT_SIGNAL
 
 BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifActSensorAcquire act_acquire)
 {
@@ -72,32 +29,13 @@ BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifActSensorAcqu
     p_owner->parent._id = id;
 	p_owner->parent.__act_acquire = act_acquire;
 
-#ifdef PIF_COLLECT_SIGNAL
-	if (!pifDList_Size(&s_cs_list)) {
-		pifCollectSignal_Attach(CSF_SENSOR_DIGITAL, _addDeviceInCollectSignal);
-	}
-	PifSensorDigitalColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSensorDigitalColSig));
-	if (!p_colsig) goto fail;
-	p_colsig->p_owner = p_owner;
-	p_owner->__p_colsig = p_colsig;
-#endif
     return TRUE;
-
-#ifdef PIF_COLLECT_SIGNAL
-fail:
-	pifSensorDigital_Clear(p_owner);
-	return FALSE;
-#endif
 }
 
 void pifSensorDigital_Clear(PifSensorDigital* p_owner)
 {
 #ifdef PIF_COLLECT_SIGNAL
-	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
-	if (!pifDList_Size(&s_cs_list)) {
-		pifCollectSignal_Detach(CSF_SENSOR_DIGITAL);
-	}
-	p_owner->__p_colsig = NULL;
+	pifSensorDigital_ResetCsFlag(p_owner, SD_CSF_ALL_BIT);
 #else
 	(void)p_owner;
 #endif
@@ -142,9 +80,7 @@ uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner)
 				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, &p_owner->__curr_level, p_parent->__p_issuer);
 			}
 #ifdef PIF_COLLECT_SIGNAL
-			if (p_owner->__p_colsig->flag & SD_CSF_STATE_BIT) {
-				pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SD_CSF_STATE_IDX], p_parent->_curr_state);
-			}
+			pifCollectSignal_Put(&p_owner->__cs[SD_CSF_STATE_IDX], p_parent->_curr_state);
 #endif
 		}
 	}
@@ -155,9 +91,7 @@ uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner)
 				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, &p_owner->__curr_level, p_parent->__p_issuer);
 			}
 #ifdef PIF_COLLECT_SIGNAL
-			if (p_owner->__p_colsig->flag & SD_CSF_STATE_BIT) {
-				pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[SD_CSF_STATE_IDX], p_parent->_curr_state);
-			}
+			pifCollectSignal_Put(&p_owner->__cs[SD_CSF_STATE_IDX], p_parent->_curr_state);
 #endif
 		}
 	}
@@ -176,44 +110,18 @@ PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifId id,
 
 #ifdef PIF_COLLECT_SIGNAL
 
-void pifSensorDigital_SetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag)
+BOOL pifSensorDigital_SetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag)
 {
-	p_owner->__p_colsig->flag |= flag;
+	if (flag & SD_CSF_STATE_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[SD_CSF_STATE_IDX], "SD", p_owner->parent._id, CSVT_WIRE, 1,
+				p_owner->parent._curr_state)) return FALSE;
+	}
+	return TRUE;
 }
 
 void pifSensorDigital_ResetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag)
 {
-	p_owner->__p_colsig->flag &= ~flag;
-}
-
-void pifSensorDigitalColSig_Init()
-{
-	pifDList_Init(&s_cs_list);
-}
-
-void pifSensorDigitalColSig_Clear()
-{
-	pifDList_Clear(&s_cs_list, NULL);
-}
-
-void pifSensorDigitalColSig_SetFlag(PifSensorDigitalCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSensorDigitalColSig* p_colsig = (PifSensorDigitalColSig*)it->data;
-		p_colsig->flag |= flag;
-		it = pifDList_Next(it);
-	}
-}
-
-void pifSensorDigitalColSig_ResetFlag(PifSensorDigitalCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSensorDigitalColSig* p_colsig = (PifSensorDigitalColSig*)it->data;
-		p_colsig->flag &= ~flag;
-		it = pifDList_Next(it);
-	}
+	if (flag & SD_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SD_CSF_STATE_IDX]);
 }
 
 #endif	// PIF_COLLECT_SIGNAL

@@ -115,7 +115,7 @@ static uint32_t _doTask(PifTask* p_task)
 	}
 
 	if (tmp_duty != p_parent->_current_duty) {
-		(*p_parent->act_set_duty)(tmp_duty);
+		pifDutyMotor_ApplyDuty(p_parent, tmp_duty);
 		p_parent->_current_duty = tmp_duty;
 	}
 
@@ -246,7 +246,7 @@ static void _evtPulseEdge(PifPulseState state, PifIssuerP p_issuer)
 		if (p_parent->_state && p_parent->_state < MS_STOP) {
 			if (p_parent->_current_duty && p_owner->__p_encoder->falling_count >= p_owner->__p_current_stage->total_pulse) {
 				p_parent->_current_duty = 0;
-				(*p_parent->act_set_duty)(p_parent->_current_duty);
+				pifDutyMotor_ApplyDuty(p_parent, p_parent->_current_duty);
 			}
 		}
 	}
@@ -392,7 +392,7 @@ BOOL pifDutyMotorPos_Start(PifDutyMotorPos* p_owner, uint8_t stage_index, uint32
     p_owner->__p_encoder->falling_count = 0UL;
     p_parent->__error = 0;
 
-    (*p_parent->act_set_duty)(p_parent->_current_duty);
+    pifDutyMotor_ApplyDuty(p_parent, p_parent->_current_duty);
     return TRUE;
 }
 

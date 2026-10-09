@@ -5,6 +5,9 @@
 
 #include "core/pif_task_manager.h"
 #include "sensor/pif_sensor_event.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 typedef enum EnPifHcSr04State
@@ -14,6 +17,24 @@ typedef enum EnPifHcSr04State
 	HSS_HIGH		= 2,
 	HSS_LOW			= 3
 } PifHcSr04State;
+
+#ifdef PIF_COLLECT_SIGNAL
+
+typedef enum EnPifHcSr04CsFlag
+{
+	HS_CSF_OFF				= 0,
+
+	HS_CSF_STATE_IDX		= 0,	// PifHcSr04State
+	HS_CSF_DISTANCE_IDX		= 1,	// Distance given to evt_read
+
+	HS_CSF_STATE_BIT		= 1,
+	HS_CSF_DISTANCE_BIT		= 2,
+	HS_CSF_ALL_BIT			= 3,
+
+	HS_CSF_COUNT			= 2
+} PifHcSr04CsFlag;
+
+#endif	// PIF_COLLECT_SIGNAL
 
 typedef void (*PifActHcSr04Trigger)(SWITCH state);
 
@@ -37,6 +58,9 @@ typedef struct StPifHcSr04
     PifHcSr04State __state;
     uint32_t __trigger_time_us;
 	int32_t __distance;
+#ifdef PIF_COLLECT_SIGNAL
+	PifCollectSignalChannel __cs[HS_CSF_COUNT];
+#endif
 } PifHcSr04;
 
 
@@ -99,6 +123,27 @@ void pifHcSr04_SetTemperature(PifHcSr04* p_owner, float temperature);
  * @param state Parameter state used by this operation.
  */
 void pifHcSr04_sigReceiveEcho(PifHcSr04* p_owner, SWITCH state);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn pifHcSr04_SetCsFlag
+ * @brief Adds the selected signals of the sensor to pifCollectSignal as channels.
+ * @param p_owner Pointer to the sensor instance.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifHcSr04_SetCsFlag(PifHcSr04* p_owner, PifHcSr04CsFlag flag);
+
+/**
+ * @fn pifHcSr04_ResetCsFlag
+ * @brief Removes the selected signals of the sensor from pifCollectSignal.
+ * @param p_owner Pointer to the sensor instance.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifHcSr04_ResetCsFlag(PifHcSr04* p_owner, PifHcSr04CsFlag flag);
+
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

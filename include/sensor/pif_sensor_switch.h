@@ -6,6 +6,9 @@
 #include "core/pif_task_manager.h"
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 struct StPifSensorSwitch;
@@ -27,14 +30,6 @@ typedef enum EnPifSensorSwitchCsFlag
     SS_CSF_COUNT		= 2
 } PifSensorSwitchCsFlag;
 
-typedef struct StPifSensorSwitchColSig
-{
-	PifSensorSwitch* p_owner;
-    uint8_t flag;
-    void* p_device[SS_CSF_COUNT];
-    SWITCH state;
-} PifSensorSwitchColSig;
-
 #endif	// PIF_COLLECT_SIGNAL
 
 /**
@@ -53,7 +48,7 @@ struct StPifSensorSwitch
     SWITCH __state;
 
 #ifdef PIF_COLLECT_SIGNAL
-    PifSensorSwitchColSig* __p_colsig;
+    PifCollectSignalChannel __cs[SS_CSF_COUNT];
 #endif
 };
 
@@ -120,45 +115,20 @@ PifTask *pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifId id, P
 
 /**
  * @fn pifSensorSwitch_SetCsFlag
- * @brief Sets configuration values required by sensor switch set cs flag.
+ * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
  * @param p_owner Pointer to the owner instance.
- * @param flag Bit flag value to set or clear.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
  */
-void pifSensorSwitch_SetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
+BOOL pifSensorSwitch_SetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
 
 /**
  * @fn pifSensorSwitch_ResetCsFlag
- * @brief Sets configuration values required by sensor switch reset cs flag.
+ * @brief Removes the selected signals of the instance from pifCollectSignal.
  * @param p_owner Pointer to the owner instance.
- * @param flag Bit flag value to set or clear.
+ * @param flag Bit mask of the signals to remove.
  */
 void pifSensorSwitch_ResetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
-
-/**
- * @fn pifSensorSwitchColSig_Init
- * @brief 
- */
-void pifSensorSwitchColSig_Init();
-
-/**
- * @fn pifSensorSwitchColSig_Clear
- * @brief 
- */
-void pifSensorSwitchColSig_Clear();
-
-/**
- * @fn pifSensorSwitchColSig_SetFlag
- * @brief Sets configuration values required by sensor switch col sig set flag.
- * @param flag Bit flag value to set or clear.
- */
-void pifSensorSwitchColSig_SetFlag(PifSensorSwitchCsFlag flag);
-
-/**
- * @fn pifSensorSwitchColSig_ResetFlag
- * @brief Sets configuration values required by sensor switch col sig reset flag.
- * @param flag Bit flag value to set or clear.
- */
-void pifSensorSwitchColSig_ResetFlag(PifSensorSwitchCsFlag flag);
 
 #endif	// PIF_COLLECT_SIGNAL
 

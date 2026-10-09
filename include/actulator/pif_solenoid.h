@@ -5,6 +5,9 @@
 
 #include "core/pif_ring_data.h"
 #include "core/pif_timer_manager.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 typedef enum EnPifSolenoidType
@@ -56,13 +59,6 @@ typedef enum EnPifSolenoidCsFlag
     SN_CSF_COUNT		= 2
 } PifSolenoidCsFlag;
 
-typedef struct StPifSolenoidColSig
-{
-	PifSolenoid* p_owner;
-	uint8_t flag;
-    void* p_device[SN_CSF_COUNT];
-} PifSolenoidColSig;
-
 #endif	// PIF_COLLECT_SIGNAL
 
 /**
@@ -91,7 +87,7 @@ struct StPifSolenoid
     PifSolenoidDir __dir;
 	PifRingData* __p_buffer;
 #ifdef PIF_COLLECT_SIGNAL
-	PifSolenoidColSig* __p_colsig;
+	PifCollectSignalChannel __cs[SN_CSF_COUNT];
 #endif
 
     // Private Action Function
@@ -180,45 +176,20 @@ void pifSolenoid_ActionOff(PifSolenoid* p_owner);
 
 /**
  * @fn pifSolenoid_SetCsFlag
- * @brief Enables selected collect-signal channels for a single solenoid instance.
- * @param p_owner Target solenoid instance.
- * @param flag Bit mask of channels to enable.
+ * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
+ * @param p_owner Pointer to the owner instance.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
  */
-void pifSolenoid_SetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
+BOOL pifSolenoid_SetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
 
 /**
  * @fn pifSolenoid_ResetCsFlag
- * @brief Disables selected collect-signal channels for a single solenoid instance.
- * @param p_owner Target solenoid instance.
- * @param flag Bit mask of channels to disable.
+ * @brief Removes the selected signals of the instance from pifCollectSignal.
+ * @param p_owner Pointer to the owner instance.
+ * @param flag Bit mask of the signals to remove.
  */
 void pifSolenoid_ResetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
-
-/**
- * @fn pifSolenoidColSig_Init
- * @brief 
- */
-void pifSolenoidColSig_Init();
-
-/**
- * @fn pifSolenoidColSig_Clear
- * @brief 
- */
-void pifSolenoidColSig_Clear();
-
-/**
- * @fn pifSolenoidColSig_SetFlag
- * @brief Enables selected collect-signal channels for all registered solenoid instances.
- * @param flag Bit mask of channels to enable.
- */
-void pifSolenoidColSig_SetFlag(PifSolenoidCsFlag flag);
-
-/**
- * @fn pifSolenoidColSig_ResetFlag
- * @brief Disables selected collect-signal channels for all registered solenoid instances.
- * @param flag Bit mask of channels to disable.
- */
-void pifSolenoidColSig_ResetFlag(PifSolenoidCsFlag flag);
 
 #endif	// PIF_COLLECT_SIGNAL
 

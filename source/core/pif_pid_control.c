@@ -51,6 +51,15 @@ void pifPidControl_Init(PifPidControl *p_owner, float kp, float ki, float kd, fl
 	p_owner->__anti_windup = PID_AW_NONE;
 }
 
+void pifPidControl_Clear(PifPidControl *p_owner)
+{
+#ifdef PIF_COLLECT_SIGNAL
+	pifPidControl_ResetCsFlag(p_owner, PID_CSF_ALL_BIT);
+#else
+	(void)p_owner;
+#endif
+}
+
 float pifPidControl_Calculate(PifPidControl *p_owner, float err)
 {
 	float up;			// Variable: Proportional output
@@ -82,6 +91,14 @@ float pifPidControl_Calculate(PifPidControl *p_owner, float err)
 	out = up + ui + ud;
 
 	p_owner->err_prev = err;
+
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_ERROR_IDX], err);
+	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_P_TERM_IDX], up);
+	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_I_TERM_IDX], ui);
+	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_D_TERM_IDX], ud);
+	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_OUTPUT_IDX], out);
+#endif
 
 	return out;
 }
@@ -219,5 +236,43 @@ float pifPidControl_Update(PifPidControl *p_owner, float setpoint, float measure
 	p_owner->__prev_measurement = measurement;
 	p_owner->__prev_setpoint = setpoint;
 	p_owner->__primed = TRUE;
+
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_SETPOINT_IDX], setpoint);
+	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_MEASUREMENT_IDX], measurement);
+	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_ERROR_IDX], error);
+	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_P_TERM_IDX], p_owner->_p_term);
+	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_I_TERM_IDX], p_owner->_i_term);
+	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_D_TERM_IDX], p_owner->_d_term);
+	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_OUTPUT_IDX], output);
+#endif
 	return output;
 }
+
+#ifdef PIF_COLLECT_SIGNAL
+
+BOOL pifPidControl_SetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag, PifId id)
+{
+	static const char *c_name[PID_CSF_COUNT] = { "PIDSP", "PIDMV", "PIDE", "PIDO", "PIDP", "PIDI", "PIDD" };
+	PifCollectSignalChannel *p_channel;
+	int i;
+
+	for (i = 0; i < PID_CSF_COUNT; i++) {
+		if (!(flag & (1 << i))) continue;
+		p_channel = &p_owner->__cs[i];
+		// The last value is kept by the channel itself, so the value it starts with is its own.
+		if (!pifCollectSignal_AddChannel(p_channel, c_name[i], id, CSVT_REAL, 0, p_channel->_value)) return FALSE;
+	}
+	return TRUE;
+}
+
+void pifPidControl_ResetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag)
+{
+	int i;
+
+	for (i = 0; i < PID_CSF_COUNT; i++) {
+		if (flag & (1 << i)) pifCollectSignal_RemoveChannel(&p_owner->__cs[i]);
+	}
+}
+
+#endif	// PIF_COLLECT_SIGNAL

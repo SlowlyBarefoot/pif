@@ -4,6 +4,9 @@
 
 
 #include "core/pif_task_manager.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 #define PIF_GPIO_MAX_COUNT		7
@@ -32,13 +35,6 @@ typedef enum EnPifGpioCsFlag
 	GP_CSF_COUNT		= 1
 } PifGpioCsFlag;
 
-typedef struct
-{
-	PifGpio* p_owner;
-    uint8_t flag;
-    void* p_device[GP_CSF_COUNT];
-} PifGpioColSig;
-
 #endif	// PIF_COLLECT_SIGNAL
 
 /**
@@ -61,7 +57,7 @@ struct StPifGpio
 	uint8_t __write_state;
 
 #ifdef PIF_COLLECT_SIGNAL
-	PifGpioColSig* __p_colsig;
+	PifCollectSignalChannel __cs[GP_CSF_COUNT];
 #endif
 
 	// Private Action Function
@@ -171,33 +167,20 @@ PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifId id, PifTaskMode mode, uint
 
 /**
  * @fn pifGpio_SetCsFlag
- * @brief Sets configuration or runtime state for the gpio based on the provided parameters.
+ * @brief Adds the selected signals of the gpio to pifCollectSignal as channels.
  * @param p_owner Pointer to the target object instance.
- * @param flag Bit flag mask to set, clear, or query.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
  */
-void pifGpio_SetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag);
+BOOL pifGpio_SetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag);
 
 /**
  * @fn pifGpio_ResetCsFlag
- * @brief Resets runtime state in the gpio to an initial or configured baseline.
+ * @brief Removes the selected signals of the gpio from pifCollectSignal.
  * @param p_owner Pointer to the target object instance.
- * @param flag Bit flag mask to set, clear, or query.
+ * @param flag Bit mask of the signals to remove.
  */
 void pifGpio_ResetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag);
-
-/**
- * @fn pifGpioColSig_SetFlag
- * @brief Sets configuration or runtime state for the gpio col sig based on the provided parameters.
- * @param flag Bit flag mask to set, clear, or query.
- */
-void pifGpioColSig_SetFlag(PifGpioCsFlag flag);
-
-/**
- * @fn pifGpioColSig_ResetFlag
- * @brief Resets runtime state in the gpio col sig to an initial or configured baseline.
- * @param flag Bit flag mask to set, clear, or query.
- */
-void pifGpioColSig_ResetFlag(PifGpioCsFlag flag);
 
 #endif	// PIF_COLLECT_SIGNAL
 

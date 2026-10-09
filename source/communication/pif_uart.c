@@ -3,6 +3,23 @@
 #include "communication/pif_uart.h"
 
 
+static void _setFcState(PifUart* p_owner, SWITCH state)
+{
+	p_owner->_fc_state = state;
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_Put(&p_owner->__cs[UA_CSF_FC_IDX], state);
+#endif
+}
+
+static void _setTxState(PifUart* p_owner, PifUartTxState state)
+{
+	p_owner->__tx_state = state;
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_Put(&p_owner->__cs[UA_CSF_TX_IDX], state);
+#endif
+}
+
+
 static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
 	uint8_t i;
@@ -26,13 +43,13 @@ static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t leng
 		for (i = 0; i < len; i++) {
 			switch (p_data[i]) {
 			case ASCII_XON:
-				p_owner->_fc_state = ON;
+				_setFcState(p_owner, ON);
 				pifTask_SetTrigger(p_owner->_p_rx_task, 0);
 				if (p_owner->__evt_host_flow_state) (*p_owner->__evt_host_flow_state)(p_owner->__p_client, ON);
 				break;
 
 			case ASCII_XOFF:
-				p_owner->_fc_state = OFF;
+				_setFcState(p_owner, OFF);
 				if (p_owner->__evt_host_flow_state) (*p_owner->__evt_host_flow_state)(p_owner->__p_client, OFF);
 				break;
 
@@ -69,7 +86,7 @@ static void _sendXonXoff(PifUart* p_owner, uint8_t data)
 	else if (p_owner->_p_tx_buffer) {
 		if (p_owner->act_start_transfer) {
 			pifRingBuffer_PutData(p_owner->_p_tx_buffer, &data, 1);
-			if ((*p_owner->act_start_transfer)(p_owner)) p_owner->__tx_state = UTS_SENDING;
+			if ((*p_owner->act_start_transfer)(p_owner)) _setTxState(p_owner, UTS_SENDING);
 		}
 	}
 }
@@ -89,12 +106,15 @@ BOOL pifUart_Init(PifUart* p_owner, PifId id, uint32_t baudrate)
     p_owner->_baudrate = baudrate;
     p_owner->_transfer_time = 1000000L * 10 / baudrate;
     p_owner->_frame_size = 1;
-	p_owner->_fc_state = ON;
+	_setFcState(p_owner, ON);
     return TRUE;
 }
 
 void pifUart_Clear(PifUart* p_owner)
 {
+#ifdef PIF_COLLECT_SIGNAL
+	pifUart_ResetCsFlag(p_owner, UA_CSF_ALL_BIT);
+#endif
 	if (p_owner->_p_tx_task) {
 		pifTaskManager_Remove(p_owner->_p_tx_task);
 		p_owner->_p_tx_task = NULL;
@@ -198,7 +218,17 @@ void pifUart_AttachClient(PifUart* p_owner, void* p_client, PifEvtUartParsing ev
 void pifUart_AttachActDirection(PifUart* p_owner, PifActUartDirection act_direction, PifUartDirection init_state)
 {
 	p_owner->__act_direction = act_direction;
-	(*act_direction)(init_state);
+	pifUart_SetDirection(p_owner, init_state);
+}
+
+void pifUart_SetDirection(PifUart* p_owner, PifUartDirection direction)
+{
+	if (!p_owner->__act_direction) return;
+
+	(*p_owner->__act_direction)(direction);
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_Put(&p_owner->__cs[UA_CSF_DIR_IDX], direction);
+#endif
 }
 
 void pifUart_DetachClient(PifUart* p_owner)
@@ -226,7 +256,7 @@ void pifUart_SetFlowControl(PifUart* p_owner, PifUartFlowControl flow_control, P
 {
 	p_owner->_flow_control = flow_control;
 	p_owner->__evt_host_flow_state = evt_host_flow_state;
-	p_owner->_fc_state = ON;
+	_setFcState(p_owner, ON);
 	if (flow_control == UFC_DEVICE_HARDWARE && p_owner->act_device_flow_state) (*p_owner->act_device_flow_state)(p_owner, ON);
 }
 
@@ -245,7 +275,7 @@ void pifUart_SigTxFlowState(PifUart* p_owner, SWITCH state)
 {
 	if (p_owner->_flow_control != UFC_HOST_HARDWARE) return;
 
-	p_owner->_fc_state = state;
+	_setFcState(p_owner, state);
 	if (state) {
 		pifTask_SetTrigger(p_owner->_p_tx_task, 0);
 	}
@@ -297,12 +327,12 @@ uint8_t pifUart_GetTxByte(PifUart* p_owner, uint8_t* p_data)
     ucState = pifRingBuffer_GetByte(p_owner->_p_tx_buffer, p_data);
 	if (ucState) {
 		if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) {
-			p_owner->__tx_state = UTS_IDLE;
+			_setTxState(p_owner, UTS_IDLE);
 			ucState |= PIF_UART_SEND_DATA_STATE_EMPTY;
 		}
 	}
 	else {
-		p_owner->__tx_state = UTS_IDLE;
+		_setTxState(p_owner, UTS_IDLE);
 		ucState |= PIF_UART_SEND_DATA_STATE_EMPTY;
 	}
 	return ucState;
@@ -314,7 +344,7 @@ uint8_t pifUart_StartGetTxData(PifUart* p_owner, uint8_t** pp_data, uint16_t* p_
 
     if (!p_owner->_p_tx_buffer) return PIF_UART_SEND_DATA_STATE_INIT;
     if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) {
-		p_owner->__tx_state = UTS_IDLE;
+		_setTxState(p_owner, UTS_IDLE);
     	return PIF_UART_SEND_DATA_STATE_EMPTY;
     }
 
@@ -328,7 +358,7 @@ uint8_t pifUart_EndGetTxData(PifUart* p_owner, uint16_t length)
 {
     pifRingBuffer_Remove(p_owner->_p_tx_buffer, length);
     if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) {
-		p_owner->__tx_state = UTS_IDLE;
+		_setTxState(p_owner, UTS_IDLE);
     	return PIF_UART_SEND_DATA_STATE_EMPTY;
     }
     return PIF_UART_SEND_DATA_STATE_INIT;
@@ -406,14 +436,14 @@ static uint32_t _doRxTask(PifTask* p_task)
 		case UFC_DEVICE_SOFTWARE:
 			if (p_owner->_fc_state) {
 				if (rate > p_owner->fc_limit) {
-					p_owner->_fc_state = OFF;
+					_setFcState(p_owner, OFF);
 					tx = ASCII_XOFF;
 					_sendXonXoff(p_owner, tx);
 				}
 			}
 			else {
 				if (rate == 0) {
-					p_owner->_fc_state = ON;
+					_setFcState(p_owner, ON);
 					tx = ASCII_XON;
 					_sendXonXoff(p_owner, tx);
 					period = 1;
@@ -425,13 +455,13 @@ static uint32_t _doRxTask(PifTask* p_task)
 			if (p_owner->act_device_flow_state) {
 				if (p_owner->_fc_state) {
 					if (rate > p_owner->fc_limit) {
-						p_owner->_fc_state = OFF;
+						_setFcState(p_owner, OFF);
 						(*p_owner->act_device_flow_state)(p_owner, OFF);
 					}
 				}
 				else {
 					if (rate == 0) {
-						p_owner->_fc_state = ON;
+						_setFcState(p_owner, ON);
 						(*p_owner->act_device_flow_state)(p_owner, ON);
 						period = 1;
 					}
@@ -497,7 +527,7 @@ static uint32_t _doTxTask(PifTask* p_task)
 		}
 		if (bytes && p_owner->__tx_state == UTS_IDLE) {
 			if (p_owner->act_start_transfer) {
-				if ((*p_owner->act_start_transfer)(p_owner)) p_owner->__tx_state = UTS_SENDING;
+				if ((*p_owner->act_start_transfer)(p_owner)) _setTxState(p_owner, UTS_SENDING);
 			}
 		}
 	}
@@ -543,3 +573,32 @@ PifTask *pifUart_AttachTxTask(PifUart *p_owner, PifId id, PifTaskMode mode, uint
 	}
 	return p_owner->_p_tx_task;
 }
+
+#ifdef PIF_COLLECT_SIGNAL
+
+BOOL pifUart_SetCsFlag(PifUart* p_owner, PifUartCsFlag flag)
+{
+	if (flag & UA_CSF_FC_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[UA_CSF_FC_IDX], "UFC", p_owner->_id, CSVT_WIRE, 1,
+				p_owner->_fc_state)) return FALSE;
+	}
+	if (flag & UA_CSF_TX_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[UA_CSF_TX_IDX], "UTX", p_owner->_id, CSVT_WIRE, 1,
+				p_owner->__tx_state)) return FALSE;
+	}
+	if (flag & UA_CSF_DIR_BIT) {
+		// The last direction set is kept in the channel, since the UART does not store it.
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[UA_CSF_DIR_IDX], "UDR", p_owner->_id, CSVT_WIRE, 1,
+				p_owner->__cs[UA_CSF_DIR_IDX]._value)) return FALSE;
+	}
+	return TRUE;
+}
+
+void pifUart_ResetCsFlag(PifUart* p_owner, PifUartCsFlag flag)
+{
+	if (flag & UA_CSF_FC_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[UA_CSF_FC_IDX]);
+	if (flag & UA_CSF_TX_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[UA_CSF_TX_IDX]);
+	if (flag & UA_CSF_DIR_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[UA_CSF_DIR_IDX]);
+}
+
+#endif	// PIF_COLLECT_SIGNAL

@@ -4,6 +4,9 @@
 
 
 #include "core/pif_task_manager.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 /*
@@ -40,6 +43,24 @@ typedef enum EnPifBuzzerState
 	BS_STOP			= 4		// No longer entered: a finished sequence goes straight to BS_IDLE.
 } PifBuzzerState;
 
+#ifdef PIF_COLLECT_SIGNAL
+
+typedef enum EnPifBuzzerCsFlag
+{
+	BZ_CSF_OFF			= 0,
+
+	BZ_CSF_STATE_IDX	= 0,	// PifBuzzerState
+	BZ_CSF_OUTPUT_IDX	= 1,	// Level given to the action
+
+	BZ_CSF_STATE_BIT	= 1,
+	BZ_CSF_OUTPUT_BIT	= 2,
+	BZ_CSF_ALL_BIT		= 3,
+
+	BZ_CSF_COUNT		= 2
+} PifBuzzerCsFlag;
+
+#endif	// PIF_COLLECT_SIGNAL
+
 /**
  * @class StPifBuzzer
  * @brief Buzzer controller object that drives an ON/OFF sequence using a periodic task.
@@ -67,6 +88,9 @@ typedef struct StPifBuzzer
 
 	// Private Action Function
     PifActBuzzerAction __act_action;
+#ifdef PIF_COLLECT_SIGNAL
+	PifCollectSignalChannel __cs[BZ_CSF_COUNT];
+#endif
 } PifBuzzer;
 
 
@@ -122,6 +146,28 @@ void pifBuzzer_Stop(PifBuzzer* p_owner);
  * @return TRUE if the output is ON, otherwise FALSE.
  */
 BOOL pifBuzzer_State(PifBuzzer* p_owner);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn pifBuzzer_SetCsFlag
+ * @brief Adds the selected signals of the buzzer to pifCollectSignal as channels.
+ * @param p_owner Pointer to the buzzer instance.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifBuzzer_SetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag);
+
+/**
+ * @fn pifBuzzer_ResetCsFlag
+ * @brief Removes the selected signals of the buzzer from pifCollectSignal.
+ * @param p_owner Pointer to the buzzer instance.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifBuzzer_ResetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag);
+
+#endif	// PIF_COLLECT_SIGNAL
+
 
 #ifdef __cplusplus
 }

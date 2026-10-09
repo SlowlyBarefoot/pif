@@ -390,6 +390,15 @@ BOOL pifDshot_Init(PifDshot* p_owner, PifId id, uint8_t motor_count, BOOL bidire
 	return TRUE;
 }
 
+void pifDshot_Clear(PifDshot* p_owner)
+{
+#ifdef PIF_COLLECT_SIGNAL
+	pifDshot_ResetCsFlag(p_owner, DS_CSF_ALL_BIT);
+#else
+	(void)p_owner;
+#endif
+}
+
 void pifDshot_SetCyclePeriod(PifDshot* p_owner, uint32_t cycle_us)
 {
 	if (cycle_us) p_owner->_cycle_us = cycle_us;
@@ -483,7 +492,42 @@ BOOL pifDshot_IsCommandBusy(PifDshot* p_owner)
 	return !_isQueueEmpty(p_owner);
 }
 
-BOOL pifDshot_Update(PifDshot* p_owner)
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn _putCommandSignal
+ * @brief Records the command at the tail of the queue for pifCollectSignal.
+ * @param p_owner Pointer to the instance.
+ */
+static void _putCommandSignal(PifDshot* p_owner)
+{
+	PifDshotCommandControl* p_control;
+	uint8_t i, command = DSC_MOTOR_STOP;
+
+	if (_isQueueEmpty(p_owner)) {
+		pifCollectSignal_Put(&p_owner->__cs[DS_CSF_STATE_IDX], PIF_DSHOT_CS_NO_COMMAND);
+		pifCollectSignal_Put(&p_owner->__cs[DS_CSF_COMMAND_IDX], DSC_MOTOR_STOP);
+		return;
+	}
+
+	p_control = &p_owner->__queue[p_owner->__queue_tail];
+	// Motors that the command is not for get DSC_MOTOR_STOP, which is 0.
+	for (i = 0; i < p_owner->_motor_count; i++) {
+		if (p_control->command[i] > command) command = p_control->command[i];
+	}
+	pifCollectSignal_Put(&p_owner->__cs[DS_CSF_STATE_IDX], p_control->state);
+	pifCollectSignal_Put(&p_owner->__cs[DS_CSF_COMMAND_IDX], command);
+}
+
+#endif	// PIF_COLLECT_SIGNAL
+
+/**
+ * @fn _update
+ * @brief Body of pifDshot_Update().
+ * @param p_owner Pointer to the instance.
+ * @return As pifDshot_Update().
+ */
+static BOOL _update(PifDshot* p_owner)
 {
 	PifDshotCommandControl* p_control;
 
@@ -539,6 +583,16 @@ BOOL pifDshot_Update(PifDshot* p_owner)
 	return FALSE;
 }
 
+BOOL pifDshot_Update(PifDshot* p_owner)
+{
+	BOOL rtn = _update(p_owner);
+
+#ifdef PIF_COLLECT_SIGNAL
+	_putCommandSignal(p_owner);
+#endif
+	return rtn;
+}
+
 BOOL pifDshot_PutGcr(PifDshot* p_owner, uint8_t index, uint32_t gcr)
 {
 	PifDshotMotor* p_motor;
@@ -565,3 +619,26 @@ BOOL pifDshot_PutGcr(PifDshot* p_owner, uint8_t index, uint32_t gcr)
 	if (p_owner->evt_telemetry) (*p_owner->evt_telemetry)(p_owner, index, &telemetry);
 	return TRUE;
 }
+
+#ifdef PIF_COLLECT_SIGNAL
+
+BOOL pifDshot_SetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag)
+{
+	if (flag & DS_CSF_STATE_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[DS_CSF_STATE_IDX], "DSS", p_owner->_id, CSVT_REG, 3,
+				_isQueueEmpty(p_owner) ? PIF_DSHOT_CS_NO_COMMAND : p_owner->__queue[p_owner->__queue_tail].state)) return FALSE;
+	}
+	if (flag & DS_CSF_COMMAND_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[DS_CSF_COMMAND_IDX], "DSC", p_owner->_id, CSVT_REG, 6,
+				p_owner->__cs[DS_CSF_COMMAND_IDX]._value)) return FALSE;
+	}
+	return TRUE;
+}
+
+void pifDshot_ResetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag)
+{
+	if (flag & DS_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[DS_CSF_STATE_IDX]);
+	if (flag & DS_CSF_COMMAND_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[DS_CSF_COMMAND_IDX]);
+}
+
+#endif	// PIF_COLLECT_SIGNAL

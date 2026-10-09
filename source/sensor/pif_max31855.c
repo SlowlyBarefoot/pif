@@ -1,17 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "sensor/pif_max31855.h"
-#ifdef PIF_COLLECT_SIGNAL
-	#include "core/pif_collect_signal.h"
-#endif
-#include "core/pif_dlist.h"
-#ifndef PIF_NO_LOG
-	#include "core/pif_log.h"
-#endif
-
-
-#ifdef PIF_COLLECT_SIGNAL
-	static PifDList s_cs_list;
-#endif
 
 
 /**
@@ -34,9 +22,7 @@ static uint32_t _doTask(PifTask* p_task)
 				p_parent->_curr_state = OFF;
 				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->__p_issuer);
 #ifdef PIF_COLLECT_SIGNAL
-				if (p_owner->__p_colsig->flag & M3_CSF_STATE_BIT) {
-					pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[M3_CSF_STATE_IDX], p_parent->_curr_state);
-				}
+				pifCollectSignal_Put(&p_owner->__cs[M3_CSF_STATE_IDX], p_parent->_curr_state);
 #endif
 			}
 		}
@@ -45,9 +31,7 @@ static uint32_t _doTask(PifTask* p_task)
 				p_parent->_curr_state = ON;
 				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->__p_issuer);
 #ifdef PIF_COLLECT_SIGNAL
-				if (p_owner->__p_colsig->flag & M3_CSF_STATE_BIT) {
-					pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[M3_CSF_STATE_IDX], p_parent->_curr_state);
-				}
+				pifCollectSignal_Put(&p_owner->__cs[M3_CSF_STATE_IDX], p_parent->_curr_state);
 #endif
 			}
 		}
@@ -58,37 +42,6 @@ static uint32_t _doTask(PifTask* p_task)
 	}
 	return 0;
 }
-
-#ifdef PIF_COLLECT_SIGNAL
-
-/**
- * @fn _addDeviceInCollectSignal
- * @brief Internal helper that supports add device in collect signal logic.
- * @return None.
- */
-static void _addDeviceInCollectSignal()
-{
-	const char* prefix[M3_CSF_COUNT] = { "M3" };
-
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifMax31855ColSig* p_colsig = (PifMax31855ColSig*)it->data;
-		PifMax31855* p_owner = p_colsig->p_owner;
-		for (int f = 0; f < M3_CSF_COUNT; f++) {
-			if (p_colsig->flag & (1 << f)) {
-				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->parent._id, CSVT_WIRE, 1,
-						prefix[f], p_owner->parent._curr_state);
-			}
-		}
-#ifndef PIF_NO_LOG
-		pifLog_Printf(LT_INFO, "M3_CS:Add(DC:%u F:%u)", p_owner->parent._id, p_colsig->flag);
-#endif
-
-		it = pifDList_Next(it);
-	}
-}
-
-#endif	// PIF_COLLECT_SIGNAL
 
 BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, void *p_client)
 {
@@ -105,32 +58,13 @@ BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, void *
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->parent._id = id;
 
-#ifdef PIF_COLLECT_SIGNAL
-	if (!pifDList_Size(&s_cs_list)) {
-		pifCollectSignal_Attach(CSF_MAX31855, _addDeviceInCollectSignal);
-	}
-	PifMax31855ColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifMax31855ColSig));
-	if (!p_colsig) goto fail;
-	p_colsig->p_owner = p_owner;
-	p_owner->__p_colsig = p_colsig;
-#endif
     return TRUE;
-
-#ifdef PIF_COLLECT_SIGNAL
-fail:
-	pifMax31855_Clear(p_owner);
-	return FALSE;
-#endif
 }
 
 void pifMax31855_Clear(PifMax31855* p_owner)
 {
 #ifdef PIF_COLLECT_SIGNAL
-	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
-	if (!pifDList_Size(&s_cs_list)) {
-		pifCollectSignal_Detach(CSF_MAX31855);
-	}
-	p_owner->__p_colsig = NULL;
+	pifMax31855_ResetCsFlag(p_owner, M3_CSF_ALL_BIT);
 #endif
 
 	if (p_owner->_p_spi) {
@@ -212,44 +146,18 @@ void pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double
 
 #ifdef PIF_COLLECT_SIGNAL
 
-void pifMax31855_SetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag)
+BOOL pifMax31855_SetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag)
 {
-	p_owner->__p_colsig->flag |= flag;
+	if (flag & M3_CSF_STATE_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[M3_CSF_STATE_IDX], "M3", p_owner->parent._id, CSVT_WIRE, 1,
+				p_owner->parent._curr_state)) return FALSE;
+	}
+	return TRUE;
 }
 
 void pifMax31855_ResetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag)
 {
-	p_owner->__p_colsig->flag &= ~flag;
-}
-
-void pifMax31855ColSig_Init()
-{
-	pifDList_Init(&s_cs_list);
-}
-
-void pifMax31855ColSig_Clear()
-{
-	pifDList_Clear(&s_cs_list, NULL);
-}
-
-void pifMax31855ColSig_SetFlag(PifMax31855CsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifMax31855ColSig* p_colsig = (PifMax31855ColSig*)it->data;
-		p_colsig->flag |= flag;
-		it = pifDList_Next(it);
-	}
-}
-
-void pifMax31855ColSig_ResetFlag(PifMax31855CsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifMax31855ColSig* p_colsig = (PifMax31855ColSig*)it->data;
-		p_colsig->flag &= ~flag;
-		it = pifDList_Next(it);
-	}
+	if (flag & M3_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[M3_CSF_STATE_IDX]);
 }
 
 #endif	// PIF_COLLECT_SIGNAL

@@ -7,6 +7,9 @@
 
 
 #include "core/pif.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 /*
@@ -126,6 +129,27 @@ typedef enum EnPifDshotCommandState
 	DCS_POST_DELAY		= 3		// Holding the output after it
 } PifDshotCommandState;
 
+#ifdef PIF_COLLECT_SIGNAL
+
+// Recorded by pifDshot_Update(), so a change shows at the cycle that made it.
+typedef enum EnPifDshotCsFlag
+{
+	DS_CSF_OFF			= 0,
+
+	DS_CSF_STATE_IDX	= 0,	// PifDshotCommandState of the command going out, PIF_DSHOT_CS_NO_COMMAND without one
+	DS_CSF_COMMAND_IDX	= 1,	// PifDshotCommand going out, 0 without one
+
+	DS_CSF_STATE_BIT	= 1,
+	DS_CSF_COMMAND_BIT	= 2,
+	DS_CSF_ALL_BIT		= 3,
+
+	DS_CSF_COUNT		= 2
+} PifDshotCsFlag;
+
+#define PIF_DSHOT_CS_NO_COMMAND		4
+
+#endif	// PIF_COLLECT_SIGNAL
+
 
 typedef struct StPifDshotTelemetry
 {
@@ -209,6 +233,9 @@ struct StPifDshot
 
 	// Private Action Function
 	PifActDshotWrite __act_write;
+#ifdef PIF_COLLECT_SIGNAL
+	PifCollectSignalChannel __cs[DS_CSF_COUNT];
+#endif
 };
 
 
@@ -364,6 +391,14 @@ BOOL pifDshot_DecodeTelemetry(uint16_t value, BOOL extended, PifDshotTelemetry* 
 BOOL pifDshot_Init(PifDshot* p_owner, PifId id, uint8_t motor_count, BOOL bidirectional, uint32_t cycle_us, PifActDshotWrite act_write);
 
 /**
+ * @fn pifDshot_Clear
+ * @brief Releases what the instance holds. Call it before the instance is freed or goes out of
+ *        scope.
+ * @param p_owner Pointer to the instance.
+ */
+void pifDshot_Clear(PifDshot* p_owner);
+
+/**
  * @fn pifDshot_SetCyclePeriod
  * @brief Changes the period pifDshot_Update() is called at. A command already queued keeps the
  *        delay it was counting down.
@@ -427,6 +462,28 @@ BOOL pifDshot_Update(PifDshot* p_owner);
  * @return TRUE if it decoded, otherwise FALSE.
  */
 BOOL pifDshot_PutGcr(PifDshot* p_owner, uint8_t index, uint32_t gcr);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn pifDshot_SetCsFlag
+ * @brief Adds the selected signals of the command queue to pifCollectSignal as channels.
+ * @param p_owner Pointer to the instance.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifDshot_SetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag);
+
+/**
+ * @fn pifDshot_ResetCsFlag
+ * @brief Removes the selected signals of the command queue from pifCollectSignal.
+ * @param p_owner Pointer to the instance.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifDshot_ResetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag);
+
+#endif	// PIF_COLLECT_SIGNAL
+
 
 #ifdef __cplusplus
 }

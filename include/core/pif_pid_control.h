@@ -4,6 +4,9 @@
 
 
 #include "core/pif.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 /*
@@ -32,6 +35,37 @@ typedef enum EnPifPidAntiWindup
 	PID_AW_CLAMP			= 1,	// Stop integrating while the output is saturated in the error's direction
 	PID_AW_BACK_CALCULATION	= 2		// Bleed the I term by tracking_gain * (limited - unlimited output)
 } PifPidAntiWindup;
+
+#ifdef PIF_COLLECT_SIGNAL
+
+// Every channel is CSVT_REAL. pifPidControl_Calculate() records the error, the output and the
+// terms. pifPidControl_Update() records them all.
+typedef enum EnPifPidControlCsFlag
+{
+	PID_CSF_OFF				= 0,
+
+	PID_CSF_SETPOINT_IDX	= 0,
+	PID_CSF_MEASUREMENT_IDX	= 1,
+	PID_CSF_ERROR_IDX		= 2,
+	PID_CSF_OUTPUT_IDX		= 3,
+	PID_CSF_P_TERM_IDX		= 4,
+	PID_CSF_I_TERM_IDX		= 5,
+	PID_CSF_D_TERM_IDX		= 6,
+
+	PID_CSF_SETPOINT_BIT	= 0x01,
+	PID_CSF_MEASUREMENT_BIT	= 0x02,
+	PID_CSF_ERROR_BIT		= 0x04,
+	PID_CSF_OUTPUT_BIT		= 0x08,
+	PID_CSF_P_TERM_BIT		= 0x10,
+	PID_CSF_I_TERM_BIT		= 0x20,
+	PID_CSF_D_TERM_BIT		= 0x40,
+	PID_CSF_TERM_BIT		= 0x70,
+	PID_CSF_ALL_BIT			= 0x7F,
+
+	PID_CSF_COUNT			= 7
+} PifPidControlCsFlag;
+
+#endif	// PIF_COLLECT_SIGNAL
 
 
 /**
@@ -74,6 +108,9 @@ typedef struct StPifPidControl
 	float __kfd;
 	float __f_cutoff_hz;
 	float __f_state;
+#ifdef PIF_COLLECT_SIGNAL
+	PifCollectSignalChannel __cs[PID_CSF_COUNT];
+#endif
 } PifPidControl;
 
 
@@ -91,6 +128,14 @@ extern "C" {
  * @param max_integration Maximum absolute value allowed for the integral term.
  */
 void pifPidControl_Init(PifPidControl *p_owner, float kp, float ki, float kd, float max_integration);
+
+/**
+ * @fn pifPidControl_Clear
+ * @brief Releases what the instance holds. Call it before the instance is freed or goes out of
+ *        scope.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifPidControl_Clear(PifPidControl *p_owner);
 
 /**
  * @fn pifPidControl_Calculate
@@ -180,6 +225,31 @@ void pifPidControl_Reset(PifPidControl *p_owner);
  * @return Output, within the limits if set.
  */
 float pifPidControl_Update(PifPidControl *p_owner, float setpoint, float measurement, float dt);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn pifPidControl_SetCsFlag
+ * @brief Adds the selected signals of the controller to pifCollectSignal as channels.
+ * @details A controller runs every control period, so a capture fills fast. Keep it short, or
+ *          use CSO_KEEP_LAST to keep the end of it.
+ * @param p_owner Pointer to the controller.
+ * @param flag Bit mask of the signals to add.
+ * @param id Appended to the names to tell controllers apart, or PIF_ID_AUTO for none.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifPidControl_SetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag, PifId id);
+
+/**
+ * @fn pifPidControl_ResetCsFlag
+ * @brief Removes the selected signals of the controller from pifCollectSignal.
+ * @param p_owner Pointer to the controller.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifPidControl_ResetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag);
+
+#endif	// PIF_COLLECT_SIGNAL
+
 
 #ifdef __cplusplus
 }

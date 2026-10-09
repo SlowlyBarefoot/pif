@@ -159,6 +159,9 @@ fail:
 
 void pifStepMotor_Clear(PifStepMotor* p_owner)
 {
+#ifdef PIF_COLLECT_SIGNAL
+	pifStepMotor_ResetCsFlag(p_owner, SM_CSF_ALL_BIT);
+#endif
 	if (p_owner->__p_timer_step) {
 		pifTimerManager_Remove(p_owner->__p_timer_step);
 		p_owner->__p_timer_step = NULL;
@@ -180,6 +183,9 @@ void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state, char *tag
 	pifLog_Printf(LT_INFO, "%s(%u) %s->%s E:%d", tag, p_owner->_id,
 			kMotorState[p_owner->_state], kMotorState[state], p_owner->__error);
 	p_owner->_state = state;
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_Put(&p_owner->__cs[SM_CSF_STATE_IDX], state);
+#endif
 }
 
 #else
@@ -187,6 +193,9 @@ void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state, char *tag
 PIF_INLINE void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state)
 {
 	p_owner->_state = state;
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_Put(&p_owner->__cs[SM_CSF_STATE_IDX], state);
+#endif
 }
 
 #endif
@@ -278,6 +287,9 @@ BOOL pifStepMotor_SetPps(PifStepMotor* p_owner, uint16_t pps)
 	p_owner->__p_timer_step->target = period / p_owner->_p_timer_manager->_period1us;
 
 	p_owner->_current_pps = pps;
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_Put(&p_owner->__cs[SM_CSF_PPS_IDX], pps);
+#endif
 	p_owner->__step_period1us = period;
 
 #ifndef PIF_NO_LOG
@@ -382,3 +394,26 @@ BOOL pifStepMotor_StopControl(PifStepMotor* p_owner)
     p_owner->__p_task->pause = TRUE;
     return TRUE;
 }
+
+#ifdef PIF_COLLECT_SIGNAL
+
+BOOL pifStepMotor_SetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag)
+{
+	if (flag & SM_CSF_STATE_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[SM_CSF_STATE_IDX], "SMS", p_owner->_id, CSVT_REG, 4,
+				p_owner->_state)) return FALSE;
+	}
+	if (flag & SM_CSF_PPS_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[SM_CSF_PPS_IDX], "SMP", p_owner->_id, CSVT_INTEGER, 16,
+				p_owner->_current_pps)) return FALSE;
+	}
+	return TRUE;
+}
+
+void pifStepMotor_ResetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag)
+{
+	if (flag & SM_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SM_CSF_STATE_IDX]);
+	if (flag & SM_CSF_PPS_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SM_CSF_PPS_IDX]);
+}
+
+#endif	// PIF_COLLECT_SIGNAL

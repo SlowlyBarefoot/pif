@@ -93,6 +93,9 @@ static uint32_t _doTask(PifTask* p_task)
 	if (tmp_pps != p_parent->_current_pps) {
 		if (tmp_pps) pifStepMotor_SetPps(p_parent, tmp_pps);
 		p_parent->_current_pps = tmp_pps;
+#ifdef PIF_COLLECT_SIGNAL
+		pifCollectSignal_Put(&p_parent->__cs[SM_CSF_PPS_IDX], tmp_pps);
+#endif
 	}
 
     if (p_parent->_state == MS_BREAK) {

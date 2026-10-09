@@ -5,6 +5,9 @@
 
 #include "core/pif_ring_buffer.h"
 #include "core/pif_task_manager.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 #define ASCII_NUL	0	// Null Character
@@ -78,6 +81,26 @@ typedef enum EnPifUartDirection
 	UD_TX		= 1
 } PifUartDirection;
 
+#ifdef PIF_COLLECT_SIGNAL
+
+typedef enum EnPifUartCsFlag
+{
+	UA_CSF_OFF			= 0,
+
+	UA_CSF_FC_IDX		= 0,	// _fc_state: ON while the other side may send
+	UA_CSF_TX_IDX		= 1,	// PifUartTxState
+	UA_CSF_DIR_IDX		= 2,	// PifUartDirection given to the direction action, e.g. RS-485 DE
+
+	UA_CSF_FC_BIT		= 1,
+	UA_CSF_TX_BIT		= 2,
+	UA_CSF_DIR_BIT		= 4,
+	UA_CSF_ALL_BIT		= 7,
+
+	UA_CSF_COUNT		= 3
+} PifUartCsFlag;
+
+#endif	// PIF_COLLECT_SIGNAL
+
 
 struct StPifUart;
 typedef struct StPifUart PifUart;
@@ -141,6 +164,9 @@ struct StPifUart
     PifEvtUartParsing __evt_parsing;
     PifEvtUartSending __evt_sending;
     PifEvtUartHostFlowState __evt_host_flow_state;
+#ifdef PIF_COLLECT_SIGNAL
+	PifCollectSignalChannel __cs[UA_CSF_COUNT];
+#endif
 };
 
 
@@ -239,6 +265,14 @@ void pifUart_AttachClient(PifUart* p_owner, void* p_client, PifEvtUartParsing ev
  * @param init_state Initial direction state applied after attaching.
  */
 void pifUart_AttachActDirection(PifUart* p_owner, PifActUartDirection act_direction, PifUartDirection init_state);
+
+/**
+ * @fn pifUart_SetDirection
+ * @brief Switches the external RX/TX direction hardware through the attached action, if any.
+ * @param p_owner Pointer to the UART object.
+ * @param direction Direction to apply.
+ */
+void pifUart_SetDirection(PifUart* p_owner, PifUartDirection direction);
 
 /**
  * @fn pifUart_DetachClient
@@ -401,6 +435,27 @@ PifTask* pifUart_AttachRxTask(PifUart* p_owner, PifId id, PifTaskMode mode, uint
  * @return Pointer to the created task, or `NULL` on failure.
  */
 PifTask* pifUart_AttachTxTask(PifUart* p_owner, PifId id, PifTaskMode mode, uint32_t period, const char* name);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn pifUart_SetCsFlag
+ * @brief Adds the selected signals of the UART to pifCollectSignal as channels.
+ * @param p_owner Pointer to the UART object.
+ * @param flag Bit mask of the signals to add.
+ * @return `TRUE` on success, otherwise `FALSE`.
+ */
+BOOL pifUart_SetCsFlag(PifUart* p_owner, PifUartCsFlag flag);
+
+/**
+ * @fn pifUart_ResetCsFlag
+ * @brief Removes the selected signals of the UART from pifCollectSignal.
+ * @param p_owner Pointer to the UART object.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifUart_ResetCsFlag(PifUart* p_owner, PifUartCsFlag flag);
+
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

@@ -45,28 +45,6 @@ const char* kPifHexLowerChar = "0123456789abcdef";
 const uint8_t kDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
 
-#ifdef PIF_COLLECT_SIGNAL
-
-void PIF_WEAK pifGpioColSig_Init() {}
-void PIF_WEAK pifGpioColSig_Clear() {}
-
-void PIF_WEAK pifPulseColSig_Init() {}
-void PIF_WEAK pifPulseColSig_Clear() {}
-
-void PIF_WEAK pifSensorDigitalColSig_Init() {}
-void PIF_WEAK pifSensorDigitalColSig_Clear() {}
-
-void PIF_WEAK pifSensorSwitchColSig_Init() {}
-void PIF_WEAK pifSensorSwitchColSig_Clear() {}
-
-void PIF_WEAK pifSolenoidColSig_Init() {}
-void PIF_WEAK pifSolenoidColSig_Clear() {}
-
-void PIF_WEAK pifSequenceColSig_Init() {}
-void PIF_WEAK pifSequenceColSig_Clear() {}
-
-#endif
-
 BOOL pif_Init(PifActTimer1us act_timer1us)
 {
 	if (!act_timer1us) {
@@ -79,29 +57,12 @@ BOOL pif_Init(PifActTimer1us act_timer1us)
 	pif_datetime.month = 1;
 	pif_datetime.day = 1;
 
-#ifdef PIF_COLLECT_SIGNAL
-    pifGpioColSig_Init();
-    pifPulseColSig_Init();
-    pifSensorDigitalColSig_Init();
-    pifSensorSwitchColSig_Init();
-    pifSolenoidColSig_Init();
-    pifSequenceColSig_Init();
-#endif
     return TRUE;
 }
 
 void pif_Exit()
 {
 	pifTaskManager_Clear();
-
-#ifdef PIF_COLLECT_SIGNAL
-	pifGpioColSig_Clear();
-	pifPulseColSig_Clear();
-	pifSensorDigitalColSig_Clear();
-	pifSensorSwitchColSig_Clear();
-	pifSolenoidColSig_Clear();
-    pifSequenceColSig_Clear();
-#endif
 }
 
 void pif_sigTimer1ms()

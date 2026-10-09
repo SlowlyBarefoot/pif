@@ -91,7 +91,7 @@ static uint32_t _doTask(PifTask* p_task)
 	}
 
 	if (tmp_duty != p_parent->_current_duty) {
-		(*p_parent->act_set_duty)(tmp_duty);
+		pifDutyMotor_ApplyDuty(p_parent, tmp_duty);
 		p_parent->_current_duty = tmp_duty;
 	}
 
@@ -333,7 +333,7 @@ BOOL pifDutyMotorSpeed_Start(PifDutyMotorSpeed* p_owner, uint8_t stage_index, ui
     }
     p_parent->__error = 0;
 
-    (*p_parent->act_set_duty)(p_parent->_current_duty);
+    pifDutyMotor_ApplyDuty(p_parent, p_parent->_current_duty);
     return TRUE;
 }
 

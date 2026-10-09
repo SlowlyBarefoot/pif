@@ -1,30 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "actulator/pif_solenoid.h"
-#ifdef PIF_COLLECT_SIGNAL
-	#include "core/pif_collect_signal.h"
-#endif
-#include "core/pif_dlist.h"
-#ifndef PIF_NO_LOG
-	#include "core/pif_log.h"
-#endif
-
-
-#ifdef PIF_COLLECT_SIGNAL
-	static PifDList s_cs_list;
-#endif
 
 
 static void _action(PifSolenoid* p_owner, BOOL state, PifSolenoidDir dir)
 {
 	(*p_owner->__act_control)(state, dir);
 #ifdef PIF_COLLECT_SIGNAL
-	PifSolenoidColSig* p_colsig = p_owner->__p_colsig;
-	if (p_colsig->flag & SN_CSF_ACTION_BIT) {
-		pifCollectSignal_AddSignal(p_colsig->p_device[SN_CSF_ACTION_IDX], state);
-	}
-	if (p_colsig->flag & SN_CSF_DIR_BIT) {
-		pifCollectSignal_AddSignal(p_colsig->p_device[SN_CSF_DIR_IDX], dir);
-	}
+	pifCollectSignal_Put(&p_owner->__cs[SN_CSF_ACTION_IDX], state);
+	pifCollectSignal_Put(&p_owner->__cs[SN_CSF_DIR_IDX], dir);
 #endif
 }
 
@@ -110,32 +93,6 @@ static int32_t _calcurateTime(PifSolenoid* p_owner)
 	return time;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
-
-static void _addDeviceInCollectSignal()
-{
-	const char *prefix[SN_CSF_COUNT] = { "SNA", "SND" };
-
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSolenoidColSig* p_colsig = (PifSolenoidColSig*)it->data;
-		PifSolenoid* p_owner = p_colsig->p_owner;
-		if (p_colsig->flag & 1) {
-			p_colsig->p_device[0] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_WIRE, 1, prefix[0], 0);
-		}
-		if (p_colsig->flag & 2) {
-			p_colsig->p_device[1] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_WIRE, 2, prefix[1], 0);
-		}
-#ifndef PIF_NO_LOG
-		pifLog_Printf(LT_INFO, "SN_CS:Add(DC:%u F:%u)", p_owner->_id, p_colsig->flag);
-#endif
-
-		it = pifDList_Next(it);
-	}
-}
-
-#endif	// PIF_COLLECT_SIGNAL
-
 BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifTimerManager* p_timer_manager, PifSolenoidType type, uint16_t on_time,
 		PifActSolenoidControl act_control)
 {
@@ -163,15 +120,6 @@ BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, PifTimerManager* p_timer_m
     p_owner->_type = type;
     p_owner->on_time = on_time;
 
-#ifdef PIF_COLLECT_SIGNAL
-	if (!pifDList_Size(&s_cs_list)) {
-		pifCollectSignal_Attach(CSF_SOLENOID, _addDeviceInCollectSignal);
-	}
-	PifSolenoidColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifSolenoidColSig));
-	if (!p_colsig) goto fail;
-	p_colsig->p_owner = p_owner;
-	p_owner->__p_colsig = p_colsig;
-#endif
     return TRUE;
 
 fail:
@@ -182,13 +130,7 @@ fail:
 void pifSolenoid_Clear(PifSolenoid* p_owner)
 {
 #ifdef PIF_COLLECT_SIGNAL
-    if (p_owner->__p_colsig) {
-    	pifDList_Remove(&s_cs_list, p_owner->__p_colsig);
-    	if (!pifDList_Size(&s_cs_list)) {
-    		pifCollectSignal_Detach(CSF_SOLENOID);
-    	}
-    	p_owner->__p_colsig = NULL;
-    }
+	pifSolenoid_ResetCsFlag(p_owner, SN_CSF_ALL_BIT);
 #endif
 	if (p_owner->__p_timer_on) {
 		pifTimerManager_Remove(p_owner->__p_timer_on);
@@ -278,44 +220,23 @@ void pifSolenoid_ActionOff(PifSolenoid* p_owner)
 
 #ifdef PIF_COLLECT_SIGNAL
 
-void pifSolenoid_SetCsFlag(PifSolenoid *p_owner, PifSolenoidCsFlag flag)
+BOOL pifSolenoid_SetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag)
 {
-	((PifSolenoid *)p_owner)->__p_colsig->flag |= flag;
-}
-
-void pifSolenoid_ResetCsFlag(PifSolenoid *p_owner, PifSolenoidCsFlag flag)
-{
-	((PifSolenoid *)p_owner)->__p_colsig->flag &= ~flag;
-}
-
-void pifSolenoidColSig_Init()
-{
-	pifDList_Init(&s_cs_list);
-}
-
-void pifSolenoidColSig_Clear()
-{
-	pifDList_Clear(&s_cs_list, NULL);
-}
-
-void pifSolenoidColSig_SetFlag(PifSolenoidCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSolenoidColSig* p_colsig = (PifSolenoidColSig*)it->data;
-		p_colsig->flag |= flag;
-		it = pifDList_Next(it);
+	if (flag & SN_CSF_ACTION_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[SN_CSF_ACTION_IDX], "SNA", p_owner->_id, CSVT_WIRE, 1,
+				p_owner->__state)) return FALSE;
 	}
+	if (flag & SN_CSF_DIR_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[SN_CSF_DIR_IDX], "SND", p_owner->_id, CSVT_WIRE, 2,
+				p_owner->__current_dir)) return FALSE;
+	}
+	return TRUE;
 }
 
-void pifSolenoidColSig_ResetFlag(PifSolenoidCsFlag flag)
+void pifSolenoid_ResetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag)
 {
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifSolenoidColSig* p_colsig = (PifSolenoidColSig*)it->data;
-		p_colsig->flag &= ~flag;
-		it = pifDList_Next(it);
-	}
+	if (flag & SN_CSF_ACTION_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SN_CSF_ACTION_IDX]);
+	if (flag & SN_CSF_DIR_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SN_CSF_DIR_IDX]);
 }
 
 #endif	// PIF_COLLECT_SIGNAL

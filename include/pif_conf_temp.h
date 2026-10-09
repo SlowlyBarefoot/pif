@@ -54,6 +54,9 @@
 //#define PIF_COLLECT_SIGNAL
 
 
+// Characters of text a transfer task pass hands to pifLog at most, beyond the line it is on.
+//#define PIF_COLLECT_SIGNAL_TEXT_SIZE		96
+
 // -------- pifDshot -----------------------------
 
 //#define PIF_DSHOT_MAX_MOTORS				8

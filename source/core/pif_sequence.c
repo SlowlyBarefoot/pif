@@ -72,8 +72,17 @@ static void _poll(PifSequence *p_owner)
 	if (step) {
 		// A step that picks no successor leaves the sequence idle, which ends it.
 		p_owner->__state = SQS_IDLE;
+#ifdef PIF_COLLECT_SIGNAL
+		p_owner->__step_count++;
+		pifCollectSignal_Put(&p_owner->__cs[SQ_CSF_STEP_IDX], p_owner->__step_count);
+#endif
 		(*step)(p_owner);
 	}
+#ifdef PIF_COLLECT_SIGNAL
+	// Put once the step has picked what follows, so the idle state set above for the step does
+	// not show as a glitch.
+	pifCollectSignal_Put(&p_owner->__cs[SQ_CSF_STATE_IDX], p_owner->__state);
+#endif
 }
 
 static uint32_t _doTask(PifTask *p_task)
@@ -96,8 +105,6 @@ BOOL pifSequence_Init(PifSequence *p_owner, PifId id, void *p_param)
 	}
 
 	memset(p_owner, 0, sizeof(PifSequence));
-	if (id == PIF_ID_AUTO) id = pif_id++;
-	p_owner->_id = id;
 	p_owner->p_param = p_param;
 
 	// Kept until pifSequence_Clear() and paused in between, rather than removed when the
@@ -112,6 +119,9 @@ BOOL pifSequence_Init(PifSequence *p_owner, PifId id, void *p_param)
 void pifSequence_Clear(PifSequence *p_owner)
 {
 	p_owner->__state = SQS_IDLE;
+#ifdef PIF_COLLECT_SIGNAL
+	pifSequence_ResetCsFlag(p_owner, SQ_CSF_ALL_BIT);
+#endif
 	if (p_owner->_p_task) {
 		pifTaskManager_Remove(p_owner->_p_task);
 		p_owner->_p_task = NULL;
@@ -129,6 +139,11 @@ BOOL pifSequence_Start(PifSequence *p_owner, PifSequenceStep step)
 		return FALSE;
 	}
 	pifSequence_Next(p_owner, step);
+#ifdef PIF_COLLECT_SIGNAL
+	p_owner->__step_count = 0;
+	pifCollectSignal_Put(&p_owner->__cs[SQ_CSF_STEP_IDX], 0);
+	pifCollectSignal_Put(&p_owner->__cs[SQ_CSF_STATE_IDX], p_owner->__state);
+#endif
 
 	// The period may still be a long delay left from before a stop, so it is set back to the
 	// shortest one the task keeps.
@@ -141,6 +156,9 @@ void pifSequence_Stop(PifSequence *p_owner)
 {
 	p_owner->__state = SQS_IDLE;
 	if (p_owner->_p_task) p_owner->_p_task->pause = TRUE;
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_Put(&p_owner->__cs[SQ_CSF_STATE_IDX], SQS_IDLE);
+#endif
 }
 
 BOOL pifSequence_IsRunning(PifSequence *p_owner)
@@ -176,3 +194,26 @@ void pifSequence_Signal(PifSequence *p_owner)
 {
 	p_owner->__event = TRUE;
 }
+
+#ifdef PIF_COLLECT_SIGNAL
+
+BOOL pifSequence_SetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag)
+{
+	if (flag & SQ_CSF_STATE_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[SQ_CSF_STATE_IDX], "SQS",
+				p_owner->_p_task ? p_owner->_p_task->_id : PIF_ID_AUTO, CSVT_REG, 2, p_owner->__state)) return FALSE;
+	}
+	if (flag & SQ_CSF_STEP_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[SQ_CSF_STEP_IDX], "SQN",
+				p_owner->_p_task ? p_owner->_p_task->_id : PIF_ID_AUTO, CSVT_REG, 8, p_owner->__step_count)) return FALSE;
+	}
+	return TRUE;
+}
+
+void pifSequence_ResetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag)
+{
+	if (flag & SQ_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SQ_CSF_STATE_IDX]);
+	if (flag & SQ_CSF_STEP_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SQ_CSF_STEP_IDX]);
+}
+
+#endif	// PIF_COLLECT_SIGNAL

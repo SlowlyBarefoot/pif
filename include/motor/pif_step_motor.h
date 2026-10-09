@@ -5,6 +5,9 @@
 
 #include "core/pif_timer_manager.h"
 #include "motor/pif_motor.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 typedef enum EnPifStepMotorOperation
@@ -30,6 +33,24 @@ typedef void (*PifEvtStepMotorError)(PifStepMotor* p_owner);
 
 typedef void (*PifStepMotorControl)(PifStepMotor* p_owner);
 typedef void (*PifStepMotorStopStep)(PifStepMotor* p_owner);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+typedef enum EnPifStepMotorCsFlag
+{
+    SM_CSF_OFF			= 0,
+
+    SM_CSF_STATE_IDX	= 0,	// PifMotorState
+    SM_CSF_PPS_IDX		= 1,	// Pulses per second
+
+	SM_CSF_STATE_BIT	= 1,
+	SM_CSF_PPS_BIT		= 2,
+	SM_CSF_ALL_BIT		= 3,
+
+    SM_CSF_COUNT		= 2
+} PifStepMotorCsFlag;
+
+#endif	// PIF_COLLECT_SIGNAL
 
 
 /**
@@ -71,6 +92,9 @@ struct StPifStepMotor
 	uint8_t __current_step;
 	uint32_t __target_pulse;
 	const uint16_t* __p_phase_operation;
+#ifdef PIF_COLLECT_SIGNAL
+	PifCollectSignalChannel __cs[SM_CSF_COUNT];
+#endif
 
 	// Private Member Function
     PifStepMotorStopStep __stop_step;
@@ -243,6 +267,27 @@ BOOL pifStepMotor_StopControl(PifStepMotor* p_owner);
  * @param p_owner Pointer to the motor instance.
  */
 void pifStepMotor_Control(PifStepMotor* p_owner);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn pifStepMotor_SetCsFlag
+ * @brief Adds the selected signals of the motor to pifCollectSignal as channels.
+ * @param p_owner Pointer to the motor instance.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifStepMotor_SetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag);
+
+/**
+ * @fn pifStepMotor_ResetCsFlag
+ * @brief Removes the selected signals of the motor from pifCollectSignal.
+ * @param p_owner Pointer to the motor instance.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifStepMotor_ResetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag);
+
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

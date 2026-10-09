@@ -4,6 +4,9 @@
 
 
 #include "core/pif_task_manager.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 // A sequence runs on a TM_PERIOD task of its own, added by pifSequence_Init(). The task is
@@ -40,13 +43,30 @@ typedef enum EnPifSequenceState
 	SQS_WAIT		= 3
 } PifSequenceState;
 
+#ifdef PIF_COLLECT_SIGNAL
+
+typedef enum EnPifSequenceCsFlag
+{
+    SQ_CSF_OFF			= 0,
+
+    SQ_CSF_STATE_IDX	= 0,	// PifSequenceState
+    SQ_CSF_STEP_IDX		= 1,	// Steps run since the start, so a step that follows a step of the same state shows
+
+	SQ_CSF_STATE_BIT	= 1,
+	SQ_CSF_STEP_BIT		= 2,
+	SQ_CSF_ALL_BIT		= 3,
+
+    SQ_CSF_COUNT		= 2
+} PifSequenceCsFlag;
+
+#endif	// PIF_COLLECT_SIGNAL
+
 struct StPifSequence
 {
 	// Public Member Variable
 	void *p_param;
 
 	// Read-only Member Variable
-	PifId _id;
 	PifTask *_p_task;
 
 	// Private Member Variable
@@ -56,6 +76,10 @@ struct StPifSequence
 	uint16_t __wait_ms;
 	uint8_t __state;
 	volatile uint8_t __event;
+#ifdef PIF_COLLECT_SIGNAL
+	uint8_t __step_count;
+	PifCollectSignalChannel __cs[SQ_CSF_COUNT];
+#endif
 };
 
 
@@ -68,7 +92,7 @@ extern "C" {
  * @brief Initializes the sequence instance in the idle state and adds the task it runs on.
  *        The task stays registered, paused while the sequence is idle, until pifSequence_Clear().
  * @param p_owner Pointer to the target object instance.
- * @param id Identifier value for the object and its task.
+ * @param id Identifier value for the task.
  * @param p_param Pointer to user-defined parameter block, available to the steps as p_owner->p_param.
  * @return TRUE on success, otherwise FALSE.
  */
@@ -142,6 +166,27 @@ void pifSequence_Wait(PifSequence *p_owner, PifSequenceStep next, uint16_t timeo
  * @param p_owner Pointer to the target object instance.
  */
 void pifSequence_Signal(PifSequence *p_owner);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn pifSequence_SetCsFlag
+ * @brief Adds the selected signals of the sequence to pifCollectSignal as channels.
+ * @param p_owner Pointer to the target object instance.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifSequence_SetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag);
+
+/**
+ * @fn pifSequence_ResetCsFlag
+ * @brief Removes the selected signals of the sequence from pifCollectSignal.
+ * @param p_owner Pointer to the target object instance.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifSequence_ResetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag);
+
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

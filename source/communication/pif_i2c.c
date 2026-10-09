@@ -5,6 +5,22 @@
 #endif
 
 
+/**
+ * @fn _setState
+ * @brief Sets the state of a device and records it on its port for pifCollectSignal.
+ * @param p_device Pointer to the device.
+ * @param state New state.
+ */
+static void _setState(PifI2cDevice* p_device, PifI2cState state)
+{
+	p_device->_state = state;
+#ifdef PIF_COLLECT_SIGNAL
+	if (state == IS_RUN) pifCollectSignal_Put(&p_device->_p_port->__cs[I2_CSF_ADDR_IDX], p_device->addr);
+	pifCollectSignal_Put(&p_device->_p_port->__cs[I2_CSF_STATE_IDX], state);
+#endif
+}
+
+
 BOOL pifI2cPort_Init(PifI2cPort *p_owner, PifId id, uint8_t device_count)
 {
 	if (!p_owner || !device_count) {
@@ -26,6 +42,9 @@ fail:
 
 void pifI2cPort_Clear(PifI2cPort* p_owner)
 {
+#ifdef PIF_COLLECT_SIGNAL
+	pifI2cPort_ResetCsFlag(p_owner, I2_CSF_ALL_BIT);
+#endif
 	pifObjArray_Clear(&p_owner->__devices);
 }
 
@@ -126,11 +145,11 @@ static void _pollTransfer(PifI2cDevice* p_device)
 		break;
 
 	case IR_COMPLETE:
-		p_device->_state = IS_COMPLETE;
+		_setState(p_device, IS_COMPLETE);
 		break;
 
 	case IR_ERROR:
-		p_device->_state = IS_ERROR;
+		_setState(p_device, IS_ERROR);
 		break;
 	}
 }
@@ -171,7 +190,7 @@ BOOL pifI2cDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_
 	}
 
 	p_port->__use_device = p_device;
-	p_device->_state = IS_RUN;
+	_setState(p_device, IS_RUN);
 	ptr = 0;
 	while (size) {
 		len = (p_device->max_transfer_size && size > p_device->max_transfer_size) ? p_device->max_transfer_size : size;
@@ -210,7 +229,7 @@ BOOL pifI2cDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_
 		size -= len;
 	}
 	p_port->__use_device = NULL;
-	p_device->_state = IS_IDLE;
+	_setState(p_device, IS_IDLE);
 	return TRUE;
 
 fail:
@@ -219,7 +238,7 @@ fail:
 #endif
 	p_port->__use_device = NULL;
 	p_port->error_count++;
-	p_device->_state = IS_IDLE;
+	_setState(p_device, IS_IDLE);
 	return FALSE;
 }
 
@@ -275,14 +294,14 @@ BOOL pifI2cDevice_StartRead(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, u
 	}
 
 	p_port->__use_device = p_device;
-	p_device->_state = IS_RUN;
+	_setState(p_device, IS_RUN);
 	p_device->__start_time1ms = pif_cumulative_timer1ms;
 	switch ((*p_port->act_read)(p_device, iaddr, isize, p_data, size)) {
 	case IR_WAIT:
 		break;
 
 	case IR_COMPLETE:
-		p_device->_state = IS_COMPLETE;
+		_setState(p_device, IS_COMPLETE);
 		break;
 
 	case IR_ERROR:
@@ -291,7 +310,7 @@ BOOL pifI2cDevice_StartRead(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, u
 #endif
 		p_port->__use_device = NULL;
 		p_port->error_count++;
-		p_device->_state = IS_IDLE;
+		_setState(p_device, IS_IDLE);
 		return FALSE;
 	}
 	return TRUE;
@@ -325,7 +344,7 @@ PifI2cState pifI2cDevice_CheckTransfer(PifDevice* p_owner)
 		p_port->error_count++;
 	}
 	p_port->__use_device = NULL;
-	p_device->_state = IS_IDLE;
+	_setState(p_device, IS_IDLE);
 	return state;
 }
 
@@ -351,7 +370,7 @@ BOOL pifI2cDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8
 	}
 
 	p_port->__use_device = p_device;
-	p_device->_state = IS_RUN;
+	_setState(p_device, IS_RUN);
 	ptr = 0;
 	while (size) {
 		len = (p_device->max_transfer_size && size > p_device->max_transfer_size) ? p_device->max_transfer_size : size;
@@ -390,7 +409,7 @@ BOOL pifI2cDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8
 		size -= len;
 	}
 	p_port->__use_device = NULL;
-	p_device->_state = IS_IDLE;
+	_setState(p_device, IS_IDLE);
 	return TRUE;
 
 fail:
@@ -399,7 +418,7 @@ fail:
 #endif
 	p_port->__use_device = NULL;
 	p_port->error_count++;
-	p_device->_state = IS_IDLE;
+	_setState(p_device, IS_IDLE);
 	return FALSE;
 }
 
@@ -463,5 +482,28 @@ BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask
 void pifI2cPort_sigEndTransfer(PifI2cPort* p_owner, BOOL result)
 {
 	if (!p_owner->__use_device) return;
-	p_owner->__use_device->_state = result ? IS_COMPLETE : IS_ERROR;
+	_setState((PifI2cDevice*)p_owner->__use_device, result ? IS_COMPLETE : IS_ERROR);
 }
+
+#ifdef PIF_COLLECT_SIGNAL
+
+BOOL pifI2cPort_SetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag)
+{
+	if (flag & I2_CSF_STATE_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[I2_CSF_STATE_IDX], "I2S", p_owner->_id, CSVT_REG, 2,
+				IS_IDLE)) return FALSE;
+	}
+	if (flag & I2_CSF_ADDR_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[I2_CSF_ADDR_IDX], "I2A", p_owner->_id, CSVT_REG, 7,
+				0)) return FALSE;
+	}
+	return TRUE;
+}
+
+void pifI2cPort_ResetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag)
+{
+	if (flag & I2_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[I2_CSF_STATE_IDX]);
+	if (flag & I2_CSF_ADDR_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[I2_CSF_ADDR_IDX]);
+}
+
+#endif	// PIF_COLLECT_SIGNAL

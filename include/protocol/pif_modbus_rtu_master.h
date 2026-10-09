@@ -7,6 +7,9 @@
 #include "core/pif_timer_manager.h"
 #include "protocol/pif_modbus.h"
 #include "protocol/pif_modbus_rtu.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 typedef enum EnPifModbusMasterState
@@ -20,6 +23,22 @@ typedef enum EnPifModbusMasterState
 	MBMS_FINISH			= 6,
 	MBMS_ERROR			= 7
 } PifModbusMasterState;
+
+#ifdef PIF_COLLECT_SIGNAL
+
+typedef enum EnPifModbusRtuMasterCsFlag
+{
+	MBRM_CSF_OFF		= 0,
+
+	MBRM_CSF_STATE_IDX	= 0,	// PifModbusMasterState
+
+	MBRM_CSF_STATE_BIT	= 1,
+	MBRM_CSF_ALL_BIT	= 1,
+
+	MBRM_CSF_COUNT		= 1
+} PifModbusRtuMasterCsFlag;
+
+#endif	// PIF_COLLECT_SIGNAL
 
 /**
  * @class StPifModbusRtuMaster
@@ -48,6 +67,9 @@ typedef struct StPifModbusRtuMaster
 	uint16_t index;
 	uint8_t __tx_address;
 	PifModbusRxState __rx_state;
+#ifdef PIF_COLLECT_SIGNAL
+	PifCollectSignalChannel __cs[MBRM_CSF_COUNT];
+#endif
 } PifModbusRtuMaster;
 
 
@@ -237,6 +259,27 @@ BOOL pifModbusRtuMaster_WriteMultipleRegisters(PifModbusRtuMaster *p_owner, uint
  */
 BOOL pifModbusRtuMaster_ReadWriteMultipleRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t read_address, uint16_t read_quantity, uint16_t *p_read_registers,
 		uint8_t write_address, uint16_t write_quantity, uint16_t *p_write_registers);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn pifModbusRtuMaster_SetCsFlag
+ * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
+ * @param p_owner Pointer to the protocol instance.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success; otherwise FALSE.
+ */
+BOOL pifModbusRtuMaster_SetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMasterCsFlag flag);
+
+/**
+ * @fn pifModbusRtuMaster_ResetCsFlag
+ * @brief Removes the selected signals of the instance from pifCollectSignal.
+ * @param p_owner Pointer to the protocol instance.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifModbusRtuMaster_ResetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMasterCsFlag flag);
+
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

@@ -7,6 +7,9 @@
 #include "core/pif_timer_manager.h"
 #include "protocol/pif_modbus.h"
 #include "protocol/pif_modbus_ascii.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 typedef enum EnPifModbusMasterState
@@ -19,6 +22,22 @@ typedef enum EnPifModbusMasterState
 	MBMS_FINISH			= 5,
 	MBMS_ERROR			= 6
 } PifModbusMasterState;
+
+#ifdef PIF_COLLECT_SIGNAL
+
+typedef enum EnPifModbusAsciiMasterCsFlag
+{
+	MBAM_CSF_OFF		= 0,
+
+	MBAM_CSF_STATE_IDX	= 0,	// PifModbusMasterState
+
+	MBAM_CSF_STATE_BIT	= 1,
+	MBAM_CSF_ALL_BIT	= 1,
+
+	MBAM_CSF_COUNT		= 1
+} PifModbusAsciiMasterCsFlag;
+
+#endif	// PIF_COLLECT_SIGNAL
 
 /**
  * @class StPifModbusAsciiMaster
@@ -46,6 +65,9 @@ typedef struct StPifModbusAsciiMaster
 	uint16_t index;
 	uint8_t __tx_address;
 	PifModbusRxState __rx_state;
+#ifdef PIF_COLLECT_SIGNAL
+	PifCollectSignalChannel __cs[MBAM_CSF_COUNT];
+#endif
 } PifModbusAsciiMaster;
 
 
@@ -236,6 +258,27 @@ BOOL pifModbusAsciiMaster_WriteMultipleRegisters(PifModbusAsciiMaster *p_owner, 
  */
 BOOL pifModbusAsciiMaster_ReadWriteMultipleRegisters(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t read_address, uint16_t read_quantity, uint16_t *p_read_registers,
 		uint8_t write_address, uint16_t write_quantity, uint16_t *p_write_registers);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn pifModbusAsciiMaster_SetCsFlag
+ * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
+ * @param p_owner Pointer to the protocol instance.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success; otherwise FALSE.
+ */
+BOOL pifModbusAsciiMaster_SetCsFlag(PifModbusAsciiMaster *p_owner, PifModbusAsciiMasterCsFlag flag);
+
+/**
+ * @fn pifModbusAsciiMaster_ResetCsFlag
+ * @brief Removes the selected signals of the instance from pifCollectSignal.
+ * @param p_owner Pointer to the protocol instance.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifModbusAsciiMaster_ResetCsFlag(PifModbusAsciiMaster *p_owner, PifModbusAsciiMasterCsFlag flag);
+
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

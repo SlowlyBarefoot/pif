@@ -6,7 +6,6 @@
 
 // Only pif_sequence.c is linked, so the globals normally defined in pif.c live here.
 PifError pif_error = E_SUCCESS;
-PifId pif_id = 1;
 volatile uint32_t pif_cumulative_timer1ms = 0;
 
 // Works regardless of NDEBUG, and reports where the failure happened.

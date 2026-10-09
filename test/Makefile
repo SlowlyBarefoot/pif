@@ -33,13 +33,20 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_sequence test_pif_link test_pif_link_nolog
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_sequence test_pif_collect_signal test_pif_link test_pif_link_nolog
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
 LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
             $(ROOT)/source/communication/pif_uart.c \
             $(addprefix $(ROOT)/source/core/, pif.c pif_log.c pif_obj_array.c pif_ring_buffer.c pif_task.c \
                 pif_task_manager.c pif_timer.c pif_timer_manager.c)
+# test_pif_collect_signal.c includes pif_collect_signal.c itself and stands in for pif_log.c. It also checks the
+# channels of pif_sequence.c.
+CS_SRC  := core/test_pif_collect_signal.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_buffer.c pif_sequence.c \
+               pif_task.c pif_task_manager.c pif_timer.c pif_timer_manager.c)
+CS_DEP  := $(ROOT)/source/core/pif_collect_signal.c $(ROOT)/include/core/pif_collect_signal.h \
+            $(ROOT)/source/core/pif_sequence.c $(ROOT)/include/core/pif_sequence.h
+
 LINK_DEP := $(ROOT)/source/protocol/pif_link.c $(ROOT)/include/protocol/pif_link.h \
             $(ROOT)/include/protocol/pif_link_fragment.h
 
@@ -52,7 +59,8 @@ run: $(addprefix run-, $(NAMES))
 
 run-test_pif_bst_key8: run-test_pif_bst
 run-test_pif_sequence: run-test_pif_bst_key8
-run-test_pif_link: run-test_pif_sequence
+run-test_pif_collect_signal: run-test_pif_sequence
+run-test_pif_link: run-test_pif_collect_signal
 run-test_pif_link_nolog: run-test_pif_link
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
@@ -67,6 +75,9 @@ $(BUILD)/test_pif_bst_key8$(EXE): core/test_pif_bst.c $(ROOT)/source/core/pif_bs
 $(BUILD)/test_pif_sequence$(EXE): core/test_pif_sequence.c $(ROOT)/source/core/pif_sequence.c \
                                  $(ROOT)/include/core/pif_sequence.h | $(BUILD)
 	$(CC) $(CFLAGS) $(INC) $(filter %.c,$^) -o $@
+
+$(BUILD)/test_pif_collect_signal$(EXE): $(CS_SRC) $(CS_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_COLLECT_SIGNAL $(INC) $(CS_SRC) -o $@
 
 $(BUILD)/test_pif_link$(EXE): $(LINK_SRC) $(LINK_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) $(INC) $(LINK_SRC) -o $@

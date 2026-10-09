@@ -112,6 +112,9 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 		p_key->state = KS_IDLE;
 		break;
 	}
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_Put(&p_key->__cs[KP_CSF_STATE_IDX], p_key->state);
+#endif
 }
 
 /**
@@ -169,6 +172,9 @@ void pifKeypad_Clear(PifKeypad* p_owner)
 		p_owner->__p_state = NULL;
 	}
 	if (p_owner->__p_key) {
+#ifdef PIF_COLLECT_SIGNAL
+		pifKeypad_ResetCsFlag(p_owner, KP_CSF_ALL_BIT);
+#endif
 		free(p_owner->__p_key);
 		p_owner->__p_key = NULL;
 	}
@@ -200,14 +206,18 @@ BOOL pifKeypad_SetKeymap(PifKeypad* p_owner, uint8_t num, const char* p_user_key
 		return FALSE;
 	}
 
-    p_owner->__num_key = num;
-    p_owner->__num_block = (num + 15) / 16;
-    p_owner->__num_cell = num < 16 ? num : 16;
-
     if (p_owner->__p_key) {
+#ifdef PIF_COLLECT_SIGNAL
+        // While __num_key still counts the keys being freed.
+        pifKeypad_ResetCsFlag(p_owner, KP_CSF_ALL_BIT);
+#endif
         free(p_owner->__p_key);
         p_owner->__p_key = NULL;
     }
+
+    p_owner->__num_key = num;
+    p_owner->__num_block = (num + 15) / 16;
+    p_owner->__num_cell = num < 16 ? num : 16;
 	p_owner->__p_key = calloc(sizeof(PifKey), num);
 	if (!p_owner->__p_key) {
 		pif_error = E_OUT_OF_HEAP;
@@ -285,3 +295,38 @@ void pifKeypad_Stop(PifKeypad* p_owner)
 {
 	if (p_owner->__p_task) p_owner->__p_task->pause = TRUE;
 }
+
+#ifdef PIF_COLLECT_SIGNAL
+
+BOOL pifKeypad_SetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag)
+{
+	int i;
+
+	if (!p_owner->__p_key) {
+		pif_error = E_CANNOT_USE;
+		return FALSE;
+	}
+
+	if (flag & KP_CSF_STATE_BIT) {
+		for (i = 0; i < p_owner->__num_key; i++) {
+			if (!pifCollectSignal_AddChannel(&p_owner->__p_key[i].__cs[KP_CSF_STATE_IDX], "KP", i, CSVT_REG, 2,
+					p_owner->__p_key[i].state)) return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+void pifKeypad_ResetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag)
+{
+	int i;
+
+	if (!p_owner->__p_key) return;
+
+	if (flag & KP_CSF_STATE_BIT) {
+		for (i = 0; i < p_owner->__num_key; i++) {
+			pifCollectSignal_RemoveChannel(&p_owner->__p_key[i].__cs[KP_CSF_STATE_IDX]);
+		}
+	}
+}
+
+#endif	// PIF_COLLECT_SIGNAL

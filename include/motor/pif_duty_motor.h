@@ -5,6 +5,9 @@
 
 #include "core/pif_timer_manager.h"
 #include "motor/pif_motor.h"
+#ifdef PIF_COLLECT_SIGNAL
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 struct StPifDutyMotor;
@@ -19,6 +22,24 @@ typedef void (*PifEvtDutyMotorStop)(PifDutyMotor* p_owner);
 typedef void (*PifEvtDutyMotorError)(PifDutyMotor* p_owner);
 
 typedef void (*PifDutyMotorControl)(PifDutyMotor* p_owner);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+typedef enum EnPifDutyMotorCsFlag
+{
+    DM_CSF_OFF			= 0,
+
+    DM_CSF_STATE_IDX	= 0,	// PifMotorState
+    DM_CSF_DUTY_IDX		= 1,	// Duty given to act_set_duty
+
+	DM_CSF_STATE_BIT	= 1,
+	DM_CSF_DUTY_BIT		= 2,
+	DM_CSF_ALL_BIT		= 3,
+
+    DM_CSF_COUNT		= 2
+} PifDutyMotorCsFlag;
+
+#endif	// PIF_COLLECT_SIGNAL
 
 
 /**
@@ -52,6 +73,9 @@ struct StPifDutyMotor
 	PifTimer* __p_timer_break;
 
     PifTask* __p_task;
+#ifdef PIF_COLLECT_SIGNAL
+	PifCollectSignalChannel __cs[DM_CSF_COUNT];
+#endif
 };
 
 
@@ -160,6 +184,36 @@ BOOL pifDutyMotor_StopControl(PifDutyMotor* p_owner);
  * @param p_owner Pointer to the motor instance.
  */
 void pifDutyMotor_Control(PifDutyMotor* p_owner);
+
+/**
+ * @fn pifDutyMotor_ApplyDuty
+ * @brief Gives a duty to act_set_duty and records it for pifCollectSignal. Used by the motor
+ *        controllers; it does not change `_current_duty`.
+ * @param p_owner Pointer to the motor instance.
+ * @param duty Duty value to output.
+ */
+void pifDutyMotor_ApplyDuty(PifDutyMotor* p_owner, uint16_t duty);
+
+#ifdef PIF_COLLECT_SIGNAL
+
+/**
+ * @fn pifDutyMotor_SetCsFlag
+ * @brief Adds the selected signals of the motor to pifCollectSignal as channels.
+ * @param p_owner Pointer to the motor instance.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifDutyMotor_SetCsFlag(PifDutyMotor* p_owner, PifDutyMotorCsFlag flag);
+
+/**
+ * @fn pifDutyMotor_ResetCsFlag
+ * @brief Removes the selected signals of the motor from pifCollectSignal.
+ * @param p_owner Pointer to the motor instance.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifDutyMotor_ResetCsFlag(PifDutyMotor* p_owner, PifDutyMotorCsFlag flag);
+
+#endif	// PIF_COLLECT_SIGNAL
 
 #ifdef __cplusplus
 }

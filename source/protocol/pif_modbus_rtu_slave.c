@@ -14,7 +14,7 @@
  */
 static void _sendCommand(PifModbusRtuSlave *p_owner, uint8_t function, uint16_t length)
 {
-	if (p_owner->__p_uart->__act_direction) (*p_owner->__p_uart->__act_direction)(UD_TX);
+	pifUart_SetDirection(p_owner->__p_uart, UD_TX);
 
 	p_owner->__buffer[0] = p_owner->parent._my_addr;
 	p_owner->__buffer[1] = function;
@@ -364,7 +364,7 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 		break;
 
 	case MBSS_POST_DELAY:
-		(*p_owner->__p_uart->__act_direction)(UD_RX);
+		pifUart_SetDirection(p_owner->__p_uart, UD_RX);
 		p_owner->parent.__state = MBSS_IDLE;
 		break;
 

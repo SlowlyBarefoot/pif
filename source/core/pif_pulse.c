@@ -1,44 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_pulse.h"
-#ifdef PIF_COLLECT_SIGNAL
-	#include "core/pif_collect_signal.h"
-#endif
-#include "core/pif_dlist.h"
-#ifndef PIF_NO_LOG
-	#include "core/pif_log.h"
-#endif
 
 // Pulse input abstraction with edge tracking and optional signal collection.
-
-#ifdef PIF_COLLECT_SIGNAL
-	static PifDList s_cs_list;
-#endif
-
-#ifdef PIF_COLLECT_SIGNAL
-
-static void _addDeviceInCollectSignal()
-{
-	const char* prefix[PL_CSF_COUNT] = { "PL" };
-
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifPulseColSig* p_colsig = (PifPulseColSig*)it->data;
-		PifPulse* p_owner = p_colsig->p_owner;
-		for (int f = 0; f < PL_CSF_COUNT; f++) {
-			if (p_colsig->flag & (1 << f)) {
-				p_colsig->p_device[f] = pifCollectSignal_AddDevice(p_owner->_id, CSVT_WIRE, 1,
-						prefix[f], PS_LOW_LEVEL);
-			}
-		}
-#ifndef PIF_NO_LOG
-		pifLog_Printf(LT_INFO, "PL_CS:Add(DC:%u)", p_owner->_id);
-#endif
-
-		it = pifDList_Next(it);
-	}
-}
-
-#endif	// PIF_COLLECT_SIGNAL
 
 BOOL pifPulse_Init(PifPulse* p_owner, PifId id)
 {
@@ -52,40 +15,13 @@ BOOL pifPulse_Init(PifPulse* p_owner, PifId id)
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
 
-#ifdef PIF_COLLECT_SIGNAL
-	if (!pifDList_Size(&s_cs_list)) {
-		pifCollectSignal_Attach(CSF_PULSE, _addDeviceInCollectSignal);
-	}
-	PifPulseColSig* p_colsig = pifDList_AddLast(&s_cs_list, sizeof(PifPulseColSig));
-	if (!p_colsig) goto fail;
-	p_colsig->p_owner = p_owner;
-	p_owner->__p_colsig = p_colsig;
-#endif
     return TRUE;
-
-#ifdef PIF_COLLECT_SIGNAL
-fail:
-	pifPulse_Clear(p_owner);
-    return FALSE;
-#endif
 }
 
 void pifPulse_Clear(PifPulse* p_owner)
 {
 #ifdef PIF_COLLECT_SIGNAL
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifPulseColSig* p_colsig = (PifPulseColSig*)it->data;
-		if (p_colsig == p_owner->__p_colsig) {
-			pifDList_Remove(&s_cs_list, it);
-			break;
-		}
-		it = pifDList_Next(it);
-	}
-	if (!pifDList_Size(&s_cs_list)) {
-		pifCollectSignal_Detach(CSF_PULSE);
-	}
-	p_owner->__p_colsig = NULL;
+	pifPulse_ResetCsFlag(p_owner, PL_CSF_ALL_BIT);
 #else
 	(void)p_owner;
 #endif
@@ -218,9 +154,7 @@ BOOL pifPulse_sigEdge(PifPulse* p_owner, PifPulseState state, uint32_t time_us)
 	if (p_owner->__count < PIF_PULSE_DATA_SIZE) p_owner->__count++;
 
 #ifdef PIF_COLLECT_SIGNAL
-	if (p_owner->__p_colsig->flag & PL_CSF_STATE_BIT) {
-		pifCollectSignal_AddSignal(p_owner->__p_colsig->p_device[PL_CSF_STATE_IDX], state);
-	}
+	pifCollectSignal_Put(&p_owner->__cs[PL_CSF_STATE_IDX], state == PS_RISING_EDGE);
 #endif
 
 	return rtn;
@@ -234,44 +168,18 @@ void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssu
 
 #ifdef PIF_COLLECT_SIGNAL
 
-void pifPulse_SetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag)
+BOOL pifPulse_SetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag)
 {
-	p_owner->__p_colsig->flag |= flag;
+	if (flag & PL_CSF_STATE_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[PL_CSF_STATE_IDX], "PL", p_owner->_id, CSVT_WIRE, 1,
+				PS_LOW_LEVEL)) return FALSE;
+	}
+	return TRUE;
 }
 
 void pifPulse_ResetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag)
 {
-	p_owner->__p_colsig->flag &= ~flag;
-}
-
-void pifPulseColSig_Init()
-{
-	pifDList_Init(&s_cs_list);
-}
-
-void pifPulseColSig_Clear()
-{
-	pifDList_Clear(&s_cs_list, NULL);
-}
-
-void pifPulseColSig_SetFlag(PifPulseCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifPulseColSig* p_colsig = (PifPulseColSig*)it->data;
-		p_colsig->flag |= flag;
-		it = pifDList_Next(it);
-	}
-}
-
-void pifPulseColSig_ResetFlag(PifPulseCsFlag flag)
-{
-	PifDListIterator it = pifDList_Begin(&s_cs_list);
-	while (it) {
-		PifPulseColSig* p_colsig = (PifPulseColSig*)it->data;
-		p_colsig->flag &= ~flag;
-		it = pifDList_Next(it);
-	}
+	if (flag & PL_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[PL_CSF_STATE_IDX]);
 }
 
 #endif	// PIF_COLLECT_SIGNAL

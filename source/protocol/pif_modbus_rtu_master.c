@@ -19,6 +19,19 @@ static const char *c_cPktErr[] = {
 #endif
 
 /**
+ * @brief Sets the state and records it for pifCollectSignal.
+ * @param p_owner Pointer to the protocol instance.
+ * @param state New state.
+ */
+static void _setState(PifModbusRtuMaster *p_owner, PifModbusMasterState state)
+{
+	p_owner->__state = state;
+#ifdef PIF_COLLECT_SIGNAL
+	pifCollectSignal_Put(&p_owner->__cs[MBRM_CSF_STATE_IDX], state);
+#endif
+}
+
+/**
  * @brief Parses an incoming protocol packet and updates parser state and outputs.
  * @param p_owner Pointer to the protocol instance that owns this operation.
  * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
@@ -136,9 +149,9 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 	}
 
 	pifTimer_Stop(p_owner->__p_timer);
-	if (p_owner->__p_uart->__act_direction) (*p_owner->__p_uart->__act_direction)(UD_TX);
+	pifUart_SetDirection(p_owner->__p_uart, UD_TX);
 	p_owner->__rx_state = MBRS_IDLE;
-	p_owner->__state = MBMS_RESPONSE_DELAY;
+	_setState(p_owner, MBMS_RESPONSE_DELAY);
 	p_owner->__delay = (*pif_act_timer1us)() + p_owner->__p_uart->_transfer_time * 3.5;
 	return TRUE;
 }
@@ -160,7 +173,7 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
     			p_owner->length - p_owner->index);
 		p_owner->index += length;
 		if (p_owner->index >= p_owner->length) {
-			p_owner->__state = MBMS_REQUEST_WAIT;
+			_setState(p_owner, MBMS_REQUEST_WAIT);
 		}
 		period = 1;
 		break;
@@ -168,14 +181,14 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 	case MBMS_REQUEST_WAIT:
 		period = 1;
 		if (pifUart_CheckTxTransfer(p_owner->__p_uart)) {
-			p_owner->__state = MBMS_REQUEST_DELAY;
+			_setState(p_owner, MBMS_REQUEST_DELAY);
 			period *= 2;
 		}
 		break;
 
 	case MBMS_REQUEST_DELAY:
-		if (p_owner->__p_uart->__act_direction) (*p_owner->__p_uart->__act_direction)(UD_RX);
-		p_owner->__state = MBMS_RESPONSE;
+		pifUart_SetDirection(p_owner->__p_uart, UD_RX);
+		_setState(p_owner, MBMS_RESPONSE);
 		break;
 
 	default:
@@ -193,7 +206,7 @@ static void _evtTimerTimeout(PifIssuerP p_issuer)
 {
 	PifModbusRtuMaster *p_owner = (PifModbusRtuMaster *)p_issuer;
 
-	p_owner->__state = MBMS_ERROR;
+	_setState(p_owner, MBMS_ERROR);
 	p_owner->_error = MBE_TIMEOUT;
 
 #ifndef PIF_NO_LOG
@@ -253,7 +266,7 @@ static void _request(PifModbusRtuMaster *p_owner, uint16_t len)
 {
 	p_owner->_error = MBE_NONE;
 
-	if (p_owner->__p_uart->__act_direction) (*p_owner->__p_uart->__act_direction)(UD_TX);
+	pifUart_SetDirection(p_owner->__p_uart, UD_TX);
 
 	pifModbus_ShortToStream(pifModbusRtu_CalcCrc(p_owner->__buffer, len), &p_owner->__buffer[len]);
 
@@ -265,7 +278,7 @@ static void _request(PifModbusRtuMaster *p_owner, uint16_t len)
 
 	p_owner->length = len + 2;
 	p_owner->index = 0;
-	p_owner->__state = MBMS_REQUEST;
+	_setState(p_owner, MBMS_REQUEST);
 	pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
 
 }
@@ -298,6 +311,9 @@ fail:
 
 void pifModbusRtuMaster_Clear(PifModbusRtuMaster *p_owner)
 {
+#ifdef PIF_COLLECT_SIGNAL
+	pifModbusRtuMaster_ResetCsFlag(p_owner, MBRM_CSF_ALL_BIT);
+#endif
 	if (p_owner->__p_timer) {
 		pifTimerManager_Remove(p_owner->__p_timer);
 		p_owner->__p_timer = NULL;
@@ -326,7 +342,7 @@ PifModbusMasterResult pifModbusRtuMaster_Check(PifModbusRtuMaster *p_owner)
 	if (p_owner->__state == MBMS_IDLE) return MBMR_IDLE;
 
 	if (p_owner->__state == MBMS_ERROR) {
-		p_owner->__state = MBMS_IDLE;
+		_setState(p_owner, MBMS_IDLE);
 		return MBMR_ERROR;
 	}
 
@@ -338,7 +354,7 @@ PifModbusMasterResult pifModbusRtuMaster_Check(PifModbusRtuMaster *p_owner)
 	if ((int32_t)(p_owner->__delay - (*pif_act_timer1us)()) > 0) return MBMR_BUSY;
 
 	if (p_owner->_error == MBE_NONE) _copyResult(p_owner);
-	p_owner->__state = MBMS_IDLE;
+	_setState(p_owner, MBMS_IDLE);
 	return p_owner->_error == MBE_NONE ? MBMR_DONE : MBMR_ERROR;
 }
 
@@ -573,3 +589,21 @@ BOOL pifModbusRtuMaster_ReadWriteMultipleRegisters(PifModbusRtuMaster *p_owner, 
 	_request(p_owner, pos);
 	return TRUE;
 }
+
+#ifdef PIF_COLLECT_SIGNAL
+
+BOOL pifModbusRtuMaster_SetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMasterCsFlag flag)
+{
+	if (flag & MBRM_CSF_STATE_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[MBRM_CSF_STATE_IDX], "MRS", p_owner->_id, CSVT_REG, 3,
+				p_owner->__state)) return FALSE;
+	}
+	return TRUE;
+}
+
+void pifModbusRtuMaster_ResetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMasterCsFlag flag)
+{
+	if (flag & MBRM_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[MBRM_CSF_STATE_IDX]);
+}
+
+#endif	// PIF_COLLECT_SIGNAL
