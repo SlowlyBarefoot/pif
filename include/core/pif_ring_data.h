@@ -23,6 +23,7 @@ typedef struct StPifRingData
     uint16_t __head;
     uint16_t __tail;
     uint16_t __index;
+    uint16_t __slot_count;
     uint8_t* __p_data;
 } PifRingData;
 
@@ -36,7 +37,7 @@ extern "C" {
  * @brief Creates and initializes a new ring data instance, then returns its handle when successful.
  * @param id Identifier value for the object or task.
  * @param data_size Size of one data item in bytes.
- * @param data_count Number of data items in the ring.
+ * @param data_count Maximum number of data items the ring can hold (1 to 65534).
  * @return Pointer to the resulting object or data, or NULL if unavailable.
  */
 PifRingData* pifRingData_Create(PifId id, uint16_t data_size, uint16_t data_count);
@@ -54,80 +55,92 @@ void pifRingData_Destroy(PifRingData** pp_owner);
  * @param p_owner Pointer to the target object instance.
  * @param id Identifier value for the object or task.
  * @param data_size Size of one data item in bytes.
- * @param data_count Number of data items in the ring.
+ * @param data_count Maximum number of data items the ring can hold (1 to 65534).
  * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifRingData_Init(PifRingData* p_owner, PifId id, uint16_t data_size, uint16_t data_count);
 
 /**
  * @fn pifRingData_Clear
- * @brief Clears the ring data state and releases resources currently owned by the instance.
+ * @brief Releases the data buffer owned by the instance. Use pifRingData_Reset to only empty the ring.
  * @param p_owner Pointer to the target object instance.
  */
 void pifRingData_Clear(PifRingData* p_owner);
 
 /**
- * @fn pifRingData_IsEmpty
- * @brief Checks whether the ring data currently satisfies the requested condition.
+ * @fn pifRingData_Reset
+ * @brief Discards all stored items and makes the ring empty without releasing the buffer.
  * @param p_owner Pointer to the target object instance.
- * @return TRUE on success, otherwise FALSE.
+ */
+void pifRingData_Reset(PifRingData* p_owner);
+
+/**
+ * @fn pifRingData_IsEmpty
+ * @brief Checks whether the ring holds no items.
+ * @param p_owner Pointer to the target object instance.
+ * @return TRUE if the ring is empty, otherwise FALSE.
  */
 BOOL pifRingData_IsEmpty(PifRingData* p_owner);
 
 /**
  * @fn pifRingData_GetData
- * @brief Retrieves the requested value or pointer from the ring data without changing ownership.
+ * @brief Returns the item at the given position without removing it.
  * @param p_owner Pointer to the target object instance.
- * @param index Zero-based index of the target item.
- * @return Pointer to the resulting object or data, or NULL if unavailable.
+ * @param index Zero-based index counted from the oldest item.
+ * @return Pointer to the item, or NULL if index is not less than the fill size.
  */
 void* pifRingData_GetData(PifRingData* p_owner, uint16_t index);
 
 /**
  * @fn pifRingData_GetFirstData
- * @brief Retrieves the requested value or pointer from the ring data without changing ownership.
+ * @brief Starts iteration and returns the oldest item without removing it.
+ * @details The iteration position is shared by the instance, so iterations cannot be nested
+ *          and Add/Remove should not be called while iterating.
  * @param p_owner Pointer to the target object instance.
- * @return Pointer to the resulting object or data, or NULL if unavailable.
+ * @return Pointer to the oldest item, or NULL if the ring is empty.
  */
 void* pifRingData_GetFirstData(PifRingData* p_owner);
 
 /**
  * @fn pifRingData_GetNextData
- * @brief Retrieves the requested value or pointer from the ring data without changing ownership.
+ * @brief Returns the next item of the iteration started by pifRingData_GetFirstData.
  * @param p_owner Pointer to the target object instance.
- * @return Pointer to the resulting object or data, or NULL if unavailable.
+ * @return Pointer to the next item, or NULL when the iteration has reached the end.
  */
 void* pifRingData_GetNextData(PifRingData* p_owner);
 
 /**
  * @fn pifRingData_GetFillSize
- * @brief Retrieves the requested value or pointer from the ring data without changing ownership.
+ * @brief Returns the number of items currently stored.
  * @param p_owner Pointer to the target object instance.
- * @return Result value returned by this API.
+ * @return Number of stored items.
  */
 uint16_t pifRingData_GetFillSize(PifRingData* p_owner);
 
 /**
  * @fn pifRingData_GetRemainSize
- * @brief Retrieves the requested value or pointer from the ring data without changing ownership.
+ * @brief Returns the number of items that can still be added.
  * @param p_owner Pointer to the target object instance.
- * @return Result value returned by this API.
+ * @return Number of free item slots.
  */
 uint16_t pifRingData_GetRemainSize(PifRingData* p_owner);
 
 /**
  * @fn pifRingData_Add
- * @brief Adds an item to the ring data and updates internal bookkeeping for subsequent operations.
+ * @brief Reserves a slot for a new item at the end of the ring.
+ * @details The returned slot is already counted as stored, so the caller must fill it immediately.
+ *          Not safe when Add and Remove run in different contexts (e.g. task and interrupt).
  * @param p_owner Pointer to the target object instance.
- * @return Pointer to the resulting object or data, or NULL if unavailable.
+ * @return Pointer to the slot to fill, or NULL if the ring is full.
  */
 void* pifRingData_Add(PifRingData* p_owner);
 
 /**
  * @fn pifRingData_Remove
- * @brief Removes an item from the ring data and updates internal bookkeeping for consistency.
+ * @brief Removes the oldest item from the ring.
+ * @details The returned pointer stays valid only until the next pifRingData_Add call.
  * @param p_owner Pointer to the target object instance.
- * @return Pointer to the resulting object or data, or NULL if unavailable.
+ * @return Pointer to the removed item, or NULL if the ring is empty.
  */
 void* pifRingData_Remove(PifRingData* p_owner);
 
