@@ -184,16 +184,24 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period);
 
 /**
  * @fn pifTask_SetTrigger
- * @brief Sets configuration or runtime state for the task based on the provided parameters.
+ * @brief Releases the task once after the delay. When the delay is over the release is due the
+ *        way a period is: with PIF_USE_BLOCK_TIME and a TM_REALTIME task it is held back while the
+ *        run of the task does not fit before the next realtime release, by the same rule and bound
+ *        (max_skip) as a period release. A task that must never wait sets max_skip to 1, and work
+ *        that cannot wait at all takes pifTask_SetCutinTrigger().
+ *        A trigger still pending is replaced, delay included. Safe to call from an interrupt.
  * @param p_owner Pointer to the target object instance.
- * @param delay Delay duration value.
+ * @param delay Delay in microseconds. 0 releases the task on its next visit.
  * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay);
 
 /**
  * @fn pifTask_SetCutinTrigger
- * @brief Sets configuration or runtime state for the task based on the provided parameters.
+ * @brief Releases the task at the next loop, ahead of the ring and of the realtime task, and
+ *        without asking whether its run fits before the next realtime release. Only one cut in is
+ *        held at a time: while one is pending the task gets pifTask_SetTrigger() with no delay
+ *        instead, which waits for its turn in the ring and for the realtime slack.
  * @param p_owner Pointer to the target object instance.
  * @return TRUE on success, otherwise FALSE.
  */

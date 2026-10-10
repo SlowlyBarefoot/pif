@@ -355,7 +355,7 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	}
 #endif
 
-	// The bound counts refusals since the last run, and a trigger dispatches without asking the
+	// The bound counts refusals since the last run, and a cut in dispatches without asking the
 	// slack rule at all, so the count is cleared where every release ends up rather than only on
 	// the path that tests it.
 	p_owner->__skip_count = 0;
@@ -823,6 +823,11 @@ void pifTaskManager_Loop()
 					}
 				}
 				if (!p_owner->__trigger_delay) {
+					// A trigger is due the way a period is, and waits for the slack by the same
+					// rule. It stays pending for the next pass, and this pass asks nothing else of
+					// the task: the same slack would refuse its period as well, and asking twice
+					// would count one wait as two refusals.
+					if (!_fitsInRealtimeSlack(p_owner, slack)) goto next;
 					p_owner->__trigger = FALSE;
 					_processingTrigger(p_owner);
 					p_select = p_owner;

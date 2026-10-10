@@ -314,9 +314,28 @@ static void testStateChecks()
     CHECK(!pifCollectSignal_ChangeMethod(CSM_BUFFER));		// No buffer
     CHECK(!pifCollectSignal_PrintLog());
 
-    CHECK(pifCollectSignal_AddChannel(&s_clk, "clk", PIF_ID_AUTO, CSVT_WIRE, 1, 0));
+    // A name that leaves no room for the NUL is refused rather than cut.
+    {
+        char too_long[PIF_COLLECT_SIGNAL_NAME_SIZE + 1];
+
+        memset(too_long, 'x', PIF_COLLECT_SIGNAL_NAME_SIZE);
+        too_long[PIF_COLLECT_SIGNAL_NAME_SIZE] = 0;
+        pif_error = E_SUCCESS;
+        CHECK(!pifCollectSignal_AddChannel(&s_clk, too_long, PIF_ID_AUTO, CSVT_WIRE, 1, 0) && pif_error == E_INVALID_PARAM);
+        too_long[PIF_COLLECT_SIGNAL_NAME_SIZE - 1] = 0;
+        CHECK(pifCollectSignal_AddChannel(&s_clk, too_long, PIF_ID_AUTO, CSVT_WIRE, 1, 0));
+        pifCollectSignal_RemoveChannel(&s_clk);
+    }
+
+    // The name is copied, so the buffer it came from may change or go away.
+    {
+        char name[] = "clk";
+
+        CHECK(pifCollectSignal_AddChannel(&s_clk, name, PIF_ID_AUTO, CSVT_WIRE, 1, 0));
+        name[0] = 'x';
+    }
     CHECK(pifCollectSignal_AddChannel(&s_clk, "other", PIF_ID_AUTO, CSVT_REG, 8, 0));	// Already added
-    CHECK(strcmp(s_clk._p_name, "clk") == 0);
+    CHECK(strcmp(s_clk._name, "clk") == 0);
 
     _resetLog();
     CHECK(pifCollectSignal_Start());

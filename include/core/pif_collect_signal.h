@@ -37,6 +37,11 @@
 #define PIF_COLLECT_SIGNAL_TEXT_SIZE	96
 #endif
 
+// Bytes a channel keeps for its name, the terminating NUL included.
+#ifndef PIF_COLLECT_SIGNAL_NAME_SIZE
+#define PIF_COLLECT_SIGNAL_NAME_SIZE	8
+#endif
+
 
 typedef enum EnPifCollectSignalScale
 {
@@ -81,7 +86,7 @@ typedef enum EnPifCollectSignalVarType
 typedef struct StPifCollectSignalChannel
 {
 	// Read-only Member Variable
-	const char *_p_name;
+	char _name[PIF_COLLECT_SIGNAL_NAME_SIZE];
 	uint32_t _value;				// Last value, raw bits of a float for CSVT_REAL
 	PifId _id;
 	uint8_t _var_type;				// PifCollectSignalVarType
@@ -177,7 +182,9 @@ BOOL pifCollectSignal_ChangeOverflow(PifCollectSignalOverflow overflow);
  * @brief Adds a channel to the dump. A channel added during a capture joins the next one, and
  *        adding a channel that is already added changes nothing.
  * @param p_channel Channel the caller owns.
- * @param p_name Signal name without spaces. It must stay valid while the channel is added.
+ * @param p_name Signal name without spaces, shorter than PIF_COLLECT_SIGNAL_NAME_SIZE. It is copied
+ *        into the channel, so it may be built in a temporary buffer. A longer name is refused rather
+ *        than cut, which could make two channels look alike.
  * @param id Appended to the name as "_<hex>" to tell instances apart, or PIF_ID_AUTO for none.
  * @param var_type VCD variable type.
  * @param width Bits of the value, 1 to 32. Ignored for CSVT_REAL.

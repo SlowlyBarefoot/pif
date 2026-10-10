@@ -142,7 +142,7 @@ Representative domains:
 
 - `core`, `codec`, `communication`, `protocol`, `sensor`, `input`, `storage`
 - `display`, `motor`, `sound`, `gps`, `filter`, `interpreter`
-- `markup`, `rc`, `osd`, `actulator`
+- `markup`, `rc`, `osd`, `actuator`
 
 ## Coding Conventions Used in PIF
 

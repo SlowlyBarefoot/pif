@@ -227,11 +227,11 @@ static int _formatHeader(char *p_buffer, size_t size, uint8_t *p_stage, PifColle
 		_formatCode(code, p_channel->__index);
 		if (p_channel->_id == PIF_ID_AUTO) {
 			pif_Printf(p_buffer, size - strlen(tail), "$var %s %u %s %s", kVarType[p_channel->_var_type],
-					p_channel->_width, code, p_channel->_p_name);
+					p_channel->_width, code, p_channel->_name);
 		}
 		else {
 			pif_Printf(p_buffer, size - strlen(tail), "$var %s %u %s %s_%x", kVarType[p_channel->_var_type],
-					p_channel->_width, code, p_channel->_p_name, p_channel->_id);
+					p_channel->_width, code, p_channel->_name, p_channel->_id);
 		}
 		strcat(p_buffer, tail);
 		return strlen(p_buffer);
@@ -551,14 +551,15 @@ BOOL pifCollectSignal_AddChannel(PifCollectSignalChannel *p_channel, const char 
 {
 	PifCollectSignalChannel **pp_link;
 
-	if (!p_channel || !p_name || var_type > CSVT_WIRE || (var_type != CSVT_REAL && (!width || width > 32))) {
+	if (!p_channel || !p_name || strlen(p_name) >= PIF_COLLECT_SIGNAL_NAME_SIZE || var_type > CSVT_WIRE ||
+			(var_type != CSVT_REAL && (!width || width > 32))) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
 	if (p_channel->__state != CS_CH_DETACHED) return TRUE;
 
-	p_channel->_p_name = p_name;
+	strcpy(p_channel->_name, p_name);
 	p_channel->_id = id;
 	p_channel->_var_type = var_type;
 	p_channel->_width = var_type == CSVT_REAL ? 64 : width;

@@ -57,6 +57,10 @@
 // Characters of text a transfer task pass hands to pifLog at most, beyond the line it is on.
 //#define PIF_COLLECT_SIGNAL_TEXT_SIZE		96
 
+// Bytes every channel keeps for its name, the terminating NUL included. A longer name is refused.
+// pifSolenoid needs 7 for its names up to "SNA254".
+//#define PIF_COLLECT_SIGNAL_NAME_SIZE		8
+
 // -------- pifDshot -----------------------------
 
 //#define PIF_DSHOT_MAX_MOTORS				8
@@ -181,6 +185,13 @@
 
 // How often (us) a wait looks for its signal, which is the latency between the signal and the next step.
 //#define PIF_SEQUENCE_WAIT_POLL_US			1000UL
+
+
+// -------- pifSolenoid --------------------------
+
+// Channels one PifSolenoid takes at most. Their state is allocated by pifSolenoid_Init for the count
+// asked for, so this is only a bound, at most 255.
+//#define PIF_SOLENOID_MAX_COUNT			16
 
 
 // -------- pifSrml ------------------------------

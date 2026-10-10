@@ -171,6 +171,10 @@ void pifTaskManager_SetIdle(PifEvtTaskIdle evt_idle, uint32_t period_ms);
  *        CPU up in the middle of one and get it back later. A task that has to wait for something
  *        returns instead, and is released again when the wait is over, either after the delay it
  *        returned or by pifTask_SetTrigger().
+ *        With PIF_USE_BLOCK_TIME a TM_REALTIME task delays a task whose measured run does not fit
+ *        in the time left before its release, whether the task is due by its period, by the delay
+ *        it returned or by pifTask_SetTrigger(). Only pifTask_SetCutinTrigger() is dispatched
+ *        regardless.
  */
 void pifTaskManager_Loop();
 
