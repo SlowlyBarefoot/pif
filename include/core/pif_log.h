@@ -108,8 +108,8 @@ void pifLog_Clear();
 #ifdef PIF_LOG_COMMAND
 
 /**
- * @fn pifLog_UseCommad
- * @brief Executes the pifLog_UseCommad operation for the log module according to the API contract.
+ * @fn pifLog_UseCommand
+ * @brief Executes the pifLog_UseCommand operation for the log module according to the API contract.
  * @param size Size value used for allocation or capacity.
  * @param p_cmd_table Pointer to the command table definition.
  * @param p_prompt Prompt string shown by the command interface.

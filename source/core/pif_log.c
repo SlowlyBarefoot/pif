@@ -37,9 +37,14 @@ PifLogFlag pif_log_flag = { .all = 0L };
 static PifLog s_log;
 static uint8_t s_minute = 255;
 
-const struct {
-	char* p_name;
-	char* p_command;
+static const char type_ch[] = { 'I', 'W', 'E', 'C' };
+
+
+#ifdef PIF_LOG_COMMAND
+
+static const struct {
+	const char* p_name;
+	const char* p_command;
 } c_log_flags[] = {
 		{ "Performance", "pf" },
 		{ "Task", "tk" },
@@ -49,10 +54,6 @@ const struct {
 
 		{ NULL, NULL }
 };
-const char type_ch[] = { 'I', 'W', 'E', 'C' };
-
-
-#ifdef PIF_LOG_COMMAND
 
 int pifLog_CmdHelp(int argc, char *argv[])
 {
@@ -399,6 +400,12 @@ static uint32_t _doTask(PifTask* p_task)
 		s_log.p_argv[i] = 0;
 	}
 
+	// The UART may have been detached while the command was waiting for this task.
+	if (!s_log.p_uart) {
+		s_log.cmd_done = FALSE;
+		return 0;
+	}
+
 	switch (status) {
 	case PIF_LOG_CMD_BAD_CMD:
 		// Handle the case of bad command.
@@ -421,8 +428,8 @@ static uint32_t _doTask(PifTask* p_task)
 
 	default:
 		// Otherwise the command was executed.  Print the error
-		// code if one was returned.
-		if (status < PIF_LOG_CMD_NO_ERROR && status > PIF_LOG_CMD_USER_ERROR) {
+		// code if one was returned, user defined ones included.
+		if (status < PIF_LOG_CMD_NO_ERROR) {
 			pif_Printf(msg, sizeof(msg), "\nCommand returned error code: %d", status);
 			pifRingBuffer_PutString(s_log.p_tx_buffer, msg);
 		}
@@ -536,6 +543,9 @@ BOOL pifLog_InitStatic(uint16_t size, uint8_t* p_buffer)
 void pifLog_Clear()
 {
 	pifRingBuffer_Clear(&s_log.buffer);
+	// The UART client is detached too, so neither the UART task nor a later print reaches the
+	// transmit buffer after it is freed.
+	pifLog_DetachUart();
 	if (s_log.p_tx_buffer) pifRingBuffer_Destroy(&s_log.p_tx_buffer);
 #ifdef PIF_LOG_COMMAND
 	if (s_log.p_task) {
@@ -553,11 +563,15 @@ void pifLog_Clear()
 
 BOOL pifLog_UseCommand(uint8_t size, const PifLogCmdEntry* p_cmd_table, const char* p_prompt)
 {
-    if (!size || !p_cmd_table || !p_prompt) {
+    // Three bytes are kept free for the completion space, the terminator and a margin,
+    // so a smaller buffer would leave no room for a single character.
+    if (size < 4 || !p_cmd_table || !p_prompt) {
     	pif_error = E_INVALID_PARAM;
 		return FALSE;
     }
 
+    if (s_log.p_rx_buffer) free(s_log.p_rx_buffer);
+    s_log.char_idx = 0;
     s_log.p_rx_buffer = calloc(size, sizeof(char));
     if (!s_log.p_rx_buffer) {
         pif_error = E_OUT_OF_HEAP;
@@ -620,7 +634,7 @@ void pifLog_Print(PifLogType type, const char* p_string)
 	int offset = 0;
     char tmp_buf[12];
 
-    if (type >= LT_INFO) {
+    if (type >= LT_INFO && type <= LT_COMM) {
         if (s_minute != pif_datetime.minute) {
         	_printTime();
         	s_minute = pif_datetime.minute;
@@ -646,7 +660,7 @@ void pifLog_Printf(PifLogType type, const char* p_format, ...)
 	int offset = 0;
     char tmp_buf[PIF_LOG_LINE_SIZE];
 
-    if (type >= LT_INFO) {
+    if (type >= LT_INFO && type <= LT_COMM) {
         if (s_minute != pif_datetime.minute) {
         	_printTime();
         	s_minute = pif_datetime.minute;
@@ -693,6 +707,7 @@ BOOL pifLog_AttachUart(PifUart* p_uart, uint16_t size)
 		return FALSE;
     }
 
+    pifLog_DetachUart();
     s_log.p_tx_buffer = pifRingBuffer_CreateHeap(PIF_ID_AUTO, size);
     if (!s_log.p_tx_buffer) return FALSE;
 
@@ -716,12 +731,12 @@ void pifLog_DetachUart()
 	s_log.p_uart = NULL;
 
 	pifRingBuffer_Destroy(&s_log.p_tx_buffer);
-	s_log.p_tx_buffer = NULL;
 }
 
 void pifLog_SendAndExit()
 {
-	if (!s_log.p_uart) return;
+	// Blocks until the transmit buffer is empty, so the UART must still be able to send.
+	if (!s_log.p_uart || !s_log.p_uart->_p_tx_task) return;
 
 	while (pifRingBuffer_GetFillSize(s_log.p_tx_buffer)) {
 		s_log.p_uart->_p_tx_task->__evt_loop(s_log.p_uart->_p_tx_task);
