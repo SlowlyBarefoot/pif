@@ -33,7 +33,12 @@ void pifSList_Clear(PifSList* p_owner, PifEvtSListClear evt_clear)
 
 void* pifSList_AddFirst(PifSList* p_owner, int data_size)
 {
-	PifSListNode* p_node = calloc(sizeof(PifSListNode) + data_size, 1);
+	if (!p_owner || data_size < 0) {
+		pif_error = E_INVALID_PARAM;
+		return NULL;
+	}
+
+	PifSListNode* p_node = calloc(1, sizeof(PifSListNode) + (size_t)data_size);
     if (!p_node) {
     	pif_error = E_OUT_OF_HEAP;
     	return NULL;
@@ -50,7 +55,12 @@ void* pifSList_AddFirst(PifSList* p_owner, int data_size)
 
 void* pifSList_AddLast(PifSList* p_owner, int data_size)
 {
-	PifSListNode* p_node = calloc(sizeof(PifSListNode) + data_size, 1);
+	if (!p_owner || data_size < 0) {
+		pif_error = E_INVALID_PARAM;
+		return NULL;
+	}
+
+	PifSListNode* p_node = calloc(1, sizeof(PifSListNode) + (size_t)data_size);
     if (!p_node) {
     	pif_error = E_OUT_OF_HEAP;
     	return NULL;
@@ -72,7 +82,7 @@ void pifSList_RemoveFirst(PifSList* p_owner)
 {
 	PifSListIterator it;
 
-    if (!p_owner->p_head) return;
+    if (!p_owner || !p_owner->p_head) return;
 
     // Update tail when removing the only node.
     if (p_owner->p_tail == p_owner->p_head) {
@@ -86,17 +96,17 @@ void pifSList_RemoveFirst(PifSList* p_owner)
 
 PIF_INLINE int pifSList_Size(PifSList* p_owner)
 {
-	return p_owner->size;
+	return p_owner ? p_owner->size : 0;
 }
 
 PIF_INLINE PifSListIterator pifSList_Begin(PifSList* p_owner)
 {
-	return p_owner->p_head;
+	return p_owner ? p_owner->p_head : NULL;
 }
 
 PIF_INLINE PifSListIterator pifSList_End(PifSList* p_owner)
 {
-	return p_owner->p_tail;
+	return p_owner ? p_owner->p_tail : NULL;
 }
 
 PIF_INLINE PifSListIterator pifSList_Next(PifSListIterator it)
@@ -106,6 +116,8 @@ PIF_INLINE PifSListIterator pifSList_Next(PifSListIterator it)
 
 PifSListIterator pifSList_Find(PifSList* p_owner, int index)
 {
+	if (!p_owner || index < 0) return NULL;
+
 	PifSListIterator it = p_owner->p_head;
 	for (int i = 0; i < index; i++) {
 		if (!it) return NULL;

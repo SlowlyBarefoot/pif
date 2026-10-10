@@ -39,6 +39,7 @@ extern "C" {
 /**
  * @fn pifSList_Init
  * @brief Initializes the slist instance and prepares all internal fields for safe use.
+ * @note Nodes left in a non-empty list are not freed; call pifSList_Clear() first.
  * @param p_owner List instance to initialize.
  * @return TRUE on success, otherwise FALSE.
  */
@@ -56,7 +57,7 @@ void pifSList_Clear(PifSList* p_owner, PifEvtSListClear evt_clear);
  * @fn pifSList_AddFirst
  * @brief Adds an item to the slist and updates internal bookkeeping for subsequent operations.
  * @param p_owner Target list.
- * @param data_size Payload size in bytes.
+ * @param data_size Payload size in bytes. Must not be negative.
  * @return Pointer to payload area of the inserted node, or NULL on failure.
  */
 void* pifSList_AddFirst(PifSList* p_owner, int data_size);
@@ -65,7 +66,7 @@ void* pifSList_AddFirst(PifSList* p_owner, int data_size);
  * @fn pifSList_AddLast
  * @brief Adds an item to the slist and updates internal bookkeeping for subsequent operations.
  * @param p_owner Target list.
- * @param data_size Payload size in bytes.
+ * @param data_size Payload size in bytes. Must not be negative.
  * @return Pointer to payload area of the inserted node, or NULL on failure.
  */
 void* pifSList_AddLast(PifSList* p_owner, int data_size);
@@ -96,6 +97,7 @@ PifSListIterator pifSList_Begin(PifSList* p_owner);
 /**
  * @fn pifSList_End
  * @brief Returns an iterator pointing to the last valid item in the slist.
+ * @note Unlike an STL end(), this is the last item itself, not one past it.
  * @param p_owner Target list.
  * @return Tail iterator, or NULL if empty.
  */
@@ -114,7 +116,7 @@ PifSListIterator pifSList_Next(PifSListIterator it);
  * @brief Finds an item in the slist by index or key and returns its iterator or pointer.
  * @param p_owner Target list.
  * @param index Zero-based node index.
- * @return Iterator at index, or NULL if out of range.
+ * @return Iterator at index, or NULL if index is negative or out of range.
  */
 PifSListIterator pifSList_Find(PifSList* p_owner, int index);
 

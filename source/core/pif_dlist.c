@@ -33,7 +33,12 @@ void pifDList_Clear(PifDList* p_owner, PifEvtDListClear evt_clear)
 
 void* pifDList_AddFirst(PifDList* p_owner, int data_size)
 {
-	PifDListNode* p_node = calloc(sizeof(PifDListNode) + data_size, 1);
+	if (!p_owner || data_size < 0) {
+		pif_error = E_INVALID_PARAM;
+		return NULL;
+	}
+
+	PifDListNode* p_node = calloc(1, sizeof(PifDListNode) + (size_t)data_size);
     if (!p_node) {
     	pif_error = E_OUT_OF_HEAP;
     	return NULL;
@@ -54,7 +59,12 @@ void* pifDList_AddFirst(PifDList* p_owner, int data_size)
 
 void* pifDList_AddLast(PifDList* p_owner, int data_size)
 {
-	PifDListNode* p_node = calloc(sizeof(PifDListNode) + data_size, 1);
+	if (!p_owner || data_size < 0) {
+		pif_error = E_INVALID_PARAM;
+		return NULL;
+	}
+
+	PifDListNode* p_node = calloc(1, sizeof(PifDListNode) + (size_t)data_size);
     if (!p_node) {
     	pif_error = E_OUT_OF_HEAP;
     	return NULL;
@@ -81,12 +91,18 @@ void* pifDList_Add(PifDList* p_owner, int data_size, PifDListIterator it)
         return pifDList_AddLast(p_owner, data_size);
     }
 
-    PifDListNode* p_node = calloc(sizeof(PifDListNode) + data_size, 1);
+	if (!p_owner || data_size < 0) {
+		pif_error = E_INVALID_PARAM;
+		return NULL;
+	}
+
+    PifDListNode* p_node = calloc(1, sizeof(PifDListNode) + (size_t)data_size);
     if (!p_node) {
     	pif_error = E_OUT_OF_HEAP;
     	return NULL;
     }
 
+    // Insert the new node before it.
     p_node->p_prev = it->p_prev;
     p_node->p_next = it;
     if (it->p_prev) {
@@ -105,7 +121,7 @@ void pifDList_RemoveFirst(PifDList* p_owner)
 	PifDListIterator it_prev;
 	PifDListIterator it_next;
 
-    if (!p_owner->p_head) return;
+    if (!p_owner || !p_owner->p_head) return;
 
     if (p_owner->p_tail == p_owner->p_head) {
     	p_owner->p_tail = NULL;
@@ -125,7 +141,7 @@ void pifDList_RemoveLast(PifDList* p_owner)
 	PifDListIterator it_prev;
 	PifDListIterator it_next;
 
-    if (!p_owner->p_head) return;
+    if (!p_owner || !p_owner->p_head) return;
 
     it_prev = p_owner->p_tail->p_prev;
     it_next = p_owner->p_tail->p_next;
@@ -145,7 +161,7 @@ void pifDList_RemoveIterator(PifDList* p_owner, PifDListIterator it)
 	PifDListIterator it_prev;
 	PifDListIterator it_next;
 
-    if (!it) return;
+    if (!p_owner || !it) return;
 
     it_prev = it->p_prev;
     it_next = it->p_next;
@@ -167,7 +183,7 @@ void pifDList_RemoveIterator(PifDList* p_owner, PifDListIterator it)
 
 void pifDList_Remove(PifDList* p_owner, void* p_data)
 {
-    if (!p_data) return;
+    if (!p_owner || !p_data) return;
 
     // Recover node address from flexible payload pointer.
     PifDListIterator p_node = (PifDListIterator)((char *)p_data - offsetof(PifDListNode, data));
@@ -176,12 +192,12 @@ void pifDList_Remove(PifDList* p_owner, void* p_data)
 
 PIF_INLINE int pifDList_Size(PifDList* p_owner)
 {
-	return p_owner->size;
+	return p_owner ? p_owner->size : 0;
 }
 
 PIF_INLINE PifDListIterator pifDList_Begin(PifDList* p_owner)
 {
-	return p_owner->p_head;
+	return p_owner ? p_owner->p_head : NULL;
 }
 
 PIF_INLINE PifDListIterator pifDList_Next(PifDListIterator it)
@@ -191,7 +207,7 @@ PIF_INLINE PifDListIterator pifDList_Next(PifDListIterator it)
 
 PIF_INLINE PifDListIterator pifDList_End(PifDList* p_owner)
 {
-	return p_owner->p_tail;
+	return p_owner ? p_owner->p_tail : NULL;
 }
 
 PIF_INLINE PifDListIterator pifDList_Prev(PifDListIterator it)
@@ -201,6 +217,8 @@ PIF_INLINE PifDListIterator pifDList_Prev(PifDListIterator it)
 
 PifDListIterator pifDList_Find(PifDList* p_owner, int index)
 {
+	if (!p_owner || index < 0) return NULL;
+
 	PifDListIterator it = p_owner->p_head;
 	for (int i = 0; i < index; i++) {
 		if (!it) return NULL;
