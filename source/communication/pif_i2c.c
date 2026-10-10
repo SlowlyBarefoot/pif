@@ -68,17 +68,30 @@ PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr, 
     return p_device;
 }
 
-void pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device)
+BOOL pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device)
 {
-	if (p_device) {
-		pifObjArray_Remove(&p_owner->__devices, p_device);
-		p_device = NULL;
+	if (!p_device) return TRUE;
+
+	// A transfer still running may write into its buffer from an interrupt, and the port would be
+	// left pointing at the removed device.
+	if (p_owner->__use_device == p_device) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
 	}
+
+	pifObjArray_Remove(&p_owner->__devices, p_device);
+	return TRUE;
 }
 
 PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr, void *p_client)
 {
 	static PifI2cDevice device;
+
+	// Every call hands out the same device, so it cannot be cleared under a transfer it started.
+	if (p_owner->__use_device == &device) {
+		pif_error = E_INVALID_STATE;
+		return NULL;
+	}
 
 	memset(&device, 0, sizeof(PifI2cDevice));
 	device._p_port = p_owner;
@@ -90,44 +103,6 @@ PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr, void
 	device.timeout = 10;		// 10ms
 	return &device;
 }
-
-#ifndef PIF_NO_LOG
-
-void pifI2cPort_ScanAddress(PifI2cPort* p_owner)
-{
-	uint8_t data;
-	int i, count = 0;
-	PifI2cDevice device;
-
-    memset(&device, 0, sizeof(PifI2cDevice));
-	device._p_port = p_owner;
-    device.timeout = 100;       // 100ms
-	// 0x00-0x07 and 0x78-0x7F are reserved addresses (general call, CBUS, HS mode master codes,
-	// 10 bit addressing), so only 0x08-0x77 is probed, as i2cdetect does.
-	for (i = 0x08; i <= 0x77; i++) {
-		device.addr = i;
-		device._state = IS_IDLE;
-		// A one byte read with no register address: a device answers by acknowledging its address,
-		// and nothing is written to it. A write would have to carry a byte, which a device takes
-		// as a register address or a command.
-		if (pifI2cDevice_Read(&device, 0, 0, &data, 1)) {
-			pifLog_Printf(LT_INFO, "I2C Addr:%Xh", i);
-			count++;
-		}
-		// A diagnostic sweep of the whole bus, run from a log command or at boot. The pause lets a
-		// device that answered settle before the next address is probed, and it holds the CPU:
-		// nothing else can use the bus while the sweep owns it anyway.
-		pif_Delay1ms(10);
-	}
-	if (count) {
-		pifLog_Printf(LT_INFO, "I2C %d found", count);
-	}
-	else {
-		pifLog_Print(LT_INFO, "I2C Not found");
-	}
-}
-
-#endif
 
 /**
  * @fn _pollTransfer
@@ -171,14 +146,20 @@ static void _timeoutTransfer(PifI2cDevice* p_device)
 BOOL pifI2cDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
 	PifI2cDevice* p_device = (PifI2cDevice*)p_owner;
-	PifI2cPort* p_port = p_device->_p_port;
+	PifI2cPort* p_port;
 	size_t len, ptr;
 	uint32_t timer1ms;
 #ifndef PIF_NO_LOG
 	int line;
 #endif
 
-	if (!p_port->act_read) return FALSE;
+	// pifI2cPort_TemporaryDevice() may have handed out NULL.
+	if (!p_device || !p_device->_p_port->act_read) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_port = p_device->_p_port;
 	// Blocking transfers give the port back before they return, and no task runs while one is
 	// waiting, so a port that is taken here is held by a transfer from pifI2cDevice_StartRead().
 	if (p_port->__use_device) {
@@ -190,10 +171,12 @@ BOOL pifI2cDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_
 	}
 
 	p_port->__use_device = p_device;
-	_setState(p_device, IS_RUN);
 	ptr = 0;
 	while (size) {
 		len = (p_device->max_transfer_size && size > p_device->max_transfer_size) ? p_device->max_transfer_size : size;
+		// Each piece runs on its own: the one before it left IS_COMPLETE behind, which would end
+		// the wait for this one at once.
+		_setState(p_device, IS_RUN);
 		switch ((*p_port->act_read)(p_device, iaddr + ptr, isize, p_data + ptr, len)) {
 		case IR_WAIT:
 			timer1ms = pif_cumulative_timer1ms;
@@ -252,6 +235,7 @@ BOOL pifI2cDevice_ReadRegWord(PifDevice* p_owner, uint8_t reg, uint16_t* p_data)
 	uint8_t tmp[2];
 
 	if (!pifI2cDevice_Read(p_owner, reg, 1, tmp, 2)) return FALSE;
+
 	*p_data = (tmp[0] << 8) + tmp[1];
 	return TRUE;
 }
@@ -266,6 +250,7 @@ BOOL pifI2cDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, 
 	uint8_t tmp;
 
 	if (!pifI2cDevice_Read(p_owner, reg, 1, &tmp, 1)) return FALSE;
+
 	*p_data = tmp & mask;
 	return TRUE;
 }
@@ -275,6 +260,7 @@ BOOL pifI2cDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask,
 	uint8_t tmp[2];
 
 	if (!pifI2cDevice_Read(p_owner, reg, 1, tmp, 2)) return FALSE;
+
 	*p_data = ((tmp[0] << 8) + tmp[1]) & mask;
 	return TRUE;
 }
@@ -282,12 +268,15 @@ BOOL pifI2cDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask,
 BOOL pifI2cDevice_StartRead(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
 	PifI2cDevice* p_device = (PifI2cDevice*)p_owner;
-	PifI2cPort* p_port = p_device->_p_port;
+	PifI2cPort* p_port;
 
-	if (!p_port->act_read || !size || (p_device->max_transfer_size && size > p_device->max_transfer_size)) {
+	if (!p_device || !p_device->_p_port->act_read || !size
+			|| (p_device->max_transfer_size && size > p_device->max_transfer_size)) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
+
+	p_port = p_device->_p_port;
 	if (p_port->__use_device) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
@@ -324,9 +313,12 @@ BOOL pifI2cDevice_StartReadRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_
 PifI2cState pifI2cDevice_CheckTransfer(PifDevice* p_owner)
 {
 	PifI2cDevice* p_device = (PifI2cDevice*)p_owner;
-	PifI2cPort* p_port = p_device->_p_port;
+	PifI2cPort* p_port;
 	PifI2cState state;
 
+	if (!p_device) return IS_IDLE;
+
+	p_port = p_device->_p_port;
 	if (p_port->__use_device != p_device) return IS_IDLE;
 
 	_pollTransfer(p_device);
@@ -351,14 +343,20 @@ PifI2cState pifI2cDevice_CheckTransfer(PifDevice* p_owner)
 BOOL pifI2cDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
 	PifI2cDevice* p_device = (PifI2cDevice*)p_owner;
-	PifI2cPort* p_port = p_device->_p_port;
+	PifI2cPort* p_port;
 	size_t len, ptr;
 	uint32_t timer1ms;
 #ifndef PIF_NO_LOG
 	int line;
 #endif
 
-	if (!p_port->act_write) return FALSE;
+	// pifI2cPort_TemporaryDevice() may have handed out NULL.
+	if (!p_device || !p_device->_p_port->act_write) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_port = p_device->_p_port;
 	// Blocking transfers give the port back before they return, and no task runs while one is
 	// waiting, so a port that is taken here is held by a transfer from pifI2cDevice_StartRead().
 	if (p_port->__use_device) {
@@ -370,10 +368,14 @@ BOOL pifI2cDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8
 	}
 
 	p_port->__use_device = p_device;
-	_setState(p_device, IS_RUN);
 	ptr = 0;
-	while (size) {
+	// At least one transfer, so a write with no data still sends the internal address alone (a
+	// command), or only the slave address when isize is 0 too.
+	do {
 		len = (p_device->max_transfer_size && size > p_device->max_transfer_size) ? p_device->max_transfer_size : size;
+		// Each piece runs on its own: the one before it left IS_COMPLETE behind, which would end
+		// the wait for this one at once.
+		_setState(p_device, IS_RUN);
 		switch ((*p_port->act_write)(p_device, iaddr + ptr, isize, p_data + ptr, len)) {
 		case IR_WAIT:
 			timer1ms = pif_cumulative_timer1ms;
@@ -407,7 +409,7 @@ BOOL pifI2cDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8
 		}
 		ptr += len;
 		size -= len;
-	}
+	} while (size);
 	p_port->__use_device = NULL;
 	_setState(p_device, IS_IDLE);
 	return TRUE;
@@ -433,8 +435,7 @@ BOOL pifI2cDevice_WriteRegWord(PifDevice* p_owner, uint8_t reg, uint16_t data)
 
 	tmp[0] = data >> 8;
 	tmp[1] = data & 0xFF;
-	if (!pifI2cDevice_Write(p_owner, reg, 1, tmp, 2)) return FALSE;
-    return TRUE;
+	return pifI2cDevice_Write(p_owner, reg, 1, tmp, 2);
 }
 
 BOOL pifI2cDevice_WriteRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size)
@@ -450,6 +451,7 @@ BOOL pifI2cDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask,
 		pif_error = E_WRONG_DATA;
 		return FALSE;
 	}
+
 	if (!pifI2cDevice_Read(p_owner, reg, 1, &org, 1)) return FALSE;
 
 	if ((org & mask) != data) {
@@ -468,6 +470,7 @@ BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask
 		pif_error = E_WRONG_DATA;
 		return FALSE;
 	}
+
 	if (!pifI2cDevice_ReadRegWord(p_owner, reg, &org)) return FALSE;
 
 	if ((org & mask) != data) {
@@ -481,8 +484,13 @@ BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask
 
 void pifI2cPort_sigEndTransfer(PifI2cPort* p_owner, BOOL result)
 {
-	if (!p_owner->__use_device) return;
-	_setState((PifI2cDevice*)p_owner->__use_device, result ? IS_COMPLETE : IS_ERROR);
+	PifI2cDevice* p_device = (PifI2cDevice*)p_owner->__use_device;
+
+	// Only a transfer still running is ended, so a second signal for one does not overwrite how
+	// it ended.
+	if (!p_device || p_device->_state != IS_RUN) return;
+
+	_setState(p_device, result ? IS_COMPLETE : IS_ERROR);
 }
 
 #ifdef PIF_COLLECT_SIGNAL

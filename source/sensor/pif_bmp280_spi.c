@@ -7,7 +7,7 @@ BOOL pifBmp280Spi_Detect(PifSpiPort* p_spi)
 	uint8_t data;
 	PifSpiDevice* p_device;
 
-    p_device = piSpiPort_TemporaryDevice(p_spi);
+    p_device = pifSpiPort_TemporaryDevice(p_spi, NULL);
 
 	if (!pifSpiDevice_ReadRegByte(p_device, BMP280_REG_ID, &data)) return FALSE;
 	if (data != BMP280_WHO_AM_I_CONST) return FALSE;

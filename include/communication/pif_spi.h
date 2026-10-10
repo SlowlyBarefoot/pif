@@ -30,7 +30,9 @@ typedef void (*PifEvtSpiTransferDone)(PifIssuerP p_issuer);
 struct StPifSpiDevice
 {
 	// Public Member Variable
-    uint8_t timeout;
+	// Time limit of a transfer in ms (10 by default), for a port to use. pif_spi does not wait on
+	// it itself: pifSpiDevice_Wait() takes its own.
+    uint16_t timeout;
     uint16_t max_transfer_size;
 
 	// Read-only Member Variable
@@ -48,13 +50,19 @@ struct StPifSpiDevice
 /**
  * @class StPifSpiPort
  * @brief Owns an SPI bus context and manages registered slave devices.
+ * @details pif_spi does not keep track of which device holds the bus. When a transfer is asked
+ *          for while one begun with act_start_transfer is still on the bus, the port decides what
+ *          happens: it may wait for the bus, queue the new transfer behind it, or fail. A port
+ *          that can do none of these has to fail, or the caller has to ask pifSpiDevice_IsBusy()
+ *          first.
  */
-typedef struct StPifSpiPort
+struct StPifSpiPort
 {
 	// Public Member Variable
 	uint16_t error_count;
 
 	// Public Action Function
+	// Makes a full-duplex transfer under one chip select and returns when it is over.
 	PifActSpiTransfer act_transfer;
 	// Optional. Starts a transfer like act_transfer and returns without waiting for it, for a
 	// port that can run it in the background (DMA, interrupts). It returns FALSE when the transfer
@@ -62,8 +70,11 @@ typedef struct StPifSpiPort
 	// transfer is over, the port calls pifSpiDevice_sigTransferDone() for the device, from the
 	// interrupt that ended it if it has one.
 	PifActSpiStartTransfer act_start_transfer;
+	// Send the internal address, then read or write the data, under one chip select. A block
+	// longer than max_transfer_size comes as several calls, each with its own address.
 	PifActSpiRead act_read;
 	PifActSpiWrite act_write;
+	// Required with act_start_transfer.
 	PifActSpiIsBusy act_is_busy;
 
 	// Read-only Member Variable
@@ -71,7 +82,7 @@ typedef struct StPifSpiPort
 
 	// Private Member Variable
     PifObjArray __devices;
-} PifSpiPort;
+};
 
 
 #ifdef __cplusplus
@@ -124,12 +135,15 @@ PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, void *p_client);
 
 /**
  * @fn pifSpiDevice_Transfer
- * @brief Performs a full-duplex SPI transfer.
+ * @brief Performs a full-duplex SPI transfer with act_transfer, under one chip select, so it is
+ *        not split by max_transfer_size and size must not exceed it when it is set.
  * @param p_owner Pointer to the SPI device descriptor.
  * @param p_write Buffer containing data to transmit (can be `NULL` for dummy writes).
  * @param p_read Buffer receiving incoming data (can be `NULL` if readback is not needed).
  * @param size Number of bytes to transfer.
- * @return `TRUE` if the transfer request is accepted and completed, otherwise `FALSE`.
+ * @return `TRUE` once act_transfer has made the transfer, otherwise `FALSE` with pif_error set
+ *         to `E_INVALID_PARAM` for a bad request or a port without act_transfer. act_transfer
+ *         reports no failure, so `TRUE` does not say the device answered.
  */
 BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_read, size_t size);
 
@@ -149,14 +163,16 @@ BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_r
  *        The event attached with pifSpiDevice_AttachEvtTransferDone() is called once the
  *        transfer is over.
  * @return `TRUE` if the transfer was started, otherwise `FALSE` with pif_error set to
- *         `E_INVALID_PARAM` for a bad request or `E_TRANSFER_FAILED` when the port could not
- *         start it.
+ *         `E_INVALID_PARAM` for a bad request or a port with act_start_transfer but no
+ *         act_is_busy, or `E_TRANSFER_FAILED` when the port could not start it.
  */
 BOOL pifSpiDevice_StartTransfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_read, size_t size);
 
 /**
  * @fn pifSpiDevice_Read
- * @brief Reads a block from an indexed location of an SPI device.
+ * @brief Reads a block from an indexed location of an SPI device. With max_transfer_size set, a
+ *        longer block is read in pieces, each a transfer of its own from its own internal address
+ *        (iaddr plus the bytes already read), so the device has to step the address on by itself.
  * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
  * @param iaddr Internal address (register/memory offset) to read from.
  * @param isize Number of bytes used for the internal address.
@@ -221,7 +237,9 @@ BOOL pifSpiDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask,
 
 /**
  * @fn pifSpiDevice_Write
- * @brief Writes a block to an indexed location of an SPI device.
+ * @brief Writes a block to an indexed location of an SPI device. With max_transfer_size set, a
+ *        longer block is written in pieces, each a transfer of its own to its own internal
+ *        address (iaddr plus the bytes already written).
  * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
  * @param iaddr Internal address (register/memory offset) to write to.
  * @param isize Number of bytes used for the internal address.

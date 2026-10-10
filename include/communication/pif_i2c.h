@@ -94,8 +94,10 @@ struct StPifI2cPort
 	PifActI2cCheck act_check;
 	// Optional. Called when a transfer that act_read or act_write answered with IR_WAIT runs past
 	// the device timeout, before the port is given back, so the port can stop the transfer and
-	// bring a stuck bus back (reset the peripheral, clock SDA free). A completion signalled after
-	// this is ignored.
+	// bring a stuck bus back (reset the peripheral, clock SDA free). It has to make sure the
+	// stopped transfer never calls pifI2cPort_sigEndTransfer() afterwards: the signal does not say
+	// which transfer it is for, so a late one would end the next transfer on the port instead.
+	// A port without it has to keep such a late signal from coming the same way.
 	PifActI2cRecover act_recover;
 
 	// Read-only Member Variable
@@ -146,36 +148,31 @@ PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr, 
  * @fn pifI2cPort_RemoveDevice
  * @brief Unregisters a device from the port.
  * @param p_owner Pointer to the port that owns the device.
- * @param p_device Pointer to the device to remove.
+ * @param p_device Pointer to the device to remove. `NULL` does nothing.
+ * @return `TRUE` if the device was removed, otherwise `FALSE` with pif_error set to
+ *         E_INVALID_STATE while a transfer from pifI2cDevice_StartRead() still holds the port for
+ *         it. The device stays on the port then.
  */
-void pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device);
+BOOL pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device);
 
 /**
  * @fn pifI2cPort_TemporaryDevice
- * @brief Creates a temporary device descriptor for one-off transactions.
+ * @brief Creates a temporary device descriptor for one-off transactions. Every call returns the
+ *        same descriptor, set up anew, so it is only good until the next call.
  * @param p_owner Pointer to the port that performs the transaction.
  * @param addr 7-bit slave address of the temporary target.
  * @param p_client User-defined client pointer associated with the temporary device.
- * @return Pointer to the temporary device descriptor, or `NULL` if unavailable.
+ * @return Pointer to the temporary device descriptor, or `NULL` with pif_error set to
+ *         E_INVALID_STATE while a transfer from pifI2cDevice_StartRead() made with it still holds
+ *         the port.
  */
 PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr, void *p_client);
-
-#ifndef PIF_NO_LOG
-
-/**
- * @fn pifI2cPort_ScanAddress
- * @brief Scans bus addresses and logs discovered devices.
- * @details Probes 0x08-0x77, the addresses that are not reserved, with a one byte read with no
- *          register address, so the port has to support isize 0 reads. Nothing is written.
- * @param p_owner Pointer to the port to scan.
- */
-void pifI2cPort_ScanAddress(PifI2cPort* p_owner);
-
-#endif
 
 /**
  * @fn pifI2cDevice_Read
  * @brief Reads a block from an indexed location of an I2C device, waiting until it is over.
+ *        With max_transfer_size set, a longer block is read in pieces, each from its own
+ *        internal address (iaddr plus the bytes already read).
  *        Fails with pif_error set to E_INVALID_STATE, without touching the bus, while the port
  *        is held by a transfer from pifI2cDevice_StartRead() that pifI2cDevice_CheckTransfer()
  *        has not reported over yet. The same goes for every blocking function built on it.
@@ -284,6 +281,11 @@ PifI2cState pifI2cDevice_CheckTransfer(PifDevice* p_owner);
 /**
  * @fn pifI2cDevice_Write
  * @brief Writes a block to an indexed location of an I2C device, waiting until it is over.
+ *        With max_transfer_size set, a longer block is written in pieces, each to its own
+ *        internal address (iaddr plus the bytes already written). With size 0 one transfer still
+ *        goes out with no data: the internal address alone, a command for many devices, or only
+ *        the slave address when isize is 0 too, which probes whether a device answers. act_write
+ *        is then called with size 0, which the port has to support for this.
  *        Fails with pif_error set to E_INVALID_STATE, without touching the bus, while the port
  *        is held by a transfer from pifI2cDevice_StartRead() that pifI2cDevice_CheckTransfer()
  *        has not reported over yet. The same goes for every blocking function built on it.
@@ -351,7 +353,9 @@ BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask
 
 /**
  * @fn pifI2cPort_sigEndTransfer
- * @brief Signals completion of an asynchronous I2C transfer.
+ * @brief Signals completion of an asynchronous I2C transfer. Ignored when no transfer is running,
+ *        so only the first signal for a transfer counts. See act_recover about a signal that comes
+ *        after a timeout.
  * @param p_owner Pointer to the port that initiated the transfer.
  * @param result Transfer result flag (`TRUE` for success, `FALSE` for error).
  */

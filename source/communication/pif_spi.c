@@ -47,10 +47,7 @@ PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id, void *p_client
 
 void pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device)
 {
-	if (p_device) {
-		pifObjArray_Remove(&p_owner->__devices, p_device);
-		p_device = NULL;
-	}
+	if (p_device) pifObjArray_Remove(&p_owner->__devices, p_device);
 }
 
 PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, void *p_client)
@@ -60,6 +57,7 @@ PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, void *p_client)
 	memset(&device, 0, sizeof(PifSpiDevice));
 	device._p_port = p_owner;
 	device._p_client = p_client;
+	device.timeout = 10;		// 10ms, as pifSpiPort_AddDevice() sets it
 	return &device;
 }
 
@@ -67,7 +65,12 @@ BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_r
 {
 	PifSpiPort* p_port = p_owner->_p_port;
 
-	if (!p_port->act_transfer) return FALSE;
+	// A transfer is one chip select, so it cannot be split by max_transfer_size.
+	if (!p_port->act_transfer || !size || (!p_write && !p_read)
+			|| (p_owner->max_transfer_size && size > p_owner->max_transfer_size)) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
 
 	(*p_port->act_transfer)(p_owner, p_write, p_read, size);
 	return TRUE;
@@ -77,7 +80,9 @@ BOOL pifSpiDevice_StartTransfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t
 {
 	PifSpiPort* p_port = p_owner->_p_port;
 
-	if ((!p_port->act_start_transfer && !p_port->act_transfer) || !size || (!p_write && !p_read)
+	// Without act_is_busy nothing could tell when a background transfer is over.
+	if ((!p_port->act_start_transfer && !p_port->act_transfer)
+			|| (p_port->act_start_transfer && !p_port->act_is_busy) || !size || (!p_write && !p_read)
 			|| (p_owner->max_transfer_size && size > p_owner->max_transfer_size)) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
@@ -117,18 +122,19 @@ BOOL pifSpiDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_
 	PifSpiPort* p_port = p_device->_p_port;
 	size_t len, ptr, remain;
 
-	if (!p_port->act_read) return FALSE;
+	if (!p_port->act_read) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
 
+	// Each piece is a transfer of its own that sends its own internal address, as pif_i2c does:
+	// a port ends the chip select with every call, so a piece without an address would start
+	// the device over somewhere else.
 	ptr = 0;
 	remain = size;
 	while (remain) {
 		len = (p_device->max_transfer_size && remain > p_device->max_transfer_size) ? p_device->max_transfer_size : remain;
-		if (!ptr) {
-			if (!(*p_port->act_read)(p_owner, iaddr, isize, p_data, len)) goto fail;
-		}
-		else {
-			if (!(*p_port->act_read)(p_owner, 0UL, 0, p_data + ptr, len)) goto fail;
-		}
+		if (!(*p_port->act_read)(p_device, iaddr + ptr, isize, p_data + ptr, len)) goto fail;
 
 		ptr += len;
 		remain -= len;
@@ -151,6 +157,7 @@ BOOL pifSpiDevice_ReadRegWord(PifDevice* p_owner, uint8_t reg, uint16_t* p_data)
 	uint8_t tmp[2];
 
 	if (!pifSpiDevice_Read(p_owner, reg, 1, tmp, 2)) return FALSE;
+
 	*p_data = (tmp[0] << 8) + tmp[1];
 	return TRUE;
 }
@@ -165,6 +172,7 @@ BOOL pifSpiDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, 
 	uint8_t tmp;
 
 	if (!pifSpiDevice_Read(p_owner, reg, 1, &tmp, 1)) return FALSE;
+
 	*p_data = tmp & mask;
 	return TRUE;
 }
@@ -174,6 +182,7 @@ BOOL pifSpiDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask,
 	uint8_t tmp[2];
 
 	if (!pifSpiDevice_Read(p_owner, reg, 1, tmp, 2)) return FALSE;
+
 	*p_data = ((tmp[0] << 8) + tmp[1]) & mask;
 	return TRUE;
 }
@@ -184,18 +193,17 @@ BOOL pifSpiDevice_Write(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8
 	PifSpiPort* p_port = p_device->_p_port;
 	size_t len, ptr, remain;
 
-	if (!p_port->act_write) return FALSE;
+	if (!p_port->act_write) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
 
+	// Each piece sends its own internal address, as in pifSpiDevice_Read().
 	ptr = 0;
 	remain = size;
 	while (remain) {
 		len = (p_device->max_transfer_size && remain > p_device->max_transfer_size) ? p_device->max_transfer_size : remain;
-		if (!ptr) {
-			if (!(*p_port->act_write)(p_owner, iaddr, isize, p_data, len)) goto fail;
-		}
-		else {
-			if (!(*p_port->act_write)(p_owner, 0UL, 0, p_data + ptr, len)) goto fail;
-		}
+		if (!(*p_port->act_write)(p_device, iaddr + ptr, isize, p_data + ptr, len)) goto fail;
 
 		ptr += len;
 		remain -= len;
@@ -219,8 +227,7 @@ BOOL pifSpiDevice_WriteRegWord(PifDevice* p_owner, uint8_t reg, uint16_t data)
 
 	tmp[0] = data >> 8;
 	tmp[1] = data & 0xFF;
-	if (!pifSpiDevice_Write(p_owner, reg, 1, tmp, 2)) return FALSE;
-    return TRUE;
+	return pifSpiDevice_Write(p_owner, reg, 1, tmp, 2);
 }
 
 BOOL pifSpiDevice_WriteRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size)
@@ -236,6 +243,7 @@ BOOL pifSpiDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask,
 		pif_error = E_WRONG_DATA;
 		return FALSE;
 	}
+
 	if (!pifSpiDevice_Read(p_owner, reg, 1, &org, 1)) return FALSE;
 
 	if ((org & mask) != data) {
@@ -254,6 +262,7 @@ BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask
 		pif_error = E_WRONG_DATA;
 		return FALSE;
 	}
+
 	if (!pifSpiDevice_ReadRegWord(p_owner, reg, &org)) return FALSE;
 
 	if ((org & mask) != data) {
@@ -271,8 +280,7 @@ BOOL pifSpiDevice_IsBusy(PifDevice* p_owner)
 
 	if (!p_port->act_is_busy) return FALSE;
 
-	if (!(*p_port->act_is_busy)(p_owner)) return FALSE;
-	return TRUE;
+	return (*p_port->act_is_busy)(p_owner);
 }
 
 BOOL pifSpiDevice_Wait(PifDevice* p_owner, uint16_t timeout1ms)
@@ -287,7 +295,7 @@ BOOL pifSpiDevice_Wait(PifDevice* p_owner, uint16_t timeout1ms)
             pif_error = E_TIMEOUT;
             return FALSE;
         }
-    };
+    }
 	return TRUE;
 }
 
