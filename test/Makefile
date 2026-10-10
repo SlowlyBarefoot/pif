@@ -33,7 +33,7 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_link test_pif_link_nolog
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_64 test_pif_link test_pif_link_nolog
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
 LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
@@ -49,6 +49,13 @@ CS_DEP  := $(ROOT)/source/core/pif_collect_signal.c $(ROOT)/include/core/pif_col
 TIMER_SRC := core/test_pif_timer.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c \
                  pif_task_manager.c pif_timer.c pif_timer_manager.c)
 TIMER_DEP := $(ROOT)/include/core/pif_timer.h $(ROOT)/include/core/pif_timer_manager.h
+# test_pif_gpio.c includes pif_gpio.c itself to reach its polling task.
+GPIO_SRC  := core/test_pif_gpio.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+# With PIF_COLLECT_SIGNAL the channels pull in pif_log.c and what it needs.
+GPIO_CS_SRC := $(ROOT)/source/communication/pif_uart.c \
+               $(addprefix $(ROOT)/source/core/, pif_collect_signal.c pif_log.c pif_ring_buffer.c pif_timer.c \
+                   pif_timer_manager.c)
+GPIO_DEP  := $(ROOT)/source/core/pif_gpio.c $(ROOT)/include/core/pif_gpio.h
 
 LINK_DEP := $(ROOT)/source/protocol/pif_link.c $(ROOT)/include/protocol/pif_link.h \
             $(ROOT)/include/protocol/pif_link_fragment.h
@@ -66,7 +73,10 @@ run-test_pif_ring_data: run-test_pif_ring_buffer
 run-test_pif_sequence: run-test_pif_ring_data
 run-test_pif_timer: run-test_pif_sequence
 run-test_pif_collect_signal: run-test_pif_timer
-run-test_pif_link: run-test_pif_collect_signal
+run-test_pif_gpio: run-test_pif_collect_signal
+run-test_pif_gpio_cs: run-test_pif_gpio
+run-test_pif_gpio_64: run-test_pif_gpio_cs
+run-test_pif_link: run-test_pif_gpio_64
 run-test_pif_link_nolog: run-test_pif_link
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
@@ -95,6 +105,15 @@ $(BUILD)/test_pif_timer$(EXE): $(TIMER_SRC) $(TIMER_DEP) | $(BUILD)
 
 $(BUILD)/test_pif_collect_signal$(EXE): $(CS_SRC) $(CS_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_COLLECT_SIGNAL $(INC) $(CS_SRC) -o $@
+
+$(BUILD)/test_pif_gpio$(EXE): $(GPIO_SRC) $(GPIO_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(GPIO_SRC) -o $@
+
+$(BUILD)/test_pif_gpio_cs$(EXE): $(GPIO_SRC) $(GPIO_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_COLLECT_SIGNAL $(INC) $(GPIO_SRC) $(GPIO_CS_SRC) -o $@
+
+$(BUILD)/test_pif_gpio_64$(EXE): $(GPIO_SRC) $(GPIO_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_GPIO_WIDTH=64 -DPIF_COLLECT_SIGNAL $(INC) $(GPIO_SRC) $(GPIO_CS_SRC) -o $@
 
 $(BUILD)/test_pif_link$(EXE): $(LINK_SRC) $(LINK_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) $(INC) $(LINK_SRC) -o $@

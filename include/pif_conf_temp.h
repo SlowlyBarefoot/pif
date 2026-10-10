@@ -76,6 +76,12 @@
 //#define PIF_FLASH_MAX_PROGRAM_SIZE		32
 
 
+// -------- pifGpio ------------------------------
+
+// State width in bits and maximum pin count of one PifGpio: 8, 16 or 32.
+//#define PIF_GPIO_WIDTH					8
+
+
 // -------- pifGps -------------------------------
 
 //#define PIF_GPS_NMEA_VALUE_SIZE			64

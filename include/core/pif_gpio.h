@@ -9,16 +9,31 @@
 #endif
 
 
-#define PIF_GPIO_MAX_COUNT		7
+// State width in bits, which is also the maximum pin count of one instance.
+#ifndef PIF_GPIO_WIDTH
+#define PIF_GPIO_WIDTH		8
+#endif
+
+#if PIF_GPIO_WIDTH == 8
+typedef uint8_t PifGpioState;
+#elif PIF_GPIO_WIDTH == 16
+typedef uint16_t PifGpioState;
+#elif PIF_GPIO_WIDTH == 32
+typedef uint32_t PifGpioState;
+#else
+#error "PIF_GPIO_WIDTH must be 8, 16 or 32"
+#endif
+
+#define PIF_GPIO_MAX_COUNT		PIF_GPIO_WIDTH
 
 
 struct StPifGpio;
 typedef struct StPifGpio PifGpio;
 
-typedef uint8_t (*PifActGpioIn)(PifId id);
-typedef void (*PifActGpioOut)(PifId id, uint8_t state);
+typedef PifGpioState (*PifActGpioIn)(PifId id);
+typedef void (*PifActGpioOut)(PifId id, PifGpioState state);
 
-typedef void (*PifEvtGpioIn)(uint8_t index, uint8_t state);
+typedef void (*PifEvtGpioIn)(PifGpio* p_owner, uint8_t index, SWITCH state);
 
 
 #ifdef PIF_COLLECT_SIGNAL
@@ -39,7 +54,10 @@ typedef enum EnPifGpioCsFlag
 
 /**
  * @class StPifGpio
- * @brief Provides a type or declaration used by this module.
+ * @brief Groups up to PIF_GPIO_MAX_COUNT pins that are read or written as one bit field.
+ *
+ * Input and output callbacks are independent, so one instance may use either or both. Bit i of a state is pin i.
+ * evt_in reports input changes found by the polling task or by pifGpio_sigData.
  */
 struct StPifGpio
 {
@@ -53,18 +71,16 @@ struct StPifGpio
 	PifId _id;
 
 	// Private Member Variable
-	uint8_t __read_state;
-	uint8_t __write_state;
+	PifGpioState __read_state;	// Last input state, the reference for evt_in.
+	PifGpioState __write_state;
 
 #ifdef PIF_COLLECT_SIGNAL
 	PifCollectSignalChannel __cs[GP_CSF_COUNT];
 #endif
 
 	// Private Action Function
-	union {
-		PifActGpioIn act_in;
-		PifActGpioOut act_out;
-	} __ui;
+	PifActGpioIn __act_in;
+	PifActGpioOut __act_out;
 };
 
 
@@ -77,7 +93,7 @@ extern "C" {
  * @brief Initializes the gpio instance and prepares all internal fields for safe use.
  * @param p_owner Pointer to the target object instance.
  * @param id Identifier value for the object or task.
- * @param count Number of items or channels.
+ * @param count Number of pins, 1 to PIF_GPIO_MAX_COUNT.
  * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count);
@@ -91,52 +107,52 @@ void pifGpio_Clear(PifGpio* p_owner);
 
 /**
  * @fn pifGpio_ReadAll
- * @brief Executes the pifGpio_ReadAll operation for the gpio module according to the API contract.
+ * @brief Reads all pins through the input callback.
  * @param p_owner Pointer to the target object instance.
- * @return Result value returned by this API.
+ * @return Pin states masked to count bits. On failure 0 with pif_error set to E_CANNOT_USE.
  */
-uint8_t pifGpio_ReadAll(PifGpio* p_owner);
+PifGpioState pifGpio_ReadAll(PifGpio* p_owner);
 
 /**
  * @fn pifGpio_ReadCell
- * @brief Executes the pifGpio_ReadCell operation for the gpio module according to the API contract.
+ * @brief Reads one pin through the input callback.
  * @param p_owner Pointer to the target object instance.
- * @param index Zero-based index of the target item.
- * @return Return value of this API.
+ * @param index Zero-based pin index, less than count.
+ * @return Pin state. On failure OFF with pif_error set.
  */
 SWITCH pifGpio_ReadCell(PifGpio* p_owner, uint8_t index);
 
 /**
  * @fn pifGpio_WriteAll
- * @brief Executes the pifGpio_WriteAll operation for the gpio module according to the API contract.
+ * @brief Writes all pins through the output callback.
  * @param p_owner Pointer to the target object instance.
- * @param state Target state value to apply.
+ * @param state Pin states. Bits at or above count are ignored.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifGpio_WriteAll(PifGpio* p_owner, uint8_t state);
+BOOL pifGpio_WriteAll(PifGpio* p_owner, PifGpioState state);
 
 /**
  * @fn pifGpio_WriteCell
- * @brief Executes the pifGpio_WriteCell operation for the gpio module according to the API contract.
+ * @brief Changes one pin and writes all pins through the output callback.
  * @param p_owner Pointer to the target object instance.
- * @param ucIndex Zero-based index of the target item.
- * @param swState Switch state value to write or compare.
+ * @param index Zero-based pin index, less than count.
+ * @param state Pin state.
  * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifGpio_WriteCell(PifGpio* p_owner, uint8_t index, SWITCH state);
 
 /**
  * @fn pifGpio_sigData
- * @brief Processes an external signal or tick for the gpio and updates runtime timing state.
+ * @brief Reports one input pin state, e.g. from a pin interrupt. Calls evt_in when the state changed.
  * @param p_owner Pointer to the target object instance.
- * @param index Zero-based index of the target item.
- * @param state Target state value to apply.
+ * @param index Zero-based pin index, less than count.
+ * @param state Pin state.
  */
 void pifGpio_sigData(PifGpio* p_owner, uint8_t index, SWITCH state);
 
 /**
  * @fn pifGpio_AttachActIn
- * @brief Attaches a callback, device, or external resource to the gpio for integration.
+ * @brief Attaches the callback that reads all input pins.
  * @param p_owner Pointer to the target object instance.
  * @param act_in Input callback function to read GPIO state.
  */
@@ -144,7 +160,7 @@ void pifGpio_AttachActIn(PifGpio* p_owner, PifActGpioIn act_in);
 
 /**
  * @fn pifGpio_AttachActOut
- * @brief Attaches a callback, device, or external resource to the gpio for integration.
+ * @brief Attaches the callback that writes all output pins.
  * @param p_owner Pointer to the target object instance.
  * @param act_out Output callback function to write GPIO state.
  */
@@ -152,10 +168,11 @@ void pifGpio_AttachActOut(PifGpio* p_owner, PifActGpioOut act_out);
 
 /**
  * @fn pifGpio_AttachTaskIn
- * @brief Attaches a callback, device, or external resource to the gpio for integration.
+ * @brief Adds a task that polls the input callback and calls evt_in for every changed pin.
+ *        The current input state becomes the reference, so pins already set do not raise events.
  * @param p_owner Pointer to the target object instance.
- * @param mode Operating mode configuration value.
  * @param id Identifier value for the object or task.
+ * @param mode Operating mode configuration value.
  * @param period Execution period value for scheduling.
  * @param start Set to TRUE to start immediately after configuration.
  * @return Pointer to the resulting object or data, or NULL if unavailable.
@@ -170,7 +187,8 @@ PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifId id, PifTaskMode mode, uint
  * @brief Adds the selected signals of the gpio to pifCollectSignal as channels.
  * @param p_owner Pointer to the target object instance.
  * @param flag Bit mask of the signals to add.
- * @return TRUE on success, otherwise FALSE.
+ * @return TRUE on success, otherwise FALSE. A channel holds at most 32 bits, so FALSE with E_INVALID_PARAM
+ *         when count is above 32.
  */
 BOOL pifGpio_SetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag);
 

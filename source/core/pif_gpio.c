@@ -5,6 +5,13 @@
 
 // GPIO creation, state control, and optional signal collection integration.
 
+static PifGpioState _mask(PifGpio* p_owner)
+{
+	// Shifting by the full width is undefined, so a full instance takes every bit.
+	if (p_owner->count >= PIF_GPIO_WIDTH) return (PifGpioState)~(PifGpioState)0;
+	return ((PifGpioState)1 << p_owner->count) - 1;
+}
+
 BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count)
 {
 	if (!p_owner || !count || count > PIF_GPIO_MAX_COUNT) {
@@ -12,13 +19,11 @@ BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count)
 	    return FALSE;
 	}
 
+	memset(p_owner, 0, sizeof(PifGpio));
+
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     p_owner->count = count;
-
-#ifdef PIF_COLLECT_SIGNAL
-	memset(p_owner->__cs, 0, sizeof(p_owner->__cs));
-#endif
 	return TRUE;
 }
 
@@ -31,14 +36,14 @@ void pifGpio_Clear(PifGpio* p_owner)
 #endif
 }
 
-uint8_t pifGpio_ReadAll(PifGpio* p_owner)
+PifGpioState pifGpio_ReadAll(PifGpio* p_owner)
 {
-	if (!p_owner->__ui.act_in) {
+	if (!p_owner->__act_in) {
 		pif_error = E_CANNOT_USE;
-		return 0xFF;
+		return 0;
 	}
 
-	uint8_t state = p_owner->__ui.act_in(p_owner->_id);
+	PifGpioState state = p_owner->__act_in(p_owner->_id) & _mask(p_owner);
 
 #ifdef PIF_COLLECT_SIGNAL
 	pifCollectSignal_Put(&p_owner->__cs[GP_CSF_STATE_IDX], state);
@@ -49,30 +54,24 @@ uint8_t pifGpio_ReadAll(PifGpio* p_owner)
 
 SWITCH pifGpio_ReadCell(PifGpio* p_owner, uint8_t index)
 {
-	if (!p_owner->__ui.act_in) {
-		pif_error = E_CANNOT_USE;
-		return 0xFF;
+	if (index >= p_owner->count) {
+		pif_error = E_INVALID_PARAM;
+		return OFF;
 	}
 
-	uint8_t state = (p_owner->__ui.act_in(p_owner->_id) >> index) & 1;
-	p_owner->__read_state = (p_owner->__read_state & ~(1 << index)) | (state << index);
-
-#ifdef PIF_COLLECT_SIGNAL
-	pifCollectSignal_Put(&p_owner->__cs[GP_CSF_STATE_IDX], p_owner->__read_state);
-#endif
-
-	return state;
+	// __read_state is left alone: it is the reference of the polling task, and changing it here would hide events.
+	return (pifGpio_ReadAll(p_owner) >> index) & 1;
 }
 
-BOOL pifGpio_WriteAll(PifGpio* p_owner, uint8_t state)
+BOOL pifGpio_WriteAll(PifGpio* p_owner, PifGpioState state)
 {
-	if (!p_owner->__ui.act_out) {
+	if (!p_owner->__act_out) {
 		pif_error = E_CANNOT_USE;
 		return FALSE;
 	}
 
-	p_owner->__write_state = state;
-	p_owner->__ui.act_out(p_owner->_id, state);
+	p_owner->__write_state = state & _mask(p_owner);
+	p_owner->__act_out(p_owner->_id, p_owner->__write_state);
 
 #ifdef PIF_COLLECT_SIGNAL
 	pifCollectSignal_Put(&p_owner->__cs[GP_CSF_STATE_IDX], p_owner->__write_state);
@@ -82,75 +81,75 @@ BOOL pifGpio_WriteAll(PifGpio* p_owner, uint8_t state)
 
 BOOL pifGpio_WriteCell(PifGpio* p_owner, uint8_t index, SWITCH state)
 {
-	if (!p_owner->__ui.act_out) {
-		pif_error = E_CANNOT_USE;
+	if (index >= p_owner->count) {
+		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
-	if (state) {
-		p_owner->__write_state |= 1 << index;
-	}
-	else {
-		p_owner->__write_state &= ~(1 << index);
-	}
-	p_owner->__ui.act_out(p_owner->_id, p_owner->__write_state);
-
-#ifdef PIF_COLLECT_SIGNAL
-	pifCollectSignal_Put(&p_owner->__cs[GP_CSF_STATE_IDX], p_owner->__write_state);
-#endif
-	return TRUE;
+	PifGpioState bit = (PifGpioState)1 << index;
+	return pifGpio_WriteAll(p_owner, state ? p_owner->__write_state | bit : p_owner->__write_state & ~bit);
 }
 
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifGpio* p_owner = p_task->_p_client;
-	uint8_t state, bit;
+	PifGpioState state, changed;
 
-	state = p_owner->__ui.act_in(p_owner->_id);
-	for (int i = 0; i < p_owner->count; i++) {
-		bit = 1 << i;
-		if ((state & bit) != (p_owner->__read_state & bit)) {
-			if (p_owner->evt_in) (*p_owner->evt_in)(i, (state >> i) & 1);
-		}
-	}
+	state = p_owner->__act_in(p_owner->_id) & _mask(p_owner);
+	changed = state ^ p_owner->__read_state;
 	p_owner->__read_state = state;
 
 #ifdef PIF_COLLECT_SIGNAL
 	pifCollectSignal_Put(&p_owner->__cs[GP_CSF_STATE_IDX], state);
 #endif
 
+	if (changed && p_owner->evt_in) {
+		for (int i = 0; i < p_owner->count; i++) {
+			if (changed & ((PifGpioState)1 << i)) (*p_owner->evt_in)(p_owner, i, (state >> i) & 1);
+		}
+	}
     return 0;
 }
 
 void pifGpio_sigData(PifGpio* p_owner, uint8_t index, SWITCH state)
 {
+	if (index >= p_owner->count) {
+		pif_error = E_INVALID_PARAM;
+		return;
+	}
+
+	state = state ? ON : OFF;
 	if (state != ((p_owner->__read_state >> index) & 1)) {
-		p_owner->__read_state = (p_owner->__read_state & ~(1 << index)) | (state << index);
-		if (p_owner->evt_in) (*p_owner->evt_in)(index, state);
+		p_owner->__read_state = (p_owner->__read_state & ~((PifGpioState)1 << index)) | ((PifGpioState)state << index);
 
 #ifdef PIF_COLLECT_SIGNAL
 		pifCollectSignal_Put(&p_owner->__cs[GP_CSF_STATE_IDX], p_owner->__read_state);
 #endif
+
+		if (p_owner->evt_in) (*p_owner->evt_in)(p_owner, index, state);
 	}
 }
 
 void pifGpio_AttachActIn(PifGpio* p_owner, PifActGpioIn act_in)
 {
-    p_owner->__ui.act_in = act_in;
+    p_owner->__act_in = act_in;
 }
 
 void pifGpio_AttachActOut(PifGpio* p_owner, PifActGpioOut act_out)
 {
-    p_owner->__ui.act_out = act_out;
+    p_owner->__act_out = act_out;
 }
 
 PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifId id, PifTaskMode mode, uint16_t period, BOOL start)
 {
 	PifTask* p_task;
-	if (!p_owner->__ui.act_in) {
+	if (!p_owner->__act_in) {
 		pif_error = E_CANNOT_USE;
 		return NULL;
 	}
+
+	// Start from the current input so pins that are already set do not raise events on the first poll.
+	p_owner->__read_state = p_owner->__act_in(p_owner->_id) & _mask(p_owner);
 
 	p_task = pifTaskManager_Add(id, mode, period, _doTask, p_owner, start);
 	if (p_task) p_task->name = "Gpio";
