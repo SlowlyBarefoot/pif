@@ -30,6 +30,9 @@ static uint32_t _doTask(PifTask* p_task)
 		else if (ch == '-') {
 			seg = 0x40;
 		}
+		else if (ch == '_') {
+			seg = 0x08;
+		}
 		else if (s_user_char_count && ch >= 'A' && ch < 'A' + s_user_char_count) {
 			seg = c_user_char[ch - 'A'];
 		}
@@ -50,6 +53,44 @@ static void _evtTimerBlinkFinish(PifIssuerP p_issuer)
 
     if (p_owner->__bt.blink) p_owner->__bt.led ^= 1;
 }
+
+static uint8_t _getSubDigits(PifFnd* p_owner)
+{
+	// Keep at least one integer digit so the decimal point stays inside the display.
+	if (p_owner->sub_numeric_digits >= p_owner->_digit_size) return p_owner->_digit_size - 1;
+	return p_owner->sub_numeric_digits;
+}
+
+static void _setNumber(PifFnd* p_owner, uint32_t integer, uint32_t fraction, uint8_t sub, BOOL minus)
+{
+	char* p_str = p_owner->__p_string;
+	int last = p_owner->_digit_size - 1;
+	int point = last - sub;		// Position of the last integer digit
+	int p;
+
+	for (p = last; p > point; p--) {
+		p_str[p] = '0' + fraction % 10;
+		fraction /= 10;
+	}
+	for (; p >= 0; p--) {
+		if (p < point) {
+			if (p_owner->__bt.fill_zero) {
+				if (minus && p == 0) break;
+			}
+			else if (!integer) break;
+		}
+		p_str[p] = '0' + integer % 10;
+		integer /= 10;
+	}
+	if (sub) p_str[point] |= 0x80;
+	if (minus) {
+		if (p >= 0) p_str[p--] = '-';
+		else integer = 1;		// No room for the sign
+	}
+	for (; p >= 0; p--) p_str[p] = 0x20;
+	if (integer) p_str[last] = '_';
+}
+
 
 void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count)
 {
@@ -142,6 +183,7 @@ void pifFnd_Stop(PifFnd* p_owner)
 		pifTimer_Stop(p_owner->__p_timer_blink);
 		p_owner->__bt.blink = FALSE;
     }
+	p_owner->__bt.led = ON;
 }
 
 BOOL pifFnd_BlinkOn(PifFnd* p_owner, uint16_t period1ms)
@@ -193,100 +235,38 @@ void pifFnd_SetFillZero(PifFnd* p_owner, BOOL fill_zero)
 
 void pifFnd_SetFloat(PifFnd* p_owner, double value)
 {
-    BOOL minus = FALSE;
+	BOOL minus = FALSE;
+	uint8_t sub = _getSubDigits(p_owner);
+	uint32_t integer, fraction, scale = 1;
 
-    if (value < 0.0) {
-    	minus = TRUE;
-    	value *= -1.0;
-    }
-    uint32_t num = (uint32_t)value;
-    int sp = p_owner->_digit_size;
-    if (p_owner->sub_numeric_digits) {
-    	value -= num;
-    	for (int p = sp - p_owner->sub_numeric_digits; p < sp; p++) {
-    		value *= 10;
-    		uint32_t sd = (uint32_t)value;
-    		p_owner->__p_string[p] = '0' + sd;
-    		value -= sd;
-    	}
-    	sp -= p_owner->sub_numeric_digits;
-    	p_owner->__p_string[p_owner->_digit_size - 1 - p_owner->sub_numeric_digits] |= 0x80;
-    }
-    sp--;
-	BOOL first = TRUE;
-	for (int p = sp; p >= 0; p--) {
-		if (!first && !num) {
-			if (minus) {
-				p_owner->__p_string[p] = '-';
-				minus = FALSE;
-			}
-			else {
-				p_owner->__p_string[p] = 0x20;
-			}
-		}
-		else {
-			uint8_t digit = num % 10;
-			p_owner->__p_string[p] = '0' + digit;
-			if (num) first = FALSE;
-		}
-		num = num / 10;
+	if (sub > 9) sub = 9;		// 10^sub must fit in uint32_t
+	for (int i = 0; i < sub; i++) scale *= 10;
+
+	if (value < 0.0) {
+		minus = TRUE;
+		value = -value;
 	}
-	if (num || minus) {
-		p_owner->__p_string[p_owner->_digit_size - 1] = '_';
+	if (!(value < 4294967295.0)) {		// Also catches NaN
+		integer = 0xFFFFFFFFUL;
+		fraction = 0;
 	}
+	else {
+		integer = (uint32_t)value;
+		fraction = (uint32_t)((value - integer) * scale + 0.5);
+		if (fraction >= scale) {
+			fraction -= scale;
+			integer++;
+		}
+	}
+	if (!integer && !fraction) minus = FALSE;
+	_setNumber(p_owner, integer, fraction, sub, minus);
 }
 
 void pifFnd_SetInteger(PifFnd* p_owner, int32_t value)
 {
-    BOOL minus = FALSE;
+	uint32_t integer = value < 0 ? 0UL - (uint32_t)value : (uint32_t)value;
 
-    if (value < 0) {
-    	minus = TRUE;
-    	value *= -1;
-    }
-    int sp = p_owner->_digit_size - 1;
-    if (p_owner->sub_numeric_digits) {
-    	for (int p = sp; p > sp - p_owner->sub_numeric_digits; p--) {
-    		p_owner->__p_string[p] = '0';
-    	}
-    	sp -= p_owner->sub_numeric_digits;
-    }
-    if (p_owner->__bt.fill_zero) {
-        for (int p = sp; p >= minus; p--) {
-			uint8_t digit = value % 10;
-			p_owner->__p_string[p] = '0' + digit;
-			value = value / 10;
-        }
-        if (minus) {
-        	p_owner->__p_string[0] = '-';
-        }
-        if (value) {
-        	p_owner->__p_string[p_owner->_digit_size - 1] = '_';
-        }
-    }
-    else {
-        BOOL first = TRUE;
-        for (int p = sp; p >= 0; p--) {
-        	if (!first && !value) {
-        		if (minus) {
-        			p_owner->__p_string[p] = '-';
-            		minus = FALSE;
-        		}
-        		else {
-        			p_owner->__p_string[p] = 0x20;
-        		}
-        	}
-        	else {
-            	uint8_t digit = value % 10;
-            	p_owner->__p_string[p] = '0' + digit;
-            	if (value) first = FALSE;
-        	}
-        	value = value / 10;
-        }
-        if (value || minus) {
-        	p_owner->__p_string[p_owner->_digit_size - 1] = '_';
-        }
-    }
+	_setNumber(p_owner, integer, 0, _getSubDigits(p_owner), value < 0);
 }
 
 void pifFnd_SetString(PifFnd* p_owner, char* p_string)
