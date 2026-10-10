@@ -7,7 +7,8 @@
 #include "core/pif_timer_manager.h"
 
 
-#define PIF_DOT_MATRIX_PERIOD_PER_ROW	25
+// Time in ms to scan all rows once (one frame). Each row gets this divided by the row count.
+#define PIF_DOT_MATRIX_FRAME_PERIOD	25
 
 
 typedef enum EnPifDotMatrixShiftDir
@@ -29,6 +30,11 @@ typedef enum EnPifDotMatrixShiftMethod
 } PifDotMatrixShiftMethod;
 
 
+/**
+ * @brief Outputs one row of the display.
+ * @param row Row index to output.
+ * @param p_data Row data of (col_size - 1) / 8 + 1 bytes. Bit 0 of the first byte is the leftmost column.
+ */
 typedef void (*PifActDotMatrixDisplay)(uint8_t row, uint8_t* p_data);
 
 typedef void (*PifEvtDotMatrixShiftFinish)(PifId id);
@@ -40,9 +46,9 @@ typedef void (*PifEvtDotMatrixShiftFinish)(PifId id);
  */
 typedef struct StPifDotMatrixPattern
 {
-	uint8_t col_size;
-	uint8_t col_bytes;
-	uint8_t row_size;
+	uint16_t col_size;
+	uint16_t col_bytes;
+	uint16_t row_size;
 	uint8_t* p_pattern;
 } PifDotMatrixPattern;
 
@@ -65,7 +71,7 @@ typedef struct StPifDotMatrix
 	PifTask* __p_task;
     uint16_t __col_size;
     uint16_t __row_size;
-    uint16_t __period_per_row_1ms;	// PIF_DOT_MATRIX_PERIOD_PER_ROW
+    uint16_t __frame_period_1ms;	// PIF_DOT_MATRIX_FRAME_PERIOD
 
 	uint8_t __pattern_index;
 
@@ -83,9 +89,9 @@ typedef struct StPifDotMatrix
     uint8_t __pattern_size;
     uint8_t __pattern_count;
     PifDotMatrixPattern* __p_pattern;
-    uint8_t* __p_paper;
+    uint8_t* __p_paper;				// __total_bytes of display data, then one blank row
 
-	uint8_t __row_index;
+	uint16_t __row_index;
 	uint16_t __position_x;
 	uint16_t __position_y;
 	uint16_t __shift_count;
@@ -107,7 +113,7 @@ extern "C" {
  * @brief Initializes a dot-matrix controller and display output callback.
  * @param p_owner Pointer to the dot-matrix instance to initialize.
  * @param id Unique object identifier. Use `PIF_ID_AUTO` to assign one automatically.
- * @param p_timer_manager Timer manager used for refresh, blink, and shift timing.
+ * @param p_timer_manager Timer manager used for blink and shift timing.
  * @param col_size Logical column size of the display area.
  * @param row_size Logical row size of the display area.
  * @param act_display Callback used to output one row of matrix data.
@@ -126,8 +132,9 @@ void pifDotMatrix_Clear(PifDotMatrix* p_owner);
 /**
  * @fn pifDotMatrix_SetPatternSize
  * @brief Allocates storage for a fixed number of pattern entries.
+ *        Patterns added before are released, any shift is stopped, and the position goes back to (0, 0).
  * @param p_owner Pointer to an initialized dot-matrix instance.
- * @param size Number of pattern slots to allocate.
+ * @param size Number of pattern slots to allocate. Must not be 0.
  * @return `TRUE` if allocation succeeds, otherwise `FALSE`.
  */
 BOOL pifDotMatrix_SetPatternSize(PifDotMatrix* p_owner, uint8_t size);
@@ -136,29 +143,29 @@ BOOL pifDotMatrix_SetPatternSize(PifDotMatrix* p_owner, uint8_t size);
  * @fn pifDotMatrix_AddPattern
  * @brief Adds one pattern bitmap to the internal pattern list.
  * @param p_owner Pointer to an initialized dot-matrix instance.
- * @param col_size Pattern width in columns.
- * @param row_size Pattern height in rows.
- * @param p_pattern Pointer to packed pattern bitmap data.
+ * @param col_size Pattern width in columns. Must not be less than the display width.
+ * @param row_size Pattern height in rows. Must not be less than the display height.
+ * @param p_pattern Pointer to packed pattern bitmap data, (col_size - 1) / 8 + 1 bytes per row.
  * @return `TRUE` if the pattern is added successfully, otherwise `FALSE`.
  */
-BOOL pifDotMatrix_AddPattern(PifDotMatrix* p_owner, uint8_t col_size, uint8_t row_size, uint8_t* p_pattern);
+BOOL pifDotMatrix_AddPattern(PifDotMatrix* p_owner, uint16_t col_size, uint16_t row_size, uint8_t* p_pattern);
 
 /**
- * @fn pifDotMatrix_GetPeriodPerRow
- * @brief Returns current scan period per row.
+ * @fn pifDotMatrix_GetFramePeriod
+ * @brief Returns the time to scan all rows once (one frame).
  * @param p_owner Pointer to an initialized dot-matrix instance.
- * @return Row scan period in milliseconds.
+ * @return Frame period in milliseconds.
  */
-uint16_t pifDotMatrix_GetPeriodPerRow(PifDotMatrix* p_owner);
+uint16_t pifDotMatrix_GetFramePeriod(PifDotMatrix* p_owner);
 
 /**
- * @fn pifDotMatrix_SetPeriodPerRow
- * @brief Sets row scan period used by multiplex refresh.
+ * @fn pifDotMatrix_SetFramePeriod
+ * @brief Sets the time to scan all rows once (one frame). Each row is output every period1ms / row_size.
  * @param p_owner Pointer to an initialized dot-matrix instance.
- * @param period1ms Row scan period in milliseconds.
+ * @param period1ms Frame period in milliseconds.
  * @return `TRUE` if period update succeeds, otherwise `FALSE`.
  */
-BOOL pifDotMatrix_SetPeriodPerRow(PifDotMatrix* p_owner, uint16_t period1ms);
+BOOL pifDotMatrix_SetFramePeriod(PifDotMatrix* p_owner, uint16_t period1ms);
 
 /**
  * @fn pifDotMatrix_Start
@@ -169,7 +176,7 @@ void pifDotMatrix_Start(PifDotMatrix* p_owner);
 
 /**
  * @fn pifDotMatrix_Stop
- * @brief Stops periodic matrix refresh output.
+ * @brief Turns all rows off and stops periodic matrix refresh output. Blink and shift are stopped too.
  * @param p_owner Pointer to an initialized dot-matrix instance.
  */
 void pifDotMatrix_Stop(PifDotMatrix* p_owner);
@@ -177,6 +184,7 @@ void pifDotMatrix_Stop(PifDotMatrix* p_owner);
 /**
  * @fn pifDotMatrix_SelectPattern
  * @brief Selects which registered pattern is currently rendered.
+ *        A position outside the new pattern is moved to its nearest edge.
  * @param p_owner Pointer to an initialized dot-matrix instance.
  * @param pattern_index Zero-based index of the pattern to display.
  * @return `TRUE` if the index is valid and selected, otherwise `FALSE`.
@@ -204,15 +212,16 @@ void pifDotMatrix_BlinkOff(PifDotMatrix* p_owner);
  * @brief Changes blink timer period while blink mode is active.
  * @param p_owner Pointer to an initialized dot-matrix instance.
  * @param period1ms New blink period in milliseconds.
+ * @return `TRUE` if the period is changed, otherwise `FALSE`.
  */
-void pifDotMatrix_ChangeBlinkPeriod(PifDotMatrix* p_owner, uint16_t period1ms);
+BOOL pifDotMatrix_ChangeBlinkPeriod(PifDotMatrix* p_owner, uint16_t period1ms);
 
 /**
  * @fn pifDotMatrix_SetPosition
- * @brief Sets top-left render position for the selected pattern.
+ * @brief Sets top-left render position for the selected pattern and redraws it.
  * @param p_owner Pointer to an initialized dot-matrix instance.
- * @param pos_x Horizontal start position in display coordinates.
- * @param pos_y Vertical start position in display coordinates.
+ * @param pos_x Horizontal start position, from 0 to pattern width - display width.
+ * @param pos_y Vertical start position, from 0 to pattern height - display height.
  * @return `TRUE` if position is valid and applied, otherwise `FALSE`.
  */
 BOOL pifDotMatrix_SetPosition(PifDotMatrix* p_owner, uint16_t pos_x, uint16_t pos_y);
@@ -220,11 +229,13 @@ BOOL pifDotMatrix_SetPosition(PifDotMatrix* p_owner, uint16_t pos_x, uint16_t po
 /**
  * @fn pifDotMatrix_ShiftOn
  * @brief Starts automatic pattern shifting with direction and repetition policy.
+ *        evt_shift_finish is called when the shift ends by itself.
  * @param p_owner Pointer to an initialized dot-matrix instance.
  * @param shift_direction Direction of movement for each shift step.
  * @param shift_method Shift repetition behavior (once, repeat, or ping-pong).
+ *        The `_HOR` methods go with `DMSD_LEFT`/`DMSD_RIGHT` and the `_VER` ones with `DMSD_UP`/`DMSD_DOWN`.
  * @param period1ms Shift timer period in milliseconds.
- * @param count Number of shift steps or cycles depending on method.
+ * @param count Number of shift steps before stopping. 0 shifts until the method ends it.
  * @return `TRUE` if shift operation starts successfully, otherwise `FALSE`.
  */
 BOOL pifDotMatrix_ShiftOn(PifDotMatrix* p_owner, PifDotMatrixShiftDir shift_direction,
@@ -232,18 +243,19 @@ BOOL pifDotMatrix_ShiftOn(PifDotMatrix* p_owner, PifDotMatrixShiftDir shift_dire
 
 /**
  * @fn pifDotMatrix_ShiftOff
- * @brief Stops automatic pattern shifting.
+ * @brief Stops automatic pattern shifting and redraws the pattern at position (0, 0).
  * @param p_owner Pointer to an initialized dot-matrix instance.
  */
 void pifDotMatrix_ShiftOff(PifDotMatrix* p_owner);
 
 /**
- * @fn pifDotMatrix_ChnageShiftPeriod
+ * @fn pifDotMatrix_ChangeShiftPeriod
  * @brief Changes shift timer period while shift mode is active.
  * @param p_owner Pointer to an initialized dot-matrix instance.
  * @param period1ms New shift period in milliseconds.
+ * @return `TRUE` if the period is changed, otherwise `FALSE`.
  */
-void pifDotMatrix_ChangeShiftPeriod(PifDotMatrix* p_owner, uint16_t period1ms);
+BOOL pifDotMatrix_ChangeShiftPeriod(PifDotMatrix* p_owner, uint16_t period1ms);
 
 #ifdef __cplusplus
 }

@@ -33,7 +33,8 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_link test_pif_link_nolog test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_link test_pif_link_nolog test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
+           test_pif_dot_matrix
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
 LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
@@ -67,6 +68,9 @@ TASK_SRC := core/test_pif_task_manager.c $(addprefix $(ROOT)/source/core/, pif.c
 TASK_DEP := $(ROOT)/include/core/pif_task.h $(ROOT)/include/core/pif_task_manager.h
 SOLENOID_SRC := actuator/test_pif_solenoid.c $(ROOT)/source/actuator/pif_solenoid.c \
                 $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_data.c pif_task.c pif_task_manager.c)
+DOT_MATRIX_SRC := display/test_pif_dot_matrix.c $(ROOT)/source/display/pif_dot_matrix.c \
+                  $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c \
+                      pif_timer.c pif_timer_manager.c)
 
 LINK_DEP :=$(ROOT)/source/protocol/pif_link.c $(ROOT)/include/protocol/pif_link.h \
             $(ROOT)/include/protocol/pif_link_fragment.h
@@ -93,6 +97,7 @@ run-test_pif_encoder: run-test_pif_pulse
 run-test_pif_task_manager: run-test_pif_encoder
 run-test_pif_solenoid: run-test_pif_task_manager
 run-test_pif_solenoid_cs: run-test_pif_solenoid
+run-test_pif_dot_matrix: run-test_pif_solenoid_cs
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
 	$(call RUN,$<)
@@ -149,6 +154,9 @@ $(BUILD)/test_pif_solenoid$(EXE): $(SOLENOID_SRC) $(ROOT)/include/actuator/pif_s
 # checks the longest signal names.
 $(BUILD)/test_pif_solenoid_cs$(EXE): $(SOLENOID_SRC) $(GPIO_CS_SRC) $(ROOT)/include/actuator/pif_solenoid.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_COLLECT_SIGNAL -DPIF_SOLENOID_MAX_COUNT=255 $(INC) $(SOLENOID_SRC) $(GPIO_CS_SRC) -o $@
+
+$(BUILD)/test_pif_dot_matrix$(EXE): $(DOT_MATRIX_SRC) $(ROOT)/include/display/pif_dot_matrix.h | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(DOT_MATRIX_SRC) -o $@
 
 $(BUILD):
 	$(call MKDIR,$(BUILD))
