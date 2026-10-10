@@ -3,7 +3,7 @@
 #define PIF_DUTY_MOTOR_POS_H
 
 
-#include "core/pif_pulse.h"
+#include "sensor/pif_pulse.h"
 #include "motor/pif_duty_motor.h"
 #include "sensor/pif_sensor.h"
 

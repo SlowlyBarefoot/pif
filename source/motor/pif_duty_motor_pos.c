@@ -275,9 +275,9 @@ BOOL pifDutyMotorPos_Init(PifDutyMotorPos* p_owner, PifId id, PifTimerManager* p
 
 	p_owner->__p_encoder = p_encoder;
 #ifndef PIF_NO_LOG
-    pifPulse_SetMeasureMode(p_encoder, PIF_PMM_COUNT | PIF_PMM_PERIOD);
+    pifPulse_SetMeasureMode(p_encoder, PULSE_PMM_COUNT | PULSE_PMM_PERIOD);
 #else
-    pifPulse_SetMeasureMode(p_encoder, PIF_PMM_FALLING_COUNT);
+    pifPulse_SetMeasureMode(p_encoder, PULSE_PMM_COUNT);
 #endif
     pifPulse_AttachEvtEdge(p_encoder, _evtPulseEdge, p_owner);
     return TRUE;

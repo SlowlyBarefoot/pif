@@ -70,6 +70,13 @@
 //#define PIF_DYN_NOTCH_MAX_NOTCHES			7
 
 
+// -------- pifEncoder ---------------------------
+
+// Quarter steps whose times are kept per PifEncoder for the speed, a power of two of at least 2. The speed
+// averages over whole encoder cycles (4 quarter steps) once 5 are kept. Each one takes 4 bytes.
+//#define PIF_ENCODER_DATA_SIZE				8
+
+
 // -------- pifFlash -----------------------------
 
 // Largest program unit (flash word) a PifFlash accepts: 4 on STM32F4, 8 on G4, 32 on H743.
@@ -161,6 +168,13 @@
 
 // Timeout used to receive one complete packet, in timer units. 0: no timeout limit.
 //#define PIF_MSP_RECEIVE_TIMEOUT			200
+
+
+// -------- pifPulse -----------------------------
+
+// Falling edges kept per PifPulse, a power of two of at least 2. pifPulse_GetAveragePeriod averages over
+// one fewer periods than this. Each edge kept takes 8 bytes.
+//#define PIF_PULSE_DATA_SIZE				4
 
 
 // -------- pifSequence --------------------------

@@ -33,7 +33,7 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_64 test_pif_link test_pif_link_nolog
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_link test_pif_link_nolog test_pif_pulse test_pif_encoder
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
 LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
@@ -56,6 +56,10 @@ GPIO_CS_SRC := $(ROOT)/source/communication/pif_uart.c \
                $(addprefix $(ROOT)/source/core/, pif_collect_signal.c pif_log.c pif_ring_buffer.c pif_timer.c \
                    pif_timer_manager.c)
 GPIO_DEP  := $(ROOT)/source/core/pif_gpio.c $(ROOT)/include/core/pif_gpio.h
+PULSE_SRC := sensor/test_pif_pulse.c $(ROOT)/source/sensor/pif_pulse.c \
+             $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+ENCODER_SRC := sensor/test_pif_encoder.c $(ROOT)/source/sensor/pif_encoder.c \
+               $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 
 LINK_DEP := $(ROOT)/source/protocol/pif_link.c $(ROOT)/include/protocol/pif_link.h \
             $(ROOT)/include/protocol/pif_link_fragment.h
@@ -75,9 +79,10 @@ run-test_pif_timer: run-test_pif_sequence
 run-test_pif_collect_signal: run-test_pif_timer
 run-test_pif_gpio: run-test_pif_collect_signal
 run-test_pif_gpio_cs: run-test_pif_gpio
-run-test_pif_gpio_64: run-test_pif_gpio_cs
-run-test_pif_link: run-test_pif_gpio_64
+run-test_pif_link: run-test_pif_gpio_cs
 run-test_pif_link_nolog: run-test_pif_link
+run-test_pif_pulse: run-test_pif_link_nolog
+run-test_pif_encoder: run-test_pif_pulse
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
 	$(call RUN,$<)
@@ -112,14 +117,17 @@ $(BUILD)/test_pif_gpio$(EXE): $(GPIO_SRC) $(GPIO_DEP) | $(BUILD)
 $(BUILD)/test_pif_gpio_cs$(EXE): $(GPIO_SRC) $(GPIO_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_COLLECT_SIGNAL $(INC) $(GPIO_SRC) $(GPIO_CS_SRC) -o $@
 
-$(BUILD)/test_pif_gpio_64$(EXE): $(GPIO_SRC) $(GPIO_DEP) | $(BUILD)
-	$(CC) $(CFLAGS) -DPIF_GPIO_WIDTH=64 -DPIF_COLLECT_SIGNAL $(INC) $(GPIO_SRC) $(GPIO_CS_SRC) -o $@
-
 $(BUILD)/test_pif_link$(EXE): $(LINK_SRC) $(LINK_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) $(INC) $(LINK_SRC) -o $@
 
 $(BUILD)/test_pif_link_nolog$(EXE): $(LINK_SRC) $(LINK_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(LINK_SRC) -o $@
+
+$(BUILD)/test_pif_pulse$(EXE): $(PULSE_SRC) $(ROOT)/include/sensor/pif_pulse.h | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(PULSE_SRC) -o $@
+
+$(BUILD)/test_pif_encoder$(EXE): $(ENCODER_SRC) $(ROOT)/include/sensor/pif_encoder.h | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(ENCODER_SRC) -o $@
 
 $(BUILD):
 	$(call MKDIR,$(BUILD))
