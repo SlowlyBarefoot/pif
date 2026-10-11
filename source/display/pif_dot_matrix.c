@@ -31,16 +31,21 @@ static void _setPattern(PifDotMatrix* p_owner)
 	}
 }
 
-static void _stopShift(PifDotMatrix* p_owner)
+// Returns TRUE once every period1ms. After a gap longer than a period, such as a paused task,
+// it restarts from now instead of catching up with a burst of steps.
+static BOOL _isPeriodElapsed(uint32_t* p_time_1ms, uint16_t period1ms)
 {
-	// A step the timer manager still has pending is then dropped by _evtTimerShiftFinish().
-	p_owner->__shift_direction = DMSD_NONE;
-	pifTimer_Stop(p_owner->__p_timer_shift);
+	uint32_t now = pif_cumulative_timer1ms;
+
+	if (now - *p_time_1ms < period1ms) return FALSE;
+	*p_time_1ms += period1ms;
+	if (now - *p_time_1ms >= period1ms) *p_time_1ms = now;
+	return TRUE;
 }
 
 static void _endShift(PifDotMatrix* p_owner)
 {
-	_stopShift(p_owner);
+	p_owner->__shift_direction = DMSD_NONE;
 	if (p_owner->evt_shift_finish) {
 		(*p_owner->evt_shift_finish)(p_owner->_id);
 	}
@@ -62,37 +67,10 @@ static BOOL _isValidShift(PifDotMatrixShiftDir shift_direction, PifDotMatrixShif
 	}
 }
 
-static uint32_t _doTask(PifTask* p_task)
+static void _doShift(PifDotMatrix* p_owner)
 {
-	PifDotMatrix* p_owner = p_task->_p_client;
-	uint8_t* p_data;
-
-	if (p_owner->__bt.led) {
-		p_data = p_owner->__p_paper + p_owner->__row_index * p_owner->__col_bytes;
-	}
-	else {
-		p_data = p_owner->__p_paper + p_owner->__total_bytes;
-	}
-	(*p_owner->__act_display)(p_owner->__row_index, p_data);
-	p_owner->__row_index++;
-	if (p_owner->__row_index >= p_owner->__row_size) p_owner->__row_index = 0;
-	return 0;
-}
-
-static void _evtTimerBlinkFinish(PifIssuerP p_issuer)
-{
-    PifDotMatrix* p_owner = (PifDotMatrix*)p_issuer;
-
-    if (p_owner->__bt.blink) p_owner->__bt.led ^= 1;
-}
-
-static void _evtTimerShiftFinish(PifIssuerP p_issuer)
-{
-    PifDotMatrix* p_owner = (PifDotMatrix*)p_issuer;
     PifDotMatrixPattern* p_pattern;
     uint16_t max_x, max_y;
-
-    if (p_owner->__shift_direction == DMSD_NONE) return;
 
     p_pattern = &p_owner->__p_pattern[p_owner->__pattern_index];
     max_x = p_pattern->col_size - p_owner->__col_size;
@@ -179,17 +157,41 @@ static void _evtTimerShiftFinish(PifIssuerP p_issuer)
     }
 }
 
-BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t col_size, uint16_t row_size,
+static uint32_t _doTask(PifTask* p_task)
+{
+	PifDotMatrix* p_owner = p_task->_p_client;
+	uint8_t* p_data;
+
+	if (p_owner->__bt.blink && _isPeriodElapsed(&p_owner->__blink_time_1ms, p_owner->__blink_period_1ms)) {
+		p_owner->__bt.led ^= 1;
+	}
+	if (p_owner->__shift_direction != DMSD_NONE &&
+			_isPeriodElapsed(&p_owner->__shift_time_1ms, p_owner->__shift_period_1ms)) {
+		_doShift(p_owner);
+	}
+
+	if (p_owner->__bt.led) {
+		p_data = p_owner->__p_paper + p_owner->__row_index * p_owner->__col_bytes;
+	}
+	else {
+		p_data = p_owner->__p_paper + p_owner->__total_bytes;
+	}
+	(*p_owner->__act_display)(p_owner->__row_index, p_data);
+	p_owner->__row_index++;
+	if (p_owner->__row_index >= p_owner->__row_size) p_owner->__row_index = 0;
+	return 0;
+}
+
+BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, uint16_t col_size, uint16_t row_size,
 		PifActDotMatrixDisplay act_display)
 {
-    if (!p_owner || !p_timer_manager || !col_size || !row_size || !act_display) {
+    if (!p_owner || !col_size || !row_size || !act_display) {
         pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
 	memset(p_owner, 0, sizeof(PifDotMatrix));
 
-    p_owner->__p_timer_manager = p_timer_manager;
     p_owner->__col_size = col_size;
     p_owner->__row_size = row_size;
     p_owner->__col_bytes = (p_owner->__col_size - 1) / 8 + 1;
@@ -233,14 +235,8 @@ void pifDotMatrix_Clear(PifDotMatrix* p_owner)
 		free(p_owner->__p_pattern);
 		p_owner->__p_pattern = NULL;
 	}
-	if (p_owner->__p_timer_blink) {
-		pifTimerManager_Remove(p_owner->__p_timer_blink);
-		p_owner->__p_timer_blink = NULL;
-	}
-	if (p_owner->__p_timer_shift) {
-		pifTimerManager_Remove(p_owner->__p_timer_shift);
-		p_owner->__p_timer_shift = NULL;
-	}
+	p_owner->__bt.blink = FALSE;
+	p_owner->__shift_direction = DMSD_NONE;
 }
 
 BOOL pifDotMatrix_SetPatternSize(PifDotMatrix* p_owner, uint8_t size)
@@ -251,7 +247,7 @@ BOOL pifDotMatrix_SetPatternSize(PifDotMatrix* p_owner, uint8_t size)
 	}
 
 	// The shift and the display data refer to the patterns released here.
-	if (p_owner->__p_timer_shift) _stopShift(p_owner);
+	p_owner->__shift_direction = DMSD_NONE;
 	if (p_owner->__p_pattern) free(p_owner->__p_pattern);
 	p_owner->__p_pattern = NULL;
 	p_owner->__pattern_size = 0;
@@ -324,13 +320,10 @@ void pifDotMatrix_Stop(PifDotMatrix* p_owner)
 	for (row = 0; row < p_owner->__row_size; row++) {
 		(*p_owner->__act_display)(row, p_owner->__p_paper + p_owner->__total_bytes);
 	}
-    if (p_owner->__bt.blink) {
-		pifTimer_Stop(p_owner->__p_timer_blink);
-		p_owner->__bt.blink = FALSE;
-    }
+	p_owner->__bt.blink = FALSE;
     // Blink may have been stopped in its off phase.
 	p_owner->__bt.led = ON;
-	if (p_owner->__p_timer_shift) _stopShift(p_owner);
+	p_owner->__shift_direction = DMSD_NONE;
 }
 
 BOOL pifDotMatrix_SelectPattern(PifDotMatrix* p_owner, uint8_t pattern_index)
@@ -363,12 +356,8 @@ BOOL pifDotMatrix_BlinkOn(PifDotMatrix* p_owner, uint16_t period1ms)
 	    return FALSE;
     }
 
-	if (!p_owner->__p_timer_blink) {
-		p_owner->__p_timer_blink = pifTimerManager_Add(p_owner->__p_timer_manager, TT_REPEAT);
-		if (!p_owner->__p_timer_blink) return FALSE;
-		pifTimer_AttachEvtFinish(p_owner->__p_timer_blink, _evtTimerBlinkFinish, p_owner);
-	}
-	if (!pifTimer_Start(p_owner->__p_timer_blink, period1ms * 1000UL / p_owner->__p_timer_manager->_period1us)) return FALSE;
+	p_owner->__blink_period_1ms = period1ms;
+	p_owner->__blink_time_1ms = pif_cumulative_timer1ms;
 	p_owner->__bt.blink = TRUE;
     return TRUE;
 }
@@ -377,21 +366,22 @@ void pifDotMatrix_BlinkOff(PifDotMatrix* p_owner)
 {
 	p_owner->__bt.led = ON;
 	p_owner->__bt.blink = FALSE;
-	if (p_owner->__p_timer_blink) {
-		pifTimerManager_Remove(p_owner->__p_timer_blink);
-		p_owner->__p_timer_blink = NULL;
-	}
 }
 
 BOOL pifDotMatrix_ChangeBlinkPeriod(PifDotMatrix* p_owner, uint16_t period1ms)
 {
-	if (!p_owner->__p_timer_blink) {
+	if (!p_owner->__bt.blink) {
         pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
-	// A period that comes to 0 ticks is refused here.
-	return pifTimer_SetTarget(p_owner->__p_timer_blink, period1ms * 1000UL / p_owner->__p_timer_manager->_period1us);
+	if (!period1ms) {
+        pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_owner->__blink_period_1ms = period1ms;
+	return TRUE;
 }
 
 BOOL pifDotMatrix_SetPosition(PifDotMatrix* p_owner, uint16_t pos_x, uint16_t pos_y)
@@ -428,38 +418,34 @@ BOOL pifDotMatrix_ShiftOn(PifDotMatrix* p_owner, PifDotMatrixShiftDir shift_dire
 		return FALSE;
 	}
 
-	if (!p_owner->__p_timer_shift) {
-		p_owner->__p_timer_shift = pifTimerManager_Add(p_owner->__p_timer_manager, TT_REPEAT);
-		if (!p_owner->__p_timer_shift) return FALSE;
-		pifTimer_AttachEvtFinish(p_owner->__p_timer_shift, _evtTimerShiftFinish, p_owner);
-	}
-
-	// pifTimer_Start() runs a step left pending by the previous shift, which then does nothing.
-	p_owner->__shift_direction = DMSD_NONE;
-	if (!pifTimer_Start(p_owner->__p_timer_shift, period1ms * 1000UL / p_owner->__p_timer_manager->_period1us)) return FALSE;
-	p_owner->__shift_direction = shift_direction;
+	p_owner->__shift_period_1ms = period1ms;
+	p_owner->__shift_time_1ms = pif_cumulative_timer1ms;
 	p_owner->__shift_method = shift_method;
 	p_owner->__shift_count = count;
+	p_owner->__shift_direction = shift_direction;
 	return TRUE;
 }
 
 void pifDotMatrix_ShiftOff(PifDotMatrix* p_owner)
 {
-	if (p_owner->__p_timer_shift) {
-		_stopShift(p_owner);
-		p_owner->__position_x = 0;
-		p_owner->__position_y = 0;
-		if (_hasPattern(p_owner)) _setPattern(p_owner);
-	}
+	p_owner->__shift_direction = DMSD_NONE;
+	p_owner->__position_x = 0;
+	p_owner->__position_y = 0;
+	if (_hasPattern(p_owner)) _setPattern(p_owner);
 }
 
 BOOL pifDotMatrix_ChangeShiftPeriod(PifDotMatrix* p_owner, uint16_t period1ms)
 {
-	if (!p_owner->__p_timer_shift) {
+	if (p_owner->__shift_direction == DMSD_NONE) {
         pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
-	// A period that comes to 0 ticks is refused here.
-	return pifTimer_SetTarget(p_owner->__p_timer_shift, period1ms * 1000UL / p_owner->__p_timer_manager->_period1us);
+	if (!period1ms) {
+        pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_owner->__shift_period_1ms = period1ms;
+	return TRUE;
 }

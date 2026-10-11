@@ -4,7 +4,6 @@
 
 
 #include "core/pif_task_manager.h"
-#include "core/pif_timer_manager.h"
 
 
 // Time in ms to scan all rows once (one frame). Each row gets this divided by the row count.
@@ -67,7 +66,6 @@ typedef struct StPifDotMatrix
     PifId _id;
 
 	// Private Member Variable
-	PifTimerManager* __p_timer_manager;
 	PifTask* __p_task;
     uint16_t __col_size;
     uint16_t __row_size;
@@ -96,8 +94,10 @@ typedef struct StPifDotMatrix
 	uint16_t __position_y;
 	uint16_t __shift_count;
 
-	PifTimer* __p_timer_blink;
-	PifTimer* __p_timer_shift;
+	uint16_t __blink_period_1ms;
+	uint16_t __shift_period_1ms;
+	uint32_t __blink_time_1ms;		// Time of the last blink toggle
+	uint32_t __shift_time_1ms;		// Time of the last shift step
 
 	// Private Action Function
    	PifActDotMatrixDisplay __act_display;
@@ -113,13 +113,12 @@ extern "C" {
  * @brief Initializes a dot-matrix controller and display output callback.
  * @param p_owner Pointer to the dot-matrix instance to initialize.
  * @param id Unique object identifier. Use `PIF_ID_AUTO` to assign one automatically.
- * @param p_timer_manager Timer manager used for blink and shift timing.
  * @param col_size Logical column size of the display area.
  * @param row_size Logical row size of the display area.
  * @param act_display Callback used to output one row of matrix data.
  * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
-BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t col_size, uint16_t row_size,
+BOOL pifDotMatrix_Init(PifDotMatrix* p_owner, PifId id, uint16_t col_size, uint16_t row_size,
 		PifActDotMatrixDisplay act_display);
 
 /**
@@ -169,7 +168,7 @@ BOOL pifDotMatrix_SetFramePeriod(PifDotMatrix* p_owner, uint16_t period1ms);
 
 /**
  * @fn pifDotMatrix_Start
- * @brief Starts periodic matrix refresh output.
+ * @brief Starts periodic matrix refresh output. Blink and shift steps advance only while it runs.
  * @param p_owner Pointer to an initialized dot-matrix instance.
  */
 void pifDotMatrix_Start(PifDotMatrix* p_owner);
@@ -196,7 +195,7 @@ BOOL pifDotMatrix_SelectPattern(PifDotMatrix* p_owner, uint8_t pattern_index);
  * @brief Enables blink mode for the dot-matrix output.
  * @param p_owner Pointer to an initialized dot-matrix instance.
  * @param period1ms Blink period in milliseconds.
- * @return `TRUE` if blink timer starts successfully, otherwise `FALSE`.
+ * @return `TRUE` if blink starts, otherwise `FALSE`.
  */
 BOOL pifDotMatrix_BlinkOn(PifDotMatrix* p_owner, uint16_t period1ms);
 
@@ -209,7 +208,7 @@ void pifDotMatrix_BlinkOff(PifDotMatrix* p_owner);
 
 /**
  * @fn pifDotMatrix_ChangeBlinkPeriod
- * @brief Changes blink timer period while blink mode is active.
+ * @brief Changes blink period while blink mode is active.
  * @param p_owner Pointer to an initialized dot-matrix instance.
  * @param period1ms New blink period in milliseconds.
  * @return `TRUE` if the period is changed, otherwise `FALSE`.
@@ -234,7 +233,7 @@ BOOL pifDotMatrix_SetPosition(PifDotMatrix* p_owner, uint16_t pos_x, uint16_t po
  * @param shift_direction Direction of movement for each shift step.
  * @param shift_method Shift repetition behavior (once, repeat, or ping-pong).
  *        The `_HOR` methods go with `DMSD_LEFT`/`DMSD_RIGHT` and the `_VER` ones with `DMSD_UP`/`DMSD_DOWN`.
- * @param period1ms Shift timer period in milliseconds.
+ * @param period1ms Time between shift steps in milliseconds.
  * @param count Number of shift steps before stopping. 0 shifts until the method ends it.
  * @return `TRUE` if shift operation starts successfully, otherwise `FALSE`.
  */
@@ -250,7 +249,7 @@ void pifDotMatrix_ShiftOff(PifDotMatrix* p_owner);
 
 /**
  * @fn pifDotMatrix_ChangeShiftPeriod
- * @brief Changes shift timer period while shift mode is active.
+ * @brief Changes the time between shift steps while shift mode is active.
  * @param p_owner Pointer to an initialized dot-matrix instance.
  * @param period1ms New shift period in milliseconds.
  * @return `TRUE` if the period is changed, otherwise `FALSE`.

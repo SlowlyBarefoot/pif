@@ -18,9 +18,11 @@
 #define MAX_ROWS		4
 #define MAX_COL_BYTES	4
 
+#define SIM_STEP_US		100
+
 static BOOL s_failed;
 static uint32_t s_now;
-static PifTimerManager s_manager;
+static uint32_t s_sub_us;
 static PifDotMatrix s_dm;
 static uint8_t s_row[MAX_ROWS][MAX_COL_BYTES];
 static int s_display_count;
@@ -44,11 +46,18 @@ static void _evtShiftFinish(PifId id)
     s_finish_count++;
 }
 
-// One tick of the timer interrupt, then one pass of the main loop.
-static void _tick(int count)
+// Moves the clock on by ms, running the main loop at every step.
+static void _advance(uint32_t ms)
 {
-    while (count--) {
-        pifTimerManager_sigTick(&s_manager);
+    uint32_t steps = ms * 1000 / SIM_STEP_US;
+
+    while (steps--) {
+        s_now += SIM_STEP_US;
+        s_sub_us += SIM_STEP_US;
+        if (s_sub_us == 1000) {
+            s_sub_us = 0;
+            pif_cumulative_timer1ms++;
+        }
         pifTaskManager_Loop();
     }
 }
@@ -56,28 +65,22 @@ static void _tick(int count)
 // Runs the main loop over two frames, so that the scan task outputs every row whatever its phase.
 static void _scanFrame(void)
 {
-    uint32_t end = s_now + 2 * s_dm.__frame_period_1ms * 1000UL;
-
-    while (s_now < end) {
-        s_now += 100;
-        pifTaskManager_Loop();
-    }
+    _advance(2 * s_dm.__frame_period_1ms);
 }
 
 static BOOL _setUp(uint16_t col_size, uint16_t row_size)
 {
     // A failed test returns early, so free what it left behind.
     pifDotMatrix_Clear(&s_dm);
-    pifTimerManager_Clear(&s_manager);
     memset(s_row, 0xFF, sizeof(s_row));
     s_display_count = 0;
     s_finish_count = 0;
     pif_error = E_SUCCESS;
 
-    if (!pifTimerManager_Init(&s_manager, PIF_ID_AUTO, 1000, 4)) return FALSE;
-    if (!pifDotMatrix_Init(&s_dm, PIF_ID_AUTO, &s_manager, col_size, row_size, _actDisplay)) return FALSE;
+    if (!pifDotMatrix_Init(&s_dm, PIF_ID_AUTO, col_size, row_size, _actDisplay)) return FALSE;
     s_dm.evt_shift_finish = _evtShiftFinish;
-    return TRUE;
+    // One row every 1ms, so that blink and shift are checked every 1ms.
+    return pifDotMatrix_SetFramePeriod(&s_dm, row_size);
 }
 
 static void testNoPattern(void)
@@ -140,10 +143,13 @@ static void testBlankRows(void)
     CHECK(s_row[0][0] == 0x12 && s_row[0][1] == 0x34 && s_row[1][0] == 0x56 && s_row[1][1] == 0x78);
 
     // The off phase of a blink outputs every byte of a row as 0.
-    CHECK(pifDotMatrix_BlinkOn(&s_dm, 1));
-    _tick(1);
+    CHECK(pifDotMatrix_BlinkOn(&s_dm, 100));
+    _advance(99);
+    CHECK(s_dm.__bt.led);
+    _advance(3);
     CHECK(!s_dm.__bt.led);
     _scanFrame();
+    CHECK(!s_dm.__bt.led);
     CHECK(s_row[0][0] == 0 && s_row[0][1] == 0 && s_row[1][0] == 0 && s_row[1][1] == 0);
 
     // Stop outputs each row once, and a start after it is not left in the off phase.
@@ -182,14 +188,45 @@ static void testPingPong(void)
     CHECK(_setUp(8, 1));
     CHECK(pifDotMatrix_SetPatternSize(&s_dm, 1));
     CHECK(pifDotMatrix_AddPattern(&s_dm, 10, 1, pattern));
-    CHECK(pifDotMatrix_ShiftOn(&s_dm, DMSD_LEFT, DMSM_PING_PONG_HOR, 1, 0));
+    pifDotMatrix_Start(&s_dm);
+    CHECK(pifDotMatrix_ShiftOn(&s_dm, DMSD_LEFT, DMSM_PING_PONG_HOR, 10, 0));
 
-    // Each step moves, the turning ones too.
+    // Each step moves, the turning ones too. The checks fall halfway between the steps.
+    _advance(5);
+    CHECK(s_dm.__position_x == 0);
     for (i = 0; i < sizeof(expected) / sizeof(expected[0]); i++) {
-        _tick(1);
+        _advance(10);
         CHECK(s_dm.__position_x == expected[i]);
     }
     CHECK(s_finish_count == 0);
+}
+
+static void testShiftPaused(void)
+{
+    static uint8_t pattern[] = { 0x00, 0x00, 0x00 };
+
+    CHECK(_setUp(8, 1));
+    CHECK(pifDotMatrix_SetPatternSize(&s_dm, 1));
+    CHECK(pifDotMatrix_AddPattern(&s_dm, 24, 1, pattern));
+
+    // Shift steps only while the display runs.
+    CHECK(pifDotMatrix_ShiftOn(&s_dm, DMSD_LEFT, DMSM_ONCE, 10, 0));
+    _advance(100);
+    CHECK(s_dm.__position_x == 0);
+
+    // A long pause gives one step, not a burst that catches up.
+    pifDotMatrix_Start(&s_dm);
+    _advance(5);
+    CHECK(s_dm.__position_x == 1);
+    _advance(10);
+    CHECK(s_dm.__position_x == 2);
+
+    // A changed period applies from the next step.
+    CHECK(pifDotMatrix_ChangeShiftPeriod(&s_dm, 20));
+    _advance(10);
+    CHECK(s_dm.__position_x == 2);
+    _advance(10);
+    CHECK(s_dm.__position_x == 3);
 }
 
 static void testShiftEnd(void)
@@ -199,20 +236,22 @@ static void testShiftEnd(void)
     CHECK(_setUp(8, 1));
     CHECK(pifDotMatrix_SetPatternSize(&s_dm, 1));
     CHECK(pifDotMatrix_AddPattern(&s_dm, 16, 1, pattern));
+    pifDotMatrix_Start(&s_dm);
 
     // The end of the count reports as the end of a once shift does.
-    CHECK(pifDotMatrix_ShiftOn(&s_dm, DMSD_LEFT, DMSM_REPEAT_HOR, 1, 3));
-    _tick(5);
+    CHECK(pifDotMatrix_ShiftOn(&s_dm, DMSD_LEFT, DMSM_REPEAT_HOR, 10, 3));
+    _advance(55);
     CHECK(s_dm.__position_x == 3 && s_finish_count == 1);
+    CHECK(!pifDotMatrix_ChangeShiftPeriod(&s_dm, 10) && pif_error == E_INVALID_STATE);
 
-    CHECK(pifDotMatrix_ShiftOn(&s_dm, DMSD_RIGHT, DMSM_ONCE, 1, 0));
-    _tick(10);
+    CHECK(pifDotMatrix_ShiftOn(&s_dm, DMSD_RIGHT, DMSM_ONCE, 10, 0));
+    _advance(105);
     CHECK(s_dm.__position_x == 0 && s_finish_count == 2);
 
     // Released patterns stop the shift.
-    CHECK(pifDotMatrix_ShiftOn(&s_dm, DMSD_LEFT, DMSM_REPEAT_HOR, 1, 0));
+    CHECK(pifDotMatrix_ShiftOn(&s_dm, DMSD_LEFT, DMSM_REPEAT_HOR, 10, 0));
     CHECK(pifDotMatrix_SetPatternSize(&s_dm, 1));
-    _tick(3);
+    _advance(30);
     CHECK(s_dm.__shift_direction == DMSD_NONE && s_dm.__position_x == 0 && s_finish_count == 2);
 }
 
@@ -230,6 +269,7 @@ int main(void)
         { "blank rows", testBlankRows },
         { "shift validation", testShiftValidation },
         { "ping pong", testPingPong },
+        { "shift paused", testShiftPaused },
         { "shift end", testShiftEnd },
     };
 
@@ -246,7 +286,6 @@ int main(void)
         if (s_failed) failed++;
     }
     pifDotMatrix_Clear(&s_dm);
-    pifTimerManager_Clear(&s_manager);
     pifTaskManager_Clear();
     printf("%d failed\n", failed);
     return failed ? 1 : 0;
