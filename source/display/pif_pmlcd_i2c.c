@@ -1,7 +1,4 @@
 // SPDX-License-Identifier: BSD-3-Clause
-#include <string.h>
-
-#include "core/pif_task_manager.h"
 #include "display/pif_pmlcd_i2c.h"
 
 
@@ -48,8 +45,9 @@
 #define LCD_NO_BACK_LIGHT			0x00
 
 #define En 0x04  // Enable bit
-#define Rw 0x02  // Read/Write bit
 #define Rs 0x01  // Register select bit
+
+#define LCD_MAX_LINES				4
 
 
 static BOOL _expanderWrite(PifPmlcdI2c* p_owner, uint8_t data)
@@ -58,34 +56,41 @@ static BOOL _expanderWrite(PifPmlcdI2c* p_owner, uint8_t data)
 	return pifI2cDevice_Write(p_owner->_p_i2c, 0, 0, &tmp, 1);
 }
 
-static BOOL _pulseEnable(PifPmlcdI2c* p_owner, uint8_t data)
-{
-	if (!_expanderWrite(p_owner, data | En)) return FALSE;	// En high
-	pif_Delay1us(1);										// enable pulse must be >450ns
-
-	if (!_expanderWrite(p_owner, data & ~En)) return FALSE;	// En low
-	pif_Delay1us(50);										// commands need > 37us to settle
-	return TRUE;
-}
-
+// Only used by the initialization sequence, which waits after each nibble on its own.
 static BOOL _write4bits(PifPmlcdI2c* p_owner, uint8_t value)
 {
-	if (!_expanderWrite(p_owner, value)) return FALSE;
-	if (!_pulseEnable(p_owner, value)) return FALSE;
+	if (!_expanderWrite(p_owner, value)) return FALSE;			// RS is set before En rises (tAS)
+	if (!_expanderWrite(p_owner, value | En)) return FALSE;		// En high
+	pif_Delay1us(1);											// enable pulse must be >450ns
+	if (!_expanderWrite(p_owner, value & ~En)) return FALSE;	// En low
+	pif_Delay1us(50);											// commands need > 37us to settle
 	return TRUE;
 }
 
 // write either command or data
+// The expander puts each byte of one transfer on its pins in turn, so both nibbles go in a single
+// transfer. One byte on the bus takes at least 9 us even at 1 MHz, which is longer than the enable
+// pulse needs.
 static BOOL _send(PifPmlcdI2c* p_owner, uint8_t value, uint8_t mode)
 {
-    if (!_write4bits(p_owner, (value & 0xf0) | mode)) return FALSE;
-	if (!_write4bits(p_owner, ((value << 4) & 0xf0) | mode)) return FALSE;
+	uint8_t data[6];
+	uint8_t high = (value & 0xf0) | mode | p_owner->__backlight_val;
+	uint8_t low = ((value << 4) & 0xf0) | mode | p_owner->__backlight_val;
+
+	data[0] = high;
+	data[1] = high | En;
+	data[2] = high;
+	data[3] = low;
+	data[4] = low | En;
+	data[5] = low;
+	if (!pifI2cDevice_Write(p_owner->_p_i2c, 0, 0, data, sizeof(data))) return FALSE;
+	pif_Delay1us(50);											// commands need > 37us to settle
 	return TRUE;
 }
 
 BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_t addr, void *p_client)
 {
-    if (!p_owner || !p_port) {
+	if (!p_owner || !p_port) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -93,48 +98,64 @@ BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_
 	memset(p_owner, 0, sizeof(PifPmlcdI2c));
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
-    p_owner->_id = id;
+	p_owner->_id = id;
 	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr, p_client);
-    if (!p_owner->_p_i2c) goto fail;
+	if (!p_owner->_p_i2c) goto fail;
 
-    p_owner->__backlight_val = LCD_NO_BACK_LIGHT;
-    p_owner->__display_function = LCD_4BIT_MODE | LCD_1LINE | LCD_5x8_DOTS;
-    return TRUE;
+	p_owner->__backlight_val = LCD_NO_BACK_LIGHT;
+	p_owner->__display_function = LCD_4BIT_MODE | LCD_1LINE | LCD_5x8_DOTS;
+	return TRUE;
 
 fail:
 	pifPmlcdI2c_Clear(p_owner);
-    return FALSE;
+	return FALSE;
 }
 
 void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner)
 {
+	if (!p_owner) return;
+
 	if (p_owner->_p_i2c) {
 		pifI2cPort_RemoveDevice(p_owner->_p_i2c->_p_port, p_owner->_p_i2c);
+		p_owner->_p_i2c = NULL;
 	}
+	p_owner->__num_lines = 0;
 }
 
 BOOL pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size)
 {
+	if (!p_owner || lines < 1 || lines > LCD_MAX_LINES ||
+			(dot_size != PIF_PMLCD_DS_5x8 && dot_size != PIF_PMLCD_DS_5x10)) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	if (!p_owner->_p_i2c) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
+
+	// Begin may be called again with other settings, so nothing of the last call is kept.
+	p_owner->__num_lines = 0;
+	p_owner->__display_function = LCD_4BIT_MODE | LCD_1LINE | LCD_5x8_DOTS;
 	if (lines > 1) {
 		p_owner->__display_function |= LCD_2LINE;
 	}
-	p_owner->__num_lines = lines;
 
 	// for some 1 line displays you can select a 10 pixel high font
-	if ((dot_size != 0) && (lines == 1)) {
+	if ((dot_size == PIF_PMLCD_DS_5x10) && (lines == 1)) {
 		p_owner->__display_function |= LCD_5x10_DOTS;
 	}
 
 	// SEE PAGE 45/46 FOR INITIALIZATION SPECIFICATION!
 	// according to datasheet, we need at least 40ms after power rises above 2.7V
-	// before sending commands. Arduino can turn on way befer 4.5V so we'll wait 50
+	// before sending commands. Arduino can turn on way before 4.5V so we'll wait 50
 	pif_Delay1ms(50);
 
 	// Now we pull both RS and R/W low to begin commands
-	if (!_expanderWrite(p_owner, p_owner->__backlight_val)) return FALSE;	// reset expanderand turn backlight off (Bit 8 =1)
-	pif_Delay1ms(1000);
+	if (!_expanderWrite(p_owner, 0)) return FALSE;	// reset expander, backlight as last set
 
-  	//put the LCD into 4 bit mode
+	//put the LCD into 4 bit mode
 	// this is according to the hitachi HD44780 datasheet
 	// figure 24, pg 46
 
@@ -170,15 +191,22 @@ BOOL pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size)
 	if (!_send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0)) return FALSE;
 
 	if (!pifPmlcdI2c_Home(p_owner)) return FALSE;
+
+	// Set last, so a failed Begin leaves SetCursor refusing to run.
+	p_owner->__num_lines = lines;
 	return TRUE;
 }
 
 BOOL pifPmlcdI2c_Print(PifPmlcdI2c* p_owner, const char* p_string)
 {
-	uint8_t i;
+	if (!p_string) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
 
-	for (i = 0; i < strlen(p_string); i++) {
-		if (!_send(p_owner, p_string[i], Rs)) return FALSE;
+	while (*p_string) {
+		if (!_send(p_owner, (uint8_t)*p_string, Rs)) return FALSE;
+		p_string++;
 	}
 	return TRUE;
 }
@@ -186,7 +214,7 @@ BOOL pifPmlcdI2c_Print(PifPmlcdI2c* p_owner, const char* p_string)
 BOOL pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...)
 {
 	va_list data;
-	char buffer[32];
+	char buffer[PIF_PMLCD_I2C_PRINTF_SIZE];
 
 	va_start(data, p_format);
 	pif_PrintFormat(buffer, sizeof(buffer), &data, p_format);
@@ -197,26 +225,32 @@ BOOL pifPmlcdI2c_Printf(PifPmlcdI2c* p_owner, const char* p_format, ...)
 
 BOOL pifPmlcdI2c_DisplayClear(PifPmlcdI2c* p_owner)
 {
-	if (!_send(p_owner, LCD_CLEAR_DISPLAY, 0)) return FALSE;// clear display, set cursor position to zero
-	pif_Delay1ms(2);  										// this command takes a long time!
+	if (!_send(p_owner, LCD_CLEAR_DISPLAY, 0)) return FALSE;	// clear display, set cursor position to zero
+	pif_Delay1ms(2);											// this command takes a long time!
 	return TRUE;
 }
 
 BOOL pifPmlcdI2c_Home(PifPmlcdI2c* p_owner)
 {
-	if (!_send(p_owner, LCD_RETURN_HOME, 0)) return FALSE;  // set cursor position to zero
-	pif_Delay1ms(2);  										// this command takes a long time!
+	if (!_send(p_owner, LCD_RETURN_HOME, 0)) return FALSE;		// set cursor position to zero
+	pif_Delay1ms(2);											// this command takes a long time!
 	return TRUE;
 }
 
 BOOL pifPmlcdI2c_SetCursor(PifPmlcdI2c* p_owner, uint8_t col, uint8_t row)
 {
-	int row_offsets[] = { 0x00, 0x40, 0x14, 0x54 };
+	static const uint8_t row_offsets[LCD_MAX_LINES] = { 0x00, 0x40, 0x14, 0x54 };
+
+	// __num_lines is 0 until pifPmlcdI2c_Begin() succeeds.
+	if (!p_owner->__num_lines) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
 
 	if (row >= p_owner->__num_lines) {
 		row = p_owner->__num_lines - 1;    // we count rows starting w/0
 	}
-	return _send(p_owner, LCD_SET_DDRAM_ADDR | (col + row_offsets[row]), 0);
+	return _send(p_owner, LCD_SET_DDRAM_ADDR | ((col + row_offsets[row]) & 0x7F), 0);
 }
 
 BOOL pifPmlcdI2c_Display(PifPmlcdI2c* p_owner)
@@ -289,11 +323,18 @@ BOOL pifPmlcdI2c_NoAutoScroll(PifPmlcdI2c* p_owner)
 	return _send(p_owner, LCD_ENTRY_MODE_SET | p_owner->__display_mode, 0);
 }
 
-BOOL pifPmlcdI2c_CreateChar(PifPmlcdI2c* p_owner, uint8_t location, uint8_t char_map[])
+BOOL pifPmlcdI2c_CreateChar(PifPmlcdI2c* p_owner, uint8_t location, const uint8_t char_map[])
 {
+	int i;
+
+	if (!char_map) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
 	location &= 0x7; // we only have 8 locations 0-7
 	if (!_send(p_owner, LCD_SET_CGRAM_ADDR | (location << 3), 0)) return FALSE;
-	for (int i = 0; i < 8; i++) {
+	for (i = 0; i < 8; i++) {
 		if (!_send(p_owner, char_map[i], Rs)) return FALSE;
 	}
 	return TRUE;

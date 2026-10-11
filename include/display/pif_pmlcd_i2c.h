@@ -9,6 +9,10 @@
 #define PIF_PMLCD_DS_5x8			0x00
 #define PIF_PMLCD_DS_5x10			0x04
 
+#ifndef PIF_PMLCD_I2C_PRINTF_SIZE
+#define PIF_PMLCD_I2C_PRINTF_SIZE	32
+#endif
+
 
 /**
  * @class StPifPmlcdI2c
@@ -58,9 +62,11 @@ void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner);
  * @fn pifPmlcdI2c_Begin
  * @brief Executes LCD startup sequence and configures line count and font size.
  * @param p_owner Pointer to an initialized PM LCD I2C driver instance.
- * @param lines Number of display lines (typically 1, 2, or 4 depending on module).
- * @param dot_size Character font size (`PIF_PMLCD_DS_5x8` or `PIF_PMLCD_DS_5x10`).
- * @return `TRUE` if the LCD enters ready state, otherwise `FALSE`.
+ * @param lines Number of display lines, 1 to 4.
+ * @param dot_size Character font size (`PIF_PMLCD_DS_5x8` or `PIF_PMLCD_DS_5x10`). 5x10 only applies
+ *        to a 1 line display.
+ * @return `TRUE` if the LCD enters ready state, otherwise `FALSE`. Calls that need the line count,
+ *         such as pifPmlcdI2c_SetCursor(), fail until this has succeeded.
  */
 BOOL pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size);
 
@@ -75,7 +81,8 @@ BOOL pifPmlcdI2c_Print(PifPmlcdI2c* p_owner, const char* p_string);
 
 /**
  * @fn pifPmlcdI2c_Printf
- * @brief Formats text with `printf`-style arguments and prints it to the LCD.
+ * @brief Formats text with `printf`-style arguments and prints it to the LCD. The text is cut at
+ *        `PIF_PMLCD_I2C_PRINTF_SIZE - 1` characters.
  * @param p_owner Pointer to an initialized PM LCD I2C driver instance.
  * @param p_format `printf`-style format string.
  * @return `TRUE` if the formatted string is transmitted successfully, otherwise `FALSE`.
@@ -103,7 +110,7 @@ BOOL pifPmlcdI2c_Home(PifPmlcdI2c* p_owner);
  * @brief Sets the text cursor to the requested column and row.
  * @param p_owner Pointer to an initialized PM LCD I2C driver instance.
  * @param col Zero-based target column.
- * @param row Zero-based target row.
+ * @param row Zero-based target row. A row past the last line is taken as the last line.
  * @return `TRUE` if the cursor command is sent successfully, otherwise `FALSE`.
  */
 BOOL pifPmlcdI2c_SetCursor(PifPmlcdI2c* p_owner, uint8_t col, uint8_t row);
@@ -206,13 +213,14 @@ BOOL pifPmlcdI2c_NoAutoScroll(PifPmlcdI2c* p_owner);
 
 /**
  * @fn pifPmlcdI2c_CreateChar
- * @brief Writes a custom character bitmap into one of the LCD CGRAM slots.
+ * @brief Writes a custom character bitmap into one of the LCD CGRAM slots. The LCD is left
+ *        addressing CGRAM, so call pifPmlcdI2c_SetCursor() or pifPmlcdI2c_Home() before printing.
  * @param p_owner Pointer to an initialized PM LCD I2C driver instance.
  * @param location CGRAM slot index (`0` to `7`).
  * @param char_map Pointer to an 8-byte character bitmap.
  * @return `TRUE` if all CGRAM bytes are written successfully, otherwise `FALSE`.
  */
-BOOL pifPmlcdI2c_CreateChar(PifPmlcdI2c* p_owner, uint8_t location, uint8_t char_map[]);
+BOOL pifPmlcdI2c_CreateChar(PifPmlcdI2c* p_owner, uint8_t location, const uint8_t char_map[]);
 
 /**
  * @fn pifPmlcdI2c_Backlight

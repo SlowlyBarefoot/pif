@@ -196,6 +196,12 @@
 //#define PIF_MSP_RECEIVE_TIMEOUT			200
 
 
+// -------- pifPmlcdI2c --------------------------
+
+// Size of the buffer pifPmlcdI2c_Printf() formats into, with the terminating null.
+//#define PIF_PMLCD_I2C_PRINTF_SIZE			32
+
+
 // -------- pifPulse -----------------------------
 
 // Falling edges kept per PifPulse, a power of two of at least 2. pifPulse_GetAveragePeriod averages over
