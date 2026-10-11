@@ -23,7 +23,7 @@ static PifSolenoidChannel* _channel(PifSolenoid* p_owner, uint8_t index)
 	return &p_owner->__p_channel[index];
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SOLENOID
 
 // "SN", the kind and the index in decimal. Not pif_Printf(), which writes a number only where the
 // buffer has room for its widest value.
@@ -57,7 +57,7 @@ static void _switchOff(PifSolenoid* p_owner, uint8_t index)
 {
 	(*p_owner->__act_control)(index, OFF, SD_INVALID);
 	p_owner->__p_channel[index].__state = FALSE;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SOLENOID
 	_putSignals(&p_owner->__p_channel[index], SD_INVALID);
 #endif
 }
@@ -94,7 +94,7 @@ static void _switchOn(PifSolenoid* p_owner, uint8_t index, uint32_t now, PifSole
 	p_channel->__current_dir = dir;
 	(*p_owner->__act_control)(index, ON, dir);
 	p_channel->__state = TRUE;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SOLENOID
 	_putSignals(p_channel, dir);
 #endif
 }
@@ -239,7 +239,7 @@ void pifSolenoid_Clear(PifSolenoid* p_owner)
 		if (p_channel->__state) _switchOff(p_owner, i);
 		pifRingData_Destroy(&p_channel->__p_buffer);
 	}
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SOLENOID
 	pifSolenoid_ResetCsFlag(p_owner, SN_CSF_ALL_BIT);
 #endif
 	if (p_owner->_p_task) {
@@ -348,7 +348,7 @@ BOOL pifSolenoid_IsOn(PifSolenoid* p_owner, uint8_t index)
 }
 
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SOLENOID
 
 BOOL pifSolenoid_SetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag)
 {
@@ -390,4 +390,4 @@ void pifSolenoid_ResetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag)
 	}
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_SOLENOID

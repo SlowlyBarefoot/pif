@@ -4,7 +4,8 @@
 
 
 #include "core/pif_task_manager.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_BUZZER)
+	#define COLLECT_SIGNAL_BUZZER
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -43,7 +44,7 @@ typedef enum EnPifBuzzerState
 	BS_STOP			= 4		// No longer entered: a finished sequence goes straight to BS_IDLE.
 } PifBuzzerState;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_BUZZER
 
 typedef enum EnPifBuzzerCsFlag
 {
@@ -59,7 +60,7 @@ typedef enum EnPifBuzzerCsFlag
 	BZ_CSF_COUNT		= 2
 } PifBuzzerCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_BUZZER
 
 /**
  * @class StPifBuzzer
@@ -88,7 +89,7 @@ typedef struct StPifBuzzer
 
 	// Private Action Function
     PifActBuzzerAction __act_action;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_BUZZER
 	PifCollectSignalChannel __cs[BZ_CSF_COUNT];
 #endif
 } PifBuzzer;
@@ -147,7 +148,7 @@ void pifBuzzer_Stop(PifBuzzer* p_owner);
  */
 BOOL pifBuzzer_State(PifBuzzer* p_owner);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_BUZZER
 
 /**
  * @fn pifBuzzer_SetCsFlag
@@ -166,7 +167,7 @@ BOOL pifBuzzer_SetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag);
  */
 void pifBuzzer_ResetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_BUZZER
 
 
 #ifdef __cplusplus

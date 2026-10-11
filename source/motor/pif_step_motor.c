@@ -159,7 +159,7 @@ fail:
 
 void pifStepMotor_Clear(PifStepMotor* p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_STEP_MOTOR
 	pifStepMotor_ResetCsFlag(p_owner, SM_CSF_ALL_BIT);
 #endif
 	if (p_owner->__p_timer_step) {
@@ -183,7 +183,7 @@ void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state, char *tag
 	pifLog_Printf(LT_INFO, "%s(%u) %s->%s E:%d", tag, p_owner->_id,
 			kMotorState[p_owner->_state], kMotorState[state], p_owner->__error);
 	p_owner->_state = state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_STEP_MOTOR
 	pifCollectSignal_Put(&p_owner->__cs[SM_CSF_STATE_IDX], state);
 #endif
 }
@@ -193,7 +193,7 @@ void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state, char *tag
 PIF_INLINE void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state)
 {
 	p_owner->_state = state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_STEP_MOTOR
 	pifCollectSignal_Put(&p_owner->__cs[SM_CSF_STATE_IDX], state);
 #endif
 }
@@ -287,7 +287,7 @@ BOOL pifStepMotor_SetPps(PifStepMotor* p_owner, uint16_t pps)
 	pifTimer_SetTarget(p_owner->__p_timer_step, period / p_owner->_p_timer_manager->_period1us);
 
 	p_owner->_current_pps = pps;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_STEP_MOTOR
 	pifCollectSignal_Put(&p_owner->__cs[SM_CSF_PPS_IDX], pps);
 #endif
 	p_owner->__step_period1us = period;
@@ -395,7 +395,7 @@ BOOL pifStepMotor_StopControl(PifStepMotor* p_owner)
     return TRUE;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_STEP_MOTOR
 
 BOOL pifStepMotor_SetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag)
 {
@@ -416,4 +416,4 @@ void pifStepMotor_ResetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag)
 	if (flag & SM_CSF_PPS_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SM_CSF_PPS_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_STEP_MOTOR

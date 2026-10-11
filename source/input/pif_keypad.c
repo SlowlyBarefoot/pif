@@ -112,7 +112,7 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 		p_key->state = KS_IDLE;
 		break;
 	}
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_KEYPAD
 	pifCollectSignal_Put(&p_key->__cs[KP_CSF_STATE_IDX], p_key->state);
 #endif
 }
@@ -172,7 +172,7 @@ void pifKeypad_Clear(PifKeypad* p_owner)
 		p_owner->__p_state = NULL;
 	}
 	if (p_owner->__p_key) {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_KEYPAD
 		pifKeypad_ResetCsFlag(p_owner, KP_CSF_ALL_BIT);
 #endif
 		free(p_owner->__p_key);
@@ -207,7 +207,7 @@ BOOL pifKeypad_SetKeymap(PifKeypad* p_owner, uint8_t num, const char* p_user_key
 	}
 
     if (p_owner->__p_key) {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_KEYPAD
         // While __num_key still counts the keys being freed.
         pifKeypad_ResetCsFlag(p_owner, KP_CSF_ALL_BIT);
 #endif
@@ -296,7 +296,7 @@ void pifKeypad_Stop(PifKeypad* p_owner)
 	if (p_owner->__p_task) p_owner->__p_task->pause = TRUE;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_KEYPAD
 
 BOOL pifKeypad_SetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag)
 {
@@ -329,4 +329,4 @@ void pifKeypad_ResetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag)
 	}
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_KEYPAD

@@ -407,7 +407,7 @@ static void testChannelsSeparateQueues(void)
     CHECK(s_act_count == 4 && _actOf(3, 0, 1000, OFF, SD_INVALID));
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SOLENOID
 
 static void testCollectSignal(void)
 {
@@ -481,7 +481,7 @@ int main(void)
         { "count", testCount },
         { "channels independent", testChannelsIndependent },
         { "channels separate queues", testChannelsSeparateQueues },
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SOLENOID
         { "collect signal", testCollectSignal },
 #endif
     };

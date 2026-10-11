@@ -151,7 +151,7 @@ static void testFullWidth(void)
     CHECK(s_event_count == 2 && gpio.__read_state == 0);
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_GPIO
 
 // A collect signal channel holds 32 bits at most.
 static void testCollectSignal(void)
@@ -234,7 +234,7 @@ int main(void)
         { "full width", testFullWidth },
         { "task in", testTaskIn },
         { "sig data", testSigData },
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_GPIO
         { "collect signal", testCollectSignal },
 #endif
     };

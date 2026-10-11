@@ -4,7 +4,8 @@
 
 
 #include "core/pif_task_manager.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_KEYPAD)
+	#define COLLECT_SIGNAL_KEYPAD
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -32,7 +33,7 @@ typedef enum EnPifKeyState
 	KS_RELEASED
 } PifKeyState;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_KEYPAD
 
 typedef enum EnPifKeypadCsFlag
 {
@@ -46,7 +47,7 @@ typedef enum EnPifKeypadCsFlag
 	KP_CSF_COUNT		= 1
 } PifKeypadCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_KEYPAD
 
 
 typedef void (*PifActKeypadAcquire)(uint16_t* p_state);
@@ -70,7 +71,7 @@ typedef struct StPifKey
 	BOOL long_released;
 	uint32_t pressed_time;
 	uint32_t first_time;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_KEYPAD
 	PifCollectSignalChannel __cs[KP_CSF_COUNT];
 #endif
 } PifKey;
@@ -201,7 +202,7 @@ BOOL pifKeypad_Start(PifKeypad* p_owner, const char* p_name);
  */
 void pifKeypad_Stop(PifKeypad* p_owner);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_KEYPAD
 
 /**
  * @fn pifKeypad_SetCsFlag
@@ -221,7 +222,7 @@ BOOL pifKeypad_SetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag);
  */
 void pifKeypad_ResetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_KEYPAD
 
 #ifdef __cplusplus
 }

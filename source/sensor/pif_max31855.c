@@ -21,7 +21,7 @@ static uint32_t _doTask(PifTask* p_task)
 			if (temperature < p_owner->__low_threshold) {
 				p_parent->_curr_state = OFF;
 				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->__p_issuer);
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MAX31855
 				pifCollectSignal_Put(&p_owner->__cs[M3_CSF_STATE_IDX], p_parent->_curr_state);
 #endif
 			}
@@ -30,7 +30,7 @@ static uint32_t _doTask(PifTask* p_task)
 			if (temperature >= p_owner->__high_threshold) {
 				p_parent->_curr_state = ON;
 				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->__p_issuer);
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MAX31855
 				pifCollectSignal_Put(&p_owner->__cs[M3_CSF_STATE_IDX], p_parent->_curr_state);
 #endif
 			}
@@ -63,7 +63,7 @@ BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, void *
 
 void pifMax31855_Clear(PifMax31855* p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MAX31855
 	pifMax31855_ResetCsFlag(p_owner, M3_CSF_ALL_BIT);
 #endif
 
@@ -144,7 +144,7 @@ void pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double
 	p_owner->__high_threshold = high_threshold;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MAX31855
 
 BOOL pifMax31855_SetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag)
 {
@@ -160,4 +160,4 @@ void pifMax31855_ResetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag)
 	if (flag & M3_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[M3_CSF_STATE_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_MAX31855

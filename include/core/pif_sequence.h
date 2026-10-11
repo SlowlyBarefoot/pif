@@ -4,7 +4,8 @@
 
 
 #include "core/pif_task_manager.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_SEQUENCE)
+	#define COLLECT_SIGNAL_SEQUENCE
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -43,7 +44,7 @@ typedef enum EnPifSequenceState
 	SQS_WAIT		= 3
 } PifSequenceState;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SEQUENCE
 
 typedef enum EnPifSequenceCsFlag
 {
@@ -59,7 +60,7 @@ typedef enum EnPifSequenceCsFlag
     SQ_CSF_COUNT		= 2
 } PifSequenceCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_SEQUENCE
 
 struct StPifSequence
 {
@@ -76,7 +77,7 @@ struct StPifSequence
 	uint16_t __wait_ms;
 	uint8_t __state;
 	volatile uint8_t __event;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SEQUENCE
 	uint8_t __step_count;
 	PifCollectSignalChannel __cs[SQ_CSF_COUNT];
 #endif
@@ -167,7 +168,7 @@ void pifSequence_Wait(PifSequence *p_owner, PifSequenceStep next, uint16_t timeo
  */
 void pifSequence_Signal(PifSequence *p_owner);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SEQUENCE
 
 /**
  * @fn pifSequence_SetCsFlag
@@ -186,7 +187,7 @@ BOOL pifSequence_SetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag);
  */
 void pifSequence_ResetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_SEQUENCE
 
 #ifdef __cplusplus
 }

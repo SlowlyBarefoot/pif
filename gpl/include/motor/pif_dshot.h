@@ -7,7 +7,8 @@
 
 
 #include "core/pif.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_DSHOT)
+	#define COLLECT_SIGNAL_DSHOT
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -129,7 +130,7 @@ typedef enum EnPifDshotCommandState
 	DCS_POST_DELAY		= 3		// Holding the output after it
 } PifDshotCommandState;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DSHOT
 
 // Recorded by pifDshot_Update(), so a change shows at the cycle that made it.
 typedef enum EnPifDshotCsFlag
@@ -148,7 +149,7 @@ typedef enum EnPifDshotCsFlag
 
 #define PIF_DSHOT_CS_NO_COMMAND		4
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_DSHOT
 
 
 typedef struct StPifDshotTelemetry
@@ -233,7 +234,7 @@ struct StPifDshot
 
 	// Private Action Function
 	PifActDshotWrite __act_write;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DSHOT
 	PifCollectSignalChannel __cs[DS_CSF_COUNT];
 #endif
 };
@@ -463,7 +464,7 @@ BOOL pifDshot_Update(PifDshot* p_owner);
  */
 BOOL pifDshot_PutGcr(PifDshot* p_owner, uint8_t index, uint32_t gcr);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DSHOT
 
 /**
  * @fn pifDshot_SetCsFlag
@@ -482,7 +483,7 @@ BOOL pifDshot_SetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag);
  */
 void pifDshot_ResetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_DSHOT
 
 
 #ifdef __cplusplus

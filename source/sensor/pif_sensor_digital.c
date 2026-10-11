@@ -34,7 +34,7 @@ BOOL pifSensorDigital_Init(PifSensorDigital* p_owner, PifId id, PifActSensorAcqu
 
 void pifSensorDigital_Clear(PifSensorDigital* p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SENSOR_DIGITAL
 	pifSensorDigital_ResetCsFlag(p_owner, SD_CSF_ALL_BIT);
 #else
 	(void)p_owner;
@@ -79,7 +79,7 @@ uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner)
 			if (p_parent->__evt_change) {
 				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, &p_owner->__curr_level, p_parent->__p_issuer);
 			}
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SENSOR_DIGITAL
 			pifCollectSignal_Put(&p_owner->__cs[SD_CSF_STATE_IDX], p_parent->_curr_state);
 #endif
 		}
@@ -90,7 +90,7 @@ uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner)
 			if (p_parent->__evt_change) {
 				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, &p_owner->__curr_level, p_parent->__p_issuer);
 			}
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SENSOR_DIGITAL
 			pifCollectSignal_Put(&p_owner->__cs[SD_CSF_STATE_IDX], p_parent->_curr_state);
 #endif
 		}
@@ -108,7 +108,7 @@ PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifId id,
 }
 
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SENSOR_DIGITAL
 
 BOOL pifSensorDigital_SetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag)
 {
@@ -124,4 +124,4 @@ void pifSensorDigital_ResetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsF
 	if (flag & SD_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SD_CSF_STATE_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_SENSOR_DIGITAL

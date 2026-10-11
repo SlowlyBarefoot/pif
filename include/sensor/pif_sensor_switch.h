@@ -6,7 +6,8 @@
 #include "core/pif_task_manager.h"
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_SENSOR_SWITCH)
+	#define COLLECT_SIGNAL_SENSOR_SWITCH
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -14,7 +15,7 @@
 struct StPifSensorSwitch;
 typedef struct StPifSensorSwitch PifSensorSwitch;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SENSOR_SWITCH
 
 typedef enum EnPifSensorSwitchCsFlag
 {
@@ -30,7 +31,7 @@ typedef enum EnPifSensorSwitchCsFlag
     SS_CSF_COUNT		= 2
 } PifSensorSwitchCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_SENSOR_SWITCH
 
 /**
  * @class StPifSensorSwitch
@@ -47,7 +48,7 @@ struct StPifSensorSwitch
 	// Private Member Variable
     SWITCH __state;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SENSOR_SWITCH
     PifCollectSignalChannel __cs[SS_CSF_COUNT];
 #endif
 };
@@ -111,7 +112,7 @@ uint16_t pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner);
 PifTask *pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifId id, PifTaskMode mode, uint32_t period, BOOL start);
 
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SENSOR_SWITCH
 
 /**
  * @fn pifSensorSwitch_SetCsFlag
@@ -130,7 +131,7 @@ BOOL pifSensorSwitch_SetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag f
  */
 void pifSensorSwitch_ResetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_SENSOR_SWITCH
 
 #ifdef __cplusplus
 }

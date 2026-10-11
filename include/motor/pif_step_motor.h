@@ -5,7 +5,8 @@
 
 #include "core/pif_timer_manager.h"
 #include "motor/pif_motor.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_STEP_MOTOR)
+	#define COLLECT_SIGNAL_STEP_MOTOR
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -34,7 +35,7 @@ typedef void (*PifEvtStepMotorError)(PifStepMotor* p_owner);
 typedef void (*PifStepMotorControl)(PifStepMotor* p_owner);
 typedef void (*PifStepMotorStopStep)(PifStepMotor* p_owner);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_STEP_MOTOR
 
 typedef enum EnPifStepMotorCsFlag
 {
@@ -50,7 +51,7 @@ typedef enum EnPifStepMotorCsFlag
     SM_CSF_COUNT		= 2
 } PifStepMotorCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_STEP_MOTOR
 
 
 /**
@@ -92,7 +93,7 @@ struct StPifStepMotor
 	uint8_t __current_step;
 	uint32_t __target_pulse;
 	const uint16_t* __p_phase_operation;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_STEP_MOTOR
 	PifCollectSignalChannel __cs[SM_CSF_COUNT];
 #endif
 
@@ -268,7 +269,7 @@ BOOL pifStepMotor_StopControl(PifStepMotor* p_owner);
  */
 void pifStepMotor_Control(PifStepMotor* p_owner);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_STEP_MOTOR
 
 /**
  * @fn pifStepMotor_SetCsFlag
@@ -287,7 +288,7 @@ BOOL pifStepMotor_SetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag);
  */
 void pifStepMotor_ResetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_STEP_MOTOR
 
 #ifdef __cplusplus
 }

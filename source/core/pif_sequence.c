@@ -72,13 +72,13 @@ static void _poll(PifSequence *p_owner)
 	if (step) {
 		// A step that picks no successor leaves the sequence idle, which ends it.
 		p_owner->__state = SQS_IDLE;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SEQUENCE
 		p_owner->__step_count++;
 		pifCollectSignal_Put(&p_owner->__cs[SQ_CSF_STEP_IDX], p_owner->__step_count);
 #endif
 		(*step)(p_owner);
 	}
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SEQUENCE
 	// Put once the step has picked what follows, so the idle state set above for the step does
 	// not show as a glitch.
 	pifCollectSignal_Put(&p_owner->__cs[SQ_CSF_STATE_IDX], p_owner->__state);
@@ -119,7 +119,7 @@ BOOL pifSequence_Init(PifSequence *p_owner, PifId id, void *p_param)
 void pifSequence_Clear(PifSequence *p_owner)
 {
 	p_owner->__state = SQS_IDLE;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SEQUENCE
 	pifSequence_ResetCsFlag(p_owner, SQ_CSF_ALL_BIT);
 #endif
 	if (p_owner->_p_task) {
@@ -139,7 +139,7 @@ BOOL pifSequence_Start(PifSequence *p_owner, PifSequenceStep step)
 		return FALSE;
 	}
 	pifSequence_Next(p_owner, step);
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SEQUENCE
 	p_owner->__step_count = 0;
 	pifCollectSignal_Put(&p_owner->__cs[SQ_CSF_STEP_IDX], 0);
 	pifCollectSignal_Put(&p_owner->__cs[SQ_CSF_STATE_IDX], p_owner->__state);
@@ -156,7 +156,7 @@ void pifSequence_Stop(PifSequence *p_owner)
 {
 	p_owner->__state = SQS_IDLE;
 	if (p_owner->_p_task) p_owner->_p_task->pause = TRUE;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SEQUENCE
 	pifCollectSignal_Put(&p_owner->__cs[SQ_CSF_STATE_IDX], SQS_IDLE);
 #endif
 }
@@ -195,7 +195,7 @@ void pifSequence_Signal(PifSequence *p_owner)
 	p_owner->__event = TRUE;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SEQUENCE
 
 BOOL pifSequence_SetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag)
 {
@@ -216,4 +216,4 @@ void pifSequence_ResetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag)
 	if (flag & SQ_CSF_STEP_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SQ_CSF_STEP_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_SEQUENCE

@@ -392,7 +392,7 @@ BOOL pifDshot_Init(PifDshot* p_owner, PifId id, uint8_t motor_count, BOOL bidire
 
 void pifDshot_Clear(PifDshot* p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DSHOT
 	pifDshot_ResetCsFlag(p_owner, DS_CSF_ALL_BIT);
 #else
 	(void)p_owner;
@@ -492,7 +492,7 @@ BOOL pifDshot_IsCommandBusy(PifDshot* p_owner)
 	return !_isQueueEmpty(p_owner);
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DSHOT
 
 /**
  * @fn _putCommandSignal
@@ -519,7 +519,7 @@ static void _putCommandSignal(PifDshot* p_owner)
 	pifCollectSignal_Put(&p_owner->__cs[DS_CSF_COMMAND_IDX], command);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_DSHOT
 
 /**
  * @fn _update
@@ -587,7 +587,7 @@ BOOL pifDshot_Update(PifDshot* p_owner)
 {
 	BOOL rtn = _update(p_owner);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DSHOT
 	_putCommandSignal(p_owner);
 #endif
 	return rtn;
@@ -620,7 +620,7 @@ BOOL pifDshot_PutGcr(PifDshot* p_owner, uint8_t index, uint32_t gcr)
 	return TRUE;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DSHOT
 
 BOOL pifDshot_SetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag)
 {
@@ -641,4 +641,4 @@ void pifDshot_ResetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag)
 	if (flag & DS_CSF_COMMAND_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[DS_CSF_COMMAND_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_DSHOT

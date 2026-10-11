@@ -5,7 +5,8 @@
 
 #include "core/pif_timer_manager.h"
 #include "motor/pif_motor.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_DUTY_MOTOR)
+	#define COLLECT_SIGNAL_DUTY_MOTOR
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -23,7 +24,7 @@ typedef void (*PifEvtDutyMotorError)(PifDutyMotor* p_owner);
 
 typedef void (*PifDutyMotorControl)(PifDutyMotor* p_owner);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DUTY_MOTOR
 
 typedef enum EnPifDutyMotorCsFlag
 {
@@ -39,7 +40,7 @@ typedef enum EnPifDutyMotorCsFlag
     DM_CSF_COUNT		= 2
 } PifDutyMotorCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_DUTY_MOTOR
 
 
 /**
@@ -73,7 +74,7 @@ struct StPifDutyMotor
 	PifTimer* __p_timer_break;
 
     PifTask* __p_task;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DUTY_MOTOR
 	PifCollectSignalChannel __cs[DM_CSF_COUNT];
 #endif
 };
@@ -194,7 +195,7 @@ void pifDutyMotor_Control(PifDutyMotor* p_owner);
  */
 void pifDutyMotor_ApplyDuty(PifDutyMotor* p_owner, uint16_t duty);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DUTY_MOTOR
 
 /**
  * @fn pifDutyMotor_SetCsFlag
@@ -213,7 +214,7 @@ BOOL pifDutyMotor_SetCsFlag(PifDutyMotor* p_owner, PifDutyMotorCsFlag flag);
  */
 void pifDutyMotor_ResetCsFlag(PifDutyMotor* p_owner, PifDutyMotorCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_DUTY_MOTOR
 
 #ifdef __cplusplus
 }

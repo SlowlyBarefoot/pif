@@ -7,7 +7,8 @@
 #include "core/pif_timer_manager.h"
 #include "protocol/pif_modbus.h"
 #include "protocol/pif_modbus_rtu.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_MODBUS_RTU_MASTER)
+	#define COLLECT_SIGNAL_MODBUS_RTU_MASTER
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -24,7 +25,7 @@ typedef enum EnPifModbusMasterState
 	MBMS_ERROR			= 7
 } PifModbusMasterState;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MODBUS_RTU_MASTER
 
 typedef enum EnPifModbusRtuMasterCsFlag
 {
@@ -38,7 +39,7 @@ typedef enum EnPifModbusRtuMasterCsFlag
 	MBRM_CSF_COUNT		= 1
 } PifModbusRtuMasterCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_MODBUS_RTU_MASTER
 
 /**
  * @class StPifModbusRtuMaster
@@ -67,7 +68,7 @@ typedef struct StPifModbusRtuMaster
 	uint16_t index;
 	uint8_t __tx_address;
 	PifModbusRxState __rx_state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MODBUS_RTU_MASTER
 	PifCollectSignalChannel __cs[MBRM_CSF_COUNT];
 #endif
 } PifModbusRtuMaster;
@@ -260,7 +261,7 @@ BOOL pifModbusRtuMaster_WriteMultipleRegisters(PifModbusRtuMaster *p_owner, uint
 BOOL pifModbusRtuMaster_ReadWriteMultipleRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t read_address, uint16_t read_quantity, uint16_t *p_read_registers,
 		uint8_t write_address, uint16_t write_quantity, uint16_t *p_write_registers);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MODBUS_RTU_MASTER
 
 /**
  * @fn pifModbusRtuMaster_SetCsFlag
@@ -279,7 +280,7 @@ BOOL pifModbusRtuMaster_SetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMaste
  */
 void pifModbusRtuMaster_ResetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMasterCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_MODBUS_RTU_MASTER
 
 #ifdef __cplusplus
 }

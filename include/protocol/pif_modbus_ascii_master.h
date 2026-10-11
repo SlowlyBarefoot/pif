@@ -7,7 +7,8 @@
 #include "core/pif_timer_manager.h"
 #include "protocol/pif_modbus.h"
 #include "protocol/pif_modbus_ascii.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_MODBUS_ASCII_MASTER)
+	#define COLLECT_SIGNAL_MODBUS_ASCII_MASTER
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -23,7 +24,7 @@ typedef enum EnPifModbusMasterState
 	MBMS_ERROR			= 6
 } PifModbusMasterState;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MODBUS_ASCII_MASTER
 
 typedef enum EnPifModbusAsciiMasterCsFlag
 {
@@ -37,7 +38,7 @@ typedef enum EnPifModbusAsciiMasterCsFlag
 	MBAM_CSF_COUNT		= 1
 } PifModbusAsciiMasterCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_MODBUS_ASCII_MASTER
 
 /**
  * @class StPifModbusAsciiMaster
@@ -65,7 +66,7 @@ typedef struct StPifModbusAsciiMaster
 	uint16_t index;
 	uint8_t __tx_address;
 	PifModbusRxState __rx_state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MODBUS_ASCII_MASTER
 	PifCollectSignalChannel __cs[MBAM_CSF_COUNT];
 #endif
 } PifModbusAsciiMaster;
@@ -259,7 +260,7 @@ BOOL pifModbusAsciiMaster_WriteMultipleRegisters(PifModbusAsciiMaster *p_owner, 
 BOOL pifModbusAsciiMaster_ReadWriteMultipleRegisters(PifModbusAsciiMaster *p_owner, uint8_t slave, uint8_t read_address, uint16_t read_quantity, uint16_t *p_read_registers,
 		uint8_t write_address, uint16_t write_quantity, uint16_t *p_write_registers);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MODBUS_ASCII_MASTER
 
 /**
  * @fn pifModbusAsciiMaster_SetCsFlag
@@ -278,7 +279,7 @@ BOOL pifModbusAsciiMaster_SetCsFlag(PifModbusAsciiMaster *p_owner, PifModbusAsci
  */
 void pifModbusAsciiMaster_ResetCsFlag(PifModbusAsciiMaster *p_owner, PifModbusAsciiMasterCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_MODBUS_ASCII_MASTER
 
 #ifdef __cplusplus
 }

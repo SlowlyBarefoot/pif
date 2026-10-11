@@ -5,7 +5,8 @@
 
 #include "core/pif_ring_buffer.h"
 #include "core/pif_task_manager.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_UART)
+	#define COLLECT_SIGNAL_UART
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -81,7 +82,7 @@ typedef enum EnPifUartDirection
 	UD_TX		= 1
 } PifUartDirection;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_UART
 
 typedef enum EnPifUartCsFlag
 {
@@ -99,7 +100,7 @@ typedef enum EnPifUartCsFlag
 	UA_CSF_COUNT		= 3
 } PifUartCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_UART
 
 
 struct StPifUart;
@@ -164,7 +165,7 @@ struct StPifUart
     PifEvtUartParsing __evt_parsing;
     PifEvtUartSending __evt_sending;
     PifEvtUartHostFlowState __evt_host_flow_state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_UART
 	PifCollectSignalChannel __cs[UA_CSF_COUNT];
 #endif
 };
@@ -436,7 +437,7 @@ PifTask* pifUart_AttachRxTask(PifUart* p_owner, PifId id, PifTaskMode mode, uint
  */
 PifTask* pifUart_AttachTxTask(PifUart* p_owner, PifId id, PifTaskMode mode, uint32_t period, const char* name);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_UART
 
 /**
  * @fn pifUart_SetCsFlag
@@ -455,7 +456,7 @@ BOOL pifUart_SetCsFlag(PifUart* p_owner, PifUartCsFlag flag);
  */
 void pifUart_ResetCsFlag(PifUart* p_owner, PifUartCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_UART
 
 #ifdef __cplusplus
 }

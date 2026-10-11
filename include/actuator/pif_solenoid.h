@@ -5,7 +5,8 @@
 
 #include "core/pif_ring_data.h"
 #include "core/pif_task_manager.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_SOLENOID)
+	#define COLLECT_SIGNAL_SOLENOID
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -21,7 +22,7 @@
 
 // The signal names of a channel, "SNA" or "SND" and an index of up to 3 digits, have to fit in a
 // collect signal channel.
-#if defined(PIF_COLLECT_SIGNAL) && PIF_COLLECT_SIGNAL_NAME_SIZE < 7
+#if defined(COLLECT_SIGNAL_SOLENOID) && PIF_COLLECT_SIGNAL_NAME_SIZE < 7
 #error "PIF_COLLECT_SIGNAL_NAME_SIZE must be at least 7 for pifSolenoid"
 #endif
 
@@ -59,7 +60,7 @@ typedef struct StPifSolenoidContent
 	PifSolenoidDir dir;
 } PifSolenoidContent;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SOLENOID
 
 typedef enum EnPifSolenoidCsFlag
 {
@@ -75,7 +76,7 @@ typedef enum EnPifSolenoidCsFlag
     SN_CSF_COUNT		= 2
 } PifSolenoidCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_SOLENOID
 
 /**
  * @class StPifSolenoidChannel
@@ -95,7 +96,7 @@ typedef struct StPifSolenoidChannel
     uint32_t __delay_end;
     PifSolenoidDir __dir;
 	PifRingData* __p_buffer;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SOLENOID
 	PifCollectSignalChannel __cs[SN_CSF_COUNT];
 #endif
 } PifSolenoidChannel;
@@ -234,7 +235,7 @@ BOOL pifSolenoid_ActionOff(PifSolenoid* p_owner, uint8_t index);
 BOOL pifSolenoid_IsOn(PifSolenoid* p_owner, uint8_t index);
 
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SOLENOID
 
 /**
  * @fn pifSolenoid_SetCsFlag
@@ -255,7 +256,7 @@ BOOL pifSolenoid_SetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
  */
 void pifSolenoid_ResetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_SOLENOID
 
 #ifdef __cplusplus
 }

@@ -64,7 +64,7 @@ BOOL pifEncoder_Init(PifEncoder* p_owner, PifId id, PifEncoderResolution resolut
 
 void pifEncoder_Clear(PifEncoder* p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_ENCODER
 	pifEncoder_ResetCsFlag(p_owner, ENCODER_CSF_ALL_BIT);
 #else
 	(void)p_owner;
@@ -195,7 +195,7 @@ BOOL pifEncoder_sigState(PifEncoder* p_owner, uint8_t state, uint32_t time_us)
 		(*p_owner->__evt_step)(step, p_owner->__p_issuer);
 	}
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_ENCODER
 	pifCollectSignal_Put(&p_owner->__cs[ENCODER_CSF_STATE_IDX], state);
 	if (changed) {
 		pifCollectSignal_Put(&p_owner->__cs[ENCODER_CSF_POSITION_IDX],
@@ -212,7 +212,7 @@ void pifEncoder_AttachEvtStep(PifEncoder* p_owner, PifEvtEncoderStep evt_step, P
 	p_owner->__p_issuer = p_issuer;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_ENCODER
 
 BOOL pifEncoder_SetCsFlag(PifEncoder* p_owner, PifEncoderCsFlag flag)
 {
@@ -233,4 +233,4 @@ void pifEncoder_ResetCsFlag(PifEncoder* p_owner, PifEncoderCsFlag flag)
 	if (flag & ENCODER_CSF_POSITION_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[ENCODER_CSF_POSITION_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_ENCODER

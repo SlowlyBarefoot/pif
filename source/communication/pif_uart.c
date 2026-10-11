@@ -6,7 +6,7 @@
 static void _setFcState(PifUart* p_owner, SWITCH state)
 {
 	p_owner->_fc_state = state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_UART
 	pifCollectSignal_Put(&p_owner->__cs[UA_CSF_FC_IDX], state);
 #endif
 }
@@ -14,7 +14,7 @@ static void _setFcState(PifUart* p_owner, SWITCH state)
 static void _setTxState(PifUart* p_owner, PifUartTxState state)
 {
 	p_owner->__tx_state = state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_UART
 	pifCollectSignal_Put(&p_owner->__cs[UA_CSF_TX_IDX], state);
 #endif
 }
@@ -123,7 +123,7 @@ BOOL pifUart_Init(PifUart* p_owner, PifId id, uint32_t baudrate)
 
 void pifUart_Clear(PifUart* p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_UART
 	pifUart_ResetCsFlag(p_owner, UA_CSF_ALL_BIT);
 #endif
 	if (p_owner->_p_tx_task) {
@@ -237,7 +237,7 @@ void pifUart_SetDirection(PifUart* p_owner, PifUartDirection direction)
 	if (!p_owner->__act_direction) return;
 
 	(*p_owner->__act_direction)(direction);
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_UART
 	pifCollectSignal_Put(&p_owner->__cs[UA_CSF_DIR_IDX], direction);
 #endif
 }
@@ -600,7 +600,7 @@ PifTask *pifUart_AttachTxTask(PifUart *p_owner, PifId id, PifTaskMode mode, uint
 	return p_owner->_p_tx_task;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_UART
 
 BOOL pifUart_SetCsFlag(PifUart* p_owner, PifUartCsFlag flag)
 {
@@ -627,4 +627,4 @@ void pifUart_ResetCsFlag(PifUart* p_owner, PifUartCsFlag flag)
 	if (flag & UA_CSF_DIR_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[UA_CSF_DIR_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_UART

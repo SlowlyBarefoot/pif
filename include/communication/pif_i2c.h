@@ -5,7 +5,8 @@
 
 #include "communication/pif_comm.h"
 #include "core/pif_obj_array.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_I2C)
+	#define COLLECT_SIGNAL_I2C
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -25,7 +26,7 @@ typedef enum EnPifI2cReturn
 	IR_ERROR
 } PifI2cReturn;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_I2C
 
 typedef enum EnPifI2cCsFlag
 {
@@ -41,7 +42,7 @@ typedef enum EnPifI2cCsFlag
 	I2_CSF_COUNT		= 2
 } PifI2cCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_I2C
 
 
 struct StPifI2cDevice;
@@ -106,7 +107,7 @@ struct StPifI2cPort
 	// Private Member Variable
     PifObjArray __devices;
     volatile PifI2cDevice* __use_device;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_I2C
 	PifCollectSignalChannel __cs[I2_CSF_COUNT];
 #endif
 };
@@ -361,7 +362,7 @@ BOOL pifI2cDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask
  */
 void pifI2cPort_sigEndTransfer(PifI2cPort* p_owner, BOOL result);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_I2C
 
 /**
  * @fn pifI2cPort_SetCsFlag
@@ -381,7 +382,7 @@ BOOL pifI2cPort_SetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag);
  */
 void pifI2cPort_ResetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_I2C
 
 
 #ifdef __cplusplus

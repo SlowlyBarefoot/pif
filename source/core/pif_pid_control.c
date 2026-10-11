@@ -53,7 +53,7 @@ void pifPidControl_Init(PifPidControl *p_owner, float kp, float ki, float kd, fl
 
 void pifPidControl_Clear(PifPidControl *p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PID_CONTROL
 	pifPidControl_ResetCsFlag(p_owner, PID_CSF_ALL_BIT);
 #else
 	(void)p_owner;
@@ -92,7 +92,7 @@ float pifPidControl_Calculate(PifPidControl *p_owner, float err)
 
 	p_owner->err_prev = err;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PID_CONTROL
 	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_ERROR_IDX], err);
 	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_P_TERM_IDX], up);
 	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_I_TERM_IDX], ui);
@@ -237,7 +237,7 @@ float pifPidControl_Update(PifPidControl *p_owner, float setpoint, float measure
 	p_owner->__prev_setpoint = setpoint;
 	p_owner->__primed = TRUE;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PID_CONTROL
 	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_SETPOINT_IDX], setpoint);
 	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_MEASUREMENT_IDX], measurement);
 	pifCollectSignal_PutReal(&p_owner->__cs[PID_CSF_ERROR_IDX], error);
@@ -249,7 +249,7 @@ float pifPidControl_Update(PifPidControl *p_owner, float setpoint, float measure
 	return output;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PID_CONTROL
 
 BOOL pifPidControl_SetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag, PifId id)
 {
@@ -275,4 +275,4 @@ void pifPidControl_ResetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag)
 	}
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_PID_CONTROL

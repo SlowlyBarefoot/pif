@@ -116,7 +116,7 @@ BOOL pifPulse_Init(PifPulse* p_owner, PifId id)
 
 void pifPulse_Clear(PifPulse* p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PULSE
 	pifPulse_ResetCsFlag(p_owner, PULSE_CSF_ALL_BIT);
 #else
 	(void)p_owner;
@@ -285,7 +285,7 @@ BOOL pifPulse_sigEdge(PifPulse* p_owner, PifPulseState state, uint32_t time_us)
 		(*p_owner->__evt_edge)(state, p_owner->__p_issuer);
 	}
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PULSE
 	pifCollectSignal_Put(&p_owner->__cs[PULSE_CSF_STATE_IDX], state == PS_RISING_EDGE);
 #endif
 
@@ -298,7 +298,7 @@ void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssu
 	p_owner->__p_issuer = p_issuer;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PULSE
 
 BOOL pifPulse_SetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag)
 {
@@ -314,4 +314,4 @@ void pifPulse_ResetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag)
 	if (flag & PULSE_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[PULSE_CSF_STATE_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_PULSE

@@ -6,7 +6,8 @@
 #include "core/pif_task_manager.h"
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_SENSOR_DIGITAL)
+	#define COLLECT_SIGNAL_SENSOR_DIGITAL
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -15,7 +16,7 @@ struct StPifSensorDigital;
 typedef struct StPifSensorDigital PifSensorDigital;
 
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SENSOR_DIGITAL
 
 typedef enum EnPifSensorDigitalCsFlag
 {
@@ -29,7 +30,7 @@ typedef enum EnPifSensorDigitalCsFlag
     SD_CSF_COUNT		= 1
 } PifSensorDigitalCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_SENSOR_DIGITAL
 
 /**
  * @class StPifSensorDigital
@@ -48,7 +49,7 @@ struct StPifSensorDigital
 	uint16_t __high_threshold;
     uint16_t __curr_level;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SENSOR_DIGITAL
     PifCollectSignalChannel __cs[SD_CSF_COUNT];
 #endif
 
@@ -122,7 +123,7 @@ uint16_t pifSensorDigital_ProcessAcquire(PifSensorDigital* p_owner);
 PifTask* pifSensorDigital_AttachTaskAcquire(PifSensorDigital* p_owner, PifId id, PifTaskMode mode, uint32_t period, BOOL start);
 
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_SENSOR_DIGITAL
 
 /**
  * @fn pifSensorDigital_SetCsFlag
@@ -141,7 +142,7 @@ BOOL pifSensorDigital_SetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFla
  */
 void pifSensorDigital_ResetCsFlag(PifSensorDigital* p_owner, PifSensorDigitalCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_SENSOR_DIGITAL
 
 #ifdef __cplusplus
 }

@@ -53,6 +53,28 @@
 
 //#define PIF_COLLECT_SIGNAL
 
+// With PIF_COLLECT_SIGNAL every module below records its signals. Defining a module's NO_ macro
+// leaves its channels, its Put calls and its SetCsFlag/ResetCsFlag out of the build.
+//#define PIF_COLLECT_SIGNAL_NO_BUZZER
+//#define PIF_COLLECT_SIGNAL_NO_DSHOT
+//#define PIF_COLLECT_SIGNAL_NO_DUTY_MOTOR
+//#define PIF_COLLECT_SIGNAL_NO_ENCODER
+//#define PIF_COLLECT_SIGNAL_NO_GPIO
+//#define PIF_COLLECT_SIGNAL_NO_HC_SR04
+//#define PIF_COLLECT_SIGNAL_NO_I2C
+//#define PIF_COLLECT_SIGNAL_NO_KEYPAD
+//#define PIF_COLLECT_SIGNAL_NO_MAX31855
+//#define PIF_COLLECT_SIGNAL_NO_MODBUS_ASCII_MASTER
+//#define PIF_COLLECT_SIGNAL_NO_MODBUS_RTU_MASTER
+//#define PIF_COLLECT_SIGNAL_NO_PID_CONTROL
+//#define PIF_COLLECT_SIGNAL_NO_PULSE
+//#define PIF_COLLECT_SIGNAL_NO_SENSOR_DIGITAL
+//#define PIF_COLLECT_SIGNAL_NO_SENSOR_SWITCH
+//#define PIF_COLLECT_SIGNAL_NO_SEQUENCE
+//#define PIF_COLLECT_SIGNAL_NO_SOLENOID
+//#define PIF_COLLECT_SIGNAL_NO_STEP_MOTOR		// pifStepMotorPos and pifStepMotorSpeed too
+//#define PIF_COLLECT_SIGNAL_NO_UART
+
 
 // Characters of text a transfer task pass hands to pifLog at most, beyond the line it is on.
 //#define PIF_COLLECT_SIGNAL_TEXT_SIZE		96

@@ -10,7 +10,7 @@
 static void _setState(PifHcSr04* p_owner, PifHcSr04State state)
 {
 	p_owner->__state = state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_HC_SR04
 	pifCollectSignal_Put(&p_owner->__cs[HS_CSF_STATE_IDX], state);
 #endif
 }
@@ -31,7 +31,7 @@ static uint32_t _doTask(PifTask* p_task)
 		break;
 
 	case HSS_LOW:
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_HC_SR04
 		pifCollectSignal_Put(&p_owner->__cs[HS_CSF_DISTANCE_IDX], p_owner->__distance);
 #endif
 		if (p_owner->evt_read) (*p_owner->evt_read)(p_owner->__distance);
@@ -67,7 +67,7 @@ BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id)
 
 void pifHcSr04_Clear(PifHcSr04* p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_HC_SR04
 	pifHcSr04_ResetCsFlag(p_owner, HS_CSF_ALL_BIT);
 #endif
 	if (p_owner->_p_task) {
@@ -132,7 +132,7 @@ void pifHcSr04_sigReceiveEcho(PifHcSr04* p_owner, SWITCH state)
 	}
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_HC_SR04
 
 BOOL pifHcSr04_SetCsFlag(PifHcSr04* p_owner, PifHcSr04CsFlag flag)
 {
@@ -153,4 +153,4 @@ void pifHcSr04_ResetCsFlag(PifHcSr04* p_owner, PifHcSr04CsFlag flag)
 	if (flag & HS_CSF_DISTANCE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[HS_CSF_DISTANCE_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_HC_SR04

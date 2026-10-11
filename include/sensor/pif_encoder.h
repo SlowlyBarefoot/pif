@@ -17,7 +17,8 @@
 
 
 #include "core/pif.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_ENCODER)
+	#define COLLECT_SIGNAL_ENCODER
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -60,7 +61,7 @@ typedef enum EnPifEncoderResult
 	ENCODER_R_TIMEOUT	= 2		// No step came within the timeout
 } PifEncoderResult;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_ENCODER
 
 typedef enum EnPifEncoderCsFlag
 {
@@ -76,7 +77,7 @@ typedef enum EnPifEncoderCsFlag
 	ENCODER_CSF_COUNT			= 2
 } PifEncoderCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_ENCODER
 
 
 /**
@@ -117,7 +118,7 @@ struct StPifEncoder
 	uint32_t __timeout;
 	PifIssuerP __p_issuer;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_ENCODER
 	PifCollectSignalChannel __cs[ENCODER_CSF_COUNT];
 #endif
 
@@ -235,7 +236,7 @@ BOOL pifEncoder_sigState(PifEncoder* p_owner, uint8_t state, uint32_t time_us);
  */
 void pifEncoder_AttachEvtStep(PifEncoder* p_owner, PifEvtEncoderStep evt_step, PifIssuerP p_issuer);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_ENCODER
 
 /**
  * @fn pifEncoder_SetCsFlag
@@ -254,7 +255,7 @@ BOOL pifEncoder_SetCsFlag(PifEncoder* p_owner, PifEncoderCsFlag flag);
  */
 void pifEncoder_ResetCsFlag(PifEncoder* p_owner, PifEncoderCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_ENCODER
 
 #ifdef __cplusplus
 }

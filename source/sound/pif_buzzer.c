@@ -11,7 +11,7 @@
 static void _setState(PifBuzzer* p_owner, PifBuzzerState state)
 {
 	p_owner->_state = state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_BUZZER
 	pifCollectSignal_Put(&p_owner->__cs[BZ_CSF_STATE_IDX], state);
 #endif
 }
@@ -28,7 +28,7 @@ static void _setOutput(PifBuzzer* p_owner, BOOL on)
 
 	(*p_owner->__act_action)(on);
 	p_owner->_output = on;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_BUZZER
 	pifCollectSignal_Put(&p_owner->__cs[BZ_CSF_OUTPUT_IDX], on);
 #endif
 	if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, on);
@@ -135,7 +135,7 @@ BOOL pifBuzzer_Init(PifBuzzer* p_owner, PifId id, uint16_t period1ms, PifActBuzz
 
 void pifBuzzer_Clear(PifBuzzer* p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_BUZZER
 	pifBuzzer_ResetCsFlag(p_owner, BZ_CSF_ALL_BIT);
 #endif
 	if (p_owner->_p_task) {
@@ -171,7 +171,7 @@ void pifBuzzer_Stop(PifBuzzer* p_owner)
 	(*p_owner->__act_action)(OFF);
 	if (p_owner->_output) {
 		p_owner->_output = OFF;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_BUZZER
 		pifCollectSignal_Put(&p_owner->__cs[BZ_CSF_OUTPUT_IDX], OFF);
 #endif
 		if (p_owner->evt_change) (*p_owner->evt_change)(p_owner->_id, OFF);
@@ -184,7 +184,7 @@ BOOL pifBuzzer_State(PifBuzzer* p_owner)
     return p_owner->_output;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_BUZZER
 
 BOOL pifBuzzer_SetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag)
 {
@@ -205,4 +205,4 @@ void pifBuzzer_ResetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag)
 	if (flag & BZ_CSF_OUTPUT_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[BZ_CSF_OUTPUT_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_BUZZER

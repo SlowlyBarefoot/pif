@@ -26,7 +26,7 @@ static const char *c_cPktErr[] = {
 static void _setState(PifModbusAsciiMaster *p_owner, PifModbusMasterState state)
 {
 	p_owner->__state = state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MODBUS_ASCII_MASTER
 	pifCollectSignal_Put(&p_owner->__cs[MBAM_CSF_STATE_IDX], state);
 #endif
 }
@@ -306,7 +306,7 @@ fail:
 
 void pifModbusAsciiMaster_Clear(PifModbusAsciiMaster *p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MODBUS_ASCII_MASTER
 	pifModbusAsciiMaster_ResetCsFlag(p_owner, MBAM_CSF_ALL_BIT);
 #endif
 	if (p_owner->__p_timer) {
@@ -584,7 +584,7 @@ BOOL pifModbusAsciiMaster_ReadWriteMultipleRegisters(PifModbusAsciiMaster *p_own
 	return TRUE;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MODBUS_ASCII_MASTER
 
 BOOL pifModbusAsciiMaster_SetCsFlag(PifModbusAsciiMaster *p_owner, PifModbusAsciiMasterCsFlag flag)
 {
@@ -600,4 +600,4 @@ void pifModbusAsciiMaster_ResetCsFlag(PifModbusAsciiMaster *p_owner, PifModbusAs
 	if (flag & MBAM_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[MBAM_CSF_STATE_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_MODBUS_ASCII_MASTER

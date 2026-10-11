@@ -4,7 +4,8 @@
 
 
 #include "core/pif.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_PID_CONTROL)
+	#define COLLECT_SIGNAL_PID_CONTROL
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -36,7 +37,7 @@ typedef enum EnPifPidAntiWindup
 	PID_AW_BACK_CALCULATION	= 2		// Bleed the I term by tracking_gain * (limited - unlimited output)
 } PifPidAntiWindup;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PID_CONTROL
 
 // Every channel is CSVT_REAL. pifPidControl_Calculate() records the error, the output and the
 // terms. pifPidControl_Update() records them all.
@@ -65,7 +66,7 @@ typedef enum EnPifPidControlCsFlag
 	PID_CSF_COUNT			= 7
 } PifPidControlCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_PID_CONTROL
 
 
 /**
@@ -108,7 +109,7 @@ typedef struct StPifPidControl
 	float __kfd;
 	float __f_cutoff_hz;
 	float __f_state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PID_CONTROL
 	PifCollectSignalChannel __cs[PID_CSF_COUNT];
 #endif
 } PifPidControl;
@@ -226,7 +227,7 @@ void pifPidControl_Reset(PifPidControl *p_owner);
  */
 float pifPidControl_Update(PifPidControl *p_owner, float setpoint, float measurement, float dt);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PID_CONTROL
 
 /**
  * @fn pifPidControl_SetCsFlag
@@ -248,7 +249,7 @@ BOOL pifPidControl_SetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag, P
  */
 void pifPidControl_ResetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_PID_CONTROL
 
 
 #ifdef __cplusplus

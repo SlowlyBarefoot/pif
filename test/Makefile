@@ -33,7 +33,7 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_link test_pif_link_nolog test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
@@ -136,6 +136,10 @@ $(BUILD)/test_pif_gpio$(EXE): $(GPIO_SRC) $(GPIO_DEP) | $(BUILD)
 
 $(BUILD)/test_pif_gpio_cs$(EXE): $(GPIO_SRC) $(GPIO_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_COLLECT_SIGNAL $(INC) $(GPIO_SRC) $(GPIO_CS_SRC) -o $@
+
+# PIF_COLLECT_SIGNAL_NO_GPIO leaves the gpio out of the collector while the collector itself is built.
+$(BUILD)/test_pif_gpio_cs_off$(EXE): $(GPIO_SRC) $(GPIO_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_COLLECT_SIGNAL -DPIF_COLLECT_SIGNAL_NO_GPIO $(INC) $(GPIO_SRC) $(GPIO_CS_SRC) -o $@
 
 $(BUILD)/test_pif_link$(EXE): $(LINK_SRC) $(LINK_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) $(INC) $(LINK_SRC) -o $@

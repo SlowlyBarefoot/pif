@@ -29,7 +29,7 @@ BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count)
 
 void pifGpio_Clear(PifGpio* p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_GPIO
 	pifGpio_ResetCsFlag(p_owner, GP_CSF_ALL_BIT);
 #else
 	(void)p_owner;
@@ -45,7 +45,7 @@ PifGpioState pifGpio_ReadAll(PifGpio* p_owner)
 
 	PifGpioState state = p_owner->__act_in(p_owner->_id) & _mask(p_owner);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_GPIO
 	pifCollectSignal_Put(&p_owner->__cs[GP_CSF_STATE_IDX], state);
 #endif
 
@@ -73,7 +73,7 @@ BOOL pifGpio_WriteAll(PifGpio* p_owner, PifGpioState state)
 	p_owner->__write_state = state & _mask(p_owner);
 	p_owner->__act_out(p_owner->_id, p_owner->__write_state);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_GPIO
 	pifCollectSignal_Put(&p_owner->__cs[GP_CSF_STATE_IDX], p_owner->__write_state);
 #endif
 	return TRUE;
@@ -99,7 +99,7 @@ static uint32_t _doTask(PifTask* p_task)
 	changed = state ^ p_owner->__read_state;
 	p_owner->__read_state = state;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_GPIO
 	pifCollectSignal_Put(&p_owner->__cs[GP_CSF_STATE_IDX], state);
 #endif
 
@@ -122,7 +122,7 @@ void pifGpio_sigData(PifGpio* p_owner, uint8_t index, SWITCH state)
 	if (state != ((p_owner->__read_state >> index) & 1)) {
 		p_owner->__read_state = (p_owner->__read_state & ~((PifGpioState)1 << index)) | ((PifGpioState)state << index);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_GPIO
 		pifCollectSignal_Put(&p_owner->__cs[GP_CSF_STATE_IDX], p_owner->__read_state);
 #endif
 
@@ -156,7 +156,7 @@ PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifId id, PifTaskMode mode, uint
 	return p_task;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_GPIO
 
 BOOL pifGpio_SetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag)
 {
@@ -172,4 +172,4 @@ void pifGpio_ResetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag)
 	if (flag & GP_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[GP_CSF_STATE_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_GPIO

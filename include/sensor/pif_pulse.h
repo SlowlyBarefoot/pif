@@ -4,7 +4,8 @@
 
 
 #include "core/pif_task.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_PULSE)
+	#define COLLECT_SIGNAL_PULSE
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -58,7 +59,7 @@ struct StPifPulse;
 typedef struct StPifPulse PifPulse;
 
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PULSE
 
 typedef enum EnPifPulseCsFlag
 {
@@ -72,7 +73,7 @@ typedef enum EnPifPulseCsFlag
 	PULSE_CSF_COUNT		= 1
 } PifPulseCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_PULSE
 
 /**
  * @struct StPifPulseData
@@ -115,7 +116,7 @@ struct StPifPulse
 	} __valid_range[3];
 	PifIssuerP __p_issuer;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PULSE
 	PifCollectSignalChannel __cs[PULSE_CSF_COUNT];
 #endif
 
@@ -267,7 +268,7 @@ BOOL pifPulse_sigEdge(PifPulse* p_owner, PifPulseState state, uint32_t time_us);
  */
 void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssuerP p_issuer);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_PULSE
 
 /**
  * @fn pifPulse_SetCsFlag
@@ -286,7 +287,7 @@ BOOL pifPulse_SetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag);
  */
 void pifPulse_ResetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_PULSE
 
 #ifdef __cplusplus
 }

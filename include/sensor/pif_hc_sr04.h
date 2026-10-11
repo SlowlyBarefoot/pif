@@ -5,7 +5,8 @@
 
 #include "core/pif_task_manager.h"
 #include "sensor/pif_sensor_event.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_HC_SR04)
+	#define COLLECT_SIGNAL_HC_SR04
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -18,7 +19,7 @@ typedef enum EnPifHcSr04State
 	HSS_LOW			= 3
 } PifHcSr04State;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_HC_SR04
 
 typedef enum EnPifHcSr04CsFlag
 {
@@ -34,7 +35,7 @@ typedef enum EnPifHcSr04CsFlag
 	HS_CSF_COUNT			= 2
 } PifHcSr04CsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_HC_SR04
 
 typedef void (*PifActHcSr04Trigger)(SWITCH state);
 
@@ -58,7 +59,7 @@ typedef struct StPifHcSr04
     PifHcSr04State __state;
     uint32_t __trigger_time_us;
 	int32_t __distance;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_HC_SR04
 	PifCollectSignalChannel __cs[HS_CSF_COUNT];
 #endif
 } PifHcSr04;
@@ -124,7 +125,7 @@ void pifHcSr04_SetTemperature(PifHcSr04* p_owner, float temperature);
  */
 void pifHcSr04_sigReceiveEcho(PifHcSr04* p_owner, SWITCH state);
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_HC_SR04
 
 /**
  * @fn pifHcSr04_SetCsFlag
@@ -143,7 +144,7 @@ BOOL pifHcSr04_SetCsFlag(PifHcSr04* p_owner, PifHcSr04CsFlag flag);
  */
 void pifHcSr04_ResetCsFlag(PifHcSr04* p_owner, PifHcSr04CsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_HC_SR04
 
 #ifdef __cplusplus
 }

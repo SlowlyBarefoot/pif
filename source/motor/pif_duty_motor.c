@@ -75,7 +75,7 @@ BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifTimerManager* p_timer
 
 void pifDutyMotor_Clear(PifDutyMotor* p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DUTY_MOTOR
 	pifDutyMotor_ResetCsFlag(p_owner, DM_CSF_ALL_BIT);
 #endif
 	if (p_owner->__p_timer_delay) {
@@ -95,7 +95,7 @@ void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state, char *tag
 	pifLog_Printf(LT_INFO, "%s(%u) %s->%s E:%d", tag, p_owner->_id,
 			kMotorState[p_owner->_state], kMotorState[state], p_owner->__error);
 	p_owner->_state = state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DUTY_MOTOR
 	pifCollectSignal_Put(&p_owner->__cs[DM_CSF_STATE_IDX], state);
 #endif
 }
@@ -105,7 +105,7 @@ void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state, char *tag
 PIF_INLINE void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state)
 {
 	p_owner->_state = state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DUTY_MOTOR
 	pifCollectSignal_Put(&p_owner->__cs[DM_CSF_STATE_IDX], state);
 #endif
 }
@@ -202,12 +202,12 @@ BOOL pifDutyMotor_StopControl(PifDutyMotor* p_owner)
 void pifDutyMotor_ApplyDuty(PifDutyMotor* p_owner, uint16_t duty)
 {
 	(*p_owner->act_set_duty)(duty);
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DUTY_MOTOR
 	pifCollectSignal_Put(&p_owner->__cs[DM_CSF_DUTY_IDX], duty);
 #endif
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_DUTY_MOTOR
 
 BOOL pifDutyMotor_SetCsFlag(PifDutyMotor* p_owner, PifDutyMotorCsFlag flag)
 {
@@ -228,4 +228,4 @@ void pifDutyMotor_ResetCsFlag(PifDutyMotor* p_owner, PifDutyMotorCsFlag flag)
 	if (flag & DM_CSF_DUTY_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[DM_CSF_DUTY_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_DUTY_MOTOR

@@ -4,7 +4,8 @@
 
 
 #include "core/pif_task_manager.h"
-#ifdef PIF_COLLECT_SIGNAL
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_GPIO)
+	#define COLLECT_SIGNAL_GPIO
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -36,7 +37,7 @@ typedef void (*PifActGpioOut)(PifId id, PifGpioState state);
 typedef void (*PifEvtGpioIn)(PifGpio* p_owner, uint8_t index, SWITCH state);
 
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_GPIO
 
 typedef enum EnPifGpioCsFlag
 {
@@ -50,7 +51,7 @@ typedef enum EnPifGpioCsFlag
 	GP_CSF_COUNT		= 1
 } PifGpioCsFlag;
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_GPIO
 
 /**
  * @class StPifGpio
@@ -74,7 +75,7 @@ struct StPifGpio
 	PifGpioState __read_state;	// Last input state, the reference for evt_in.
 	PifGpioState __write_state;
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_GPIO
 	PifCollectSignalChannel __cs[GP_CSF_COUNT];
 #endif
 
@@ -180,7 +181,7 @@ void pifGpio_AttachActOut(PifGpio* p_owner, PifActGpioOut act_out);
 PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifId id, PifTaskMode mode, uint16_t period, BOOL start);
 
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_GPIO
 
 /**
  * @fn pifGpio_SetCsFlag
@@ -200,7 +201,7 @@ BOOL pifGpio_SetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag);
  */
 void pifGpio_ResetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag);
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_GPIO
 
 #ifdef __cplusplus
 }

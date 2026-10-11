@@ -14,7 +14,7 @@
 static void _setState(PifI2cDevice* p_device, PifI2cState state)
 {
 	p_device->_state = state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_I2C
 	if (state == IS_RUN) pifCollectSignal_Put(&p_device->_p_port->__cs[I2_CSF_ADDR_IDX], p_device->addr);
 	pifCollectSignal_Put(&p_device->_p_port->__cs[I2_CSF_STATE_IDX], state);
 #endif
@@ -42,7 +42,7 @@ fail:
 
 void pifI2cPort_Clear(PifI2cPort* p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_I2C
 	pifI2cPort_ResetCsFlag(p_owner, I2_CSF_ALL_BIT);
 #endif
 	pifObjArray_Clear(&p_owner->__devices);
@@ -493,7 +493,7 @@ void pifI2cPort_sigEndTransfer(PifI2cPort* p_owner, BOOL result)
 	_setState(p_device, result ? IS_COMPLETE : IS_ERROR);
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_I2C
 
 BOOL pifI2cPort_SetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag)
 {
@@ -514,4 +514,4 @@ void pifI2cPort_ResetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag)
 	if (flag & I2_CSF_ADDR_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[I2_CSF_ADDR_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_I2C

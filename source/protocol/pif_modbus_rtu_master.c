@@ -26,7 +26,7 @@ static const char *c_cPktErr[] = {
 static void _setState(PifModbusRtuMaster *p_owner, PifModbusMasterState state)
 {
 	p_owner->__state = state;
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MODBUS_RTU_MASTER
 	pifCollectSignal_Put(&p_owner->__cs[MBRM_CSF_STATE_IDX], state);
 #endif
 }
@@ -311,7 +311,7 @@ fail:
 
 void pifModbusRtuMaster_Clear(PifModbusRtuMaster *p_owner)
 {
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MODBUS_RTU_MASTER
 	pifModbusRtuMaster_ResetCsFlag(p_owner, MBRM_CSF_ALL_BIT);
 #endif
 	if (p_owner->__p_timer) {
@@ -590,7 +590,7 @@ BOOL pifModbusRtuMaster_ReadWriteMultipleRegisters(PifModbusRtuMaster *p_owner, 
 	return TRUE;
 }
 
-#ifdef PIF_COLLECT_SIGNAL
+#ifdef COLLECT_SIGNAL_MODBUS_RTU_MASTER
 
 BOOL pifModbusRtuMaster_SetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMasterCsFlag flag)
 {
@@ -606,4 +606,4 @@ void pifModbusRtuMaster_ResetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMas
 	if (flag & MBRM_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[MBRM_CSF_STATE_IDX]);
 }
 
-#endif	// PIF_COLLECT_SIGNAL
+#endif	// COLLECT_SIGNAL_MODBUS_RTU_MASTER
