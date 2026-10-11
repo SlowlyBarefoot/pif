@@ -3,7 +3,7 @@
 #define PIF_LED_H
 
 
-#include "core/pif_timer_manager.h"
+#include "core/pif_task_manager.h"
 
 
 typedef void (*PifActLedState)(PifId id, uint32_t state);
@@ -22,7 +22,7 @@ typedef struct StPifLedBlink
 
 /**
  * @class StPifLed
- * @brief Multi-channel LED controller with optional timer-based blink features.
+ * @brief Multi-channel LED controller with optional task-based blink features.
  */
 typedef struct StPifLed
 {
@@ -33,11 +33,10 @@ typedef struct StPifLed
     PifId _id;
 
 	// Private Member Variable
-	PifTimerManager* __p_timer_manager;
 	uint32_t __state;
 	uint8_t __blink_count;
 	PifLedBlink* __p_blinks;
-	PifTimer* __p_timer_blink;
+	PifTask* __p_task;				// Blink task, paused while no LED blinks
 
 	// Private Action Function
 	PifActLedState __act_state;
@@ -53,12 +52,12 @@ extern "C" {
  * @brief Initializes the LED controller and registers state output callback.
  * @param p_owner Pointer to the LED controller instance to initialize.
  * @param id Unique object identifier. Use `PIF_ID_AUTO` to assign one automatically.
- * @param p_timer_manager Timer manager used for blink scheduling.
- * @param count Number of LED channels managed by this instance.
+ * @param count Number of LED channels managed by this instance. Bits past it are ignored by
+ *              every function that takes a bit mask or a state.
  * @param act_state Callback that applies aggregated LED state to hardware.
  * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
-BOOL pifLed_Init(PifLed* p_owner, PifId id, PifTimerManager* p_timer_manager, uint8_t count, PifActLedState act_state);
+BOOL pifLed_Init(PifLed* p_owner, PifId id, uint8_t count, PifActLedState act_state);
 
 /**
  * @fn pifLed_Clear
@@ -131,34 +130,39 @@ void pifLed_AllToggle(PifLed* p_owner);
 
 /**
  * @fn pifLed_AttachSBlink
- * @brief Enables single-pattern blink mode for selected channels.
+ * @brief Enables single-pattern blink mode for selected channels. Same as
+ *        pifLed_AttachMBlink(p_owner, period1ms, 1, 1).
  * @param p_owner Pointer to an initialized LED controller.
- * @param period1ms Blink timer period in milliseconds.
- * @return `TRUE` if blink timer is created and started, otherwise `FALSE`.
+ * @param period1ms Blink period in milliseconds, the time each LED stays on or off.
+ * @return `TRUE` if the blink task is ready, otherwise `FALSE`.
  */
 BOOL pifLed_AttachSBlink(PifLed* p_owner, uint16_t period1ms);
 
 /**
  * @fn pifLed_AttachMBlink
  * @brief Enables multi-pattern blink mode with variable blink profile entries.
+ *        It adds a task that runs only while an LED blinks.
  * @param p_owner Pointer to an initialized LED controller.
- * @param period1ms Blink timer period in milliseconds.
+ * @param period1ms Blink period in milliseconds, the unit of the multiples below.
  * @param count Number of blink profile entries that follow in variadic arguments.
- * @param ... Variadic blink profile parameters consumed by implementation.
- * @return `TRUE` if multi-blink resources are configured, otherwise `FALSE`.
+ * @param ... `count` values of type `int`, each a non-zero multiple of the period at which
+ *            that profile toggles. Calling it again replaces the profiles and clears which
+ *            LEDs blink.
+ * @return `TRUE` if multi-blink resources are configured, otherwise `FALSE`. On failure the
+ *         previous blink setting is kept.
  */
 BOOL pifLed_AttachMBlink(PifLed* p_owner, uint16_t period1ms, uint8_t count, ...);
 
 /**
  * @fn pifLed_DetachBlink
- * @brief Disables blink mode and releases associated timer resources.
+ * @brief Disables blink mode and removes the blink task. The LEDs keep their last state.
  * @param p_owner Pointer to an initialized LED controller.
  */
 void pifLed_DetachBlink(PifLed* p_owner);
 
 /**
  * @fn pifLed_ChangeBlinkPeriod
- * @brief Changes the active blink timer period.
+ * @brief Changes the blink period.
  * @param p_owner Pointer to an initialized LED controller with blink enabled.
  * @param period1ms New blink period in milliseconds.
  * @return `TRUE` if period update succeeds, otherwise `FALSE`.
@@ -167,7 +171,8 @@ BOOL pifLed_ChangeBlinkPeriod(PifLed* p_owner, uint16_t period1ms);
 
 /**
  * @fn pifLed_SBlinkOn
- * @brief Enables single-pattern blinking on selected channels.
+ * @brief Enables single-pattern blinking on selected channels. Same as
+ *        pifLed_MBlinkOn(p_owner, bits, 0).
  * @param p_owner Pointer to an initialized LED controller.
  * @param bits Bit mask selecting channels that should blink.
  */
@@ -175,7 +180,10 @@ void pifLed_SBlinkOn(PifLed* p_owner, uint32_t bits);
 
 /**
  * @fn pifLed_MBlinkOn
- * @brief Enables a specific multi-blink profile on selected channels.
+ * @brief Enables a specific multi-blink profile on selected channels, and takes them out of
+ *        any other profile. The LEDs take the current phase of the profile at once.
+ *        When no LED was blinking, every profile starts over: the LEDs turn on at once and
+ *        toggle after a full multiple of the period.
  * @param p_owner Pointer to an initialized LED controller.
  * @param bits Bit mask selecting channels that should blink.
  * @param index Blink profile index to apply.
@@ -197,7 +205,8 @@ void pifLed_SBlinkOff(PifLed* p_owner, uint32_t bits, SWITCH state);
  * @param p_owner Pointer to an initialized LED controller.
  * @param bits Bit mask selecting channels to stop blinking.
  * @param index Blink profile index to disable.
- * @param state Final LED state to apply after blink is disabled.
+ * @param state Final LED state to apply after blink is disabled. A channel that blinks in
+ *              another profile keeps blinking there and is left alone.
  */
 void pifLed_MBlinkOff(PifLed* p_owner, uint32_t bits, uint8_t index, SWITCH state);
 

@@ -34,7 +34,7 @@ else
 endif
 
 NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_link test_pif_link_nolog test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
-           test_pif_dot_matrix test_pif_fnd
+           test_pif_dot_matrix test_pif_fnd test_pif_led
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
 LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
@@ -72,6 +72,8 @@ DOT_MATRIX_SRC := display/test_pif_dot_matrix.c $(ROOT)/source/display/pif_dot_m
                   $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 FND_SRC := display/test_pif_fnd.c $(ROOT)/source/display/pif_fnd.c \
            $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+LED_SRC := display/test_pif_led.c $(ROOT)/source/display/pif_led.c \
+           $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 
 LINK_DEP :=$(ROOT)/source/protocol/pif_link.c $(ROOT)/include/protocol/pif_link.h \
             $(ROOT)/include/protocol/pif_link_fragment.h
@@ -100,6 +102,7 @@ run-test_pif_solenoid: run-test_pif_task_manager
 run-test_pif_solenoid_cs: run-test_pif_solenoid
 run-test_pif_dot_matrix: run-test_pif_solenoid_cs
 run-test_pif_fnd: run-test_pif_dot_matrix
+run-test_pif_led: run-test_pif_fnd
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
 	$(call RUN,$<)
@@ -162,6 +165,9 @@ $(BUILD)/test_pif_dot_matrix$(EXE): $(DOT_MATRIX_SRC) $(ROOT)/include/display/pi
 
 $(BUILD)/test_pif_fnd$(EXE): $(FND_SRC) $(ROOT)/include/display/pif_fnd.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(FND_SRC) -o $@
+
+$(BUILD)/test_pif_led$(EXE): $(LED_SRC) $(ROOT)/include/display/pif_led.h | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(LED_SRC) -o $@
 
 $(BUILD):
 	$(call MKDIR,$(BUILD))

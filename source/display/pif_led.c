@@ -2,66 +2,78 @@
 #include "display/pif_led.h"
 
 
-static void _evtTimerSBlinkFinish(PifIssuerP p_issuer)
+static uint32_t _allBits(PifLed* p_owner)
 {
-    PifLed* p_owner = (PifLed*)p_issuer;
-	PifLedBlink* p_blink = &p_owner->__p_blinks[0];
-	uint8_t i;
-
-	p_blink->state ^= 1;
-	for (i = 0; i < p_owner->count; i++) {
-		if (p_blink->flag & (1UL << i)) {
-			if (p_blink->state) {
-				p_owner->__state |= 1UL << i;
-			}
-			else {
-				p_owner->__state &= ~(1UL << i);
-			}
-		}
-	}
-	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
+	return (p_owner->count == 32) ? 0xFFFFFFFFUL : (1UL << p_owner->count) - 1;
 }
 
-static void _evtTimerMBlinkFinish(PifIssuerP p_issuer)
+static uint32_t _doTask(PifTask* p_task)
 {
-    PifLed* p_owner = (PifLed*)p_issuer;
+    PifLed* p_owner = (PifLed*)p_task->_p_client;
 	PifLedBlink* p_blink;
-	uint8_t b, i;
+	uint8_t b;
 
+	// A single blink is a profile with a multiple of 1, which toggles at every run.
     for (b = 0; b < p_owner->__blink_count; b++) {
     	p_blink = &p_owner->__p_blinks[b];
-    	if (!p_blink->count) {
-    		p_blink->count = p_blink->multiple - 1;
-
-    		p_blink->state ^= 1;
-			for (i = 0; i < p_owner->count; i++) {
-				if (p_blink->flag & (1UL << i)) {
-					if (p_blink->state) {
-						p_owner->__state |= 1UL << i;
-					}
-					else {
-						p_owner->__state &= ~(1UL << i);
-					}
-				}
-			}
-    	}
-    	else {
+    	if (p_blink->count) {
     		p_blink->count--;
+    		continue;
     	}
+		p_blink->count = p_blink->multiple - 1;
+
+		p_blink->state ^= 1;
+		// pifLed_MBlinkOn() keeps the flags within count.
+		if (p_blink->state) {
+			p_owner->__state |= p_blink->flag;
+		}
+		else {
+			p_owner->__state &= ~p_blink->flag;
+		}
     }
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
+	return 0;
 }
 
-BOOL pifLed_Init(PifLed* p_owner, PifId id, PifTimerManager* p_timer_manager, uint8_t count, PifActLedState act_state)
+// The task runs only while an LED blinks. When it resumes, every profile starts over in the on
+// phase and toggles after a full multiple of the period.
+static void _updatePause(PifLed* p_owner)
 {
-	if (!p_owner || !p_timer_manager || !count || count > 32 || !act_state) {
+	PifTask* p_task = p_owner->__p_task;
+	PifLedBlink* p_blink;
+	BOOL pause = TRUE;
+	uint8_t b;
+
+	if (!p_task) return;
+
+	for (b = 0; b < p_owner->__blink_count; b++) {
+		if (p_owner->__p_blinks[b].flag) {
+			pause = FALSE;
+			break;
+		}
+	}
+
+	if (p_task->pause && !pause) {
+		for (b = 0; b < p_owner->__blink_count; b++) {
+			p_blink = &p_owner->__p_blinks[b];
+			p_blink->state = ON;
+			p_blink->count = p_blink->multiple - 1;
+		}
+		// Counts the period from now. A paused task would otherwise run at once.
+		pifTask_SetParam(p_task, TM_PERIOD, p_task->_default_period);
+	}
+	p_task->pause = pause;
+}
+
+BOOL pifLed_Init(PifLed* p_owner, PifId id, uint8_t count, PifActLedState act_state)
+{
+	if (!p_owner || !count || count > 32 || !act_state) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
 
 	memset(p_owner, 0, sizeof(PifLed));
 
-    p_owner->__p_timer_manager = p_timer_manager;
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     p_owner->count = count;
@@ -71,19 +83,13 @@ BOOL pifLed_Init(PifLed* p_owner, PifId id, PifTimerManager* p_timer_manager, ui
 
 void pifLed_Clear(PifLed* p_owner)
 {
-    if (p_owner->__p_blinks) {
-        free(p_owner->__p_blinks);
-        p_owner->__p_blinks = NULL;
-    }
-	if (p_owner->__p_timer_blink) {
-		pifTimerManager_Remove(p_owner->__p_timer_blink);
-		p_owner->__p_timer_blink = NULL;
-	}
+	pifLed_DetachBlink(p_owner);
 }
 
+// Bits past count are dropped wherever the state is set, so that the callback never sees them.
 void pifLed_PartOn(PifLed* p_owner, uint32_t bits)
 {
-	p_owner->__state |= bits;
+	p_owner->__state |= bits & _allBits(p_owner);
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
@@ -96,7 +102,7 @@ void pifLed_PartOff(PifLed* p_owner, uint32_t bits)
 void pifLed_PartChange(PifLed* p_owner, uint32_t bits, SWITCH state)
 {
 	if (state) {
-		p_owner->__state |= bits;
+		p_owner->__state |= bits & _allBits(p_owner);
 	}
 	else {
 		p_owner->__state &= ~bits;
@@ -106,13 +112,13 @@ void pifLed_PartChange(PifLed* p_owner, uint32_t bits, SWITCH state)
 
 void pifLed_PartToggle(PifLed* p_owner, uint32_t bits)
 {
-	p_owner->__state ^= bits;
+	p_owner->__state ^= bits & _allBits(p_owner);
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
 void pifLed_AllOn(PifLed* p_owner)
 {
-	p_owner->__state = (p_owner->count == 32) ? 0xFFFFFFFFUL : (1UL << p_owner->count) - 1;
+	p_owner->__state = _allBits(p_owner);
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
@@ -124,13 +130,13 @@ void pifLed_AllOff(PifLed* p_owner)
 
 void pifLed_AllChange(PifLed* p_owner, uint32_t state)
 {
-	p_owner->__state = state;
+	p_owner->__state = state & _allBits(p_owner);
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
 void pifLed_AllToggle(PifLed* p_owner)
 {
-	p_owner->__state ^= (p_owner->count == 32) ? 0xFFFFFFFFUL : (1UL << p_owner->count) - 1;
+	p_owner->__state ^= _allBits(p_owner);
 	(*p_owner->__act_state)(p_owner->_id, p_owner->__state);
 }
 
@@ -142,6 +148,7 @@ BOOL pifLed_AttachSBlink(PifLed* p_owner, uint16_t period1ms)
 BOOL pifLed_AttachMBlink(PifLed* p_owner, uint16_t period1ms, uint8_t count, ...)
 {
 	va_list ap;
+	PifLedBlink* p_blinks;
 	int b;
 
 	if (!period1ms || !count) {
@@ -149,60 +156,58 @@ BOOL pifLed_AttachMBlink(PifLed* p_owner, uint16_t period1ms, uint8_t count, ...
 		return FALSE;
     }
 
-	if (!p_owner->__p_timer_blink) {
-		p_owner->__p_timer_blink = pifTimerManager_Add(p_owner->__p_timer_manager, TT_REPEAT);
-		if (!p_owner->__p_timer_blink) return FALSE;
-	}
-
-    pifTimer_Start(p_owner->__p_timer_blink, period1ms * 1000L / p_owner->__p_timer_manager->_period1us);
-
-    if (p_owner->__p_blinks) {
-        free(p_owner->__p_blinks);
-        p_owner->__p_blinks = NULL;
-    }
-    p_owner->__p_blinks = calloc(count, sizeof(PifLedBlink));
-    if (!p_owner->__p_blinks) {
+	// The new profile is built aside, so that a failure leaves the current blink untouched.
+    p_blinks = calloc(count, sizeof(PifLedBlink));
+    if (!p_blinks) {
     	pif_error = E_OUT_OF_HEAP;
     	return FALSE;
     }
+
+	va_start(ap, count);
+	for (b = 0; b < count; b++) {
+		p_blinks[b].multiple = va_arg(ap, int);
+		if (!p_blinks[b].multiple) break;
+	}
+	va_end(ap);
+	if (b < count) {
+		free(p_blinks);
+        pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	if (!p_owner->__p_task) {
+		// Paused until an LED blinks.
+		p_owner->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000UL, _doTask, p_owner, FALSE);
+		if (!p_owner->__p_task) {
+			free(p_blinks);
+			return FALSE;
+		}
+		p_owner->__p_task->name = "LED";
+	}
+	else {
+		// A non-zero period cannot fail.
+		pifTask_ChangePeriod(p_owner->__p_task, period1ms * 1000UL);
+	}
+
+    if (p_owner->__p_blinks) free(p_owner->__p_blinks);
+    p_owner->__p_blinks = p_blinks;
     p_owner->__blink_count = count;
-
-    if (count == 1) {
-        pifTimer_AttachEvtFinish(p_owner->__p_timer_blink, _evtTimerSBlinkFinish, p_owner);
-
-   		p_owner->__p_blinks[0].multiple = 1;
-    }
-    else {
-        pifTimer_AttachEvtFinish(p_owner->__p_timer_blink, _evtTimerMBlinkFinish, p_owner);
-
-    	va_start(ap, count);
-    	for (b = 0; b < count; b++) {
-    		p_owner->__p_blinks[b].multiple = va_arg(ap, int);
-    		if (!p_owner->__p_blinks[b].multiple) {
-    			free(p_owner->__p_blinks);
-    			p_owner->__p_blinks = NULL;
-    			p_owner->__blink_count = 0;
-    	        pif_error = E_INVALID_PARAM;
-    			return FALSE;
-    		}
-    	}
-    	va_end(ap);
-    }
+    _updatePause(p_owner);
 	return TRUE;
 }
 
 void pifLed_DetachBlink(PifLed* p_owner)
 {
+	if (p_owner->__p_task) {
+		pifTaskManager_Remove(p_owner->__p_task);
+		p_owner->__p_task = NULL;
+	}
+
     if (p_owner->__p_blinks) {
 		free(p_owner->__p_blinks);
 		p_owner->__p_blinks = NULL;
     }
 	p_owner->__blink_count = 0;
-
-	if (p_owner->__p_timer_blink) {
-		pifTimerManager_Remove(p_owner->__p_timer_blink);
-		p_owner->__p_timer_blink = NULL;
-	}
 }
 
 BOOL pifLed_ChangeBlinkPeriod(PifLed* p_owner, uint16_t period1ms)
@@ -212,47 +217,58 @@ BOOL pifLed_ChangeBlinkPeriod(PifLed* p_owner, uint16_t period1ms)
 		return FALSE;
     }
 
-	if (!p_owner->__p_timer_blink || p_owner->__p_timer_blink->_step == TS_STOP) {
+	if (!p_owner->__p_task) {
         pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
-	return pifTimer_SetTarget(p_owner->__p_timer_blink, period1ms * 1000L / p_owner->__p_timer_manager->_period1us);
+	return pifTask_ChangePeriod(p_owner->__p_task, period1ms * 1000UL);
 }
 
 void pifLed_SBlinkOn(PifLed* p_owner, uint32_t bits)
 {
-    if (!p_owner->__p_blinks) return;
-
-    p_owner->__p_blinks[0].flag |= bits;
+	pifLed_MBlinkOn(p_owner, bits, 0);
 }
 
 void pifLed_MBlinkOn(PifLed* p_owner, uint32_t bits, uint8_t index)
 {
 	uint8_t b;
 
-    if (!p_owner->__p_blinks || index >= p_owner->__blink_count) return; 
+    if (!p_owner->__p_blinks || index >= p_owner->__blink_count) return;
 
-    p_owner->__p_blinks[index].flag |= bits;
+    bits &= _allBits(p_owner);
     for (b = 0; b < p_owner->__blink_count; b++) {
-    	if (b != index && (p_owner->__p_blinks[b].flag & bits)) {
+    	if (b == index) {
+    		p_owner->__p_blinks[b].flag |= bits;
+    	}
+    	else {
     		p_owner->__p_blinks[b].flag &= ~bits;
     	}
     }
+    _updatePause(p_owner);
+
+    // The LEDs join the profile in its current phase instead of waiting for its next toggle.
+    pifLed_PartChange(p_owner, bits, p_owner->__p_blinks[index].state);
 }
 
 void pifLed_SBlinkOff(PifLed* p_owner, uint32_t bits, SWITCH state)
 {
-    if (!p_owner->__p_blinks) return;
-
-	p_owner->__p_blinks[0].flag &= ~bits;
-	pifLed_PartChange(p_owner, bits, state);
+	pifLed_MBlinkOff(p_owner, bits, 0, state);
 }
 
 void pifLed_MBlinkOff(PifLed* p_owner, uint32_t bits, uint8_t index, SWITCH state)
 {
-    if (!p_owner->__p_blinks || index >= p_owner->__blink_count) return; 
+	uint32_t others = 0;
+	uint8_t b;
+
+    if (!p_owner->__p_blinks || index >= p_owner->__blink_count) return;
 
 	p_owner->__p_blinks[index].flag &= ~bits;
-	pifLed_PartChange(p_owner, bits, state);
+	for (b = 0; b < p_owner->__blink_count; b++) {
+		if (b != index) others |= p_owner->__p_blinks[b].flag;
+	}
+	_updatePause(p_owner);
+
+	// An LED that blinks in another profile keeps blinking there, so its state is left to it.
+	pifLed_PartChange(p_owner, bits & ~others, state);
 }
