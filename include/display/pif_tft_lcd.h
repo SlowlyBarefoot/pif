@@ -11,15 +11,15 @@
 
 #define PIF_COLOR_MAKE(r8, g8, b8) 		PIF_CONCAT2(PIF_COLOR_MAKE, PIF_COLOR_DEPTH)(r8, g8, b8)
 
-#define BLACK   						((PifColor)PIF_COLOR_MAKE(0x00, 0x00, 0x00))
-#define BLUE    						((PifColor)PIF_COLOR_MAKE(0x00, 0x00, 0xFF))
-#define GREEN   						((PifColor)PIF_COLOR_MAKE(0x00, 0xFF, 0x00))
-#define RED     						((PifColor)PIF_COLOR_MAKE(0xFF, 0x00, 0x00))
-#define GRAY   							((PifColor)PIF_COLOR_MAKE(0x7F, 0x7F, 0x7F))
-#define CYAN    						((PifColor)PIF_COLOR_MAKE(0x00, 0xFF, 0xFF))
-#define MAGENTA 						((PifColor)PIF_COLOR_MAKE(0xFF, 0x00, 0xFF))
-#define YELLOW  						((PifColor)PIF_COLOR_MAKE(0xFF, 0xFF, 0x00))
-#define WHITE   						((PifColor)PIF_COLOR_MAKE(0xFF, 0xFF, 0xFF))
+#define PIF_COLOR_BLACK   				((PifColor)PIF_COLOR_MAKE(0x00, 0x00, 0x00))
+#define PIF_COLOR_BLUE    				((PifColor)PIF_COLOR_MAKE(0x00, 0x00, 0xFF))
+#define PIF_COLOR_GREEN   				((PifColor)PIF_COLOR_MAKE(0x00, 0xFF, 0x00))
+#define PIF_COLOR_RED     				((PifColor)PIF_COLOR_MAKE(0xFF, 0x00, 0x00))
+#define PIF_COLOR_GRAY   				((PifColor)PIF_COLOR_MAKE(0x7F, 0x7F, 0x7F))
+#define PIF_COLOR_CYAN    				((PifColor)PIF_COLOR_MAKE(0x00, 0xFF, 0xFF))
+#define PIF_COLOR_MAGENTA 				((PifColor)PIF_COLOR_MAKE(0xFF, 0x00, 0xFF))
+#define PIF_COLOR_YELLOW  				((PifColor)PIF_COLOR_MAKE(0xFF, 0xFF, 0x00))
+#define PIF_COLOR_WHITE   				((PifColor)PIF_COLOR_MAKE(0xFF, 0xFF, 0xFF))
 
 #define TFT_SETUP_DELAY_MS				0xFF
 
@@ -43,7 +43,7 @@ typedef enum EnPifTftLcdRotation
 struct StPifTftLcd;
 typedef struct StPifTftLcd PifTftLcd;
 
-typedef void (*PifActLcdReset)();
+typedef void (*PifActLcdReset)(void);
 typedef void (*PifActLcdChipSelect)(SWITCH sw);
 typedef void (*PifActLcdReadCmd)(PifTftLcdCmd cmd, uint32_t* p_data, uint32_t size);
 typedef void (*PifActLcdWriteCmd)(PifTftLcdCmd cmd, uint32_t* p_data, uint32_t size);
@@ -104,10 +104,23 @@ extern "C" {
  * @param id Unique object identifier. Use `PIF_ID_AUTO` to assign one automatically.
  * @param width Native panel width in pixels.
  * @param height Native panel height in pixels.
- * @param rotation Initial display rotation to apply after initialization.
+ * @param rotation Rotation the panel is in. Only recorded, with width and height swapped for 90 and
+ *        270 degrees; the controller itself is set by the setup stream or the set-rotation function.
  * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
 BOOL pifTftLcd_Init(PifTftLcd* p_owner, PifId id, uint16_t width, uint16_t height, PifTftLcdRotation rotation);
+
+/**
+ * @fn pifTftLcd_ClipArea
+ * @brief Clips an inclusive rectangle to the current panel size.
+ * @param p_owner Pointer to the TFT LCD instance.
+ * @param p_x1 Left X coordinate.
+ * @param p_y1 Top Y coordinate.
+ * @param p_x2 Right X coordinate, lowered to the last column if it lies beyond it.
+ * @param p_y2 Bottom Y coordinate, lowered to the last row if it lies beyond it.
+ * @return `FALSE` if nothing of the rectangle is on the panel or the corners are reversed, otherwise `TRUE`.
+ */
+BOOL pifTftLcd_ClipArea(PifTftLcd* p_owner, uint16_t* p_x1, uint16_t* p_y1, uint16_t* p_x2, uint16_t* p_y2);
 
 #ifdef __cplusplus
 }

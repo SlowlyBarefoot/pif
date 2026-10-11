@@ -121,7 +121,7 @@ static void _finishCalibration(PifTouchScreen* p_owner, BOOL result)
     p_owner->_calibration = TRUE;
 
 quit:
-    (*p_lcd->_fn_draw_fill_rect)(p_lcd, 0, 0, dispx, dispy, BLACK);
+    (*p_lcd->_fn_draw_fill_rect)(p_lcd, 0, 0, dispx - 1, dispy - 1, PIF_COLOR_BLACK);
 	p_owner->_calibration_state = TCS_IDLE;
 	if (p_owner->__evt_calibration) (*p_owner->__evt_calibration)(p_owner, result);
 }
@@ -175,7 +175,7 @@ static void _processingCalibration(PifTouchScreen* p_owner)
 			p_owner->__cal_rx[p_owner->__cal_index] = p_owner->__cal_sum_x / p_owner->__cal_count;
 			p_owner->__cal_ry[p_owner->__cal_index] = p_owner->__cal_sum_y / p_owner->__cal_count;
 			_calibrationPoint(p_owner, p_owner->__cal_index, &x, &y);
-			_drawCrossHair(p_owner->__p_lcd, x, y, RED);
+			_drawCrossHair(p_owner->__p_lcd, x, y, PIF_COLOR_RED);
 			_restartSettling(p_owner);
 			p_owner->_calibration_state = TCS_WAIT_RELEASE;
 		}
@@ -194,7 +194,7 @@ static void _processingCalibration(PifTouchScreen* p_owner)
 			break;
 		}
 		_calibrationPoint(p_owner, p_owner->__cal_index, &x, &y);
-		_drawCrossHair(p_owner->__p_lcd, x, y, BLUE);
+		_drawCrossHair(p_owner->__p_lcd, x, y, PIF_COLOR_BLUE);
 		_restartSettling(p_owner);
 		p_owner->_calibration_state = TCS_WAIT_PRESS;
 		break;
@@ -381,7 +381,7 @@ void pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotat
 		break;
 	}
 
-	(*p_lcd->_fn_set_rotation)(p_lcd, rotation);
+	if (p_lcd->_fn_set_rotation) (*p_lcd->_fn_set_rotation)(p_lcd, rotation);
 
 	clx = p_owner->__clx;	cty = p_owner->__cty;
 	crx = p_owner->__crx;	cby = p_owner->__cby;
@@ -438,20 +438,20 @@ BOOL pifTouchScreen_StartCalibration(PifTouchScreen* p_owner, PifEvtTouchCalibra
 	}
 
 	p_lcd = p_owner->__p_lcd;
-	(*p_lcd->_fn_draw_fill_rect)(p_lcd, 0, 0, p_lcd->_width, p_lcd->_height, BLACK);
+	(*p_lcd->_fn_draw_fill_rect)(p_lcd, 0, 0, p_lcd->_width - 1, p_lcd->_height - 1, PIF_COLOR_BLACK);
 
 	// All of the crosshairs at once. They used to be drawn a tenth of a second apart, which only
 	// spaced out the drawing itself.
 	for (i = 0; i < PIF_TOUCH_CALIBRATION_POINTS; i++) {
 		_calibrationPoint(p_owner, i, &x, &y);
-		_drawCrossHair(p_lcd, x, y, GRAY);
+		_drawCrossHair(p_lcd, x, y, PIF_COLOR_GRAY);
 	}
 
 	p_owner->__evt_calibration = evt_calibration;
 	p_owner->__cal_index = 0;
 	p_owner->_calibration = FALSE;
 	_calibrationPoint(p_owner, 0, &x, &y);
-	_drawCrossHair(p_lcd, x, y, BLUE);
+	_drawCrossHair(p_lcd, x, y, PIF_COLOR_BLUE);
 	_restartSettling(p_owner);
 	p_owner->_calibration_state = TCS_WAIT_PRESS;
 	return TRUE;

@@ -113,7 +113,7 @@ typedef enum EnPifSsd1963PixelFormat
 struct StPifSsd1963;
 typedef struct StPifSsd1963 PifSsd1963;
 
-typedef uint8_t (*PifConvertColor)(PifColor color, uint32_t* p_data);
+typedef uint8_t (*PifSsd1963ConvertColor)(PifColor color, uint32_t* p_data);
 
 /**
  * @class StPifSsd1963
@@ -127,14 +127,13 @@ struct StPifSsd1963
 	// Public Member Variable
 
 	// Read-only Member Variable
-	uint16_t _view_size;
 
 	// Private Member Variable
     const uint8_t* __p_rotation;
 	PifSsd1963PixelFormat __pixel_format;
 
 	// Private Function
-    PifConvertColor __fn_convert_color;
+    PifSsd1963ConvertColor __fn_convert_color;
 };
 
 
@@ -170,11 +169,22 @@ BOOL pifSsd1963_AttachActParallel(PifSsd1963* p_owner, PifActLcdReset act_reset,
  * @fn pifSsd1963_Setup
  * @brief Applies panel initialization commands and optional rotation mapping data.
  * @param p_owner Pointer to an initialized SSD1963 instance with attached hardware callbacks.
- * @param p_setup Pointer to a setup command stream terminated by `0`.
- * @param p_rotation Pointer to rotation register values for 0/90/180/270 degrees, or `NULL`.
- * @return `TRUE` if setup commands are parsed and applied successfully, otherwise `FALSE`.
+ * @param p_setup Pointer to a setup command stream terminated by `0`. Each entry has at most 10 parameters.
+ * @param p_rotation Pointer to set_address_mode (0x36) values for 0/90/180/270 degrees, or `NULL`.
+ * @return `TRUE` if setup commands are parsed and applied successfully, otherwise `FALSE`: a parameter is
+ *         invalid, the callbacks are not attached, an entry is too long, or the pixel data format is
+ *         16-bit packed, which is not supported.
  */
 BOOL pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation);
+
+/**
+ * @fn pifSsd1963_SetRotation
+ * @brief Updates panel rotation and applies the matching set_address_mode value.
+ * @param p_parent Pointer to the base TFT LCD context.
+ * @param rotation Target rotation value.
+ * @return `TRUE` if the rotation is applied, otherwise `FALSE` (rotation out of range or no rotation table).
+ */
+BOOL pifSsd1963_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 
 /**
  * @fn pifSsd1963_DrawPixel
@@ -192,7 +202,7 @@ void pifSsd1963_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor 
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x Start X coordinate.
  * @param y Fixed Y coordinate.
- * @param len Number of pixels to draw.
+ * @param len Number of pixels to draw; the part beyond the panel is not drawn.
  * @param color Line color in `PifColor` format.
  */
 void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
@@ -203,14 +213,14 @@ void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x Fixed X coordinate.
  * @param y Start Y coordinate.
- * @param len Number of pixels to draw.
+ * @param len Number of pixels to draw; the part beyond the panel is not drawn.
  * @param color Line color in `PifColor` format.
  */
 void pifSsd1963_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @fn pifSsd1963_DrawFillRect
- * @brief Fills a rectangular area with a single color.
+ * @brief Fills a rectangular area with a single color, clipped to the panel.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x1 Left X coordinate of the rectangle.
  * @param y1 Top Y coordinate of the rectangle.
@@ -222,7 +232,8 @@ void pifSsd1963_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint
 
 /**
  * @fn pifSsd1963_DrawArea
- * @brief Draws a rectangular bitmap area from a color buffer.
+ * @brief Draws a rectangular bitmap area from a color buffer. Nothing is drawn if the area does not
+ *        lie entirely on the panel.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x1 Left X coordinate of the destination area.
  * @param y1 Top Y coordinate of the destination area.

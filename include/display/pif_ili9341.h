@@ -90,7 +90,7 @@ typedef enum EnPifIli9341PixelFormat
 struct StPifIli9341;
 typedef struct StPifIli9341 PifIli9341;
 
-typedef uint8_t (*PifConvertColor)(PifIli9341* p_owner, PifColor color, uint32_t* p_data);
+typedef uint8_t (*PifIli9341ConvertColor)(PifIli9341* p_owner, PifColor color, uint32_t* p_data);
 
 /**
  * @class StPifIli9341
@@ -104,7 +104,6 @@ struct StPifIli9341
 	// Public Member Variable
 
 	// Read-only Member Variable
-    uint16_t _view_size;
     uint32_t _ic_id_04;
     uint32_t _ic_id_D3;
 
@@ -116,7 +115,7 @@ struct StPifIli9341
     uint8_t __command_shift;
 
 	// Private Function
-    PifConvertColor __fn_convert_color;
+    PifIli9341ConvertColor __fn_convert_color;
 };
 
 
@@ -153,9 +152,10 @@ BOOL pifIli9341_AttachActParallel(PifIli9341* p_owner, PifActLcdReset act_reset,
  * @fn pifIli9341_Setup
  * @brief Applies controller initialization commands and optional rotation register values.
  * @param p_owner Pointer to an initialized ILI9341 instance with attached callbacks.
- * @param p_setup Pointer to a setup command stream terminated by `0`.
+ * @param p_setup Pointer to a setup command stream terminated by `0`. Each entry has at most 16 parameters.
  * @param p_rotation Pointer to rotation command values for 0/90/180/270 degrees, or `NULL`.
- * @return `TRUE` if setup is applied successfully, otherwise `FALSE`.
+ * @return `TRUE` if setup is applied successfully, otherwise `FALSE`: a parameter is invalid, the callbacks
+ *         are not attached, an entry is too long, or an 18-bit pixel format is set on a 16-bit bus with MDT 0.
  */
 BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation);
 
@@ -164,7 +164,7 @@ BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
  * @brief Updates panel rotation and applies matching controller address mode settings.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param rotation Target rotation value.
- * @return `TRUE` if the rotation is applied, otherwise `FALSE`.
+ * @return `TRUE` if the rotation is applied, otherwise `FALSE` (rotation out of range or no rotation table).
  */
 BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 
@@ -184,7 +184,7 @@ void pifIli9341_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor 
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x Start X coordinate.
  * @param y Fixed Y coordinate.
- * @param len Number of pixels to draw.
+ * @param len Number of pixels to draw; the part beyond the panel is not drawn.
  * @param color Line color in `PifColor` format.
  */
 void pifIli9341_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
@@ -195,14 +195,14 @@ void pifIli9341_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x Fixed X coordinate.
  * @param y Start Y coordinate.
- * @param len Number of pixels to draw.
+ * @param len Number of pixels to draw; the part beyond the panel is not drawn.
  * @param color Line color in `PifColor` format.
  */
 void pifIli9341_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @fn pifIli9341_DrawFillRect
- * @brief Fills a rectangular region with a constant color.
+ * @brief Fills a rectangular region with a constant color, clipped to the panel.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x1 Left X coordinate of the rectangle.
  * @param y1 Top Y coordinate of the rectangle.
@@ -214,7 +214,8 @@ void pifIli9341_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint
 
 /**
  * @fn pifIli9341_DrawArea
- * @brief Writes a rectangular pixel block from a source color map.
+ * @brief Writes a rectangular pixel block from a source color map. Nothing is drawn if the area
+ *        does not lie entirely on the panel.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x1 Left X coordinate of the destination area.
  * @param y1 Top Y coordinate of the destination area.

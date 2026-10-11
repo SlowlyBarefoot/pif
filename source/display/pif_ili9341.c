@@ -4,7 +4,11 @@
 #include "display/pif_ili9341.h"
 
 
-static void _convertCmd(PifIli9341Interface interface, uint8_t* p_src, uint32_t* p_dst, uint8_t len)
+// Pixels converted and sent at once by pifIli9341_DrawArea. The largest conversion is 3 words.
+#define DRAW_AREA_CHUNK		16
+#define MAX_COLOR_WORDS		3
+
+static void _convertCmd(PifIli9341Interface interface, const uint8_t* p_src, uint32_t* p_dst, uint8_t len)
 {
 	uint8_t i;
 
@@ -77,7 +81,7 @@ static uint8_t _convertColorMcuI_16bit(PifIli9341* p_owner, PifColor color, uint
 			return 0;
 
 		case 1:
-			p_data[0] = (color & 0xF800) | ((color & 0x03E0) >> 3);
+			p_data[0] = (color & 0xF800) | ((color & 0x07E0) >> 3);
 			p_data[1] = (color & 0x001F) << 11;
 			return 2;
 
@@ -112,7 +116,7 @@ static uint8_t _convertColorMcuI_9bit(PifIli9341* p_owner, PifColor color, uint3
 		case 1:
 			p_data[0] = (color & 0xF800) >> 8;
 			p_data[1] = (color & 0x07E0) >> 3;
-			p_data[2] = (color & 0x001F) << 1;
+			p_data[2] = (color & 0x001F) << 3;
 			return 3;
 		}
 	}
@@ -163,13 +167,13 @@ static uint8_t _convertColorMcuII_16bit(PifIli9341* p_owner, PifColor color, uin
 			return 2;
 
 		case 2:
-			p_data[0] = ((color & 0xF800) << 2) | ((color & 0x0600) << 1) | (color & 0x001E);
+			p_data[0] = ((color & 0xF800) << 2) | ((color & 0x0600) << 1) | (color & 0x01FE);
 			p_data[1] = (color & 0x0001) << 17;
 			return 2;
 
 		case 3:
 			p_data[0] = (color & 0xC000) >> 13;
-			p_data[1] = ((color & 0x3800) << 4) | ((color & 0x0780) << 3) | ((color & 0x007F) << 1);
+			p_data[1] = ((color & 0x3800) << 4) | ((color & 0x0780) << 3) | ((color & 0x007F) << 2);
 			return 2;
 		}
 	}
@@ -247,7 +251,7 @@ static uint8_t _convertColorMcuI_16bit(PifIli9341* p_owner, PifColor color, uint
 
 		case 2:
 			p_data[0] = ((color & 0xFC0000) >> 8) | ((color & 0x00FC00) >> 6) | ((color & 0x0000F0) >> 4);
-			p_data[1] = (color & 0x000003) << 14;
+			p_data[1] = (color & 0x00000C) << 12;
 			return 2;
 
 		case 3:
@@ -313,7 +317,7 @@ static uint8_t _convertColorMcuII_8bit(PifIli9341* p_owner, PifColor color, uint
 static uint8_t _convertColorMcuII_16bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
 {
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
-		p_data[0] = ((color & 0xF80000) >> 6) | ((color & 0x00E000) >> 3) | (color & 0x001C00) | ((color & 0x0000F8) >> 2);
+		p_data[0] = ((color & 0xF80000) >> 6) | ((color & 0x00E000) >> 3) | ((color & 0x001C00) >> 4) | ((color & 0x0000F8) >> 2);
 		return 1;
 	}
 	else {
@@ -328,12 +332,12 @@ static uint8_t _convertColorMcuII_16bit(PifIli9341* p_owner, PifColor color, uin
 
 		case 2:
 			p_data[0] = ((color & 0xFC0000) >> 6) | ((color & 0x00C000) >> 4) | ((color & 0x003C00) >> 5) | ((color & 0x0000F0) >> 3);
-			p_data[1] = (color & 0x000003) << 16;
+			p_data[1] = (color & 0x00000C) << 14;
 			return 2;
 
 		case 3:
 			p_data[0] = (color & 0xC00000) >> 16;
-			p_data[1] = ((color & 0x3C0000) >> 4) | ((color & 0x00F000) >> 2) | ((color & 0x000C00) >> 3) | ((color & 0x0000FC) >> 2);
+			p_data[1] = ((color & 0x3C0000) >> 4) | ((color & 0x00F000) >> 2) | ((color & 0x000C00) >> 3) | ((color & 0x0000FC) >> 1);
 			return 2;
 		}
 	}
@@ -427,6 +431,7 @@ BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interfac
 		break;
 
 	default:
+		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
@@ -439,7 +444,7 @@ BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interfac
 	p_parent->_fn_draw_fill_rect = pifIli9341_DrawFillRect;
 
 	p_owner->__interface = interface;
-	p_owner->_view_size = ILI9341_WIDTH > ILI9341_HEIGHT ? ILI9341_WIDTH : ILI9341_HEIGHT;
+	p_owner->__pixel_format = ILI9341_PF_18BIT;		// Reset default of 0x3A
     return TRUE;
 }
 
@@ -467,8 +472,50 @@ BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 {
 	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
 	int i;
-	uint8_t* p, cmd, len;
+	const uint8_t* p;
+	uint8_t cmd, len;
 	uint32_t data[16];
+
+	if (!p_owner || !p_setup) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	if (!p_parent->__act_reset || !p_parent->__act_chip_select || !p_parent->__act_write_cmd) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
+
+	p = p_setup;
+	while (*p) {
+		cmd = *p++;
+		len = *p++;
+		if (cmd != TFT_SETUP_DELAY_MS) {
+			if (len > sizeof(data) / sizeof(data[0])) {
+				pif_error = E_WRONG_DATA;
+				return FALSE;
+			}
+			switch (cmd) {
+			case ILI9341_CMD_PIXEL_FORMAT_SET:
+				// DBI[2:0] is the MCU interface format; DPI[6:4] only applies to the RGB interface.
+				p_owner->__pixel_format = p[0] & 0x07;
+				break;
+
+			case ILI9341_CMD_INTERFACE_CTRL:
+				p_owner->__mdt = p[1] & 3;
+				break;
+			}
+			p += len;
+		}
+	}
+
+	// On a 16-bit bus MDT 0 packs two 18-bit pixels into three transfers, which a per-pixel
+	// conversion cannot produce. 16-bit pixels do not depend on MDT.
+	if (p_owner->__pixel_format != ILI9341_PF_16BIT && !p_owner->__mdt &&
+			(p_owner->__interface == ILI9341_IF_MCU_16BIT_I || p_owner->__interface == ILI9341_IF_MCU_16BIT_II)) {
+		pif_error = E_WRONG_DATA;
+		return FALSE;
+	}
 
 	p_owner->__p_rotation = p_rotation;
 #ifndef PIF_NO_LOG
@@ -477,27 +524,6 @@ BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 	}
 #endif
 
-	p = (uint8_t*)p_setup;
-	while (*p) {
-		cmd = *p++;
-		len = *p++;
-		if (cmd != TFT_SETUP_DELAY_MS) {
-			switch (cmd) {
-			case ILI9341_CMD_PIXEL_FORMAT_SET:
-				p_owner->__pixel_format = p[0] >> 4;
-				break;
-
-			case ILI9341_CMD_INTERFACE_CTRL:
-				p_owner->__mdt = p[1] & 3;
-				if (!p_owner->__mdt) {
-					if (p_owner->__interface == ILI9341_IF_MCU_16BIT_I || p_owner->__interface == ILI9341_IF_MCU_16BIT_II) return FALSE;
-				}
-				break;
-			}
-			p += len;
-		}
-	}
-
     (*p_parent->__act_reset)();
 
 	(*p_parent->__act_chip_select)(TRUE);
@@ -505,20 +531,23 @@ BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 	for (i = 0; i < 3; i++)	(*p_parent->__act_write_cmd)(ILI9341_CMD_NOP << p_owner->__command_shift, NULL, 0);
 
 	if (p_parent->__act_read_cmd) {
+		// Read bytes come back on the same data lines as command parameters, so shift them back down.
 		(*p_parent->__act_read_cmd)(ILI9341_CMD_READ_DISP_ID_INFO << p_owner->__command_shift, data, 4);
+		for (i = 1; i < 4; i++) data[i] = (data[i] >> p_owner->__command_shift) & 0xFF;
 		p_owner->_ic_id_04 = (data[1] << 16) + (data[2] << 8) + data[3];
 #ifndef PIF_NO_LOG
 		pifLog_Printf(LT_INFO, "ID(%Xh): %Xh", ILI9341_CMD_READ_DISP_ID_INFO, p_owner->_ic_id_04);
 #endif
 
 		(*p_parent->__act_read_cmd)(ILI9341_CMD_READ_ID_4 << p_owner->__command_shift, data, 4);
+		for (i = 1; i < 4; i++) data[i] = (data[i] >> p_owner->__command_shift) & 0xFF;
 		p_owner->_ic_id_D3 = (data[1] << 16) + (data[2] << 8) + data[3];
 #ifndef PIF_NO_LOG
 		pifLog_Printf(LT_INFO, "ID(%Xh): %Xh", ILI9341_CMD_READ_ID_4, p_owner->_ic_id_D3);
 #endif
 	}
 
-	p = (uint8_t*)p_setup;
+	p = p_setup;
 	while (*p) {
 		cmd = *p++;
 		len = *p++;
@@ -547,6 +576,11 @@ BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 	PifIli9341* p_owner = (PifIli9341*)p_parent;
 	uint32_t data[1];
 
+	if (rotation > TLR_270_DEGREE) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
 	if (!p_owner->__p_rotation) {
 		pif_error = E_CANNOT_USE;
 		return FALSE;
@@ -563,7 +597,7 @@ BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 	p_parent->_rotation = rotation;
 
 	(*p_parent->__act_chip_select)(TRUE);
-	_convertCmd(p_owner->__interface, (uint8_t*)(p_owner->__p_rotation + rotation), data, 1);
+	_convertCmd(p_owner->__interface, p_owner->__p_rotation + rotation, data, 1);
     (*p_parent->__act_write_cmd)(ILI9341_CMD_MEM_ACCESS_CTRL << p_owner->__command_shift, data, 1);
 	(*p_parent->__act_chip_select)(FALSE);
 
@@ -577,7 +611,9 @@ void pifIli9341_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor 
 {
 	PifIli9341* p_owner = (PifIli9341*)p_parent;
 	uint8_t size;
-	uint32_t data[2];
+	uint32_t data[MAX_COLOR_WORDS];
+
+	if (x >= p_parent->_width || y >= p_parent->_height) return;
 
 	size = (*p_owner->__fn_convert_color)(p_owner, color, data);
 
@@ -591,7 +627,11 @@ void pifIli9341_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 {
 	PifIli9341* p_owner = (PifIli9341*)p_parent;
 	uint8_t size;
-	uint32_t data[2];
+	uint32_t data[MAX_COLOR_WORDS];
+
+	if (!len || x >= p_parent->_width || y >= p_parent->_height) return;
+
+	if (len > p_parent->_width - x) len = p_parent->_width - x;
 
 	size = (*p_owner->__fn_convert_color)(p_owner, color, data);
 
@@ -605,7 +645,11 @@ void pifIli9341_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 {
 	PifIli9341* p_owner = (PifIli9341*)p_parent;
 	uint8_t size;
-	uint32_t data[2];
+	uint32_t data[MAX_COLOR_WORDS];
+
+	if (!len || x >= p_parent->_width || y >= p_parent->_height) return;
+
+	if (len > p_parent->_height - y) len = p_parent->_height - y;
 
 	size = (*p_owner->__fn_convert_color)(p_owner, color, data);
 
@@ -619,40 +663,39 @@ void pifIli9341_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint
 {
 	PifIli9341* p_owner = (PifIli9341*)p_parent;
 	uint8_t size;
-	uint16_t i, lx, ly;
-	uint32_t data[2];
+	uint32_t data[MAX_COLOR_WORDS];
 
-	lx = x2 - x1 + 1;
-	ly = y2 - y1 + 1;
+	if (!pifTftLcd_ClipArea(p_parent, &x1, &y1, &x2, &y2)) return;
 
 	size = (*p_owner->__fn_convert_color)(p_owner, color, data);
 
-	// One address window for the whole rectangle. A larger area used to be filled a line at a
-	// time, each line its own window, purely so that there was somewhere to yield between them;
-	// without that the split only costs the extra window per line.
+	// One address window and one repeat for the whole rectangle; the controller wraps to the next
+	// line by itself.
 	(*p_parent->__act_chip_select)(TRUE);
 	_setAddress(p_owner, x1, y1, x2, y2);
-	for (i = 0; i < ly; i++) {
-		(*p_parent->__act_write_repeat)(data, size, lx);
-	}
+	(*p_parent->__act_write_repeat)(data, size, (uint32_t)(x2 - x1 + 1) * (y2 - y1 + 1));
 	(*p_parent->__act_chip_select)(FALSE);
 }
 
 void pifIli9341_DrawArea(PifTftLcd *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map)
 {
 	PifIli9341* p_owner = (PifIli9341*)p_parent;
-	uint8_t size;
-	uint16_t x, y;
-	uint32_t data[2];
+	uint32_t i, count, size;
+	uint32_t data[DRAW_AREA_CHUNK * MAX_COLOR_WORDS];
+
+	// The color map has no stride of its own, so an area that does not fit is not drawn rather than clipped.
+	if (!p_color_map || x1 > x2 || y1 > y2 || x2 >= p_parent->_width || y2 >= p_parent->_height) return;
+
+	count = (uint32_t)(x2 - x1 + 1) * (y2 - y1 + 1);
 
 	(*p_parent->__act_chip_select)(TRUE);
 	_setAddress(p_owner, x1, y1, x2, y2);
-	for (y = 0; y < y2 - y1 + 1; y++) {
-		for (x = 0; x < x2 - x1 + 1; x++) {
-			size = (*p_owner->__fn_convert_color)(p_owner, *p_color_map, data);
-			(*p_parent->__act_write_data)(data, size);
-			p_color_map++;
+	while (count) {
+		size = 0;
+		for (i = 0; i < DRAW_AREA_CHUNK && count; i++, count--) {
+			size += (*p_owner->__fn_convert_color)(p_owner, *p_color_map++, data + size);
 		}
+		(*p_parent->__act_write_data)(data, size);
 	}
 	(*p_parent->__act_chip_select)(FALSE);
 }
