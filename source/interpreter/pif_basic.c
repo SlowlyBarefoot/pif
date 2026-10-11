@@ -6,6 +6,7 @@
 
 #include <ctype.h>
 #include <setjmp.h>
+#include <stdlib.h>
 #include <string.h>
 
 
@@ -54,9 +55,17 @@ enum {
 	EXEC
 };
 
-const char *pun = "(),+-*/\\=<>", *dub = "<><==>";
+// Traps taken through longjmp. Every one of them ends the program: there is no prompt to drop
+// back to, so a fault cannot be resumed the way the original interactive interpreter did.
+enum {
+	TRAP_SYNTAX	= 1,
+	TRAP_FAULT	= 2,
+	TRAP_BYE	= 3
+};
 
-const char* kwd[] = {
+static const char *pun = "(),+-*/\\=<>", *dub = "<><==>";
+
+static const char* kwd[] = {
 		"AND", "OR", "FORMAT", "SUB", "END",
 		"RETURN", "LOCAL", "WHILE", "FOR", "TO",
 		"IF", "ELSE", "THEN", "DIM", "UBOUND",
@@ -68,12 +77,13 @@ static int	lnum, tok, tokv, ungot;													/* LEXER STATE */
 static int	(*prg[PIF_BASIC_PROGRAM])(), (**pc)(), cpc, lmap[PIF_BASIC_PROGRAM]; 	/* COMPILED PROGRAM */
 static Val	stk[PIF_BASIC_STACK], *sp, *min_sp;										/* RUN-TIME STACK */
 static Val	value[PIF_BASIC_VARIABLE];												/* VARIABLE VALUES */
+static Val*	dim[PIF_BASIC_VARIABLE];												/* DIM MEMORY */
 static char name[PIF_BASIC_VARIABLE][PIF_BASIC_SYMBOL];								/* VARIABLE NAMES */
 static int	sub[PIF_BASIC_VARIABLE][PIF_BASIC_LOCAL + 2];							/* N,LOCAL VAR INDEXES */
 static int	mode[PIF_BASIC_VARIABLE];												/* 0=NONE, 1=DIM, 2=SUB */
 static Val	ret;																	/* FUNCTION RETURN VALUE */
 static int	cstk[PIF_BASIC_STACK], *csp;											/* COMPILER STACK */
-static int	cursub, temp, compile, ipc, (**opc)();									/* COMPILER STATE */
+static int	cursub, temp;															/* COMPILER STATE */
 static char stab[PIF_BASIC_STRING], *stabp;											/* STRING TABLE */
 static jmp_buf	trap;																/* TRAP ERRORS */
 
@@ -81,19 +91,34 @@ static jmp_buf	trap;																/* TRAP ERRORS */
 #define B		sp[0]					/* RIGHT OPERAND */
 #define PCV		((Val)*pc++)			/* GET IMMEDIATE */
 #define LOC(N)	value[sub[v][N + 2]]	/* SUBROUTINE LOCAL */
+#define CSTK_EMPTY	(csp == cstk + PIF_BASIC_STACK)
 
-int	(*kwdhook)(char *kwd);				/* KEYWORD HOOK */
-int	(*funhook)(char *kwd, int n);		/* FUNCTION CALL HOOK */
+static int	(*kwdhook)(char *kwd);		/* KEYWORD HOOK */
 
 
 static PifBasic s_basic;
 
 
 /**
- * @brief Initializes interpreter runtime and compiler state.
- * @param comp Non-zero to enable compile mode, zero to run in immediate mode.
+ * @brief Releases the memory of every DIM array.
  */
-static void initbasic(int comp)
+static void freedims()
+{
+	int i;
+
+	for (i = 0; i < PIF_BASIC_VARIABLE; i++) {
+		if (dim[i]) {
+			free(dim[i]);
+			dim[i] = NULL;
+		}
+	}
+}
+
+/**
+ * @brief Initializes interpreter runtime and compiler state. Nothing of a previous program is
+ *        kept: its symbols, values, subroutines and arrays all go.
+ */
+static void initbasic()
 {
     lnum = 0;
     ungot = 0;
@@ -105,7 +130,15 @@ static void initbasic(int comp)
 	csp = cstk + PIF_BASIC_STACK;
 	stabp = stab;
 	cpc = 0;
-	compile = comp;
+	cursub = -1;
+	temp = 0;
+	ret = 0;
+
+	freedims();
+	memset(value, 0, sizeof(value));
+	memset(name, 0, sizeof(name));
+	memset(sub, 0, sizeof(sub));
+	memset(mode, 0, sizeof(mode));
 	s_basic._variable_count = 0;
 }
 
@@ -116,17 +149,31 @@ static void initbasic(int comp)
 static void err(char* msg)
 {
 	pifLog_Printf(LT_ERROR, "%d: %s", lmap[pc - prg - 1], msg);
-	longjmp(trap, 2);
+	longjmp(trap, TRAP_FAULT);
+}
+
+/**
+ * @brief Pushes one value onto the runtime stack, refusing to grow it past its end.
+ * @param x Value to push.
+ */
+static void push(Val x)
+{
+	if (sp <= stk) err("STACK OVERFLOW");
+	*--sp = x;
+	if (sp < min_sp) min_sp = sp;
 }
 
 /**
  * @brief Validates a 1-based array index and returns a pointer to that element.
- * @param mem Pointer to array memory where index 0 stores the array length.
+ * @param v Variable index of the array.
  * @param n Requested 1-based index.
  * @return Pointer to the indexed element when the index is valid.
  */
-static Val* bound(Val* mem, int n)
+static Val* bound(int v, Val n)
 {
+	Val* mem = dim[v];
+
+	if (!mem) err("ARRAY IS NOT DIMENSIONED");
 	if (n < 1 || n > *mem) err("BOUNDS");
 	return mem + n;
 }
@@ -138,7 +185,7 @@ static Val* bound(Val* mem, int n)
 static void bad(char* msg)
 {
 	pifLog_Printf(LT_ERROR, "%d: %s", lnum, msg);
-	longjmp(trap, 1);
+	longjmp(trap, TRAP_SYNTAX);
 }
 
 /**
@@ -147,8 +194,19 @@ static void bad(char* msg)
  */
 static void emit(int opcode())
 {
+	if (cpc >= PIF_BASIC_PROGRAM) bad("PROGRAM TOO LARGE");
 	lmap[cpc] = lnum;
 	prg[cpc++] = opcode;
+}
+
+/**
+ * @brief Pushes one entry onto the compiler stack, refusing to grow it past its end.
+ * @param x Entry to push.
+ */
+static void cpush(int x)
+{
+	if (csp <= cstk) bad("TOO MANY NESTED BLOCKS");
+	*--csp = x;
 }
 
 /**
@@ -163,33 +221,12 @@ static void inst(int opcode(), Val x)
 }
 
 /**
- * @brief Terminates the interpreter by triggering the BYE trap.
+ * @brief Ends the program, both at its end and at "BYE" or "BREAK".
  * @return This function does not return normally because it long-jumps.
  */
 static int BYE_()
 {
-	longjmp(trap, 4);
-}
-
-/**
- * @brief Interrupts current execution and returns control to the immediate driver.
- * @return This function does not return normally because it long-jumps.
- */
-static int BREAK_()
-{
-	longjmp(trap, 3);
-}
-
-/**
- * @brief Restores execution state after BREAK and resumes interpretation.
- * @return Always returns 1 to keep the opcode loop running.
- */
-static int RESUME_()
-{
-	pc = opc ? opc : pc;
-	opc = pc;
-	cpc = ipc;
-	return 1;
+	longjmp(trap, TRAP_BYE);
 }
 
 /**
@@ -198,8 +235,7 @@ static int RESUME_()
  */
 static int NUMBER_()
 {
-	*--sp = PCV;
-	if (sp < min_sp) min_sp = sp;
+	push(PCV);
 	return 1;
 }
 
@@ -209,8 +245,7 @@ static int NUMBER_()
  */
 static int LOAD_()
 {
-	*--sp = value[PCV];
-	if (sp < min_sp) min_sp = sp;
+	push(value[PCV]);
 	return 1;
 }
 
@@ -226,12 +261,12 @@ static int STORE_()
 
 /**
  * @brief Prints the top stack value as an integer and pops it.
- * @return Returns 0 to stop the current immediate statement run.
+ * @return Always returns 1 to continue execution.
  */
 static int ECHO_()
 {
-	pifLog_Printf(LT_INFO, "%d\n", *sp++);
-	return 0;
+	pifLog_Printf(LT_INFO, "%d\n", (int)*sp++);
+	return 1;
 }
 
 /**
@@ -290,10 +325,7 @@ static int MUL_()
  */
 static int DIV_()
 {
-	if (!B) {
-		sp += 2;
-		err("DIVISION BY ZERO");
-	}
+	if (!B) err("DIVISION BY ZERO");
 	A /= B;
 	sp++;
 	return 1;
@@ -305,10 +337,7 @@ static int DIV_()
  */
 static int MOD_()
 {
-	if (!B) {
-		sp += 2;
-		err("MODULUS OF ZERO");
-	}
+	if (!B) err("MODULUS OF ZERO");
 	A %= B;
 	sp++;
 	return 1;
@@ -462,9 +491,8 @@ static int CALL_()
 		LOC(n) = *ap;
 		*ap++ = x;
 	}
-	for (n = sub[v][1]; n < sub[v][0]; n++) *--sp = LOC(n);
-	*--sp = pc - prg;
-	if (sp < min_sp) min_sp = sp;
+	for (n = sub[v][1]; n < sub[v][0]; n++) push(LOC(n));
+	push(pc - prg);
 	pc = prg + value[v];
 	return 1;
 }
@@ -498,8 +526,7 @@ static int SETRET_()
  */
 static int RV_()
 {
-	*--sp = ret;
-	if (sp < min_sp) min_sp = sp;
+	push(ret);
 	return 1;
 }
 
@@ -514,16 +541,25 @@ static int DROP_()
 }
 
 /**
- * @brief Allocates array storage for a DIM variable and stores its base pointer.
+ * @brief Allocates array storage for a DIM variable, releasing what an earlier DIM of the same
+ *        variable allocated.
  * @return Always returns 1 when allocation succeeds; otherwise raises an error.
  */
 static int DIM_()
 {
-	int v = PCV, n = *sp++;
-	Val* mem = calloc(n + 1, sizeof(Val));
+	int v = PCV;
+	Val n = *sp++;
+	Val* mem;
 
+	if (n < 0) err("BAD DIMENSION");
+	if (dim[v]) {
+		free(dim[v]);
+		dim[v] = NULL;
+	}
+	mem = calloc(n + 1, sizeof(Val));
 	if (!mem) err("MEMORY IS LACK");
 	mem[0] = n;
+	dim[v] = mem;
 	value[v] = (Val)mem;
 	return 1;
 }
@@ -534,11 +570,9 @@ static int DIM_()
  */
 static int LOADI_()
 {
-	Val x = *sp++;
+	int v = PCV;
 
-	x = *bound((Val*)value[PCV], x);
-	*--sp = x;
-	if (sp < min_sp) min_sp = sp;
+	*sp = *bound(v, *sp);
 	return 1;
 }
 
@@ -548,9 +582,10 @@ static int LOADI_()
  */
 static int STOREI_()
 {
+	int v = PCV;
 	Val x = *sp++, i = *sp++;
 
-	*bound((Val*)value[PCV], i) = x;
+	*bound(v, i) = x;
 	return 1;
 }
 
@@ -560,9 +595,26 @@ static int STOREI_()
  */
 static int UBOUND_()
 {
-	*--sp = *(Val*)value[PCV];
-	if (sp < min_sp) min_sp = sp;
+	int v = PCV;
+
+	if (!dim[v]) err("ARRAY IS NOT DIMENSIONED");
+	push(*dim[v]);
 	return 1;
+}
+
+/**
+ * @brief Pops the process index and arguments of an EXEC and calls the external process.
+ * @return Return value of the external process.
+ */
+static int exec()
+{
+	int p, i, param[PIF_BASIC_EXEC_SIZE];
+	Val n = PCV, *ap = (sp += n) - 1;
+
+	p = *ap-- - 1;
+	if (p < 0 || p >= s_basic.__process_size) err("UNKNOWN PROCESS");
+	for (i = 0; i < n - 1; i++) param[i] = *ap--;
+	return (*s_basic.__p_process[p])(n - 1, param);
 }
 
 /**
@@ -571,15 +623,7 @@ static int UBOUND_()
  */
 static int EXEC_()
 {
-	int p, i, param[PIF_BASIC_EXEC_SIZE];
-	Val n = PCV, *ap = (sp += n) - 1;
-
-	p = *ap - 1;
-	ap--;
-    if (n - 1 > PIF_BASIC_EXEC_SIZE) err("TOO MANY ARGS");
-	if (p < 0 || p >= s_basic.__process_size) err("UNKNOWN PROCESS");
-	for (i = 0; i < n - 1; i++) param[i] = *ap--;
-	(*s_basic.__p_process[p])(n - 1, param);
+	exec();
 	return 1;
 }
 
@@ -589,20 +633,7 @@ static int EXEC_()
  */
 static int EXECR_()
 {
-	int p, i, param[PIF_BASIC_EXEC_SIZE];
-	Val n = PCV, *ap = (sp += n) - 1;
-
-	p = *ap - 1;
-	ap--;
-    if (n - 1 > PIF_BASIC_EXEC_SIZE) err("TOO MANY ARGS");
-	if (p < 0 || p >= s_basic.__process_size) {
-		*--sp = 0;
-		if (sp < min_sp) min_sp = sp;
-		err("UNKNOWN PROCESS");
-	}
-	for (i = 0; i < n - 1; i++) param[i] = *ap--;
-	*--sp = (*s_basic.__p_process[p])(n - 1, param);
-	if (sp < min_sp) min_sp = sp;
+	push(exec());
 	return 1;
 }
 
@@ -616,7 +647,10 @@ static int find(char* var)
 	int	i;
 
 	for (i = 0; i < s_basic._variable_count && strcmp(var, name[i]); i++);
-	if (i == s_basic._variable_count) strcpy(name[s_basic._variable_count++], var);
+	if (i == s_basic._variable_count) {
+		if (i >= PIF_BASIC_VARIABLE) bad("TOO MANY VARIABLES");
+		strcpy(name[s_basic._variable_count++], var);
+	}
 	return i;
 }
 
@@ -633,9 +667,9 @@ static int read()											/* READ TOKEN */
 		ungot = 0;
 		return tok;
 	}
-	while (isspace((int)*lp)) lp++;							/* SKIP SPACE */
+	while (isspace((unsigned char)*lp)) lp++;				/* SKIP SPACE */
 	if (!*lp || *lp == '#') return tok = 0;					/* END OF LINE */
-	if (isdigit((int)*lp)) {								/* NUMBER */
+	if (isdigit((unsigned char)*lp)) {						/* NUMBER */
 		tokv = strtol(lp, &lp, 0);
 		return tok = NUMBER;
 	}
@@ -645,15 +679,22 @@ static int read()											/* READ TOKEN */
 		lp++;
 		return tok = (d - dub) / 2 + NE;
 	}
-	else if (isalpha((int)*lp)) {							/* IDENTIFIER */
-		for (p = tokn; isalnum((int)*lp); ) *p++ = toupper(*lp++);
+	else if (isalpha((unsigned char)*lp)) {					/* IDENTIFIER */
+		for (p = tokn; isalnum((unsigned char)*lp); ) {
+			if (p >= tokn + PIF_BASIC_SYMBOL - 1) bad("NAME TOO LONG");
+			*p++ = toupper((unsigned char)*lp++);
+		}
 		for (*p = 0, k = kwd; *k && strcmp(tokn, *k); k++);
 		if (*k) return tok = (k - kwd) + AND;
 		tokv = find(tokn);
 		return tok = NAME;
 	}
 	else if (*lp=='"' && lp++) {							/* STRING */
-		for (p = stabp; *lp && *lp != '"'; ) *stabp++ = *lp++;
+		for (p = stabp; *lp && *lp != '"'; ) {
+			if (stabp >= stab + PIF_BASIC_STRING - 1) bad("STRING TABLE FULL");
+			*stabp++ = *lp++;
+		}
+		if (*lp != '"') bad("UNTERMINATED STRING");
 		*stabp++ = 0;
 		lp++;
 		tokv = p - stab;
@@ -693,6 +734,20 @@ static int expr();
 #define LIST(BODY) if (!want(0)) do { BODY; } while (want(COMMA))
 
 /**
+ * @brief Parses the arguments of an EXEC and emits the opcode that runs it.
+ * @param opcode EXEC_ for a statement, EXECR_ for an expression.
+ */
+static void execargs(int opcode())
+{
+	int n = 0;
+
+	LIST(expr(); n++);
+	if (n < 1) bad("NO PROCESS");
+	if (n - 1 > PIF_BASIC_EXEC_SIZE) bad("TOO MANY ARGS");
+	inst(opcode, n);
+}
+
+/**
  * @brief Parses and emits bytecode for base-level expressions (literals, variables, calls, grouping).
  */
 static void base()					/* BASIC EXPRESSION */
@@ -703,7 +758,7 @@ static void base()					/* BASIC EXPRESSION */
 	else if (want(STRING)) inst(NUMBER_, (Val)(stab + tokv));
 	else if (want(NAME)) {
 		int var = tokv;
-		if (want(LP))
+		if (want(LP)) {
 			if (mode[var] == 1) {	/* DIM */
 				expr();
 				need(RP);
@@ -713,13 +768,12 @@ static void base()					/* BASIC EXPRESSION */
 				int n = 0;
 				LIST(if (tok == RP) break; expr(); n++);
 				need(RP);
-				if (!funhook || !funhook(name[var], n)) {
-					if (mode[var] != 2 || n != sub[var][1])
-						bad("BAD SUB/ARG COUNT");
-					inst(CALL_, var);
-					emit(RV_);
-				}
+				if (mode[var] != 2 || n != sub[var][1])
+					bad("BAD SUB/ARG COUNT");
+				inst(CALL_, var);
+				emit(RV_);
 			}
+		}
 		else inst(LOAD_, var);
 	}
 	else if (want(LP)) {
@@ -729,14 +783,11 @@ static void base()					/* BASIC EXPRESSION */
 	else if (want(UBOUND)) {
 		need(LP);
 		need(NAME);
+		if (mode[tokv] != 1) bad("NOT AN ARRAY");
 		need(RP);
 		inst(UBOUND_, tokv);
 	}
-	else if (want(EXEC)) {
-		int n = 0;
-		LIST(expr(); n++);
-		inst(EXECR_, n);
-	}
+	else if (want(EXEC)) execargs(EXECR_);
 	else bad("BAD EXPRESSION");
 	if (neg) emit(SUBS_);			/* NEGATE */
 }
@@ -816,41 +867,50 @@ static int expr()
 }
 
 /**
- * @brief Parses one BASIC statement and emits/executes corresponding bytecode.
+ * @brief Parses one BASIC statement and emits the corresponding bytecode.
  */
 static void stmt()	/* STATEMENT */
 {
-	int	n, var;
+	int	n, var, *saved;
+	char *f;
 
 	switch (read()) {
 	case FORMAT:
 		need(STRING);
-		inst(NUMBER_, tokv);
+		var = tokv;
+		inst(NUMBER_, var);
 		n = 0;
 		if (want(COMMA)) LIST(expr(); n++);
+		for (f = stab + var, var = 0; *f; f++)				/* EVERY "%" AND "$" TAKES AN ARGUMENT */
+			if (*f == '%' || *f == '$') var++;
+		if (var > n) bad("TOO FEW FORMAT ARGS");
 		inst(FORMAT_, n);
 		break;
 
 	case SUB:												/* CSTK: {SUB,INDEX,JMP} */
-		if (!compile) bad("SUB MUST BE COMPILED");
-		compile++;											/* MUST BALANCE WITH END */
+		if (!CSTK_EMPTY) bad("SUB MUST BE AT TOP LEVEL");
 		need(NAME);											/* SUB NAME */
-		mode[cursub = var = tokv] = 2;
+		var = tokv;
+		if (mode[var]) bad("NAME ALREADY USED");
+		mode[cursub = var] = 2;
 		n = 0; 												/* PARAMS */
-		LIST(need(NAME); sub[var][n++ + 2] = tokv);
-		*--csp = cpc + 1;									/* JUMP OVER CODE */
+		LIST(need(NAME); if (n >= PIF_BASIC_LOCAL) bad("TOO MANY PARAMS"); sub[var][n++ + 2] = tokv);
+		cpush(cpc + 1);										/* JUMP OVER CODE */
 		inst(JMP_, 0);
 		sub[var][0] = sub[var][1] = n;						/* LOCAL=PARAM COUNT */
 		value[var] = cpc;									/* ADDRESS */
-		*--csp = var;										/* FOR "END" CLAUSE */
-		*--csp = SUB;
+		cpush(var);											/* FOR "END" CLAUSE */
+		cpush(SUB);
 		break;
 
 	case LOCAL:
-		LIST(need(NAME); sub[cursub][sub[cursub][0]++ + 2] = tokv);
+		if (cursub < 0) bad("LOCAL OUTSIDE SUB");
+		LIST(need(NAME); if (sub[cursub][0] >= PIF_BASIC_LOCAL) bad("TOO MANY LOCALS");
+			sub[cursub][sub[cursub][0]++ + 2] = tokv);
 		break;
 
 	case RETURN:
+		if (cursub < 0) bad("RETURN OUTSIDE SUB");
 		if (temp) inst(DROP_, temp);
 		if (!want(0)) {
 			expr();
@@ -860,16 +920,14 @@ static void stmt()	/* STATEMENT */
 		break;
 
 	case WHILE:												/* CSTK: {WHILE,TEST-FALSE,TOP} */
-		compile++;											/* BODY IS COMPILED */
-		*--csp = cpc;
+		cpush(cpc);
 		expr();
-		*--csp = cpc + 1;
-		*--csp = WHILE;
+		cpush(cpc + 1);
+		cpush(WHILE);
 		inst(FALSE_, 0);
 		break;
 
 	case FOR:												/* CSTK: {FOR,TEST-FALSE,I,TOP}; STK:{HI} */
-		compile++;											/* BODY IS COMPILED */
 		need(NAME);
 		var = tokv;
 		temp++;
@@ -878,33 +936,41 @@ static void stmt()	/* STATEMENT */
 		inst(STORE_, var);
 		need(TO);
 		expr();
-		*--csp = cpc;
+		cpush(cpc);
 		inst(FOR_, var);
 		emit(0);
-		*--csp = var;
-		*--csp = cpc - 1;
-		*--csp = FOR;
+		cpush(var);
+		cpush(cpc - 1);
+		cpush(FOR);
 		break;
 
 	case IF:												/* CSTK: {IF,N,ENDS...,TEST-FALSE} */
 		expr();
 		inst(FALSE_, 0);
-		*--csp = cpc - 1;
+		cpush(cpc - 1);
 		if (want(THEN)) {
+			// Only a statement that neither opens nor closes a block may follow THEN, because
+			// the test-false fixup on top of the compiler stack is patched right after it.
+			n = read();
+			ungot = 1;
+			if (n == END || n == ELSE) bad("BLOCK STATEMENT AFTER THEN");
+			saved = csp;
 			stmt();
+			if (csp != saved) bad("BLOCK STATEMENT AFTER THEN");
 			prg[*csp++] = (Code)cpc;
 		}
 		else {
-			compile++;
-			*--csp = 0;
-			*--csp = IF;
+			cpush(0);
+			cpush(IF);
 		}
 		break;
 
 	case ELSE:
+		if (CSTK_EMPTY || *csp != IF) bad("ELSE WITHOUT IF");
 		n = csp[1] + 1;
+		if (!csp[1 + n]) bad("ELSE AFTER ELSE");			/* NO TEST LEFT TO PATCH */
 		inst(JMP_, 0);										/* JUMP OVER "ELSE" */
-		*--csp = IF; 										/* ADD A FIXUP */
+		cpush(IF); 											/* ADD A FIXUP */
 		csp[1] = n;
 		csp[2] = cpc - 1;
 		prg[csp[2 + n]] = (Code)cpc;						/* PATCH "ELSE" */
@@ -912,11 +978,12 @@ static void stmt()	/* STATEMENT */
 		break;
 
 	case END:
-		need(*csp++);
-		compile--;											/* MATCH BLOCK */
+		if (CSTK_EMPTY) bad("END WITHOUT BLOCK");
+		need(*csp++);										/* MATCH BLOCK */
 		if (csp[-1] == SUB) {
 			inst(RETURN_, *csp++);
 			prg[*csp++] = (Code)cpc;						/* PATCH JUMP */
+			cursub = -1;
 		}
 		else if (csp[-1] == WHILE) {
 			prg[*csp++] = (Code)(cpc + 2);					/* PATCH TEST */
@@ -952,17 +1019,17 @@ static void stmt()	/* STATEMENT */
 		else if (!kwdhook || !kwdhook(tokn)) {
 			int n = 0;
 			LIST(expr(); n++);
-			if (!funhook || !funhook(name[var], n)) {
-				if (mode[var] != 2 || n != sub[var][1])
-					bad("BAD SUB/ARG COUNT");
-				inst(CALL_, var);
-			}
+			if (mode[var] != 2 || n != sub[var][1])
+				bad("BAD SUB/ARG COUNT");
+			inst(CALL_, var);
 		}
 		break;
 
 	case DIM:
 		need(NAME);											/* SET VAR MODE TO DIM */
-		mode[var = tokv] = 1;
+		var = tokv;
+		if (mode[var] == 2) bad("NAME ALREADY USED");
+		mode[var] = 1;
 		need(LP);
 		expr();
 		need(RP);
@@ -970,14 +1037,10 @@ static void stmt()	/* STATEMENT */
 		break;
 
 	case RESUME:
-		if (!want(0)) expr();
-		emit(RESUME_);
+		bad("RESUME IS NOT SUPPORTED");
 		break;
 
 	case BREAK:
-		emit(BREAK_);
-		break;
-
 	case BYE:
 		emit(BYE_);
 		break;
@@ -988,9 +1051,7 @@ static void stmt()	/* STATEMENT */
 		break;
 
 	case EXEC:
-		n = 0;
-		LIST(expr(); n++);
-		inst(EXEC_, n);
+		execargs(EXEC_);
 		break;
 
 	default:
@@ -1034,55 +1095,43 @@ static int kwdhook_(char *msg)
 /**
  * @brief Records the outcome of a program and reports it.
  * @param p_owner Pointer to the owner instance.
- * @param result Whether the program ran to its end without a syntax error.
+ * @param result Whether the program ran to its end without an error.
  */
 static void _finish(PifBasic* p_owner, BOOL result)
 {
+	freedims();
+
 	p_owner->_result = result;
+	p_owner->_program_size = cpc;
+	p_owner->_string_count = stabp - stab;
 	p_owner->_stack_count = (int)(stk + PIF_BASIC_STACK - min_sp);
 	p_owner->_process_time = pif_cumulative_timer1ms - p_owner->__start_time - p_owner->_parsing_time;
-	p_owner->__state = BS_IDLE;
+	p_owner->__state = BIS_IDLE;
 
 	if (p_owner->__evt_result) (*p_owner->__evt_result)(p_owner);
 }
 
 /**
- * @brief Reads the next source line into the lexer buffer and advances past it.
+ * @brief Reads the next source line into the lexer buffer and advances past it. A line ends at
+ *        "\n", "\r", "\r\n" or "\n\r".
  * @param p_owner Pointer to the owner instance.
  */
 static void _readLine(PifBasic* p_owner)
 {
-	char *p_nl, *p_cr;
-	int n, len;
+	char *p_line = p_owner->__p_current;
+	int n = strcspn(p_line, "\r\n");
 
-	p_nl = strchr(p_owner->__p_current, '\n');
-	p_cr = strchr(p_owner->__p_current, '\r');
-	if (p_nl) {
-		if (p_cr) {
-			if (p_nl > p_cr) p_nl = p_cr;
-			len = 2;
-		}
-		else len = 1;
-	}
-	else {
-		if (p_cr) {
-			p_nl = p_cr;
-			len = 1;
-		}
-		else p_nl = NULL;
-	}
+	if (n >= PIF_BASIC_LINE_SIZE) bad("LINE TOO LONG");
+	memcpy(lbuf, p_line, n);
+	lbuf[n] = 0;
 	lp = lbuf;
-	if (p_nl) {
-		n = p_nl - p_owner->__p_current;
-		strncpy(lp, p_owner->__p_current, n);
-		lp[n] = 0;
-		p_owner->__p_current = p_nl + len;
+
+	if (!p_line[n]) {
+		p_owner->__p_current = NULL;
 	}
 	else {
-		n = strlen(p_owner->__p_current);
-		strncpy(lp, p_owner->__p_current, n);
-		lp[n] = 0;
-		p_owner->__p_current = NULL;
+		if (p_line[n + 1] == (p_line[n] == '\r' ? '\n' : '\r')) n++;
+		p_owner->__p_current = p_line + n + 1;
 	}
 }
 
@@ -1100,86 +1149,50 @@ static uint32_t _doTask(PifTask* p_task)
 	int code;
 	int cnt;
 
-	if (p_owner->__state == BS_IDLE) return 0;
+	if (p_owner->__state == BIS_IDLE) return 0;
 
-	if (p_owner->__state == BS_START) {
+	if (p_owner->__state == BIS_START) {
 		p_owner->__p_current = p_owner->__p_program;
 		p_owner->__start_time = pif_cumulative_timer1ms;
 		p_owner->_parsing_time = 0UL;
 
-		initbasic(1);
+		initbasic();
 
 #if USE_KWDHOOK
 		kwdhook = kwdhook_;
 #endif
-		p_owner->__state = BS_LINE;
+		p_owner->__state = BIS_LINE;
 	}
 
 	// Set up again on every release, because a longjmp can only land in a call that is still on the
-	// stack. A trap used to drop the interpreter back at the top of the parsing loop, which is what
-	// putting it into BS_LINE means here.
+	// stack. Every trap ends the program.
 	code = setjmp(trap);						/* RETURN ON ERROR */
-	if (code == 1) {							/* FILE SYNTAX ERROR */
-		_finish(p_owner, FALSE);
-		return 0;
-	}
-	if (code == 2) {							/* FAULT */
-		opc = pc;
-		p_owner->__state = BS_LINE;
-	}
-	if (code == 3) {							/* "BREAK" */
-		pc = opc ? opc : pc;
-		cpc = ipc;
-		p_owner->__state = BS_LINE;
-	}
-	if (code == 4) {							/* "BYE" */
-		_finish(p_owner, TRUE);
+	if (code) {
+		_finish(p_owner, code == TRAP_BYE);
 		return 0;
 	}
 
 	switch (p_owner->__state) {
-	case BS_LINE:
+	case BIS_LINE:
 		if (p_owner->__p_current) {
-			_readLine(p_owner);
-
 			lnum++;								/* PARSE AND COMPILE */
+			_readLine(p_owner);
 			ungot = 0;
 			stmt();
-			if (compile) break;					/* CONTINUE COMPILING */
-			opc = pc;							/* START OF IMMEDIATE */
-			pc = prg + ipc;
-			emit(BREAK_);
-			p_owner->_program_size = cpc;
-			p_owner->_string_count = stabp - stab;
-			p_owner->_parsing_time = pif_cumulative_timer1ms - p_owner->__start_time;
-			p_owner->__state = BS_RUN_STATEMENT;
 			break;
 		}
 
-		ipc = cpc + 1;							/* DONE COMPILING */
-		compile = 0;
+		if (!CSTK_EMPTY) bad("MISSING END");	/* DONE COMPILING */
 		emit(BYE_);
-		p_owner->_program_size = cpc;
-		p_owner->_string_count = stabp - stab;
 		p_owner->_parsing_time = pif_cumulative_timer1ms - p_owner->__start_time;
-		p_owner->__state = BS_RUN_PROGRAM;
+		p_owner->__state = BIS_RUN;
 		break;
 
-	case BS_RUN_STATEMENT:						/* RUN STATEMENT */
-	case BS_RUN_PROGRAM:						/* RUN PROGRAM */
+	case BIS_RUN:
 		// A bounded number of opcodes, which is where the release ends and every other task gets
 		// its turn. What is left of the program is in pc, so the next release carries on from here.
-		for (cnt = s_basic.__opcode; cnt > 0; cnt--) {
-			if ((*pc++)()) continue;
-
-			// The statement or the program has run out.
-			if (p_owner->__state == BS_RUN_PROGRAM) {
-				_finish(p_owner, TRUE);
-				return 0;
-			}
-			p_owner->__state = BS_LINE;
-			break;
-		}
+		// The program ends only through BYE_, which the compiler puts at its end.
+		for (cnt = p_owner->__opcode; cnt > 0; cnt--) (*pc++)();
 		break;
 
 	default:
@@ -1204,11 +1217,17 @@ BOOL pifBasic_Init(PifBasicProcess* p_process, PifEvtBasicResult evt_result)
 	return TRUE;
 }
 
-void pifBasic_Execute(char* p_program, int opcode)
+BOOL pifBasic_Execute(char* p_program, int opcode)
 {
+	if (!s_basic._p_task || !p_program) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
 	s_basic.__p_program = p_program;
 	if (opcode > 0) s_basic.__opcode = opcode;
 	else s_basic.__opcode = PIF_BASIC_OPCODE;
-	s_basic.__state = BS_START;
+	s_basic.__state = BIS_START;
 	pifTask_SetTrigger(s_basic._p_task, 0);
+	return TRUE;
 }

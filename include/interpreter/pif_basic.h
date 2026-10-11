@@ -33,13 +33,16 @@ STATEMENTS:
 	FOR	VAR=INIT TO FINAL ... END FOR
 	FORMAT	STRING [, EXPRESSION ...]
     EXEC  PROGRAM [, EXPRESSION ...]
-	RESUME
 	BREAK
 	BYE
-	
-	* "%" IN "FORMAT" PRINTS THE NEXT ARGUMENT AS AN INTEGER
-	* "SUB" MAY NOT BE NESTED
-	* "LOCAL" MAY ONLY BE USED IN A SUBROUTINE
+
+	* "%" IN "FORMAT" PRINTS THE NEXT ARGUMENT AS AN INTEGER, "$" AS A STRING
+	* "SUB" MAY NOT BE NESTED AND MUST BE AT THE TOP LEVEL
+	* "LOCAL" AND "RETURN" MAY ONLY BE USED IN A SUBROUTINE
+	* "FOR" STOPS BEFORE "FINAL": "FOR I=1 TO 3" RUNS WITH I=1 AND I=2
+	* "BREAK" AND "BYE" BOTH END THE PROGRAM
+	* ONLY A STATEMENT THAT DOES NOT OPEN OR CLOSE A BLOCK MAY FOLLOW "THEN"
+	* "RESUME" OF THE ORIGINAL INTERPRETER IS NOT SUPPORTED
 
 EXPRESSIONS:
 	NUMBER, "", NAME, NAME(INDEX), NAME(ARG,...), UBOUND(VAR), (EXPRESSION)
@@ -69,23 +72,14 @@ GENERAL NOTES:
 	* "LOCAL" CANNOT CHANGE THE MODE OF A VARIABLE; A
 		VARIABLE MUST BE NORMAL, AN ARRAY, OR SUBROUTINE
 		IN ALL CONTEXTS.
-	* "INITBASIC" IS NOT MEANT TO RESET THE INTERPRETER
+	* "INITBASIC" RESETS THE INTERPRETER FOR EVERY PROGRAM
 
-COMPILING AND INTERPRETING:
-	IF GIVEN A FILE, WE BEGIN IN COMPILED MODE
-	IF NO FILE IS GIVEN, WE BEGIN IN INTERPRETED MODE
+COMPILING AND RUNNING:
+	THE WHOLE PROGRAM IS COMPILED FIRST, ONE LINE PER TASK RELEASE,
+	AND THEN RUN, "PIF_BASIC_OPCODE" OPCODES PER TASK RELEASE.
 	"CPC" IS THE "PC" OF THE NEXT INSTRUCTION TO COMPILE
-	"IPC" IS THE BEGINNING OF TEMPORARY INTERPRETED CODE
-	"OPC" IS THE PC TO RETURN TO AFTER INTERPRETED CODE IS RUN
-	A STATMENT IS COMPILED IN EITHER MODE
-	AFTER A STATEMENT IS COMPILED, IT IS RUN IN I-MODE BY:
-		SETTING "PC" TO "IPC"
-		EMITTING A "STOP_"
-		RUNNING THE DRIVER
-		RESTORING THE "PC" AND "CPC"
-	COMPLEX STATEMENTS LIKE IF SET ENTER COMPILED MODE
-	* "OPC" IS NULL IF "BREAK" IS RUN FROM COMPILED CODE
-	* "RESUME" WITH A VALUE FOR EXPRESSIONS NOT STATEMENTS
+	* A SYNTAX ERROR OR A RUN-TIME ERROR ENDS THE PROGRAM WITH A FALSE RESULT
+	* EXCEEDING ANY OF THE PIF_BASIC_* SIZES IS REPORTED AS AN ERROR
 
 SUBROUTINES:
 	C-STACK: {JMP}
@@ -97,8 +91,7 @@ SUBROUTINES:
 	VALUE OF A SUBROUTINE IS IT'S PC
 	CALL TAKES VARIABLE INDEX
 	* NO DISTINCTION BETWEEN FUNCTIONS AND SUBROUTINES
-	* LOCALS MAY ONLY BE USED INSIDE OF A SUBROUTINE
-	* TRYING TO USE THEM OUTSIDE WILL NOT REPORT AN ERROR
+	* LOCALS MAY ONLY BE DECLARED INSIDE OF A SUBROUTINE
 
 WHILE:	C-STACK: {TEST-FALSE-BRANCH, TOP}
 
@@ -111,6 +104,7 @@ FOR:
 DIMENSIONS:
 	THE VALUE OF A DIM IS A POINTER
 	THE LENGTH OF THE DIM IS STORED IN THE FIRST CELL
+	* ARRAY MEMORY IS ALLOCATED BY "DIM" AND RELEASED WHEN THE PROGRAM ENDS
 
 EXEC:
     PROGRAM: The index of the external function, starting with number 1.
@@ -165,11 +159,10 @@ typedef struct StPifBasic PifBasic;
  */
 typedef enum EnPifBasicState
 {
-	BS_IDLE				= 0,	// No program is running
-	BS_START			= 1,	// A program was handed over and nothing has been done with it yet
-	BS_LINE				= 2,	// Reading and compiling the next source line
-	BS_RUN_STATEMENT	= 3,	// Running the statement that line compiled to, in immediate mode
-	BS_RUN_PROGRAM		= 4		// Running the compiled program
+	BIS_IDLE			= 0,	// No program is running
+	BIS_START			= 1,	// A program was handed over and nothing has been done with it yet
+	BIS_LINE			= 2,	// Reading and compiling the next source line
+	BIS_RUN				= 3		// Running the compiled program
 } PifBasicState;
 
 typedef int (*PifBasicProcess)(int count, int* p_params);
@@ -218,11 +211,15 @@ BOOL pifBasic_Init(PifBasicProcess* p_process, PifEvtBasicResult evt_result);
 
 /**
  * @fn pifBasic_Execute
- * @brief Schedules parsing, compilation, and execution of a BASIC program string.
- * @param p_program Null-terminated BASIC source text.
+ * @brief Schedules parsing, compilation, and execution of a BASIC program string. A program
+ *        that is still running is dropped and this one starts in its place.
+ * @param p_program Null-terminated BASIC source text. It is read while the program is being
+ *                  compiled, so it must stay valid until the result callback is called.
  * @param opcode Opcode budget per scheduler slice; default is used when the value is non-positive.
+ * @return TRUE if the program was scheduled; FALSE if pifBasic_Init() has not succeeded or
+ *         p_program is NULL.
  */
-void pifBasic_Execute(char* p_program, int opcode);
+BOOL pifBasic_Execute(char* p_program, int opcode);
 
 #ifdef __cplusplus
 }
