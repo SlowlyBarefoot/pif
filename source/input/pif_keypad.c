@@ -15,26 +15,10 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 
 	switch (p_key->state) {
 	case KS_IDLE:
-		if (button == ON) {
-			p_key->pressed = FALSE;
-			p_key->long_released = FALSE;
-			p_key->pressed_time = pif_cumulative_timer1ms;
-			if (p_owner->evt_double_pressed) {
-				if (!p_key->first_time) {
-					p_key->first_time = p_key->pressed_time;
-					p_key->double_pressed = FALSE;
-				}
-				else {
-					if (p_key->pressed_time - p_key->first_time < p_owner->_double_time1ms) {
-						(*p_owner->evt_double_pressed)(p_owner->__p_user_keymap[idx]);
-						p_key->double_pressed = TRUE;
-					}
-				}
-			}
-			p_key->state = KS_PRESSED;
-		}
-		else if (p_key->short_clicked) {
-			time = pif_cumulative_timer1ms - p_key->pressed_time;
+		// A short click waits here for a second press until the double-press window from its press
+		// closes. first_time holds that press, because a noise press overwrites pressed_time.
+		if (p_key->short_clicked) {
+			time = pif_cumulative_timer1ms - p_key->first_time;
 			if (time >= p_owner->_double_time1ms) {
 				if (p_owner->evt_pressed)  {
 					(*p_owner->evt_pressed)(p_owner->__p_user_keymap[idx]);
@@ -43,22 +27,37 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 					(*p_owner->evt_released)(p_owner->__p_user_keymap[idx], time);
 				}
 				p_key->short_clicked = FALSE;
-				p_key->first_time = 0L;
 			}
+		}
+		if (button == ON) {
+			p_key->pressed = FALSE;
+			p_key->long_pressed = FALSE;
+			p_key->pressed_time = pif_cumulative_timer1ms;
+			p_key->state = KS_PRESSED;
 		}
 		break;
 
 	case KS_PRESSED:
 		if (button == OFF) {
-			if (p_key->double_pressed)	{
-				p_key->first_time = 0L;
-				p_key->state = KS_RELEASED;
-			}
-			else p_key->state = KS_IDLE;
+			// Released before the hold time: noise, which counts neither as a click nor as the second
+			// press of a double press.
+			p_key->state = KS_IDLE;
 		}
 		else {
 			time = pif_cumulative_timer1ms - p_key->pressed_time;
 			if (time >= p_owner->_hold_time1ms) {
+				// Only a press that got past the hold time can complete a double press.
+				p_key->double_pressed = FALSE;
+				if (p_owner->evt_double_pressed) {
+					if (p_key->short_clicked && p_key->pressed_time - p_key->first_time < p_owner->_double_time1ms) {
+						(*p_owner->evt_double_pressed)(p_owner->__p_user_keymap[idx]);
+						p_key->double_pressed = TRUE;
+						p_key->short_clicked = FALSE;
+					}
+					else {
+						p_key->first_time = p_key->pressed_time;
+					}
+				}
 				p_key->state = KS_HOLD;
 			}
 		}
@@ -68,11 +67,11 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 		if (!p_key->double_pressed) {
 			time = pif_cumulative_timer1ms - p_key->pressed_time;
 			if (time >= p_owner->_long_time1ms) {
-				if (!p_key->long_released) {
-					if (p_owner->evt_long_released)  {
-						(*p_owner->evt_long_released)(p_owner->__p_user_keymap[idx], time);
+				if (!p_key->long_pressed) {
+					if (p_owner->evt_long_pressed)  {
+						(*p_owner->evt_long_pressed)(p_owner->__p_user_keymap[idx], time);
 					}
-					p_key->long_released = TRUE;
+					p_key->long_pressed = TRUE;
 				}
 			}
 			else if (time >= p_owner->_double_time1ms) {
@@ -85,27 +84,31 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 			}
 			if (button == OFF) {
 				if (!p_key->pressed) {
-					p_key->short_clicked = TRUE;
-					p_key->state = KS_IDLE;
+					if (p_owner->evt_double_pressed) {
+						// Wait out the double-press window before reporting the click.
+						p_key->short_clicked = TRUE;
+						p_key->state = KS_IDLE;
+					}
+					else {
+						// Nothing to wait for, and waiting would let a second click overwrite this one.
+						if (p_owner->evt_pressed)  {
+							(*p_owner->evt_pressed)(p_owner->__p_user_keymap[idx]);
+						}
+						p_key->state = KS_RELEASED;
+					}
 				}
 				else {
 					p_key->state = KS_RELEASED;
 				}
 			}
 		}
-		else {
-			if (button == OFF) {
-				if (p_key->double_pressed) {
-					p_key->short_clicked = FALSE;
-					p_key->first_time = 0L;
-				}
-				p_key->state = KS_RELEASED;
-			}
+		else if (button == OFF) {
+			p_key->state = KS_RELEASED;
 		}
 		break;
 
 	case KS_RELEASED:
-		if (!p_key->long_released && p_owner->evt_released)  {
+		if (!p_key->long_pressed && p_owner->evt_released)  {
 			time = pif_cumulative_timer1ms - p_key->pressed_time;
 			(*p_owner->evt_released)(p_owner->__p_user_keymap[idx], time);
 		}
@@ -194,7 +197,7 @@ BOOL pifKeypad_SetControlPeriod(PifKeypad* p_owner, uint16_t period1ms)
 
 	p_owner->__control_period_1ms = period1ms;
     if (p_owner->__p_task) {
-       	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__control_period_1ms);
+       	pifTask_ChangePeriod(p_owner->__p_task, p_owner->__control_period_1ms * 1000UL);
     }
 	return TRUE;
 }

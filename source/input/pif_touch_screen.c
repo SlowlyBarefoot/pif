@@ -328,7 +328,7 @@ BOOL pifTouchScreen_SetControlPeriod(PifTouchScreen* p_owner, uint16_t period1ms
 
 	p_owner->_control_period_1ms = period1ms;
     if (p_owner->_p_task) {
-       	pifTask_ChangePeriod(p_owner->_p_task, p_owner->_control_period_1ms);
+       	pifTask_ChangePeriod(p_owner->_p_task, p_owner->_control_period_1ms * 1000UL);
     }
 	return TRUE;
 }

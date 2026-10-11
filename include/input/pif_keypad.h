@@ -55,7 +55,7 @@ typedef void (*PifActKeypadAcquire)(uint16_t* p_state);
 typedef void (*PifEvtKeypadPressed)(char ch);
 typedef void (*PifEvtKeypadDoublePressed)(char ch);
 typedef void (*PifEvtKeypadReleased)(char ch, uint32_t on_time);
-typedef void (*PifEvtKeypadLongReleased)(char ch, uint32_t on_time);
+typedef void (*PifEvtKeypadLongPressed)(char ch, uint32_t on_time);
 
 
 /**
@@ -68,7 +68,7 @@ typedef struct StPifKey
 	BOOL pressed;
 	BOOL short_clicked;
 	BOOL double_pressed;
-	BOOL long_released;
+	BOOL long_pressed;
 	uint32_t pressed_time;
 	uint32_t first_time;
 #ifdef COLLECT_SIGNAL_KEYPAD
@@ -85,10 +85,12 @@ typedef struct StPifKeypad
 	// Public Member Variable
 
 	// Public Event Function
-	PifEvtKeypadPressed evt_pressed;
-	PifEvtKeypadReleased evt_released;
-	PifEvtKeypadLongReleased evt_long_released;
-	PifEvtKeypadDoublePressed evt_double_pressed;
+	// A press shorter than _hold_time1ms is noise and raises no event.
+	PifEvtKeypadPressed evt_pressed;				// At _double_time1ms of holding, or with evt_released for a short click
+	PifEvtKeypadReleased evt_released;				// On release, unless evt_long_pressed was raised
+	PifEvtKeypadLongPressed evt_long_pressed;		// Once, while still held, at _long_time1ms
+	PifEvtKeypadDoublePressed evt_double_pressed;	// When a second press within _double_time1ms passes _hold_time1ms.
+													// If set, a short click is reported only after that window closes.
 
 	// Read-only Member Variable
 	PifId _id;
