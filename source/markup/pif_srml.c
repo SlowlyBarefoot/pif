@@ -9,62 +9,72 @@
 
 #include "markup/pif_srml.h"
 
-#include <stdio.h>
+#include <limits.h>
 #include <string.h>
 
 
+#define SRML_LINE_END_SIZE      3		// "\r\n\0"
+#define SRML_NUMBER_SIZE        48		// Sign, 64-bit digits with separators, decimal point and fraction
+#define SRML_MAX_FRACTION       9		// 10^9 still fits in a 32-bit unsigned long
+
+
 /**
- * @brief Converts an integer value to a null-terminated decimal string.
+ * @brief Checks whether a character can be used as a directive argument.
+ * @param ch Character to check.
+ * @return TRUE if the character is neither a line end nor the string terminator.
+ */
+static BOOL _isCommandChar(char ch)
+{
+    return ch && ch != '\r' && ch != '\n';
+}
+
+/**
+ * @brief Appends one character to the line buffer, dropping it when the buffer is full.
+ * @param p_owner Pointer to the SRML context.
+ * @param ch Character to append.
+ */
+static void _putChar(PifSrml *p_owner, char ch)
+{
+    if (p_owner->__offset < PIF_SRML_MAX_BUFFER_SIZE - SRML_LINE_END_SIZE) {
+        p_owner->__buffer[p_owner->__offset++] = ch;
+    }
+}
+
+/**
+ * @brief Appends the same character several times to the line buffer.
+ * @param p_owner Pointer to the SRML context.
+ * @param ch Character to append.
+ * @param count Number of repetitions.
+ */
+static void _putChars(PifSrml *p_owner, char ch, int count)
+{
+    while (count-- > 0) _putChar(p_owner, ch);
+}
+
+/**
+ * @brief Converts an unsigned integer value to a null-terminated decimal string.
  * @param p_buffer Output buffer for the resulting string.
- * @param value Non-negative integer value to convert.
+ * @param value Integer value to convert.
  * @param str_cnt Minimum digit width; left-zero-padded when greater than 0.
  * @param ch_thousand Optional thousands separator; ignored when zero.
  * @return Number of characters written, excluding the null terminator.
  */
-static int _numberToString(char *p_buffer, long value, int str_cnt, char ch_thousand)
+static int _numberToString(char *p_buffer, unsigned long value, int str_cnt, char ch_thousand)
 {
-    char inv_buf[16];
-    int exp_cnt = 0;
-    int zero_str_cnt = 0;
+    char inv_buf[SRML_NUMBER_SIZE];
+    int digit_cnt = 0;
     int idx = 0;
-    long idx_inv = 0;
-    long tmp_val;
+    int idx_inv = 0;
 
-    tmp_val = value;
-    if (tmp_val != 0) {
-        while (tmp_val) {
-            exp_cnt++;
-            if (tmp_val >= 10) {
-                inv_buf[idx_inv++] = (tmp_val % 10) + '0';
-            }
-            else {
-                inv_buf[idx_inv++] = tmp_val + '0';
-                break;
-            }
-            tmp_val = tmp_val / 10;
-            if (ch_thousand && !str_cnt && exp_cnt % 3 == 0) inv_buf[idx_inv++] = ch_thousand;
-        }
+    do {
+        if (ch_thousand && digit_cnt && digit_cnt % 3 == 0) inv_buf[idx_inv++] = ch_thousand;
+        inv_buf[idx_inv++] = (value % 10) + '0';
+        digit_cnt++;
+        value /= 10;
+    } while (value);
 
-        if ((str_cnt != 0) && (exp_cnt < str_cnt)) {
-            zero_str_cnt = str_cnt - exp_cnt;
-            while (zero_str_cnt) {
-                p_buffer[idx++] = '0';
-                zero_str_cnt--;
-            }
-        }
-        p_buffer[idx] = 0;
-        while (idx_inv) {
-            idx_inv--;
-            p_buffer[idx++] = inv_buf[idx_inv];
-        }
-    }
-    else {
-        zero_str_cnt = str_cnt;
-        do {
-            p_buffer[idx++] = '0';
-            if (zero_str_cnt > 0) zero_str_cnt--;
-        } while (zero_str_cnt);
-    }
+    for (; digit_cnt < str_cnt; digit_cnt++) p_buffer[idx++] = '0';
+    while (idx_inv) p_buffer[idx++] = inv_buf[--idx_inv];
     p_buffer[idx] = 0;
     return idx;
 }
@@ -72,44 +82,36 @@ static int _numberToString(char *p_buffer, long value, int str_cnt, char ch_thou
 /**
  * @brief Writes a string value into the internal output buffer with alignment.
  * @param p_owner Pointer to the SRML context.
- * @param p_str Source string to write.
+ * @param p_str Source string to write. NULL is treated as an empty string.
  * @param align Alignment mode; defaults to left when not specified.
  * @param str_cnt Field width; when 0, writes without fixed-width padding.
+ *                A string longer than the field width is truncated.
  */
-static void _convertString(PifSrml *p_owner, char *p_str, PifSrmlAlign align, int str_cnt)
+static void _convertString(PifSrml *p_owner, const char *p_str, PifSrmlAlign align, int str_cnt)
 {
-    char form[16], *p_buffer = p_owner->__buffer + p_owner->__offset;
-    int i, len, offset;
+    int i, len, pad_left = 0, pad_right = 0;
 
+    if (!p_str) p_str = "";
     if (align == SRMLA_NONE) align = SRMLA_LEFT;
 
+    len = strlen(p_str);
     if (str_cnt) {
-        switch (align) {
-        case SRMLA_CENTER:
-            len = strlen(p_str);
-            if (len < str_cnt) {
-                sprintf(form, "%%%ds", (str_cnt - len) / 2 + len);
-                offset = sprintf(p_buffer, form, p_str);
-                for (i = 0; i < str_cnt - offset; i++) p_buffer[offset + i] = ' ';
-            }
-            else str_cnt = 0;
-            break;
-
-        case SRMLA_RIGHT:
-            sprintf(form, "%%%ds", str_cnt);
-            sprintf(p_buffer, form, p_str);
-            break;
-
-        default:
-            offset = sprintf(p_buffer, "%s", p_str);
-            for (i = 0; i < str_cnt - offset; i++) p_buffer[offset + i] = ' ';
-            break;
+        if (len >= str_cnt) {
+            len = str_cnt;
         }
-        p_owner->__offset += str_cnt;
+        else {
+            switch (align) {
+            case SRMLA_CENTER: pad_left = (str_cnt - len) / 2; break;
+            case SRMLA_RIGHT:  pad_left = str_cnt - len; break;
+            default:           break;
+            }
+            pad_right = str_cnt - len - pad_left;
+        }
     }
-    else {
-    	p_owner->__offset += sprintf(p_buffer, "%s", p_str);
-    }
+
+    _putChars(p_owner, ' ', pad_left);
+    for (i = 0; i < len; i++) _putChar(p_owner, p_str[i]);
+    _putChars(p_owner, ' ', pad_right);
 }
 
 /**
@@ -121,17 +123,21 @@ static void _convertString(PifSrml *p_owner, char *p_str, PifSrmlAlign align, in
  */
 static void _convertInteger(PifSrml *p_owner, long value, PifSrmlAlign align, int str_cnt)
 {
-    char num_str[16];
+    char num_str[SRML_NUMBER_SIZE];
+    unsigned long abs_value;
     int idx = 0;
 
     if (align == SRMLA_NONE) align = SRMLA_RIGHT;
 
     if (value < 0) {
-    	num_str[idx++] = '-';
-        value *= -1;
+        num_str[idx++] = '-';
+        abs_value = 0UL - (unsigned long)value;		// Also valid for LONG_MIN
+    }
+    else {
+        abs_value = value;
     }
 
-    _numberToString(num_str + idx, value, 0, p_owner->ch_thousand);
+    _numberToString(num_str + idx, abs_value, 0, p_owner->ch_thousand);
     _convertString(p_owner, num_str, align, str_cnt);
 }
 
@@ -141,168 +147,140 @@ static void _convertInteger(PifSrml *p_owner, long value, PifSrmlAlign align, in
  * @param value Real value to format.
  * @param align Alignment mode; defaults to right when not specified.
  * @param str_cnt Field width; when 0, writes without fixed-width padding.
- * @param fraction Number of fractional digits to print.
+ * @param fraction Number of fractional digits to print (at most SRML_MAX_FRACTION).
+ *                 The value is rounded to this number of digits.
  */
 static void _convertReal(PifSrml *p_owner, double value, PifSrmlAlign align, int str_cnt, int fraction)
 {
-    char num_str[32];
+    char num_str[SRML_NUMBER_SIZE];
     int i, idx = 0;
-    long num;
+    BOOL negative = FALSE;
+    unsigned long divisor = 1, int_part, frac_part;
 
     if (align == SRMLA_NONE) align = SRMLA_RIGHT;
+    if (fraction > SRML_MAX_FRACTION) fraction = SRML_MAX_FRACTION;
 
     if (value < 0.0) {
-        num_str[idx++] = '-';
-        value *= -1.0;
+        negative = TRUE;
+        value = -value;
     }
 
-    num = (long)value;
-    idx += _numberToString(num_str + idx, num, 0, p_owner->ch_thousand);
+    for (i = 0; i < fraction; i++) divisor *= 10;
+
+    if (value < (double)ULONG_MAX) {
+        int_part = (unsigned long)value;
+        frac_part = (unsigned long)((value - int_part) * divisor + 0.5);
+        if (frac_part >= divisor) {
+            int_part++;
+            frac_part -= divisor;
+        }
+    }
+    else {
+        int_part = ULONG_MAX;
+        frac_part = 0;
+    }
+
+    if (negative && (int_part || frac_part)) num_str[idx++] = '-';
+    idx += _numberToString(num_str + idx, int_part, 0, p_owner->ch_thousand);
 
     if (fraction) {
         num_str[idx++] = p_owner->ch_decimal;
-
-        value -= num;
-        for (i = 0; i < fraction; i++) value *= 10;
-
-        idx += _numberToString(num_str + idx, (long)(value + 0.5), fraction, 0);
+        _numberToString(num_str + idx, frac_part, fraction, 0);
     }
     _convertString(p_owner, num_str, align, str_cnt);
 }
 
 /**
  * @brief Parses and processes a repetition directive that starts with '#'.
+ * @details On return, the format pointer points to the first character after the directive.
  * @param p_owner Pointer to the SRML context.
  */
 static void _srmlRepeat(PifSrml *p_owner)
 {
-    int i, num_str;
+    int count = 0;
+    BOOL has_count = FALSE;
 
-    num_str = 0;
+    p_owner->__p_format++;
+    while (*p_owner->__p_format >= '0' && *p_owner->__p_format <= '9') {
+        if (count < PIF_SRML_MAX_BUFFER_SIZE) count = count * 10 + *p_owner->__p_format - '0';
+        has_count = TRUE;
+        p_owner->__p_format++;
+    }
 
-NEXT_STR:
-	p_owner->__p_format++;
-    switch (*p_owner->__p_format) {
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
-		num_str *= 10;
-		num_str += *p_owner->__p_format - '0';
-        goto NEXT_STR;
+    if (!_isCommandChar(*p_owner->__p_format)) return;
 
-    case '#':
-    	p_owner->__buffer[p_owner->__offset++] = '@';
+    if (!has_count && *p_owner->__p_format == '#') _putChar(p_owner, '#');
+    else _putChars(p_owner, *p_owner->__p_format, count);
+    p_owner->__p_format++;
+}
+
+/**
+ * @brief Parses and processes a conversion directive that starts with '%'.
+ * @details On return, the format pointer points to the first character after the directive.
+ * @param p_owner Pointer to the SRML context.
+ */
+static void _srmlConvert(PifSrml *p_owner)
+{
+    int num_str = 0, fraction = 0;
+    BOOL point = FALSE;
+    PifSrmlAlign align = SRMLA_NONE;
+    char command;
+    void *p_data = NULL;
+
+    for (p_owner->__p_format++; ; p_owner->__p_format++) {
+        command = *p_owner->__p_format;
+        if (command == '<') align = SRMLA_LEFT;
+        else if (command == '=') align = SRMLA_CENTER;
+        else if (command == '>') align = SRMLA_RIGHT;
+        else if (command == '.') point = TRUE;
+        else if (command >= '0' && command <= '9') {
+            if (point) {
+                if (fraction <= SRML_MAX_FRACTION) fraction = fraction * 10 + command - '0';
+            }
+            else {
+                if (num_str < PIF_SRML_MAX_BUFFER_SIZE) num_str = num_str * 10 + command - '0';
+            }
+        }
+        else break;
+    }
+
+    if (!_isCommandChar(command)) return;
+    p_owner->__p_format++;
+
+    if (command == '%') {
+        _putChar(p_owner, '%');
+        return;
+    }
+
+    switch ((*p_owner->__f_process_data)(p_owner, command, &p_data)) {
+    case SRMLT_STRING:
+        _convertString(p_owner, (const char *)p_data, align, num_str);
+        break;
+
+    case SRMLT_INT:
+        if (p_data) _convertInteger(p_owner, *(long *)p_data, align, num_str);
+        break;
+
+    case SRMLT_REAL:
+        if (p_data) _convertReal(p_owner, *(double *)p_data, align, num_str, fraction);
         break;
 
     default:
-    	for (i = 0; i < num_str; i++) p_owner->__buffer[p_owner->__offset++] = *p_owner->__p_format;
         break;
     }
 }
 
 /**
- * @brief Parses and processes a conversion directive that starts with '%'.
+ * @brief Terminates the current line buffer and passes it to the print callback.
  * @param p_owner Pointer to the SRML context.
  */
-static void _srmlConvert(PifSrml *p_owner)
+static void _srmlPrintLine(PifSrml *p_owner)
 {
-    int num_str, fraction, point;
-    PifSrmlAlign align;
-    void *p_data;
-
-    num_str = 0;
-    fraction = 0;
-    align = SRMLA_NONE;
-    point = 0;
-
-NEXT_STR:
-	p_owner->__p_format++;
-    switch (*p_owner->__p_format) {
-    case '<':
-        align = SRMLA_LEFT;
-        goto NEXT_STR;
-
-    case '=':
-        align = SRMLA_CENTER;
-        goto NEXT_STR;
-
-    case '>':
-        align = SRMLA_RIGHT;
-        goto NEXT_STR;
-
-    case '.':
-        point = 1;
-        goto NEXT_STR;
-
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
-        if (point) {
-            fraction *= 10;
-            fraction += *p_owner->__p_format - '0';
-        }
-        else {
-            num_str *= 10;
-            num_str += *p_owner->__p_format - '0';
-        }
-        goto NEXT_STR;
-
-    case '%':
-    	p_owner->__buffer[p_owner->__offset++] = '%';
-        break;
-
-    default:
-		switch ((*p_owner->__f_process_data)(p_owner, *p_owner->__p_format, &p_data, p_owner->loop_idx)) {
-		case SRMLT_STRING:
-			_convertString(p_owner, p_data, align, num_str);
-			break;
-
-		case SRMLT_INT:
-			_convertInteger(p_owner, *(long*)p_data, align, num_str);
-			break;
-
-		case SRMLT_REAL:
-			_convertReal(p_owner, *(double*)p_data, align, num_str, fraction);
-			break;
-
-		default:
-			break;
-    	}
-    	break;
-    }
-}
-
-static void _srmlNewline(PifSrml *p_owner, char *p_loop_command, const char *p_loop_fp)
-{
-    if (p_owner->__offset) {
-    	p_owner->__buffer[p_owner->__offset++] = '\r';
-    	p_owner->__buffer[p_owner->__offset++] = '\n';
-    	p_owner->__buffer[p_owner->__offset] = 0;
-        (*p_owner->__f_print_line)(p_owner->__buffer, p_owner->__offset);
-    }
+    p_owner->__buffer[p_owner->__offset++] = '\r';
+    p_owner->__buffer[p_owner->__offset++] = '\n';
+    p_owner->__buffer[p_owner->__offset] = 0;
+    (*p_owner->__f_print_line)(p_owner->__buffer, p_owner->__offset);
     p_owner->__offset = 0;
-    p_owner->__p_format++;
-    if (*p_loop_command) {
-    	p_owner->loop_idx++;
-        if (p_owner->__f_process_loop) {
-        	if ((*p_owner->__f_process_loop)(p_owner, *p_loop_command)) *p_loop_command = 0;
-        	else p_owner->__p_format = p_loop_fp;
-        }
-    }
 }
 
 BOOL pifSrml_Init(PifSrml *p_owner, FSrmlProcessData f_process_data, FSrmlProcessLoop f_process_loop, FSrmlProcessIf f_process_if, FSrmlPrintLine f_print_line)
@@ -324,77 +302,89 @@ BOOL pifSrml_Init(PifSrml *p_owner, FSrmlProcessData f_process_data, FSrmlProces
 
 void pifSrml_Parsing(PifSrml *p_owner, const char *p_format)
 {
-	int first = 1, ignore = 0;
-    char loop_command;
-    const char *loop_fp;
+    BOOL first = TRUE, ignore = FALSE;
+    char ch, loop_command = 0;
+    const char *loop_fp = p_format;
+    const char *p_line = p_format;
 
     p_owner->__p_format = p_format;
     p_owner->__offset = 0;
     p_owner->loop_idx = 0;
-    loop_command = 0;
-    loop_fp = p_owner->__p_format;
-    while (*p_owner->__p_format) {
-        switch (*p_owner->__p_format) {
+
+    for (;;) {
+        ch = *p_owner->__p_format;
+        switch (ch) {
         case '[':
-			if (p_owner->__f_process_loop && first) {
-				p_owner->__p_format++;
-				p_owner->loop_idx = 0;
-				loop_command = *p_owner->__p_format;
-				(*p_owner->__f_process_loop)(p_owner, loop_command);
-				loop_fp = p_owner->__p_format + 1;
-			}
-			else if (!ignore) {
-				p_owner->__buffer[p_owner->__offset++] = *p_owner->__p_format;
-        	}
+            if (first && !loop_command && p_owner->__f_process_loop && _isCommandChar(p_owner->__p_format[1])) {
+                loop_command = p_owner->__p_format[1];
+                p_owner->__p_format += 2;
+                loop_fp = p_owner->__p_format;
+                p_owner->loop_idx = 0;
+                if ((*p_owner->__f_process_loop)(p_owner, loop_command)) {
+                    // No items: skip this line entirely.
+                    loop_command = 0;
+                    ignore = TRUE;
+                }
+                // 'first' stays TRUE so that a '?' condition can follow the loop marker.
+                break;
+            }
+            if (!ignore) _putChar(p_owner, ch);
             p_owner->__p_format++;
-        	first = 0;
+            first = FALSE;
             break;
 
         case '?':
-            if (p_owner->__f_process_if && first) {
-            	p_owner->__p_format++;
-				ignore = !(*p_owner->__f_process_if)(p_owner, *p_owner->__p_format);
+            if (first && p_owner->__f_process_if && _isCommandChar(p_owner->__p_format[1])) {
+                if (!ignore) ignore = !(*p_owner->__f_process_if)(p_owner, p_owner->__p_format[1]);
+                p_owner->__p_format += 2;
             }
-            else if (!ignore) {
-            	p_owner->__buffer[p_owner->__offset++] = *p_owner->__p_format;
+            else {
+                if (!ignore) _putChar(p_owner, ch);
+                p_owner->__p_format++;
             }
-            p_owner->__p_format++;
-        	first = 0;
+            first = FALSE;
             break;
 
         case '#':
-        	if (!ignore) _srmlRepeat(p_owner);
-            p_owner->__p_format++;
-        	first = 0;
+            if (ignore) p_owner->__p_format++;
+            else _srmlRepeat(p_owner);
+            first = FALSE;
             break;
 
         case '%':
-        	if (!ignore) _srmlConvert(p_owner);
-            p_owner->__p_format++;
-        	first = 0;
+            if (ignore) p_owner->__p_format++;
+            else _srmlConvert(p_owner);
+            first = FALSE;
             break;
 
+        case 0:
         case '\n':
-        	_srmlNewline(p_owner, &loop_command, loop_fp);
-        	first = 1;
-        	ignore = 0;
-            break;
-
         case '\r':
-        	_srmlNewline(p_owner, &loop_command, loop_fp);
-        	if (*p_owner->__p_format == '\n') p_owner->__p_format++;
-        	first = 1;
-        	ignore = 0;
+            // A template ending with a line break has no extra empty line at the end.
+            if (ch == 0 && p_owner->__p_format == p_line) return;
+
+            if (!ignore) _srmlPrintLine(p_owner);
+            p_owner->__offset = 0;
+
+            if (ch == '\r' && p_owner->__p_format[1] == '\n') p_owner->__p_format += 2;
+            else if (ch) p_owner->__p_format++;
+
+            if (loop_command) {
+                p_owner->loop_idx++;
+                if ((*p_owner->__f_process_loop)(p_owner, loop_command)) loop_command = 0;
+                else p_owner->__p_format = loop_fp;
+            }
+
+            p_line = p_owner->__p_format;
+            first = TRUE;
+            ignore = FALSE;
             break;
 
         default:
-        	if (!ignore) {
-				p_owner->__buffer[p_owner->__offset++] = *p_owner->__p_format;
-        	}
-			p_owner->__p_format++;
-        	first = 0;
+            if (!ignore) _putChar(p_owner, ch);
+            p_owner->__p_format++;
+            first = FALSE;
             break;
         }
     }
-    if (!first) _srmlNewline(p_owner, &loop_command, loop_fp);
 }

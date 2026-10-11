@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /**
  * @file pif_srml.h
- * @brief Simple Receipt Markup Langeage
+ * @brief Simple Receipt Markup Language
  * @details
- * 
+ *
  * Metacharacter	Explanation
  * ----------------------------------------------------------------------------------------------------------------------------
  *     {}			At least one character must be present.
@@ -11,23 +11,29 @@
  *      |			Select one of the items separated by this character.
  *   [<|=|>]		Align. '<' left alignment, '=' center alignment, '>' right alignment, if not present, default alignment.
  *   				The default alignment of strings is left alignment. The default alignment of numbers is right-aligned.
- *   [n|n.m]		n is the number of digits. m is the number of digits after the decimal point.
- * 					If omitted, it is output from the current position, sort items are ignored, and if it is a real number, 
- * 					decimals are rounded and displayed as integers.
- *	  'cmd'			Use one lowercase alphabet letter. However, depending on the function implementation, 
+ *   [n|n.m]		n is the field width. m is the number of digits after the decimal point (at most 9).
+ * 					If n is omitted, the value is output from the current position and the alignment is ignored.
+ * 					A value longer than n is truncated to n characters.
+ * 					If m is omitted for a real number, it is rounded and displayed as an integer.
+ *	  'cmd'			Use one lowercase alphabet letter. However, depending on the function implementation,
  * 					uppercase letters are also possible.
  *    'char'		All printable characters can be used.
- * 
+ *
  *       Command		Explanation
  * ----------------------------------------------------------------------------------------------------------------------------
- *       ['cmd'			If there is a '[' character in the first line, the line is repeated. 
- * 						The number of repetitions and whether to print is also determined by 'cmd'.
- *       ?'cmd'			When this character is present in the first space, 
- * 						whether or not to print is determined according to the conditions specified from A to Z.
+ *       ['cmd'			If this is in the first column, the line is repeated.
+ * 						The loop callback is called with 'cmd' when the loop starts and after each printed line,
+ * 						and returns TRUE when there are no more items. If it returns TRUE at the start,
+ * 						the line is not printed at all.
+ *       ?'cmd'			If this is in the first column, or right after ['cmd', whether or not to print the line
+ * 						is determined by the if callback. Inside a loop, it is evaluated for each repetition.
  * %[<|=|>][n|n.m]'cmd'	Convert to the value corresponding to 'cmd'.
  *         %%			Prints '%'.
  *     #{n}'char'		Repeat the 'char' character n times.
- * 		   ##			Prints '@'.
+ * 		   ##			Prints '#'.
+ *
+ * Empty lines are printed as they are, except for lines skipped by '?' or by a loop with no items.
+ * A line longer than PIF_SRML_MAX_BUFFER_SIZE - 3 characters is truncated.
 */
 
 #ifndef PIF_SRML_H
@@ -61,7 +67,12 @@ typedef enum EnPifSrmlType
 struct StPifSrml;
 typedef struct StPifSrml PifSrml;
 
-typedef PifSrmlType (*FSrmlProcessData)(PifSrml *p_owner, char command, void **p_data, int loop_idx);
+/**
+ * @brief Maps a conversion command to its value.
+ * @details Set *p_data to a "const char *" for SRMLT_STRING, a "long *" for SRMLT_INT,
+ *          or a "double *" for SRMLT_REAL. Inside a loop, use p_owner->loop_idx as the item index.
+ */
+typedef PifSrmlType (*FSrmlProcessData)(PifSrml *p_owner, char command, void **p_data);
 typedef BOOL (*FSrmlProcessLoop)(PifSrml *p_owner, char command);
 typedef BOOL (*FSrmlProcessIf)(PifSrml *p_owner, char command);
 typedef void (*FSrmlPrintLine)(char *message, int length);
