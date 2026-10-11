@@ -7,7 +7,7 @@
 #include "input/pif_touch_screen.h"
 
 
-typedef BOOL (*PifActTsc2046Pen)();
+typedef BOOL (*PifActTsc2046Pen)(void);
 
 /**
  * @class StPifTsc2046
@@ -19,12 +19,11 @@ typedef struct StPifTsc2046
 	PifTouchScreen parent;
 
 	// Public Member Variable
-	PifSpiDevice* _p_spi;
 
 	// Public Event Function
 
 	// Read-only Member Variable
-	PifId _id;
+	PifSpiDevice* _p_spi;
 
 	// Private Member Variable
 
@@ -39,7 +38,9 @@ extern "C" {
 
 /**
  * @fn pifTsc2046_Init
- * @brief Initializes a TSC2046 touch controller and binds SPI/pen callbacks.
+ * @brief Initializes a TSC2046 touch controller and binds SPI/pen callbacks. Each reading is one
+ *        full-duplex transfer of three bytes, so the port's act_transfer has to clock out p_write
+ *        and clock in p_read byte for byte, and max_transfer_size, when set, must allow three.
  * @param p_owner Pointer to the TSC2046 instance to initialize.
  * @param id Instance ID. Use `PIF_ID_AUTO` to assign an ID automatically.
  * @param p_lcd Target LCD descriptor used for coordinate scaling.
@@ -49,7 +50,7 @@ extern "C" {
  * @param bottom_y Raw touch value at the bottom edge.
  * @param p_port SPI port used to communicate with the TSC2046.
  * @param p_client User SPI client context passed to the SPI device.
- * @param act_pen Callback that returns the current pen interrupt state.
+ * @param act_pen Callback that returns `TRUE` while the panel is pressed (PENIRQ low).
  * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
 BOOL pifTsc2046_Init(PifTsc2046* p_owner, PifId id, PifTftLcd* p_lcd, int16_t left_x, int16_t right_x, int16_t top_y, int16_t bottom_y, PifSpiPort* p_port, void *p_client, PifActTsc2046Pen act_pen);

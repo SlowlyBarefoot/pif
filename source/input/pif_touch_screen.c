@@ -71,7 +71,8 @@ static void _restartSettling(PifTouchScreen* p_owner)
 }
 
 /**
- * @brief Turns the collected samples into calibration values and reports the outcome.
+ * @brief Turns the collected samples into calibration values and reports the outcome. The values
+ *        in use are replaced only when the new ones pass the range check.
  * @param p_owner Pointer to the touch-screen instance.
  * @param result TRUE when all points were sampled, FALSE when calibration gave up.
  */
@@ -84,44 +85,62 @@ static void _finishCalibration(PifTouchScreen* p_owner, BOOL result)
 #ifndef PIF_NO_LOG
 	char* orientation[2] = { "PORTRAIT", "LANDSCAPE" };
 #endif
-	int16_t x_range, y_range;
+	int16_t clx, cty, crx, cby;
+	int16_t x_range, y_range, min_x, min_y;
+	float px, py;
 
 	if (!result) goto quit;
 
 	// The three crosshairs down each edge, averaged, are what that edge reads as.
-    p_owner->__clx = (rx[0] + rx[1] + rx[2]) / 3;
-    p_owner->__crx = (rx[5] + rx[6] + rx[7]) / 3;
-	p_owner->__cty = (ry[0] + ry[3] + ry[5]) / 3;
-	p_owner->__cby = (ry[2] + ry[4] + ry[7]) / 3;
-	p_owner->__px = (float)(p_owner->__crx - p_owner->__clx) / (dispx - 20);
-	p_owner->__py = (float)(p_owner->__cby - p_owner->__cty) / (dispy - 20);
+	clx = (rx[0] + rx[1] + rx[2]) / 3;
+	crx = (rx[5] + rx[6] + rx[7]) / 3;
+	cty = (ry[0] + ry[3] + ry[5]) / 3;
+	cby = (ry[2] + ry[4] + ry[7]) / 3;
+	px = (float)(crx - clx) / (dispx - 20);
+	py = (float)(cby - cty) / (dispy - 20);
 	// The crosshairs are inset by ten pixels, so the edges themselves lie that much further out.
-	p_owner->__clx -= p_owner->__px * 10;
-	p_owner->__crx += p_owner->__px * 10;
-    p_owner->__cty -= p_owner->__py * 10;
-    p_owner->__cby += p_owner->__py * 10;
+	clx -= px * 10;
+	crx += px * 10;
+	cty -= py * 10;
+	cby += py * 10;
 
 #ifndef PIF_NO_LOG
 	pifLog_Printf(LT_INFO, "%s CALIBRATION : %d x %d", orientation[p_lcd->_rotation & 1], dispx, dispy);
-    pifLog_Printf(LT_INFO, "px = %f, py = %f", p_owner->__px, p_owner->__py);
-	pifLog_Printf(LT_INFO, "x = map(p.x, LEFT=%d, RT=%d, 0, %d)", p_owner->__clx, p_owner->__crx, dispx);
-	pifLog_Printf(LT_INFO, "y = map(p.y, TOP=%d, BOT=%d, 0, %d)", p_owner->__cty, p_owner->__cby, dispy);
+	pifLog_Printf(LT_INFO, "px = %f, py = %f", px, py);
+	pifLog_Printf(LT_INFO, "x = map(p.x, LEFT=%d, RT=%d, 0, %d)", clx, crx, dispx);
+	pifLog_Printf(LT_INFO, "y = map(p.y, TOP=%d, BOT=%d, 0, %d)", cty, cby, dispy);
 #endif
 
-	x_range = p_owner->__clx - p_owner->__crx;
-	y_range = p_owner->__cty - p_owner->__cby;
-    if (abs(x_range) < 500 || abs(y_range) < 650) {
+	// The minimum spans are given for the panel at TLR_0_DEGREE, and a quarter turn swaps which
+	// panel axis the screen X runs along.
+	if (p_lcd->_rotation & 1) {
+		min_x = PIF_TOUCH_CALIBRATION_MIN_RANGE_Y;
+		min_y = PIF_TOUCH_CALIBRATION_MIN_RANGE_X;
+	}
+	else {
+		min_x = PIF_TOUCH_CALIBRATION_MIN_RANGE_X;
+		min_y = PIF_TOUCH_CALIBRATION_MIN_RANGE_Y;
+	}
+	x_range = crx - clx;
+	y_range = cby - cty;
+	if (abs(x_range) < min_x || abs(y_range) < min_y) {
 #ifndef PIF_NO_LOG
-        pifLog_Printf(LT_INFO, "\n*** UNUSUAL CALIBRATION RANGES %d %d", x_range, y_range);
+		pifLog_Printf(LT_INFO, "*** UNUSUAL CALIBRATION RANGES %d %d", x_range, y_range);
 #endif
-    	result = FALSE;
-    	goto quit;
-    }
+		result = FALSE;
+		goto quit;
+	}
 
-    p_owner->_calibration = TRUE;
+	p_owner->__clx = clx;
+	p_owner->__crx = crx;
+	p_owner->__cty = cty;
+	p_owner->__cby = cby;
+	p_owner->__px = px;
+	p_owner->__py = py;
+	p_owner->_calibration = TRUE;
 
 quit:
-    (*p_lcd->_fn_draw_fill_rect)(p_lcd, 0, 0, dispx - 1, dispy - 1, PIF_COLOR_BLACK);
+	(*p_lcd->_fn_draw_fill_rect)(p_lcd, 0, 0, dispx - 1, dispy - 1, PIF_COLOR_BLACK);
 	p_owner->_calibration_state = TCS_IDLE;
 	if (p_owner->__evt_calibration) (*p_owner->__evt_calibration)(p_owner, result);
 }
@@ -146,6 +165,7 @@ static void _processingCalibration(PifTouchScreen* p_owner)
 		p_owner->__cal_sum_y = 0UL;
 		p_owner->__cal_count = 0;
 		p_owner->__cal_fail_count = 0;
+		p_owner->__cal_miss_count = 0;
 		p_owner->_calibration_state = TCS_SAMPLE;
 		break;
 
@@ -163,11 +183,14 @@ static void _processingCalibration(PifTouchScreen* p_owner)
 				p_owner->__cal_sum_x += tpx;
 				p_owner->__cal_sum_y += tpy;
 				p_owner->__cal_count++;
+				p_owner->__cal_miss_count = 0;
 				if (p_owner->__cal_count >= PIF_TOUCH_CALIBRATION_SAMPLES) break;
 			}
 			else {
 				p_owner->__cal_fail_count++;
+				p_owner->__cal_miss_count++;
 				if (p_owner->__cal_fail_count >= PIF_TOUCH_CALIBRATION_MAX_FAIL) break;
+				if (p_owner->__cal_miss_count >= PIF_TOUCH_CALIBRATION_BATCH) break;
 			}
 		}
 
@@ -180,8 +203,14 @@ static void _processingCalibration(PifTouchScreen* p_owner)
 			p_owner->_calibration_state = TCS_WAIT_RELEASE;
 		}
 		else if (p_owner->__cal_fail_count >= PIF_TOUCH_CALIBRATION_MAX_FAIL) {
-			// The panel kept reading as unpressed, so the press this crosshair needed never came.
+			// The contact kept dropping out, so this crosshair could not be sampled.
 			_finishCalibration(p_owner, FALSE);
+		}
+		else if (p_owner->__cal_miss_count >= PIF_TOUCH_CALIBRATION_BATCH) {
+			// The press was lifted before enough samples came in. Keeping them would mix them with
+			// the next press, which need not land on the same spot, so this crosshair starts over.
+			_restartSettling(p_owner);
+			p_owner->_calibration_state = TCS_WAIT_PRESS;
 		}
 		break;
 
@@ -231,25 +260,30 @@ static uint32_t _doTask(PifTask* p_task)
 		(*p_owner->__act_position)(p_owner, &tpx, &tpy);
 	}
 	if (!(*p_owner->__act_pressure)(p_owner)) {
+		// The filters are emptied even when the press was too short for them to give a value,
+		// or its samples would be averaged into the next press.
+		if (p_owner->__filter_active) {
+			pifNoiseFilter_Reset(p_owner->__p_filter_x);
+			pifNoiseFilter_Reset(p_owner->__p_filter_y);
+			p_owner->__filter_active = FALSE;
+		}
 		if (p_owner->_pressure) {
-			if (p_owner->__p_filter_x && p_owner->__p_filter_y) {
-				pifNoiseFilter_Reset(p_owner->__p_filter_x);
-				pifNoiseFilter_Reset(p_owner->__p_filter_y);
-			}
 			p_owner->_pressure = FALSE;
+			if (p_owner->evt_touch_released) (*p_owner->evt_touch_released)(p_owner->_x, p_owner->_y);
 		}
 		return 0;
 	}
 
-    if (p_owner->__p_filter_x && p_owner->__p_filter_y) {
-    	p_vx = pifNoiseFilter_Process(p_owner->__p_filter_x, &tpx);
-    	p_vy = pifNoiseFilter_Process(p_owner->__p_filter_y, &tpy);
-    	if (!p_vx || !p_vy) return 0;
-    	tpx = *(int16_t*)p_vx;
-    	tpy = *(int16_t*)p_vy;
-    }
+	if (p_owner->__p_filter_x && p_owner->__p_filter_y) {
+		p_owner->__filter_active = TRUE;
+		p_vx = pifNoiseFilter_Process(p_owner->__p_filter_x, &tpx);
+		p_vy = pifNoiseFilter_Process(p_owner->__p_filter_y, &tpy);
+		if (!p_vx || !p_vy) return 0;
+		tpx = *(int16_t*)p_vx;
+		tpy = *(int16_t*)p_vy;
+	}
 
-    p_owner->_x = (tpx - p_owner->__clx) / p_owner->__px;
+	p_owner->_x = (tpx - p_owner->__clx) / p_owner->__px;
 	if (p_owner->_x < 0) p_owner->_x = 0;
 	else if (p_owner->_x >= p_lcd->_width) p_owner->_x = p_lcd->_width - 1;
 
@@ -265,16 +299,17 @@ static uint32_t _doTask(PifTask* p_task)
 
 BOOL pifTouchScreen_Init(PifTouchScreen* p_owner, PifId id, PifTftLcd* p_lcd, int16_t left_x, int16_t right_x, int16_t top_y, int16_t bottom_y)
 {
-	if (!p_owner || !p_lcd) {
+	// Equal edges would make the scale zero, and the task divides by it.
+	if (!p_owner || !p_lcd || !p_lcd->_width || !p_lcd->_height || left_x == right_x || top_y == bottom_y) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
 	memset(p_owner, 0, sizeof(PifTouchScreen));
 
-    if (id == PIF_ID_AUTO) id = pif_id++;
-    p_owner->_id = id;
-    p_owner->_control_period_1ms = PIF_TOUCH_CONTROL_PERIOD;
+	if (id == PIF_ID_AUTO) id = pif_id++;
+	p_owner->_id = id;
+	p_owner->_control_period_1ms = PIF_TOUCH_CONTROL_PERIOD;
 	p_owner->__p_lcd = p_lcd;
 
 	p_owner->__clx = left_x;
@@ -282,59 +317,69 @@ BOOL pifTouchScreen_Init(PifTouchScreen* p_owner, PifId id, PifTftLcd* p_lcd, in
 	p_owner->__cty = top_y;
 	p_owner->__cby = bottom_y;
 
-	p_owner->__px = (p_owner->__crx - p_owner->__clx) / p_lcd->_width;
-	p_owner->__py = (p_owner->__cby - p_owner->__cty) / p_lcd->_height;
-    return TRUE;
+	p_owner->__px = (float)(p_owner->__crx - p_owner->__clx) / p_lcd->_width;
+	p_owner->__py = (float)(p_owner->__cby - p_owner->__cty) / p_lcd->_height;
+	return TRUE;
 }
 
 void pifTouchScreen_Clear(PifTouchScreen* p_owner)
 {
+	if (!p_owner) return;
+
 	if (p_owner->_p_task) {
 		pifTaskManager_Remove(p_owner->_p_task);
 		p_owner->_p_task = NULL;
 	}
+	p_owner->_calibration_state = TCS_IDLE;
 }
 
 BOOL pifTouchScreen_AttachAction(PifTouchScreen* p_owner, PifActTouchPosition act_position, PifActTouchPressure act_pressure)
 {
-	if (!p_owner || !act_position || ! act_pressure) {
+	if (!p_owner || !act_position || !act_pressure) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
 	p_owner->__act_position = act_position;
 	p_owner->__act_pressure = act_pressure;
-    return TRUE;
+	return TRUE;
 }
 
 BOOL pifTouchScreen_AttachFilter(PifTouchScreen* p_owner, PifNoiseFilter* p_filter_x, PifNoiseFilter* p_filter_y)
 {
-    if (!p_owner || !p_filter_x || !p_filter_y) {
+	if (!p_owner || !p_filter_x || !p_filter_y) {
 		pif_error = E_INVALID_PARAM;
-	    return FALSE;
+		return FALSE;
 	}
 
-    p_owner->__p_filter_x = p_filter_x;
+	p_owner->__p_filter_x = p_filter_x;
 	p_owner->__p_filter_y = p_filter_y;
+	p_owner->__filter_active = FALSE;
 	return TRUE;
 }
 
 BOOL pifTouchScreen_SetControlPeriod(PifTouchScreen* p_owner, uint16_t period1ms)
 {
-	if (!period1ms) {
-        pif_error = E_INVALID_PARAM;
-        return FALSE;
+	if (!p_owner || !period1ms) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
 	}
 
 	p_owner->_control_period_1ms = period1ms;
-    if (p_owner->_p_task) {
-       	pifTask_ChangePeriod(p_owner->_p_task, p_owner->_control_period_1ms * 1000UL);
-    }
+	if (p_owner->_p_task) {
+		pifTask_ChangePeriod(p_owner->_p_task, p_owner->_control_period_1ms * 1000UL);
+	}
 	return TRUE;
 }
 
 BOOL pifTouchScreen_Start(PifTouchScreen* p_owner, const char* p_name)
 {
+	// The task calls both actions on its first release.
+	if (!p_owner || !p_owner->__act_position || !p_owner->__act_pressure) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
 	if (p_owner->_p_task) p_owner->_p_task->pause = FALSE;
 	else {
 		p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, p_owner->_control_period_1ms * 1000UL, _doTask, p_owner, TRUE);
@@ -346,14 +391,25 @@ BOOL pifTouchScreen_Start(PifTouchScreen* p_owner, const char* p_name)
 
 void pifTouchScreen_Stop(PifTouchScreen* p_owner)
 {
-	if (p_owner->_p_task) p_owner->_p_task->pause = TRUE;
+	if (p_owner && p_owner->_p_task) p_owner->_p_task->pause = TRUE;
 }
 
-void pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotation)
+BOOL pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotation)
 {
-	PifTftLcd* p_lcd = p_owner->__p_lcd;
+	PifTftLcd* p_lcd;
 	int16_t clx, cty, crx, cby;
 	float px, py;
+
+	if (!p_owner || rotation > TLR_270_DEGREE) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+	if (p_owner->_calibration_state != TCS_IDLE) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
+
+	p_lcd = p_owner->__p_lcd;
 
 	clx = p_owner->__clx;	cty = p_owner->__cty;
 	crx = p_owner->__crx;	cby = p_owner->__cby;
@@ -410,10 +466,11 @@ void pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotat
 	}
 
 #ifndef PIF_NO_LOG
-    pifLog_Printf(LT_INFO, "px = %f, py = %f", p_owner->__px, p_owner->__py);
+	pifLog_Printf(LT_INFO, "px = %f, py = %f", p_owner->__px, p_owner->__py);
 	pifLog_Printf(LT_INFO, "x = map(p.x, LEFT=%d, RIGHT=%d, 0, %d)", p_owner->__clx, p_owner->__crx, p_lcd->_width);
 	pifLog_Printf(LT_INFO, "y = map(p.y, TOP=%d, BOTTOM=%d, 0, %d)", p_owner->__cty, p_owner->__cby, p_lcd->_height);
 #endif
+	return TRUE;
 }
 
 BOOL pifTouchScreen_StartCalibration(PifTouchScreen* p_owner, PifEvtTouchCalibration evt_calibration)
@@ -449,10 +506,24 @@ BOOL pifTouchScreen_StartCalibration(PifTouchScreen* p_owner, PifEvtTouchCalibra
 
 	p_owner->__evt_calibration = evt_calibration;
 	p_owner->__cal_index = 0;
-	p_owner->_calibration = FALSE;
 	_calibrationPoint(p_owner, 0, &x, &y);
 	_drawCrossHair(p_lcd, x, y, PIF_COLOR_BLUE);
 	_restartSettling(p_owner);
 	p_owner->_calibration_state = TCS_WAIT_PRESS;
+	return TRUE;
+}
+
+BOOL pifTouchScreen_CancelCalibration(PifTouchScreen* p_owner)
+{
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+	if (p_owner->_calibration_state == TCS_IDLE) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
+
+	_finishCalibration(p_owner, FALSE);
 	return TRUE;
 }
