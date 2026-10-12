@@ -38,7 +38,7 @@ struct StPifRc
 
     // Private Event Function
 	PifEvtRcReceive __evt_receive;
-	PifIssuerP* __p_issuer;
+	PifIssuerP __p_issuer;
 };
 
 
@@ -47,7 +47,8 @@ extern "C" {
 #endif
 
 /**
-v * @brief Registers the RC frame receive callback and callback issuer context.
+ * @fn pifRc_AttachEvtReceive
+ * @brief Registers the RC frame receive callback and callback issuer context.
  * @param p_owner Pointer to the RC object.
  * @param evt_receive Callback function called when a valid frame is received.
  * @param p_issuer User-defined issuer context passed to evt_receive.

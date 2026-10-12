@@ -10,8 +10,11 @@ void pifRc_AttachEvtReceive(PifRc* p_owner, PifEvtRcReceive evt_receive, PifIssu
 
 int pifRc_GetFrameLoss(PifRc* p_owner)
 {
-	long loss_frames = p_owner->_lost_frames + p_owner->_error_frames;
-	return (int)(loss_frames * 100 / (p_owner->_good_frames + loss_frames));
+	uint32_t loss_frames = p_owner->_lost_frames + p_owner->_error_frames;
+	uint32_t total_frames = p_owner->_good_frames + loss_frames;
+
+	if (!total_frames) return 0;
+	return (int)(loss_frames * 100 / total_frames);
 }
 
 BOOL pifRc_CheckFailSafe(PifRc* p_owner) 

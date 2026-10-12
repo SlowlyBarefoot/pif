@@ -6,19 +6,12 @@
 #include "rc/pif_rc.h"
 
 
-#define PIF_RC_PPM_DATA_SIZE			4
-#define PIF_RC_PPM_DATA_MASK			(PIF_RC_PPM_DATA_SIZE - 1)
+// _channel is an int8_t that may sit one past the last channel, so this is the most channels allowed.
+#define PIF_RC_PPM_MAX_CHANNEL			(INT8_MAX - 1)
 
+// A receiver that stops sending frames for this long has lost the link.
+#define PIF_RC_PPM_DEFAULT_TIMEOUT_MS	100
 
-/**
- * @struct StPifRcPpmPulse
- * @brief One captured PPM pulse edge pair.
- */
-typedef struct StPifRcPpmPulse
-{
-	uint32_t rising;
-	uint32_t falling;
-} PifRcPpmPulse;
 
 /**
  * @struct StPifRcPpm
@@ -30,21 +23,23 @@ typedef struct StPifRcPpm
 	PifRc parent;
 
 	// Read-only Member Variable
-	int8_t _channel;
-	uint8_t _count;
+	int8_t _channel;				// Index of the last pulse in the current frame, -1 right after a sync
 
 	// Private Member Variable
 	struct {
-		BOOL check		: 1;
+		uint16_t check	: 1;
 		uint16_t min	: 15;
 		uint16_t max;
 	} __valid_range;
-	PifRcPpmPulse __pulse[PIF_RC_PPM_DATA_SIZE];
-	uint8_t __ptr, __last_ptr;
+	BOOL __time_valid;
+	BOOL __frame_error;
 	uint8_t __max_channel;
 	uint8_t __process_step;
+	uint8_t __learn_count;
 	uint16_t __threshold_1us;
-	uint16_t* __p_channel;
+	uint32_t __last_time;
+	uint16_t* __p_channel;			// Channels of the last good frame, given to evt_receive
+	uint16_t* __p_work;				// Channels of the frame being received
 } PifRcPpm;
 
 
@@ -57,7 +52,8 @@ extern "C" {
  * @brief Initializes a PPM receiver instance.
  * @param p_owner Pointer to the PPM receiver object.
  * @param id Object identifier. Use PIF_ID_AUTO to allocate automatically.
- * @param channel_count Number of channels to decode.
+ * @param channel_count Number of channels to decode, from 1 to PIF_RC_PPM_MAX_CHANNEL.
+ *        Channels the transmitter sends beyond this are ignored.
  * @param threshold_1us Frame separation threshold in microseconds.
  * @return TRUE if initialization succeeds, otherwise FALSE.
  */
@@ -73,16 +69,25 @@ void pifRcPpm_Clear(PifRcPpm* p_owner);
 /**
  * @fn pifRcPpm_SetValidRange
  * @brief Sets the valid pulse width range for decoded channel values.
+ *        A frame with any channel outside the range is counted as an error frame and not delivered.
  * @param p_owner Pointer to the PPM receiver object.
- * @param min Minimum accepted pulse width in microseconds.
+ * @param min Minimum accepted pulse width in microseconds. Values above 0x7FFF are clamped.
  * @param max Maximum accepted pulse width in microseconds.
- * @return TRUE after the range is applied.
+ * @return TRUE if the range is applied, FALSE if min is greater than max.
  */
-BOOL pifRcPpm_SetValidRange(PifRcPpm* p_owner, uint32_t min, uint32_t max);
+BOOL pifRcPpm_SetValidRange(PifRcPpm* p_owner, uint16_t min, uint16_t max);
+
+/**
+ * @fn pifRcPpm_SetTimeout
+ * @brief Sets how long without a good frame counts as a lost link for pifRc_CheckFailSafe().
+ * @param p_owner Pointer to the PPM receiver object.
+ * @param timeout_ms Time in milliseconds, or 0 for no timeout.
+ */
+void pifRcPpm_SetTimeout(PifRcPpm* p_owner, uint16_t timeout_ms);
 
 /**
  * @fn pifRcPpm_ResetMeasureValue
- * @brief Resets buffered pulse timing measurements used by the decoder.
+ * @brief Restarts decoding from the next sync and learns the channel count again.
  * @param p_owner Pointer to the PPM receiver object.
  */
 void pifRcPpm_ResetMeasureValue(PifRcPpm* p_owner);
@@ -90,9 +95,11 @@ void pifRcPpm_ResetMeasureValue(PifRcPpm* p_owner);
 /**
  * @fn pifRcPpm_sigTick
  * @brief Processes one captured pulse timestamp.
+ *        It is usually called from an edge interrupt, and evt_receive is then called in that interrupt.
+ *        The channel count is learned from two frames in a row with the same count before frames are delivered.
  * @param p_owner Pointer to the PPM receiver object.
- * @param time_us Timestamp in microseconds.
- * @return Decoded pulse width value, or 0 when no complete channel value is available.
+ * @param time_us Timestamp in microseconds of the same edge of every pulse.
+ * @return Decoded pulse width value, or 0 when no channel value is available.
  */
 uint16_t pifRcPpm_sigTick(PifRcPpm* p_owner, uint32_t time_us);
 
