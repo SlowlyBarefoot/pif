@@ -72,8 +72,8 @@ extern "C" {
  * @fn pifModbusSlave_AttachDiscreteInput
  * @brief Attaches an interface or callback to the instance.
  * @param p_owner Pointer to the protocol instance.
- * @param p_buffer Pointer to the protocol working buffer.
- * @param size Number of bytes to process.
+ * @param p_buffer Data the master reads and writes.
+ * @param size Number of bits or registers the buffer holds.
  * @param evtReadDiscreteInputs Input argument used by this API.
  */
 void pifModbusSlave_AttachDiscreteInput(PifModbusSlave *p_owner, uint8_t *p_buffer, uint16_t size,
@@ -83,8 +83,8 @@ void pifModbusSlave_AttachDiscreteInput(PifModbusSlave *p_owner, uint8_t *p_buff
  * @fn pifModbusSlave_AttachCoils
  * @brief Attaches an interface or callback to the instance.
  * @param p_owner Pointer to the protocol instance.
- * @param p_buffer Pointer to the protocol working buffer.
- * @param size Number of bytes to process.
+ * @param p_buffer Data the master reads and writes.
+ * @param size Number of bits or registers the buffer holds.
  * @param evtReadCoils Input argument used by this API.
  * @param evtWriteSingleCoil Input argument used by this API.
  * @param evtWriteMultipleCoils Input argument used by this API.
@@ -97,8 +97,8 @@ void pifModbusSlave_AttachCoils(PifModbusSlave *p_owner, uint8_t *p_buffer, uint
  * @fn pifModbusSlave_AttachInputRegisters
  * @brief Attaches an interface or callback to the instance.
  * @param p_owner Pointer to the protocol instance.
- * @param p_buffer Pointer to the protocol working buffer.
- * @param size Number of bytes to process.
+ * @param p_buffer Data the master reads and writes.
+ * @param size Number of bits or registers the buffer holds.
  * @param evtReadInputRegisters Input argument used by this API.
  */
 void pifModbusSlave_AttachInputRegisters(PifModbusSlave *p_owner, uint16_t *p_buffer, uint16_t size,
@@ -108,8 +108,8 @@ void pifModbusSlave_AttachInputRegisters(PifModbusSlave *p_owner, uint16_t *p_bu
  * @fn pifModbusSlave_AttachHoldingRegisters
  * @brief Attaches an interface or callback to the instance.
  * @param p_owner Pointer to the protocol instance.
- * @param p_buffer Pointer to the protocol working buffer.
- * @param size Number of bytes to process.
+ * @param p_buffer Data the master reads and writes.
+ * @param size Number of bits or registers the buffer holds.
  * @param evtReadHoldingRegisters Input argument used by this API.
  * @param evtWriteSingleRegister Input argument used by this API.
  * @param evtWriteMultipleRegisters Input argument used by this API.
@@ -117,6 +117,17 @@ void pifModbusSlave_AttachInputRegisters(PifModbusSlave *p_owner, uint16_t *p_bu
 void pifModbusSlave_AttachHoldingRegisters(PifModbusSlave *p_owner, uint16_t *p_buffer, uint16_t size,
 		PifEvtModbusReadHoldingRegisters evtReadHoldingRegisters, PifEvtModbusWriteSingleRegister evtWriteSingleRegister,
 		PifEvtModbusWriteMultipleRegisters evtWriteMultipleRegisters);
+
+/**
+ * @fn pifModbusSlave_AttachEvtReadWriteMultipleRegisters
+ * @brief Attaches the callback a Read/Write Multiple Registers request (function 23) calls once it
+ *        has written the holding registers. It works on the buffer given to
+ *        pifModbusSlave_AttachHoldingRegisters().
+ * @param p_owner Pointer to the protocol instance.
+ * @param evtReadWriteMultipleRegisters Callback, or NULL. Returning FALSE answers with exception 4.
+ */
+void pifModbusSlave_AttachEvtReadWriteMultipleRegisters(PifModbusSlave *p_owner,
+		PifEvtModbusReadWriteMultipleRegisters evtReadWriteMultipleRegisters);
 
 /**
  * @fn pifModbusSlave_AllocTmpBits
@@ -170,10 +181,10 @@ PifModbusError pifModbusSlave_ReadInputRegisters(PifModbusSlave *p_owner, uint16
  * @brief Writes data through the protocol context.
  * @param p_owner Pointer to the protocol instance.
  * @param p_address Pointer to address value for validation and update.
- * @param p_status Pointer to coil status value for validation and update.
+ * @param p_value The value as received, 0xFF00 or 0x0000, which the response echoes.
  * @return Modbus error code indicating the result of the operation.
  */
-PifModbusError pifModbusSlave_WriteSingleCoil(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_status);
+PifModbusError pifModbusSlave_WriteSingleCoil(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_value);
 
 /**
  * @fn pifModbusSlave_WriteSingleRegister

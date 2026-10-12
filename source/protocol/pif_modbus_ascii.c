@@ -5,7 +5,7 @@
 /**
  * @brief Converts data between protocol wire format and native representation.
  * @param ascii Input argument used by this operation.
- * @return Converted numeric value decoded from ASCII input.
+ * @return Converted numeric value decoded from ASCII input, or -1 when it is not a hex digit.
  */
 static short _AsciiToBinary(uint8_t ascii)
 {
@@ -27,9 +27,10 @@ short pifModbusAscii_AsciiToChar(uint8_t *p_ascii)
 
 	for (i = 0; i < 2; i++) {
 		v = _AsciiToBinary(p_ascii[i]);
-		if (v >= 0) binary = (binary << 4) + v;
+		if (v < 0) return -1;
+		binary = (binary << 4) + v;
 	}
-	return i < 2 ? -1 : binary;
+	return binary;
 }
 
 long pifModbusAscii_AsciiToShort(uint8_t *p_ascii)
@@ -39,9 +40,10 @@ long pifModbusAscii_AsciiToShort(uint8_t *p_ascii)
 
 	for (i = 0; i < 4; i++) {
 		v = _AsciiToBinary(p_ascii[i]);
-		if (v >= 0) binary = (binary << 4) + v;
+		if (v < 0) return -1L;
+		binary = (binary << 4) + v;
 	}
-	return i < 4 ? -1L : binary;
+	return binary;
 }
 
 void pifModbusAscii_CharToAscii(uint8_t binary, uint8_t *p_ascii)
@@ -66,4 +68,30 @@ uint8_t pifModbusAscii_CalcLrc(uint8_t *p_data, uint16_t length)
 		lrc += p_data[i];
 
 	return 0x100 - lrc;
+}
+
+uint8_t pifModbusAscii_CalcLrcOfAscii(uint8_t *p_ascii, uint16_t length)
+{
+	uint8_t lrc = 0;
+
+	// The LRC is over the bytes the hex digits stand for, not over the digits themselves.
+	for (int i = 0; i + 1 < length; i += 2)
+		lrc += (uint8_t)pifModbusAscii_AsciiToChar(&p_ascii[i]);
+
+	return 0x100 - lrc;
+}
+
+int16_t pifModbusAscii_Decode(uint8_t *p_buffer, uint16_t length)
+{
+	uint16_t i;
+	short value;
+
+	if (length & 1) return -1;
+
+	for (i = 0; i < length; i += 2) {
+		value = pifModbusAscii_AsciiToChar(&p_buffer[i]);
+		if (value < 0) return -1;
+		p_buffer[i / 2] = value;
+	}
+	return length / 2;
 }

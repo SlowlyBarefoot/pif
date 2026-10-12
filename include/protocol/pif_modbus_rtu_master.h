@@ -2,28 +2,13 @@
 #ifndef PIF_MODBUS_RTU_MASTER_H
 #define PIF_MODBUS_RTU_MASTER_H
 
-
 #include "communication/pif_uart.h"
-#include "core/pif_timer_manager.h"
 #include "protocol/pif_modbus.h"
 #include "protocol/pif_modbus_rtu.h"
 #if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_MODBUS_RTU_MASTER)
 	#define COLLECT_SIGNAL_MODBUS_RTU_MASTER
 	#include "core/pif_collect_signal.h"
 #endif
-
-
-typedef enum EnPifModbusMasterState
-{
-	MBMS_IDLE			= 0,
-	MBMS_REQUEST		= 1,
-	MBMS_REQUEST_WAIT	= 2,
-	MBMS_REQUEST_DELAY	= 3,
-	MBMS_RESPONSE		= 4,
-	MBMS_RESPONSE_DELAY	= 5,
-	MBMS_FINISH			= 6,
-	MBMS_ERROR			= 7
-} PifModbusMasterState;
 
 #ifdef COLLECT_SIGNAL_MODBUS_RTU_MASTER
 
@@ -55,10 +40,9 @@ typedef struct StPifModbusRtuMaster
 
 	// Private Member Variable
 	PifModbusMasterState __state;
-	PifTimerManager *__p_timer_manager;
 	PifUart *__p_uart;
-	PifTimer *__p_timer;
-	uint16_t __timeout;
+	PifModbusTimeout __wait;
+	uint16_t __timeout;				// In ms
 	uint32_t __delay;
 	uint8_t __buffer[260];
 	void* __p_result;				// Where the response of the request in progress is read out to
@@ -66,13 +50,13 @@ typedef struct StPifModbusRtuMaster
 	PifModbusResultKind __result_kind;
 	uint16_t length;
 	uint16_t index;
-	uint8_t __tx_address;
+	uint8_t __request[6];			// Address, function and the 4 bytes after them, which the response is checked against
+	BOOL __broadcast;				// The request went to every slave, so no response is awaited
 	PifModbusRxState __rx_state;
 #ifdef COLLECT_SIGNAL_MODBUS_RTU_MASTER
 	PifCollectSignalChannel __cs[MBRM_CSF_COUNT];
 #endif
 } PifModbusRtuMaster;
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -83,10 +67,9 @@ extern "C" {
  * @brief Initializes the instance and required runtime resources.
  * @param p_owner Pointer to the protocol instance.
  * @param id Instance identifier. Use PIF_ID_AUTO for automatic assignment.
- * @param p_timer_manager Timer manager used to allocate protocol timers.
  * @return TRUE on success; otherwise FALSE.
  */
-BOOL pifModbusRtuMaster_Init(PifModbusRtuMaster *p_owner, PifId id, PifTimerManager *p_timer_manager);
+BOOL pifModbusRtuMaster_Init(PifModbusRtuMaster *p_owner, PifId id);
 
 /**
  * @fn pifModbusRtuMaster_Clear
@@ -99,7 +82,7 @@ void pifModbusRtuMaster_Clear(PifModbusRtuMaster *p_owner);
  * @fn pifModbusRtuMaster_SetResponseTimeout
  * @brief Updates a runtime configuration value.
  * @param p_owner Pointer to the protocol instance.
- * @param response_timeout Response timeout value in timer ticks.
+ * @param response_timeout Time in ms to wait for the response once the request is out, and for each next byte of it.
  */
 void pifModbusRtuMaster_SetResponseTimeout(PifModbusRtuMaster *p_owner, uint16_t response_timeout);
 
@@ -128,6 +111,8 @@ void pifModbusRtuMaster_DetachUart(PifModbusRtuMaster *p_owner);
  *        handed to the request function, so that buffer has to stay valid until then. On
  *        MBMR_ERROR the reason is in `_error`. Either one frees the master for the next request,
  *        which means a request whose result is never collected blocks every later one.
+ *        The timeout is checked here and in the UART callbacks, so it needs no timer: a request
+ *        that gets no answer ends in MBMR_ERROR with MBE_TIMEOUT on the first call past it.
  * @param p_owner Pointer to the protocol instance.
  * @return MBMR_BUSY while the request is still in progress.
  */
@@ -137,35 +122,38 @@ PifModbusMasterResult pifModbusRtuMaster_Check(PifModbusRtuMaster *p_owner);
  * @fn pifModbusRtuMaster_ReadCoils
  * @brief Reads data from the protocol context.
  * @param p_owner Pointer to the protocol instance.
- * @param slave Target Modbus slave address.
+ * @param slave Target Modbus slave address, 1 to 247. A write may also go to
+ *        PIF_MODBUS_BROADCAST_ADDRESS, which every slave carries out without answering.
  * @param address Start address of coils or registers.
  * @param quantity Number of coils or registers to process.
- * @param coils Bitfield buffer for coil values.
+ * @param p_coils Bitfield buffer for coil values.
  * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
  *         pifModbusRtuMaster_Check() is what reports the outcome, and the buffers passed
  *         here have to stay valid until it does.
  */
-BOOL pifModbusRtuMaster_ReadCoils(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, PifModbusBitFieldP p_coils);
+BOOL pifModbusRtuMaster_ReadCoils(PifModbusRtuMaster *p_owner, uint8_t slave, uint16_t address, uint16_t quantity, PifModbusBitFieldP p_coils);
 
 /**
  * @fn pifModbusRtuMaster_ReadDiscreteInputs
  * @brief Reads data from the protocol context.
  * @param p_owner Pointer to the protocol instance.
- * @param slave Target Modbus slave address.
+ * @param slave Target Modbus slave address, 1 to 247. A write may also go to
+ *        PIF_MODBUS_BROADCAST_ADDRESS, which every slave carries out without answering.
  * @param address Start address of coils or registers.
  * @param quantity Number of coils or registers to process.
- * @param inputs Bitfield buffer for discrete input values.
+ * @param p_inputs Bitfield buffer for discrete input values.
  * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
  *         pifModbusRtuMaster_Check() is what reports the outcome, and the buffers passed
  *         here have to stay valid until it does.
  */
-BOOL pifModbusRtuMaster_ReadDiscreteInputs(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, PifModbusBitFieldP p_inputs);
+BOOL pifModbusRtuMaster_ReadDiscreteInputs(PifModbusRtuMaster *p_owner, uint8_t slave, uint16_t address, uint16_t quantity, PifModbusBitFieldP p_inputs);
 
 /**
  * @fn pifModbusRtuMaster_ReadHoldingRegisters
  * @brief Reads data from the protocol context.
  * @param p_owner Pointer to the protocol instance.
- * @param slave Target Modbus slave address.
+ * @param slave Target Modbus slave address, 1 to 247. A write may also go to
+ *        PIF_MODBUS_BROADCAST_ADDRESS, which every slave carries out without answering.
  * @param address Start address of coils or registers.
  * @param quantity Number of coils or registers to process.
  * @param p_registers Buffer for register values.
@@ -173,13 +161,14 @@ BOOL pifModbusRtuMaster_ReadDiscreteInputs(PifModbusRtuMaster *p_owner, uint8_t 
  *         pifModbusRtuMaster_Check() is what reports the outcome, and the buffers passed
  *         here have to stay valid until it does.
  */
-BOOL pifModbusRtuMaster_ReadHoldingRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, uint16_t *p_registers);
+BOOL pifModbusRtuMaster_ReadHoldingRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint16_t address, uint16_t quantity, uint16_t *p_registers);
 
 /**
  * @fn pifModbusRtuMaster_ReadInputRegisters
  * @brief Reads data from the protocol context.
  * @param p_owner Pointer to the protocol instance.
- * @param slave Target Modbus slave address.
+ * @param slave Target Modbus slave address, 1 to 247. A write may also go to
+ *        PIF_MODBUS_BROADCAST_ADDRESS, which every slave carries out without answering.
  * @param address Start address of coils or registers.
  * @param quantity Number of coils or registers to process.
  * @param p_registers Buffer for register values.
@@ -187,53 +176,57 @@ BOOL pifModbusRtuMaster_ReadHoldingRegisters(PifModbusRtuMaster *p_owner, uint8_
  *         pifModbusRtuMaster_Check() is what reports the outcome, and the buffers passed
  *         here have to stay valid until it does.
  */
-BOOL pifModbusRtuMaster_ReadInputRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, uint16_t *p_registers);
+BOOL pifModbusRtuMaster_ReadInputRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint16_t address, uint16_t quantity, uint16_t *p_registers);
 
 /**
  * @fn pifModbusRtuMaster_WriteSingleCoil
  * @brief Writes data through the protocol context.
  * @param p_owner Pointer to the protocol instance.
- * @param slave Target Modbus slave address.
+ * @param slave Target Modbus slave address, 1 to 247. A write may also go to
+ *        PIF_MODBUS_BROADCAST_ADDRESS, which every slave carries out without answering.
  * @param address Start address of coils or registers.
  * @param value Value to write.
  * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
  *         pifModbusRtuMaster_Check() is what reports the outcome, and the buffers passed
  *         here have to stay valid until it does.
  */
-BOOL pifModbusRtuMaster_WriteSingleCoil(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, BOOL value);
+BOOL pifModbusRtuMaster_WriteSingleCoil(PifModbusRtuMaster *p_owner, uint8_t slave, uint16_t address, BOOL value);
 
 /**
  * @fn pifModbusRtuMaster_WriteSingleRegister
  * @brief Writes data through the protocol context.
  * @param p_owner Pointer to the protocol instance.
- * @param slave Target Modbus slave address.
+ * @param slave Target Modbus slave address, 1 to 247. A write may also go to
+ *        PIF_MODBUS_BROADCAST_ADDRESS, which every slave carries out without answering.
  * @param address Start address of coils or registers.
  * @param value Value to write.
  * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
  *         pifModbusRtuMaster_Check() is what reports the outcome, and the buffers passed
  *         here have to stay valid until it does.
  */
-BOOL pifModbusRtuMaster_WriteSingleRegister(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t value);
+BOOL pifModbusRtuMaster_WriteSingleRegister(PifModbusRtuMaster *p_owner, uint8_t slave, uint16_t address, uint16_t value);
 
 /**
  * @fn pifModbusRtuMaster_WriteMultipleCoils
  * @brief Writes data through the protocol context.
  * @param p_owner Pointer to the protocol instance.
- * @param slave Target Modbus slave address.
+ * @param slave Target Modbus slave address, 1 to 247. A write may also go to
+ *        PIF_MODBUS_BROADCAST_ADDRESS, which every slave carries out without answering.
  * @param address Start address of coils or registers.
  * @param quantity Number of coils or registers to process.
- * @param coils Bitfield buffer for coil values.
+ * @param p_coils Bitfield buffer for coil values.
  * @return TRUE once the request is queued; otherwise FALSE. Queued is not answered:
  *         pifModbusRtuMaster_Check() is what reports the outcome, and the buffers passed
  *         here have to stay valid until it does.
  */
-BOOL pifModbusRtuMaster_WriteMultipleCoils(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, PifModbusBitFieldP p_coils);
+BOOL pifModbusRtuMaster_WriteMultipleCoils(PifModbusRtuMaster *p_owner, uint8_t slave, uint16_t address, uint16_t quantity, PifModbusBitFieldP p_coils);
 
 /**
  * @fn pifModbusRtuMaster_WriteMultipleRegisters
  * @brief Writes data through the protocol context.
  * @param p_owner Pointer to the protocol instance.
- * @param slave Target Modbus slave address.
+ * @param slave Target Modbus slave address, 1 to 247. A write may also go to
+ *        PIF_MODBUS_BROADCAST_ADDRESS, which every slave carries out without answering.
  * @param address Start address of coils or registers.
  * @param quantity Number of coils or registers to process.
  * @param p_registers Buffer for register values.
@@ -241,13 +234,14 @@ BOOL pifModbusRtuMaster_WriteMultipleCoils(PifModbusRtuMaster *p_owner, uint8_t 
  *         pifModbusRtuMaster_Check() is what reports the outcome, and the buffers passed
  *         here have to stay valid until it does.
  */
-BOOL pifModbusRtuMaster_WriteMultipleRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t address, uint16_t quantity, uint16_t *p_registers);
+BOOL pifModbusRtuMaster_WriteMultipleRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint16_t address, uint16_t quantity, uint16_t *p_registers);
 
 /**
  * @fn pifModbusRtuMaster_ReadWriteMultipleRegisters
  * @brief Reads data from the protocol context.
  * @param p_owner Pointer to the protocol instance.
- * @param slave Target Modbus slave address.
+ * @param slave Target Modbus slave address, 1 to 247. A write may also go to
+ *        PIF_MODBUS_BROADCAST_ADDRESS, which every slave carries out without answering.
  * @param read_address Start address for the read section.
  * @param read_quantity Number of registers to read.
  * @param p_read_registers Buffer for register values.
@@ -258,8 +252,8 @@ BOOL pifModbusRtuMaster_WriteMultipleRegisters(PifModbusRtuMaster *p_owner, uint
  *         pifModbusRtuMaster_Check() is what reports the outcome, and the buffers passed
  *         here have to stay valid until it does.
  */
-BOOL pifModbusRtuMaster_ReadWriteMultipleRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint8_t read_address, uint16_t read_quantity, uint16_t *p_read_registers,
-		uint8_t write_address, uint16_t write_quantity, uint16_t *p_write_registers);
+BOOL pifModbusRtuMaster_ReadWriteMultipleRegisters(PifModbusRtuMaster *p_owner, uint8_t slave, uint16_t read_address, uint16_t read_quantity, uint16_t *p_read_registers,
+		uint16_t write_address, uint16_t write_quantity, uint16_t *p_write_registers);
 
 #ifdef COLLECT_SIGNAL_MODBUS_RTU_MASTER
 
@@ -285,6 +279,5 @@ void pifModbusRtuMaster_ResetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMas
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif  // PIF_MODBUS_RTU_MASTER_H

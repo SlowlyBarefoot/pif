@@ -173,14 +173,14 @@
 
 // -------- pifModbus ----------------------------
 
-// Timeout used after sending one packet while waiting for a response.
-// This value is multiplied by the timer unit configured in pifModbus[Rtu/Ascii]Master_Init().
-// Default is 500 ticks, which equals 500 ms when the timer unit is 1 ms.
+// Time in ms a master waits for the response once the request is out, and for each next byte of it.
+// Sending the request gets its own transfer time on top, so a long request does not use it up.
 //#define PIF_MODBUS_MASTER_TIMEOUT 	    500
 
-// Timeout used to receive one complete packet.
-// This value is multiplied by the timer unit configured in pifModbus[Rtu/Ascii]Slave_Init().
-// Default is 300 ticks, which equals 300 ms when the timer unit is 1 ms.
+// Time in ms a slave waits for the next byte of a frame it has started to receive, before it drops
+// the frame. It runs from byte to byte, so a long frame at a low baud rate is not cut short.
+// An RTU slave also waits this long for another slave to answer the request sent to it, before it
+// takes the next frame for a request again.
 //#define PIF_MODBUS_SLAVE_TIMEOUT  	    300
 
 

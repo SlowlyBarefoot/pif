@@ -6,27 +6,37 @@
 #include "core/pif.h"
 
 
-// Timeout used after sending one packet while waiting for a response.
-// This value is multiplied by the timer unit configured in pifModbus[Rtu/Ascii]Master_Init().
-// Default is 500 ticks, which equals 500 ms when the timer unit is 1 ms.
+// Time in ms a master waits for the response once the request is out, and for each next byte of it.
+// Sending the request gets its own transfer time on top, so a long request does not use it up.
 #ifndef PIF_MODBUS_MASTER_TIMEOUT
 	#define PIF_MODBUS_MASTER_TIMEOUT		500
 #endif
 
-// Timeout used to receive one complete packet.
-// This value is multiplied by the timer unit configured in pifModbus[Rtu/Ascii]Slave_Init().
-// Default is 300 ticks, which equals 300 ms when the timer unit is 1 ms.
+// Time in ms a slave waits for the next byte of a frame it has started to receive, before it drops
+// the frame. It runs from byte to byte, so a long frame at a low baud rate is not cut short.
+// An RTU slave also waits this long for another slave to answer the request sent to it, before it
+// takes the next frame for a request again.
 #ifndef PIF_MODBUS_SLAVE_TIMEOUT
 	#define PIF_MODBUS_SLAVE_TIMEOUT		300
 #endif
 
+// Largest quantities one request may carry, as the Modbus specification sets them.
+#define PIF_MODBUS_MAXREAD_BITS			2000
+#define PIF_MODBUS_MAXREAD_REGISTERS		125
+#define PIF_MODBUS_MAXWRITE_BITS			1968
+#define PIF_MODBUS_MAXWRITE_REGISTERS		123
+#define PIF_MODBUS_MAXRW_WRITE_REGISTERS	121
+
+// Slave address every slave carries out a write request for without answering it.
+#define PIF_MODBUS_BROADCAST_ADDRESS		0
+
 /**
- * Read a bit from the nmbs_bitfield bf at position b
+ * Read a bit from the bitfield bf at position b
  */
 #define PIF_MODBUS_READ_BIT_FIELD(bf, b)		((BOOL) (((bf)[(b) / 8] >> ((b) % 8)) & 1))
 
 /**
- * Write value v to the nmbs_bitfield bf at position b
+ * Write value v to the bitfield bf at position b
  */
 #define PIF_MODBUS_WRITE_BIT_FIELD(bf, b, v)	(((bf)[(b) / 8]) = ((v) ? (((bf)[(b) / 8]) | (0x1 << ((b) % 8))) : (((bf)[(b) / 8]) & ~(0x1 << ((b) % 8)))))
 
@@ -62,9 +72,21 @@ typedef enum EnPifModbusRxState
 } PifModbusRxState;
 
 /**
- * nanoMODBUS errors.
- * Values <= 0 are library errors, > 0 are modbus exceptions.
+ * @enum EnPifModbusMasterState
+ * @brief Where a master is in carrying one request. Shared by the RTU and ASCII masters.
  */
+typedef enum EnPifModbusMasterState
+{
+	MBMS_IDLE			= 0,
+	MBMS_REQUEST		= 1,	// The frame is being handed to the UART
+	MBMS_REQUEST_WAIT	= 2,	// The UART is still shifting the frame out
+	MBMS_REQUEST_DELAY	= 3,	// The line is being turned around for the response
+	MBMS_RESPONSE		= 4,	// The response is awaited
+	MBMS_RESPONSE_DELAY	= 5,	// RTU only: the silent interval after the response has to pass
+	MBMS_FINISH			= 6,	// ASCII only: the request is over and _error says how it ended
+	MBMS_ERROR			= 7		// No response came in time
+} PifModbusMasterState;
+
 /**
  * @enum EnPifModbusMasterResult
  * @brief What a master is doing with the request it was given. A request function returns as soon
@@ -91,6 +113,11 @@ typedef enum EnPifModbusResultKind
 	MBRK_REGISTERS		= 2		// Holding or input registers
 } PifModbusResultKind;
 
+/**
+ * @enum EnPifModbusError
+ * @brief Values <= 0 are library errors, > 0 are Modbus exception codes, whether a slave sent one
+ *        back or a slave is about to send one.
+ */
 typedef enum EnPifModbusError
 {
     // Library errors
@@ -111,14 +138,25 @@ typedef enum EnPifModbusError
 
 
 /**
+ * @class StPifModbusTimeout
+ * @brief A deadline checked against pif_act_timer1us by whoever runs next, the UART task or the
+ *        caller of a Check function, so no timer or task of its own is needed.
+ */
+typedef struct StPifModbusTimeout
+{
+	uint32_t start;		// When it was started, in us
+	uint32_t time;		// How long it runs, in us. 0 when stopped
+} PifModbusTimeout;
+
+/**
  * @class PifModbusBitField
- * @brief Bitfield consisting of 2000 coils/discrete inputs
+ * @brief One byte of a coil or discrete input bitfield. An array of them holds 8 bits per byte.
  */
 typedef uint8_t PifModbusBitField;
 
 /**
- * @class PifModbusBitField
- * @brief Bitfield consisting of 2000 coils/discrete inputs
+ * @class PifModbusBitFieldP
+ * @brief Pointer to a coil or discrete input bitfield.
  */
 typedef uint8_t* PifModbusBitFieldP;
 
@@ -142,6 +180,43 @@ uint16_t pifModbus_StreamToShort(uint8_t *p_stream);
  * @param p_stream Pointer to a Modbus network-order byte stream.
  */
 void pifModbus_ShortToStream(uint16_t value, uint8_t *p_stream);
+
+/**
+ * @fn pifModbus_StartTimeout
+ * @brief Starts or restarts a timeout from now.
+ * @param p_timeout Timeout to start.
+ * @param time How long it runs, in us.
+ */
+void pifModbus_StartTimeout(PifModbusTimeout *p_timeout, uint32_t time);
+
+/**
+ * @fn pifModbus_StopTimeout
+ * @brief Stops a timeout.
+ * @param p_timeout Timeout to stop.
+ */
+void pifModbus_StopTimeout(PifModbusTimeout *p_timeout);
+
+/**
+ * @fn pifModbus_IsExpired
+ * @brief Checks a timeout, and stops it when it has expired.
+ * @param p_timeout Timeout to check.
+ * @return TRUE if it was running and has expired.
+ */
+BOOL pifModbus_IsExpired(PifModbusTimeout *p_timeout);
+
+/**
+ * @fn pifModbus_CheckResponse
+ * @brief Checks a response frame against the request it answers.
+ * @param p_request First 6 bytes of the request: address, function and the 4 bytes after them.
+ * @param p_response Response frame without its CRC or LRC, starting with the address.
+ * @param length Length of p_response.
+ * @param kind What the request asked for.
+ * @param quantity How many bits or registers were asked for. Unused for MBRK_NONE.
+ * @return MBE_NONE when it answers the request, the exception code when the slave answered with an
+ *         exception, otherwise a library error.
+ */
+PifModbusError pifModbus_CheckResponse(const uint8_t *p_request, const uint8_t *p_response, uint16_t length,
+		PifModbusResultKind kind, uint16_t quantity);
 
 #ifdef __cplusplus
 }

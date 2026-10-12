@@ -6,7 +6,8 @@
 
 
 /**
- * @brief Serializes and queues a normal response command frame for transmission.
+ * @brief Serializes and queues a normal response command frame for transmission. A broadcast
+ *        request is carried out but never answered, so nothing goes out for one.
  * @param p_owner Pointer to the protocol instance that owns this operation.
  * @param function Input argument used by this operation.
  * @param length Frame length in bytes used by the current operation.
@@ -14,6 +15,8 @@
  */
 static void _sendCommand(PifModbusRtuSlave *p_owner, uint8_t function, uint16_t length)
 {
+	if (p_owner->__rx.broadcast) return;
+
 	pifUart_SetDirection(p_owner->__p_uart, UD_TX);
 
 	p_owner->__buffer[0] = p_owner->parent._my_addr;
@@ -119,6 +122,138 @@ static const char *c_cPktErr[] = {
 #endif
 
 /**
+ * @brief Drops the frame being received and waits for the next one, with nothing known about it.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ */
+static void _resetRx(PifModbusRtuSlave *p_owner)
+{
+	pifModbus_StopTimeout(&p_owner->__wait);
+	p_owner->__rx.state = MBRS_IDLE;
+	p_owner->__rx.response = FALSE;
+	p_owner->__rx.illegal = FALSE;
+}
+
+/**
+ * @brief Ignores the rest of a frame whose end cannot be told from its content. The frame is taken
+ *        to be over once the line has been silent for 3.5 characters.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ * @param illegal TRUE when it is a request to this slave with a function it lacks, which is answered
+ *        with exception 1 once the frame is in and its CRC holds.
+ */
+static void _ignoreRx(PifModbusRtuSlave *p_owner, BOOL illegal)
+{
+	p_owner->__rx.state = MBRS_IGNORE;
+	p_owner->__rx.illegal = illegal;
+}
+
+/**
+ * @brief Sets how long a frame is from its function code. Every frame on the line is followed this
+ *        way, the ones for other slaves too, because the end of a frame is only known from its
+ *        content: the UART task reads bytes in batches, so the silent interval between two frames
+ *        cannot be seen reliably.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ * @param function Function code that was received.
+ */
+static void _setFrameLength(PifModbusRtuSlave *p_owner, uint8_t function)
+{
+	if (p_owner->__rx.response) {
+		// The answer of another slave to the request just before.
+		if (function & 0x80) {
+			p_owner->__length = 2 + 1 + 2;
+			p_owner->__rx.state = MBRS_DATA;
+			return;
+		}
+		switch (function) {
+		case MBF_READ_COILS:
+		case MBF_READ_DISCRETE_INPUTS:
+		case MBF_READ_HOLDING_REGISTERS:
+		case MBF_READ_INPUT_REGISTERS:
+		case MBF_READ_WRITE_MULTIPLE_REGISTERS:
+			p_owner->__length = 2 + 1 + 2;
+			p_owner->__rx.length_pos = 2;
+			p_owner->__rx.state = MBRS_LENGTH;
+			break;
+
+		case MBF_WRITE_SINGLE_COIL:
+		case MBF_WRITE_SINGLE_REGISTER:
+		case MBF_WRITE_MULTIPLE_COILS:
+		case MBF_WRITE_MULTIPLE_REGISTERS:
+			p_owner->__length = 2 + 4 + 2;
+			p_owner->__rx.state = MBRS_DATA;
+			break;
+
+		default:
+			_ignoreRx(p_owner, FALSE);
+			break;
+		}
+		return;
+	}
+
+	switch (function) {
+	case MBF_READ_COILS:
+	case MBF_READ_DISCRETE_INPUTS:
+	case MBF_READ_HOLDING_REGISTERS:
+	case MBF_READ_INPUT_REGISTERS:
+	case MBF_WRITE_SINGLE_COIL:
+	case MBF_WRITE_SINGLE_REGISTER:
+		p_owner->__length = 2 + 4 + 2;
+		p_owner->__rx.state = MBRS_DATA;
+		break;
+
+	case MBF_WRITE_MULTIPLE_COILS:
+	case MBF_WRITE_MULTIPLE_REGISTERS:
+		p_owner->__length = 2 + 4 + 1 + 2;
+		p_owner->__rx.length_pos = 6;
+		p_owner->__rx.state = MBRS_LENGTH;
+		break;
+
+	case MBF_READ_WRITE_MULTIPLE_REGISTERS:
+		p_owner->__length = 2 + 8 + 1 + 2;
+		p_owner->__rx.length_pos = 10;
+		p_owner->__rx.state = MBRS_LENGTH;
+		break;
+
+	default:
+#ifndef PIF_NO_LOG
+		if (p_owner->__buffer[0] == p_owner->parent._my_addr) {
+			pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) A:%u F:%u", p_owner->_id,
+					c_cPktErr[PKT_ERR_INVALID_PACKET_NO], (unsigned int)p_owner->__buffer[0],
+					(unsigned int)p_owner->__buffer[1]);
+		}
+#endif
+		_ignoreRx(p_owner, p_owner->__buffer[0] == p_owner->parent._my_addr);
+		break;
+	}
+}
+
+/**
+ * @brief Decides what a frame whose CRC holds is: a request for this slave, which is carried out,
+ *        or a frame between the master and another slave, which is passed over.
+ * @param p_owner Pointer to the protocol instance that owns this operation.
+ */
+static void _completeFrame(PifModbusRtuSlave *p_owner)
+{
+	uint8_t address = p_owner->__buffer[0];
+
+	pifModbus_StopTimeout(&p_owner->__wait);
+	p_owner->__rx.end_time = (*pif_act_timer1us)();
+
+	if (p_owner->__rx.response) {
+		p_owner->__rx.response = FALSE;
+		p_owner->__rx.state = MBRS_IDLE;
+	}
+	else if (address == p_owner->parent._my_addr || address == PIF_MODBUS_BROADCAST_ADDRESS) {
+		p_owner->__rx.broadcast = address == PIF_MODBUS_BROADCAST_ADDRESS;
+		p_owner->__rx.state = MBRS_FINISH;
+	}
+	else {
+		// The slave it went to answers next, unless it was a broadcast.
+		p_owner->__rx.response = TRUE;
+		p_owner->__rx.state = MBRS_IDLE;
+	}
+}
+
+/**
  * @brief Parses an incoming protocol packet and updates parser state and outputs.
  * @param p_owner Pointer to the protocol instance that owns this operation.
  * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
@@ -128,73 +263,51 @@ static PifModbusError _parsingPacket(PifModbusRtuSlave *p_owner, PifActUartRecei
 {
 	uint8_t data;
 	uint16_t crc[2];
-	PifModbusError exception = MBE_NONE;
+	BOOL received = FALSE;
+	uint32_t now;
 
-	if (p_owner->__rx.state == MBRS_IGNORE) {
-		if ((long)((*pif_act_timer1us)() - p_owner->__last_receive_time) >= p_owner->__p_uart->_transfer_time * 3.5) {
-			p_owner->__rx.state = MBRS_IDLE;
-		}
+	// No byte of the frame came for the whole timeout: it is dropped without an answer, and
+	// whatever comes now starts a new one.
+	if (pifModbus_IsExpired(&p_owner->__wait)) {
+#ifndef PIF_NO_LOG
+		pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(Timeout) State:%u Cnt:%u Len:%d", p_owner->_id,
+				p_owner->__rx.state, p_owner->__index, p_owner->__length);
+#endif
+		_resetRx(p_owner);
 	}
+
 	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
-		p_owner->__last_receive_time = (*pif_act_timer1us)();
+		received = TRUE;
+		now = (*pif_act_timer1us)();
+		p_owner->__rx.last_time = now;
+		// The wait runs from byte to byte, so a long frame at a low baud rate is not cut short.
+		pifModbus_StartTimeout(&p_owner->__wait, p_owner->__timeout * 1000UL);
+
 		switch (p_owner->__rx.state) {
 		case MBRS_IDLE:
-			if (data == p_owner->parent._my_addr) {
-				p_owner->__buffer[0] = data;
-				p_owner->__rx.state = MBRS_FUNCTION;
-				if (!pifTimer_Start(p_owner->__p_timer, p_owner->__timeout * 1000L / p_owner->__p_timer_manager->_period1us)) {
-#ifndef PIF_NO_LOG
-					pifLog_Printf(LT_WARN, "MB(%u) Not start timer", p_owner->_id);
-#endif
-				}
+			// An answer that was due never came if the line stayed quiet that long, so this is a request.
+			if (p_owner->__rx.response && (uint32_t)(now - p_owner->__rx.end_time) >= p_owner->__timeout * 1000UL) {
+				p_owner->__rx.response = FALSE;
 			}
-			else {
-				p_owner->__rx.state = MBRS_IGNORE;
-			}
+			p_owner->__buffer[0] = data;
+			p_owner->__rx.state = MBRS_FUNCTION;
 			break;
 
 		case MBRS_FUNCTION:
 			p_owner->__buffer[1] = data;
 			p_owner->__rx.function = data;
 			p_owner->__index = 2;
-			switch (data) {
-			case MBF_READ_COILS:
-			case MBF_READ_DISCRETE_INPUTS:
-			case MBF_READ_HOLDING_REGISTERS:
-			case MBF_READ_INPUT_REGISTERS:
-			case MBF_WRITE_SINGLE_COIL:
-			case MBF_WRITE_SINGLE_REGISTER:
-				p_owner->__length = 2 + 4 + 2;
-				p_owner->__rx.state = MBRS_DATA;
-				break;
-
-			case MBF_WRITE_MULTIPLE_COILS:
-			case MBF_WRITE_MULTIPLE_REGISTERS:
-				p_owner->__length = 2 + 4 + 1 + 2;
-				p_owner->__rx.length_pos = 6;
-				p_owner->__rx.state = MBRS_LENGTH;
-				break;
-
-			case MBF_READ_WRITE_MULTIPLE_REGISTERS:
-				p_owner->__length = 2 + 8 + 1 + 2;
-				p_owner->__rx.length_pos = 10;
-				p_owner->__rx.state = MBRS_LENGTH;
-				break;
-
-			default:
-				exception = MBE_ILLEGAL_FUNCTION;
-				p_owner->__rx.state = MBRS_ERROR;
-#ifndef PIF_NO_LOG
-				pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) A:%u F:%u", p_owner->_id,
-						c_cPktErr[PKT_ERR_INVALID_PACKET_NO], (unsigned int)p_owner->__buffer[0],
-						(unsigned int)p_owner->__buffer[1]);
-#endif
-			}
+			_setFrameLength(p_owner, data);
 			break;
 
 		case MBRS_LENGTH:
 			p_owner->__buffer[p_owner->__index] = data;
 			if (p_owner->__index == p_owner->__rx.length_pos) {
+				if (p_owner->__length + data > sizeof(p_owner->__buffer)) {
+					// Longer than any valid frame.
+					_ignoreRx(p_owner, FALSE);
+					break;
+				}
 				p_owner->__length += data;
 				p_owner->__rx.state = MBRS_DATA;
 			}
@@ -207,17 +320,28 @@ static PifModbusError _parsingPacket(PifModbusRtuSlave *p_owner, PifActUartRecei
 				crc[0] = pifModbusRtu_CalcCrc(p_owner->__buffer, p_owner->__index - 2);
 				crc[1] = pifModbus_StreamToShort(&p_owner->__buffer[p_owner->__index - 2]);
 				if (crc[0] == crc[1]) {
-		            p_owner->__rx.state = MBRS_FINISH;
+					_completeFrame(p_owner);
+					if (p_owner->__rx.state == MBRS_FINISH) return MBE_NONE;
 				}
 				else {
-					exception = MBE_ILLEGAL_DATA_VALUE;
-					p_owner->__rx.state = MBRS_ERROR;
+					// A frame that arrived damaged is dropped without an answer.
 #ifndef PIF_NO_LOG
 					pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) %u!=%u", p_owner->_id, c_cPktErr[PKT_ERR_WRONG_CRC],
 							(unsigned int)crc[0], (unsigned int)crc[1]);
 #endif
+					_ignoreRx(p_owner, FALSE);
 				}
-				p_owner->__rx.last_time = (*pif_act_timer1us)();
+			}
+			break;
+
+		case MBRS_IGNORE:
+			if (p_owner->__rx.illegal) {
+				if (p_owner->__index < sizeof(p_owner->__buffer)) {
+					p_owner->__buffer[p_owner->__index++] = data;
+				}
+				else {
+					p_owner->__rx.illegal = FALSE;
+				}
 			}
 			break;
 
@@ -225,7 +349,22 @@ static PifModbusError _parsingPacket(PifModbusRtuSlave *p_owner, PifActUartRecei
 			break;
 		}
 	}
-	return exception;
+
+	// A frame being ignored is over once a whole call reads nothing and 3.5 characters have passed.
+	if (!received && p_owner->__rx.state == MBRS_IGNORE &&
+			(long)((*pif_act_timer1us)() - p_owner->__rx.last_time) >= p_owner->__p_uart->_transfer_time * 7L / 2) {
+		if (p_owner->__rx.illegal && p_owner->__index >= 4 &&
+				pifModbusRtu_CalcCrc(p_owner->__buffer, p_owner->__index - 2) == pifModbus_StreamToShort(&p_owner->__buffer[p_owner->__index - 2])) {
+			pifModbus_StopTimeout(&p_owner->__wait);
+			p_owner->__rx.end_time = p_owner->__rx.last_time;
+			p_owner->__rx.illegal = FALSE;
+			p_owner->__rx.broadcast = FALSE;
+			p_owner->__rx.state = MBRS_ERROR;
+			return MBE_ILLEGAL_FUNCTION;
+		}
+		_resetRx(p_owner);
+	}
+	return MBE_NONE;
 }
 
 /**
@@ -238,84 +377,63 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 {
 	PifModbusRtuSlave *p_owner = (PifModbusRtuSlave *)p_client;
 	PifModbusSlave *p_parent = &p_owner->parent;
-	uint8_t *p_coils;
-	uint16_t i, read_address, read_quantity, write_address, write_quantity, pos, value;
-	BOOL status;
 	PifModbusError exception;
 
 	exception = _parsingPacket(p_owner, act_receive_data);
 
 	switch (p_owner->__rx.state) {
 	case MBRS_FINISH:
-        pifTimer_Stop(p_owner->__p_timer);
 		switch (p_owner->__buffer[1]) {
 		case MBF_READ_COILS:
 			exception = _readBitField(p_owner, pifModbusSlave_ReadCoils);
-			if (exception) goto fail;
 			break;
 
 		case MBF_READ_DISCRETE_INPUTS:
 			exception = _readBitField(p_owner, pifModbusSlave_ReadDiscreteInputs);
-			if (exception) goto fail;
 			break;
 
 		case MBF_READ_HOLDING_REGISTERS:
 			exception = _readRegisters(p_owner, pifModbusSlave_ReadHoldingRegisters, p_parent->__p_holding_registers);
-			if (exception) goto fail;
 			break;
 
 		case MBF_READ_INPUT_REGISTERS:
 			exception = _readRegisters(p_owner, pifModbusSlave_ReadInputRegisters, p_parent->__p_input_registers);
-			if (exception) goto fail;
 			break;
 
 		case MBF_WRITE_SINGLE_COIL:
 			exception = _writeCommand(p_owner, pifModbusSlave_WriteSingleCoil);
-			if (exception) goto fail;
 			break;
 
 		case MBF_WRITE_SINGLE_REGISTER:
 			exception = _writeCommand(p_owner, pifModbusSlave_WriteSingleRegister);
-			if (exception) goto fail;
 			break;
 
 		case MBF_WRITE_MULTIPLE_COILS:
 			exception = _writeCommand(p_owner, pifModbusSlave_WriteMultipleCoils);
-			if (exception) goto fail;
 			break;
 
 		case MBF_WRITE_MULTIPLE_REGISTERS:
 			exception = _writeCommand(p_owner, pifModbusSlave_WriteMultipleRegisters);
-			if (exception) goto fail;
 			break;
 
 		case MBF_READ_WRITE_MULTIPLE_REGISTERS:
 			exception = _readRegisters(p_owner, pifModbusSlave_ReadWriteMultipleRegisters, p_parent->__p_holding_registers);
-			if (exception) goto fail;
 			break;
 
 		default:
 			exception = MBE_ILLEGAL_FUNCTION;
-			goto fail;
+			break;
 		}
-		p_owner->__rx.state = MBRS_IDLE;
 		break;
 
-	case MBRS_TIMEOUT:
-		exception = MBE_ILLEGAL_DATA_VALUE;
-		goto fail;
-
 	case MBRS_ERROR:
-        pifTimer_Stop(p_owner->__p_timer);
-		goto fail;
+		break;
 
 	default:
 		return FALSE;
 	}
-	return TRUE;
 
-fail:
-	_sendException(p_owner, exception);
+	if (exception) _sendException(p_owner, exception);
 	p_owner->__rx.state = MBRS_IDLE;
 	return TRUE;
 }
@@ -329,19 +447,21 @@ fail:
 static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 {
 	PifModbusRtuSlave *p_owner = (PifModbusRtuSlave *)p_client;
-	uint16_t length, period = 0, interval;
-	int32_t diff;
+	uint16_t length, period = 0;
+	uint32_t interval, diff;
 
 	switch (p_owner->parent.__state) {
 	case MBSS_PRE_DELAY:
 		p_owner->parent.__state = MBSS_SEND;
-		interval = 3;		// 2.5bytes
-		diff = (*pif_act_timer1us)() - p_owner->__rx.last_time;
+		// The line has to stay silent for 3.5 characters after the request. The period returned is
+		// counted in characters.
+		interval = p_owner->__p_uart->_transfer_time * 7UL / 2;
+		diff = (*pif_act_timer1us)() - p_owner->__rx.end_time;
 		if (diff < interval) {
-			period = interval - diff;
+			period = (interval - diff) / p_owner->__p_uart->_transfer_time + 1;
 		}
 		else {
-			period = 10;
+			period = 1;
 		}
 		break;
 
@@ -374,29 +494,9 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 	return period;
 }
 
-/**
- * @brief Handles timer-expiration events and transitions the protocol state machine.
- * @param p_issuer Issuer pointer provided by the timer callback context.
- * @return None.
- */
-static void _evtTimerRxTimeout(PifIssuerP p_issuer)
+BOOL pifModbusRtuSlave_Init(PifModbusRtuSlave *p_owner, PifId id, uint8_t my_addr)
 {
-	PifModbusRtuSlave *p_owner = (PifModbusRtuSlave *)p_issuer;
-
-	switch (p_owner->parent.__state) {
-	default:
-#ifndef PIF_NO_LOG
-		pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(Timeout) State:%u Cnt:%u Len:%d", p_owner->_id,
-				p_owner->__rx.state, p_owner->__index, p_owner->__length);
-#endif
-		p_owner->__rx.state = MBRS_TIMEOUT;
-		break;
-	}
-}
-
-BOOL pifModbusRtuSlave_Init(PifModbusRtuSlave *p_owner, PifId id, PifTimerManager *p_timer_manager, uint8_t my_addr)
-{
-    if (!p_owner || !p_timer_manager || my_addr == 0 || my_addr > 248) {
+    if (!p_owner || my_addr == 0 || my_addr > 247) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -405,21 +505,11 @@ BOOL pifModbusRtuSlave_Init(PifModbusRtuSlave *p_owner, PifId id, PifTimerManage
 
 	p_owner->parent._my_addr = my_addr;
 	p_owner->parent.__p_buffer = p_owner->__buffer;
-    p_owner->__p_timer_manager = p_timer_manager;
-
-    p_owner->__p_timer = pifTimerManager_Add(p_timer_manager, TT_ONCE);
-    if (!p_owner->__p_timer) goto fail;
-
-    pifTimer_AttachEvtFinish(p_owner->__p_timer, _evtTimerRxTimeout, p_owner);
     p_owner->__timeout = PIF_MODBUS_SLAVE_TIMEOUT;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     return TRUE;
-
-fail:
-	pifModbusRtuSlave_Clear(p_owner);
-	return FALSE;
 }
 
 void pifModbusRtuSlave_Clear(PifModbusRtuSlave *p_owner)
@@ -429,10 +519,6 @@ void pifModbusRtuSlave_Clear(PifModbusRtuSlave *p_owner)
 	if (p_parent->__p_tmp_bits) {
 		free(p_parent->__p_tmp_bits);
 		p_parent->__p_tmp_bits = NULL;
-	}
-	if (p_owner->__p_timer) {
-		pifTimerManager_Remove(p_owner->__p_timer);
-		p_owner->__p_timer = NULL;
 	}
 }
 

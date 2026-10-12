@@ -34,7 +34,7 @@ else
 endif
 
 NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
-           test_pif_dot_matrix test_pif_fnd test_pif_led
+           test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
 LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
@@ -74,6 +74,12 @@ FND_SRC := display/test_pif_fnd.c $(ROOT)/source/display/pif_fnd.c \
            $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 LED_SRC := display/test_pif_led.c $(ROOT)/source/display/pif_led.c \
            $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+MODBUS_SRC := protocol/test_pif_modbus.c $(ROOT)/source/communication/pif_uart.c \
+              $(addprefix $(ROOT)/source/protocol/, pif_modbus.c pif_modbus_ascii.c pif_modbus_rtu.c pif_modbus_slave.c \
+                  pif_modbus_rtu_master.c pif_modbus_rtu_slave.c pif_modbus_ascii_master.c pif_modbus_ascii_slave.c) \
+              $(addprefix $(ROOT)/source/core/, pif.c pif_log.c pif_obj_array.c pif_ring_buffer.c pif_task.c \
+                  pif_task_manager.c pif_timer.c pif_timer_manager.c)
+MODBUS_DEP := $(wildcard $(ROOT)/include/protocol/pif_modbus*.h)
 
 LINK_DEP :=$(ROOT)/source/protocol/pif_link.c $(ROOT)/include/protocol/pif_link.h \
             $(ROOT)/include/protocol/pif_link_fragment.h
@@ -103,6 +109,8 @@ run-test_pif_solenoid_cs: run-test_pif_solenoid
 run-test_pif_dot_matrix: run-test_pif_solenoid_cs
 run-test_pif_fnd: run-test_pif_dot_matrix
 run-test_pif_led: run-test_pif_fnd
+run-test_pif_modbus: run-test_pif_led
+run-test_pif_modbus_nolog: run-test_pif_modbus
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
 	$(call RUN,$<)
@@ -172,6 +180,12 @@ $(BUILD)/test_pif_fnd$(EXE): $(FND_SRC) $(ROOT)/include/display/pif_fnd.h | $(BU
 
 $(BUILD)/test_pif_led$(EXE): $(LED_SRC) $(ROOT)/include/display/pif_led.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(LED_SRC) -o $@
+
+$(BUILD)/test_pif_modbus$(EXE): $(MODBUS_SRC) $(MODBUS_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) $(INC) $(MODBUS_SRC) -o $@
+
+$(BUILD)/test_pif_modbus_nolog$(EXE): $(MODBUS_SRC) $(MODBUS_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(MODBUS_SRC) -o $@
 
 $(BUILD):
 	$(call MKDIR,$(BUILD))
