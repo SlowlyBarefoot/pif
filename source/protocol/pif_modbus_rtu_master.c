@@ -6,18 +6,6 @@
 #include "protocol/pif_modbus_rtu_master.h"
 
 
-#ifndef PIF_NO_LOG
-
-#define PKT_ERR_INVALID_PACKET_NO	0
-#define PKT_ERR_WRONG_CRC    		1
-
-static const char *c_cPktErr[] = {
-		"Invalid Packet No",
-		"Wrong CRC"
-};
-
-#endif
-
 /**
  * @brief Sets the state and records it for pifCollectSignal.
  * @param p_owner Pointer to the protocol instance.
@@ -108,9 +96,8 @@ static void _parsingPacket(PifModbusRtuMaster *p_owner, PifActUartReceiveData ac
 				default:
 					p_owner->_error = MBE_INVALID_RESPONSE;
 #ifndef PIF_NO_LOG
-					pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) A:%u F:%u", p_owner->_id,
-							c_cPktErr[PKT_ERR_INVALID_PACKET_NO], (unsigned int)p_owner->__buffer[0],
-							(unsigned int)p_owner->__buffer[1]);
+					pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_UNKNOWN_FUNCTION ") A:%u F:%u", p_owner->_id,
+							(unsigned int)p_owner->__buffer[0],	(unsigned int)p_owner->__buffer[1]);
 #endif
 					goto fail;
 				}
@@ -135,8 +122,8 @@ static void _parsingPacket(PifModbusRtuMaster *p_owner, PifActUartReceiveData ac
 				}
 				p_owner->_error = MBE_CRC;
 #ifndef PIF_NO_LOG
-				pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) %u!=%u", p_owner->_id,
-						c_cPktErr[PKT_ERR_WRONG_CRC], (unsigned int)crc[0], (unsigned int)crc[1]);
+				pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_WRONG_CRC ") %u!=%u", p_owner->_id,
+						(unsigned int)crc[0], (unsigned int)crc[1]);
 #endif
 				goto fail;
 			}

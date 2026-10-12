@@ -116,20 +116,6 @@ static void _sendException(PifModbusAsciiSlave *p_owner, uint8_t exception)
 	_sendCommand(p_owner, 0x80 | p_owner->__rx.function, 7);
 }
 
-#ifndef PIF_NO_LOG
-
-#define PKT_ERR_INVALID_PACKET_NO	0
-#define PKT_ERR_WRONG_CRC    		1
-#define PKT_ERR_BAD_FRAME    		2
-
-static const char *c_cPktErr[] = {
-		"Invalid Packet No",
-		"Wrong CRC",
-		"Bad Frame"
-};
-
-#endif
-
 /**
  * @brief Checks a frame that has come in up to its LF, decoded into bytes in the buffer, and
  *        decides what to do with it.
@@ -149,7 +135,7 @@ static PifModbusError _completeFrame(PifModbusAsciiSlave *p_owner)
 	length = pifModbusAscii_Decode(p_owner->__buffer, p_owner->__index);
 	if (length < 3) {
 #ifndef PIF_NO_LOG
-		pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) Len:%u", p_owner->_id, c_cPktErr[PKT_ERR_BAD_FRAME],
+		pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_BAD_FRAME ") Len:%u", p_owner->_id,
 				(unsigned int)p_owner->__index);
 #endif
 		return MBE_NONE;
@@ -160,7 +146,7 @@ static PifModbusError _completeFrame(PifModbusAsciiSlave *p_owner)
 
 	if (pifModbusAscii_CalcLrc(p_owner->__buffer, length) != p_owner->__buffer[length]) {
 #ifndef PIF_NO_LOG
-		pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) %X!=%X", p_owner->_id, c_cPktErr[PKT_ERR_WRONG_CRC],
+		pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_WRONG_CRC ") %X!=%X", p_owner->_id,
 				(unsigned int)pifModbusAscii_CalcLrc(p_owner->__buffer, length), (unsigned int)p_owner->__buffer[length]);
 #endif
 		return MBE_NONE;
@@ -192,9 +178,8 @@ static PifModbusError _completeFrame(PifModbusAsciiSlave *p_owner)
 
 	default:
 #ifndef PIF_NO_LOG
-		pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) A:%u F:%u", p_owner->_id,
-				c_cPktErr[PKT_ERR_INVALID_PACKET_NO], (unsigned int)p_owner->__buffer[0],
-				(unsigned int)p_owner->__buffer[1]);
+		pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_UNKNOWN_FUNCTION ") A:%u F:%u", p_owner->_id,
+				(unsigned int)p_owner->__buffer[0],	(unsigned int)p_owner->__buffer[1]);
 #endif
 		return MBE_ILLEGAL_FUNCTION;
 	}
@@ -252,7 +237,7 @@ static PifModbusError _parsingPacket(PifModbusAsciiSlave *p_owner, PifActUartRec
 			else {
 				// Longer than any valid frame.
 #ifndef PIF_NO_LOG
-				pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) Overflow", p_owner->_id, c_cPktErr[PKT_ERR_BAD_FRAME]);
+				pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_BAD_FRAME ") Overflow", p_owner->_id);
 #endif
 		        pifModbus_StopTimeout(&p_owner->__wait);
 				p_owner->__rx.state = MBRS_IDLE;

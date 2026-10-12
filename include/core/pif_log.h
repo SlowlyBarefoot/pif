@@ -19,6 +19,15 @@
 #define PIF_LOG_CMD_INVALID_ARG		(-4)
 #define PIF_LOG_CMD_USER_ERROR		(-10)	// User defined error
 
+// Wording shared by the protocol modules when they log a packet they drop. Pasted into the format
+// string, so an unused one costs nothing and the same one used by several modules is stored once.
+#define PIF_LOG_MSG_WRONG_CRC			"Wrong CRC"
+#define PIF_LOG_MSG_BAD_FRAME			"Bad Frame"
+#define PIF_LOG_MSG_UNKNOWN_FUNCTION	"Unknown Function"
+#define PIF_LOG_MSG_INVALID_RESPONSE	"Invalid Response"
+#define PIF_LOG_MSG_INVALID_PACKET_NO	"Invalid Packet No"
+#define PIF_LOG_MSG_OUT_OF_SEQUENCE		"Out of Sequence"
+
 
 typedef enum EnPifLogType
 {

@@ -6,20 +6,6 @@
 #include "protocol/pif_modbus_ascii_master.h"
 
 
-#ifndef PIF_NO_LOG
-
-#define PKT_ERR_INVALID_PACKET_NO	0
-#define PKT_ERR_WRONG_CRC    		1
-#define PKT_ERR_BAD_FRAME    		2
-
-static const char *c_cPktErr[] = {
-		"Invalid Packet No",
-		"Wrong CRC",
-		"Bad Frame"
-};
-
-#endif
-
 /**
  * @brief Sets the state and records it for pifCollectSignal.
  * @param p_owner Pointer to the protocol instance.
@@ -82,8 +68,8 @@ static void _parsingPacket(PifModbusAsciiMaster *p_owner, PifActUartReceiveData 
 				if (length < 3) {
 					p_owner->_error = MBE_INVALID_RESPONSE;
 #ifndef PIF_NO_LOG
-					pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) Len:%u", p_owner->_id,
-							c_cPktErr[PKT_ERR_BAD_FRAME], (unsigned int)p_owner->index);
+					pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_BAD_FRAME ") Len:%u", p_owner->_id,
+							(unsigned int)p_owner->index);
 #endif
 					goto fail;
 				}
@@ -91,9 +77,8 @@ static void _parsingPacket(PifModbusAsciiMaster *p_owner, PifActUartReceiveData 
 				if (pifModbusAscii_CalcLrc(p_owner->__buffer, length) != p_owner->__buffer[length]) {
 					p_owner->_error = MBE_CRC;
 #ifndef PIF_NO_LOG
-					pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) %X!=%X", p_owner->_id,
-							c_cPktErr[PKT_ERR_WRONG_CRC], (unsigned int)pifModbusAscii_CalcLrc(p_owner->__buffer, length),
-							(unsigned int)p_owner->__buffer[length]);
+					pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_WRONG_CRC ") %X!=%X", p_owner->_id,
+							(unsigned int)pifModbusAscii_CalcLrc(p_owner->__buffer, length), (unsigned int)p_owner->__buffer[length]);
 #endif
 					goto fail;
 				}
@@ -108,7 +93,7 @@ static void _parsingPacket(PifModbusAsciiMaster *p_owner, PifActUartReceiveData 
 			else {
 				p_owner->_error = MBE_INVALID_RESPONSE;
 #ifndef PIF_NO_LOG
-				pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) Overflow", p_owner->_id, c_cPktErr[PKT_ERR_BAD_FRAME]);
+				pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_BAD_FRAME ") Overflow", p_owner->_id);
 #endif
 				goto fail;
 			}
@@ -159,9 +144,8 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 				p_owner->__result_kind, p_owner->__result_quantity);
 		if (p_owner->_error == MBE_INVALID_RESPONSE) {
 #ifndef PIF_NO_LOG
-			pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) A:%u F:%u", p_owner->_id,
-					c_cPktErr[PKT_ERR_INVALID_PACKET_NO], (unsigned int)p_owner->__buffer[0],
-					(unsigned int)p_owner->__buffer[1]);
+			pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_INVALID_RESPONSE ") A:%u F:%u", p_owner->_id,
+					(unsigned int)p_owner->__buffer[0],	(unsigned int)p_owner->__buffer[1]);
 #endif
 		}
 		break;

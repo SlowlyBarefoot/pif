@@ -40,20 +40,6 @@
 static const uint8_t c_cancel[] = { ASCII_CAN, ASCII_CAN };
 
 
-#ifndef PIF_NO_LOG
-
-#define PKT_ERR_INVALID_PACKET_NO	0
-#define PKT_ERR_WRONG_CRC    		1
-#define PKT_ERR_OUT_OF_SEQUENCE		2
-
-static const char *c_cPktErr[] = {
-		"Invalid Packet No",
-		"Wrong CRC",
-		"Out of Sequence"
-};
-
-#endif
-
 /**
  * @brief Triggers the task for when the nearer of the running timeouts expires.
  * @details A pending trigger is replaced, so the task runs only for the nearest one. A timeout
@@ -266,9 +252,8 @@ static BOOL _parsingPacket(PifXmodem* p_owner, PifActUartReceiveData act_receive
 				}
 				else {
 #ifndef PIF_NO_LOG
-					pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(%s) %u!=%u", p_owner->_id,
-							c_cPktErr[PKT_ERR_INVALID_PACKET_NO], (unsigned int)p_packet->packet_no[0],
-							(unsigned int)p_packet->packet_no[1]);
+					pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(" PIF_LOG_MSG_INVALID_PACKET_NO ") %u!=%u", p_owner->_id,
+							(unsigned int)p_packet->packet_no[0], (unsigned int)p_packet->packet_no[1]);
 #endif
 					goto fail;
 				}
@@ -300,8 +285,8 @@ static BOOL _parsingPacket(PifXmodem* p_owner, PifActUartReceiveData act_receive
 			}
 			if (p_owner->__rx.crc != crc) {
 #ifndef PIF_NO_LOG
-				pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(%s) %u!=%u", p_owner->_id,
-						c_cPktErr[PKT_ERR_WRONG_CRC], (unsigned int)p_owner->__rx.crc, (unsigned int)crc);
+				pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(" PIF_LOG_MSG_WRONG_CRC ") %u!=%u", p_owner->_id,
+						(unsigned int)p_owner->__rx.crc, (unsigned int)crc);
 #endif
 				goto fail;
 			}
@@ -320,9 +305,8 @@ static BOOL _parsingPacket(PifXmodem* p_owner, PifActUartReceiveData act_receive
 			}
 			else {
 #ifndef PIF_NO_LOG
-				pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(%s) %u!=%u", p_owner->_id,
-						c_cPktErr[PKT_ERR_OUT_OF_SEQUENCE], (unsigned int)packet_no,
-						(unsigned int)(uint8_t)(p_owner->__rx.last_packet_no + 1));
+				pifLog_Printf(LT_ERROR, "XM(%u) ParsingPacket(" PIF_LOG_MSG_OUT_OF_SEQUENCE ") %u!=%u", p_owner->_id,
+						(unsigned int)packet_no, (unsigned int)(uint8_t)(p_owner->__rx.last_packet_no + 1));
 #endif
 				// A packet lost for good cannot be recovered, so the transfer is cancelled.
 				p_owner->__rx.state = XRS_CAN;

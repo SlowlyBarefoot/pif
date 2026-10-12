@@ -109,18 +109,6 @@ static void _sendException(PifModbusRtuSlave *p_owner, uint8_t exception)
 	_sendCommand(p_owner, 0x80 | p_owner->__rx.function, 3);
 }
 
-#ifndef PIF_NO_LOG
-
-#define PKT_ERR_INVALID_PACKET_NO	0
-#define PKT_ERR_WRONG_CRC    		1
-
-static const char *c_cPktErr[] = {
-		"Invalid Packet No",
-		"Wrong CRC"
-};
-
-#endif
-
 /**
  * @brief Drops the frame being received and waits for the next one, with nothing known about it.
  * @param p_owner Pointer to the protocol instance that owns this operation.
@@ -216,9 +204,8 @@ static void _setFrameLength(PifModbusRtuSlave *p_owner, uint8_t function)
 	default:
 #ifndef PIF_NO_LOG
 		if (p_owner->__buffer[0] == p_owner->parent._my_addr) {
-			pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) A:%u F:%u", p_owner->_id,
-					c_cPktErr[PKT_ERR_INVALID_PACKET_NO], (unsigned int)p_owner->__buffer[0],
-					(unsigned int)p_owner->__buffer[1]);
+			pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_UNKNOWN_FUNCTION ") A:%u F:%u", p_owner->_id,
+					(unsigned int)p_owner->__buffer[0],	(unsigned int)p_owner->__buffer[1]);
 		}
 #endif
 		_ignoreRx(p_owner, p_owner->__buffer[0] == p_owner->parent._my_addr);
@@ -326,7 +313,7 @@ static PifModbusError _parsingPacket(PifModbusRtuSlave *p_owner, PifActUartRecei
 				else {
 					// A frame that arrived damaged is dropped without an answer.
 #ifndef PIF_NO_LOG
-					pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(%s) %u!=%u", p_owner->_id, c_cPktErr[PKT_ERR_WRONG_CRC],
+					pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_WRONG_CRC ") %u!=%u", p_owner->_id,
 							(unsigned int)crc[0], (unsigned int)crc[1]);
 #endif
 					_ignoreRx(p_owner, FALSE);
