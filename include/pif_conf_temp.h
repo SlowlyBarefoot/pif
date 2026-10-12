@@ -291,4 +291,25 @@
 //#define PIF_TOUCH_CALIBRATION_MAX_FAIL	10000
 
 
+// -------- pifXmodem ----------------------------
+
+// Time in ms to wait for ACK/NAK after sending one packet or EOT. The time to send the packet at
+// the current baud rate is added to it. pifXmodem_SetResponseTimeout() changes it per instance.
+//#define PIF_XMODEM_RESPONSE_TIMEOUT		500
+
+// Time in ms allowed to receive one complete packet. The time to receive the packet at the current
+// baud rate is added to it. pifXmodem_SetReceiveTimeout() changes it per instance.
+//#define PIF_XMODEM_RECEIVE_TIMEOUT		300
+
+// Quiet time in ms on the line that ends the purge after a bad packet, before the NAK is sent.
+// Keep it longer than any gap the sender may leave between the bytes of a packet.
+//#define PIF_XMODEM_PURGE_TIME				100
+
+// Interval in ms at which the receiver repeats the start request until the first packet comes.
+//#define PIF_XMODEM_START_INTERVAL			1000
+
+// How many times EOT is sent again after a NAK or no answer before the transfer is given up.
+//#define PIF_XMODEM_EOT_RETRY				3
+
+
 #endif  // PIF_CONF_H
