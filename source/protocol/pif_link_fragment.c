@@ -35,13 +35,14 @@ static BOOL _buildFragment(PifLink *p_owner)
 	PifLinkFragment *p_frag = p_owner->__p_fragment;
 	PifLinkTx *p_tx = &p_owner->__tx;
 	const PifLinkRequest *p_request = p_tx->p_request;
-	uint8_t flags, info;
+	uint8_t flags, info, frame_size;
 	uint16_t size;
 	BOOL last;
 
 	// A fragment escapes every byte at worst, and the fragment byte is added to its data.
 	size = p_owner->__header_size + 2 * (p_frag->tx_size + 1) + TAILER_SIZE + 1;
-	if (p_owner->__p_uart->_frame_size > 1) size += p_owner->__p_uart->_frame_size - 1;
+	frame_size = pifTransport_GetFrameSize(p_owner->__p_transport);
+	if (frame_size > 1) size += frame_size - 1;
 	if (p_frag->tx_buffer._size < size) {
 		if (!pifRingBuffer_ResizeHeap(&p_frag->tx_buffer, size)) return FALSE;
 		pifRingBuffer_SetName(&p_frag->tx_buffer, "FGB");
@@ -194,6 +195,7 @@ static const PifLinkFragmentOps kFragmentOps = {
 	_clear
 };
 
+
 BOOL pifLink_EnableFragment(PifLink *p_owner, PifLinkFragmentMode rx_mode, uint16_t message_size)
 {
 	PifLinkFragment *p_frag = p_owner->__p_fragment;
@@ -252,7 +254,7 @@ BOOL pifLink_MakeLargeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkReq
 {
 	uint8_t entry[ENTRY_SIZE];
 
-	if (!p_owner->__p_fragment || !p_owner->__p_uart) {
+	if (!p_owner->__p_fragment || !p_owner->__p_transport) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}

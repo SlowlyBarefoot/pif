@@ -58,17 +58,17 @@ static uint32_t _timer1us(void)
     return (uint32_t)clock() * (1000000 / CLOCKS_PER_SEC);
 }
 
-static uint16_t _sendA(PifUart *p_uart, uint8_t *p_data, uint16_t size)
+static uint16_t _sendA(PifTransport *p_transport, uint8_t *p_data, uint16_t size)
 {
-    (void)p_uart;
+    (void)p_transport;
     return pifRingBuffer_PutData(&s_wire_ab, p_data, size) ? size : 0;
 }
 
-static uint16_t _sendB(PifUart *p_uart, uint8_t *p_data, uint16_t size)
+static uint16_t _sendB(PifTransport *p_transport, uint8_t *p_data, uint16_t size)
 {
     uint16_t i;
 
-    (void)p_uart;
+    (void)p_transport;
     for (i = 0; i < size; i++) {
         s_b_stage[s_b_stage_len++] = p_data[i];
         if (p_data[i] == ASCII_ETX) {
@@ -84,15 +84,15 @@ static uint16_t _sendB(PifUart *p_uart, uint8_t *p_data, uint16_t size)
     return size;
 }
 
-static uint16_t _receiveA(PifUart *p_uart, uint8_t *p_data, uint16_t size)
+static uint16_t _receiveA(PifTransport *p_transport, uint8_t *p_data, uint16_t size)
 {
-    (void)p_uart;
+    (void)p_transport;
     return pifRingBuffer_GetBytes(&s_wire_ba, p_data, size);
 }
 
-static uint16_t _receiveB(PifUart *p_uart, uint8_t *p_data, uint16_t size)
+static uint16_t _receiveB(PifTransport *p_transport, uint8_t *p_data, uint16_t size)
 {
-    (void)p_uart;
+    (void)p_transport;
     return pifRingBuffer_GetBytes(&s_wire_ab, p_data, size);
 }
 
@@ -194,17 +194,13 @@ static BOOL _setUp(void)
     pifTimerManager_sigTick(&s_timer_manager);
     pifTaskManager_Loop();
 
-    memset(&s_uart_a, 0, sizeof(s_uart_a));
-    memset(&s_uart_b, 0, sizeof(s_uart_b));
-    s_uart_a._fc_state = ON;
-    s_uart_a._frame_size = 1;
-    s_uart_b._fc_state = ON;
-    s_uart_b._frame_size = 1;
+    // Only the transport of the UARTs is used: the tests call the link events themselves.
+    if (!pifUart_Init(&s_uart_a, PIF_ID_AUTO, 115200) || !pifUart_Init(&s_uart_b, PIF_ID_AUTO, 115200)) return FALSE;
 
     if (!pifLink_Init(&s_a, PIF_ID_AUTO, &s_timer_manager, LINK_T_SINGLE, 0, s_questions_a)) return FALSE;
     if (!pifLink_Init(&s_b, PIF_ID_AUTO, &s_timer_manager, LINK_T_SINGLE, 0, s_questions_b)) return FALSE;
-    s_a.__p_uart = &s_uart_a;
-    s_b.__p_uart = &s_uart_b;
+    s_a.__p_transport = &s_uart_a.parent;
+    s_b.__p_transport = &s_uart_b.parent;
     s_a.evt_error = _evtError;
     // s_a also parses the frames of the encoding tests, which carry up to 1000 bytes.
     if (!pifLink_ResizeTxRequest(&s_a, 256) || !pifLink_ResizeRxPacket(&s_a, 1000) ||

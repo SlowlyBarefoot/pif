@@ -114,7 +114,7 @@ BOOL pifLink_SetTxFragmentSize(PifLink *p_owner, uint16_t fragment_size);
  *        LINK_F_RESPONSE_NO.
  * @param data_size Data size, 1 to 65535.
  * @return TRUE when queued, FALSE with pif_error set when fragmentation is not enabled, a parameter is invalid,
- *         no UART is attached or the request buffer is full.
+ *         no transport is attached or the request buffer is full.
  */
 BOOL pifLink_MakeLargeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkRequest *p_request, uint8_t *p_data,
 		uint16_t data_size);

@@ -49,6 +49,13 @@
 //#define PIF_BST_KEY						32
 
 
+// -------- pifCan -------------------------------
+
+// Largest data of a frame: 64 for CAN FD, or 8 when only Classic CAN is used, which saves memory in every
+// frame queue and stream.
+//#define PIF_CAN_MAX_DATA_SIZE				64
+
+
 // -------- pifCollectSignal ---------------------
 
 //#define PIF_COLLECT_SIGNAL
@@ -74,7 +81,6 @@
 //#define PIF_COLLECT_SIGNAL_NO_SOLENOID
 //#define PIF_COLLECT_SIGNAL_NO_STEP_MOTOR		// pifStepMotorPos and pifStepMotorSpeed too
 //#define PIF_COLLECT_SIGNAL_NO_UART
-
 
 // Characters of text a transfer task pass hands to pifLog at most, beyond the line it is on.
 //#define PIF_COLLECT_SIGNAL_TEXT_SIZE		96
@@ -293,12 +299,12 @@
 
 // -------- pifXmodem ----------------------------
 
-// Time in ms to wait for ACK/NAK after sending one packet or EOT. The time to send the packet at
-// the current baud rate is added to it. pifXmodem_SetResponseTimeout() changes it per instance.
+// Time in ms to wait for ACK/NAK after sending one packet or EOT. The time to send the packet on
+// the transport is added to it. pifXmodem_SetResponseTimeout() changes it per instance.
 //#define PIF_XMODEM_RESPONSE_TIMEOUT		500
 
-// Time in ms allowed to receive one complete packet. The time to receive the packet at the current
-// baud rate is added to it. pifXmodem_SetReceiveTimeout() changes it per instance.
+// Time in ms allowed to receive one complete packet. The time to receive the packet on the
+// transport is added to it. pifXmodem_SetReceiveTimeout() changes it per instance.
 //#define PIF_XMODEM_RECEIVE_TIMEOUT		300
 
 // Quiet time in ms on the line that ends the purge after a bad packet, before the NAK is sent.

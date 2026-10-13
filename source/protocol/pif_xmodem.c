@@ -7,14 +7,14 @@
 
 
 // Time in ms to wait for ACK/NAK after sending one packet or EOT.
-// The time to send the packet at the current baud rate is added to it, as the packet may still be
-// in the UART transmit buffer when the wait starts.
+// The time to send the packet on the transport is added to it, as the packet may still be
+// in the transmit buffer of the transport when the wait starts.
 #ifndef PIF_XMODEM_RESPONSE_TIMEOUT
 #define PIF_XMODEM_RESPONSE_TIMEOUT		500
 #endif
 
 // Time in ms allowed to receive one complete packet from the remote peer.
-// The time to receive the packet at the current baud rate is added to it.
+// The time to receive the packet on the transport is added to it.
 #ifndef PIF_XMODEM_RECEIVE_TIMEOUT
 #define PIF_XMODEM_RECEIVE_TIMEOUT		300
 #endif
@@ -69,12 +69,12 @@ static void _schedule(PifXmodem* p_owner)
  * @param p_owner Pointer to the XMODEM protocol instance.
  * @param p_wait Timeout to start.
  * @param timeout Time in ms.
- * @param bytes Number of bytes whose transfer time at the current baud rate is added.
+ * @param bytes Number of bytes whose transfer time on the transport is added.
  */
 static void _startTimeout(PifXmodem* p_owner, PifXmodemTimeout* p_wait, uint16_t timeout, uint16_t bytes)
 {
 	p_wait->start = (*pif_act_timer1us)();
-	p_wait->time = timeout * 1000UL + (uint32_t)bytes * p_owner->__p_uart->_transfer_time;
+	p_wait->time = timeout * 1000UL + (uint32_t)bytes * pifTransport_GetByteTime(p_owner->__p_transport);
 	if (!p_wait->time) p_wait->time = 1;
 	_schedule(p_owner);
 }
@@ -92,14 +92,14 @@ static BOOL _isExpired(PifXmodemTimeout* p_wait)
 }
 
 /**
- * @brief Requests a control byte or packet transmission from the UART task.
+ * @brief Requests a control byte or packet transmission from the transport.
  * @param p_owner Pointer to the XMODEM protocol instance.
  * @param state Transmit state to enter.
  */
 static void _setTxState(PifXmodem* p_owner, PifXmodemTxState state)
 {
 	p_owner->__tx.state = state;
-	pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
+	pifTransport_TriggerSend(p_owner->__p_transport);
 }
 
 /**
@@ -186,7 +186,7 @@ static uint32_t _doTask(PifTask* p_task)
 {
 	PifXmodem* p_owner = (PifXmodem*)p_task->_p_client;
 
-	if (!p_owner->__p_uart) return 0;
+	if (!p_owner->__p_transport) return 0;
 
 	if (_isExpired(&p_owner->__tx.wait)) _txTimeout(p_owner);
 	if (_isExpired(&p_owner->__rx.wait)) _rxTimeout(p_owner);
@@ -195,21 +195,21 @@ static uint32_t _doTask(PifTask* p_task)
 }
 
 /**
- * @brief Consumes UART bytes and parses one XMODEM packet according to the current RX state.
+ * @brief Consumes received bytes and parses one XMODEM packet according to the current RX state.
  * @details Returns as soon as an event state (XRS_C, XRS_EOT, XRS_CAN, XRS_SOH) is reached, so the
  *          caller handles it before the next byte is read.
  * @param p_owner Pointer to the XMODEM protocol instance.
- * @param act_receive_data Callback used to fetch incoming UART bytes.
+ * @param act_receive_data Callback used to fetch received bytes.
  * @return TRUE when packet processing produced immediate transmit work; otherwise FALSE.
  */
-static BOOL _parsingPacket(PifXmodem* p_owner, PifActUartReceiveData act_receive_data)
+static BOOL _parsingPacket(PifXmodem* p_owner, PifActTransportReceive act_receive_data)
 {
 	PifXmodemPacket* p_packet = &p_owner->__rx.packet;
 	uint8_t data, packet_no;
 	BOOL rtn = FALSE;
 	uint16_t crc;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
+	while ((*act_receive_data)(p_owner->__p_transport, &data, 1)) {
 		switch (p_owner->__rx.state)	{
 		case XRS_IDLE:
 			if (data == ASCII_SOH) {
@@ -335,19 +335,19 @@ fail:
 }
 
 /**
- * @brief UART receive callback that dispatches ACK/NAK handling and packet parsing.
- * @param p_client Opaque UART client pointer resolved to the owning XMODEM instance.
- * @param act_receive_data Callback used to fetch incoming UART bytes.
+ * @brief Receive callback that dispatches ACK/NAK handling and packet parsing.
+ * @param p_client Opaque client pointer resolved to the owning XMODEM instance.
+ * @param act_receive_data Callback used to fetch received bytes.
  * @return TRUE when input bytes were consumed or a state transition occurred; otherwise FALSE.
  */
-static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void* p_client, PifActTransportReceive act_receive_data)
 {
 	PifXmodem* p_owner = (PifXmodem*)p_client;
 	uint8_t data, code;
     BOOL ret;
 
 	if (p_owner->__tx.state == XTS_WAIT_RESPONSE) {
-		if (!(*act_receive_data)(p_owner->__p_uart, &data, 1)) return FALSE;
+		if (!(*act_receive_data)(p_owner->__p_transport, &data, 1)) return FALSE;
 
 		switch (data) {
 		case ASCII_ACK:
@@ -390,7 +390,7 @@ static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 
 	ret = _parsingPacket(p_owner, act_receive_data);
 	if (ret) {
-		pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
+		pifTransport_TriggerSend(p_owner->__p_transport);
 	}
 
 	// The state is cleared before the event, so that the event can start the next step.
@@ -432,29 +432,29 @@ static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 /**
  * @brief Sends one control byte.
  * @param p_owner Pointer to the XMODEM protocol instance.
- * @param act_send_data Callback used to transmit UART bytes.
+ * @param act_send_data Callback used to transmit bytes.
  * @param code Control byte to send.
  * @return Number of bytes transmitted.
  */
-static uint16_t _sendControl(PifXmodem* p_owner, PifActUartSendData act_send_data, uint8_t code)
+static uint16_t _sendControl(PifXmodem* p_owner, PifActTransportSend act_send_data, uint8_t code)
 {
-	// Kept in the instance rather than on the stack, in case the UART sends from the pointer later.
+	// Kept in the instance rather than on the stack, in case the transport sends from the pointer later.
 	p_owner->__tx.ctrl = code;
-	return (*act_send_data)(p_owner->__p_uart, &p_owner->__tx.ctrl, 1);
+	return (*act_send_data)(p_owner->__p_transport, &p_owner->__tx.ctrl, 1);
 }
 
 /**
- * @brief UART transmit callback that emits control bytes or packet payload data based on TX state.
- * @param p_client Opaque UART client pointer resolved to the owning XMODEM instance.
- * @param act_send_data Callback used to transmit UART bytes.
+ * @brief Transmit callback that emits control bytes or packet payload data based on TX state.
+ * @param p_client Opaque client pointer resolved to the owning XMODEM instance.
+ * @param act_send_data Callback used to transmit bytes.
  * @return Number of bytes transmitted during this callback invocation.
  */
-static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
+static uint16_t _evtSending(void* p_client, PifActTransportSend act_send_data)
 {
 	PifXmodem* p_owner = (PifXmodem*)p_client;
 	uint16_t length = 0;
 
-	if (!p_owner->__p_uart->_fc_state) return 0;
+	if (!pifTransport_GetFlowState(p_owner->__p_transport)) return 0;
 
 	switch (p_owner->__tx.state) {
 	case XTS_SEND_C:
@@ -467,7 +467,7 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 		break;
 
 	case XTS_SENDING:
-    	length = (*act_send_data)(p_owner->__p_uart, p_owner->__p_data + p_owner->__tx.data_pos,
+    	length = (*act_send_data)(p_owner->__p_transport, p_owner->__p_data + p_owner->__tx.data_pos,
     			p_owner->__packet_size - p_owner->__tx.data_pos);
 		p_owner->__tx.data_pos += length;
 		if (p_owner->__tx.data_pos >= p_owner->__packet_size) {
@@ -487,7 +487,7 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 
 	case XTS_CAN:
 		// No answer comes to a cancel, so there is nothing to wait for.
-		length = (*act_send_data)(p_owner->__p_uart, (uint8_t *)c_cancel + p_owner->__tx.data_pos,
+		length = (*act_send_data)(p_owner->__p_transport, (uint8_t *)c_cancel + p_owner->__tx.data_pos,
 				sizeof(c_cancel) - p_owner->__tx.data_pos);
 		p_owner->__tx.data_pos += length;
 		if (p_owner->__tx.data_pos >= sizeof(c_cancel)) p_owner->__tx.state = XTS_IDLE;
@@ -500,7 +500,7 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 			if (p_owner->__finish) {
 				p_owner->__finish = FALSE;
 				if (p_owner->__rx.evt_finish) {
-					(*p_owner->__rx.evt_finish)(length * p_owner->__p_uart->_transfer_time);
+					(*p_owner->__rx.evt_finish)(length * pifTransport_GetByteTime(p_owner->__p_transport));
 				}
 			}
 		}
@@ -516,6 +516,7 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 	}
 	return length;
 }
+
 
 BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifXmodemType type)
 {
@@ -568,8 +569,8 @@ void pifXmodem_Clear(PifXmodem* p_owner)
 {
 	if (!p_owner) return;
 
-	// Detached first, so that no UART callback reaches the buffer after it is freed.
-	pifXmodem_DetachUart(p_owner);
+	// Detached first, so that no transport callback reaches the buffer after it is freed.
+	pifXmodem_DetachTransport(p_owner);
 
 	if (p_owner->__p_data) {
 		free(p_owner->__p_data);
@@ -591,26 +592,26 @@ void pifXmodem_SetReceiveTimeout(PifXmodem* p_owner, uint16_t receive_timeout)
 	p_owner->__rx.timeout = receive_timeout;
 }
 
-BOOL pifXmodem_AttachUart(PifXmodem* p_owner, PifUart* p_uart)
+BOOL pifXmodem_AttachTransport(PifXmodem *p_owner, PifTransport *p_transport)
 {
-	if (!p_owner || !p_uart) {
+	if (!p_owner || !p_transport) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
-	p_owner->__p_uart = p_uart;
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
+	p_owner->__p_transport = p_transport;
+	pifTransport_AttachClient(p_transport, p_owner, _evtParsing, _evtSending);
 	return TRUE;
 }
 
-void pifXmodem_DetachUart(PifXmodem* p_owner)
+void pifXmodem_DetachTransport(PifXmodem *p_owner)
 {
-	if (!p_owner || !p_owner->__p_uart) return;
+	if (!p_owner || !p_owner->__p_transport) return;
 
-	pifUart_DetachClient(p_owner->__p_uart);
-	p_owner->__p_uart = NULL;
+	pifTransport_DetachClient(p_owner->__p_transport);
+	p_owner->__p_transport = NULL;
 
-	// A trigger still pending finds no UART and does nothing.
+	// A trigger still pending finds no transport and does nothing.
 	p_owner->__tx.wait.time = 0;
 	p_owner->__rx.wait.time = 0;
 	p_owner->__tx.state = XTS_IDLE;
@@ -644,7 +645,7 @@ BOOL pifXmodem_SendData(PifXmodem* p_owner, uint8_t packet_no, uint8_t* p_data, 
 		return FALSE;
 	}
 
-	if (!p_owner->__p_uart || p_owner->__tx.state != XTS_IDLE) {
+	if (!p_owner->__p_transport || p_owner->__tx.state != XTS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
@@ -684,7 +685,7 @@ BOOL pifXmodem_SendEot(PifXmodem* p_owner)
 		return FALSE;
 	}
 
-	if (!p_owner->__p_uart || p_owner->__tx.state != XTS_IDLE) {
+	if (!p_owner->__p_transport || p_owner->__tx.state != XTS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
@@ -701,7 +702,7 @@ BOOL pifXmodem_SendCancel(PifXmodem* p_owner)
 		return FALSE;
 	}
 
-	if (!p_owner->__p_uart) {
+	if (!p_owner->__p_transport) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
@@ -723,7 +724,7 @@ BOOL pifXmodem_ReadyReceive(PifXmodem* p_owner)
 		return FALSE;
 	}
 
-	if (!p_owner->__p_uart) {
+	if (!p_owner->__p_transport) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}

@@ -32,7 +32,6 @@
 #define DS_RLE_ESCAPE		3	// After DLE, the run count and DLE.
 
 
-
 static void _encodeCrc(uint16_t crc, uint8_t *p_buffer)
 {
 	p_buffer[0] = 0x80 | (crc & 0x7F);
@@ -238,7 +237,7 @@ static int16_t _decodeData(PifLinkRx *p_rx, uint8_t *p_data)
 	return count;
 }
 
-static void _parsingPacket(PifLink *p_owner, PifActUartReceiveData act_receive_data)
+static void _parsingPacket(PifLink *p_owner, PifActTransportReceive act_receive_data)
 {
 	PifLinkPacket *p_packet = &p_owner->__rx.packet;
 	uint8_t data, *p_header;
@@ -247,7 +246,7 @@ static void _parsingPacket(PifLink *p_owner, PifActUartReceiveData act_receive_d
 	uint8_t pkt_err;
 #endif
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
+	while ((*act_receive_data)(p_owner->__p_transport, &data, 1)) {
 		switch (p_owner->__rx.state)	{
 		case LINK_RS_IDLE:
 			if (data == ASCII_STX) {
@@ -483,7 +482,7 @@ static void _handleQuestion(PifLink *p_owner, PifLinkPacket *p_packet)
 	}
 }
 
-static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActTransportReceive act_receive_data)
 {
 	PifLink *p_owner = (PifLink *)p_client;
 	PifLinkPacket *p_packet;
@@ -546,7 +545,7 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 	return rtn;
 }
 
-static uint16_t _sendBuffer(PifLink *p_owner, PifActUartSendData act_send_data, PifRingBuffer *p_buffer,
+static uint16_t _sendBuffer(PifLink *p_owner, PifActTransportSend act_send_data, PifRingBuffer *p_buffer,
 		uint16_t pos, uint16_t end)
 {
 	uint16_t length;
@@ -554,16 +553,16 @@ static uint16_t _sendBuffer(PifLink *p_owner, PifActUartSendData act_send_data, 
 
 	// Stop at the end of the current frame even if the next one follows it in the buffer.
 	if (length > end - pos) length = end - pos;
-	return (*act_send_data)(p_owner->__p_uart, p_data, length);
+	return (*act_send_data)(p_owner->__p_transport, p_data, length);
 }
 
-static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
+static uint16_t _evtSending(void *p_client, PifActTransportSend act_send_data)
 {
 	PifLink *p_owner = (PifLink *)p_client;
 	PifLinkTx *p_tx = &p_owner->__tx;
 	uint8_t info[REQUEST_INFO_SIZE + LINK_MULTI_HEADER_SIZE];
 
-	if (!p_owner->__p_uart->_fc_state) return 0;
+	if (!pifTransport_GetFlowState(p_owner->__p_transport)) return 0;
 	if (p_owner->__rx.state != LINK_RS_IDLE) return 0;
 
 	// Answers go out whenever a request frame is not being written, even while a response is awaited.
@@ -621,7 +620,7 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 		if (p_tx->pos < p_tx->frame_base + p_tx->length) break;
 		p_tx->state = LINK_TS_WAIT_SENDED;
 		// The response can arrive before the next call, and it is taken only in LINK_TS_WAIT_RESPONSE,
-		// so the wait starts as soon as the whole frame is handed to the UART.
+		// so the wait starts as soon as the whole frame is handed to the transport.
 		// fall through
 
 	case LINK_TS_WAIT_SENDED:
@@ -667,7 +666,7 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 
 static BOOL _checkFrame(PifLink *p_owner, uint8_t command, uint8_t *p_data, uint16_t data_size)
 {
-	if (!p_owner->__p_uart) {
+	if (!p_owner->__p_transport) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
@@ -705,7 +704,7 @@ static uint16_t _putFrameBody(PifLink *p_owner, PifRingBuffer *p_buffer, uint8_t
 {
 	uint16_t i, count, length;
 	uint16_t crc = CRC_INIT;
-	uint8_t data, tailer[CRC_SIZE + 1];
+	uint8_t data, frame_size, tailer[CRC_SIZE + 1];
 	BOOL rle = (p_header[1] & LINK_F_RLE_MASK) != 0;
 
 	for (i = 1; i < p_owner->__header_size; i++) {
@@ -737,8 +736,9 @@ static uint16_t _putFrameBody(PifLink *p_owner, PifRingBuffer *p_buffer, uint8_t
 	if (!pifRingBuffer_PutData(p_buffer, tailer, sizeof(tailer))) return 0;
 	length += sizeof(tailer);
 
-	if (p_owner->__p_uart->_frame_size > 1) {
-		while (length % p_owner->__p_uart->_frame_size) {
+	frame_size = pifTransport_GetFrameSize(p_owner->__p_transport);
+	if (frame_size > 1) {
+		while (length % frame_size) {
 			if (!pifRingBuffer_PutByte(p_buffer, 0)) return 0;
 			length++;
 		}
@@ -821,6 +821,7 @@ fail:
 	pifRingBuffer_RollbackPutting(p_buffer);
 	return FALSE;
 }
+
 
 BOOL pifLink_Init(PifLink *p_owner, PifId id, PifTimerManager *p_timer_manager, PifLinkType type, uint8_t address,
 		const PifLinkQuestion *p_questions)
@@ -974,16 +975,18 @@ BOOL pifLink_ResizeTxResponse(PifLink *p_owner, uint16_t tx_response_size)
     return pifRingBuffer_ResizeHeap(&p_owner->__tx.answer_buffer, tx_response_size);
 }
 
-void pifLink_AttachUart(PifLink *p_owner, PifUart *p_uart)
+void pifLink_AttachTransport(PifLink *p_owner, PifTransport *p_transport)
 {
-	p_owner->__p_uart = p_uart;
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
+	p_owner->__p_transport = p_transport;
+	pifTransport_AttachClient(p_transport, p_owner, _evtParsing, _evtSending);
 }
 
-void pifLink_DetachUart(PifLink *p_owner)
+void pifLink_DetachTransport(PifLink *p_owner)
 {
-	pifUart_DetachClient(p_owner->__p_uart);
-	p_owner->__p_uart = NULL;
+	if (!p_owner->__p_transport) return;
+
+	pifTransport_DetachClient(p_owner->__p_transport);
+	p_owner->__p_transport = NULL;
 }
 
 BOOL pifLink_MakeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkRequest *p_request, uint8_t *p_data,

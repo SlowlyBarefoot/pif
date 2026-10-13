@@ -3,6 +3,7 @@
 #define PIF_XMODEM_H
 
 
+#include "communication/pif_transport.h"
 #include "communication/pif_uart.h"
 #include "core/pif_task_manager.h"
 
@@ -86,7 +87,7 @@ typedef void (*PifEvtXmodemRxReceive)(uint8_t code, PifXmodemPacket* p_packet);
 
 /**
  * @brief Called when the transfer has finished successfully.
- * @param delay Time in us until the last byte (the receiver's ACK) has left the UART, 0 on the sender.
+ * @param delay Time in us until the last byte (the receiver's ACK) has left the transport, 0 on the sender.
  */
 typedef void (*PifEvtXmodemFinish)(uint16_t delay);
 
@@ -100,7 +101,7 @@ typedef struct StPifXmodemTx
 	PifXmodemTxState state;
 	uint16_t data_pos;
 	uint16_t timeout;
-	uint8_t ctrl;					// Control byte being sent, kept here as the UART may send from the pointer later
+	uint8_t ctrl;					// Control byte being sent, kept here as the transport may send from the pointer later
 	uint8_t retry;					// EOT retries left
 	PifXmodemTimeout wait;
 	PifEvtXmodemTxReceive evt_receive;
@@ -137,7 +138,7 @@ typedef struct StPifXmodem
 
 	// Private Member Variable
 	PifTask* __p_task;				// Checks the timeouts
-	PifUart* __p_uart;
+	PifTransport *__p_transport;
 	PifXmodemType __type;
 	uint16_t __packet_size;
 	PifXmodemTx __tx;
@@ -163,7 +164,7 @@ BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifXmodemType type);
 
 /**
  * @fn pifXmodem_Clear
- * @brief Releases resources owned by the instance. The UART is detached first if attached.
+ * @brief Releases resources owned by the instance. The transport is detached first if attached.
  * @param p_owner Pointer to the protocol instance.
  */
 void pifXmodem_Clear(PifXmodem* p_owner);
@@ -173,7 +174,7 @@ void pifXmodem_Clear(PifXmodem* p_owner);
  * @brief Updates a runtime configuration value.
  * @param p_owner Pointer to the protocol instance.
  * @param response_timeout Time in ms to wait for the answer to a packet or EOT. The time to send
- *                         the packet at the current baud rate is added to it.
+ *                         the packet on the transport is added to it.
  */
 void pifXmodem_SetResponseTimeout(PifXmodem* p_owner, uint16_t response_timeout);
 
@@ -182,25 +183,25 @@ void pifXmodem_SetResponseTimeout(PifXmodem* p_owner, uint16_t response_timeout)
  * @brief Updates a runtime configuration value.
  * @param p_owner Pointer to the protocol instance.
  * @param receive_timeout Time in ms allowed to receive a packet. The time to receive the packet
- *                        at the current baud rate is added to it.
+ *                        on the transport is added to it.
  */
 void pifXmodem_SetReceiveTimeout(PifXmodem* p_owner, uint16_t receive_timeout);
 
 /**
- * @fn pifXmodem_AttachUart
- * @brief Attaches an interface or callback to the instance.
- * @param p_owner Pointer to the protocol instance.
- * @param p_uart UART interface bound to this protocol instance.
- * @return TRUE on success; otherwise FALSE.
+ * @fn pifXmodem_AttachTransport
+ * @brief Attaches the protocol to a transport as its client.
+ * @param p_owner Pointer to the XMODEM protocol instance.
+ * @param p_transport Transport to send and receive with.
+ * @return TRUE on success, FALSE with E_INVALID_PARAM otherwise.
  */
-BOOL pifXmodem_AttachUart(PifXmodem* p_owner, PifUart* p_uart);
+BOOL pifXmodem_AttachTransport(PifXmodem *p_owner, PifTransport *p_transport);
 
 /**
- * @fn pifXmodem_DetachUart
- * @brief Detaches the UART and stops any transfer in progress.
- * @param p_owner Pointer to the protocol instance.
+ * @fn pifXmodem_DetachTransport
+ * @brief Detaches the transport and stops any transfer in progress.
+ * @param p_owner Pointer to the XMODEM protocol instance.
  */
-void pifXmodem_DetachUart(PifXmodem* p_owner);
+void pifXmodem_DetachTransport(PifXmodem *p_owner);
 
 /**
  * @fn pifXmodem_AttachEvtTx

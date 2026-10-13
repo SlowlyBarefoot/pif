@@ -20,8 +20,8 @@ typedef struct StPifRingData
     uint16_t _data_count;
 
 	// Private Member Variable
-    uint16_t __head;
-    uint16_t __tail;
+    volatile uint16_t __head;		// Moved only by the writer.
+    volatile uint16_t __tail;		// Moved only by the reader.
     uint16_t __index;
     uint16_t __slot_count;
     uint8_t* __p_data;
@@ -129,16 +129,38 @@ uint16_t pifRingData_GetRemainSize(PifRingData* p_owner);
  * @fn pifRingData_Add
  * @brief Reserves a slot for a new item at the end of the ring.
  * @details The returned slot is already counted as stored, so the caller must fill it immediately.
- *          Not safe when Add and Remove run in different contexts (e.g. task and interrupt).
+ *          Not safe when Add and Remove run in different contexts (e.g. task and interrupt), since the
+ *          reader can take the slot before it is filled. Use pifRingData_BeginAdd() and
+ *          pifRingData_CommitAdd() there.
  * @param p_owner Pointer to the target object instance.
  * @return Pointer to the slot to fill, or NULL if the ring is full.
  */
 void* pifRingData_Add(PifRingData* p_owner);
 
 /**
+ * @fn pifRingData_BeginAdd
+ * @brief Returns the slot for a new item at the end of the ring without storing it yet.
+ * @details The reader does not see the slot until pifRingData_CommitAdd(), so the writer and the reader
+ *          may run in different contexts, e.g. an interrupt and a task, as long as each side has one.
+ *          Calling it again before the commit returns the same slot.
+ * @param p_owner Pointer to the target object instance.
+ * @return Pointer to the slot to fill, or NULL if the ring is full.
+ */
+void* pifRingData_BeginAdd(PifRingData* p_owner);
+
+/**
+ * @fn pifRingData_CommitAdd
+ * @brief Stores the slot filled after pifRingData_BeginAdd(), which must have returned it.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifRingData_CommitAdd(PifRingData* p_owner);
+
+/**
  * @fn pifRingData_Remove
  * @brief Removes the oldest item from the ring.
- * @details The returned pointer stays valid only until the next pifRingData_Add call.
+ * @details The returned pointer stays valid only until the next item is added, which a writer in another
+ *          context can do at once. Such a reader takes the item with pifRingData_GetData() at index 0
+ *          first, and removes it when it is done with it.
  * @param p_owner Pointer to the target object instance.
  * @return Pointer to the removed item, or NULL if the ring is empty.
  */

@@ -33,12 +33,12 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_transport test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
 LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
-            $(ROOT)/source/communication/pif_uart.c \
+            $(ROOT)/source/communication/pif_uart.c $(ROOT)/source/communication/pif_transport.c \
             $(addprefix $(ROOT)/source/core/, pif.c pif_log.c pif_obj_array.c pif_ring_buffer.c pif_task.c \
                 pif_task_manager.c pif_timer.c pif_timer_manager.c)
 # test_pif_collect_signal.c includes pif_collect_signal.c itself and stands in for pif_log.c. It also checks the
@@ -53,7 +53,7 @@ TIMER_DEP := $(ROOT)/include/core/pif_timer.h $(ROOT)/include/core/pif_timer_man
 # test_pif_gpio.c includes pif_gpio.c itself to reach its polling task.
 GPIO_SRC  := core/test_pif_gpio.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 # With PIF_COLLECT_SIGNAL the channels pull in pif_log.c and what it needs.
-GPIO_CS_SRC := $(ROOT)/source/communication/pif_uart.c \
+GPIO_CS_SRC := $(ROOT)/source/communication/pif_uart.c $(ROOT)/source/communication/pif_transport.c \
                $(addprefix $(ROOT)/source/core/, pif_collect_signal.c pif_log.c pif_ring_buffer.c pif_timer.c \
                    pif_timer_manager.c)
 GPIO_DEP  := $(ROOT)/source/core/pif_gpio.c $(ROOT)/include/core/pif_gpio.h
@@ -74,12 +74,32 @@ FND_SRC := display/test_pif_fnd.c $(ROOT)/source/display/pif_fnd.c \
            $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 LED_SRC := display/test_pif_led.c $(ROOT)/source/display/pif_led.c \
            $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
-MODBUS_SRC := protocol/test_pif_modbus.c $(ROOT)/source/communication/pif_uart.c \
+MODBUS_SRC := protocol/test_pif_modbus.c $(ROOT)/source/communication/pif_uart.c $(ROOT)/source/communication/pif_transport.c \
               $(addprefix $(ROOT)/source/protocol/, pif_modbus.c pif_modbus_ascii.c pif_modbus_rtu.c pif_modbus_slave.c \
                   pif_modbus_rtu_master.c pif_modbus_rtu_slave.c pif_modbus_ascii_master.c pif_modbus_ascii_slave.c) \
               $(addprefix $(ROOT)/source/core/, pif.c pif_log.c pif_obj_array.c pif_ring_buffer.c pif_task.c \
                   pif_task_manager.c pif_timer.c pif_timer_manager.c)
 MODBUS_DEP := $(wildcard $(ROOT)/include/protocol/pif_modbus*.h)
+
+# test_pif_can.c includes pif_can.c itself to run its tasks directly.
+CAN_SRC := communication/test_pif_can.c \
+           $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_data.c pif_task.c pif_task_manager.c)
+CAN_DEP := $(ROOT)/source/communication/pif_can.c $(ROOT)/include/communication/pif_can.h \
+           $(ROOT)/include/core/pif_ring_data.h
+# test_pif_can_stream.c includes pif_can.c and pif_can_stream.c to run the tasks directly.
+CAN_STREAM_SRC := communication/test_pif_can_stream.c $(ROOT)/source/communication/pif_transport.c \
+                  $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_buffer.c pif_ring_data.c \
+                      pif_task.c pif_task_manager.c)
+CAN_STREAM_DEP := $(CAN_DEP) $(ROOT)/source/communication/pif_can_stream.c \
+                  $(ROOT)/include/communication/pif_can_stream.h $(ROOT)/include/communication/pif_transport.h
+# pif_link and pif_xmodem over PifUart and PifCanStream.
+TRANSPORT_SRC := protocol/test_pif_transport.c \
+                 $(addprefix $(ROOT)/source/communication/, pif_can.c pif_can_stream.c pif_transport.c pif_uart.c) \
+                 $(addprefix $(ROOT)/source/protocol/, pif_link.c pif_xmodem.c) \
+                 $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_buffer.c pif_ring_data.c pif_task.c \
+                     pif_task_manager.c pif_timer.c pif_timer_manager.c)
+TRANSPORT_DEP := $(wildcard $(ROOT)/include/communication/*.h) $(ROOT)/include/protocol/pif_link.h \
+                 $(ROOT)/include/protocol/pif_xmodem.h
 
 LINK_DEP :=$(ROOT)/source/protocol/pif_link.c $(ROOT)/include/protocol/pif_link.h \
             $(ROOT)/include/protocol/pif_link_fragment.h
@@ -101,7 +121,10 @@ run-test_pif_gpio: run-test_pif_collect_signal
 run-test_pif_gpio_cs: run-test_pif_gpio
 run-test_pif_link: run-test_pif_gpio_cs
 run-test_pif_link_nolog: run-test_pif_link
-run-test_pif_pulse: run-test_pif_link_nolog
+run-test_pif_can: run-test_pif_link_nolog
+run-test_pif_can_stream: run-test_pif_can
+run-test_pif_transport: run-test_pif_can_stream
+run-test_pif_pulse: run-test_pif_transport
 run-test_pif_encoder: run-test_pif_pulse
 run-test_pif_task_manager: run-test_pif_encoder
 run-test_pif_solenoid: run-test_pif_task_manager
@@ -154,6 +177,15 @@ $(BUILD)/test_pif_link$(EXE): $(LINK_SRC) $(LINK_DEP) | $(BUILD)
 
 $(BUILD)/test_pif_link_nolog$(EXE): $(LINK_SRC) $(LINK_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(LINK_SRC) -o $@
+
+$(BUILD)/test_pif_can$(EXE): $(CAN_SRC) $(CAN_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(CAN_SRC) -o $@
+
+$(BUILD)/test_pif_can_stream$(EXE): $(CAN_STREAM_SRC) $(CAN_STREAM_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(CAN_STREAM_SRC) -o $@
+
+$(BUILD)/test_pif_transport$(EXE): $(TRANSPORT_SRC) $(TRANSPORT_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(TRANSPORT_SRC) -o $@
 
 $(BUILD)/test_pif_pulse$(EXE): $(PULSE_SRC) $(ROOT)/include/sensor/pif_pulse.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(PULSE_SRC) -o $@

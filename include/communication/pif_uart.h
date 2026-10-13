@@ -3,6 +3,7 @@
 #define PIF_UART_H
 
 
+#include "communication/pif_transport.h"
 #include "core/pif_ring_buffer.h"
 #include "core/pif_task_manager.h"
 #if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_UART)
@@ -123,9 +124,14 @@ typedef void (*PifEvtUartHostFlowState)(void* p_client, SWITCH state);
 /**
  * @class StPifUart
  * @brief UART abstraction that encapsulates buffers, flow control, and task hooks.
+ *
+ * parent makes the UART a PifTransport, so a protocol written for PifTransport attaches to &uart.parent.
+ * A UART has one client at a time, attached either that way or with pifUart_AttachClient().
  */
 struct StPifUart
 {
+	PifTransport parent;
+
 	// Public Member Variable
 	uint8_t fc_limit;							// Range: 0% ~ 100%, default: 50%
 
@@ -165,6 +171,8 @@ struct StPifUart
     PifEvtUartParsing __evt_parsing;
     PifEvtUartSending __evt_sending;
     PifEvtUartHostFlowState __evt_host_flow_state;
+    PifEvtTransportParsing __evt_transport_parsing;	// Set instead of __evt_parsing for a PifTransport client.
+    PifEvtTransportSending __evt_transport_sending;
 #ifdef COLLECT_SIGNAL_UART
 	PifCollectSignalChannel __cs[UA_CSF_COUNT];
 #endif
@@ -250,7 +258,8 @@ BOOL pifUart_ChangeBaudrate(PifUart* p_owner, uint32_t baudrate);
 
 /**
  * @fn pifUart_AttachClient
- * @brief Attaches protocol callbacks used for RX parsing and TX payload generation.
+ * @brief Attaches protocol callbacks used for RX parsing and TX payload generation. A client attached
+ *        before, through pifTransport_AttachClient() too, is replaced.
  * @param p_owner Pointer to the UART object.
  * @param p_client User-defined client context passed to callbacks.
  * @param evt_parsing Callback invoked to parse incoming bytes.

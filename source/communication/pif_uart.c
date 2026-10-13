@@ -19,7 +19,6 @@ static void _setTxState(PifUart* p_owner, PifUartTxState state)
 #endif
 }
 
-
 static BOOL _isTxBlocked(PifUart* p_owner)
 {
 	// With host flow control, _fc_state is OFF while the other side asks us not to send.
@@ -89,6 +88,84 @@ static uint16_t _actSendData(PifUart* p_owner, uint8_t* p_data, uint16_t size)
 	return 0;
 }
 
+static uint16_t _actTransportReceive(PifTransport *p_transport, uint8_t *p_data, uint16_t size)
+{
+	return _actReceiveData((PifUart *)p_transport, p_data, size);
+}
+
+// For a UART that sends with act_send_data.
+static uint16_t _actTransportSendDirect(PifTransport *p_transport, uint8_t *p_data, uint16_t size)
+{
+	PifUart *p_owner = (PifUart *)p_transport;
+
+	return (*p_owner->act_send_data)(p_owner, p_data, size);
+}
+
+// For a UART that sends from its TX buffer.
+static uint16_t _actTransportSendBuffer(PifTransport *p_transport, uint8_t *p_data, uint16_t size)
+{
+	return _actSendData((PifUart *)p_transport, p_data, size);
+}
+
+static void _attachClient(PifUart *p_owner, void *p_client, PifEvtUartParsing evt_parsing, PifEvtUartSending evt_sending,
+		PifEvtTransportParsing evt_transport_parsing, PifEvtTransportSending evt_transport_sending)
+{
+	p_owner->__p_client = p_client;
+	if (p_owner->_p_rx_task) {
+		p_owner->__evt_parsing = evt_parsing;
+		p_owner->__evt_transport_parsing = evt_transport_parsing;
+		p_owner->_p_rx_task->pause = FALSE;
+	}
+	if (p_owner->_p_tx_task) {
+		p_owner->__evt_sending = evt_sending;
+		p_owner->__evt_transport_sending = evt_transport_sending;
+		p_owner->_p_tx_task->pause = FALSE;
+	}
+}
+
+static void _evtTransportAttachClient(PifTransport *p_transport, void *p_client, PifEvtTransportParsing evt_parsing,
+		PifEvtTransportSending evt_sending)
+{
+	_attachClient((PifUart *)p_transport, p_client, NULL, NULL, evt_parsing, evt_sending);
+}
+
+static void _evtTransportDetachClient(PifTransport *p_transport)
+{
+	pifUart_DetachClient((PifUart *)p_transport);
+}
+
+static void _evtTransportTriggerSend(PifTransport *p_transport)
+{
+	PifUart *p_owner = (PifUart *)p_transport;
+
+	if (p_owner->_p_tx_task) pifTask_SetTrigger(p_owner->_p_tx_task, 0);
+}
+
+// OFF while flow control holds the transfer, in either direction.
+static SWITCH _evtTransportGetFlowState(PifTransport *p_transport)
+{
+	return ((PifUart *)p_transport)->_fc_state;
+}
+
+static uint8_t _evtTransportGetFrameSize(PifTransport *p_transport)
+{
+	return ((PifUart *)p_transport)->_frame_size;
+}
+
+static uint16_t _evtTransportGetByteTime(PifTransport *p_transport)
+{
+	return ((PifUart *)p_transport)->_transfer_time;
+}
+
+static const PifTransportOps c_transport_ops = {
+	_evtTransportAttachClient,
+	_evtTransportDetachClient,
+	_evtTransportTriggerSend,
+	_evtTransportGetFlowState,
+	_evtTransportGetFrameSize,
+	_evtTransportGetByteTime
+};
+
 static void _sendXonXoff(PifUart* p_owner, uint8_t data)
 {
 	if (p_owner->act_send_data) {
@@ -102,6 +179,7 @@ static void _sendXonXoff(PifUart* p_owner, uint8_t data)
 	}
 }
 
+
 BOOL pifUart_Init(PifUart* p_owner, PifId id, uint32_t baudrate)
 {
 	if (!p_owner || !baudrate) {
@@ -110,6 +188,7 @@ BOOL pifUart_Init(PifUart* p_owner, PifId id, uint32_t baudrate)
 	}
 
 	memset(p_owner, 0, sizeof(PifUart));
+	pifTransport_Init(&p_owner->parent, &c_transport_ops);
 
 	p_owner->fc_limit = 50;					// default: 50%
     if (id == PIF_ID_AUTO) id = pif_id++;
@@ -215,15 +294,7 @@ BOOL pifUart_ChangeBaudrate(PifUart* p_owner, uint32_t baudrate)
 
 void pifUart_AttachClient(PifUart* p_owner, void* p_client, PifEvtUartParsing evt_parsing, PifEvtUartSending evt_sending)
 {
-	p_owner->__p_client = p_client;
-	if (p_owner->_p_rx_task) {
-		p_owner->__evt_parsing = evt_parsing;
-		p_owner->_p_rx_task->pause = FALSE;
-	}
-	if (p_owner->_p_tx_task) {
-		p_owner->__evt_sending = evt_sending;
-		p_owner->_p_tx_task->pause = FALSE;
-	}
+	_attachClient(p_owner, p_client, evt_parsing, evt_sending, NULL, NULL);
 }
 
 void pifUart_AttachActDirection(PifUart* p_owner, PifActUartDirection act_direction, PifUartDirection init_state)
@@ -249,10 +320,12 @@ void pifUart_DetachClient(PifUart* p_owner)
 	if (p_owner->_p_rx_task) {
 		p_owner->_p_rx_task->pause = TRUE;
 		p_owner->__evt_parsing = NULL;
+		p_owner->__evt_transport_parsing = NULL;
 	}
 	if (p_owner->_p_tx_task) {
 		p_owner->_p_tx_task->pause = TRUE;
 		p_owner->__evt_sending = NULL;
+		p_owner->__evt_transport_sending = NULL;
 	}
 	p_owner->__p_client = NULL;
 }
@@ -495,6 +568,9 @@ next1:
 	if (p_owner->__evt_parsing) {
 		rtn = (*p_owner->__evt_parsing)(p_owner->__p_client, _actReceiveData);
 	}
+	else if (p_owner->__evt_transport_parsing) {
+		rtn = (*p_owner->__evt_transport_parsing)(p_owner->__p_client, _actTransportReceive);
+	}
 	else {
 		rtn = _actReceiveData(p_owner, &data, 1) > 0;
 	}
@@ -543,10 +619,16 @@ static uint32_t _doTxTask(PifTask* p_task)
 		if (p_owner->__evt_sending) {
 			bytes = (*p_owner->__evt_sending)(p_owner->__p_client, p_owner->act_send_data);
 		}
+		else if (p_owner->__evt_transport_sending) {
+			bytes = (*p_owner->__evt_transport_sending)(p_owner->__p_client, _actTransportSendDirect);
+		}
 	}
 	else if (p_owner->_p_tx_buffer) {
 		if (p_owner->__evt_sending) {
 			bytes = (*p_owner->__evt_sending)(p_owner->__p_client, _actSendData);
+		}
+		else if (p_owner->__evt_transport_sending) {
+			bytes = (*p_owner->__evt_transport_sending)(p_owner->__p_client, _actTransportSendBuffer);
 		}
 		else {
 			bytes = pifRingBuffer_GetFillSize(p_owner->_p_tx_buffer);

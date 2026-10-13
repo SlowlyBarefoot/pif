@@ -1,8 +1,21 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_ring_data.h"
 
+
 // Ring container for fixed-size records with FIFO add/remove operations.
 // One extra slot is allocated internally so that all data_count items are usable.
+
+// Slot after head, or slot_count when the ring is full.
+static uint16_t _nextHead(PifRingData* p_owner)
+{
+	uint16_t next = p_owner->__head + 1;
+
+	// One spare slot keeps head/tail unambiguous.
+	if (next >= p_owner->__slot_count) next = 0;
+	if (next == p_owner->__tail) return p_owner->__slot_count;
+	return next;
+}
+
 
 PifRingData* pifRingData_Create(PifId id, uint16_t data_size, uint16_t data_count)
 {
@@ -113,11 +126,15 @@ void* pifRingData_GetNextData(PifRingData* p_owner)
 
 uint16_t pifRingData_GetFillSize(PifRingData* p_owner)
 {
-	if (p_owner->__head >= p_owner->__tail) {
-    	return p_owner->__head - p_owner->__tail;
+	// Read once each, since the other side may move one of them in between.
+	uint16_t head = p_owner->__head;
+	uint16_t tail = p_owner->__tail;
+
+	if (head >= tail) {
+    	return head - tail;
     }
     else {
-    	return p_owner->__slot_count - p_owner->__tail + p_owner->__head;
+    	return p_owner->__slot_count - tail + head;
     }
 }
 
@@ -128,35 +145,49 @@ uint16_t pifRingData_GetRemainSize(PifRingData* p_owner)
 
 void* pifRingData_Add(PifRingData* p_owner)
 {
+	uint8_t* p_data = pifRingData_BeginAdd(p_owner);
+
+	if (p_data) pifRingData_CommitAdd(p_owner);
+	return p_data;
+}
+
+void* pifRingData_BeginAdd(PifRingData* p_owner)
+{
 	if (!p_owner->__p_data) {
 		pif_error = E_INVALID_STATE;
 		return NULL;
 	}
 
-	uint16_t next =	p_owner->__head + 1;
-
-	// One spare slot keeps head/tail unambiguous.
-	if (next >= p_owner->__slot_count) next = 0;
-	if (next == p_owner->__tail) {
+	if (_nextHead(p_owner) == p_owner->__slot_count) {
 		pif_error = E_OVERFLOW_BUFFER;
 		return NULL;
 	}
+	return p_owner->__p_data + (p_owner->__head * p_owner->_data_size);
+}
 
-	uint8_t* p_data = p_owner->__p_data + (p_owner->__head * p_owner->_data_size);
-	p_owner->__head = next;
-	return p_data;
+void pifRingData_CommitAdd(PifRingData* p_owner)
+{
+	uint16_t next = _nextHead(p_owner);
+
+	// Written once with a value in range, since the reader may be looking at it.
+	if (next != p_owner->__slot_count) p_owner->__head = next;
 }
 
 void* pifRingData_Remove(PifRingData* p_owner)
 {
+	uint16_t tail = p_owner->__tail;
+	uint16_t next;
+
 	// Pop from tail in FIFO order.
-	if (p_owner->__head == p_owner->__tail) {
+	if (p_owner->__head == tail) {
 		pif_error = E_EMPTY_IN_BUFFER;
 		return NULL;
 	}
 
-	uint8_t* p_data = p_owner->__p_data + (p_owner->__tail * p_owner->_data_size);
-	p_owner->__tail++;
-	if (p_owner->__tail >= p_owner->__slot_count) p_owner->__tail = 0;
+	uint8_t* p_data = p_owner->__p_data + (tail * p_owner->_data_size);
+	next = tail + 1;
+	if (next >= p_owner->__slot_count) next = 0;
+	// Written once with a value in range, since the writer may be looking at it.
+	p_owner->__tail = next;
 	return p_data;
 }

@@ -1,6 +1,7 @@
 /**
  * @file pif_link.h
- * @brief Request/answer link protocol over a PifUart, point-to-point or on a shared bus.
+ * @brief Request/answer link protocol over a PifTransport, such as a PifUart or a PifCanStream, point-to-point
+ *        or on a shared bus.
  *
  * STX, ETX, ACK, NAK, DLE, XON and XOFF never appear inside a frame except as its STX and ETX, so a receiver
  * can always find the start of the next frame. The header, CRC and ETX are made of bytes of 0x20 or above.
@@ -21,7 +22,7 @@
  *   where value is escaped as above when needed.
  * - CRC: CRC-16/CCITT-FALSE over everything from flags to the end of the escaped data, sent as
  *   3 bytes of 7, 7 and 2 bits, LSB first, each with bit 7 set.
- * - padding: zeros up to a multiple of the UART frame size when it is above 1.
+ * - padding: zeros up to a multiple of the transport frame size when it is above 1.
  *
  * A single ACK byte is accepted in place of a response frame and a NAK byte makes the sender retry.
  * A receiver sends NAK when it drops a broken frame while it has no request of its own in progress.
@@ -57,6 +58,7 @@
 #define PIF_LINK_H
 
 
+#include "communication/pif_transport.h"
 #include "communication/pif_uart.h"
 #include "core/pif_timer_manager.h"
 
@@ -238,8 +240,8 @@ typedef enum EnPifLinkRxState
 typedef enum EnPifLinkTxState
 {
 	LINK_TS_IDLE			= 0,	// No request in progress.
-	LINK_TS_SENDING			= 1,	// Writing the request frame to the UART.
-	LINK_TS_WAIT_SENDED		= 2,	// The whole frame is handed to the UART.
+	LINK_TS_SENDING			= 1,	// Writing the request frame to the transport.
+	LINK_TS_WAIT_SENDED		= 2,	// The whole frame is handed to the transport.
 	LINK_TS_WAIT_RESPONSE	= 3,	// Waiting for the response, ACK or NAK until the request timeout.
 	LINK_TS_RETRY_DELAY		= 4,	// Waiting PIF_LINK_RETRY_DELAY before the next attempt.
 	LINK_TS_RETRY			= 5		// The next attempt is due.
@@ -408,7 +410,7 @@ typedef struct StPifLinkTx
 
 /**
  * @class StPifLink
- * @brief Point-to-point link over a PifUart.
+ * @brief Link over a PifTransport.
  */
 struct StPifLink
 {
@@ -424,7 +426,7 @@ struct StPifLink
 
 	// Private Member Variable
     PifTimerManager *__p_timer_manager;
-	PifUart *__p_uart;
+	PifTransport *__p_transport;
     const PifLinkQuestion *__p_questions;
     PifLinkRx __rx;
     PifLinkTx __tx;
@@ -491,19 +493,19 @@ BOOL pifLink_ResizeTxRequest(PifLink *p_owner, uint16_t tx_request_size);
 BOOL pifLink_ResizeTxResponse(PifLink *p_owner, uint16_t tx_response_size);
 
 /**
- * @fn pifLink_AttachUart
- * @brief Attaches the link to a UART as its client. It must be called before any frame is made.
+ * @fn pifLink_AttachTransport
+ * @brief Attaches the link to a transport as its client. It must be called before any frame is made.
  * @param p_owner Pointer to the link.
- * @param p_uart UART to send and receive with.
+ * @param p_transport Transport to send and receive with.
  */
-void pifLink_AttachUart(PifLink *p_owner, PifUart *p_uart);
+void pifLink_AttachTransport(PifLink *p_owner, PifTransport *p_transport);
 
 /**
- * @fn pifLink_DetachUart
- * @brief Detaches the link from its UART.
+ * @fn pifLink_DetachTransport
+ * @brief Detaches the link from its transport.
  * @param p_owner Pointer to the link.
  */
-void pifLink_DetachUart(PifLink *p_owner);
+void pifLink_DetachTransport(PifLink *p_owner);
 
 /**
  * @fn pifLink_MakeRequest
@@ -515,7 +517,7 @@ void pifLink_DetachUart(PifLink *p_owner);
  * @param p_request Request to send. The link keeps this pointer until the request is finished.
  * @param p_data Data to send. It is copied, so it can be reused after the call. Can be NULL when data_size is 0.
  * @param data_size Data size, up to LINK_MAX_DATA_SIZE (16383).
- * @return TRUE when queued, FALSE with pif_error set when a parameter is invalid, no UART is attached or the
+ * @return TRUE when queued, FALSE with pif_error set when a parameter is invalid, no transport is attached or the
  *         request buffer is full.
  */
 BOOL pifLink_MakeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkRequest *p_request, uint8_t *p_data,
@@ -531,7 +533,7 @@ BOOL pifLink_MakeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkRequest 
  * @param p_data Data to send. It is copied, so it can be reused after the call. Can be NULL when data_size is 0.
  * @param data_size Data size, up to LINK_MAX_DATA_SIZE (16383).
  * @return TRUE when queued, FALSE with pif_error set when a parameter is invalid, the question was broadcast,
- *         no UART is attached or the answer buffer is full.
+ *         no transport is attached or the answer buffer is full.
  */
 BOOL pifLink_MakeAnswer(PifLink *p_owner, PifLinkPacket *p_question, uint8_t flags,
 		uint8_t *p_data, uint16_t data_size);
@@ -546,7 +548,7 @@ BOOL pifLink_MakeAnswer(PifLink *p_owner, PifLinkPacket *p_question, uint8_t fla
  * @param flags LINK_F_LOG_PRINT_* bits. Other bits are set by the link.
  * @param error Error code, 0x01 to 0x7F.
  * @return TRUE when queued, FALSE with pif_error set when a parameter is invalid, the question was broadcast,
- *         no UART is attached or the answer buffer is full.
+ *         no transport is attached or the answer buffer is full.
  */
 BOOL pifLink_MakeError(PifLink *p_owner, PifLinkPacket *p_question, uint8_t flags, PifLinkError error);
 

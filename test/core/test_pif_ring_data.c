@@ -147,6 +147,50 @@ static void _testResetAndClear(void)
     CHECK(pif_error == E_INVALID_STATE);
 }
 
+static void _testBeginCommit(void)
+{
+    PifRingData rd;
+    uint32_t *p_slot;
+    uint32_t round, i;
+
+    CHECK(pifRingData_Init(&rd, PIF_ID_AUTO, sizeof(uint32_t), 2));
+
+    // A slot begun but not committed is not seen, and beginning again gives the same slot.
+    p_slot = pifRingData_BeginAdd(&rd);
+    CHECK(p_slot);
+    *p_slot = 5;
+    CHECK(pifRingData_IsEmpty(&rd) && !pifRingData_GetData(&rd, 0));
+    CHECK(pifRingData_BeginAdd(&rd) == p_slot);
+    pifRingData_CommitAdd(&rd);
+    CHECK(pifRingData_GetFillSize(&rd) == 1 && *(uint32_t *)pifRingData_GetData(&rd, 0) == 5);
+
+    CHECK(_add(&rd, 6));
+    pif_error = E_SUCCESS;
+    CHECK(!pifRingData_BeginAdd(&rd));
+    CHECK(pif_error == E_OVERFLOW_BUFFER);
+    // A commit on a full ring changes nothing.
+    pifRingData_CommitAdd(&rd);
+    CHECK(pifRingData_GetFillSize(&rd) == 2);
+
+    // Read in place first and removed after, across the buffer end.
+    for (round = 0; round < 5; round++) {
+        for (i = 0; i < 2; i++) {
+            CHECK(*(uint32_t *)pifRingData_GetData(&rd, 0) == (round ? round * 10 + i : 5 + i));
+            CHECK(pifRingData_Remove(&rd));
+        }
+        CHECK(pifRingData_IsEmpty(&rd));
+        for (i = 0; i < 2; i++) {
+            p_slot = pifRingData_BeginAdd(&rd);
+            CHECK(p_slot);
+            *p_slot = (round + 1) * 10 + i;
+            pifRingData_CommitAdd(&rd);
+        }
+        // The indexes stay inside the slots.
+        CHECK(rd.__head < rd.__slot_count && rd.__tail < rd.__slot_count);
+    }
+    pifRingData_Clear(&rd);
+}
+
 static void _testInvalidParam(void)
 {
     PifRingData *p_rd;
@@ -172,6 +216,7 @@ static const struct {
     { "get data", _testGetData },
     { "iteration", _testIteration },
     { "reset and clear", _testResetAndClear },
+    { "begin and commit", _testBeginCommit },
     { "invalid param", _testInvalidParam },
 };
 
