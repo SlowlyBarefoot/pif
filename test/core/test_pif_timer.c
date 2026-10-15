@@ -72,7 +72,7 @@ static void testOnce(void)
     CHECK(_setUp());
     p_timer = pifTimerManager_Add(&s_manager, TT_ONCE);
     CHECK(p_timer && p_timer->_step == TS_STOP);
-    pifTimer_AttachEvtFinish(p_timer, _evtFinish, (PifIssuerP)0);
+    pifTimer_AttachEvtFinish(p_timer, _evtFinish, (PifIssuerP)0, FALSE);
     CHECK(pifTimer_Start(p_timer, 3));
     _tick(2);
     CHECK(s_finish[0] == 0 && pifTimer_Remain(p_timer) == 1 && pifTimer_Elapsed(p_timer) == 2);
@@ -88,7 +88,7 @@ static void testRepeat(void)
 
     CHECK(_setUp());
     p_timer = pifTimerManager_Add(&s_manager, TT_REPEAT);
-    pifTimer_AttachEvtFinish(p_timer, _evtFinish, (PifIssuerP)0);
+    pifTimer_AttachEvtFinish(p_timer, _evtFinish, (PifIssuerP)0, FALSE);
     CHECK(pifTimer_Start(p_timer, 2));
     _tick(6);
     CHECK(s_finish[0] == 3 && p_timer->_step == TS_RUNNING);
@@ -106,14 +106,14 @@ static void testIntFinish(void)
 
     CHECK(_setUp());
     p_timer = pifTimerManager_Add(&s_manager, TT_REPEAT);
-    pifTimer_AttachEvtIntFinish(p_timer, _evtFinish, (PifIssuerP)0);
+    pifTimer_AttachEvtFinish(p_timer, _evtFinish, (PifIssuerP)0, TRUE);
     CHECK(pifTimer_Start(p_timer, 1));
     pifTimerManager_sigTick(&s_manager);
     pifTimerManager_sigTick(&s_manager);
     CHECK(s_finish[0] == 2);
 
     // Without a callback the handler only counts.
-    pifTimer_AttachEvtIntFinish(p_timer, NULL, NULL);
+    pifTimer_AttachEvtFinish(p_timer, NULL, NULL, TRUE);
     pifTimerManager_sigTick(&s_manager);
     CHECK(s_finish[0] == 2);
 }
@@ -147,7 +147,7 @@ static void testSetTarget(void)
 
     CHECK(_setUp());
     p_timer = pifTimerManager_Add(&s_manager, TT_REPEAT);
-    pifTimer_AttachEvtFinish(p_timer, _evtFinish, (PifIssuerP)0);
+    pifTimer_AttachEvtFinish(p_timer, _evtFinish, (PifIssuerP)0, FALSE);
     CHECK(!pifTimer_SetTarget(p_timer, 0) && p_timer->_target == 0);
     CHECK(pifTimer_Start(p_timer, 2));
     _tick(1);
@@ -216,7 +216,7 @@ static void testClear(void)
     p_pwm = pifTimerManager_Add(&s_manager, TT_PWM);
     p_pwm->act_pwm = _actPwm;
     p_once = pifTimerManager_Add(&s_manager, TT_ONCE);
-    pifTimer_AttachEvtIntFinish(p_once, _evtFinish, (PifIssuerP)0);
+    pifTimer_AttachEvtFinish(p_once, _evtFinish, (PifIssuerP)0, TRUE);
     CHECK(pifTimer_Start(p_pwm, 4) && pifTimer_Start(p_once, 2));
     pifTimer_SetPwmDuty(p_pwm, PIF_PWM_MAX_DUTY);
     CHECK(strcmp(s_pwm, "1") == 0);
@@ -235,7 +235,7 @@ static void testRemove(void)
 
     CHECK(_setUp());
     p_timer = pifTimerManager_Add(&s_manager, TT_ONCE);
-    pifTimer_AttachEvtFinish(p_timer, _evtFinish, (PifIssuerP)0);
+    pifTimer_AttachEvtFinish(p_timer, _evtFinish, (PifIssuerP)0, FALSE);
     CHECK(pifTimer_Start(p_timer, 1));
 
     // The tick raises the event, but the timer is removed before the task delivers it.
@@ -263,8 +263,8 @@ static void testRemoveFromCallback(void)
     // Added last, so the first is ahead of the second in the list the task walks.
     p_second = pifTimerManager_Add(&s_manager, TT_REPEAT);
     p_first = pifTimerManager_Add(&s_manager, TT_REPEAT);
-    pifTimer_AttachEvtFinish(p_first, _evtFinishRemove, (PifIssuerP)0);
-    pifTimer_AttachEvtFinish(p_second, _evtFinish, (PifIssuerP)1);
+    pifTimer_AttachEvtFinish(p_first, _evtFinishRemove, (PifIssuerP)0, FALSE);
+    pifTimer_AttachEvtFinish(p_second, _evtFinish, (PifIssuerP)1, FALSE);
     s_p_victim = p_second;
     CHECK(pifTimer_Start(p_first, 1) && pifTimer_Start(p_second, 1));
 

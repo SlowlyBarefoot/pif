@@ -270,7 +270,7 @@ BOOL pifMsp_Init(PifMsp* p_owner, PifTimerManager* p_timer, PifId id)
 #if PIF_MSP_RECEIVE_TIMEOUT
     p_owner->__rx.p_timer = pifTimerManager_Add(p_timer, TT_ONCE);
     if (!p_owner->__rx.p_timer) goto fail;
-    pifTimer_AttachEvtFinish(p_owner->__rx.p_timer, _evtTimerRxTimeout, p_owner);
+    pifTimer_AttachEvtFinish(p_owner->__rx.p_timer, _evtTimerRxTimeout, p_owner, FALSE);
 #endif
 
     p_owner->__rx.pre_error = PKT_ERR_NONE;

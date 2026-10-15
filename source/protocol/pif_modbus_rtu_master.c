@@ -36,7 +36,7 @@ static void _startResponseDelay(PifModbusRtuMaster *p_owner)
  */
 static void _checkTimeout(PifModbusRtuMaster *p_owner)
 {
-	if (!pifModbus_IsExpired(&p_owner->__wait)) return;
+	if (!pifTaskTimeout_IsExpired(&p_owner->__timeout)) return;
 
 #ifndef PIF_NO_LOG
 	pifLog_Printf(LT_WARN, "MB(%u) Timeout State:%u", p_owner->_id, p_owner->__state);
@@ -59,7 +59,7 @@ static void _parsingPacket(PifModbusRtuMaster *p_owner, PifActUartReceiveData ac
 
 	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
 		// The wait runs from byte to byte, so a long response at a low baud rate is not cut short.
-		pifModbus_StartTimeout(&p_owner->__wait, p_owner->__timeout * 1000UL);
+		pifTaskTimeout_Start(&p_owner->__timeout, p_owner->__timeout_ms * 1000UL);
 
 		switch (p_owner->__rx_state) {
 		case MBRS_IDLE:
@@ -181,7 +181,7 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 		return FALSE;
 	}
 
-	pifModbus_StopTimeout(&p_owner->__wait);
+	pifTaskTimeout_Stop(&p_owner->__timeout);
 	pifUart_SetDirection(p_owner->__p_uart, UD_TX);
 	p_owner->__rx_state = MBRS_IDLE;
 	_startResponseDelay(p_owner);
@@ -223,14 +223,14 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 	case MBMS_REQUEST_DELAY:
 		if (p_owner->__broadcast) {
 			// No slave answers a broadcast, so it is over once it is out.
-			pifModbus_StopTimeout(&p_owner->__wait);
+			pifTaskTimeout_Stop(&p_owner->__timeout);
 			_startResponseDelay(p_owner);
 		}
 		else {
 			pifUart_SetDirection(p_owner->__p_uart, UD_RX);
 			_setState(p_owner, MBMS_RESPONSE);
 			// The wait for the response starts once the request is out.
-			pifModbus_StartTimeout(&p_owner->__wait, p_owner->__timeout * 1000UL);
+			pifTaskTimeout_Start(&p_owner->__timeout, p_owner->__timeout_ms * 1000UL);
 		}
 		break;
 
@@ -337,7 +337,7 @@ static void _request(PifModbusRtuMaster *p_owner, uint16_t len)
 	pifModbus_ShortToStream(pifModbusRtu_CalcCrc(p_owner->__buffer, len), &p_owner->__buffer[len]);
 
 	// Guards the sending itself: the time the frame takes on the line, and the timeout on top.
-	pifModbus_StartTimeout(&p_owner->__wait, p_owner->__timeout * 1000UL + (uint32_t)(len + 2) * p_owner->__p_uart->_transfer_time);
+	pifTaskTimeout_Start(&p_owner->__timeout, p_owner->__timeout_ms * 1000UL + (uint32_t)(len + 2) * p_owner->__p_uart->_transfer_time);
 
 	p_owner->length = len + 2;
 	p_owner->index = 0;
@@ -376,7 +376,7 @@ BOOL pifModbusRtuMaster_Init(PifModbusRtuMaster *p_owner, PifId id)
 
 	memset(p_owner, 0, sizeof(PifModbusRtuMaster));
 
-    p_owner->__timeout = PIF_MODBUS_MASTER_TIMEOUT;
+    p_owner->__timeout_ms = PIF_MODBUS_MASTER_TIMEOUT;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
@@ -394,7 +394,7 @@ void pifModbusRtuMaster_Clear(PifModbusRtuMaster *p_owner)
 
 void pifModbusRtuMaster_SetResponseTimeout(PifModbusRtuMaster *p_owner, uint16_t response_timeout)
 {
-	p_owner->__timeout = response_timeout;
+	p_owner->__timeout_ms = response_timeout;
 }
 
 void pifModbusRtuMaster_AttachUart(PifModbusRtuMaster *p_owner, PifUart *p_uart)

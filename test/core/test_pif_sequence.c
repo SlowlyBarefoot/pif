@@ -44,7 +44,7 @@ PifTask *pifTaskManager_Add(PifId id, PifTaskMode mode, uint32_t period, PifEvtT
     memset(&s_task, 0, sizeof(s_task));
     s_task._mode = mode;
     s_task._p_client = p_client;
-    s_task.pause = !start;
+    s_task._pause = !start;
     s_loop = evt_loop;
     s_default_us = period;
     s_period_us = period;
@@ -63,6 +63,16 @@ BOOL pifTask_ChangePeriod(PifTask *p_owner, uint32_t period)
     s_default_us = period;
     s_period_us = period;
     return TRUE;
+}
+
+void pifTask_Pause(PifTask *p_owner)
+{
+    p_owner->_pause = TRUE;
+}
+
+void pifTask_Resume(PifTask *p_owner)
+{
+    p_owner->_pause = FALSE;
 }
 
 static void _mark(char c)
@@ -87,7 +97,7 @@ static void _schedule()
 {
     uint32_t period;
 
-    if (!s_task_count || s_task.pause || s_now_us - s_pretime_us < s_period_us) return;
+    if (!s_task_count || s_task._pause || s_now_us - s_pretime_us < s_period_us) return;
     s_pretime_us = s_now_us;
     s_runs++;
     period = (*s_loop)(&s_task);
@@ -171,7 +181,7 @@ static void _testPeriod()
     CHECK(_release() == 0);
     CHECK(strcmp(s_trace, "ABCE") == 0);
     CHECK(!pifSequence_IsRunning(&seq));
-    CHECK(s_task.pause);
+    CHECK(s_task._pause);
 
     // A wait with a long timeout still comes back often enough to see its signal.
     CHECK(pifSequence_Start(&seq, _stepWait));
@@ -181,7 +191,7 @@ static void _testPeriod()
 
     // A delay of zero is due at once.
     pifSequence_Stop(&seq);
-    CHECK(s_task.pause);
+    CHECK(s_task._pause);
     CHECK(pifSequence_Start(&seq, _stepZero));
     CHECK(_release() == PIF_SEQUENCE_NEXT_US);
     CHECK(_release() == 0);
@@ -202,10 +212,10 @@ static void _testOwnTask()
     CHECK(s_task_count == 1);
     CHECK(seq._p_task == &s_task);
     CHECK(s_task._mode == TM_PERIOD);
-    CHECK(s_task.pause);
+    CHECK(s_task._pause);
 
     CHECK(pifSequence_Start(&seq, _stepA));
-    CHECK(!s_task.pause);
+    CHECK(!s_task._pause);
     _advance(2);
     CHECK(strcmp(s_trace, "AB") == 0);
     _advance(7);
@@ -214,7 +224,7 @@ static void _testOwnTask()
     CHECK(strcmp(s_trace, "ABCE") == 0);
 
     // An idle sequence pauses its task, so it costs no runs until it is started again.
-    CHECK(s_task.pause);
+    CHECK(s_task._pause);
     s_runs = 0;
     _advance(50);
     CHECK(s_runs == 0);
@@ -321,7 +331,7 @@ static void _testStop()
     _advance(1);
     pifSequence_Stop(&seq);
     CHECK(!pifSequence_IsRunning(&seq));
-    CHECK(s_task.pause);
+    CHECK(s_task._pause);
     _advance(20);
     CHECK(strcmp(s_trace, "B") == 0);
 

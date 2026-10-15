@@ -38,7 +38,7 @@ typedef struct StPifFnd
 	uint8_t __string_size;
     char* __p_string;
 	uint16_t __blink_period_1ms;
-	uint32_t __blink_time_1ms;		// Time of the last blink toggle
+	uint32_t __blink_time_us;		// Time of the last blink toggle
 
 	// Scan group. Every instance scans itself until pifFnd_ShareScan() hands it to a leader.
 	struct StPifFnd* __p_leader;	// Instance whose task scans this one, NULL for a leader

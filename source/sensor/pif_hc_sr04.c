@@ -95,13 +95,13 @@ BOOL pifHcSr04_StartTrigger(PifHcSr04* p_owner, uint16_t period)
 	}
 
 	pifTask_ChangePeriod(p_owner->_p_task, period);
-	p_owner->_p_task->pause = FALSE;
+	pifTask_Resume(p_owner->_p_task);
 	return TRUE;
 }
 
 void pifHcSr04_StopTrigger(PifHcSr04* p_owner)
 {
-	p_owner->_p_task->pause = TRUE;
+	pifTask_Pause(p_owner->_p_task);
 }
 
 void pifHcSr04_SetTemperature(PifHcSr04* p_owner, float temperature)

@@ -859,7 +859,7 @@ BOOL pifLink_Init(PifLink *p_owner, PifId id, PifTimerManager *p_timer_manager, 
 #if PIF_LINK_RECEIVE_TIMEOUT
     p_owner->__rx.p_timer = pifTimerManager_Add(p_timer_manager, TT_ONCE);
     if (!p_owner->__rx.p_timer) goto fail;
-    pifTimer_AttachEvtFinish(p_owner->__rx.p_timer, _evtTimerRxTimeout, p_owner);
+    pifTimer_AttachEvtFinish(p_owner->__rx.p_timer, _evtTimerRxTimeout, p_owner, FALSE);
 #endif
 
     if (id == PIF_ID_AUTO) id = pif_id++;
@@ -879,7 +879,7 @@ BOOL pifLink_Init(PifLink *p_owner, PifId id, PifTimerManager *p_timer_manager, 
 
     p_owner->__tx.p_timer = pifTimerManager_Add(p_timer_manager, TT_ONCE);
     if (!p_owner->__tx.p_timer) goto fail;
-    pifTimer_AttachEvtFinish(p_owner->__tx.p_timer, _evtTimerTxTimeout, p_owner);
+    pifTimer_AttachEvtFinish(p_owner->__tx.p_timer, _evtTimerTxTimeout, p_owner, FALSE);
 
     p_owner->__p_questions = p_questions;
     p_owner->_id = id;

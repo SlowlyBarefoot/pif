@@ -203,7 +203,7 @@ static BOOL _isAll(const uint8_t *p_data, uint16_t size, uint8_t value)
 static void _testReceive(void)
 {
     CHECK(_setUp(32, 0, FALSE));
-    CHECK(s_fd.stream._p_task->pause && s_fd.__protocol.__idle_byte == IDLE);
+    CHECK(s_fd.stream._p_task->_pause && s_fd.__protocol.__idle_byte == IDLE);
     _setDevice(s_data, 100);
     _attach(NULL, 0, TRUE);
 
@@ -342,10 +342,10 @@ static void _testDetachWhileRunning(void)
 
     // The task runs on until the transfer is over, then waits for a client.
     pifTransport_DetachClient(&s_fd.stream.parent);
-    CHECK(!s_fd.stream._p_task->pause);
+    CHECK(!s_fd.stream._p_task->_pause);
     pifSpiPort_sigEndTransfer(&s_port, TRUE);
     CHECK(_doTask(s_fd.stream._p_task) == 0);
-    CHECK(s_fd.stream._p_task->pause && !s_fd.stream.__running && !s_client.rx_size);
+    CHECK(s_fd.stream._p_task->_pause && !s_fd.stream.__running && !s_client.rx_size);
 }
 
 static void _testClearWhileRunning(void)

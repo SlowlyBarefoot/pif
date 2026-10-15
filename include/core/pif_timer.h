@@ -131,17 +131,10 @@ uint32_t pifTimer_Elapsed(PifTimer* p_owner);
  * @param p_owner Pointer to the target object instance.
  * @param evt_finish Callback invoked when timer operation completes.
  * @param p_issuer User context pointer passed to callback functions.
+ * @param event_into_int TRUE runs the callback inside pifTimerManager_sigTick(), in the tick
+ *        interrupt, so it must be short and interrupt safe. FALSE defers it to the timer task.
  */
-void pifTimer_AttachEvtFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssuerP p_issuer);
-
-/**
- * @fn pifTimer_AttachEvtIntFinish
- * @brief Attaches a callback, device, or external resource to the timer for integration.
- * @param p_owner Pointer to the target object instance.
- * @param evt_finish Callback invoked when timer operation completes.
- * @param p_issuer User context pointer passed to callback functions.
- */
-void pifTimer_AttachEvtIntFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssuerP p_issuer);
+void pifTimer_AttachEvtFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssuerP p_issuer, BOOL event_into_int);
 
 #ifdef __cplusplus
 }

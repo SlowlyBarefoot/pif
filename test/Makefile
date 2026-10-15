@@ -78,7 +78,7 @@ MODBUS_SRC := protocol/test_pif_modbus.c $(ROOT)/source/communication/pif_uart.c
               $(addprefix $(ROOT)/source/protocol/, pif_modbus.c pif_modbus_ascii.c pif_modbus_rtu.c pif_modbus_slave.c \
                   pif_modbus_rtu_master.c pif_modbus_rtu_slave.c pif_modbus_ascii_master.c pif_modbus_ascii_slave.c) \
               $(addprefix $(ROOT)/source/core/, pif.c pif_log.c pif_obj_array.c pif_ring_buffer.c pif_task.c \
-                  pif_task_manager.c pif_timer.c pif_timer_manager.c)
+                  pif_task_manager.c)
 MODBUS_DEP := $(wildcard $(ROOT)/include/protocol/pif_modbus*.h)
 
 # test_pif_can.c includes pif_can.c itself to run its tasks directly.

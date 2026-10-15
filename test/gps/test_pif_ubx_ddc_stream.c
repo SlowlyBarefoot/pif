@@ -200,10 +200,10 @@ static BOOL _setUp(uint16_t rx_size, uint16_t tx_size, uint16_t max_transfer_siz
 static void _testReceive(void)
 {
     CHECK(_setUp(64, 0, 32));
-    CHECK(s_ddc.stream._p_task->pause);
+    CHECK(s_ddc.stream._p_task->_pause);
     _setDevice(s_data, 300);
     _attach(NULL, 0, TRUE);
-    CHECK(!s_ddc.stream._p_task->pause);
+    CHECK(!s_ddc.stream._p_task->_pause);
 
     CHECK(_run());
     CHECK(s_client.rx_size == 300 && !memcmp(s_client.rx, s_data, 300));
@@ -361,10 +361,10 @@ static void _testDetachWhileReading(void)
 
     // The task runs on until the read is over, then waits for a client.
     pifTransport_DetachClient(&s_ddc.stream.parent);
-    CHECK(!s_ddc.stream._p_task->pause);
+    CHECK(!s_ddc.stream._p_task->_pause);
     _endTransfer(TRUE);
     CHECK(_doTask(s_ddc.stream._p_task) == 0);
-    CHECK(s_ddc.stream._p_task->pause);
+    CHECK(s_ddc.stream._p_task->_pause);
     CHECK(!s_ddc.stream.__running && !s_port.__use_device);
     CHECK(!s_client.rx_size);
 

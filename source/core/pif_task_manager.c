@@ -124,7 +124,7 @@ static PifTask *_processingRealTime(uint32_t current, BOOL *p_trigger)
 	// A pause stops the periodic release but not a trigger, exactly as it does for every other
 	// task. That is why it is tested here and not at the call: this function is the only place
 	// the realtime task is released, so the test has to cover both kinds of release.
-	if (g_realtime_task->pause) return NULL;
+	if (g_realtime_task->_pause) return NULL;
 
 	// Released by trigger alone, so there is no grid to test.
 	if (!g_realtime_task->__period) return NULL;
@@ -215,7 +215,7 @@ static uint32_t _realtimeSlack(uint32_t current)
 	uint32_t slack = 0xFFFFFFFFUL;
 	uint32_t delta;
 
-	if (!g_realtime_task || g_realtime_task->pause) return 0xFFFFFFFFUL;
+	if (!g_realtime_task || g_realtime_task->_pause) return 0xFFFFFFFFUL;
 
 	// A pending trigger names a release time that is already known, so it is what the slack is
 	// measured against. While no trigger is pending there is nothing to protect, and that is what
@@ -669,7 +669,7 @@ PifTask *pifTaskManager_Add(PifId id, PifTaskMode mode, uint32_t period, PifEvtT
 
     p_owner->__evt_loop = evt_loop;
     p_owner->_p_client = p_client;
-    p_owner->pause = (mode != TM_EXTERNAL) ? !start : TRUE;
+    p_owner->_pause = (mode != TM_EXTERNAL) ? !start : TRUE;
     if (!s_it_current) s_it_current = pifObjArray_Begin(&s_tasks);
     return p_owner;
 
@@ -837,7 +837,7 @@ void pifTaskManager_Loop()
 			// Due first, slack second. The slack rule counts the releases it holds back, so
 			// asking it about a task that is not due yet would spend that count on a release
 			// that was never wanted and the bound would never reach a task that is waiting.
-			if (!p_select && !p_owner->pause && p_owner->__processing) {
+			if (!p_select && !p_owner->_pause && p_owner->__processing) {
 				PifTask *p_due = (*p_owner->__processing)(p_owner);
 				if (p_due && _fitsInRealtimeSlack(p_owner, slack)) p_select = p_due;
 			}
@@ -930,10 +930,10 @@ void pifTaskManager_Print()
 	        default: mode = "---"; break;
 		}
 		if (p_owner->_default_period < 1000) {
-			pifLog_Printf(LT_NONE, " (%u): %s-%luus Pause=%d\n", p_owner->_id, mode, p_owner->_default_period, p_owner->pause);
+			pifLog_Printf(LT_NONE, " (%u): %s-%luus Pause=%d\n", p_owner->_id, mode, p_owner->_default_period, p_owner->_pause);
 		}
 		else {
-			pifLog_Printf(LT_NONE, " (%u): %s-%1fms Pause=%d\n", p_owner->_id, mode, p_owner->_default_period / 1000.0, p_owner->pause);
+			pifLog_Printf(LT_NONE, " (%u): %s-%1fms Pause=%d\n", p_owner->_id, mode, p_owner->_default_period / 1000.0, p_owner->_pause);
 		}
 #ifdef PIF_USE_BLOCK_TIME
 		pifLog_Printf(LT_NONE, "    Block: M=%luus\n", p_owner->_block_time._max);

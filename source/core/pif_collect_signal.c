@@ -342,7 +342,7 @@ static uint32_t _doTask(PifTask *p_task)
 	size_t len = 0;
 
 	if (p_cs->step != CS_STEP_PRINT) {
-		p_task->pause = TRUE;
+		pifTask_Pause(p_task);
 		return 0;
 	}
 
@@ -381,7 +381,7 @@ static uint32_t _doTask(PifTask *p_task)
 	if (used) pifRingBuffer_Remove(&p_cs->buffer, used);
 
 	if (stage >= CS_HS_DONE && pifRingBuffer_IsEmpty(&p_cs->buffer)) {
-		p_task->pause = TRUE;
+		pifTask_Pause(p_task);
 		p_cs->step = CS_STEP_IDLE;
 		pifLog_Enable();
 	}
@@ -706,7 +706,7 @@ BOOL pifCollectSignal_PrintLog()
 	p_cs->step = CS_STEP_PRINT;
 
 	pifLog_Disable();
-	p_cs->p_task->pause = FALSE;
+	pifTask_Resume(p_cs->p_task);
 	return TRUE;
 }
 

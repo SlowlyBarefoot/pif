@@ -96,8 +96,8 @@ typedef struct StPifDotMatrix
 
 	uint16_t __blink_period_1ms;
 	uint16_t __shift_period_1ms;
-	uint32_t __blink_time_1ms;		// Time of the last blink toggle
-	uint32_t __shift_time_1ms;		// Time of the last shift step
+	uint32_t __blink_time_us;		// Time of the last blink toggle
+	uint32_t __shift_time_us;		// Time of the last shift step
 
 	// Private Action Function
    	PifActDotMatrixDisplay __act_display;

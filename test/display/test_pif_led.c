@@ -246,7 +246,7 @@ static void testAttachFail(void)
     // Attaching again keeps the task but clears which LEDs blink.
     CHECK(pifLed_AttachMBlink(&s_led, PERIOD_MS, 2, 1, 2));
     CHECK(pifTaskManager_Count() == tasks + 1);
-    CHECK(s_led.__p_task->pause);
+    CHECK(s_led.__p_task->_pause);
 }
 
 static void testNoSlot(void)
@@ -285,7 +285,7 @@ static void testMask(void)
     CHECK(pifLed_AttachSBlink(&s_led, PERIOD_MS));
     pifLed_SBlinkOn(&s_led, 0x8);
     CHECK(s_led.__p_blinks[0].flag == 0);
-    CHECK(s_led.__p_task->pause);
+    CHECK(s_led.__p_task->_pause);
 }
 
 static void testMBlinkOffOther(void)

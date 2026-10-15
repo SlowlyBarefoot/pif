@@ -74,7 +74,6 @@ struct StPifTask
 {
 	// Public Member Variable
 	const char* name;
-	BOOL pause;
 	// How many times in a row a release of this task may be held back because its measured run
 	// does not fit before the next realtime release. On the next visit after that it is let
 	// through and counted as a guard lapse, which turns an unbounded wait into a stated one: at
@@ -83,6 +82,7 @@ struct StPifTask
 	uint16_t max_skip;
 
 	// Read-only Member Variable
+	BOOL _pause;					// Set by pifTask_Pause(), cleared by pifTask_Resume() and pifTask_Restart()
 	PifId _id;
 	PifTaskMode _mode;
 	uint32_t _default_period;
@@ -130,6 +130,28 @@ struct StPifTask
 	// Private Event Function
 	PifEvtTaskLoop __evt_loop;
 };
+
+/**
+ * @struct StPifTaskTimeout
+ * @brief One shot deadline in microseconds, for the timeouts a module used to keep a TT_ONCE timer
+ *        for. Any number of them can share one task: each start, and each check that finds the
+ *        deadline still ahead, brings the trigger of the task forward to it when it is nearer
+ *        than the one pending. The task therefore runs at the nearest deadline and, by checking
+ *        every timeout it owns with pifTaskTimeout_IsExpired(), handles what is due and arms the
+ *        trigger for the next one.
+ *        A timeout without a task is only polled: pifTaskTimeout_IsExpired() is then the whole
+ *        mechanism, as it is for a module that has no task of its own.
+ *        A stopped timeout leaves the trigger it may have set, because other timeouts can share
+ *        it. The task then runs once with nothing due, which is harmless.
+ *        A timeout filled with zeros is stopped and has no task.
+ */
+typedef struct StPifTaskTimeout
+{
+	// Private Member Variable
+	PifTask* __p_task;
+	uint32_t __start;
+	uint32_t __time;				// 0 while stopped
+} PifTaskTimeout;
 
 
 #ifdef __cplusplus
@@ -206,6 +228,54 @@ BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay);
  * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTask_SetCutinTrigger(PifTask *p_owner);
+
+/**
+ * @fn pifTask_CancelTrigger
+ * @brief Withdraws a release that pifTask_SetTrigger(), pifTask_SetCutinTrigger() or the return
+ *        value of a TM_EXTERNAL task asked for and that has not happened yet. A pause does not do
+ *        this: a trigger releases a paused task.
+ *        Not for interrupt context, where a trigger may be set at the same time.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifTask_CancelTrigger(PifTask *p_owner);
+
+/**
+ * @fn pifTask_Pause
+ * @brief Stops the periodic release of the task. A trigger still releases it: pifTask_CancelTrigger()
+ *        withdraws one that is pending. A TM_EXTERNAL task has no periodic release, so this has no
+ *        effect on it.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifTask_Pause(PifTask *p_owner);
+
+/**
+ * @fn pifTask_Resume
+ * @brief Lets the periodic release run again on the grid it had. A task paused for longer than its
+ *        period is therefore released on its next visit; pifTask_Restart() counts the period from
+ *        now instead. No effect on a TM_EXTERNAL task.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifTask_Resume(PifTask *p_owner);
+
+/**
+ * @fn pifTask_Restart
+ * @brief Resumes the task and counts the period from now, so that the first release after it is
+ *        one full period later. The period a run returned is dropped for the default one. A pending
+ *        trigger is kept.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifTask_Restart(PifTask *p_owner);
+
+/**
+ * @fn pifTask_IsSubPeriodElapsed
+ * @brief Divides the runs of a periodic task into a slower step, such as the blink of a display
+ *        refreshed by that task. Returns TRUE once every period. After a gap longer than a period,
+ *        a paused task for instance, it starts over from now instead of catching up with a burst.
+ * @param p_time_us Time the current step began. Set it to (*pif_act_timer1us)() to start.
+ * @param period_us Length of a step in microseconds.
+ * @return TRUE if a step has elapsed since *p_time_us.
+ */
+BOOL pifTask_IsSubPeriodElapsed(uint32_t *p_time_us, uint32_t period_us);
 
 #ifdef PIF_USE_TASK_STATISTICS
 
@@ -314,6 +384,50 @@ void pifTask_SetNextBlockTime(PifTask *p_owner, uint32_t block_time);
 void pifTask_IgnoreBlockTime(PifTask *p_owner);
 
 #endif
+
+
+/**
+ * @fn pifTaskTimeout_Init
+ * @brief Stops the timeout and binds it to the task released at its expiry.
+ * @param p_owner Pointer to the timeout.
+ * @param p_task Task to trigger at the deadline, or NULL for a timeout that is only polled.
+ */
+void pifTaskTimeout_Init(PifTaskTimeout *p_owner, PifTask *p_task);
+
+/**
+ * @fn pifTaskTimeout_Start
+ * @brief Starts or restarts the timeout from now, and triggers its task for the deadline unless a
+ *        nearer trigger is already pending. Not for interrupt context.
+ * @param p_owner Pointer to the timeout.
+ * @param time_us Time to the deadline in microseconds. 0 is taken as 1, expired at the next check.
+ */
+void pifTaskTimeout_Start(PifTaskTimeout *p_owner, uint32_t time_us);
+
+/**
+ * @fn pifTaskTimeout_Stop
+ * @brief Stops the timeout. See PifTaskTimeout for the trigger it leaves.
+ * @param p_owner Pointer to the timeout.
+ */
+void pifTaskTimeout_Stop(PifTaskTimeout *p_owner);
+
+/**
+ * @fn pifTaskTimeout_IsRunning
+ * @brief Tells whether the timeout is started and not yet reported as expired.
+ * @param p_owner Pointer to the timeout.
+ * @return TRUE while it runs.
+ */
+BOOL pifTaskTimeout_IsRunning(PifTaskTimeout *p_owner);
+
+/**
+ * @fn pifTaskTimeout_IsExpired
+ * @brief Checks the timeout and stops it when it has expired, so that each expiry is reported once.
+ *        While the deadline is still ahead it triggers the task for it, as pifTaskTimeout_Start()
+ *        does, which is what keeps the remaining timeouts of a task armed after the task has run
+ *        for the nearest one.
+ * @param p_owner Pointer to the timeout.
+ * @return TRUE if it was running and has expired.
+ */
+BOOL pifTaskTimeout_IsExpired(PifTaskTimeout *p_owner);
 
 #ifdef __cplusplus
 }

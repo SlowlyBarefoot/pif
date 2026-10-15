@@ -128,7 +128,7 @@ static PifModbusError _completeFrame(PifModbusAsciiSlave *p_owner)
 	uint16_t expected;
 	uint8_t address;
 
-	pifModbus_StopTimeout(&p_owner->__wait);
+	pifTaskTimeout_Stop(&p_owner->__timeout);
 	p_owner->__rx.state = MBRS_IDLE;
 
 	// A frame that arrived damaged or went to another slave is dropped without an answer.
@@ -201,7 +201,7 @@ static PifModbusError _parsingPacket(PifModbusAsciiSlave *p_owner, PifActUartRec
 	PifModbusError exception;
 
 	// No character of the frame came for the whole timeout: it is dropped without an answer.
-	if (pifModbus_IsExpired(&p_owner->__wait)) {
+	if (pifTaskTimeout_IsExpired(&p_owner->__timeout)) {
 #ifndef PIF_NO_LOG
 		pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(Timeout) State:%u Cnt:%u", p_owner->_id,
 				p_owner->__rx.state, p_owner->__index);
@@ -214,7 +214,7 @@ static PifModbusError _parsingPacket(PifModbusAsciiSlave *p_owner, PifActUartRec
 		if (data == ':') {
 			p_owner->__rx.state = MBRS_DATA;
 			p_owner->__index = 0;
-			pifModbus_StartTimeout(&p_owner->__wait, p_owner->__timeout * 1000UL);
+			pifTaskTimeout_Start(&p_owner->__timeout, p_owner->__timeout_ms * 1000UL);
 			continue;
 		}
 
@@ -222,7 +222,7 @@ static PifModbusError _parsingPacket(PifModbusAsciiSlave *p_owner, PifActUartRec
 		case MBRS_DATA:
 			// The wait runs from character to character, so a long frame at a low baud rate is not
 			// cut short.
-			pifModbus_StartTimeout(&p_owner->__wait, p_owner->__timeout * 1000UL);
+			pifTaskTimeout_Start(&p_owner->__timeout, p_owner->__timeout_ms * 1000UL);
 
 			if (data == ASCII_CR) {
 			}
@@ -239,7 +239,7 @@ static PifModbusError _parsingPacket(PifModbusAsciiSlave *p_owner, PifActUartRec
 #ifndef PIF_NO_LOG
 				pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(" PIF_LOG_MSG_BAD_FRAME ") Overflow", p_owner->_id);
 #endif
-		        pifModbus_StopTimeout(&p_owner->__wait);
+		        pifTaskTimeout_Stop(&p_owner->__timeout);
 				p_owner->__rx.state = MBRS_IDLE;
 			}
 			break;
@@ -379,7 +379,7 @@ BOOL pifModbusAsciiSlave_Init(PifModbusAsciiSlave *p_owner, PifId id, uint8_t my
 
 	p_owner->parent._my_addr = my_addr;
 	p_owner->parent.__p_buffer = p_owner->__buffer;
-    p_owner->__timeout = PIF_MODBUS_SLAVE_TIMEOUT;
+    p_owner->__timeout_ms = PIF_MODBUS_SLAVE_TIMEOUT;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
@@ -398,7 +398,7 @@ void pifModbusAsciiSlave_Clear(PifModbusAsciiSlave *p_owner)
 
 void pifModbusAsciiSlave_SetReceiveTimeout(PifModbusAsciiSlave *p_owner, uint16_t receive_timeout)
 {
-	p_owner->__timeout = receive_timeout;
+	p_owner->__timeout_ms = receive_timeout;
 }
 
 void pifModbusAsciiSlave_AttachUart(PifModbusAsciiSlave *p_owner, PifUart *p_uart)

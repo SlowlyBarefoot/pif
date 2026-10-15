@@ -115,7 +115,7 @@ static void _sendException(PifModbusRtuSlave *p_owner, uint8_t exception)
  */
 static void _resetRx(PifModbusRtuSlave *p_owner)
 {
-	pifModbus_StopTimeout(&p_owner->__wait);
+	pifTaskTimeout_Stop(&p_owner->__timeout);
 	p_owner->__rx.state = MBRS_IDLE;
 	p_owner->__rx.response = FALSE;
 	p_owner->__rx.illegal = FALSE;
@@ -222,7 +222,7 @@ static void _completeFrame(PifModbusRtuSlave *p_owner)
 {
 	uint8_t address = p_owner->__buffer[0];
 
-	pifModbus_StopTimeout(&p_owner->__wait);
+	pifTaskTimeout_Stop(&p_owner->__timeout);
 	p_owner->__rx.end_time = (*pif_act_timer1us)();
 
 	if (p_owner->__rx.response) {
@@ -255,7 +255,7 @@ static PifModbusError _parsingPacket(PifModbusRtuSlave *p_owner, PifActUartRecei
 
 	// No byte of the frame came for the whole timeout: it is dropped without an answer, and
 	// whatever comes now starts a new one.
-	if (pifModbus_IsExpired(&p_owner->__wait)) {
+	if (pifTaskTimeout_IsExpired(&p_owner->__timeout)) {
 #ifndef PIF_NO_LOG
 		pifLog_Printf(LT_ERROR, "MB(%u) ParsingPacket(Timeout) State:%u Cnt:%u Len:%d", p_owner->_id,
 				p_owner->__rx.state, p_owner->__index, p_owner->__length);
@@ -268,12 +268,12 @@ static PifModbusError _parsingPacket(PifModbusRtuSlave *p_owner, PifActUartRecei
 		now = (*pif_act_timer1us)();
 		p_owner->__rx.last_time = now;
 		// The wait runs from byte to byte, so a long frame at a low baud rate is not cut short.
-		pifModbus_StartTimeout(&p_owner->__wait, p_owner->__timeout * 1000UL);
+		pifTaskTimeout_Start(&p_owner->__timeout, p_owner->__timeout_ms * 1000UL);
 
 		switch (p_owner->__rx.state) {
 		case MBRS_IDLE:
 			// An answer that was due never came if the line stayed quiet that long, so this is a request.
-			if (p_owner->__rx.response && (uint32_t)(now - p_owner->__rx.end_time) >= p_owner->__timeout * 1000UL) {
+			if (p_owner->__rx.response && (uint32_t)(now - p_owner->__rx.end_time) >= p_owner->__timeout_ms * 1000UL) {
 				p_owner->__rx.response = FALSE;
 			}
 			p_owner->__buffer[0] = data;
@@ -342,7 +342,7 @@ static PifModbusError _parsingPacket(PifModbusRtuSlave *p_owner, PifActUartRecei
 			(long)((*pif_act_timer1us)() - p_owner->__rx.last_time) >= p_owner->__p_uart->_transfer_time * 7L / 2) {
 		if (p_owner->__rx.illegal && p_owner->__index >= 4 &&
 				pifModbusRtu_CalcCrc(p_owner->__buffer, p_owner->__index - 2) == pifModbus_StreamToShort(&p_owner->__buffer[p_owner->__index - 2])) {
-			pifModbus_StopTimeout(&p_owner->__wait);
+			pifTaskTimeout_Stop(&p_owner->__timeout);
 			p_owner->__rx.end_time = p_owner->__rx.last_time;
 			p_owner->__rx.illegal = FALSE;
 			p_owner->__rx.broadcast = FALSE;
@@ -492,7 +492,7 @@ BOOL pifModbusRtuSlave_Init(PifModbusRtuSlave *p_owner, PifId id, uint8_t my_add
 
 	p_owner->parent._my_addr = my_addr;
 	p_owner->parent.__p_buffer = p_owner->__buffer;
-    p_owner->__timeout = PIF_MODBUS_SLAVE_TIMEOUT;
+    p_owner->__timeout_ms = PIF_MODBUS_SLAVE_TIMEOUT;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
@@ -511,7 +511,7 @@ void pifModbusRtuSlave_Clear(PifModbusRtuSlave *p_owner)
 
 void pifModbusRtuSlave_SetReceiveTimeout(PifModbusRtuSlave *p_owner, uint16_t receive_timeout)
 {
-	p_owner->__timeout = receive_timeout;
+	p_owner->__timeout_ms = receive_timeout;
 }
 
 void pifModbusRtuSlave_AttachUart(PifModbusRtuSlave *p_owner, PifUart *p_uart)

@@ -238,6 +238,158 @@ static void testTriggerOnRealtime(void)
     CHECK(s_rt_runs == 1);
 }
 
+static void testCancelTrigger(void)
+{
+    _setUp(FALSE);
+    CHECK(!s_failed);
+
+    CHECK(pifTask_SetTrigger(s_p_work, 500));
+    pifTask_CancelTrigger(s_p_work);
+    s_now = 1000;
+    _loop(3);
+    CHECK(s_work_runs == 0);
+
+    // A cut in is withdrawn too.
+    CHECK(pifTask_SetCutinTrigger(s_p_work));
+    pifTask_CancelTrigger(s_p_work);
+    _loop(3);
+    CHECK(s_work_runs == 0);
+
+    // A paused task left alone still gets its trigger.
+    CHECK(pifTask_SetTrigger(s_p_work, 0));
+    _loop(3);
+    CHECK(s_work_runs == 1);
+}
+
+static void testRestart(void)
+{
+    PifTask *p_task;
+
+    _setUp(FALSE);
+    CHECK(!s_failed);
+    p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, 1000, _doOther, NULL, FALSE);
+    CHECK(p_task);
+
+    // Paused well past its period: clearing pause would release it at once, Restart does not.
+    s_now = 5000;
+    pifTask_Restart(p_task);
+    CHECK(!p_task->_pause);
+    s_now = 5999;
+    _loop(4);
+    CHECK(s_other_runs == 0);
+    s_now = 6000;
+    _loop(4);
+    CHECK(s_other_runs == 1);
+}
+
+static void testSubPeriod(void)
+{
+    uint32_t time_us;
+
+    s_now = 100;
+    time_us = s_now;
+    s_now = 1099;
+    CHECK(!pifTask_IsSubPeriodElapsed(&time_us, 1000));
+    s_now = 1100;
+    CHECK(pifTask_IsSubPeriodElapsed(&time_us, 1000) && time_us == 1100);
+    // A late check keeps the grid.
+    s_now = 2300;
+    CHECK(pifTask_IsSubPeriodElapsed(&time_us, 1000) && time_us == 2100);
+    CHECK(!pifTask_IsSubPeriodElapsed(&time_us, 1000));
+    // A gap of more than a period starts over from now.
+    s_now = 9000;
+    CHECK(pifTask_IsSubPeriodElapsed(&time_us, 1000) && time_us == 9000);
+}
+
+static PifTaskTimeout s_timeout[2];
+static int s_expired[2];
+static int s_timeout_runs;
+
+static uint32_t _doTimeouts(PifTask *p_task)
+{
+    int i;
+
+    (void)p_task;
+    s_timeout_runs++;
+    for (i = 0; i < 2; i++) {
+        if (pifTaskTimeout_IsExpired(&s_timeout[i])) s_expired[i]++;
+    }
+    return 0;
+}
+
+static void testTaskTimeout(void)
+{
+    PifTask *p_task;
+
+    _setUp(FALSE);
+    CHECK(!s_failed);
+    p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_EXTERNAL, 0, _doTimeouts, NULL, FALSE);
+    CHECK(p_task);
+    pifTaskTimeout_Init(&s_timeout[0], p_task);
+    pifTaskTimeout_Init(&s_timeout[1], p_task);
+    s_expired[0] = s_expired[1] = 0;
+    s_timeout_runs = 0;
+
+    // The later one started first: the nearer one still brings the trigger forward.
+    pifTaskTimeout_Start(&s_timeout[1], 800);
+    pifTaskTimeout_Start(&s_timeout[0], 300);
+    CHECK(pifTaskTimeout_IsRunning(&s_timeout[0]) && pifTaskTimeout_IsRunning(&s_timeout[1]));
+    s_now = 299;
+    _loop(4);
+    CHECK(s_timeout_runs == 0);
+    s_now = 300;
+    _loop(4);
+    CHECK(s_timeout_runs == 1 && s_expired[0] == 1 && s_expired[1] == 0);
+    CHECK(!pifTaskTimeout_IsRunning(&s_timeout[0]));
+
+    // The check of the one still running armed the trigger for it.
+    s_now = 799;
+    _loop(4);
+    CHECK(s_timeout_runs == 1);
+    s_now = 800;
+    _loop(4);
+    CHECK(s_timeout_runs == 2 && s_expired[0] == 1 && s_expired[1] == 1);
+
+    // Nothing is running: the task stays asleep.
+    s_now = 5000;
+    _loop(4);
+    CHECK(s_timeout_runs == 2);
+
+    // A stopped timeout costs one run with nothing due, and is never reported.
+    pifTaskTimeout_Start(&s_timeout[0], 100);
+    pifTaskTimeout_Stop(&s_timeout[0]);
+    s_now = 5100;
+    _loop(4);
+    CHECK(s_timeout_runs == 3 && s_expired[0] == 1);
+    s_now = 9000;
+    _loop(4);
+    CHECK(s_timeout_runs == 3);
+
+    // A restart moves the deadline back.
+    pifTaskTimeout_Start(&s_timeout[0], 100);
+    s_now = 9050;
+    pifTaskTimeout_Start(&s_timeout[0], 100);
+    s_now = 9100;
+    _loop(4);
+    CHECK(s_expired[0] == 1);
+    s_now = 9150;
+    _loop(4);
+    CHECK(s_expired[0] == 2);
+}
+
+static void testPolledTimeout(void)
+{
+    PifTaskTimeout timeout = { 0 };
+
+    s_now = 0;
+    CHECK(!pifTaskTimeout_IsRunning(&timeout) && !pifTaskTimeout_IsExpired(&timeout));
+    pifTaskTimeout_Start(&timeout, 0);
+    CHECK(!pifTaskTimeout_IsExpired(&timeout));
+    s_now = 1;
+    CHECK(pifTaskTimeout_IsExpired(&timeout));
+    CHECK(!pifTaskTimeout_IsExpired(&timeout));
+}
+
 static void testInvalid(void)
 {
     CHECK(!pifTask_SetTrigger(NULL, 0) && pif_error == E_INVALID_PARAM);
@@ -262,6 +414,11 @@ int main(void)
         { "cut in taken waits for slack", testCutinTakenWaitsForSlack },
         { "trigger without realtime", testTriggerWithoutRealtime },
         { "trigger on realtime", testTriggerOnRealtime },
+        { "cancel trigger", testCancelTrigger },
+        { "restart", testRestart },
+        { "sub period", testSubPeriod },
+        { "task timeout", testTaskTimeout },
+        { "polled timeout", testPolledTimeout },
         { "invalid", testInvalid },
     };
 

@@ -41,8 +41,8 @@ typedef struct StPifModbusRtuMaster
 	// Private Member Variable
 	PifModbusMasterState __state;
 	PifUart *__p_uart;
-	PifModbusTimeout __wait;
-	uint16_t __timeout;				// In ms
+	PifTaskTimeout __timeout;
+	uint16_t __timeout_ms;
 	uint32_t __delay;
 	uint8_t __buffer[260];
 	void* __p_result;				// Where the response of the request in progress is read out to

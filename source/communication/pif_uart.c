@@ -117,12 +117,12 @@ static void _attachClient(PifUart *p_owner, void *p_client, PifEvtUartParsing ev
 	if (p_owner->_p_rx_task) {
 		p_owner->__evt_parsing = evt_parsing;
 		p_owner->__evt_transport_parsing = evt_transport_parsing;
-		p_owner->_p_rx_task->pause = FALSE;
+		pifTask_Resume(p_owner->_p_rx_task);
 	}
 	if (p_owner->_p_tx_task) {
 		p_owner->__evt_sending = evt_sending;
 		p_owner->__evt_transport_sending = evt_transport_sending;
-		p_owner->_p_tx_task->pause = FALSE;
+		pifTask_Resume(p_owner->_p_tx_task);
 	}
 }
 
@@ -321,12 +321,12 @@ void pifUart_DetachClient(PifUart* p_owner)
 	if (p_owner->_p_rx_buffer) pifRingBuffer_Empty(p_owner->_p_rx_buffer);
 	if (p_owner->_p_tx_buffer) pifRingBuffer_Empty(p_owner->_p_tx_buffer);
 	if (p_owner->_p_rx_task) {
-		p_owner->_p_rx_task->pause = TRUE;
+		pifTask_Pause(p_owner->_p_rx_task);
 		p_owner->__evt_parsing = NULL;
 		p_owner->__evt_transport_parsing = NULL;
 	}
 	if (p_owner->_p_tx_task) {
-		p_owner->_p_tx_task->pause = TRUE;
+		pifTask_Pause(p_owner->_p_tx_task);
 		p_owner->__evt_sending = NULL;
 		p_owner->__evt_transport_sending = NULL;
 	}

@@ -42,16 +42,6 @@ typedef enum EnPifXmodemTxState
 
 
 /**
- * @class StPifXmodemTimeout
- * @brief A timeout checked by the protocol task. time is 0 while it is not running.
- */
-typedef struct StPifXmodemTimeout
-{
-	uint32_t start;					// pif_act_timer1us() reading when it started
-	uint32_t time;					// Length in us
-} PifXmodemTimeout;
-
-/**
  * @class StPifXmodemPacket
  * @brief Represents the StPifXmodemPacket data structure.
  */
@@ -100,10 +90,10 @@ typedef struct StPifXmodemTx
 {
 	PifXmodemTxState state;
 	uint16_t data_pos;
-	uint16_t timeout;
+	uint16_t timeout_ms;
 	uint8_t ctrl;					// Control byte being sent, kept here as the transport may send from the pointer later
 	uint8_t retry;					// EOT retries left
-	PifXmodemTimeout wait;
+	PifTaskTimeout timeout;
 	PifEvtXmodemTxReceive evt_receive;
 	PifEvtXmodemFinish evt_finish;
 } PifXmodemTx;
@@ -118,9 +108,9 @@ typedef struct StPifXmodemRx
 	PifXmodemPacket packet;
 	uint16_t count;
 	uint16_t crc;
-	uint16_t timeout;
+	uint16_t timeout_ms;
 	uint8_t last_packet_no;			// Number of the last packet passed on, 0 before the first
-	PifXmodemTimeout wait;
+	PifTaskTimeout timeout;
 	PifEvtXmodemRxReceive evt_receive;
 	PifEvtXmodemFinish evt_finish;
 } PifXmodemRx;

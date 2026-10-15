@@ -174,7 +174,7 @@ static void testBuffer()
     CHECK(passes > 1);							// Spread over the task passes
     CHECK(!pifCollectSignal_IsPrinting());
     CHECK(s_log_enable);
-    CHECK(s_collect_signal.p_task->pause);
+    CHECK(s_collect_signal.p_task->_pause);
     CHECK(strcmp(_afterDate(s_log), kExpect) == 0);
     pifCollectSignal_Clear();
 }

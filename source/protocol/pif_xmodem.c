@@ -41,54 +41,15 @@ static const uint8_t c_cancel[] = { ASCII_CAN, ASCII_CAN };
 
 
 /**
- * @brief Triggers the task for when the nearer of the running timeouts expires.
- * @details A pending trigger is replaced, so the task runs only for the nearest one. A timeout
- *          that is stopped needs nothing here: the task finds nothing due and does nothing.
+ * @brief Starts or restarts a timeout. It triggers the protocol task for its deadline.
  * @param p_owner Pointer to the XMODEM protocol instance.
- */
-static void _schedule(PifXmodem* p_owner)
-{
-	PifXmodemTimeout* p_waits[2] = { &p_owner->__tx.wait, &p_owner->__rx.wait };
-	uint32_t now = (*pif_act_timer1us)();
-	uint32_t elapsed, remain, delay = 0;
-	BOOL running = FALSE;
-	int i;
-
-	for (i = 0; i < 2; i++) {
-		if (!p_waits[i]->time) continue;
-		elapsed = now - p_waits[i]->start;
-		remain = elapsed >= p_waits[i]->time ? 0 : p_waits[i]->time - elapsed;
-		if (!running || remain < delay) delay = remain;
-		running = TRUE;
-	}
-	if (running) pifTask_SetTrigger(p_owner->__p_task, delay);
-}
-
-/**
- * @brief Starts or restarts a timeout.
- * @param p_owner Pointer to the XMODEM protocol instance.
- * @param p_wait Timeout to start.
- * @param timeout Time in ms.
+ * @param p_timeout Timeout to start.
+ * @param timeout_ms Time in ms.
  * @param bytes Number of bytes whose transfer time on the transport is added.
  */
-static void _startTimeout(PifXmodem* p_owner, PifXmodemTimeout* p_wait, uint16_t timeout, uint16_t bytes)
+static void _startTimeout(PifXmodem* p_owner, PifTaskTimeout* p_timeout, uint16_t timeout_ms, uint16_t bytes)
 {
-	p_wait->start = (*pif_act_timer1us)();
-	p_wait->time = timeout * 1000UL + (uint32_t)bytes * pifTransport_GetByteTime(p_owner->__p_transport);
-	if (!p_wait->time) p_wait->time = 1;
-	_schedule(p_owner);
-}
-
-/**
- * @brief Checks a timeout, and stops it when it has expired.
- * @param p_wait Timeout to check.
- * @return TRUE if it was running and has expired.
- */
-static BOOL _isExpired(PifXmodemTimeout* p_wait)
-{
-	if (!p_wait->time || (*pif_act_timer1us)() - p_wait->start < p_wait->time) return FALSE;
-	p_wait->time = 0;
-	return TRUE;
+	pifTaskTimeout_Start(p_timeout, timeout_ms * 1000UL + (uint32_t)bytes * pifTransport_GetByteTime(p_owner->__p_transport));
 }
 
 /**
@@ -178,7 +139,8 @@ static void _txTimeout(PifXmodem* p_owner)
 }
 
 /**
- * @brief Protocol task: handles the timeouts that have expired and waits for the next one.
+ * @brief Protocol task: handles the timeouts that have expired. Checking a timeout that is still
+ *        running arms the trigger for it.
  * @param p_task Task that resolves to the owning XMODEM instance.
  * @return Always 0: the task runs only when triggered.
  */
@@ -188,9 +150,8 @@ static uint32_t _doTask(PifTask* p_task)
 
 	if (!p_owner->__p_transport) return 0;
 
-	if (_isExpired(&p_owner->__tx.wait)) _txTimeout(p_owner);
-	if (_isExpired(&p_owner->__rx.wait)) _rxTimeout(p_owner);
-	_schedule(p_owner);
+	if (pifTaskTimeout_IsExpired(&p_owner->__tx.timeout)) _txTimeout(p_owner);
+	if (pifTaskTimeout_IsExpired(&p_owner->__rx.timeout)) _rxTimeout(p_owner);
 	return 0;
 }
 
@@ -213,10 +174,10 @@ static BOOL _parsingPacket(PifXmodem* p_owner, PifActTransportReceive act_receiv
 		switch (p_owner->__rx.state)	{
 		case XRS_IDLE:
 			if (data == ASCII_SOH) {
-				_startTimeout(p_owner, &p_owner->__rx.wait, p_owner->__rx.timeout, p_owner->__packet_size);
+				_startTimeout(p_owner, &p_owner->__rx.timeout, p_owner->__rx.timeout_ms, p_owner->__packet_size);
 				if (p_owner->__tx.state == XTS_SEND_C || p_owner->__tx.state == XTS_WAIT_START) {
 					// The first packet answers the start request.
-					p_owner->__tx.wait.time = 0;
+					pifTaskTimeout_Stop(&p_owner->__tx.timeout);
 					p_owner->__tx.state = XTS_IDLE;
 				}
 				p_owner->__rx.count = 1;
@@ -291,7 +252,7 @@ static BOOL _parsingPacket(PifXmodem* p_owner, PifActTransportReceive act_receiv
 				goto fail;
 			}
 
-			p_owner->__rx.wait.time = 0;
+			pifTaskTimeout_Stop(&p_owner->__rx.timeout);
 			packet_no = p_packet->packet_no[0];
 			if (packet_no == p_owner->__rx.last_packet_no) {
 				// Sent again because our ACK was lost: acknowledged, but not passed on twice.
@@ -318,7 +279,7 @@ static BOOL _parsingPacket(PifXmodem* p_owner, PifActTransportReceive act_receiv
 
 		case XRS_PURGE:
 			// Every byte pushes the end of the purge back.
-			_startTimeout(p_owner, &p_owner->__rx.wait, PIF_XMODEM_PURGE_TIME, 0);
+			_startTimeout(p_owner, &p_owner->__rx.timeout, PIF_XMODEM_PURGE_TIME, 0);
 			break;
 
 		default:
@@ -330,7 +291,7 @@ static BOOL _parsingPacket(PifXmodem* p_owner, PifActTransportReceive act_receiv
 fail:
 	// The rest of the packet is still coming: the NAK goes out once the line is quiet.
 	p_owner->__rx.state = XRS_PURGE;
-	_startTimeout(p_owner, &p_owner->__rx.wait, PIF_XMODEM_PURGE_TIME, 0);
+	_startTimeout(p_owner, &p_owner->__rx.timeout, PIF_XMODEM_PURGE_TIME, 0);
 	return TRUE;
 }
 
@@ -351,7 +312,7 @@ static BOOL _evtParsing(void* p_client, PifActTransportReceive act_receive_data)
 
 		switch (data) {
 		case ASCII_ACK:
-			p_owner->__tx.wait.time = 0;
+			pifTaskTimeout_Stop(&p_owner->__tx.timeout);
 			p_owner->__tx.state = XTS_IDLE;
 			if (p_owner->__finish) {
 				p_owner->__finish = FALSE;
@@ -363,7 +324,7 @@ static BOOL _evtParsing(void* p_client, PifActTransportReceive act_receive_data)
 			break;
 
 		case ASCII_NAK:
-			p_owner->__tx.wait.time = 0;
+			pifTaskTimeout_Stop(&p_owner->__tx.timeout);
 			if (p_owner->__finish) {
 				// Some receivers NAK the first EOT: it is sent again, not the last packet.
 				_retryEot(p_owner);
@@ -377,7 +338,7 @@ static BOOL _evtParsing(void* p_client, PifActTransportReceive act_receive_data)
 			break;
 
 		case ASCII_CAN:
-			p_owner->__tx.wait.time = 0;
+			pifTaskTimeout_Stop(&p_owner->__tx.timeout);
 			p_owner->__tx.state = XTS_IDLE;
 			p_owner->__finish = FALSE;
 			if (p_owner->__tx.evt_receive) {
@@ -461,7 +422,7 @@ static uint16_t _evtSending(void* p_client, PifActTransportSend act_send_data)
 		length = _sendControl(p_owner, act_send_data, p_owner->__type == XT_CRC ? 'C' : ASCII_NAK);
 		if (length) {
 			p_owner->__finish = FALSE;
-			_startTimeout(p_owner, &p_owner->__tx.wait, PIF_XMODEM_START_INTERVAL, 0);
+			_startTimeout(p_owner, &p_owner->__tx.timeout, PIF_XMODEM_START_INTERVAL, 0);
 			p_owner->__tx.state = XTS_WAIT_START;
 		}
 		break;
@@ -471,7 +432,7 @@ static uint16_t _evtSending(void* p_client, PifActTransportSend act_send_data)
     			p_owner->__packet_size - p_owner->__tx.data_pos);
 		p_owner->__tx.data_pos += length;
 		if (p_owner->__tx.data_pos >= p_owner->__packet_size) {
-			_startTimeout(p_owner, &p_owner->__tx.wait, p_owner->__tx.timeout, p_owner->__packet_size);
+			_startTimeout(p_owner, &p_owner->__tx.timeout, p_owner->__tx.timeout_ms, p_owner->__packet_size);
 			p_owner->__tx.state = XTS_WAIT_RESPONSE;
 		}
 		break;
@@ -480,7 +441,7 @@ static uint16_t _evtSending(void* p_client, PifActTransportSend act_send_data)
 		length = _sendControl(p_owner, act_send_data, ASCII_EOT);
 		if (length) {
 			p_owner->__finish = TRUE;
-			_startTimeout(p_owner, &p_owner->__tx.wait, p_owner->__tx.timeout, 1);
+			_startTimeout(p_owner, &p_owner->__tx.timeout, p_owner->__tx.timeout_ms, 1);
 			p_owner->__tx.state = XTS_WAIT_RESPONSE;
 		}
 		break;
@@ -547,14 +508,16 @@ BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifXmodemType type)
         goto fail;
     }
 
-    // Runs only when a timeout is due, through pifTask_SetTrigger().
+    // Runs only when a timeout is due, triggered by the timeouts themselves.
     p_owner->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_EXTERNAL, 0, _doTask, p_owner, FALSE);
     if (!p_owner->__p_task) goto fail;
     p_owner->__p_task->name = "Xmodem";
+    pifTaskTimeout_Init(&p_owner->__tx.timeout, p_owner->__p_task);
+    pifTaskTimeout_Init(&p_owner->__rx.timeout, p_owner->__p_task);
 
     p_owner->__type = type;
-    p_owner->__tx.timeout = PIF_XMODEM_RESPONSE_TIMEOUT;
-    p_owner->__rx.timeout = PIF_XMODEM_RECEIVE_TIMEOUT;
+    p_owner->__tx.timeout_ms = PIF_XMODEM_RESPONSE_TIMEOUT;
+    p_owner->__rx.timeout_ms = PIF_XMODEM_RECEIVE_TIMEOUT;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
@@ -584,12 +547,12 @@ void pifXmodem_Clear(PifXmodem* p_owner)
 
 void pifXmodem_SetResponseTimeout(PifXmodem* p_owner, uint16_t response_timeout)
 {
-	p_owner->__tx.timeout = response_timeout;
+	p_owner->__tx.timeout_ms = response_timeout;
 }
 
 void pifXmodem_SetReceiveTimeout(PifXmodem* p_owner, uint16_t receive_timeout)
 {
-	p_owner->__rx.timeout = receive_timeout;
+	p_owner->__rx.timeout_ms = receive_timeout;
 }
 
 BOOL pifXmodem_AttachTransport(PifXmodem *p_owner, PifTransport *p_transport)
@@ -611,9 +574,9 @@ void pifXmodem_DetachTransport(PifXmodem *p_owner)
 	pifTransport_DetachClient(p_owner->__p_transport);
 	p_owner->__p_transport = NULL;
 
-	// A trigger still pending finds no transport and does nothing.
-	p_owner->__tx.wait.time = 0;
-	p_owner->__rx.wait.time = 0;
+	pifTaskTimeout_Stop(&p_owner->__tx.timeout);
+	pifTaskTimeout_Stop(&p_owner->__rx.timeout);
+	if (p_owner->__p_task) pifTask_CancelTrigger(p_owner->__p_task);
 	p_owner->__tx.state = XTS_IDLE;
 	p_owner->__rx.state = XRS_IDLE;
 	p_owner->__finish = FALSE;
@@ -707,8 +670,8 @@ BOOL pifXmodem_SendCancel(PifXmodem* p_owner)
 		return FALSE;
 	}
 
-	p_owner->__tx.wait.time = 0;
-	p_owner->__rx.wait.time = 0;
+	pifTaskTimeout_Stop(&p_owner->__tx.timeout);
+	pifTaskTimeout_Stop(&p_owner->__rx.timeout);
 	p_owner->__rx.state = XRS_IDLE;
 	p_owner->__rx.last_packet_no = 0;
 	p_owner->__finish = FALSE;

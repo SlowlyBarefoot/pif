@@ -285,7 +285,7 @@ BOOL pifKeypad_Start(PifKeypad* p_owner, const char* p_name)
 		return FALSE;
 	}
 
-	if (p_owner->__p_task) p_owner->__p_task->pause = FALSE;
+	if (p_owner->__p_task) pifTask_Resume(p_owner->__p_task);
 	else {
 		p_owner->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, p_owner->__control_period_1ms * 1000UL, _doTask, p_owner, TRUE);
 		if (!p_owner->__p_task) return FALSE;
@@ -296,7 +296,7 @@ BOOL pifKeypad_Start(PifKeypad* p_owner, const char* p_name)
 
 void pifKeypad_Stop(PifKeypad* p_owner)
 {
-	if (p_owner->__p_task) p_owner->__p_task->pause = TRUE;
+	if (p_owner->__p_task) pifTask_Pause(p_owner->__p_task);
 }
 
 #ifdef COLLECT_SIGNAL_KEYPAD

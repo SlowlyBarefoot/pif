@@ -119,17 +119,9 @@ uint32_t pifTimer_Elapsed(PifTimer* p_owner)
 	else return p_owner->_target - p_owner->__current;
 }
 
-void pifTimer_AttachEvtFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssuerP p_issuer)
+void pifTimer_AttachEvtFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssuerP p_issuer, BOOL event_into_int)
 {
 	p_owner->__evt_finish = evt_finish;
 	p_owner->__p_finish_issuer = p_issuer;
-	p_owner->__event_into_int = FALSE;
-}
-
-void pifTimer_AttachEvtIntFinish(PifTimer* p_owner, PifEvtTimerFinish evt_finish, PifIssuerP p_issuer)
-{
-	p_owner->__evt_finish = evt_finish;
-	p_owner->__p_finish_issuer = p_issuer;
-	// Mark callback as safe to run in interrupt context.
-	p_owner->__event_into_int = TRUE;
+	p_owner->__event_into_int = event_into_int;
 }

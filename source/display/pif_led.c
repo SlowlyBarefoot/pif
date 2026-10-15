@@ -53,16 +53,18 @@ static void _updatePause(PifLed* p_owner)
 		}
 	}
 
-	if (p_task->pause && !pause) {
+	if (p_task->_pause && !pause) {
 		for (b = 0; b < p_owner->__blink_count; b++) {
 			p_blink = &p_owner->__p_blinks[b];
 			p_blink->state = ON;
 			p_blink->count = p_blink->multiple - 1;
 		}
 		// Counts the period from now. A paused task would otherwise run at once.
-		pifTask_SetParam(p_task, TM_PERIOD, p_task->_default_period);
+		pifTask_Restart(p_task);
 	}
-	p_task->pause = pause;
+	else if (pause) {
+		pifTask_Pause(p_task);
+	}
 }
 
 BOOL pifLed_Init(PifLed* p_owner, PifId id, uint8_t count, PifActLedState act_state)

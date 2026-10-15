@@ -26,7 +26,7 @@ static void _setState(PifModbusAsciiMaster *p_owner, PifModbusMasterState state)
  */
 static void _checkTimeout(PifModbusAsciiMaster *p_owner)
 {
-	if (!pifModbus_IsExpired(&p_owner->__wait)) return;
+	if (!pifTaskTimeout_IsExpired(&p_owner->__timeout)) return;
 
 #ifndef PIF_NO_LOG
 	pifLog_Printf(LT_WARN, "MB(%u) Timeout State:%u", p_owner->_id, p_owner->__state);
@@ -50,7 +50,7 @@ static void _parsingPacket(PifModbusAsciiMaster *p_owner, PifActUartReceiveData 
 
 	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
 		// The wait runs from byte to byte, so a long response at a low baud rate is not cut short.
-		pifModbus_StartTimeout(&p_owner->__wait, p_owner->__timeout * 1000UL);
+		pifTaskTimeout_Start(&p_owner->__timeout, p_owner->__timeout_ms * 1000UL);
 
 		// A colon always starts a frame, whatever came before it.
 		if (data == ':') {
@@ -157,7 +157,7 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 		return FALSE;
 	}
 
-	pifModbus_StopTimeout(&p_owner->__wait);
+	pifTaskTimeout_Stop(&p_owner->__timeout);
 	p_owner->__rx_state = MBRS_IDLE;
 	_setState(p_owner, MBMS_FINISH);
 	return TRUE;
@@ -171,13 +171,13 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 static void _sent(PifModbusAsciiMaster *p_owner)
 {
 	if (p_owner->__broadcast) {
-		pifModbus_StopTimeout(&p_owner->__wait);
+		pifTaskTimeout_Stop(&p_owner->__timeout);
 		_setState(p_owner, MBMS_FINISH);
 	}
 	else {
 		_setState(p_owner, MBMS_RESPONSE);
 		// The wait for the response starts once the request is out.
-		pifModbus_StartTimeout(&p_owner->__wait, p_owner->__timeout * 1000UL);
+		pifTaskTimeout_Start(&p_owner->__timeout, p_owner->__timeout_ms * 1000UL);
 	}
 }
 
@@ -331,7 +331,7 @@ static void _request(PifModbusAsciiMaster *p_owner, uint16_t len)
 	p_owner->__buffer[len] = ASCII_LF; len++;
 
 	// Guards the sending itself: the time the frame takes on the line, and the timeout on top.
-	pifModbus_StartTimeout(&p_owner->__wait, p_owner->__timeout * 1000UL + (uint32_t)len * p_owner->__p_uart->_transfer_time);
+	pifTaskTimeout_Start(&p_owner->__timeout, p_owner->__timeout_ms * 1000UL + (uint32_t)len * p_owner->__p_uart->_transfer_time);
 
 	p_owner->length = len;
 	p_owner->index = 0;
@@ -370,7 +370,7 @@ BOOL pifModbusAsciiMaster_Init(PifModbusAsciiMaster *p_owner, PifId id)
 
 	memset(p_owner, 0, sizeof(PifModbusAsciiMaster));
 
-    p_owner->__timeout = PIF_MODBUS_MASTER_TIMEOUT;
+    p_owner->__timeout_ms = PIF_MODBUS_MASTER_TIMEOUT;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
@@ -388,7 +388,7 @@ void pifModbusAsciiMaster_Clear(PifModbusAsciiMaster *p_owner)
 
 void pifModbusAsciiMaster_SetResponseTimeout(PifModbusAsciiMaster *p_owner, uint16_t response_timeout)
 {
-	p_owner->__timeout = response_timeout;
+	p_owner->__timeout_ms = response_timeout;
 }
 
 void pifModbusAsciiMaster_AttachUart(PifModbusAsciiMaster *p_owner, PifUart *p_uart)

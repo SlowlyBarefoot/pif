@@ -22,6 +22,23 @@ static PifTask* _processingPeriod(PifTask* p_owner)
 	return NULL;
 }
 
+// Brings the trigger of the task forward to the delay, and leaves a nearer one alone. A cut in is
+// nearer than any delay. A trigger time later than the reading means an interrupt set it after
+// the reading was taken, so none of its delay has elapsed.
+static void _triggerBefore(PifTask *p_task, uint32_t now, uint32_t delay)
+{
+	uint32_t elapsed;
+
+	if (g_task_cutin == p_task) return;
+	if (p_task->__trigger) {
+		elapsed = now - p_task->__trigger_time;
+		if ((int32_t)elapsed < 0) elapsed = 0;
+		if (elapsed >= p_task->__trigger_delay || p_task->__trigger_delay - elapsed <= delay) return;
+	}
+	pifTask_SetTrigger(p_task, delay);
+}
+
+
 void pifTask_Init(PifTask* p_owner, PifId id)
 {
     if (id == PIF_ID_AUTO) id = pif_id++;
@@ -162,6 +179,48 @@ BOOL pifTask_SetCutinTrigger(PifTask *p_owner)
 	return TRUE;
 }
 
+void pifTask_CancelTrigger(PifTask *p_owner)
+{
+	p_owner->__trigger = FALSE;
+	p_owner->__trigger_delay = 0;
+	if (g_task_cutin == p_owner) g_task_cutin = NULL;
+}
+
+void pifTask_Pause(PifTask *p_owner)
+{
+	p_owner->_pause = TRUE;
+}
+
+void pifTask_Resume(PifTask *p_owner)
+{
+	p_owner->_pause = FALSE;
+}
+
+void pifTask_Restart(PifTask *p_owner)
+{
+	switch (p_owner->_mode) {
+	case TM_REALTIME:
+	case TM_PERIOD:
+		p_owner->__pretime = (*pif_act_timer1us)();
+		p_owner->__period = p_owner->_default_period;
+		break;
+
+	default:
+		break;
+	}
+	pifTask_Resume(p_owner);
+}
+
+BOOL pifTask_IsSubPeriodElapsed(uint32_t *p_time_us, uint32_t period_us)
+{
+	uint32_t now = (*pif_act_timer1us)();
+
+	if (now - *p_time_us < period_us) return FALSE;
+	*p_time_us += period_us;
+	if (now - *p_time_us >= period_us) *p_time_us = now;
+	return TRUE;
+}
+
 #ifdef PIF_USE_TASK_STATISTICS
 
 void pifTask_ResetStatistics(PifTask* p_owner)
@@ -259,3 +318,43 @@ void pifTask_IgnoreBlockTime(PifTask *p_owner)
 }
 
 #endif
+
+
+void pifTaskTimeout_Init(PifTaskTimeout *p_owner, PifTask *p_task)
+{
+	p_owner->__p_task = p_task;
+	p_owner->__start = 0;
+	p_owner->__time = 0;
+}
+
+void pifTaskTimeout_Start(PifTaskTimeout *p_owner, uint32_t time_us)
+{
+	p_owner->__start = (*pif_act_timer1us)();
+	p_owner->__time = time_us ? time_us : 1;
+	if (p_owner->__p_task) _triggerBefore(p_owner->__p_task, p_owner->__start, p_owner->__time);
+}
+
+void pifTaskTimeout_Stop(PifTaskTimeout *p_owner)
+{
+	p_owner->__time = 0;
+}
+
+BOOL pifTaskTimeout_IsRunning(PifTaskTimeout *p_owner)
+{
+	return p_owner->__time != 0;
+}
+
+BOOL pifTaskTimeout_IsExpired(PifTaskTimeout *p_owner)
+{
+	uint32_t now, elapsed;
+
+	if (!p_owner->__time) return FALSE;
+	now = (*pif_act_timer1us)();
+	elapsed = now - p_owner->__start;
+	if (elapsed < p_owner->__time) {
+		if (p_owner->__p_task) _triggerBefore(p_owner->__p_task, now, p_owner->__time - elapsed);
+		return FALSE;
+	}
+	p_owner->__time = 0;
+	return TRUE;
+}

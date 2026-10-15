@@ -12,18 +12,6 @@ const uint8_t *c_user_char;
 static uint8_t s_user_char_count = 0;
 
 
-// Returns TRUE once every period1ms. After a gap longer than a period, such as a paused task,
-// it restarts from now instead of catching up with a burst of toggles.
-static BOOL _isPeriodElapsed(uint32_t* p_time_1ms, uint16_t period1ms)
-{
-	uint32_t now = pif_cumulative_timer1ms;
-
-	if (now - *p_time_1ms < period1ms) return FALSE;
-	*p_time_1ms += period1ms;
-	if (now - *p_time_1ms >= period1ms) *p_time_1ms = now;
-	return TRUE;
-}
-
 static void _outputDigit(PifFnd* p_owner, uint8_t digit)
 {
 	uint8_t ch, seg = 0;
@@ -35,7 +23,7 @@ static void _outputDigit(PifFnd* p_owner, uint8_t digit)
 		return;
 	}
 
-	if (p_owner->__bt.blink && _isPeriodElapsed(&p_owner->__blink_time_1ms, p_owner->__blink_period_1ms)) {
+	if (p_owner->__bt.blink && pifTask_IsSubPeriodElapsed(&p_owner->__blink_time_us, p_owner->__blink_period_1ms * 1000UL)) {
 		p_owner->__bt.led ^= 1;
 	}
 
@@ -103,11 +91,11 @@ static void _updatePause(PifFnd* p_leader)
 
 	for (p_fnd = p_leader; p_fnd; p_fnd = p_fnd->__p_next) {
 		if (p_fnd->__bt.run) {
-			p_leader->__p_task->pause = FALSE;
+			pifTask_Resume(p_leader->__p_task);
 			return;
 		}
 	}
-	p_leader->__p_task->pause = TRUE;
+	pifTask_Pause(p_leader->__p_task);
 }
 
 // Starts a new frame of a leader, after its group has changed.
@@ -322,7 +310,7 @@ BOOL pifFnd_BlinkOn(PifFnd* p_owner, uint16_t period1ms)
     }
 
 	p_owner->__blink_period_1ms = period1ms;
-	p_owner->__blink_time_1ms = pif_cumulative_timer1ms;
+	p_owner->__blink_time_us = (*pif_act_timer1us)();
 	p_owner->__bt.blink = TRUE;
     return TRUE;
 }

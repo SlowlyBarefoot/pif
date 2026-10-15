@@ -3,7 +3,7 @@
 #define PIF_MODBUS_H
 
 
-#include "core/pif.h"
+#include "core/pif_task.h"
 
 
 // Time in ms a master waits for the response once the request is out, and for each next byte of it.
@@ -138,17 +138,6 @@ typedef enum EnPifModbusError
 
 
 /**
- * @class StPifModbusTimeout
- * @brief A deadline checked against pif_act_timer1us by whoever runs next, the UART task or the
- *        caller of a Check function, so no timer or task of its own is needed.
- */
-typedef struct StPifModbusTimeout
-{
-	uint32_t start;		// When it was started, in us
-	uint32_t time;		// How long it runs, in us. 0 when stopped
-} PifModbusTimeout;
-
-/**
  * @class PifModbusBitField
  * @brief One byte of a coil or discrete input bitfield. An array of them holds 8 bits per byte.
  */
@@ -180,29 +169,6 @@ uint16_t pifModbus_StreamToShort(uint8_t *p_stream);
  * @param p_stream Pointer to a Modbus network-order byte stream.
  */
 void pifModbus_ShortToStream(uint16_t value, uint8_t *p_stream);
-
-/**
- * @fn pifModbus_StartTimeout
- * @brief Starts or restarts a timeout from now.
- * @param p_timeout Timeout to start.
- * @param time How long it runs, in us.
- */
-void pifModbus_StartTimeout(PifModbusTimeout *p_timeout, uint32_t time);
-
-/**
- * @fn pifModbus_StopTimeout
- * @brief Stops a timeout.
- * @param p_timeout Timeout to stop.
- */
-void pifModbus_StopTimeout(PifModbusTimeout *p_timeout);
-
-/**
- * @fn pifModbus_IsExpired
- * @brief Checks a timeout, and stops it when it has expired.
- * @param p_timeout Timeout to check.
- * @return TRUE if it was running and has expired.
- */
-BOOL pifModbus_IsExpired(PifModbusTimeout *p_timeout);
 
 /**
  * @fn pifModbus_CheckResponse

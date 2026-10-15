@@ -27,7 +27,7 @@ void pifDutyMotor_Control(PifDutyMotor* p_owner)
     }
 
 	if (p_owner->_state == MS_STOP) {
-		p_owner->__p_task->pause = TRUE;
+		pifTask_Pause(p_owner->__p_task);
 #ifndef PIF_NO_LOG
 		pifDutyMotor_SetState(p_owner, MS_IDLE, "DM");
 #else
@@ -135,7 +135,7 @@ BOOL pifDutyMotor_SetOperatingTime(PifDutyMotor* p_owner, uint32_t operating_tim
 		p_owner->__p_timer_break = pifTimerManager_Add(p_owner->_p_timer_manager, TT_ONCE);
 	}
 	if (p_owner->__p_timer_break) {
-		pifTimer_AttachEvtFinish(p_owner->__p_timer_break, _evtTimerBreakFinish, p_owner);
+		pifTimer_AttachEvtFinish(p_owner->__p_timer_break, _evtTimerBreakFinish, p_owner, FALSE);
 		if (pifTimer_Start(p_owner->__p_timer_break, operating_time)) {
 			return TRUE;
 		}
@@ -169,7 +169,7 @@ void pifDutyMotor_BreakRelease(PifDutyMotor* p_owner, uint16_t break_time)
 	    	p_owner->__p_timer_break = pifTimerManager_Add(p_owner->_p_timer_manager, TT_ONCE);
 	    }
 	    if (p_owner->__p_timer_break) {
-	    	pifTimer_AttachEvtFinish(p_owner->__p_timer_break, _evtTimerBreakFinish, p_owner);
+	    	pifTimer_AttachEvtFinish(p_owner->__p_timer_break, _evtTimerBreakFinish, p_owner, FALSE);
 			if (pifTimer_Start(p_owner->__p_timer_break, break_time)) {
 		    	(*p_owner->act_operate_break)(1);
 			}
@@ -184,7 +184,7 @@ BOOL pifDutyMotor_StartControl(PifDutyMotor* p_owner)
 	    return FALSE;
     }
 
-    p_owner->__p_task->pause = FALSE;
+    pifTask_Resume(p_owner->__p_task);
     return TRUE;
 }
 
@@ -195,7 +195,7 @@ BOOL pifDutyMotor_StopControl(PifDutyMotor* p_owner)
 	    return FALSE;
     }
 
-    p_owner->__p_task->pause = TRUE;
+    pifTask_Pause(p_owner->__p_task);
     return TRUE;
 }
 

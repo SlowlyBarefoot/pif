@@ -24,8 +24,8 @@ typedef struct StPifModbusAsciiSlave
 
 	// Private Member Variable
 	PifUart *__p_uart;
-	PifModbusTimeout __wait;
-	uint16_t __timeout;				// In ms
+	PifTaskTimeout __timeout;
+	uint16_t __timeout_ms;
 	uint8_t __buffer[520];
 	uint16_t __length;
 	uint16_t __index;

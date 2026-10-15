@@ -380,7 +380,7 @@ BOOL pifTouchScreen_Start(PifTouchScreen* p_owner, const char* p_name)
 		return FALSE;
 	}
 
-	if (p_owner->_p_task) p_owner->_p_task->pause = FALSE;
+	if (p_owner->_p_task) pifTask_Resume(p_owner->_p_task);
 	else {
 		p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, p_owner->_control_period_1ms * 1000UL, _doTask, p_owner, TRUE);
 		if (!p_owner->_p_task) return FALSE;
@@ -391,7 +391,7 @@ BOOL pifTouchScreen_Start(PifTouchScreen* p_owner, const char* p_name)
 
 void pifTouchScreen_Stop(PifTouchScreen* p_owner)
 {
-	if (p_owner && p_owner->_p_task) p_owner->_p_task->pause = TRUE;
+	if (p_owner && p_owner->_p_task) pifTask_Pause(p_owner->_p_task);
 }
 
 BOOL pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotation)
@@ -485,7 +485,7 @@ BOOL pifTouchScreen_StartCalibration(PifTouchScreen* p_owner, PifEvtTouchCalibra
 	}
 	// Nothing would move the calibration on without the task, so a calibration that cannot make
 	// progress is refused rather than left waiting.
-	if (!p_owner->_p_task || p_owner->_p_task->pause) {
+	if (!p_owner->_p_task || p_owner->_p_task->_pause) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}

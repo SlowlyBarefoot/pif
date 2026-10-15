@@ -308,7 +308,7 @@ static void testShareScan(void)
     pifFnd_SetInteger(&s_fnd, 1234);
     pifFnd_SetInteger(&s_fnd2, 56);
     pifFnd_Start(&s_fnd2);
-    CHECK(!s_fnd.__p_task->pause);
+    CHECK(!s_fnd.__p_task->_pause);
     _advance(12);
     CHECK(s_segment2[0] == 0x6D && s_segment2[1] == 0x7D);
     CHECK(s_segment[0] == 0 && s_segment[3] == 0);
@@ -341,7 +341,7 @@ static void testShareScan(void)
     CHECK(s_segment[0] == 0 && s_segment[3] == 0);
     CHECK(s_segment2[0] == 0x6D && s_segment2[1] == 0x7D);
     pifFnd_Stop(&s_fnd2);
-    CHECK(s_fnd.__p_task->pause);
+    CHECK(s_fnd.__p_task->_pause);
 
     // A cleared member leaves the group.
     pifFnd_Start(&s_fnd);
@@ -357,7 +357,7 @@ static void testShareScan(void)
     pifFnd_SetInteger(&s_fnd2, 56);
     pifFnd_Start(&s_fnd2);
     pifFnd_Clear(&s_fnd);
-    CHECK(!s_fnd2.__p_leader && s_fnd2.__p_task && !s_fnd2.__p_task->pause);
+    CHECK(!s_fnd2.__p_leader && s_fnd2.__p_task && !s_fnd2.__p_task->_pause);
     CHECK(pifTaskManager_Count() == 1);
     memset(s_segment2, 0xFF, sizeof(s_segment2));
     _advance(2 * PIF_FND_PERIOD_PER_DIGIT);

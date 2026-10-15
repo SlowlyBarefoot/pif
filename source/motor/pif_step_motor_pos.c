@@ -263,7 +263,7 @@ BOOL pifStepMotorPos_Init(PifStepMotorPos* p_owner, PifId id, PifTimerManager* p
 
     p_parent->__p_timer_delay = pifTimerManager_Add(p_parent->_p_timer_manager, TT_ONCE);
     if (!p_parent->__p_timer_delay) goto fail;
-    pifTimer_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent);
+    pifTimer_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent, FALSE);
 
     p_parent->__stop_step = _fnStopStep;
 

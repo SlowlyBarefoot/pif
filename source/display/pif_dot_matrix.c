@@ -31,18 +31,6 @@ static void _setPattern(PifDotMatrix* p_owner)
 	}
 }
 
-// Returns TRUE once every period1ms. After a gap longer than a period, such as a paused task,
-// it restarts from now instead of catching up with a burst of steps.
-static BOOL _isPeriodElapsed(uint32_t* p_time_1ms, uint16_t period1ms)
-{
-	uint32_t now = pif_cumulative_timer1ms;
-
-	if (now - *p_time_1ms < period1ms) return FALSE;
-	*p_time_1ms += period1ms;
-	if (now - *p_time_1ms >= period1ms) *p_time_1ms = now;
-	return TRUE;
-}
-
 static void _endShift(PifDotMatrix* p_owner)
 {
 	p_owner->__shift_direction = DMSD_NONE;
@@ -162,11 +150,11 @@ static uint32_t _doTask(PifTask* p_task)
 	PifDotMatrix* p_owner = p_task->_p_client;
 	uint8_t* p_data;
 
-	if (p_owner->__bt.blink && _isPeriodElapsed(&p_owner->__blink_time_1ms, p_owner->__blink_period_1ms)) {
+	if (p_owner->__bt.blink && pifTask_IsSubPeriodElapsed(&p_owner->__blink_time_us, p_owner->__blink_period_1ms * 1000UL)) {
 		p_owner->__bt.led ^= 1;
 	}
 	if (p_owner->__shift_direction != DMSD_NONE &&
-			_isPeriodElapsed(&p_owner->__shift_time_1ms, p_owner->__shift_period_1ms)) {
+			pifTask_IsSubPeriodElapsed(&p_owner->__shift_time_us, p_owner->__shift_period_1ms * 1000UL)) {
 		_doShift(p_owner);
 	}
 
@@ -309,14 +297,14 @@ BOOL pifDotMatrix_SetFramePeriod(PifDotMatrix* p_owner, uint16_t period1ms)
 void pifDotMatrix_Start(PifDotMatrix* p_owner)
 {
 	if (_hasPattern(p_owner)) _setPattern(p_owner);
-    p_owner->__p_task->pause = FALSE;
+    pifTask_Resume(p_owner->__p_task);
 }
 
 void pifDotMatrix_Stop(PifDotMatrix* p_owner)
 {
 	uint16_t row;
 
-	p_owner->__p_task->pause = TRUE;
+	pifTask_Pause(p_owner->__p_task);
 	for (row = 0; row < p_owner->__row_size; row++) {
 		(*p_owner->__act_display)(row, p_owner->__p_paper + p_owner->__total_bytes);
 	}
@@ -357,7 +345,7 @@ BOOL pifDotMatrix_BlinkOn(PifDotMatrix* p_owner, uint16_t period1ms)
     }
 
 	p_owner->__blink_period_1ms = period1ms;
-	p_owner->__blink_time_1ms = pif_cumulative_timer1ms;
+	p_owner->__blink_time_us = (*pif_act_timer1us)();
 	p_owner->__bt.blink = TRUE;
     return TRUE;
 }
@@ -419,7 +407,7 @@ BOOL pifDotMatrix_ShiftOn(PifDotMatrix* p_owner, PifDotMatrixShiftDir shift_dire
 	}
 
 	p_owner->__shift_period_1ms = period1ms;
-	p_owner->__shift_time_1ms = pif_cumulative_timer1ms;
+	p_owner->__shift_time_us = (*pif_act_timer1us)();
 	p_owner->__shift_method = shift_method;
 	p_owner->__shift_count = count;
 	p_owner->__shift_direction = shift_direction;

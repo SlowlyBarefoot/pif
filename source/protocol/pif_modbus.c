@@ -13,24 +13,6 @@ void pifModbus_ShortToStream(uint16_t value, uint8_t *p_stream)
 	p_stream[1] = value & 0xFF;
 }
 
-void pifModbus_StartTimeout(PifModbusTimeout *p_timeout, uint32_t time)
-{
-	p_timeout->start = (*pif_act_timer1us)();
-	p_timeout->time = time ? time : 1;
-}
-
-void pifModbus_StopTimeout(PifModbusTimeout *p_timeout)
-{
-	p_timeout->time = 0;
-}
-
-BOOL pifModbus_IsExpired(PifModbusTimeout *p_timeout)
-{
-	if (!p_timeout->time || (*pif_act_timer1us)() - p_timeout->start < p_timeout->time) return FALSE;
-	p_timeout->time = 0;
-	return TRUE;
-}
-
 PifModbusError pifModbus_CheckResponse(const uint8_t *p_request, const uint8_t *p_response, uint16_t length,
 		PifModbusResultKind kind, uint16_t quantity)
 {

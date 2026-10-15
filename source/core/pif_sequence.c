@@ -93,7 +93,7 @@ static uint32_t _doTask(PifTask *p_task)
 	_poll(p_owner);
 	delay = _nextPoll(p_owner);
 	// Nothing to run until the sequence is started again.
-	if (!delay) p_task->pause = TRUE;
+	if (!delay) pifTask_Pause(p_task);
 	return delay;
 }
 
@@ -148,14 +148,14 @@ BOOL pifSequence_Start(PifSequence *p_owner, PifSequenceStep step)
 	// The period may still be a long delay left from before a stop, so it is set back to the
 	// shortest one the task keeps.
 	pifTask_ChangePeriod(p_owner->_p_task, PIF_SEQUENCE_WAIT_POLL_US);
-	p_owner->_p_task->pause = FALSE;
+	pifTask_Resume(p_owner->_p_task);
 	return TRUE;
 }
 
 void pifSequence_Stop(PifSequence *p_owner)
 {
 	p_owner->__state = SQS_IDLE;
-	if (p_owner->_p_task) p_owner->_p_task->pause = TRUE;
+	if (p_owner->_p_task) pifTask_Pause(p_owner->_p_task);
 #ifdef COLLECT_SIGNAL_SEQUENCE
 	pifCollectSignal_Put(&p_owner->__cs[SQ_CSF_STATE_IDX], SQS_IDLE);
 #endif

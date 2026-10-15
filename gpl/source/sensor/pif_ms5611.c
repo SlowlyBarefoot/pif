@@ -381,9 +381,9 @@ BOOL pifMs5611_AttachTimer(PifMs5611* p_owner, PifTimerManager* p_timer_manager,
 	p_owner->__p_timer = pifTimerManager_Add(p_timer_manager, TT_ONCE);
 	if (!p_owner->__p_timer) return FALSE;
 
-	// Not pifTimer_AttachEvtIntFinish(): that one is called from inside pifTimerManager_sigTick(),
+	// Not event_into_int: that callback is called from inside pifTimerManager_sigTick(),
 	// and reading a conversion is an I2C transfer that has no business in a tick interrupt.
-	pifTimer_AttachEvtFinish(p_owner->__p_timer, _evtTimerFinish, p_owner);
+	pifTimer_AttachEvtFinish(p_owner->__p_timer, _evtTimerFinish, p_owner, FALSE);
 
 	p_owner->__p_timer_manager = p_timer_manager;
 	p_owner->__evt_timer_read = evt_read;

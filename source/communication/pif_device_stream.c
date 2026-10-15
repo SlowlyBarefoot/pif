@@ -126,7 +126,7 @@ static uint32_t _doTask(PifTask *p_task)
 
 	// The transfer a detached client left running is over, so the task can wait for the next one.
 	if (!_isAttached(p_owner)) {
-		p_task->pause = TRUE;
+		pifTask_Pause(p_task);
 		return 0;
 	}
 
@@ -160,7 +160,7 @@ static void _evtAttachClient(PifTransport *p_transport, void *p_client, PifEvtTr
 	p_owner->__evt_parsing = evt_parsing;
 	p_owner->__evt_sending = evt_sending;
 	p_owner->__evt_abort_rx = evt_abort_rx;
-	p_owner->_p_task->pause = FALSE;
+	pifTask_Resume(p_owner->_p_task);
 }
 
 static void _evtDetachClient(PifTransport *p_transport)
@@ -175,7 +175,7 @@ static void _evtDetachClient(PifTransport *p_transport)
 	p_owner->__tx_len = 0;
 	p_owner->__more = FALSE;
 	// A transfer that is running keeps the task going until it is over.
-	if (!p_owner->__running) p_owner->_p_task->pause = TRUE;
+	if (!p_owner->__running) pifTask_Pause(p_owner->_p_task);
 }
 
 static void _evtTriggerSend(PifTransport *p_transport)
