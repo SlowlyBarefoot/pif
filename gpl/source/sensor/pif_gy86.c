@@ -21,13 +21,13 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifGy86Param* p
 
     if (!pifMpu60x0I2c_Init(&p_owner->_mpu6050, PIF_ID_AUTO, p_i2c, MPU60X0_I2C_ADDR(0), NULL, p_imu_sensor)) goto fail;
 
-    if (!pifI2cDevice_WriteRegByte(p_owner->_mpu6050._p_i2c, MPU60X0_REG_SMPLRT_DIV, 0)) goto fail;
+    if (!pifDeviceReg_WriteRegByte(p_owner->_mpu6050._p_device, MPU60X0_REG_SMPLRT_DIV, 0)) goto fail;
 
-    if (!pifI2cDevice_WriteRegByte(p_owner->_mpu6050._p_i2c, MPU60X0_REG_PWR_MGMT_1,
+    if (!pifDeviceReg_WriteRegByte(p_owner->_mpu6050._p_device, MPU60X0_REG_PWR_MGMT_1,
     		p_param ? p_param->mpu60x0_clksel : MPU60X0_CLKSEL_PLL_ZGYRO)) goto fail;
 
     if (p_param) {
-    	if (!pifI2cDevice_WriteRegBit8(p_owner->_mpu6050._p_i2c, MPU60X0_REG_CONFIG,
+    	if (!pifDeviceReg_WriteRegBit8(p_owner->_mpu6050._p_device, MPU60X0_REG_CONFIG,
     			MPU60X0_DLPF_CFG_MASK, p_param->mpu60x0_dlpf_cfg)) goto fail;
 
     	if (!pifMpu60x0_SetFsSel(&p_owner->_mpu6050, p_param->mpu60x0_fs_sel)) goto fail;
@@ -35,14 +35,14 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifGy86Param* p
         if (!pifMpu60x0_SetAfsSel(&p_owner->_mpu6050, p_param->mpu60x0_afs_sel)) goto fail;
     }
 
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_mpu6050._p_i2c, MPU60X0_REG_I2C_MST_CTRL,
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_mpu6050._p_device, MPU60X0_REG_I2C_MST_CTRL,
     		MPU60X0_I2C_MST_CLK_MASK, p_param ? p_param->mpu60x0_i2c_mst_clk : MPU60X0_I2C_MST_CLK_DEFAULT)) goto fail;
 
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_mpu6050._p_i2c, MPU60X0_REG_INT_PIN_CFG,
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_mpu6050._p_device, MPU60X0_REG_INT_PIN_CFG,
     		MPU60X0_INT_RD_CLEAR_MASK | MPU60X0_I2C_BYPASS_EN_MASK,
 			MPU60X0_INT_RD_CLEAR(1) | MPU60X0_I2C_BYPASS_EN(1))) goto fail;
 
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_mpu6050._p_i2c, MPU60X0_REG_INT_ENABLE,
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_mpu6050._p_device, MPU60X0_REG_INT_ENABLE,
     		MPU60X0_DATA_RDY_EN_MASK, MPU60X0_DATA_RDY_EN(1))) goto fail;
 
     pif_Delay1ms(100);
@@ -52,26 +52,26 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifGy86Param* p
     if (!pifHmc5883_Init(&p_owner->_hmc5883, PIF_ID_AUTO, p_i2c, NULL, p_imu_sensor)) goto fail;
 
     if (p_param) {
-        if (!pifI2cDevice_WriteRegByte(p_owner->_hmc5883._p_i2c, HMC5883_REG_CONFIG_A,
+        if (!pifDeviceReg_WriteRegByte(p_owner->_hmc5883._p_device, HMC5883_REG_CONFIG_A,
         		HMC5883_MEASURE_MODE_NORMAL | p_param->hmc5883_samples | p_param->hmc5883_data_rate)) goto fail;
 
         if (!pifHmc5883_SetGain(&p_owner->_hmc5883, p_param->hmc5883_gain)) goto fail;
 
-        if (!pifI2cDevice_WriteRegBit8(p_owner->_hmc5883._p_i2c, HMC5883_REG_MODE, HMC5883_MODE_MASK, p_param->hmc5883_mode)) goto fail;
+        if (!pifDeviceReg_WriteRegBit8(p_owner->_hmc5883._p_device, HMC5883_REG_MODE, HMC5883_MODE_MASK, p_param->hmc5883_mode)) goto fail;
     }
 
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_mpu6050._p_i2c, MPU60X0_REG_INT_PIN_CFG, MPU60X0_I2C_BYPASS_EN_MASK, FALSE)) goto fail;
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_mpu6050._p_device, MPU60X0_REG_INT_PIN_CFG, MPU60X0_I2C_BYPASS_EN_MASK, FALSE)) goto fail;
 
-    if (!pifI2cDevice_WriteRegByte(p_owner->_mpu6050._p_i2c, MPU60X0_REG_INT_ENABLE, 0x01)) goto fail; // DATA_RDY_EN interrupt enable
+    if (!pifDeviceReg_WriteRegByte(p_owner->_mpu6050._p_device, MPU60X0_REG_INT_ENABLE, 0x01)) goto fail; // DATA_RDY_EN interrupt enable
 
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_mpu6050._p_i2c, MPU60X0_REG_USER_CTRL, MPU60X0_I2C_MST_EN_MASK, TRUE)) goto fail;
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_mpu6050._p_device, MPU60X0_REG_USER_CTRL, MPU60X0_I2C_MST_EN_MASK, TRUE)) goto fail;
 
-    if (!pifI2cDevice_WriteRegByte(p_owner->_mpu6050._p_i2c, MPU60X0_REG_I2C_SLV0_ADDR,
+    if (!pifDeviceReg_WriteRegByte(p_owner->_mpu6050._p_device, MPU60X0_REG_I2C_SLV0_ADDR,
     		MPU60X0_I2C_SLV_ADDR(HMC5883_I2C_ADDR) | MPU60X0_I2C_SLV_RW(1))) goto fail;
 
-    if (!pifI2cDevice_WriteRegByte(p_owner->_mpu6050._p_i2c, MPU60X0_REG_I2C_SLV0_REG, HMC5883_REG_OUT_X_M)) goto fail;
+    if (!pifDeviceReg_WriteRegByte(p_owner->_mpu6050._p_device, MPU60X0_REG_I2C_SLV0_REG, HMC5883_REG_OUT_X_M)) goto fail;
 
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_mpu6050._p_i2c, MPU60X0_REG_I2C_SLV0_CTRL,
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_mpu6050._p_device, MPU60X0_REG_I2C_SLV0_CTRL,
     		MPU60X0_I2C_SLV_LEN_MASK | MPU60X0_I2C_SLV_EN_MASK,
 			MPU60X0_I2C_SLV_LEN(6) | MPU60X0_I2C_SLV_EN(1))) goto fail;
 
@@ -107,7 +107,7 @@ BOOL pifGy86_ReadMag(PifGy86* p_owner, int16_t* p_mag)
 {
 	uint8_t data[6];
 
-	if (!pifI2cDevice_ReadRegBytes(p_owner->_mpu6050._p_i2c, MPU60X0_REG_EXT_SENS_DATA_00 + p_owner->__mag_start_reg, data, 6)) return FALSE;
+	if (!pifDeviceReg_ReadRegBytes(p_owner->_mpu6050._p_device, MPU60X0_REG_EXT_SENS_DATA_00 + p_owner->__mag_start_reg, data, 6)) return FALSE;
 
 	p_mag[AXIS_X] = (int16_t)((data[0] << 8) + data[1]) * p_owner->_hmc5883.scale[AXIS_X];
 	p_mag[AXIS_Z] = (int16_t)((data[2] << 8) + data[3]) * p_owner->_hmc5883.scale[AXIS_Z];

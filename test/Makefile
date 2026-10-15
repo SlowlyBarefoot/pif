@@ -33,7 +33,7 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_transport test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
@@ -92,6 +92,25 @@ CAN_STREAM_SRC := communication/test_pif_can_stream.c $(ROOT)/source/communicati
                       pif_task.c pif_task_manager.c)
 CAN_STREAM_DEP := $(CAN_DEP) $(ROOT)/source/communication/pif_can_stream.c \
                   $(ROOT)/include/communication/pif_can_stream.h $(ROOT)/include/communication/pif_transport.h
+# test_pif_ubx_ddc_stream.c includes pif_device_stream.c and pif_ubx_ddc_stream.c to run the task directly.
+UBX_DDC_SRC := gps/test_pif_ubx_ddc_stream.c \
+               $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_i2c.c pif_transport.c) \
+               $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+STREAM_DEP := $(addprefix $(ROOT)/source/communication/, pif_device_stream.c) \
+              $(addprefix $(ROOT)/include/communication/, pif_device_reg.h pif_device_stream.h pif_transport.h)
+UBX_DDC_DEP := $(STREAM_DEP) $(ROOT)/source/gps/pif_ubx_ddc_stream.c $(ROOT)/include/gps/pif_ubx_ddc_stream.h \
+               $(ROOT)/include/communication/pif_i2c.h
+# test_pif_spi_fd_stream.c includes pif_device_stream.c and pif_spi_fd_stream.c to run the task directly.
+SPI_FD_SRC := communication/test_pif_spi_fd_stream.c \
+              $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_spi.c pif_transport.c) \
+              $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+SPI_FD_DEP := $(STREAM_DEP) $(ROOT)/source/communication/pif_spi_fd_stream.c \
+              $(addprefix $(ROOT)/include/communication/, pif_spi_fd_stream.h pif_spi.h)
+# PifDeviceReg over pif_i2c and pif_spi.
+DEVICE_REG_SRC := communication/test_pif_device_reg.c \
+              $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_i2c.c pif_spi.c) \
+              $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+DEVICE_REG_DEP := $(addprefix $(ROOT)/include/communication/, pif_device_reg.h pif_i2c.h pif_spi.h)
 # pif_link and pif_xmodem over PifUart and PifCanStream.
 TRANSPORT_SRC := protocol/test_pif_transport.c \
                  $(addprefix $(ROOT)/source/communication/, pif_can.c pif_can_stream.c pif_transport.c pif_uart.c) \
@@ -123,7 +142,10 @@ run-test_pif_link: run-test_pif_gpio_cs
 run-test_pif_link_nolog: run-test_pif_link
 run-test_pif_can: run-test_pif_link_nolog
 run-test_pif_can_stream: run-test_pif_can
-run-test_pif_transport: run-test_pif_can_stream
+run-test_pif_device_reg: run-test_pif_can_stream
+run-test_pif_ubx_ddc_stream: run-test_pif_device_reg
+run-test_pif_spi_fd_stream: run-test_pif_ubx_ddc_stream
+run-test_pif_transport: run-test_pif_spi_fd_stream
 run-test_pif_pulse: run-test_pif_transport
 run-test_pif_encoder: run-test_pif_pulse
 run-test_pif_task_manager: run-test_pif_encoder
@@ -183,6 +205,15 @@ $(BUILD)/test_pif_can$(EXE): $(CAN_SRC) $(CAN_DEP) | $(BUILD)
 
 $(BUILD)/test_pif_can_stream$(EXE): $(CAN_STREAM_SRC) $(CAN_STREAM_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(CAN_STREAM_SRC) -o $@
+
+$(BUILD)/test_pif_device_reg$(EXE): $(DEVICE_REG_SRC) $(DEVICE_REG_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(DEVICE_REG_SRC) -o $@
+
+$(BUILD)/test_pif_ubx_ddc_stream$(EXE): $(UBX_DDC_SRC) $(UBX_DDC_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(UBX_DDC_SRC) -o $@
+
+$(BUILD)/test_pif_spi_fd_stream$(EXE): $(SPI_FD_SRC) $(SPI_FD_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(SPI_FD_SRC) -o $@
 
 $(BUILD)/test_pif_transport$(EXE): $(TRANSPORT_SRC) $(TRANSPORT_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(TRANSPORT_SRC) -o $@

@@ -346,7 +346,7 @@ typedef struct StPifMax7456
 
 	// Read-only Member Variable
 	PifId _id;
-	PifSpiDevice* _p_spi;
+	PifDeviceReg *_p_device;
 	BOOL _font_is_loading;
 	uint8_t _display_memory_mode;
 

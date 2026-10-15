@@ -24,20 +24,22 @@ BOOL pifQmc5883_Detect(PifI2cPort* p_i2c, void *p_client)
 	uint8_t chip_id, period;
 
 	// A soft reset puts every register back to its default, so the checks below see a known state.
-	if (!pifI2cDevice_WriteRegByte(p_device, QMC5883_REG_CONTROL_2, QMC5883_SOFT_RST_MASK)) return FALSE;
+	if (!pifDeviceReg_WriteRegByte((PifDeviceReg *)p_device, QMC5883_REG_CONTROL_2, QMC5883_SOFT_RST_MASK)) return FALSE;
 	pif_Delay1ms(20);
 
 	// The chip ID register of the QMC5883L reads 0xFF. A bus with pull-ups and no device on it can
 	// read the same, so a register is also written and read back: the SET/RESET period register,
 	// set to 0x01 as the datasheet recommends and as pifQmc5883_Init() does anyway.
-	if (!pifI2cDevice_ReadRegByte(p_device, QMC5883_REG_CHIP_ID, &chip_id) || chip_id != 0xFF) return FALSE;
-	if (!pifI2cDevice_WriteRegByte(p_device, QMC5883_REG_SET_RESET_PERIOD, 0x01)) return FALSE;
-	if (!pifI2cDevice_ReadRegByte(p_device, QMC5883_REG_SET_RESET_PERIOD, &period)) return FALSE;
+	if (!pifDeviceReg_ReadRegByte((PifDeviceReg *)p_device, QMC5883_REG_CHIP_ID, &chip_id) || chip_id != 0xFF) return FALSE;
+	if (!pifDeviceReg_WriteRegByte((PifDeviceReg *)p_device, QMC5883_REG_SET_RESET_PERIOD, 0x01)) return FALSE;
+	if (!pifDeviceReg_ReadRegByte((PifDeviceReg *)p_device, QMC5883_REG_SET_RESET_PERIOD, &period)) return FALSE;
 	return period == 0x01;
 }
 
 BOOL pifQmc5883_Init(PifQmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_client, PifImuSensor* p_imu_sensor)
 {
+	PifI2cDevice *p_device;
+
 	uint8_t data;
 
 	if (!p_owner || !p_i2c || !p_imu_sensor) {
@@ -47,12 +49,13 @@ BOOL pifQmc5883_Init(PifQmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_c
 
 	memset(p_owner, 0, sizeof(PifQmc5883));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, QMC5883_I2C_ADDR, p_client);
-    if (!p_owner->_p_i2c) return FALSE;
+    p_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, QMC5883_I2C_ADDR, p_client);
+    if (!p_device) return FALSE;
+    p_owner->_p_device = &p_device->parent;
 
-    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, QMC5883_REG_SET_RESET_PERIOD, 1)) goto fail;
+    if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, QMC5883_REG_SET_RESET_PERIOD, 1)) goto fail;
 
-    if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, QMC5883_REG_CONTROL_1, QMC5883_RNG_MASK, &data)) goto fail;
+    if (!pifDeviceReg_ReadRegBit8(p_owner->_p_device, QMC5883_REG_CONTROL_1, QMC5883_RNG_MASK, &data)) goto fail;
     _changeGain(p_imu_sensor, data);
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
@@ -72,15 +75,17 @@ fail:
 
 void pifQmc5883_Clear(PifQmc5883* p_owner)
 {
-	if (p_owner->_p_i2c) {
-		pifI2cPort_RemoveDevice(p_owner->_p_i2c->_p_port, p_owner->_p_i2c);
-    	p_owner->_p_i2c = NULL;
+	if (p_owner->_p_device) {
+		PifI2cDevice *p_device = (PifI2cDevice *)p_owner->_p_device;
+
+		pifI2cPort_RemoveDevice(p_device->_p_port, p_device);
+    	p_owner->_p_device = NULL;
 	}
 }
 
 BOOL pifQmc5883_SetControl1(PifQmc5883* p_owner, uint8_t contorl_1)
 {
-    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, QMC5883_REG_CONTROL_1, contorl_1)) return FALSE;
+    if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, QMC5883_REG_CONTROL_1, contorl_1)) return FALSE;
 	_changeGain(p_owner->__p_imu_sensor, contorl_1 & QMC5883_RNG_MASK);
     return TRUE;
 }
@@ -90,10 +95,10 @@ BOOL pifQmc5883_ReadMag(PifQmc5883* p_owner, int16_t* p_mag)
 	uint8_t status;
 	uint8_t data[6];
 
-	if (!pifI2cDevice_ReadRegByte(p_owner->_p_i2c, QMC5883_REG_STATUS, &status)) return FALSE;
+	if (!pifDeviceReg_ReadRegByte(p_owner->_p_device, QMC5883_REG_STATUS, &status)) return FALSE;
 	if (!(status & QMC5883_DRDY_MASK)) return FALSE;
 
-	if (!pifI2cDevice_ReadRegBytes(p_owner->_p_i2c, QMC5883_REG_OUT_X_LSB, data, 6)) return FALSE;
+	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, QMC5883_REG_OUT_X_LSB, data, 6)) return FALSE;
 
 	p_mag[AXIS_X] = (int16_t)((data[1] << 8) + data[0]);
 	p_mag[AXIS_Y] = (int16_t)((data[3] << 8) + data[2]);
@@ -104,21 +109,21 @@ BOOL pifQmc5883_ReadMag(PifQmc5883* p_owner, int16_t* p_mag)
 BOOL pifQmc5883_ReadMagAsync(PifQmc5883* p_owner, int16_t* p_mag)
 {
 	uint8_t* data = p_owner->__buffer;
-	PifI2cState state;
+	PifDeviceRegState state;
 
 	switch (p_owner->_state) {
 	case QMC5883_STATE_IDLE:
-		if (pifI2cDevice_StartReadRegBytes(p_owner->_p_i2c, QMC5883_REG_STATUS, data, 1)) {
+		if (pifDeviceReg_StartReadRegBytes(p_owner->_p_device, QMC5883_REG_STATUS, data, 1)) {
 			p_owner->_state = QMC5883_STATE_READ_STATUS;
 		}
 		break;
 
 	case QMC5883_STATE_READ_STATUS:
-		state = pifI2cDevice_CheckTransfer(p_owner->_p_i2c);
-		if (state == IS_RUN) break;
+		state = pifDeviceReg_CheckTransfer(p_owner->_p_device);
+		if (state == DRS_RUN) break;
 
-		if (state == IS_COMPLETE && (data[0] & QMC5883_DRDY_MASK) &&
-				pifI2cDevice_StartReadRegBytes(p_owner->_p_i2c, QMC5883_REG_OUT_X_LSB, data, 6)) {
+		if (state == DRS_COMPLETE && (data[0] & QMC5883_DRDY_MASK) &&
+				pifDeviceReg_StartReadRegBytes(p_owner->_p_device, QMC5883_REG_OUT_X_LSB, data, 6)) {
 			p_owner->_state = QMC5883_STATE_READ_DATA;
 		}
 		else {
@@ -127,11 +132,11 @@ BOOL pifQmc5883_ReadMagAsync(PifQmc5883* p_owner, int16_t* p_mag)
 		break;
 
 	case QMC5883_STATE_READ_DATA:
-		state = pifI2cDevice_CheckTransfer(p_owner->_p_i2c);
-		if (state == IS_RUN) break;
+		state = pifDeviceReg_CheckTransfer(p_owner->_p_device);
+		if (state == DRS_RUN) break;
 
 		p_owner->_state = QMC5883_STATE_IDLE;
-		if (state != IS_COMPLETE) break;
+		if (state != DRS_COMPLETE) break;
 
 		p_mag[AXIS_X] = (int16_t)((data[1] << 8) + data[0]);
 		p_mag[AXIS_Y] = (int16_t)((data[3] << 8) + data[2]);

@@ -34,16 +34,14 @@ const uint8_t maximum_fifo_config_file[] = {
 
 BOOL pifBmi270_Config(PifBmi270* p_owner, PifId id, PifImuSensor* p_imu_sensor)
 {
-	if (!p_owner || !p_imu_sensor || !p_owner->_fn.p_device
-			|| !p_owner->_fn.read_byte || !p_owner->_fn.read_bytes || !p_owner->_fn.read_bit
-			|| !p_owner->_fn.write_byte || !p_owner->_fn.write_bytes || !p_owner->_fn.write_bit) {
+	if (!p_owner || !p_imu_sensor || !p_owner->_p_device) {
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
 	}
 
     // CMD 0xB6 resets the chip; every register then holds its power-on value. Wait well past
     // the reset time before touching the chip again.
-	if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, BMI270_REG_CMD, BMI270_C_CMD_SOFT_RESET)) return FALSE;
+	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, BMI270_REG_CMD, BMI270_C_CMD_SOFT_RESET)) return FALSE;
 	pif_Delay1ms(100);
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
@@ -67,17 +65,17 @@ BOOL pifBmi270_Config(PifBmi270* p_owner, PifId id, PifImuSensor* p_imu_sensor)
 
 BOOL pifBmi270_UploadConfig(PifBmi270 *p_owner)
 {
-    if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, BMI270_REG_PWR_CONF, 0)) return FALSE;
+    if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, BMI270_REG_PWR_CONF, 0)) return FALSE;
 	pif_Delay1ms(1);
-    if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, BMI270_REG_INIT_CTRL, 0)) return FALSE;
+    if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, BMI270_REG_INIT_CTRL, 0)) return FALSE;
 	pif_Delay1ms(1);
 
     // Burst the configuration file into INIT_DATA while INIT_CTRL is 0; INIT_CTRL = 1 then
     // starts the feature engine on it.
-    if (!(p_owner->_fn.write_bytes)(p_owner->_fn.p_device, BMI270_REG_INIT_DATA, (uint8_t *)maximum_fifo_config_file, sizeof(maximum_fifo_config_file))) return FALSE;
+    if (!pifDeviceReg_WriteRegBytes(p_owner->_p_device, BMI270_REG_INIT_DATA, (uint8_t *)maximum_fifo_config_file, sizeof(maximum_fifo_config_file))) return FALSE;
     pif_Delay1ms(10);
 
-    if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, BMI270_REG_INIT_CTRL, 1)) return FALSE;
+    if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, BMI270_REG_INIT_CTRL, 1)) return FALSE;
 	pif_Delay1ms(1);
 	return TRUE;
 }
@@ -86,7 +84,7 @@ BOOL pifBmi270_ReadGyro(PifBmi270* p_owner, int16_t* p_gyro)
 {
 	uint8_t data[6];
 
-	if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, BMI270_REG_GYR_X_LSB, data, 6)) return FALSE;
+	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, BMI270_REG_GYR_X_LSB, data, 6)) return FALSE;
 
 	p_gyro[AXIS_X] = *(uint16_t *)data;
 	p_gyro[AXIS_Y] = *(uint16_t *)(data + 2);
@@ -103,7 +101,7 @@ BOOL pifBmi270_ReadAccel(PifBmi270* p_owner, int16_t* p_accel)
 {
 	uint8_t data[6];
 
-    if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, BMI270_REG_ACC_X_LSB, data, 6)) return FALSE;
+    if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, BMI270_REG_ACC_X_LSB, data, 6)) return FALSE;
 
 	p_accel[AXIS_X] = *(uint16_t *)data;
 	p_accel[AXIS_Y] = *(uint16_t *)(data + 2);
@@ -122,7 +120,7 @@ BOOL pifBmi270_ReadTemperature(PifBmi270* p_owner, int16_t* p_temperature)
     const int16_t RoomTemp_Offset = 21;
     const float Temp_Sensitivity = 333.87f;
 
-    if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, BMI270_REG_TEMPERATURE_LSB, data, 2)) return FALSE;
+    if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, BMI270_REG_TEMPERATURE_LSB, data, 2)) return FALSE;
     *p_temperature = (RoomTemp_Offset + (*(int16_t *)data - RoomTemp_Offset) / Temp_Sensitivity) * p_owner->temp_scale;
 	return TRUE;
 }

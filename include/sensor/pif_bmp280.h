@@ -144,10 +144,7 @@ typedef struct StPifBmp280
 
 	// Read-only Member Variable
 	PifId _id;
-	union {
-		PifI2cDevice* _p_i2c;
-		PifSpiDevice* _p_spi;
-	};
+	PifDeviceReg *_p_device;
 	uint8_t _osrs_p;
 	uint8_t _osrs_t;
 	PifTask* _p_task;
@@ -161,8 +158,6 @@ typedef struct StPifBmp280
 	int32_t __raw_pressure;
 	int32_t __raw_temperature;
 
-	// Read-only Function
-	PifDeviceReg8Func _fn;
 
 	// Private Event Function
 	PifEvtBaroRead __evt_read;

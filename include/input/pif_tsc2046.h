@@ -23,7 +23,7 @@ typedef struct StPifTsc2046
 	// Public Event Function
 
 	// Read-only Member Variable
-	PifSpiDevice* _p_spi;
+	PifDeviceReg *_p_device;
 
 	// Private Member Variable
 

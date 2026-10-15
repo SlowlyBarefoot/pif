@@ -320,87 +320,22 @@ fail:
 }
 
 /**
- * @brief UART receive callback that feeds bytes to the UBX parser.
+ * @brief Transport receive callback that feeds bytes to the UBX parser.
  * @param p_client Pointer to `PifGpsUblox`.
- * @param act_receive_data UART receive function pointer.
+ * @param act_receive Transport receive function pointer.
  * @return `TRUE` if a packet is completed during this callback, otherwise `FALSE`.
  */
-static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActTransportReceive act_receive)
 {
 	PifGpsUblox *p_owner = (PifGpsUblox *)p_client;
     uint8_t data;
     BOOL rtn = FALSE;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
+	while ((*act_receive)(p_owner->__p_transport, &data, 1)) {
 		rtn = _parsingPacket(p_owner, data);
 		if (rtn) break;
 	}
 	return rtn;
-}
-
-#define DATA_SIZE	128
-
-/**
- * @brief Periodic I2C polling task that reads and parses queued receiver bytes.
- * @param p_task Task context whose client is `PifGpsUblox`.
- * @return Always returns `0` for the task scheduler.
- */
-static uint32_t _doTask(PifTask* p_task)
-{
-	PifGpsUblox *p_owner = p_task->_p_client;
-	uint8_t data[DATA_SIZE];
-	uint16_t size, i;
-#ifndef PIF_NO_LOG
-	int line;
-	static uint32_t timer1ms;
-#endif
-
-	if (!p_owner->__length) {
-		if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c_device, 0xFD, &p_owner->__length)) {
-#ifndef PIF_NO_LOG
-			line = __LINE__;
-#endif
-			goto fail;
-		}
-		if (!p_owner->__length) return 0;
-		if (p_owner->__length == 0xFFFF) { p_owner->__length = 0; return 0; }
-		if (p_owner->__length & 0x8000) {
-#ifndef PIF_NO_LOG
-			line = __LINE__;
-#endif
-			goto fail;
-		}
-#ifndef PIF_NO_LOG
-		timer1ms = pif_cumulative_timer1ms;
-		pifLog_Printf(LT_INFO, "GU(%u): Start L=%d bytes", __LINE__, p_owner->__length);
-#endif
-	}
-
-	size = p_owner->__length > DATA_SIZE ? DATA_SIZE : p_owner->__length;
-	if (!pifI2cDevice_Read(p_owner->_p_i2c_device, 0, 0, data, size)) {
-#ifndef PIF_NO_LOG
-			line = __LINE__;
-#endif
-			goto fail;
-	}
-	for (i = 0; i < size; i++) {
-		_parsingPacket(p_owner, data[i]);
-	}
-	p_owner->__length -= size;
-	if (p_owner->__length) pifTask_SetTrigger(p_task, 0);
-#ifndef PIF_NO_LOG
-	else {
-		pifLog_Printf(LT_INFO, "GU(%u): End T=%ld ms", __LINE__, pif_cumulative_timer1ms - timer1ms);
-	}
-#endif
-	return 0;
-
-fail:
-#ifndef PIF_NO_LOG
-	pifLog_Printf(LT_ERROR, "GU(%u): len=%d", line, p_owner->__length);
-#endif
-	p_owner->__length = 0;
-	return 0;
 }
 
 /**
@@ -423,8 +358,8 @@ static void _beginRequest(PifGpsUblox* p_owner, BOOL response, uint16_t waiting)
  * @param p_owner Pointer to the u-blox wrapper.
  * @param p_data NMEA sentence buffer ending at `*` before checksum insertion.
  * @param waiting How long the request may take, in milliseconds.
- * @return `TRUE` if the packet was queued, otherwise `FALSE`. Queued is not sent: over a UART the
- *         request is only over once pifGpsUblox_CheckRequest() says so.
+ * @return `TRUE` if the packet was queued, otherwise `FALSE`. Queued is not sent: the request is
+ *         only over once pifGpsUblox_CheckRequest() says so.
  */
 static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, uint16_t waiting)
 {
@@ -449,6 +384,10 @@ static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, uint16_t waiting
 	p_data[i] = '\n'; i++;
 	p_data[i] = 0;
 
+	if (!p_owner->__p_transport) {
+		pif_error = E_CANNOT_FOUND;
+		return FALSE;
+	}
 	if (!pifRingBuffer_MoveHeadForLinear(&p_owner->__tx.buffer, 4 + i)) goto fail;
 
 	pifRingBuffer_BeginPutting(&p_owner->__tx.buffer);
@@ -459,24 +398,12 @@ static BOOL _makeNmeaPacket(PifGpsUblox* p_owner, char* p_data, uint16_t waiting
 
 	pifRingBuffer_CommitPutting(&p_owner->__tx.buffer);
 
-	if (p_owner->__p_uart) {
-		pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
+	pifTransport_TriggerSend(p_owner->__p_transport);
 
-		// Draining the buffer needs the UART task to run, so the request is left on its way and
-		// pifGpsUblox_CheckRequest() is what sees it end. An NMEA command is not answered, so
-		// there is nothing to wait for beyond the last byte leaving.
-		_beginRequest(p_owner, FALSE, waiting);
-	}
-	else if (p_owner->_p_i2c_device) {
-		if (!pifI2cDevice_Write(p_owner->_p_i2c_device, 0, 0, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, 4), i)) goto fail;
-		pifRingBuffer_Remove(&p_owner->__tx.buffer, 4 + i);
-		// The write held the CPU until the bytes were gone, so the request is already over.
-		p_owner->_request_state = GURS_TIMEOUT;
-	}
-	else {
-		pif_error = E_CANNOT_FOUND;
-		goto fail;
-	}
+	// Draining the buffer needs the transport to run, so the request is left on its way and
+	// pifGpsUblox_CheckRequest() is what sees it end. An NMEA command is not answered, so there is
+	// nothing to wait for beyond the last byte leaving.
+	_beginRequest(p_owner, FALSE, waiting);
 	return TRUE;
 
 fail:
@@ -505,6 +432,10 @@ static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t len
 	tailer[0] = checksum & 0xFF;
 	tailer[1] = checksum >> 8;
 
+	if (!p_owner->__p_transport) {
+		pif_error = E_CANNOT_FOUND;
+		goto fail;
+	}
 	if (!pifRingBuffer_MoveHeadForLinear(&p_owner->__tx.buffer, 12 + length)) goto fail;
 
 	pifRingBuffer_BeginPutting(&p_owner->__tx.buffer);
@@ -519,26 +450,11 @@ static BOOL _makeUbxPacket(PifGpsUblox* p_owner, uint8_t* p_header, uint16_t len
 
 	pifRingBuffer_CommitPutting(&p_owner->__tx.buffer);
 
-	if (p_owner->__p_uart) {
-		pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
+	pifTransport_TriggerSend(p_owner->__p_transport);
 
-		// Both the sending and any answer need other tasks to run, so the request is left on its
-		// way either way and pifGpsUblox_CheckRequest() is what sees it end.
-		_beginRequest(p_owner, response, waiting);
-	}
-	else if (p_owner->_p_i2c_device) {
-		if (!pifI2cDevice_Write(p_owner->_p_i2c_device, 0, 0, pifRingBuffer_GetTailPointer(&p_owner->__tx.buffer, 4), 8 + length)) goto fail;
-		pifRingBuffer_Remove(&p_owner->__tx.buffer, 12 + length);
-
-		if (response) {
-			// The bytes are gone, but the answer still has to be read by the task that polls the
-			// device.
-			_beginRequest(p_owner, TRUE, waiting);
-		}
-		else {
-			p_owner->_request_state = GURS_TIMEOUT;
-		}
-	}
+	// Both the sending and any answer need other tasks to run, so the request is left on its way
+	// either way and pifGpsUblox_CheckRequest() is what sees it end.
+	_beginRequest(p_owner, response, waiting);
 	return TRUE;
 
 fail:
@@ -548,12 +464,12 @@ fail:
 }
 
 /**
- * @brief UART transmit callback that sends queued command bytes.
+ * @brief Transport transmit callback that sends queued command bytes.
  * @param p_client Pointer to `PifGpsUblox`.
- * @param act_send_data UART send function pointer.
- * @return Number of bytes sent or polling hint value for UART scheduler.
+ * @param act_send Transport send function pointer.
+ * @return Number of bytes sent, or 1 while it moves between messages, so the transport asks again.
  */
-static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
+static uint16_t _evtSending(void* p_client, PifActTransportSend act_send)
 {
 	PifGpsUblox *p_owner = (PifGpsUblox *)p_client;
 	uint16_t length = 0;
@@ -571,7 +487,7 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 
 	case GUTS_SENDING:
 		p_data = pifRingBuffer_GetReadPointer(&p_owner->__tx.buffer, p_owner->__tx.pos, &length);
-		length = (*act_send_data)(p_owner->__p_uart, p_data, length);
+		length = (*act_send)(p_owner->__p_transport, p_data, length);
 		p_owner->__tx.pos += length;
 		if (p_owner->__tx.pos >= 4 + p_owner->__tx.ui.st.length) {
 			p_owner->__tx.state = GUTS_WAIT_SENDED;
@@ -593,7 +509,7 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 }
 
 /**
- * @brief UART abort callback that resets UBX receive parser state.
+ * @brief Transport abort callback that resets UBX receive parser state.
  * @param p_client Pointer to `PifGpsUblox`.
  */
 static void _evtAbortRx(void* p_client)
@@ -643,47 +559,29 @@ fail:
 
 void pifGpsUblox_Clear(PifGpsUblox* p_owner)
 {
+	pifGpsUblox_DetachTransport(p_owner);
 	pifRingBuffer_Clear(&p_owner->__tx.buffer);
 }
 
-void pifGpsUblox_AttachUart(PifGpsUblox* p_owner, PifUart *p_uart)
+BOOL pifGpsUblox_AttachTransport(PifGpsUblox *p_owner, PifTransport *p_transport)
 {
-	p_owner->__p_uart = p_uart;
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
-	p_uart->evt_abort_rx = _evtAbortRx;
-}
-
-void pifGpsUblox_DetachUart(PifGpsUblox* p_owner)
-{
-	pifUart_DetachClient(p_owner->__p_uart);
-	p_owner->__p_uart = NULL;
-}
-
-BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr, void *p_client, uint16_t period1ms, BOOL start, const char* name)
-{
-    p_owner->_p_i2c_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
-    if (!p_owner->_p_i2c_device) goto fail;
-
-    p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000UL, _doTask, p_owner, start);
-	if (!p_owner->_p_task) goto fail;
-
-    p_owner->__p_i2c_port = p_i2c;
-	if (name) p_owner->_p_task->name = name;
-	else p_owner->_p_task->name = "GPS UBLOX";
-	p_owner->_p_i2c_device->timeout = 200;
-    return TRUE;
-
-fail:
-	pifGpsUblox_DetachI2c(p_owner);
-	return FALSE;
-}
-
-void pifGpsUblox_DetachI2c(PifGpsUblox* p_owner)
-{
-	if (p_owner->_p_i2c_device) {
-		pifI2cPort_RemoveDevice(p_owner->__p_i2c_port, p_owner->_p_i2c_device);
-		p_owner->_p_i2c_device = NULL;
+	if (!p_owner || !p_transport) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
 	}
+
+	pifGpsUblox_DetachTransport(p_owner);
+	p_owner->__p_transport = p_transport;
+	pifTransport_AttachClient(p_transport, p_owner, _evtParsing, _evtSending, _evtAbortRx);
+	return TRUE;
+}
+
+void pifGpsUblox_DetachTransport(PifGpsUblox *p_owner)
+{
+	if (!p_owner || !p_owner->__p_transport) return;
+
+	pifTransport_DetachClient(p_owner->__p_transport);
+	p_owner->__p_transport = NULL;
 }
 
 BOOL pifGpsUblox_ParsingPacket(PifGpsUblox* p_owner, uint8_t data)

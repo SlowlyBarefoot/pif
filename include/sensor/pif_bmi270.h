@@ -681,13 +681,8 @@ typedef struct StPifBmi270
 
 	// Read-only Member Variable
 	PifId _id;
-	union {
-		PifI2cDevice* _p_i2c;
-		PifSpiDevice* _p_spi;
-	};
+	PifDeviceReg *_p_device;
 
-	// Read-only Function
-	PifDeviceReg8Func _fn;
 
 	// Private Member Variable
 	PifImuSensor* __p_imu_sensor;

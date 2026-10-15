@@ -36,17 +36,15 @@ BOOL pifMpu60x0_Config(PifMpu60x0* p_owner, PifId id, PifImuSensor* p_imu_sensor
 {
 	uint8_t data;
 
-	if (!p_owner || !p_imu_sensor || !p_owner->_fn.p_device
-			|| !p_owner->_fn.read_byte || !p_owner->_fn.read_bytes || !p_owner->_fn.read_bit
-			|| !p_owner->_fn.write_byte || !p_owner->_fn.write_bytes || !p_owner->_fn.write_bit) {
+	if (!p_owner || !p_imu_sensor || !p_owner->_p_device) {
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
 	}
 
-    if (!(p_owner->_fn.read_bit)(p_owner->_fn.p_device, MPU60X0_REG_GYRO_CONFIG, MPU60X0_FS_SEL_MASK, &data)) return FALSE;
+    if (!pifDeviceReg_ReadRegBit8(p_owner->_p_device, MPU60X0_REG_GYRO_CONFIG, MPU60X0_FS_SEL_MASK, &data)) return FALSE;
     if (!_changeFsSel(p_imu_sensor, data)) return FALSE;
 
-    if (!(p_owner->_fn.read_bit)(p_owner->_fn.p_device, MPU60X0_REG_ACCEL_CONFIG, MPU60X0_AFS_SEL_MASK, &data)) return FALSE;
+    if (!pifDeviceReg_ReadRegBit8(p_owner->_p_device, MPU60X0_REG_ACCEL_CONFIG, MPU60X0_AFS_SEL_MASK, &data)) return FALSE;
     if (!_changeAfsSel(p_imu_sensor, data)) return FALSE;
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
@@ -70,28 +68,28 @@ BOOL pifMpu60x0_Config(PifMpu60x0* p_owner, PifId id, PifImuSensor* p_imu_sensor
 
 BOOL pifMpu60x0_SetGyroConfig(PifMpu60x0* p_owner, uint8_t gyro_config)
 {
-    if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, MPU60X0_REG_GYRO_CONFIG, gyro_config)) return FALSE;
+    if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU60X0_REG_GYRO_CONFIG, gyro_config)) return FALSE;
     _changeFsSel(p_owner->__p_imu_sensor, gyro_config & MPU60X0_FS_SEL_MASK);
 	return TRUE;
 }
 
 BOOL pifMpu60x0_SetFsSel(PifMpu60x0* p_owner, PifMpu60x0FsSel fs_sel)
 {
-    if (!(p_owner->_fn.write_bit)(p_owner->_fn.p_device, MPU60X0_REG_GYRO_CONFIG, MPU60X0_FS_SEL_MASK, fs_sel)) return FALSE;
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, MPU60X0_REG_GYRO_CONFIG, MPU60X0_FS_SEL_MASK, fs_sel)) return FALSE;
     _changeFsSel(p_owner->__p_imu_sensor, fs_sel);
 	return TRUE;
 }
 
 BOOL pifMpu60x0_SetAccelConfig(PifMpu60x0* p_owner, uint8_t accel_config)
 {
-    if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, MPU60X0_REG_ACCEL_CONFIG, accel_config)) return FALSE;
+    if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU60X0_REG_ACCEL_CONFIG, accel_config)) return FALSE;
     _changeAfsSel(p_owner->__p_imu_sensor, accel_config & MPU60X0_AFS_SEL_MASK);
 	return TRUE;
 }
 
 BOOL pifMpu60x0_SetAfsSel(PifMpu60x0* p_owner, PifMpu60x0AfsSel afs_sel)
 {
-    if (!(p_owner->_fn.write_bit)(p_owner->_fn.p_device, MPU60X0_REG_ACCEL_CONFIG, MPU60X0_AFS_SEL_MASK, afs_sel)) return FALSE;
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, MPU60X0_REG_ACCEL_CONFIG, MPU60X0_AFS_SEL_MASK, afs_sel)) return FALSE;
     _changeAfsSel(p_owner->__p_imu_sensor, afs_sel);
 	return TRUE;
 }
@@ -100,7 +98,7 @@ BOOL pifMpu60x0_ReadGyro(PifMpu60x0* p_owner, int16_t* p_gyro)
 {
 	uint8_t data[6];
 
-	if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, MPU60X0_REG_GYRO_XOUT_H, data, 6)) return FALSE;
+	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU60X0_REG_GYRO_XOUT_H, data, 6)) return FALSE;
 
 	p_gyro[AXIS_X] = (data[0] << 8) + data[1];
 	p_gyro[AXIS_Y] = (data[2] << 8) + data[3];
@@ -117,7 +115,7 @@ BOOL pifMpu60x0_ReadAccel(PifMpu60x0* p_owner, int16_t* p_accel)
 {
 	uint8_t data[6];
 
-    if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, MPU60X0_REG_ACCEL_XOUT_H, data, 6)) return FALSE;
+    if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU60X0_REG_ACCEL_XOUT_H, data, 6)) return FALSE;
 
 	p_accel[AXIS_X] = (data[0] << 8) + data[1];
 	p_accel[AXIS_Y] = (data[2] << 8) + data[3];
@@ -134,7 +132,7 @@ BOOL pifMpu60x0_ReadTemperature(PifMpu60x0* p_owner, int16_t* p_temperature)
 {
 	uint8_t data[2];
 
-    if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, MPU60X0_REG_TEMP_OUT_H, data, 2)) return FALSE;
+    if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU60X0_REG_TEMP_OUT_H, data, 2)) return FALSE;
     *p_temperature = ((int16_t)((data[0] << 8) + data[1]) / 340.0 + 36.53) * p_owner->temp_scale;
 	return TRUE;
 }

@@ -184,7 +184,7 @@ struct StPifAds1x1x
 	// Read-only Member Variable
 	PifId _id;
 	PifAds1x1xType _type;
-	PifI2cDevice* _p_i2c;
+	PifDeviceReg *_p_device;
     uint16_t _config;
 	PifAds1x1xState _state;
 	int16_t _value;					// Sample of the most recent single shot conversion

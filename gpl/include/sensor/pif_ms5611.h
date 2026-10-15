@@ -77,7 +77,7 @@ struct StPifMs5611
 
 	// Read-only Member Variable
 	PifId _id;
-	PifI2cDevice* _p_i2c;
+	PifDeviceReg *_p_device;
 	uint16_t _prom[8];
 	uint16_t _over_sampling_rate;
 	uint8_t _conversion_time;

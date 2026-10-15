@@ -48,7 +48,7 @@ BOOL pifHmc5883_Detect(PifI2cPort* p_i2c, void *p_client)
 
     p_device = pifI2cPort_TemporaryDevice(p_i2c, HMC5883_I2C_ADDR, p_client);
 
-    if (!pifI2cDevice_ReadRegBytes(p_device, HMC5883_REG_IDENT_A, data, 3)) return FALSE;
+    if (!pifDeviceReg_ReadRegBytes((PifDeviceReg *)p_device, HMC5883_REG_IDENT_A, data, 3)) return FALSE;
 	if (data[0] != 'H') return FALSE;
 #ifndef PIF_NO_LOG	
     if (data[0] < 32 || data[1] < 32 || data[2] < 32) {
@@ -63,6 +63,8 @@ BOOL pifHmc5883_Detect(PifI2cPort* p_i2c, void *p_client)
 
 BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_client, PifImuSensor* p_imu_sensor)
 {
+	PifI2cDevice *p_device;
+
 	uint8_t data[4];
     int16_t adc[3];
     int i, tries;
@@ -76,10 +78,11 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_c
 
 	memset(p_owner, 0, sizeof(PifHmc5883));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, HMC5883_I2C_ADDR, p_client);
-    if (!p_owner->_p_i2c) return FALSE;
+    p_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, HMC5883_I2C_ADDR, p_client);
+    if (!p_device) return FALSE;
+    p_owner->_p_device = &p_device->parent;
 
-    if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, HMC5883_REG_CONFIG_B, HMC5883_GAIN_MASK, data)) goto fail;
+    if (!pifDeviceReg_ReadRegBit8(p_owner->_p_device, HMC5883_REG_CONFIG_B, HMC5883_GAIN_MASK, data)) goto fail;
     _changeGain(p_imu_sensor, (PifHmc5883Gain)data[0]);
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
@@ -89,7 +92,7 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_c
 	p_owner->scale[AXIS_Z] = 1.0f;
 	p_owner->__p_imu_sensor = p_imu_sensor;
 
-    pifI2cDevice_WriteRegByte(p_owner->_p_i2c, HMC5883_REG_CONFIG_A, 
+    pifDeviceReg_WriteRegByte(p_owner->_p_device, HMC5883_REG_CONFIG_A, 
     		HMC5883_MEASURE_MODE_POS_BIAS | HMC5883_DATARATE_15HZ);   // Reg A DOR = 0x010 + MS1, MS0 set to pos bias
     // Note that the  very first measurement after a gain change maintains the same gain as the previous setting.
     // The new gain setting is effective from the second measurement and on.
@@ -101,7 +104,7 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_c
             bret = FALSE;
             break;
         }
-        pifI2cDevice_WriteRegByte(p_owner->_p_i2c, HMC5883_REG_MODE, HMC5883_MODE_SINGLE);
+        pifDeviceReg_WriteRegByte(p_owner->_p_device, HMC5883_REG_MODE, HMC5883_MODE_SINGLE);
         pif_Delay1ms(50);
         if (pifHmc5883_ReadMag(p_owner, adc)) {       // Get the raw values in case the scales have already been changed.
 			// Since the measurements are noisy, they should be averaged rather than taking the max.
@@ -119,14 +122,14 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_c
     }
 
     // Apply the negative bias. (Same gain)
-    pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, HMC5883_REG_CONFIG_A, 
+    pifDeviceReg_WriteRegBit8(p_owner->_p_device, HMC5883_REG_CONFIG_A, 
     		HMC5883_MEASURE_MODE_MASK, HMC5883_MEASURE_MODE_NEG_BIAS);   // Reg A DOR = 0x010 + MS1, MS0 set to negative bias.
     for (i = 0, tries = 0; i < 10; tries++) {
         if (tries >= HMC5883_SELF_TEST_TRIES) {
             bret = FALSE;
             break;
         }
-        pifI2cDevice_WriteRegByte(p_owner->_p_i2c, HMC5883_REG_MODE, HMC5883_MODE_SINGLE);
+        pifDeviceReg_WriteRegByte(p_owner->_p_device, HMC5883_REG_MODE, HMC5883_MODE_SINGLE);
         pif_Delay1ms(50);
         if (pifHmc5883_ReadMag(p_owner, adc)) {                // Get the raw values in case the scales have already been changed.
 			// Since the measurements are noisy, they should be averaged.
@@ -154,9 +157,9 @@ BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_c
 #endif
 
     // Restore normal measurement mode and enable continuous output
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, HMC5883_REG_CONFIG_A,
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, HMC5883_REG_CONFIG_A,
     		HMC5883_MEASURE_MODE_MASK, HMC5883_MEASURE_MODE_NORMAL)) goto fail;
-    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, HMC5883_REG_MODE,
+    if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, HMC5883_REG_MODE,
     		HMC5883_MODE_CONTINOUS)) goto fail;
 
 	p_imu_sensor->_measure |= IMU_MEASURE_MAGNETO;
@@ -172,15 +175,17 @@ fail:
 
 void pifHmc5883_Clear(PifHmc5883* p_owner)
 {
-	if (p_owner->_p_i2c) {
-		pifI2cPort_RemoveDevice(p_owner->_p_i2c->_p_port, p_owner->_p_i2c);
-    	p_owner->_p_i2c = NULL;
+	if (p_owner->_p_device) {
+		PifI2cDevice *p_device = (PifI2cDevice *)p_owner->_p_device;
+
+		pifI2cPort_RemoveDevice(p_device->_p_port, p_device);
+    	p_owner->_p_device = NULL;
 	}
 }
 
 BOOL pifHmc5883_SetGain(PifHmc5883* p_owner, PifHmc5883Gain gain)
 {
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, HMC5883_REG_CONFIG_B, HMC5883_GAIN_MASK, gain)) return FALSE;
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, HMC5883_REG_CONFIG_B, HMC5883_GAIN_MASK, gain)) return FALSE;
 	_changeGain(p_owner->__p_imu_sensor, gain);
     return TRUE;
 }
@@ -189,10 +194,10 @@ BOOL pifHmc5883_ReadMag(PifHmc5883* p_owner, int16_t* p_mag)
 {
 	uint8_t data[6];
 
-	if (!pifI2cDevice_ReadRegByte(p_owner->_p_i2c, HMC5883_REG_STATUS, data)) return FALSE;
+	if (!pifDeviceReg_ReadRegByte(p_owner->_p_device, HMC5883_REG_STATUS, data)) return FALSE;
 	if (!(data[0] & 1)) return FALSE;
 
-	if (!pifI2cDevice_ReadRegBytes(p_owner->_p_i2c, HMC5883_REG_OUT_X_M, data, 6)) return FALSE;
+	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, HMC5883_REG_OUT_X_M, data, 6)) return FALSE;
 
 	p_mag[AXIS_X] = (int16_t)((data[0] << 8) + data[1]) * p_owner->scale[AXIS_X];
 	p_mag[AXIS_Z] = (int16_t)((data[2] << 8) + data[3]) * p_owner->scale[AXIS_Z];

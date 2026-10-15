@@ -7,6 +7,8 @@
 
 BOOL pifMax7456_Init(PifMax7456* p_owner, PifId id, PifSpiPort* p_port, void *p_client)
 {
+	PifSpiDevice *p_device;
+
 	if (!p_owner || !p_port) {
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
@@ -16,8 +18,9 @@ BOOL pifMax7456_Init(PifMax7456* p_owner, PifId id, PifSpiPort* p_port, void *p_
 	p_owner->__previous_invert = 0xFF;
 	pifMax7456_InitBrightness(p_owner);
 
-	p_owner->_p_spi = pifSpiPort_AddDevice(p_port, PIF_ID_AUTO, p_client);
-    if (!p_owner->_p_spi) return FALSE;
+	p_device = pifSpiPort_AddDevice(p_port, PIF_ID_AUTO, p_client);
+    if (!p_device) return FALSE;
+    p_owner->_p_device = &p_device->parent;
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
@@ -26,9 +29,11 @@ BOOL pifMax7456_Init(PifMax7456* p_owner, PifId id, PifSpiPort* p_port, void *p_
 
 void pifMax7456_Clear(PifMax7456* p_owner)
 {
-	if (p_owner->_p_spi) {
-		pifSpiPort_RemoveDevice(p_owner->_p_spi->_p_port, p_owner->_p_spi);
-    	p_owner->_p_spi = NULL;
+	if (p_owner->_p_device) {
+		PifSpiDevice *p_device = (PifSpiDevice *)p_owner->_p_device;
+
+		pifSpiPort_RemoveDevice(p_device->_p_port, p_device);
+    	p_owner->_p_device = NULL;
 	}
 }
 
@@ -41,26 +46,26 @@ BOOL pifMax7456_WriteNvm(PifMax7456* p_owner, uint8_t char_address, const uint8_
         return FALSE;
     }
 
-    // Block pending completion of any prior SPI access
-    while (pifSpiDevice_IsBusy(p_owner->_p_spi));
+    // A background transfer that holds the port would make every access below fail.
+    if (pifDeviceReg_IsBusy(p_owner->_p_device)) return FALSE;
 
     // disable display
     p_owner->_font_is_loading = TRUE;
-    pifSpiDevice_WriteRegByte(p_owner->_p_spi, MAX7456_REG_W_VM0, 0);
+    pifDeviceReg_WriteRegByte(p_owner->_p_device, MAX7456_REG_W_VM0, 0);
 
-    pifSpiDevice_WriteRegByte(p_owner->_p_spi, MAX7456_REG_W_CMAH, char_address); // set start address high
+    pifDeviceReg_WriteRegByte(p_owner->_p_device, MAX7456_REG_W_CMAH, char_address); // set start address high
 
     for (int x = 0; x < 54; x++) {
-        pifSpiDevice_WriteRegByte(p_owner->_p_spi, MAX7456_REG_W_CMAL, x);    //set start address low
-        pifSpiDevice_WriteRegByte(p_owner->_p_spi, MAX7456_REG_W_CMDI, font_data[x]);
+        pifDeviceReg_WriteRegByte(p_owner->_p_device, MAX7456_REG_W_CMAL, x);    //set start address low
+        pifDeviceReg_WriteRegByte(p_owner->_p_device, MAX7456_REG_W_CMDI, font_data[x]);
     }
 
     // Transfer 54 bytes from shadow ram to NVM
-    pifSpiDevice_WriteRegByte(p_owner->_p_spi, MAX7456_REG_W_CMM, 0xA0);
+    pifDeviceReg_WriteRegByte(p_owner->_p_device, MAX7456_REG_W_CMM, 0xA0);
 
     // Wait until bit 5 in the status register returns to 0 (12ms)
     do {
-        ret = pifSpiDevice_ReadRegByte(p_owner->_p_spi, MAX7456_REG_R_STAT, &data);
+        ret = pifDeviceReg_ReadRegByte(p_owner->_p_device, MAX7456_REG_R_STAT, &data);
         if (!ret) break;
     } while ((data & MAX7456_CHAR_MEM_STATUS_MASK) != 0x00);
     p_owner->_font_is_loading = FALSE;
@@ -78,7 +83,7 @@ BOOL pifMax7456_Invert(PifMax7456* p_owner, BOOL invert)
 
     if (p_owner->_display_memory_mode != p_owner->__previous_invert) {
         p_owner->__previous_invert = p_owner->_display_memory_mode;
-        pifSpiDevice_WriteRegByte(p_owner->_p_spi, MAX7456_REG_W_DMM, p_owner->_display_memory_mode);
+        pifDeviceReg_WriteRegByte(p_owner->_p_device, MAX7456_REG_W_DMM, p_owner->_display_memory_mode);
 		return TRUE;
     }
 	return FALSE;
@@ -100,6 +105,6 @@ void pifMax7456_Brightness(PifMax7456* p_owner, uint8_t black, uint8_t white)
             buf[j++] = i;
             buf[j++] = reg;
         }
-        pifSpiDevice_Transfer(p_owner->_p_spi, buf, NULL, sizeof(buf));
+        pifSpiDevice_Transfer((PifSpiDevice *)p_owner->_p_device, buf, NULL, sizeof(buf));
     }
 }

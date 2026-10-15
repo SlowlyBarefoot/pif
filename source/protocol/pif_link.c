@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #ifndef PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
@@ -978,7 +979,7 @@ BOOL pifLink_ResizeTxResponse(PifLink *p_owner, uint16_t tx_response_size)
 void pifLink_AttachTransport(PifLink *p_owner, PifTransport *p_transport)
 {
 	p_owner->__p_transport = p_transport;
-	pifTransport_AttachClient(p_transport, p_owner, _evtParsing, _evtSending);
+	pifTransport_AttachClient(p_transport, p_owner, _evtParsing, _evtSending, NULL);
 }
 
 void pifLink_DetachTransport(PifLink *p_owner)

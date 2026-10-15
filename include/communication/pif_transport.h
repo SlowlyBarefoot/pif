@@ -14,6 +14,7 @@ typedef uint16_t (*PifActTransportSend)(PifTransport *p_transport, uint8_t *p_da
 
 typedef BOOL (*PifEvtTransportParsing)(void *p_client, PifActTransportReceive act_receive);
 typedef uint16_t (*PifEvtTransportSending)(void *p_client, PifActTransportSend act_send);
+typedef void (*PifEvtTransportAbortRx)(void *p_client);
 
 /**
  * @class StPifTransportOps
@@ -23,7 +24,7 @@ typedef uint16_t (*PifEvtTransportSending)(void *p_client, PifActTransportSend a
 typedef struct StPifTransportOps
 {
 	void (*attach_client)(PifTransport *p_transport, void *p_client, PifEvtTransportParsing evt_parsing,
-			PifEvtTransportSending evt_sending);
+			PifEvtTransportSending evt_sending, PifEvtTransportAbortRx evt_abort_rx);
 	void (*detach_client)(PifTransport *p_transport);
 	void (*trigger_send)(PifTransport *p_transport);
 	SWITCH (*get_flow_state)(PifTransport *p_transport);
@@ -37,7 +38,8 @@ typedef struct StPifTransportOps
  *
  * A driver embeds a PifTransport as its first member, named parent, and calls pifTransport_Init() from its
  * own init. A protocol attaches to it as its client. The driver then calls evt_parsing when bytes may have
- * arrived and evt_sending when it can take bytes, each with the action that reads or writes them.
+ * arrived and evt_sending when it can take bytes, each with the action that reads or writes them. When it
+ * loses received bytes, it calls evt_abort_rx so the client can drop the frame it was parsing.
  */
 struct StPifTransport
 {
@@ -65,9 +67,12 @@ void pifTransport_Init(PifTransport *p_owner, const PifTransportOps *p_ops);
  * @param p_client Pointer passed back to both events.
  * @param evt_parsing Called to read the bytes that arrived.
  * @param evt_sending Called to write bytes when the transport can take them.
+ * @param evt_abort_rx Optional. Called when received bytes were lost, so the frame being parsed is broken.
+ *        The bytes it has not read yet are gone too by then. A transport that never loses bytes this way
+ *        does not call it.
  */
 void pifTransport_AttachClient(PifTransport *p_owner, void *p_client, PifEvtTransportParsing evt_parsing,
-		PifEvtTransportSending evt_sending);
+		PifEvtTransportSending evt_sending, PifEvtTransportAbortRx evt_abort_rx);
 
 /**
  * @fn pifTransport_DetachClient

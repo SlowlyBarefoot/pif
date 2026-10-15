@@ -446,13 +446,8 @@ typedef struct StPifMpu60x0
 
 	// Read-only Member Variable
 	PifId _id;
-	union {
-		PifI2cDevice* _p_i2c;
-		PifSpiDevice* _p_spi;
-	};
+	PifDeviceReg *_p_device;
 
-	// Read-only Function
-	PifDeviceReg8Func _fn;
 
 	// Private Member Variable
 	PifImuSensor* __p_imu_sensor;
@@ -466,7 +461,7 @@ extern "C" {
 /**
  * @fn pifMpu60x0_Config
  * @brief Reads the full-scale ranges and registers the sensor on the IMU sensor. Called by the
- *        bus specific Init functions once _fn is set up and the chip has been reset.
+ *        bus specific Init functions once _p_device is set up and the chip has been reset.
  * @param p_owner Pointer to the owner instance.
  * @param id Unique identifier for the instance or task.
  * @param p_imu_sensor Pointer to imu sensor.

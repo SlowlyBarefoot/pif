@@ -8,9 +8,9 @@ void pifTransport_Init(PifTransport *p_owner, const PifTransportOps *p_ops)
 }
 
 void pifTransport_AttachClient(PifTransport *p_owner, void *p_client, PifEvtTransportParsing evt_parsing,
-		PifEvtTransportSending evt_sending)
+		PifEvtTransportSending evt_sending, PifEvtTransportAbortRx evt_abort_rx)
 {
-	(*p_owner->__p_ops->attach_client)(p_owner, p_client, evt_parsing, evt_sending);
+	(*p_owner->__p_ops->attach_client)(p_owner, p_client, evt_parsing, evt_sending, evt_abort_rx);
 }
 
 void pifTransport_DetachClient(PifTransport *p_owner)

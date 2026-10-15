@@ -53,7 +53,7 @@
 static BOOL _expanderWrite(PifPmlcdI2c* p_owner, uint8_t data)
 {
 	uint8_t tmp = data | p_owner->__backlight_val;
-	return pifI2cDevice_Write(p_owner->_p_i2c, 0, 0, &tmp, 1);
+	return pifDeviceReg_Write(p_owner->_p_device, 0, 0, &tmp, 1);
 }
 
 // Only used by the initialization sequence, which waits after each nibble on its own.
@@ -83,13 +83,15 @@ static BOOL _send(PifPmlcdI2c* p_owner, uint8_t value, uint8_t mode)
 	data[3] = low;
 	data[4] = low | En;
 	data[5] = low;
-	if (!pifI2cDevice_Write(p_owner->_p_i2c, 0, 0, data, sizeof(data))) return FALSE;
+	if (!pifDeviceReg_Write(p_owner->_p_device, 0, 0, data, sizeof(data))) return FALSE;
 	pif_Delay1us(50);											// commands need > 37us to settle
 	return TRUE;
 }
 
 BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_t addr, void *p_client)
 {
+	PifI2cDevice *p_device;
+
 	if (!p_owner || !p_port) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
@@ -99,8 +101,9 @@ BOOL pifPmlcdI2c_Init(PifPmlcdI2c* p_owner, PifId id, PifI2cPort* p_port, uint8_
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
 	p_owner->_id = id;
-	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr, p_client);
-	if (!p_owner->_p_i2c) goto fail;
+	p_device = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr, p_client);
+	if (!p_device) goto fail;
+	p_owner->_p_device = &p_device->parent;
 
 	p_owner->__backlight_val = LCD_NO_BACK_LIGHT;
 	p_owner->__display_function = LCD_4BIT_MODE | LCD_1LINE | LCD_5x8_DOTS;
@@ -115,9 +118,11 @@ void pifPmlcdI2c_Clear(PifPmlcdI2c* p_owner)
 {
 	if (!p_owner) return;
 
-	if (p_owner->_p_i2c) {
-		pifI2cPort_RemoveDevice(p_owner->_p_i2c->_p_port, p_owner->_p_i2c);
-		p_owner->_p_i2c = NULL;
+	if (p_owner->_p_device) {
+		PifI2cDevice *p_device = (PifI2cDevice *)p_owner->_p_device;
+
+		pifI2cPort_RemoveDevice(p_device->_p_port, p_device);
+		p_owner->_p_device = NULL;
 	}
 	p_owner->__num_lines = 0;
 }
@@ -130,7 +135,7 @@ BOOL pifPmlcdI2c_Begin(PifPmlcdI2c* p_owner, uint8_t lines, uint8_t dot_size)
 		return FALSE;
 	}
 
-	if (!p_owner->_p_i2c) {
+	if (!p_owner->_p_device) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}

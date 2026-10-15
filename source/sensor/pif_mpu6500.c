@@ -37,20 +37,18 @@ BOOL pifMpu6500_Config(PifMpu6500* p_owner, PifId id, PifImuSensor* p_imu_sensor
 	uint8_t data;
 	BOOL change;
 
-	if (!p_owner || !p_imu_sensor || !p_owner->_fn.p_device
-			|| !p_owner->_fn.read_byte || !p_owner->_fn.read_bytes || !p_owner->_fn.read_bit
-			|| !p_owner->_fn.write_byte || !p_owner->_fn.write_bytes || !p_owner->_fn.write_bit) {
+	if (!p_owner || !p_imu_sensor || !p_owner->_p_device) {
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
 	}
 
-    if (!(p_owner->_fn.read_bit)(p_owner->_fn.p_device, MPU6500_REG_GYRO_CONFIG, MPU6500_GYRO_FS_SEL_MASK, &data)) return FALSE;
+    if (!pifDeviceReg_ReadRegBit8(p_owner->_p_device, MPU6500_REG_GYRO_CONFIG, MPU6500_GYRO_FS_SEL_MASK, &data)) return FALSE;
     if (!_changeFsSel(p_imu_sensor, data)) return FALSE;
 
-    if (!(p_owner->_fn.read_bit)(p_owner->_fn.p_device, MPU6500_REG_ACCEL_CONFIG, MPU6500_ACCEL_FS_SEL_MASK, &data)) return FALSE;
+    if (!pifDeviceReg_ReadRegBit8(p_owner->_p_device, MPU6500_REG_ACCEL_CONFIG, MPU6500_ACCEL_FS_SEL_MASK, &data)) return FALSE;
     if (!_changeAccelFsSel(p_imu_sensor, data)) return FALSE;
 
-    if (!(p_owner->_fn.read_byte)(p_owner->_fn.p_device, MPU6500_REG_PWR_MGMT_1, &data)) return FALSE;
+    if (!pifDeviceReg_ReadRegByte(p_owner->_p_device, MPU6500_REG_PWR_MGMT_1, &data)) return FALSE;
     change = FALSE;
     if (data & MPU6500_TEMP_DIS_MASK) {
     	RESET_BIT_FILED(data, MPU6500_TEMP_DIS_MASK);
@@ -61,7 +59,7 @@ BOOL pifMpu6500_Config(PifMpu6500* p_owner, PifId id, PifImuSensor* p_imu_sensor
         change = TRUE;
     }
     if (change) {
-    	if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, MPU6500_REG_PWR_MGMT_1, data)) return FALSE;
+    	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU6500_REG_PWR_MGMT_1, data)) return FALSE;
     }
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
@@ -85,28 +83,28 @@ BOOL pifMpu6500_Config(PifMpu6500* p_owner, PifId id, PifImuSensor* p_imu_sensor
 
 BOOL pifMpu6500_SetGyroConfig(PifMpu6500* p_owner, uint8_t gyro_config)
 {
-    if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, MPU6500_REG_GYRO_CONFIG, gyro_config)) return FALSE;
+    if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU6500_REG_GYRO_CONFIG, gyro_config)) return FALSE;
     _changeFsSel(p_owner->__p_imu_sensor, gyro_config & MPU6500_GYRO_FS_SEL_MASK);
 	return TRUE;
 }
 
 BOOL pifMpu6500_SetGyroFsSel(PifMpu6500* p_owner, PifMpu6500GyroFsSel gyro_fs_sel)
 {
-    if (!(p_owner->_fn.write_bit)(p_owner->_fn.p_device, MPU6500_REG_GYRO_CONFIG, MPU6500_GYRO_FS_SEL_MASK, gyro_fs_sel)) return FALSE;
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, MPU6500_REG_GYRO_CONFIG, MPU6500_GYRO_FS_SEL_MASK, gyro_fs_sel)) return FALSE;
     _changeFsSel(p_owner->__p_imu_sensor, gyro_fs_sel);
 	return TRUE;
 }
 
 BOOL pifMpu6500_SetAccelConfig(PifMpu6500* p_owner, uint8_t accel_config)
 {
-    if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, MPU6500_REG_ACCEL_CONFIG, accel_config)) return FALSE;
+    if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU6500_REG_ACCEL_CONFIG, accel_config)) return FALSE;
     _changeAccelFsSel(p_owner->__p_imu_sensor, accel_config & MPU6500_ACCEL_FS_SEL_MASK);
 	return TRUE;
 }
 
 BOOL pifMpu6500_SetAccelFsSel(PifMpu6500* p_owner, PifMpu6500AccelFsSel accel_fs_sel)
 {
-    if (!(p_owner->_fn.write_bit)(p_owner->_fn.p_device, MPU6500_REG_ACCEL_CONFIG, MPU6500_ACCEL_FS_SEL_MASK, accel_fs_sel)) return FALSE;
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, MPU6500_REG_ACCEL_CONFIG, MPU6500_ACCEL_FS_SEL_MASK, accel_fs_sel)) return FALSE;
     _changeAccelFsSel(p_owner->__p_imu_sensor, accel_fs_sel);
 	return TRUE;
 }
@@ -115,7 +113,7 @@ BOOL pifMpu6500_ReadGyro(PifMpu6500* p_owner, int16_t* p_gyro)
 {
 	uint8_t data[6];
 
-	if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, MPU6500_REG_GYRO_XOUT_H, data, 6)) return FALSE;
+	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU6500_REG_GYRO_XOUT_H, data, 6)) return FALSE;
 
 	p_gyro[AXIS_X] = (data[0] << 8) + data[1];
 	p_gyro[AXIS_Y] = (data[2] << 8) + data[3];
@@ -132,7 +130,7 @@ BOOL pifMpu6500_ReadAccel(PifMpu6500* p_owner, int16_t* p_accel)
 {
 	uint8_t data[6];
 
-    if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, MPU6500_REG_ACCEL_XOUT_H, data, 6)) return FALSE;
+    if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU6500_REG_ACCEL_XOUT_H, data, 6)) return FALSE;
 
 	p_accel[AXIS_X] = (data[0] << 8) + data[1];
 	p_accel[AXIS_Y] = (data[2] << 8) + data[3];
@@ -149,7 +147,7 @@ BOOL pifMpu6500_ReadTemperature(PifMpu6500* p_owner, int16_t* p_temperature)
 {
 	uint8_t data[2];
 
-    if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, MPU6500_REG_TEMP_OUT_H, data, 2)) return FALSE;
+    if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU6500_REG_TEMP_OUT_H, data, 2)) return FALSE;
     *p_temperature = (21 + (int16_t)((data[0] << 8) | data[1]) / 333.87f) * p_owner->temp_scale;
 	return TRUE;
 }

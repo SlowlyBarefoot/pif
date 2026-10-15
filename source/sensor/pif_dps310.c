@@ -87,7 +87,7 @@ static uint32_t _doTask(PifTask* p_task)
 
 	switch (p_owner->__state) {
 	case DPS310_STATE_READY:
-		if ((p_owner->_fn.read_byte)(p_owner->_fn.p_device, DPS310_REG_MEAS_CFG, data)) {
+		if (pifDeviceReg_ReadRegByte(p_owner->_p_device, DPS310_REG_MEAS_CFG, data)) {
 			if (((data[0]) & DPS310_PRS_RDY_MASK) && (data[0] & DPS310_TMP_RDY_MASK)) {
 				p_owner->__start_time = pif_cumulative_timer1ms;
 				p_owner->__state = DPS310_STATE_READ;
@@ -96,7 +96,7 @@ static uint32_t _doTask(PifTask* p_task)
 		break;
 
 	case DPS310_STATE_READ:
-		if ((p_owner->_fn.read_bytes)(p_owner->_fn.p_device, DPS310_REG_PRS_B2, data, 6)) {
+		if (pifDeviceReg_ReadRegBytes(p_owner->_p_device, DPS310_REG_PRS_B2, data, 6)) {
 			p_owner->__raw_pressure = _getTwosComplement((((uint32_t)data[0] << 16) | ((uint32_t)data[1] << 8) | (uint32_t)data[2]), 24);
 			p_owner->__raw_temperature = _getTwosComplement((((uint32_t)data[3] << 16) | ((uint32_t)data[4] << 8) | (uint32_t)data[5]), 24);
 			p_owner->__state = DPS310_STATE_CALCURATE;
@@ -131,23 +131,21 @@ BOOL pifDps310_Config(PifDps310* p_owner, PifId id)
 	uint8_t data;
 	uint8_t buffer[18];
 
-	if (!p_owner || !p_owner->_fn.p_device 
-			|| !p_owner->_fn.read_byte || !p_owner->_fn.read_bytes || !p_owner->_fn.read_bit 
-			|| !p_owner->_fn.write_byte || !p_owner->_fn.write_bytes || !p_owner->_fn.write_bit) {
+	if (!p_owner || !p_owner->_p_device) {
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
 	}
 
-	if (!(p_owner->_fn.write_bit)(p_owner->_fn.p_device, DPS310_REG_RESET, DPS310_SOFT_RST_MASK, DPS310_RESET_SOFT_RST)) return FALSE;
+	if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, DPS310_REG_RESET, DPS310_SOFT_RST_MASK, DPS310_RESET_SOFT_RST)) return FALSE;
 	pif_Delay1ms(40);
 
-	if (!(p_owner->_fn.read_byte)(p_owner->_fn.p_device, DPS310_REG_MEAS_CFG, &data)) return FALSE;
+	if (!pifDeviceReg_ReadRegByte(p_owner->_p_device, DPS310_REG_MEAS_CFG, &data)) return FALSE;
 	if (!(data & DPS310_COEF_RDY_MASK) || !(data & DPS310_SENSOR_RDY_MASK)) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
-	if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, DPS310_REG_COEF, buffer, 18)) return FALSE;
+	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, DPS310_REG_COEF, buffer, 18)) return FALSE;
 
 	//compose coefficients from buffer content
 	p_owner->__c0_half = _getTwosComplement(((uint32_t)buffer[0] << 4) | (((uint32_t)buffer[1] >> 4) & 0x0F), 12) / 2;
@@ -167,7 +165,7 @@ BOOL pifDps310_Config(PifDps310* p_owner, PifId id)
 	if (!pifDps310_SetPressureCfg(p_owner, DPS310_PM_PRC_16, DPS310_PM_RATE_32HZ)) return FALSE;
 	if (!pifDps310_SetTemperatureCfg(p_owner, DPS310_TMP_PRC_16, DPS310_TMP_RATE_32HZ)) return FALSE;
 
-	if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, DPS310_REG_CFG_REG, DPS310_P_SHIFT(1) | DPS310_T_SHIFT(1))) return FALSE;
+	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, DPS310_REG_CFG_REG, DPS310_P_SHIFT(1) | DPS310_T_SHIFT(1))) return FALSE;
 
 	if (!pifDps310_SensorOperatingMode(p_owner, DPS310_MEAS_CTRL_CONT_PRS_TMP)) return FALSE;
 
@@ -178,7 +176,7 @@ BOOL pifDps310_Config(PifDps310* p_owner, PifId id)
 
 BOOL pifDps310_SetPressureCfg(PifDps310* p_owner, uint8_t osrs, uint8_t rate)
 {
-	if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, DPS310_REG_PRS_CFG, osrs | rate)) return FALSE;
+	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, DPS310_REG_PRS_CFG, osrs | rate)) return FALSE;
 	p_owner->_osrs_p = osrs;
 	return TRUE;
 }
@@ -187,25 +185,25 @@ BOOL pifDps310_SetTemperatureCfg(PifDps310* p_owner, uint8_t osrs, uint8_t rate)
 {
 	uint8_t data;
 
-	if (!(p_owner->_fn.read_bit)(p_owner->_fn.p_device, DPS310_REG_COEF_SPCE, DPS310_TMP_COEF_SPCE_MASK, &data)) return FALSE;
-	if (!(p_owner->_fn.write_byte)(p_owner->_fn.p_device, DPS310_REG_TMP_CFG, osrs | rate | data)) return FALSE;
+	if (!pifDeviceReg_ReadRegBit8(p_owner->_p_device, DPS310_REG_COEF_SPCE, DPS310_TMP_COEF_SPCE_MASK, &data)) return FALSE;
+	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, DPS310_REG_TMP_CFG, osrs | rate | data)) return FALSE;
 	p_owner->_osrs_t = osrs;
 	return TRUE;
 }
 
 BOOL pifDps310_SensorOperatingMode(PifDps310* p_owner, uint8_t meas_ctrl)
 {
-	return (p_owner->_fn.write_bit)(p_owner->_fn.p_device, DPS310_REG_MEAS_CFG, DPS310_MEAS_CTRL_MASK, meas_ctrl);
+	return pifDeviceReg_WriteRegBit8(p_owner->_p_device, DPS310_REG_MEAS_CFG, DPS310_MEAS_CTRL_MASK, meas_ctrl);
 }
 
 BOOL pifDps310_ReadRawData(PifDps310* p_owner, int32_t* p_pressure, int32_t* p_temperature)
 {
 	uint8_t data[6];
 
-	if (!(p_owner->_fn.read_byte)(p_owner->_fn.p_device, DPS310_REG_MEAS_CFG, data)) return FALSE;
+	if (!pifDeviceReg_ReadRegByte(p_owner->_p_device, DPS310_REG_MEAS_CFG, data)) return FALSE;
 	if (!(data[0] & DPS310_PRS_RDY_MASK) || !(data[0] & DPS310_TMP_RDY_MASK)) return FALSE;
 
-	if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, DPS310_REG_PRS_B2, data, 6)) return FALSE;
+	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, DPS310_REG_PRS_B2, data, 6)) return FALSE;
 	*p_pressure = _getTwosComplement((((uint32_t)data[0] << 16) | ((uint32_t)data[1] << 8) | (uint32_t)data[2]), 24);
 	*p_temperature = _getTwosComplement((((uint32_t)data[3] << 16) | ((uint32_t)data[4] << 8) | (uint32_t)data[5]), 24);
 	return TRUE;

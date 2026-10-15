@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @file pif_link.h
  * @brief Request/answer link protocol over a PifTransport, such as a PifUart or a PifCanStream, point-to-point

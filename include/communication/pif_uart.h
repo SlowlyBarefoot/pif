@@ -145,6 +145,9 @@ struct StPifUart
     PifActUartDeviceFlowState act_device_flow_state;
 
     // Public Event Function
+    // Called by pifUart_AbortRx() with the client. Attaching a client sets it, to the evt_abort_rx given to
+    // pifTransport_AttachClient() or to NULL with pifUart_AttachClient(), so a client of the latter sets it
+    // after attaching. Detaching clears it.
     PifEvtUartAbortRx evt_abort_rx;
 
 	// Read-only Member Variable

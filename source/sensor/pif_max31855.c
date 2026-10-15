@@ -45,6 +45,8 @@ static uint32_t _doTask(PifTask* p_task)
 
 BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, void *p_client)
 {
+	PifSpiDevice *p_device;
+
 	if (!p_owner || !p_port) {
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
@@ -52,8 +54,9 @@ BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, void *
 
 	memset(p_owner, 0, sizeof(PifMax31855));
 
-	p_owner->_p_spi = pifSpiPort_AddDevice(p_port, PIF_ID_AUTO, p_client);
-    if (!p_owner->_p_spi) return FALSE;
+	p_device = pifSpiPort_AddDevice(p_port, PIF_ID_AUTO, p_client);
+    if (!p_device) return FALSE;
+    p_owner->_p_device = &p_device->parent;
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->parent._id = id;
@@ -67,9 +70,11 @@ void pifMax31855_Clear(PifMax31855* p_owner)
 	pifMax31855_ResetCsFlag(p_owner, M3_CSF_ALL_BIT);
 #endif
 
-	if (p_owner->_p_spi) {
-		pifSpiPort_RemoveDevice(p_owner->_p_spi->_p_port, p_owner->_p_spi);
-    	p_owner->_p_spi = NULL;
+	if (p_owner->_p_device) {
+		PifSpiDevice *p_device = (PifSpiDevice *)p_owner->_p_device;
+
+		pifSpiPort_RemoveDevice(p_device->_p_port, p_device);
+    	p_owner->_p_device = NULL;
 	}
 
 	if (p_owner->_p_task) {
@@ -83,7 +88,7 @@ BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_
 	uint8_t raw[4];
 	int16_t data;
 
-	pifSpiDevice_Transfer(p_owner->_p_spi, NULL, raw, 4);
+	pifSpiDevice_Transfer((PifSpiDevice *)p_owner->_p_device, NULL, raw, 4);
 	if ((raw[1] & 1) || (raw[3] & 7)) {
 		pif_error = E_WRONG_DATA;
 		return FALSE;

@@ -212,10 +212,7 @@ typedef struct StPifDps310
 
 	// Read-only Member Variable
 	PifId _id;
-	union {
-		PifI2cDevice* _p_i2c;
-		PifSpiDevice* _p_spi;
-	};
+	PifDeviceReg *_p_device;
 	uint8_t _osrs_p;
 	uint8_t _osrs_t;
 	PifTask* _p_task;
@@ -238,8 +235,6 @@ typedef struct StPifDps310
 	int32_t __c21;
 	int32_t __c30;
 
-	// Read-only Function
-	PifDeviceReg8Func _fn;
 
 	// Private Event Function
 	PifEvtBaroRead __evt_read;

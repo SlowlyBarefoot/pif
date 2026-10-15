@@ -6,10 +6,8 @@
 #define PIF_GPS_UBLOX_H
 
 
-#include "communication/pif_uart.h"
-#include "communication/pif_i2c.h"
+#include "communication/pif_transport.h"
 #include "core/pif_ring_buffer.h"
-#include "core/pif_task_manager.h"
 #include "core/pif_timer.h"
 #include "gps/pif_gps.h"
 
@@ -455,7 +453,8 @@ typedef struct StPifGpsUbloxTx
 
 /**
  * @class StPifGpsUblox
- * @brief u-blox GPS driver wrapper supporting UBX and NMEA over UART/I2C.
+ * @brief u-blox GPS driver wrapper supporting UBX and NMEA over a PifTransport, such as a PifUart or a
+ *        PifDeviceStream.
  */
 struct StPifGpsUblox
 {
@@ -468,8 +467,6 @@ struct StPifGpsUblox
 
 	// Read-only Member Variable
     PifGps _gps;
-    PifTask* _p_task;
-	PifI2cDevice* _p_i2c_device;
     volatile PifGpsUbxRequestState _request_state;
 	uint8_t _num_ch;                // Number of channels
 	uint8_t _svinfo_chn[16];        // Channel number
@@ -479,8 +476,7 @@ struct StPifGpsUblox
 	uint32_t _svinfo_rate[2];       // GPS svinfo updating rate (column 0 = last update time, 1 = current update ms)
 
 	// Private Member Variable
-	PifUart* __p_uart;
-	PifI2cPort* __p_i2c_port;
+	PifTransport *__p_transport;
     PifGpsUbxRx __rx;
 	PifGpsUbloxTx __tx;
 	PifGpsUbxMessageId __cfg_msg_id;
@@ -488,7 +484,6 @@ struct StPifGpsUblox
 	uint32_t __request_pretime;		// When it was queued, in pif_cumulative_timer1ms
 	uint16_t __request_timeout;		// How long it may take, in milliseconds
     BOOL __next_fix;
-    uint16_t __length;
 };
 
 
@@ -513,45 +508,26 @@ BOOL pifGpsUblox_Init(PifGpsUblox* p_owner, PifId id);
 void pifGpsUblox_Clear(PifGpsUblox* p_owner);
 
 /**
- * @fn pifGpsUblox_AttachUart
- * @brief Attaches UART callbacks for UBX/NMEA receive and queued transmit.
+ * @fn pifGpsUblox_AttachTransport
+ * @brief Attaches the wrapper to the transport the receiver is on, as its only client, for UBX/NMEA
+ *        receive and queued transmit. A transport that loses received bytes restarts the UBX parser.
  * @param p_owner Pointer to the wrapper instance.
- * @param p_uart UART device connected to the u-blox module.
+ * @param p_transport Transport the receiver is on, for example &uart.parent or &device_stream.parent.
+ * @return TRUE on success, otherwise FALSE with pif_error set to E_INVALID_PARAM.
  */
-void pifGpsUblox_AttachUart(PifGpsUblox* p_owner, PifUart* p_uart);
+BOOL pifGpsUblox_AttachTransport(PifGpsUblox *p_owner, PifTransport *p_transport);
 
 /**
- * @fn pifGpsUblox_DetachUart
- * @brief Detaches UART callbacks from the currently attached UART device.
+ * @fn pifGpsUblox_DetachTransport
+ * @brief Detaches the wrapper from its transport. Nothing happens when none is attached.
  * @param p_owner Pointer to the wrapper instance.
  */
-void pifGpsUblox_DetachUart(PifGpsUblox* p_owner);
-
-/**
- * @fn pifGpsUblox_AttachI2c
- * @brief Attaches an I2C u-blox device and creates a periodic receive task.
- * @param p_owner Pointer to the wrapper instance.
- * @param p_i2c I2C port used to communicate with the module.
- * @param addr I2C slave address of the module.
- * @param p_client Client context passed to I2C device registration.
- * @param period1ms Polling interval in milliseconds.
- * @param start If `TRUE`, the periodic task starts immediately.
- * @param name Optional task name. Uses a default if `NULL`.
- * @return `TRUE` if attachment succeeds, otherwise `FALSE`.
- */
-BOOL pifGpsUblox_AttachI2c(PifGpsUblox* p_owner, PifI2cPort* p_i2c, uint8_t addr, void *p_client, uint16_t period1ms, BOOL start, const char* name);
-
-/**
- * @fn pifGpsUblox_DetachI2c
- * @brief Removes the currently attached I2C u-blox device.
- * @param p_owner Pointer to the wrapper instance.
- */
-void pifGpsUblox_DetachI2c(PifGpsUblox* p_owner);
+void pifGpsUblox_DetachTransport(PifGpsUblox *p_owner);
 
 /**
  * @fn pifGpsUblox_ParsingPacket
- * @brief Feeds one received byte to the UBX parser, as the UART receive callback does. For a
- *        client that gets the bytes some other way than through the attached PifUart, for
+ * @brief Feeds one received byte to the UBX parser, as the transport receive callback does. For a
+ *        client that gets the bytes some other way than through the attached transport, for
  *        example while it passes a port through. Bytes that are not UBX go to the NMEA parser.
  * @param p_owner Pointer to the wrapper instance.
  * @param data One received byte.

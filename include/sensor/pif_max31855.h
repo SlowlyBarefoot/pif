@@ -48,7 +48,7 @@ typedef struct StPifMax31855
     PifNoiseFilter* p_filter;
 
 	// Read-only Member Variable
-	PifSpiDevice* _p_spi;
+	PifDeviceReg *_p_device;
     PifTask* _p_task;
 	double _internal;
 

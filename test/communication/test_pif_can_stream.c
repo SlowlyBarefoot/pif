@@ -110,7 +110,7 @@ static void _attach(Client *p_client, PifCanStream *p_stream, const uint8_t *p_t
     p_client->p_transport = &p_stream->parent;
     p_client->p_tx = p_tx;
     p_client->tx_size = tx_size;
-    pifTransport_AttachClient(&p_stream->parent, p_client, _clientParsing, _clientSending);
+    pifTransport_AttachClient(&p_stream->parent, p_client, _clientParsing, _clientSending, NULL);
 }
 
 // Runs both sides until nothing moves.

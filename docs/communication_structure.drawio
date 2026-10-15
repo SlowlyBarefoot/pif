@@ -1,0 +1,170 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="pif-communication" name="Communication">
+    <mxGraphModel dx="1240" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1260" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Clients -->
+        <mxCell id="c1" value="&lt;b&gt;바이트 스트림 클라이언트&lt;/b&gt;&lt;br&gt;pif_link · pif_xmodem&lt;br&gt;pif_gps_nmea · pif_gps_ublox (gpl)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="560" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="c2" value="&lt;b&gt;레지스터 클라이언트&lt;/b&gt;&lt;br&gt;센서: bmi270 · bmp280 · dps310 · mpu60x0 · mpu6500 · ads1x1x · qmc5883 · max31855&lt;br&gt;기타: pmlcd_i2c · tsc2046 · storage · (gpl) hmc5883 · ms5611 · gy86 · max7456" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="660" y="20" width="540" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Transport layer -->
+        <mxCell id="t1" value="&lt;b&gt;PifTransport&lt;/b&gt; (pif_transport)&lt;br&gt;attach_client · detach_client · trigger_send · flow_state · frame_size · byte_time&lt;br&gt;evt_parsing · evt_sending · evt_abort_rx" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="560" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="uart" value="&lt;b&gt;PifUart&lt;/b&gt;&lt;br&gt;(pif_uart)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="canstream" value="&lt;b&gt;PifCanStream&lt;/b&gt;&lt;br&gt;(pif_can_stream)&lt;br&gt;CAN ID 한 쌍 ↔ 바이트" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="220" y="300" width="170" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="devstream" value="&lt;b&gt;PifDeviceStream&lt;/b&gt;&lt;br&gt;(pif_device_stream)&lt;br&gt;폴링 엔진: 버퍼 · 태스크&lt;br&gt;송신 수집 · 재시도" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="410" y="300" width="190" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="can" value="&lt;b&gt;PifCan&lt;/b&gt;&lt;br&gt;(pif_can)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="220" y="430" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="proto" value="&lt;b&gt;PifDevice&lt;br&gt;StreamProtocol&lt;/b&gt;&lt;br&gt;start · finish&lt;br&gt;write · reset" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="470" y="420" width="130" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Wrappers -->
+        <mxCell id="w1" value="&lt;b&gt;PifUbxDdcStream&lt;/b&gt;  (gps/pif_ubx_ddc_stream)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="660" y="170" width="260" height="230" as="geometry"/>
+        </mxCell>
+        <mxCell id="w1a" value="stream : PifDeviceStream&lt;br&gt;&lt;i&gt;&amp;amp;x.stream.parent → PifTransport&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="675" y="200" width="230" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="w1c" value="__protocol (숨김) ▷ Protocol&lt;br&gt;DDC: 0xFD/0xFE 바이트 수 → 이어 읽기" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="675" y="260" width="230" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="w1b" value="_p_device : PifI2cDevice *" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="675" y="335" width="230" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="w2" value="&lt;b&gt;PifSpiFdStream&lt;/b&gt;  (pif_spi_fd_stream)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="940" y="170" width="260" height="230" as="geometry"/>
+        </mxCell>
+        <mxCell id="w2a" value="stream : PifDeviceStream&lt;br&gt;&lt;i&gt;&amp;amp;x.stream.parent → PifTransport&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="955" y="200" width="230" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="w2c" value="__protocol (숨김) ▷ Protocol&lt;br&gt;전이중 전송, idle 바이트(0xFF) 채움" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="955" y="260" width="230" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="w2b" value="_p_device : PifSpiDevice *" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="955" y="335" width="230" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Device layer -->
+        <mxCell id="devreg" value="&lt;b&gt;PifDeviceReg&lt;/b&gt; (pif_device_reg)&lt;br&gt;timeout · max_transfer_size · _state&lt;br&gt;Read · Write · ReadReg* · WriteReg* · StartRead · CheckTransfer · IsBusy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="410" y="560" width="790" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="i2c" value="&lt;b&gt;PifI2cDevice / PifI2cPort&lt;/b&gt; (pif_i2c)&lt;br&gt;act_read · act_write · act_check · act_recover&lt;br&gt;pifI2cPort_sigEndTransfer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="410" y="700" width="360" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="spi" value="&lt;b&gt;PifSpiDevice / PifSpiPort&lt;/b&gt; (pif_spi)&lt;br&gt;act_transfer · act_start_transfer · act_read · act_write&lt;br&gt;act_start_read · act_is_busy · pifSpiPort_sigEndTransfer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="840" y="700" width="360" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Board drivers -->
+        <mxCell id="buart" value="보드 UART 드라이버" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="160" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="bcan" value="보드 CAN 드라이버" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="220" y="540" width="170" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="bi2c" value="보드 I2C 드라이버" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="410" y="830" width="360" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="bspi" value="보드 SPI 드라이버" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="840" y="830" width="360" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="&lt;b&gt;범례&lt;/b&gt;&lt;br&gt;&lt;br&gt;─▷ &amp;nbsp;parent: 첫 멤버로 상속&lt;br&gt;──&amp;gt; &amp;nbsp;참조 · 호출&lt;br&gt;┄┄ &amp;nbsp;래퍼: 장치 · 스트림 · 프로토콜을 묶음&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#6c8ebf&quot;&gt;■&lt;/font&gt; 클라이언트 &amp;nbsp;&lt;font color=&quot;#82b366&quot;&gt;■&lt;/font&gt; 스트림 계층&lt;br&gt;&lt;font color=&quot;#d79b00&quot;&gt;■&lt;/font&gt; 장치 계층 &amp;nbsp;&lt;font color=&quot;#9673a6&quot;&gt;■&lt;/font&gt; 래퍼 &amp;nbsp;&lt;font color=&quot;#666666&quot;&gt;■&lt;/font&gt; 보드" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="640" width="330" height="170" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges: clients -->
+        <mxCell id="e1" value="pifTransport_AttachClient()" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="c1" target="t1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="pifDeviceReg_*()" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=1;exitY=0.5;entryX=1;entryY=0.5;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="c2" target="devreg">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1235" y="65"/>
+              <mxPoint x="1235" y="600"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Edges: transport inheritance -->
+        <mxCell id="e3" value="parent" style="endArrow=block;endFill=0;endSize=10;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="uart" target="t1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="parent" style="endArrow=block;endFill=0;endSize=10;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="canstream" target="t1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="parent" style="endArrow=block;endFill=0;endSize=10;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="devstream" target="t1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges: stream internals -->
+        <mxCell id="e6" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="canstream" target="can">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" value="_p_protocol" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.75;exitY=1;entryX=0.5;entryY=0;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="devstream" target="proto">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8" value="_p_device" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.1;exitY=1;entryX=0.024;entryY=0;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="devstream" target="devreg">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges: protocols of the wrappers -->
+        <mxCell id="e9" style="endArrow=block;endFill=0;endSize=10;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0;exitY=0.5;entryX=1;entryY=0.35;" edge="1" parent="1" source="w1c" target="proto">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="640" y="290"/>
+              <mxPoint x="640" y="448"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" style="endArrow=block;endFill=0;endSize=10;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=1;exitY=0.5;entryX=1;entryY=0.7;" edge="1" parent="1" source="w2c" target="proto">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1215" y="290"/>
+              <mxPoint x="1215" y="476"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Edges: device inheritance -->
+        <mxCell id="e11" value="parent" style="endArrow=block;endFill=0;endSize=10;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="i2c" target="devreg">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e12" value="parent" style="endArrow=block;endFill=0;endSize=10;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="spi" target="devreg">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges: to the board -->
+        <mxCell id="e13" value="act_*" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="uart" target="buart">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e14" value="act_*" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="can" target="bcan">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e15" value="act_*" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="i2c" target="bi2c">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e16" value="act_*" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;rounded=0;labelBackgroundColor=#ffffff;fontSize=11;" edge="1" parent="1" source="spi" target="bspi">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

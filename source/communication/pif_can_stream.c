@@ -138,10 +138,14 @@ static uint32_t _evtCanSending(PifCanClient *p_client)
 	return p_owner->__tx_written ? 1 : 0;
 }
 
+// A frame dropped for a full buffer comes after bytes the client has not read yet, so the stream cannot say
+// where the gap is and does not call evt_abort_rx.
 static void _evtAttachClient(PifTransport *p_transport, void *p_client, PifEvtTransportParsing evt_parsing,
-		PifEvtTransportSending evt_sending)
+		PifEvtTransportSending evt_sending, PifEvtTransportAbortRx evt_abort_rx)
 {
 	PifCanStream *p_owner = (PifCanStream *)p_transport;
+
+	(void)evt_abort_rx;
 
 	pifRingBuffer_Empty(&p_owner->_rx_buffer);
 	p_owner->__tx_frame.length = 0;

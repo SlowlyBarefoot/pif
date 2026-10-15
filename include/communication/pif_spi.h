@@ -3,7 +3,7 @@
 #define PIF_SPI_H
 
 
-#include "communication/pif_comm.h"
+#include "communication/pif_device_reg.h"
 #include "core/pif_obj_array.h"
 
 
@@ -21,40 +21,25 @@ typedef BOOL (*PifActSpiWrite)(PifSpiDevice *p_owner, uint32_t iaddr, uint8_t is
 
 typedef BOOL (*PifActSpiIsBusy)(PifSpiDevice *p_owner);
 
-typedef void (*PifEvtSpiTransferDone)(PifIssuerP p_issuer);
-
 /**
  * @class StPifSpiDevice
- * @brief Describes an SPI slave device managed by a PifSpiPort instance.
+ * @brief Describes an SPI slave device managed by a PifSpiPort instance. Its clients use &device->parent
+ *        with the pifDeviceReg_ functions.
  */
 struct StPifSpiDevice
 {
-	// Public Member Variable
-	// Time limit of a transfer in ms (10 by default), for a port to use. pif_spi does not wait on
-	// it itself: pifSpiDevice_Wait() takes its own.
-    uint16_t timeout;
-    uint16_t max_transfer_size;
+	PifDeviceReg parent;
 
 	// Read-only Member Variable
-	PifId _id;
 	PifSpiPort *_p_port;
-	void *_p_client;
-
-	// Private Member Variable
-	PifIssuerP __p_transfer_done_issuer;
-
-	// Private Event Function
-	PifEvtSpiTransferDone __evt_transfer_done;
 };
 
 /**
  * @class StPifSpiPort
  * @brief Owns an SPI bus context and manages registered slave devices.
- * @details pif_spi does not keep track of which device holds the bus. When a transfer is asked
- *          for while one begun with act_start_transfer is still on the bus, the port decides what
- *          happens: it may wait for the bus, queue the new transfer behind it, or fail. A port
- *          that can do none of these has to fail, or the caller has to ask pifSpiDevice_IsBusy()
- *          first.
+ * @details A transfer that runs in the background holds the port, as on pif_i2c: until
+ *          pifDeviceReg_CheckTransfer() reports it over, every other transfer on the port fails with
+ *          E_INVALID_STATE without reaching the port.
  */
 struct StPifSpiPort
 {
@@ -66,15 +51,19 @@ struct StPifSpiPort
 	PifActSpiTransfer act_transfer;
 	// Optional. Starts a transfer like act_transfer and returns without waiting for it, for a
 	// port that can run it in the background (DMA, interrupts). It returns FALSE when the transfer
-	// could not be started, and act_is_busy has to report the transfer until it is over. When the
-	// transfer is over, the port calls pifSpiDevice_sigTransferDone() for the device, from the
-	// interrupt that ended it if it has one.
+	// could not be started. The port ends the transfer with pifSpiPort_sigEndTransfer(), from the
+	// interrupt that ended it if it has one, or reports it with act_is_busy.
 	PifActSpiStartTransfer act_start_transfer;
-	// Send the internal address, then read or write the data, under one chip select. A block
-	// longer than max_transfer_size comes as several calls, each with its own address.
+	// Send the internal address, then read or write the data, under one chip select, and return
+	// when it is over. A block longer than max_transfer_size comes as several calls, each with its
+	// own address.
 	PifActSpiRead act_read;
 	PifActSpiWrite act_write;
-	// Required with act_start_transfer.
+	// Optional. Starts a read like act_read and returns without waiting for it, ended as a transfer
+	// from act_start_transfer is. Without it pifDeviceReg_StartRead() reads with act_read.
+	PifActSpiRead act_start_read;
+	// Optional. Polled while a transfer from act_start_transfer or act_start_read is running, for a
+	// port that cannot call pifSpiPort_sigEndTransfer(). It returns TRUE until the transfer is over.
 	PifActSpiIsBusy act_is_busy;
 
 	// Read-only Member Variable
@@ -82,6 +71,7 @@ struct StPifSpiPort
 
 	// Private Member Variable
     PifObjArray __devices;
+    volatile PifSpiDevice* __use_device;
 };
 
 
@@ -120,16 +110,20 @@ PifSpiDevice* pifSpiPort_AddDevice(PifSpiPort* p_owner, PifId id, void *p_client
  * @fn pifSpiPort_RemoveDevice
  * @brief Unregisters a device from the port.
  * @param p_owner Pointer to the port that owns the device.
- * @param p_device Pointer to the device to remove.
+ * @param p_device Pointer to the device to remove. `NULL` does nothing.
+ * @return `TRUE` if the device was removed, otherwise `FALSE` with pif_error set to
+ *         E_INVALID_STATE while a background transfer still holds the port for it.
  */
-void pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device);
+BOOL pifSpiPort_RemoveDevice(PifSpiPort* p_owner, PifSpiDevice* p_device);
 
 /**
  * @fn pifSpiPort_TemporaryDevice
- * @brief Creates a temporary device descriptor for one-off SPI transactions.
+ * @brief Creates a temporary device descriptor for one-off SPI transactions. Every call returns
+ *        the same descriptor, set up anew, so it is only good until the next call.
  * @param p_owner Pointer to the port that performs the transaction.
  * @param p_client User-defined client pointer associated with the temporary device.
- * @return Pointer to the temporary device descriptor, or `NULL` if unavailable.
+ * @return Pointer to the temporary device descriptor, or `NULL` with pif_error set to
+ *         E_INVALID_STATE while a background transfer made with it still holds the port.
  */
 PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, void *p_client);
 
@@ -142,206 +136,41 @@ PifSpiDevice* pifSpiPort_TemporaryDevice(PifSpiPort* p_owner, void *p_client);
  * @param p_read Buffer receiving incoming data (can be `NULL` if readback is not needed).
  * @param size Number of bytes to transfer.
  * @return `TRUE` once act_transfer has made the transfer, otherwise `FALSE` with pif_error set
- *         to `E_INVALID_PARAM` for a bad request or a port without act_transfer. act_transfer
- *         reports no failure, so `TRUE` does not say the device answered.
+ *         to `E_INVALID_PARAM` for a bad request or a port without act_transfer, or
+ *         `E_INVALID_STATE` while a background transfer holds the port. act_transfer reports no
+ *         failure, so `TRUE` does not say the device answered.
  */
 BOOL pifSpiDevice_Transfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_read, size_t size);
 
 /**
  * @fn pifSpiDevice_StartTransfer
- * @brief Starts a full-duplex SPI transfer and returns without waiting for it to finish.
- *        pifSpiDevice_IsBusy() reports the transfer until it is over, so ask it from later
- *        releases of the task instead of looping here. p_write and p_read have to stay valid
- *        until then, so they must not be on the stack. The transfer is not split by
- *        max_transfer_size, so size must not exceed it when it is set. On a port without
- *        act_start_transfer the transfer is made with act_transfer and is already over when
- *        this returns.
+ * @brief Starts a full-duplex SPI transfer and returns without waiting for it to finish. The
+ *        port stays held until pifDeviceReg_CheckTransfer() reports the transfer over, so ask it
+ *        from later releases of the task instead of looping here. p_write and p_read have to stay
+ *        valid until then. The transfer is not split by max_transfer_size, so size must not
+ *        exceed it when it is set. On a port without act_start_transfer the transfer is made with
+ *        act_transfer and is already over when this returns.
  * @param p_owner Pointer to the SPI device descriptor.
  * @param p_write Buffer containing data to transmit (can be `NULL` for dummy writes).
  * @param p_read Buffer receiving incoming data (can be `NULL` if readback is not needed).
  * @param size Number of bytes to transfer.
- *        The event attached with pifSpiDevice_AttachEvtTransferDone() is called once the
- *        transfer is over.
  * @return `TRUE` if the transfer was started, otherwise `FALSE` with pif_error set to
- *         `E_INVALID_PARAM` for a bad request or a port with act_start_transfer but no
- *         act_is_busy, or `E_TRANSFER_FAILED` when the port could not start it.
+ *         `E_INVALID_PARAM` for a bad request, `E_INVALID_STATE` while the port is held, or
+ *         `E_TRANSFER_FAILED` when the port could not start it.
  */
 BOOL pifSpiDevice_StartTransfer(PifSpiDevice* p_owner, uint8_t* p_write, uint8_t* p_read, size_t size);
 
 /**
- * @fn pifSpiDevice_Read
- * @brief Reads a block from an indexed location of an SPI device. With max_transfer_size set, a
- *        longer block is read in pieces, each a transfer of its own from its own internal address
- *        (iaddr plus the bytes already read), so the device has to step the address on by itself.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param iaddr Internal address (register/memory offset) to read from.
- * @param isize Number of bytes used for the internal address.
- * @param p_data Output buffer that receives data.
- * @param size Number of bytes to read.
- * @return `TRUE` on success, otherwise `FALSE`.
+ * @fn pifSpiPort_sigEndTransfer
+ * @brief Signals that a background transfer on the port is over. Called by the port, from
+ *        interrupt context if that is where it learns of it. Ignored when no transfer is running,
+ *        so only the first signal for a transfer counts. A transfer that ran past the device
+ *        timeout has been given up by then, so the port has to keep its late signal from ending
+ *        the next transfer.
+ * @param p_owner Pointer to the port.
+ * @param result TRUE when the transfer succeeded, FALSE for an error.
  */
-BOOL pifSpiDevice_Read(PifDevice* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
-
-/**
- * @fn pifSpiDevice_ReadRegByte
- * @brief Reads one byte from an 8-bit register address.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param reg Register address to read.
- * @param p_data Output pointer for the register value.
- * @return `TRUE` on success, otherwise `FALSE`.
- */
-BOOL pifSpiDevice_ReadRegByte(PifDevice* p_owner, uint8_t reg, uint8_t* p_data);
-
-/**
- * @fn pifSpiDevice_ReadRegWord
- * @brief Reads a 16-bit word from an 8-bit register address.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param reg Register address to read.
- * @param p_data Output pointer for the 16-bit value.
- * @return `TRUE` on success, otherwise `FALSE`.
- */
-BOOL pifSpiDevice_ReadRegWord(PifDevice* p_owner, uint8_t reg, uint16_t* p_data);
-
-/**
- * @fn pifSpiDevice_ReadRegBytes
- * @brief Reads multiple bytes starting at a register address.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param reg Start register address.
- * @param p_data Output buffer for the received bytes.
- * @param size Number of bytes to read.
- * @return `TRUE` on success, otherwise `FALSE`.
- */
-BOOL pifSpiDevice_ReadRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
-
-/**
- * @fn pifSpiDevice_ReadRegBit8
- * @brief Reads masked bits from an 8-bit register.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param reg Register address to read.
- * @param mask Bit mask describing the field to extract.
- * @param p_data Output pointer for the extracted field value.
- * @return `TRUE` on success, otherwise `FALSE`.
- */
-BOOL pifSpiDevice_ReadRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint8_t* p_data);
-
-/**
- * @fn pifSpiDevice_ReadRegBit16
- * @brief Reads masked bits from a 16-bit register value.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param reg Register address to read.
- * @param mask Bit mask describing the field to extract.
- * @param p_data Output pointer for the extracted 16-bit field value.
- * @return `TRUE` on success, otherwise `FALSE`.
- */
-BOOL pifSpiDevice_ReadRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint16_t* p_data);
-
-/**
- * @fn pifSpiDevice_Write
- * @brief Writes a block to an indexed location of an SPI device. With max_transfer_size set, a
- *        longer block is written in pieces, each a transfer of its own to its own internal
- *        address (iaddr plus the bytes already written).
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param iaddr Internal address (register/memory offset) to write to.
- * @param isize Number of bytes used for the internal address.
- * @param p_data Input buffer containing bytes to write.
- * @param size Number of bytes to write.
- * @return `TRUE` on success, otherwise `FALSE`.
- */
-BOOL pifSpiDevice_Write(PifDevice* p_owner,  uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size);
-
-/**
- * @fn pifSpiDevice_WriteRegByte
- * @brief Writes one byte to an 8-bit register address.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param reg Register address to write.
- * @param data Byte value to write.
- * @return `TRUE` on success, otherwise `FALSE`.
- */
-BOOL pifSpiDevice_WriteRegByte(PifDevice* p_owner, uint8_t reg, uint8_t data);
-
-/**
- * @fn pifSpiDevice_WriteRegWord
- * @brief Writes a 16-bit word to an 8-bit register address.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param reg Register address to write.
- * @param data 16-bit value to write.
- * @return `TRUE` on success, otherwise `FALSE`.
- */
-BOOL pifSpiDevice_WriteRegWord(PifDevice* p_owner, uint8_t reg, uint16_t data);
-
-/**
- * @fn pifSpiDevice_WriteRegBytes
- * @brief Writes multiple bytes starting at a register address.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param reg Start register address.
- * @param p_data Input buffer containing bytes to write.
- * @param size Number of bytes to write.
- * @return `TRUE` on success, otherwise `FALSE`.
- */
-BOOL pifSpiDevice_WriteRegBytes(PifDevice* p_owner, uint8_t reg, uint8_t* p_data, size_t size);
-
-/**
- * @fn pifSpiDevice_WriteRegBit8
- * @brief Updates masked bits in an 8-bit register.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param reg Register address to update.
- * @param mask Bit mask describing the field to update.
- * @param data New field value (aligned to the mask definition).
- * @return `TRUE` on success, otherwise `FALSE`.
- */
-BOOL pifSpiDevice_WriteRegBit8(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint8_t data);
-
-/**
- * @fn pifSpiDevice_WriteRegBit16
- * @brief Updates masked bits in a 16-bit register value.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param reg Register address to update.
- * @param mask Bit mask describing the field to update.
- * @param data New 16-bit field value (aligned to the mask definition).
- * @return `TRUE` on success, otherwise `FALSE`.
- */
-BOOL pifSpiDevice_WriteRegBit16(PifDevice* p_owner, uint8_t reg, PifRegMask mask, uint16_t data);
-
-/**
- * @fn pifSpiDevice_IsBusy
- * @brief Checks whether the underlying SPI bus/device is busy.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @return `TRUE` if a transfer is in progress, including one begun with
- *         pifSpiDevice_StartTransfer(), otherwise `FALSE`.
- */
-BOOL pifSpiDevice_IsBusy(PifDevice* p_owner);
-
-/**
- * @fn pifSpiDevice_Wait
- * @brief Waits until the SPI device finishes an outstanding transfer.
- * @param p_owner Pointer to a `PifDevice` backed by an SPI device.
- * @param timeout1ms Maximum time to wait in milliseconds before returning `FALSE` with `E_TIMEOUT`.
- * @return `TRUE` if the device becomes ready before timeout, otherwise `FALSE`.
- */
-BOOL pifSpiDevice_Wait(PifDevice* p_owner, uint16_t timeout1ms);
-
-/**
- * @fn pifSpiDevice_AttachEvtTransferDone
- * @brief Attaches the callback that is called when a transfer begun with
- *        pifSpiDevice_StartTransfer() on this device is over. It is called from
- *        pifSpiDevice_sigTransferDone(), which the port may call from an interrupt, so it has to
- *        be short and safe to run there; it runs before pifSpiDevice_IsBusy() stops reporting
- *        the transfer. On a port without act_start_transfer it is called from
- *        pifSpiDevice_StartTransfer() before that returns. Transfers made any other way do not
- *        call it.
- * @param p_owner Pointer to the SPI device descriptor.
- * @param evt_transfer_done Callback invoked when the transfer is over, or `NULL` to detach it.
- * @param p_issuer User context pointer passed to the callback.
- */
-void pifSpiDevice_AttachEvtTransferDone(PifSpiDevice* p_owner, PifEvtSpiTransferDone evt_transfer_done, PifIssuerP p_issuer);
-
-/**
- * @fn pifSpiDevice_sigTransferDone
- * @brief Signals that a transfer begun with act_start_transfer on the device is over. Called by
- *        the port, from interrupt context if that is where it learns of it, once per transfer.
- * @param p_owner Pointer to the SPI device whose transfer is over.
- */
-void pifSpiDevice_sigTransferDone(PifSpiDevice* p_owner);
+void pifSpiPort_sigEndTransfer(PifSpiPort* p_owner, BOOL result);
 
 #ifdef __cplusplus
 }

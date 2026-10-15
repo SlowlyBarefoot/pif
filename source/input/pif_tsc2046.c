@@ -18,7 +18,7 @@ static int16_t _readChannel(PifTsc2046* p_owner, uint8_t command)
 	uint8_t write[3] = { command, 0, 0 };
 	uint8_t read[3] = { 0, 0, 0 };
 
-	pifSpiDevice_Transfer(p_owner->_p_spi, write, read, 3);
+	pifSpiDevice_Transfer((PifSpiDevice *)p_owner->_p_device, write, read, 3);
 	return ((read[1] << 8) | read[2]) >> 3;
 }
 
@@ -50,6 +50,8 @@ static BOOL _actTouchPressure(PifTouchScreen* p_parent)
 
 BOOL pifTsc2046_Init(PifTsc2046* p_owner, PifId id, PifTftLcd* p_lcd, int16_t left_x, int16_t right_x, int16_t top_y, int16_t bottom_y, PifSpiPort* p_port, void *p_client, PifActTsc2046Pen act_pen)
 {
+	PifSpiDevice *p_device;
+
 	if (!p_owner || !p_lcd || !p_port || !act_pen) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
@@ -59,8 +61,9 @@ BOOL pifTsc2046_Init(PifTsc2046* p_owner, PifId id, PifTftLcd* p_lcd, int16_t le
 
 	if (!pifTouchScreen_Init(&p_owner->parent, id, p_lcd, left_x, right_x, top_y, bottom_y)) return FALSE;
 
-	p_owner->_p_spi = pifSpiPort_AddDevice(p_port, PIF_ID_AUTO, p_client);
-	if (!p_owner->_p_spi) return FALSE;
+	p_device = pifSpiPort_AddDevice(p_port, PIF_ID_AUTO, p_client);
+	if (!p_device) return FALSE;
+	p_owner->_p_device = &p_device->parent;
 
 	if (!pifTouchScreen_AttachAction(&p_owner->parent, _actTouchPosition, _actTouchPressure)) return FALSE;
 
@@ -72,9 +75,11 @@ void pifTsc2046_Clear(PifTsc2046* p_owner)
 {
 	if (!p_owner) return;
 
-	if (p_owner->_p_spi) {
-		pifSpiPort_RemoveDevice(p_owner->_p_spi->_p_port, p_owner->_p_spi);
-		p_owner->_p_spi = NULL;
+	if (p_owner->_p_device) {
+		PifSpiDevice *p_device = (PifSpiDevice *)p_owner->_p_device;
+
+		pifSpiPort_RemoveDevice(p_device->_p_port, p_device);
+		p_owner->_p_device = NULL;
 	}
 	pifTouchScreen_Clear(&p_owner->parent);
 }

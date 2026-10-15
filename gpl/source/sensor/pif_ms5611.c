@@ -109,7 +109,7 @@ static BOOL _startConversion(PifMs5611* p_owner, uint8_t reg)
 {
 	uint8_t value = reg + p_owner->_over_sampling_rate;
 
-	return pifI2cDevice_Write(p_owner->_p_i2c, 0, 0, &value, 1);
+	return pifDeviceReg_Write(p_owner->_p_device, 0, 0, &value, 1);
 }
 
 /**
@@ -123,7 +123,7 @@ static BOOL _readAdc(PifMs5611* p_owner, uint32_t* p_data)
 {
 	uint8_t value[3];
 
-	if (!pifI2cDevice_ReadRegBytes(p_owner->_p_i2c, MS5611_REG_ADC_READ, value, 3)) return FALSE;
+	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MS5611_REG_ADC_READ, value, 3)) return FALSE;
 
 	*p_data = ((uint32_t)value[0] << 16) + (value[1] << 8) + value[2];
 	return TRUE;
@@ -277,6 +277,8 @@ static uint32_t _doTask(PifTask* p_task)
 
 BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client)
 {
+	PifI2cDevice *p_device;
+
 	int i;
     uint8_t cmd = MS5611_REG_RESET;
 
@@ -287,20 +289,21 @@ BOOL pifMs5611_Init(PifMs5611* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t add
 
 	memset(p_owner, 0, sizeof(PifMs5611));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
-    if (!p_owner->_p_i2c) return FALSE;
+    p_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
+    if (!p_device) return FALSE;
+    p_owner->_p_device = &p_device->parent;
 
     // A zeroed instance already means MS5611_OSR_256, but _conversion_time would stay 0 with it,
     // and everything that waits for a conversion reads that. Set the pair together.
     pifMs5611_SetOverSamplingRate(p_owner, MS5611_OSR_256);
 
-	if (!pifI2cDevice_Write(p_owner->_p_i2c, 0, 0, &cmd, 1)) goto fail;
+	if (!pifDeviceReg_Write(p_owner->_p_device, 0, 0, &cmd, 1)) goto fail;
 	// The reset needs this long before the PROM can be read. Initialization runs before there is
 	// anything to schedule, so the wait holds the CPU and nothing is lost by it.
 	pif_Delay1ms(100);
 
 	for (i = 0; i < 8; i++) {
-		if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, MS5611_REG_READ_PROM + i * 2, (uint16_t*)&p_owner->_prom[i])) goto fail;
+		if (!pifDeviceReg_ReadRegWord(p_owner->_p_device, MS5611_REG_READ_PROM + i * 2, (uint16_t*)&p_owner->_prom[i])) goto fail;
 	}
 	if (!_checkPromCrc(p_owner)) goto fail;
 
@@ -320,9 +323,11 @@ void pifMs5611_Clear(PifMs5611* p_owner)
 		pifTaskManager_Remove(p_owner->_p_task);
 		p_owner->_p_task = NULL;
 	}
-	if (p_owner->_p_i2c) {
-		pifI2cPort_RemoveDevice(p_owner->_p_i2c->_p_port, p_owner->_p_i2c);
-    	p_owner->_p_i2c = NULL;
+	if (p_owner->_p_device) {
+		PifI2cDevice *p_device = (PifI2cDevice *)p_owner->_p_device;
+
+		pifI2cPort_RemoveDevice(p_device->_p_port, p_device);
+    	p_owner->_p_device = NULL;
 	}
 }
 

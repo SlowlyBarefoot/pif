@@ -108,9 +108,12 @@ static uint16_t _actTransportSendBuffer(PifTransport *p_transport, uint8_t *p_da
 }
 
 static void _attachClient(PifUart *p_owner, void *p_client, PifEvtUartParsing evt_parsing, PifEvtUartSending evt_sending,
-		PifEvtTransportParsing evt_transport_parsing, PifEvtTransportSending evt_transport_sending)
+		PifEvtTransportParsing evt_transport_parsing, PifEvtTransportSending evt_transport_sending,
+		PifEvtUartAbortRx evt_abort_rx)
 {
 	p_owner->__p_client = p_client;
+	// It is called with the client, so the one of a client attached before must not stay.
+	p_owner->evt_abort_rx = evt_abort_rx;
 	if (p_owner->_p_rx_task) {
 		p_owner->__evt_parsing = evt_parsing;
 		p_owner->__evt_transport_parsing = evt_transport_parsing;
@@ -124,9 +127,9 @@ static void _attachClient(PifUart *p_owner, void *p_client, PifEvtUartParsing ev
 }
 
 static void _evtTransportAttachClient(PifTransport *p_transport, void *p_client, PifEvtTransportParsing evt_parsing,
-		PifEvtTransportSending evt_sending)
+		PifEvtTransportSending evt_sending, PifEvtTransportAbortRx evt_abort_rx)
 {
-	_attachClient((PifUart *)p_transport, p_client, NULL, NULL, evt_parsing, evt_sending);
+	_attachClient((PifUart *)p_transport, p_client, NULL, NULL, evt_parsing, evt_sending, evt_abort_rx);
 }
 
 static void _evtTransportDetachClient(PifTransport *p_transport)
@@ -294,7 +297,7 @@ BOOL pifUart_ChangeBaudrate(PifUart* p_owner, uint32_t baudrate)
 
 void pifUart_AttachClient(PifUart* p_owner, void* p_client, PifEvtUartParsing evt_parsing, PifEvtUartSending evt_sending)
 {
-	_attachClient(p_owner, p_client, evt_parsing, evt_sending, NULL, NULL);
+	_attachClient(p_owner, p_client, evt_parsing, evt_sending, NULL, NULL, NULL);
 }
 
 void pifUart_AttachActDirection(PifUart* p_owner, PifActUartDirection act_direction, PifUartDirection init_state)
@@ -327,6 +330,7 @@ void pifUart_DetachClient(PifUart* p_owner)
 		p_owner->__evt_sending = NULL;
 		p_owner->__evt_transport_sending = NULL;
 	}
+	p_owner->evt_abort_rx = NULL;
 	p_owner->__p_client = NULL;
 }
 

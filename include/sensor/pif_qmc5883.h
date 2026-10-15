@@ -104,7 +104,7 @@ typedef struct StPifQmc5883
 
 	// Read-only Member Variable
 	PifId _id;
-	PifI2cDevice* _p_i2c;
+	PifDeviceReg *_p_device;
 	PifQmc5883State _state;			// pifQmc5883_ReadMagAsync() progress
 
 	// Private Member Variable

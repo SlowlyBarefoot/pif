@@ -1,92 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#ifndef PIF_NO_LOG
-	#include "core/pif_log.h"
-#endif
 #include "gps/pif_gps_nmea.h"
 
 
 /**
- * @brief UART receive callback that feeds bytes into the NMEA parser.
+ * @brief Transport receive callback that feeds bytes into the NMEA parser.
  * @param p_client Pointer to `PifGpsNmea`.
- * @param act_receive_data UART receive function pointer.
+ * @param act_receive Transport receive function pointer.
  * @return `TRUE` if at least one byte was consumed, otherwise `FALSE`.
  */
-static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActTransportReceive act_receive)
 {
 	PifGpsNmea *p_owner = (PifGpsNmea *)p_client;
 	uint8_t c;
 	BOOL rtn = FALSE;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &c, 1)) {
+	while ((*act_receive)(p_owner->__p_transport, &c, 1)) {
 		rtn = TRUE;
 		if (pifGps_ParsingNmea(&p_owner->_gps, c)) break;
 	}
 	return rtn;
-}
-
-#define DATA_SIZE	128
-
-/**
- * @brief Periodic I2C polling task that reads pending NMEA bytes and parses them.
- * @param p_task Task context whose client is `PifGpsNmea`.
- * @return Always returns `0` for the task scheduler.
- */
-static uint32_t _doTask(PifTask* p_task)
-{
-	PifGpsNmea *p_owner = p_task->_p_client;
-	uint8_t data[DATA_SIZE];
-	uint16_t size, i;
-#ifndef PIF_NO_LOG
-	int line;
-	static uint32_t timer1ms;
-#endif
-
-	if (!p_owner->__length) {
-		if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c_device, 0xFD, &p_owner->__length)) {
-#ifndef PIF_NO_LOG
-			line = __LINE__;
-#endif
-			goto fail;
-		}
-		if (!p_owner->__length) return 0;
-		if (p_owner->__length == 0xFFFF) { p_owner->__length = 0; return 0; }
-		if (p_owner->__length & 0x8000) {
-#ifndef PIF_NO_LOG
-			line = __LINE__;
-#endif
-			goto fail;
-		}
-#ifndef PIF_NO_LOG
-		timer1ms = pif_cumulative_timer1ms;
-		pifLog_Printf(LT_INFO, "GN(%u): Start L=%d bytes", __LINE__, p_owner->__length);
-#endif
-	}
-
-	size = p_owner->__length > DATA_SIZE ? DATA_SIZE : p_owner->__length;
-	if (!pifI2cDevice_Read(p_owner->_p_i2c_device, 0, 0, data, size)) {
-#ifndef PIF_NO_LOG
-			line = __LINE__;
-#endif
-			goto fail;
-	}
-	for (i = 0; i < size; i++) {
-		pifGps_ParsingNmea(&p_owner->_gps, data[i]);
-	}
-	p_owner->__length -= size;
-	if (p_owner->__length) pifTask_SetTrigger(p_task, 0);
-#ifndef PIF_NO_LOG
-	else {
-		pifLog_Printf(LT_INFO, "GN(%u): End T=%ld ms", __LINE__, pif_cumulative_timer1ms - timer1ms);
-	}
-#endif
-	return 0;
-
-fail:
-#ifndef PIF_NO_LOG
-	pifLog_Printf(LT_ERROR, "GN(%u): len=%d", line, p_owner->__length);
-#endif
-	p_owner->__length = 0;
-	return 0;
 }
 
 BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId id)
@@ -108,43 +40,27 @@ fail:
 
 void pifGpsNmea_Clear(PifGpsNmea* p_owner)
 {
+	pifGpsNmea_DetachTransport(p_owner);
 	pifGps_Clear(&p_owner->_gps);
 }
 
-void pifGpsNmea_AttachUart(PifGpsNmea* p_owner, PifUart* p_uart)
+BOOL pifGpsNmea_AttachTransport(PifGpsNmea *p_owner, PifTransport *p_transport)
 {
-	p_owner->__p_uart = p_uart;
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, NULL);
-}
-
-void pifGpsNmea_DetachUart(PifGpsNmea* p_owner)
-{
-	pifUart_DetachClient(p_owner->__p_uart);
-	p_owner->__p_uart = NULL;
-}
-
-BOOL pifGpsNmea_AttachI2c(PifGpsNmea* p_owner, PifI2cPort* p_i2c, uint8_t addr, void *p_client, uint16_t period1ms, BOOL start, const char* name)
-{
-    p_owner->_p_i2c_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
-    if (!p_owner->_p_i2c_device) goto fail;
-
-    p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000UL, _doTask, p_owner, start);
-	if (!p_owner->_p_task) goto fail;
-
-    p_owner->__p_i2c_port = p_i2c;
-	if (name) p_owner->_p_task->name = name;
-	else p_owner->_p_task->name = "GPS NMEA";
-    return TRUE;
-
-fail:
-	pifGpsNmea_DetachI2c(p_owner);
-	return FALSE;
-}
-
-void pifGpsNmea_DetachI2c(PifGpsNmea* p_owner)
-{
-	if (p_owner->_p_i2c_device) {
-		pifI2cPort_RemoveDevice(p_owner->__p_i2c_port, p_owner->_p_i2c_device);
-		p_owner->_p_i2c_device = NULL;
+	if (!p_owner || !p_transport) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
 	}
+
+	pifGpsNmea_DetachTransport(p_owner);
+	p_owner->__p_transport = p_transport;
+	pifTransport_AttachClient(p_transport, p_owner, _evtParsing, NULL, NULL);
+	return TRUE;
+}
+
+void pifGpsNmea_DetachTransport(PifGpsNmea *p_owner)
+{
+	if (!p_owner || !p_owner->__p_transport) return;
+
+	pifTransport_DetachClient(p_owner->__p_transport);
+	p_owner->__p_transport = NULL;
 }

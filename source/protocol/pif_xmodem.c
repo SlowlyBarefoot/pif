@@ -600,7 +600,7 @@ BOOL pifXmodem_AttachTransport(PifXmodem *p_owner, PifTransport *p_transport)
 	}
 
 	p_owner->__p_transport = p_transport;
-	pifTransport_AttachClient(p_transport, p_owner, _evtParsing, _evtSending);
+	pifTransport_AttachClient(p_transport, p_owner, _evtParsing, _evtSending, NULL);
 	return TRUE;
 }
 

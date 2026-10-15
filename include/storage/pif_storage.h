@@ -74,7 +74,7 @@ struct StPifStorage
 
 	// Read-only Member Variable
     PifId _id;
-	PifI2cDevice* _p_i2c;
+	PifDeviceReg *_p_device;
 	uint32_t _storage_volume;
 	PifStorageState _state;
 

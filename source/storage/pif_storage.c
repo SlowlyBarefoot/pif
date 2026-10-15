@@ -138,8 +138,8 @@ static void _evtTimerFinish(PifIssuerP p_issuer)
 static BOOL _actStorageI2c_Read_1(PifStorage* p_owner, uint8_t* dst, uint32_t src, size_t size)
 {
 	_waitWriteCycle(p_owner);
-	p_owner->_p_i2c->addr = p_owner->__addr | (src >> 8);
-	if (!pifI2cDevice_Read(p_owner->_p_i2c, src & 0xFF, 1, dst, size)) return FALSE;
+	((PifI2cDevice *)p_owner->_p_device)->addr = p_owner->__addr | (src >> 8);
+	if (!pifDeviceReg_Read(p_owner->_p_device, src & 0xFF, 1, dst, size)) return FALSE;
 	return TRUE;
 }
 
@@ -155,8 +155,8 @@ static BOOL _actStorageI2c_Read_1(PifStorage* p_owner, uint8_t* dst, uint32_t sr
 static BOOL _actStorageI2c_Write_1(PifStorage* p_owner, uint32_t dst, uint8_t* src, size_t size)
 {
 	_waitWriteCycle(p_owner);
-	p_owner->_p_i2c->addr = p_owner->__addr | (dst >> 8);
-	if (!pifI2cDevice_Write(p_owner->_p_i2c, dst & 0xFF, 1, src, size)) return FALSE;
+	((PifI2cDevice *)p_owner->_p_device)->addr = p_owner->__addr | (dst >> 8);
+	if (!pifDeviceReg_Write(p_owner->_p_device, dst & 0xFF, 1, src, size)) return FALSE;
 	_startWriteCycle(p_owner);
 	return TRUE;
 }
@@ -173,8 +173,8 @@ static BOOL _actStorageI2c_Write_1(PifStorage* p_owner, uint32_t dst, uint8_t* s
 static BOOL _actStorageI2c_Read_2(PifStorage* p_owner, uint8_t* dst, uint32_t src, size_t size)
 {
 	_waitWriteCycle(p_owner);
-	p_owner->_p_i2c->addr = p_owner->__addr | (src >> 16);
-	if (!pifI2cDevice_Read(p_owner->_p_i2c, src & 0xFFFF, 2, dst, size)) return FALSE;
+	((PifI2cDevice *)p_owner->_p_device)->addr = p_owner->__addr | (src >> 16);
+	if (!pifDeviceReg_Read(p_owner->_p_device, src & 0xFFFF, 2, dst, size)) return FALSE;
 	return TRUE;
 }
 
@@ -190,8 +190,8 @@ static BOOL _actStorageI2c_Read_2(PifStorage* p_owner, uint8_t* dst, uint32_t sr
 static BOOL _actStorageI2c_Write_2(PifStorage* p_owner, uint32_t dst, uint8_t* src, size_t size)
 {
 	_waitWriteCycle(p_owner);
-	p_owner->_p_i2c->addr = p_owner->__addr | (dst >> 16);
-	if (!pifI2cDevice_Write(p_owner->_p_i2c, dst & 0xFFFF, 2, src, size)) return FALSE;
+	((PifI2cDevice *)p_owner->_p_device)->addr = p_owner->__addr | (dst >> 16);
+	if (!pifDeviceReg_Write(p_owner->_p_device, dst & 0xFFFF, 2, src, size)) return FALSE;
 	_startWriteCycle(p_owner);
 	return TRUE;
 }
@@ -210,13 +210,16 @@ BOOL pifStorage_AttachActStorage(PifStorage* p_owner, PifActStorageRead act_read
 
 BOOL pifStorage_AttachI2c(PifStorage* p_owner, PifI2cPort* p_port, uint8_t addr, void *p_client, PifStorageI2cIAddrSize i_addr_size, uint8_t write_delay_ms)
 {
+	PifI2cDevice *p_device;
+
     if (!p_owner || !p_port) {
     	pif_error = E_INVALID_PARAM;
 	    return FALSE;
     }
 
-	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr, p_client);
-    if (!p_owner->_p_i2c) return FALSE;
+	p_device = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr, p_client);
+    if (!p_device) return FALSE;
+	p_owner->_p_device = &p_device->parent;
 
     p_owner->__addr = addr;
     p_owner->__write_delay_ms = write_delay_ms;
@@ -244,9 +247,11 @@ fail:
 
 void pifStorage_DetachI2c(PifStorage* p_owner)
 {
-	if (p_owner->_p_i2c) {
-		pifI2cPort_RemoveDevice(p_owner->_p_i2c->_p_port, p_owner->_p_i2c);
-    	p_owner->_p_i2c = NULL;
+	if (p_owner->_p_device) {
+		PifI2cDevice *p_device = (PifI2cDevice *)p_owner->_p_device;
+
+		pifI2cPort_RemoveDevice(p_device->_p_port, p_device);
+    	p_owner->_p_device = NULL;
 	}
 	p_owner->__act_read = NULL;
 	p_owner->__act_write = NULL;

@@ -28,7 +28,7 @@ BOOL pifMpu30x0_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client)
 
     p_device = pifI2cPort_TemporaryDevice(p_i2c, addr, p_client);
 
-	if (!pifI2cDevice_ReadRegByte(p_device, MPU30X0_REG_WHO_AM_I, &data)) return FALSE;
+	if (!pifDeviceReg_ReadRegByte((PifDeviceReg *)p_device, MPU30X0_REG_WHO_AM_I, &data)) return FALSE;
 	if (data != addr) return FALSE;
 #ifndef PIF_NO_LOG	
 	if (data < 64) {
@@ -43,6 +43,8 @@ BOOL pifMpu30x0_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client)
 
 BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client, PifImuSensor* p_imu_sensor)
 {
+	PifI2cDevice *p_device;
+
 	uint8_t data;
 	BOOL change;
 
@@ -53,13 +55,14 @@ BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
 
 	memset(p_owner, 0, sizeof(PifMpu30x0));
 
-    p_owner->_p_i2c = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
-    if (!p_owner->_p_i2c) return FALSE;
+    p_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
+    if (!p_device) return FALSE;
+    p_owner->_p_device = &p_device->parent;
 
-    if (!pifI2cDevice_ReadRegBit8(p_owner->_p_i2c, MPU30X0_REG_DLPF_FS_SYNC, MPU30X0_FS_SEL_MASK, &data)) goto fail;
+    if (!pifDeviceReg_ReadRegBit8(p_owner->_p_device, MPU30X0_REG_DLPF_FS_SYNC, MPU30X0_FS_SEL_MASK, &data)) goto fail;
     if (!_changeFsSel(p_imu_sensor, data)) goto fail;
 
-    if (!pifI2cDevice_ReadRegByte(p_owner->_p_i2c, MPU30X0_REG_PWR_MGMT, &data)) goto fail;
+    if (!pifDeviceReg_ReadRegByte(p_owner->_p_device, MPU30X0_REG_PWR_MGMT, &data)) goto fail;
     change = FALSE;
     if ((data & MPU30X0_CLK_SEL_MASK) != MPU30X0_CLK_SEL_PLL_XGYRO) {
     	SET_BIT_FILED(data, MPU30X0_CLK_SEL_MASK, MPU30X0_CLK_SEL_PLL_XGYRO);
@@ -70,7 +73,7 @@ BOOL pifMpu30x0_Init(PifMpu30x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t a
         change = TRUE;
     }
     if (change) {
-    	if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU30X0_REG_PWR_MGMT, data)) goto fail;
+    	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU30X0_REG_PWR_MGMT, data)) goto fail;
     }
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
@@ -93,22 +96,24 @@ fail:
 
 void pifMpu30x0_Clear(PifMpu30x0* p_owner)
 {
-    if (p_owner->_p_i2c) {
-		pifI2cPort_RemoveDevice(p_owner->_p_i2c->_p_port, p_owner->_p_i2c);
-    	p_owner->_p_i2c = NULL;
+    if (p_owner->_p_device) {
+		PifI2cDevice *p_device = (PifI2cDevice *)p_owner->_p_device;
+
+		pifI2cPort_RemoveDevice(p_device->_p_port, p_device);
+    	p_owner->_p_device = NULL;
     }
 }
 
 BOOL pifMpu30x0_SetDlpfFsSync(PifMpu30x0* p_owner, uint8_t dlpf_fs_sync)
 {
-    if (!pifI2cDevice_WriteRegByte(p_owner->_p_i2c, MPU30X0_REG_DLPF_FS_SYNC, dlpf_fs_sync)) return FALSE;
+    if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU30X0_REG_DLPF_FS_SYNC, dlpf_fs_sync)) return FALSE;
     _changeFsSel(p_owner->__p_imu_sensor, dlpf_fs_sync & MPU30X0_FS_SEL_MASK);
 	return TRUE;
 }
 
 BOOL pifMpu30x0_SetFsSel(PifMpu30x0* p_owner, PifMpu30x0FsSel fs_sel)
 {
-    if (!pifI2cDevice_WriteRegBit8(p_owner->_p_i2c, MPU30X0_REG_DLPF_FS_SYNC, MPU30X0_FS_SEL_MASK, fs_sel)) return FALSE;
+    if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, MPU30X0_REG_DLPF_FS_SYNC, MPU30X0_FS_SEL_MASK, fs_sel)) return FALSE;
     _changeFsSel(p_owner->__p_imu_sensor, fs_sel);
 	return TRUE;
 }
@@ -117,7 +122,7 @@ BOOL pifMpu30x0_ReadGyro(PifMpu30x0* p_owner, int16_t* p_gyro)
 {
 	uint8_t data[6];
 
-	if (!pifI2cDevice_ReadRegBytes(p_owner->_p_i2c, MPU30X0_REG_GYRO_XOUT_H, data, 6)) return FALSE;
+	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU30X0_REG_GYRO_XOUT_H, data, 6)) return FALSE;
 
 	p_gyro[AXIS_X] = (data[0] << 8) | data[1];
 	p_gyro[AXIS_Y] = (data[2] << 8) | data[3];
@@ -134,7 +139,7 @@ BOOL pifMpu30x0_ReadTemperature(PifMpu30x0* p_owner, float* p_temperature)
 {
 	uint8_t data[2];
 
-    if (!pifI2cDevice_ReadRegBytes(p_owner->_p_i2c, MPU30X0_REG_TEMP_OUT_H, data, 2)) return FALSE;
+    if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU30X0_REG_TEMP_OUT_H, data, 2)) return FALSE;
     *p_temperature = 35.0f + ((int16_t)((data[0] << 8) + data[1]) + 13200.0f) / 280.0f;
 	return TRUE;
 }

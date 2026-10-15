@@ -91,7 +91,7 @@ static BOOL _readConversion(PifAds1x1x* p_owner)
 	uint16_t data;
 
 	p_owner->_state = ADS1X1X_STATE_IDLE;
-	if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONVERSION, &data)) return FALSE;
+	if (!pifDeviceReg_ReadRegWord(p_owner->_p_device, ADS1X1X_REG_CONVERSION, &data)) return FALSE;
 
 	p_owner->_value = (int16_t)(data >> p_owner->__bit_offset);
 	return TRUE;
@@ -118,6 +118,8 @@ static void _evtTimerFinish(PifIssuerP p_issuer)
 
 BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, uint8_t addr, void *p_client)
 {
+	PifI2cDevice *p_device;
+
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
@@ -127,8 +129,9 @@ BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cP
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
-	p_owner->_p_i2c = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr, p_client);
-    if (!p_owner->_p_i2c) return FALSE;
+	p_device = pifI2cPort_AddDevice(p_port, PIF_ID_AUTO, addr, p_client);
+    if (!p_device) return FALSE;
+    p_owner->_p_device = &p_device->parent;
 
     switch (type) {
     case ADS1X1X_TYPE_1115: p_owner->__resolution = 16; p_owner->__channels = 4; break;
@@ -143,7 +146,7 @@ BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cP
     }
     p_owner->_type = type;
     p_owner->__bit_offset = p_owner->__resolution == 12 ? 4 : 0;
-    if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, &p_owner->_config)) goto fail;
+    if (!pifDeviceReg_ReadRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, &p_owner->_config)) goto fail;
     p_owner->convert_voltage = _convertVoltage(p_owner);
     p_owner->__conversion_delay = _conversionDelay(p_owner);
     return TRUE;
@@ -156,9 +159,11 @@ fail:
 void pifAds1x1x_Clear(PifAds1x1x* p_owner)
 {
 	pifAds1x1x_DetachTimer(p_owner);
-	if (p_owner->_p_i2c) {
-		pifI2cPort_RemoveDevice(p_owner->_p_i2c->_p_port, p_owner->_p_i2c);
-    	p_owner->_p_i2c = NULL;
+	if (p_owner->_p_device) {
+		PifI2cDevice *p_device = (PifI2cDevice *)p_owner->_p_device;
+
+		pifI2cPort_RemoveDevice(p_device->_p_port, p_device);
+    	p_owner->_p_device = NULL;
 	}
 }
 
@@ -166,7 +171,7 @@ int16_t pifAds1x1x_Read(PifAds1x1x* p_owner)
 {
 	uint16_t data;
 
-	if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONVERSION, &data)) return 0;
+	if (!pifDeviceReg_ReadRegWord(p_owner->_p_device, ADS1X1X_REG_CONVERSION, &data)) return 0;
 	return data >> p_owner->__bit_offset;
 }
 
@@ -231,7 +236,7 @@ PifAds1x1xStart pifAds1x1x_StartMux(PifAds1x1x* p_owner, PifAds1x1xMux mux)
 	// describes the configuration rather than the one shot that used it.
 	config = p_owner->_config;
 	config |= ADS1X1X_SSCS_SINGLE;
-	if (!pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, config)) return ADS1X1X_START_FAILURE;
+	if (!pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, config)) return ADS1X1X_START_FAILURE;
 
 	// Too short for the timer to express, so it is waited out here. The answer goes back through
 	// the return value and _value rather than through the read event: an event called from inside
@@ -260,13 +265,13 @@ double pifAds1x1x_Voltage(PifAds1x1x* p_owner)
 BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, uint16_t config)
 {
 	p_owner->_config = config;
-	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
 }
 
 BOOL pifAds1x1x_SingleShotConvert(PifAds1x1x* p_owner)
 {
 	SET_BIT_FILED(p_owner->_config, ADS1X1X_OS_SSCS_MASK, ADS1X1X_SSCS_SINGLE);
-	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
 }
 
 BOOL pifAds1x1x_SetMux(PifAds1x1x* p_owner, PifAds1x1xMux mux)
@@ -274,7 +279,7 @@ BOOL pifAds1x1x_SetMux(PifAds1x1x* p_owner, PifAds1x1xMux mux)
 	if (p_owner->__channels == 1) return FALSE;
 
 	SET_BIT_FILED(p_owner->_config, ADS1X1X_MUX_MASK, mux);
-	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
 }
 
 BOOL pifAds1x1x_SetGain(PifAds1x1x* p_owner, PifAds1x1xPGA pga)
@@ -283,20 +288,20 @@ BOOL pifAds1x1x_SetGain(PifAds1x1x* p_owner, PifAds1x1xPGA pga)
 
 	SET_BIT_FILED(p_owner->_config, ADS1X1X_PGA_MASK, pga);
     p_owner->convert_voltage = _convertVoltage(p_owner);
-	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
 }
 
 BOOL pifAds1x1x_SetMode(PifAds1x1x* p_owner, PifAds1x1xMode mode)
 {
 	SET_BIT_FILED(p_owner->_config, ADS1X1X_MODE_MASK, mode);
-	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
 }
 
 BOOL pifAds1x1x_SetDataRate(PifAds1x1x* p_owner, PifAds1x1xDR dr)
 {
 	SET_BIT_FILED(p_owner->_config, ADS1X1X_DR_MASK, dr);
     p_owner->__conversion_delay = _conversionDelay(p_owner);
-	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
 }
 
 BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xCompMode comp_mode)
@@ -304,7 +309,7 @@ BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xCompMode comp_mode)
 	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
 	SET_BIT_FILED(p_owner->_config, ADS1X1X_COMP_MODE_MASK, comp_mode);
-	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
 }
 
 BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xCompPol comp_pol)
@@ -312,7 +317,7 @@ BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xCompPol comp_pol)
 	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
 	SET_BIT_FILED(p_owner->_config, ADS1X1X_COMP_POL_MASK, comp_pol);
-	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
 }
 
 BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xCompLat comp_lat)
@@ -320,7 +325,7 @@ BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xCompLat comp_lat)
 	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
 	SET_BIT_FILED(p_owner->_config, ADS1X1X_COMP_LAT_MASK, comp_lat);
-	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
 }
 
 BOOL pifAds1x1x_SetCompQue(PifAds1x1x* p_owner, PifAds1x1xCompQue comp_que)
@@ -328,20 +333,20 @@ BOOL pifAds1x1x_SetCompQue(PifAds1x1x* p_owner, PifAds1x1xCompQue comp_que)
 	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
 	SET_BIT_FILED(p_owner->_config, ADS1X1X_COMP_QUE_MASK, comp_que);
-	return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
 }
 
 BOOL pifAds1x1x_SetLoThresh(PifAds1x1x* p_owner, int16_t threshold)
 {
     int16_t v = (threshold & ((1 << p_owner->__resolution) - 1)) << p_owner->__bit_offset;
-    return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_LO_THRESH, v);
+    return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_LO_THRESH, v);
 }
 
 int16_t pifAds1x1x_GetLoThresh(PifAds1x1x* p_owner)
 {
 	uint16_t data;
 
-    if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_LO_THRESH, &data)) return 0;
+    if (!pifDeviceReg_ReadRegWord(p_owner->_p_device, ADS1X1X_REG_LO_THRESH, &data)) return 0;
     return data >> p_owner->__bit_offset;
 }
 
@@ -358,14 +363,14 @@ double pifAds1x1x_GetLoThreshVoltage(PifAds1x1x* p_owner)
 BOOL pifAds1x1x_SetHiThresh(PifAds1x1x* p_owner, int16_t threshold)
 {
     int16_t v = (threshold & ((1 << p_owner->__resolution) - 1)) << p_owner->__bit_offset;
-    return pifI2cDevice_WriteRegWord(p_owner->_p_i2c, ADS1X1X_REG_HI_THRESH, v);
+    return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_HI_THRESH, v);
 }
 
 int16_t pifAds1x1x_GetHiThresh(PifAds1x1x* p_owner)
 {
 	uint16_t data;
 
-    if (!pifI2cDevice_ReadRegWord(p_owner->_p_i2c, ADS1X1X_REG_HI_THRESH, &data)) return 0;
+    if (!pifDeviceReg_ReadRegWord(p_owner->_p_device, ADS1X1X_REG_HI_THRESH, &data)) return 0;
     return data >> p_owner->__bit_offset;
 }
 

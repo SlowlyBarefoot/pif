@@ -93,7 +93,7 @@ static uint32_t _doTask(PifTask* p_task)
 		break;
 
 	case BMP280_STATE_WAIT:
-		if ((p_owner->_fn.read_byte)(p_owner->_fn.p_device, BMP280_REG_STATUS, data)) {
+		if (pifDeviceReg_ReadRegByte(p_owner->_p_device, BMP280_REG_STATUS, data)) {
 			if (!(data[0] & BMP280_MEASURING_MASK)) {
 				// Nothing more has to be left for: the sample is sitting in the device.
 				p_owner->__state = BMP280_STATE_READ;
@@ -103,7 +103,7 @@ static uint32_t _doTask(PifTask* p_task)
 		break;
 
 	case BMP280_STATE_READ:
-		if ((p_owner->_fn.read_bytes)(p_owner->_fn.p_device, BMP280_REG_PRESS_MSB, data, 6)) {
+		if (pifDeviceReg_ReadRegBytes(p_owner->_p_device, BMP280_REG_PRESS_MSB, data, 6)) {
 			p_owner->__raw_pressure = (int32_t)((((uint32_t)(data[0])) << 12) | (((uint32_t)(data[1])) << 4) | ((uint32_t)data[2] >> 4));
 			p_owner->__raw_temperature = (int32_t)((((uint32_t)(data[3])) << 12) | (((uint32_t)(data[4])) << 4) | ((uint32_t)data[5] >> 4));
 			p_owner->__state = BMP280_STATE_CALCURATE;
@@ -139,9 +139,7 @@ BOOL pifBmp280_Config(PifBmp280* p_owner, PifId id)
 {
 	uint8_t data;
 
-	if (!p_owner || !p_owner->_fn.p_device
-			|| !p_owner->_fn.read_byte || !p_owner->_fn.read_bytes || !p_owner->_fn.read_bit
-			|| !p_owner->_fn.write_byte || !p_owner->_fn.write_bytes || !p_owner->_fn.write_bit) {
+	if (!p_owner || !p_owner->_p_device) {
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
 	}
@@ -149,12 +147,12 @@ BOOL pifBmp280_Config(PifBmp280* p_owner, PifId id)
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
 
-	if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, BMP280_REG_CALIB, (uint8_t*)&p_owner->__calib_param, 24)) return FALSE;
+	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, BMP280_REG_CALIB, (uint8_t*)&p_owner->__calib_param, 24)) return FALSE;
 
-    if (!(p_owner->_fn.read_byte)(p_owner->_fn.p_device, BMP280_REG_CTRL_MEAS, &data)) return FALSE;
+    if (!pifDeviceReg_ReadRegByte(p_owner->_p_device, BMP280_REG_CTRL_MEAS, &data)) return FALSE;
 	pifBmp280_SetOverSamplingRate(p_owner, data & BMP280_OSRS_P_MASK, data & BMP280_OSRS_T_MASK);
 
-	if (!(p_owner->_fn.write_bit)(p_owner->_fn.p_device, BMP280_REG_CONFIG, BMP280_FILTER_MASK, BMP280_FILTER_X16)) return FALSE;
+	if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, BMP280_REG_CONFIG, BMP280_FILTER_MASK, BMP280_FILTER_X16)) return FALSE;
     return TRUE;
 }
 
@@ -174,7 +172,7 @@ void pifBmp280_SetOverSamplingRate(PifBmp280* p_owner, uint8_t osrs_p, uint8_t o
 
 BOOL pifBmp280_StartMeasurement(PifBmp280* p_owner)
 {
-	return (p_owner->_fn.write_byte)(p_owner->_fn.p_device, BMP280_REG_CTRL_MEAS,
+	return pifDeviceReg_WriteRegByte(p_owner->_p_device, BMP280_REG_CTRL_MEAS,
 			BMP280_MODE_FORCED | p_owner->_osrs_p | p_owner->_osrs_t);
 }
 
@@ -186,10 +184,10 @@ BOOL pifBmp280_ReadRawData(PifBmp280* p_owner, int32_t* p_pressure, int32_t* p_t
 	// finds it has not comes back on its next release instead of holding the CPU until it does.
 	// That is also what keeps the wait from having to be estimated: the measurement takes as long
 	// as it takes, and __delay is only how long to leave it before asking the first time.
-	if (!(p_owner->_fn.read_byte)(p_owner->_fn.p_device, BMP280_REG_STATUS, data)) return FALSE;
+	if (!pifDeviceReg_ReadRegByte(p_owner->_p_device, BMP280_REG_STATUS, data)) return FALSE;
 	if (data[0] & BMP280_MEASURING_MASK) return FALSE;
 
-	if (!(p_owner->_fn.read_bytes)(p_owner->_fn.p_device, BMP280_REG_PRESS_MSB, data, 6)) return FALSE;
+	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, BMP280_REG_PRESS_MSB, data, 6)) return FALSE;
 
     *p_pressure = (int32_t)((((uint32_t)(data[0])) << 12) | (((uint32_t)(data[1])) << 4) | ((uint32_t)data[2] >> 4));
     *p_temperature = (int32_t)((((uint32_t)(data[3])) << 12) | (((uint32_t)(data[4])) << 4) | ((uint32_t)data[5] >> 4));
