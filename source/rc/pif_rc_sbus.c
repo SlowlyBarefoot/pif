@@ -90,7 +90,7 @@ static void _packChannels(const uint16_t* p_channel, uint8_t count, uint8_t* p_d
  * @param act_receive_data UART receive function used to pull available bytes.
  * @return TRUE when a full frame is parsed or parser state remains active; otherwise FALSE.
  */
-static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActTransportReceive act_receive_data)
 {
 	PifRcSbus *p_owner = (PifRcSbus *)p_client;
 	uint8_t i, data, flags;
@@ -105,7 +105,7 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 
 	p_buffer = p_owner->__buffer;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
+	while ((*act_receive_data)(&p_owner->__p_uart->parent, &data, 1)) {
 		// Bytes before a start byte belong to a frame whose beginning was missed.
 		if (!p_owner->__index && data != SBUS_STARTBYTE) continue;
 
@@ -162,12 +162,12 @@ BOOL pifRcSbus_Init(PifRcSbus* p_owner, PifId id)
 void pifRcSbus_AttachUart(PifRcSbus* p_owner, PifUart *p_uart)
 {
 	p_owner->__p_uart = p_uart;
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, NULL);
+	pifTransport_AttachClient(&p_uart->parent, p_owner, _evtParsing, NULL, NULL);
 }
 
 void pifRcSbus_DetachUart(PifRcSbus* p_owner)
 {
-	pifUart_DetachClient(p_owner->__p_uart);
+	pifTransport_DetachClient(&p_owner->__p_uart->parent);
 	p_owner->__p_uart = NULL;
 }
 

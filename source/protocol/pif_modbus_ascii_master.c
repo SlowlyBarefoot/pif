@@ -43,12 +43,12 @@ static void _checkTimeout(PifModbusAsciiMaster *p_owner)
  * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
  * @return None.
  */
-static void _parsingPacket(PifModbusAsciiMaster *p_owner, PifActUartReceiveData act_receive_data)
+static void _parsingPacket(PifModbusAsciiMaster *p_owner, PifActTransportReceive act_receive_data)
 {
 	uint8_t data;
 	int16_t length;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
+	while ((*act_receive_data)(&p_owner->__p_uart->parent, &data, 1)) {
 		// The wait runs from byte to byte, so a long response at a low baud rate is not cut short.
 		pifTaskTimeout_Start(&p_owner->__timeout, p_owner->__timeout_ms * 1000UL);
 
@@ -115,7 +115,7 @@ fail:
  * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
  * @return TRUE when the callback handled data; otherwise FALSE.
  */
-static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActTransportReceive act_receive_data)
 {
 	PifModbusAsciiMaster *p_owner = (PifModbusAsciiMaster *)p_client;
 	uint8_t data;
@@ -125,14 +125,13 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 
 	switch (p_owner->__state) {
 	case MBMS_REQUEST_WAIT:
-	case MBMS_REQUEST_DELAY:
 	case MBMS_RESPONSE:
 		if (!p_owner->__broadcast) break;
 		// fall through
 
 	default:
 		// Nothing is awaited, so whatever comes in is noise or the tail of a frame already given up on.
-		while ((*act_receive_data)(p_owner->__p_uart, &data, 1));
+		while ((*act_receive_data)(&p_owner->__p_uart->parent, &data, 1));
 		return FALSE;
 	}
 
@@ -187,7 +186,7 @@ static void _sent(PifModbusAsciiMaster *p_owner)
  * @param act_send_data Callback used to push outgoing bytes to the underlying driver.
  * @return Number of bytes transmitted during this callback invocation.
  */
-static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
+static uint16_t _evtSending(void *p_client, PifActTransportSend act_send_data)
 {
 	PifModbusAsciiMaster *p_owner = (PifModbusAsciiMaster *)p_client;
 	uint16_t length, period = 0;
@@ -196,12 +195,11 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 
 	switch (p_owner->__state) {
 	case MBMS_REQUEST:
-    	length = (*act_send_data)(p_owner->__p_uart, p_owner->__buffer + p_owner->index,
+    	length = (*act_send_data)(&p_owner->__p_uart->parent, p_owner->__buffer + p_owner->index,
     			p_owner->length - p_owner->index);
 		p_owner->index += length;
 		if (p_owner->index >= p_owner->length) {
-			if (p_owner->__p_uart->__act_direction) _setState(p_owner, MBMS_REQUEST_WAIT);
-			else _sent(p_owner);
+			_setState(p_owner, MBMS_REQUEST_WAIT);
 		}
 		period = 1;
 		break;
@@ -209,14 +207,9 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 	case MBMS_REQUEST_WAIT:
 		period = 1;
 		if (pifUart_CheckTxTransfer(p_owner->__p_uart)) {
-			_setState(p_owner, MBMS_REQUEST_DELAY);
-			period *= 2;
+			_sent(p_owner);
+			period = 0;
 		}
-		break;
-
-	case MBMS_REQUEST_DELAY:
-		pifUart_SetDirection(p_owner->__p_uart, UD_RX);
-		_sent(p_owner);
 		break;
 
 	default:
@@ -322,8 +315,6 @@ static void _request(PifModbusAsciiMaster *p_owner, uint16_t len)
 	// A frame the last request gave up on halfway must not run into the response of this one.
 	p_owner->__rx_state = MBRS_IDLE;
 
-	pifUart_SetDirection(p_owner->__p_uart, UD_TX);
-
 	p_owner->__buffer[0] = ':';
 	pifModbusAscii_CharToAscii(pifModbusAscii_CalcLrcOfAscii(&p_owner->__buffer[1], len - 1), &p_owner->__buffer[len]);
 	len += 2;
@@ -394,12 +385,12 @@ void pifModbusAsciiMaster_SetResponseTimeout(PifModbusAsciiMaster *p_owner, uint
 void pifModbusAsciiMaster_AttachUart(PifModbusAsciiMaster *p_owner, PifUart *p_uart)
 {
 	p_owner->__p_uart = p_uart;
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
+	pifTransport_AttachClient(&p_uart->parent, p_owner, _evtParsing, _evtSending, NULL);
 }
 
 void pifModbusAsciiMaster_DetachUart(PifModbusAsciiMaster *p_owner)
 {
-	pifUart_DetachClient(p_owner->__p_uart);
+	pifTransport_DetachClient(&p_owner->__p_uart->parent);
 	p_owner->__p_uart = NULL;
 }
 
@@ -412,8 +403,6 @@ PifModbusMasterResult pifModbusAsciiMaster_Check(PifModbusAsciiMaster *p_owner)
 	// Everything before this is the request still going out or the response still coming in.
 	if (p_owner->__state != MBMS_FINISH && p_owner->__state != MBMS_ERROR) return MBMR_BUSY;
 
-	// The line goes back to being driven for transmission, whichever way the request ended.
-	pifUart_SetDirection(p_owner->__p_uart, UD_TX);
 	if (p_owner->__state == MBMS_FINISH && p_owner->_error == MBE_NONE) _copyResult(p_owner);
 	_setState(p_owner, MBMS_IDLE);
 	return p_owner->_error == MBE_NONE ? MBMR_DONE : MBMR_ERROR;

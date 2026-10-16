@@ -130,13 +130,13 @@ static PifRcCrsfFrame _parsingPacket(PifRcCrsf* p_owner, uint8_t data)
  * @param act_receive_data UART receive function used to pull available bytes.
  * @return TRUE when a frame was completed or one is still being received; otherwise FALSE.
  */
-static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void* p_client, PifActTransportReceive act_receive_data)
 {
 	PifRcCrsf* p_owner = (PifRcCrsf*)p_client;
 	uint8_t data;
 	BOOL rtn = FALSE;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
+	while ((*act_receive_data)(&p_owner->__p_uart->parent, &data, 1)) {
 		if (_parsingPacket(p_owner, data) != CRSF_FRAME_NONE) rtn = TRUE;
 	}
 	return rtn || p_owner->__ptr > 0;
@@ -176,12 +176,12 @@ void pifRcCrsf_Clear(PifRcCrsf* p_owner)
 void pifRcCrsf_AttachUart(PifRcCrsf* p_owner, PifUart* p_uart)
 {
 	p_owner->__p_uart = p_uart;
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, NULL);
+	pifTransport_AttachClient(&p_uart->parent, p_owner, _evtParsing, NULL, NULL);
 }
 
 void pifRcCrsf_DetachUart(PifRcCrsf* p_owner)
 {
-	pifUart_DetachClient(p_owner->__p_uart);
+	pifTransport_DetachClient(&p_owner->__p_uart->parent);
 	p_owner->__p_uart = NULL;
 }
 

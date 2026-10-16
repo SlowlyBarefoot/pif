@@ -308,26 +308,31 @@ static void _testXmodemCan(void) { _testXmodem(MEDIUM_CAN); }
 static void _testXmodemCanFd(void) { _testXmodem(MEDIUM_CAN_FD); }
 
 
+static void _evtAbortRxNone(void *p_client)
+{
+    (void)p_client;
+}
+
 static void _testUartTransport(void)
 {
     CHECK(_setUpMedium(MEDIUM_UART));
     CHECK(pifLink_Init(&s_link_a, PIF_ID_AUTO, &s_timer_manager, LINK_T_SINGLE, 0, s_questions_a));
 
-    // A client attached through the transport replaces one attached with pifUart_AttachClient(), and
-    // detaching it leaves the UART without a client.
-    pifUart_AttachClient(&s_uart_a, &s_x_tx, NULL, NULL);
+    // A client attached later replaces the one before it, together with its evt_abort_rx, and detaching
+    // it leaves the UART without a client.
+    pifTransport_AttachClient(&s_uart_a.parent, &s_x_tx, NULL, NULL, _evtAbortRxNone);
     pifLink_AttachTransport(&s_link_a, &s_uart_a.parent);
     CHECK(s_link_a.__p_transport == &s_uart_a.parent && s_uart_a.__p_client == &s_link_a);
-    CHECK(s_uart_a.__evt_transport_parsing && !s_uart_a.__evt_parsing);
+    CHECK(s_uart_a.__evt_parsing && !s_uart_a.__evt_abort_rx);
     pifLink_DetachTransport(&s_link_a);
-    CHECK(!s_link_a.__p_transport && !s_uart_a.__p_client && !s_uart_a.__evt_transport_parsing);
+    CHECK(!s_link_a.__p_transport && !s_uart_a.__p_client && !s_uart_a.__evt_parsing);
     pifLink_Clear(&s_link_a);
 
     CHECK(pifXmodem_Init(&s_x_tx, PIF_ID_AUTO, XT_CRC));
     CHECK(!pifXmodem_AttachTransport(&s_x_tx, NULL) && pif_error == E_INVALID_PARAM);
-    CHECK(pifXmodem_AttachTransport(&s_x_tx, &s_uart_a.parent) && s_uart_a.__evt_transport_sending);
+    CHECK(pifXmodem_AttachTransport(&s_x_tx, &s_uart_a.parent) && s_uart_a.__evt_sending);
     pifXmodem_DetachTransport(&s_x_tx);
-    CHECK(!s_x_tx.__p_transport && !s_uart_a.__evt_transport_sending);
+    CHECK(!s_x_tx.__p_transport && !s_uart_a.__evt_sending);
     pifXmodem_Clear(&s_x_tx);
 
     // The UART reports its own state through the transport.
@@ -337,6 +342,101 @@ static void _testUartTransport(void)
     CHECK(pifTransport_GetFlowState(&s_uart_a.parent) == ON);
     _tearDownMedium();
 }
+
+#ifndef PIF_UART_NO_DIRECTION
+
+static uint32_t s_fake_time;
+static PifUartDirection s_dir;
+static int s_dir_calls;
+
+static uint32_t _fakeTimer1us(void)
+{
+    return s_fake_time;
+}
+
+static void _actDirection(PifUartDirection direction)
+{
+    s_dir = direction;
+    s_dir_calls++;
+}
+
+static BOOL _actStartTransfer(PifUart *p_uart)
+{
+    (void)p_uart;
+    return TRUE;
+}
+
+// What the TX interrupt does: takes the whole TX buffer out.
+static void _drainTx(PifUart *p_uart)
+{
+    uint8_t data;
+
+    while (!(pifUart_GetTxByte(p_uart, &data) & PIF_UART_SEND_DATA_STATE_EMPTY));
+}
+
+static void _testUartDirection(void)
+{
+    static uint8_t frame[] = { 1, 2, 3 };
+    PifActTimer1us act_timer = pif_act_timer1us;
+    PifUart uart;
+    PifTask *p_task;
+    uint32_t byte_time, period;
+
+    s_fake_time = 1000;
+    pif_act_timer1us = _fakeTimer1us;
+
+    CHECK(pifUart_Init(&uart, PIF_ID_AUTO, 115200) && pifUart_AllocTxBuffer(&uart, 64));
+    uart.act_start_transfer = _actStartTransfer;
+    p_task = pifUart_AttachTxTask(&uart, PIF_ID_AUTO, TM_EXTERNAL, 0, NULL);
+    CHECK(p_task);
+    byte_time = uart._transfer_time;
+    CHECK(uart.dir_delay == 2);
+
+    s_dir_calls = 0;
+    pifUart_AttachActDirection(&uart, _actDirection, UD_RX);
+    CHECK(s_dir == UD_RX && s_dir_calls == 1 && uart._direction == UD_RX);
+
+    // The line is driven before the bytes go to the TX buffer, and kept while they are in it.
+    CHECK(pifUart_SendTxData(&uart, frame, sizeof(frame)) == sizeof(frame));
+    CHECK(s_dir == UD_TX && s_dir_calls == 2);
+    CHECK((*p_task->__evt_loop)(p_task) && s_dir == UD_TX);
+
+    // Given back dir_delay byte times after the buffer gets empty, not before.
+    _drainTx(&uart);
+    period = (*p_task->__evt_loop)(p_task);
+    CHECK(period == 2 * byte_time && s_dir == UD_TX);
+    s_fake_time += byte_time;
+    CHECK((*p_task->__evt_loop)(p_task) == byte_time && s_dir == UD_TX);
+    s_fake_time += byte_time;
+    CHECK((*p_task->__evt_loop)(p_task) == 0 && s_dir == UD_RX && s_dir_calls == 3);
+
+    // More bytes during the wait keep the line and start the wait over.
+    CHECK(pifUart_SendTxData(&uart, frame, sizeof(frame)) == sizeof(frame));
+    _drainTx(&uart);
+    (*p_task->__evt_loop)(p_task);
+    s_fake_time += byte_time;
+    CHECK(pifUart_SendTxData(&uart, frame, sizeof(frame)) == sizeof(frame) && s_dir_calls == 4);
+    (*p_task->__evt_loop)(p_task);
+    _drainTx(&uart);
+    s_fake_time += byte_time;
+    CHECK((*p_task->__evt_loop)(p_task) == 2 * byte_time && s_dir == UD_TX);
+    s_fake_time += 2 * byte_time;
+    CHECK((*p_task->__evt_loop)(p_task) == 0 && s_dir == UD_RX && s_dir_calls == 5);
+
+    // A line held from outside stays driven through a transfer.
+    pifUart_SetDirection(&uart, UD_TX);
+    CHECK(pifUart_SendTxData(&uart, frame, sizeof(frame)) == sizeof(frame) && s_dir_calls == 6);
+    _drainTx(&uart);
+    (*p_task->__evt_loop)(p_task);
+    s_fake_time += 10 * byte_time;
+    CHECK((*p_task->__evt_loop)(p_task) == 0 && s_dir == UD_TX && s_dir_calls == 6);
+    pifUart_SetDirection(&uart, UD_RX);
+
+    pifUart_Clear(&uart);
+    pif_act_timer1us = act_timer;
+}
+
+#endif	// PIF_UART_NO_DIRECTION
 
 static const struct {
     const char *p_name;
@@ -349,6 +449,9 @@ static const struct {
     { "xmodem over can", _testXmodemCan },
     { "xmodem over can fd", _testXmodemCanFd },
     { "uart transport", _testUartTransport },
+#ifndef PIF_UART_NO_DIRECTION
+    { "uart rs-485 direction", _testUartDirection },
+#endif
 };
 
 int main(void)

@@ -33,7 +33,7 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
@@ -150,7 +150,8 @@ run-test_pif_device_reg: run-test_pif_can_stream
 run-test_pif_ubx_ddc_stream: run-test_pif_device_reg
 run-test_pif_spi_fd_stream: run-test_pif_ubx_ddc_stream
 run-test_pif_transport: run-test_pif_spi_fd_stream
-run-test_pif_pulse: run-test_pif_transport
+run-test_pif_transport_min: run-test_pif_transport
+run-test_pif_pulse: run-test_pif_transport_min
 run-test_pif_encoder: run-test_pif_pulse
 run-test_pif_task_manager: run-test_pif_encoder
 run-test_pif_solenoid: run-test_pif_task_manager
@@ -224,6 +225,10 @@ $(BUILD)/test_pif_spi_fd_stream$(EXE): $(SPI_FD_SRC) $(SPI_FD_DEP) | $(BUILD)
 
 $(BUILD)/test_pif_transport$(EXE): $(TRANSPORT_SRC) $(TRANSPORT_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(TRANSPORT_SRC) -o $@
+
+# PIF_UART_NO_FLOW_CONTROL and PIF_UART_NO_DIRECTION leave the flow control and the RS-485 direction of the UART out.
+$(BUILD)/test_pif_transport_min$(EXE): $(TRANSPORT_SRC) $(TRANSPORT_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_UART_NO_FLOW_CONTROL -DPIF_UART_NO_DIRECTION $(INC) $(TRANSPORT_SRC) -o $@
 
 $(BUILD)/test_pif_pulse$(EXE): $(PULSE_SRC) $(ROOT)/include/sensor/pif_pulse.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(PULSE_SRC) -o $@

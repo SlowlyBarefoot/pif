@@ -17,8 +17,6 @@ static void _sendCommand(PifModbusAsciiSlave *p_owner, uint8_t function, uint16_
 {
 	if (p_owner->__rx.broadcast) return;
 
-	pifUart_SetDirection(p_owner->__p_uart, UD_TX);
-
 	p_owner->__buffer[0] = ':';
 	pifModbusAscii_CharToAscii(p_owner->parent._my_addr, &p_owner->__buffer[1]);
 	pifModbusAscii_CharToAscii(function, &p_owner->__buffer[3]);
@@ -195,7 +193,7 @@ static PifModbusError _completeFrame(PifModbusAsciiSlave *p_owner)
  * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
  * @return Modbus error status produced by command validation or execution.
  */
-static PifModbusError _parsingPacket(PifModbusAsciiSlave *p_owner, PifActUartReceiveData act_receive_data)
+static PifModbusError _parsingPacket(PifModbusAsciiSlave *p_owner, PifActTransportReceive act_receive_data)
 {
 	uint8_t data;
 	PifModbusError exception;
@@ -209,7 +207,7 @@ static PifModbusError _parsingPacket(PifModbusAsciiSlave *p_owner, PifActUartRec
 		p_owner->__rx.state = MBRS_IDLE;
 	}
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
+	while ((*act_receive_data)(&p_owner->__p_uart->parent, &data, 1)) {
 		// A colon always starts a frame, whatever came before it.
 		if (data == ':') {
 			p_owner->__rx.state = MBRS_DATA;
@@ -257,7 +255,7 @@ static PifModbusError _parsingPacket(PifModbusAsciiSlave *p_owner, PifActUartRec
  * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
  * @return TRUE when the callback handled data; otherwise FALSE.
  */
-static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActTransportReceive act_receive_data)
 {
 	PifModbusAsciiSlave *p_owner = (PifModbusAsciiSlave *)p_client;
 	PifModbusSlave *p_parent = &p_owner->parent;
@@ -328,7 +326,7 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
  * @param act_send_data Callback used to push outgoing bytes to the underlying driver.
  * @return Number of bytes transmitted during this callback invocation.
  */
-static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
+static uint16_t _evtSending(void *p_client, PifActTransportSend act_send_data)
 {
 	PifModbusAsciiSlave *p_owner = (PifModbusAsciiSlave *)p_client;
 	uint16_t length, period = 0;
@@ -340,26 +338,13 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 		break;
 
 	case MBSS_SEND:
-    	length = (*act_send_data)(p_owner->__p_uart, p_owner->__buffer + p_owner->__index,
+    	length = (*act_send_data)(&p_owner->__p_uart->parent, p_owner->__buffer + p_owner->__index,
     			p_owner->__length - p_owner->__index);
 		p_owner->__index += length;
 		if (p_owner->__index >= p_owner->__length) {
-			p_owner->parent.__state = p_owner->__p_uart->__act_direction ? MBSS_WAIT : MBSS_IDLE;
+			p_owner->parent.__state = MBSS_IDLE;
 		}
 		period = 1;
-		break;
-
-	case MBSS_WAIT:
-		period = 1;
-		if (pifUart_CheckTxTransfer(p_owner->__p_uart)) {
-			p_owner->parent.__state = MBSS_POST_DELAY;
-			period *= 2;
-		}
-		break;
-
-	case MBSS_POST_DELAY:
-		pifUart_SetDirection(p_owner->__p_uart, UD_RX);
-		p_owner->parent.__state = MBSS_IDLE;
 		break;
 
 	default:
@@ -404,11 +389,11 @@ void pifModbusAsciiSlave_SetReceiveTimeout(PifModbusAsciiSlave *p_owner, uint16_
 void pifModbusAsciiSlave_AttachUart(PifModbusAsciiSlave *p_owner, PifUart *p_uart)
 {
 	p_owner->__p_uart = p_uart;
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
+	pifTransport_AttachClient(&p_uart->parent, p_owner, _evtParsing, _evtSending, NULL);
 }
 
 void pifModbusAsciiSlave_DetachUart(PifModbusAsciiSlave *p_owner)
 {
-	pifUart_DetachClient(p_owner->__p_uart);
+	pifTransport_DetachClient(&p_owner->__p_uart->parent);
 	p_owner->__p_uart = NULL;
 }

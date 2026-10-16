@@ -16,7 +16,7 @@
  * @param act_receive_data UART receive function used to pull available bytes.
  * @return TRUE when a full frame is parsed or parser state remains active; otherwise FALSE.
  */
-static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActTransportReceive act_receive_data)
 {
 	PifRcSumd *p_owner = (PifRcSumd *)p_client;
 	uint8_t data;
@@ -33,7 +33,7 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 
 	p_buffer = p_owner->__p_buffer;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
+	while ((*act_receive_data)(&p_owner->__p_uart->parent, &data, 1)) {
 		p_buffer[p_owner->__index++] = data;
 
 		if (p_owner->__index == 1) {
@@ -109,12 +109,12 @@ BOOL pifRcSumd_Init(PifRcSumd* p_owner, PifId id)
 void pifRcSumd_AttachUart(PifRcSumd* p_owner, PifUart *p_uart)
 {
 	p_owner->__p_uart = p_uart;
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, NULL);
+	pifTransport_AttachClient(&p_uart->parent, p_owner, _evtParsing, NULL, NULL);
 }
 
 void pifRcSumd_DetachUart(PifRcSumd* p_owner)
 {
-	pifUart_DetachClient(p_owner->__p_uart);
+	pifTransport_DetachClient(&p_owner->__p_uart->parent);
 	p_owner->__p_uart = NULL;
 }
 

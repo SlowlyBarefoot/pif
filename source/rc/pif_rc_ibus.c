@@ -140,14 +140,14 @@ static PifRcIbusFrame _parsingPacket(PifRcIbus *p_owner, uint8_t data)
  * @param act_receive_data UART receive function used to pull available bytes.
  * @return TRUE when a frame was completed or one is still being received; otherwise FALSE.
  */
-static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActTransportReceive act_receive_data)
 {
 	PifRcIbus *p_owner = (PifRcIbus *)p_client;
 	PifRcIbusFrame frame;
 	uint8_t data;
 	BOOL rtn = FALSE;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
+	while ((*act_receive_data)(&p_owner->__p_uart->parent, &data, 1)) {
 		frame = _parsingPacket(p_owner, data);
 		if (frame != IBUS_FRAME_NONE) {
 			if (frame == IBUS_FRAME_TELEMETRY) {
@@ -185,12 +185,12 @@ void pifRcIbus_Clear(PifRcIbus* p_owner)
 void pifRcIbus_AttachUart(PifRcIbus* p_owner, PifUart *p_uart)
 {
 	p_owner->__p_uart = p_uart;
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, NULL);
+	pifTransport_AttachClient(&p_uart->parent, p_owner, _evtParsing, NULL, NULL);
 }
 
 void pifRcIbus_DetachUart(PifRcIbus* p_owner)
 {
-	pifUart_DetachClient(p_owner->__p_uart);
+	pifTransport_DetachClient(&p_owner->__p_uart->parent);
 	p_owner->__p_uart = NULL;
 }
 

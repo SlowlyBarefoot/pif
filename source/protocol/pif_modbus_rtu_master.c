@@ -52,12 +52,12 @@ static void _checkTimeout(PifModbusRtuMaster *p_owner)
  * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
  * @return None.
  */
-static void _parsingPacket(PifModbusRtuMaster *p_owner, PifActUartReceiveData act_receive_data)
+static void _parsingPacket(PifModbusRtuMaster *p_owner, PifActTransportReceive act_receive_data)
 {
 	uint8_t data;
 	uint16_t crc[2];
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
+	while ((*act_receive_data)(&p_owner->__p_uart->parent, &data, 1)) {
 		// The wait runs from byte to byte, so a long response at a low baud rate is not cut short.
 		pifTaskTimeout_Start(&p_owner->__timeout, p_owner->__timeout_ms * 1000UL);
 
@@ -145,7 +145,7 @@ fail:
  * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
  * @return TRUE when the callback handled data; otherwise FALSE.
  */
-static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActTransportReceive act_receive_data)
 {
 	PifModbusRtuMaster *p_owner = (PifModbusRtuMaster *)p_client;
 	uint8_t data;
@@ -155,14 +155,13 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 
 	switch (p_owner->__state) {
 	case MBMS_REQUEST_WAIT:
-	case MBMS_REQUEST_DELAY:
 	case MBMS_RESPONSE:
 		if (!p_owner->__broadcast) break;
 		// fall through
 
 	default:
 		// Nothing is awaited, so whatever comes in is noise or the tail of a frame already given up on.
-		while ((*act_receive_data)(p_owner->__p_uart, &data, 1));
+		while ((*act_receive_data)(&p_owner->__p_uart->parent, &data, 1));
 		return FALSE;
 	}
 
@@ -182,7 +181,6 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
 	}
 
 	pifTaskTimeout_Stop(&p_owner->__timeout);
-	pifUart_SetDirection(p_owner->__p_uart, UD_TX);
 	p_owner->__rx_state = MBRS_IDLE;
 	_startResponseDelay(p_owner);
 	return TRUE;
@@ -194,7 +192,7 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
  * @param act_send_data Callback used to push outgoing bytes to the underlying driver.
  * @return Number of bytes transmitted during this callback invocation.
  */
-static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
+static uint16_t _evtSending(void *p_client, PifActTransportSend act_send_data)
 {
 	PifModbusRtuMaster *p_owner = (PifModbusRtuMaster *)p_client;
 	uint16_t length, period = 0;
@@ -203,7 +201,7 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 
 	switch (p_owner->__state) {
 	case MBMS_REQUEST:
-    	length = (*act_send_data)(p_owner->__p_uart, p_owner->__buffer + p_owner->index,
+    	length = (*act_send_data)(&p_owner->__p_uart->parent, p_owner->__buffer + p_owner->index,
     			p_owner->length - p_owner->index);
 		p_owner->index += length;
 		if (p_owner->index >= p_owner->length) {
@@ -214,20 +212,15 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 
 	case MBMS_REQUEST_WAIT:
 		period = 1;
-		if (pifUart_CheckTxTransfer(p_owner->__p_uart)) {
-			_setState(p_owner, MBMS_REQUEST_DELAY);
-			period *= 2;
-		}
-		break;
+		if (!pifUart_CheckTxTransfer(p_owner->__p_uart)) break;
 
-	case MBMS_REQUEST_DELAY:
+		period = 0;
 		if (p_owner->__broadcast) {
 			// No slave answers a broadcast, so it is over once it is out.
 			pifTaskTimeout_Stop(&p_owner->__timeout);
 			_startResponseDelay(p_owner);
 		}
 		else {
-			pifUart_SetDirection(p_owner->__p_uart, UD_RX);
 			_setState(p_owner, MBMS_RESPONSE);
 			// The wait for the response starts once the request is out.
 			pifTaskTimeout_Start(&p_owner->__timeout, p_owner->__timeout_ms * 1000UL);
@@ -332,8 +325,6 @@ static void _request(PifModbusRtuMaster *p_owner, uint16_t len)
 	// A frame the last request gave up on halfway must not run into the response of this one.
 	p_owner->__rx_state = MBRS_IDLE;
 
-	pifUart_SetDirection(p_owner->__p_uart, UD_TX);
-
 	pifModbus_ShortToStream(pifModbusRtu_CalcCrc(p_owner->__buffer, len), &p_owner->__buffer[len]);
 
 	// Guards the sending itself: the time the frame takes on the line, and the timeout on top.
@@ -400,12 +391,12 @@ void pifModbusRtuMaster_SetResponseTimeout(PifModbusRtuMaster *p_owner, uint16_t
 void pifModbusRtuMaster_AttachUart(PifModbusRtuMaster *p_owner, PifUart *p_uart)
 {
 	p_owner->__p_uart = p_uart;
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
+	pifTransport_AttachClient(&p_uart->parent, p_owner, _evtParsing, _evtSending, NULL);
 }
 
 void pifModbusRtuMaster_DetachUart(PifModbusRtuMaster *p_owner)
 {
-	pifUart_DetachClient(p_owner->__p_uart);
+	pifTransport_DetachClient(&p_owner->__p_uart->parent);
 	p_owner->__p_uart = NULL;
 }
 

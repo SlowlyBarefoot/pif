@@ -10,9 +10,7 @@ typedef enum EnPifModbusSlaveState
 {
 	MBSS_IDLE			= 0,
 	MBSS_PRE_DELAY		= 1,
-	MBSS_SEND			= 2,
-	MBSS_WAIT			= 3,
-	MBSS_POST_DELAY		= 4
+	MBSS_SEND			= 2
 } PifModbusSlaveState;
 
 

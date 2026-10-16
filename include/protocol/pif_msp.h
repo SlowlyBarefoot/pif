@@ -3,7 +3,7 @@
 #define PIF_MSP_H
 
 
-#include "communication/pif_uart.h"
+#include "communication/pif_transport.h"
 #include "core/pif_ring_buffer.h"
 #include "core/pif_timer_manager.h"
 
@@ -133,7 +133,7 @@ struct StPifMsp
     PifId _id;
 
 	// Private Member Variable
-	PifUart* __p_uart;
+	PifTransport *__p_transport;
     PifMspRx __rx;
     PifMspTx __tx;
 	uint8_t __check_xor;
@@ -194,19 +194,20 @@ BOOL pifMsp_AssignRxBuffer(PifMsp* p_owner, uint16_t size, uint8_t* p_buffer);
 BOOL pifMsp_AssignAnswerBuffer(PifMsp* p_owner, uint16_t size, uint8_t* p_buffer);
 
 /**
- * @fn pifMsp_AttachUart
- * @brief Attaches an interface or callback to the instance.
+ * @fn pifMsp_AttachTransport
+ * @brief Attaches the protocol to a transport as its client.
  * @param p_owner Pointer to the protocol instance.
- * @param p_uart UART interface bound to this protocol instance.
+ * @param p_transport Transport that the received bytes come from and the answers go to, e.g. &uart.parent.
+ * @return TRUE on success; otherwise FALSE.
  */
-void pifMsp_AttachUart(PifMsp* p_owner, PifUart* p_uart);
+BOOL pifMsp_AttachTransport(PifMsp* p_owner, PifTransport* p_transport);
 
 /**
- * @fn pifMsp_DetachUart
- * @brief Detaches a previously attached interface or callback.
+ * @fn pifMsp_DetachTransport
+ * @brief Detaches the transport attached with pifMsp_AttachTransport().
  * @param p_owner Pointer to the protocol instance.
  */
-void pifMsp_DetachUart(PifMsp* p_owner);
+void pifMsp_DetachTransport(PifMsp* p_owner);
 
 /**
  * @fn pifMsp_AttachEvtReceive
@@ -221,7 +222,7 @@ void pifMsp_AttachEvtReceive(PifMsp* p_owner, PifEvtMspReceive evt_receive, PifE
 /**
  * @fn pifMsp_ParsingPacket
  * @brief Feeds one received byte to the parser, for a client that gets the bytes some other way than through
- *        an attached PifUart. A completed packet goes to evt_receive before this returns, and a byte that is
+ *        an attached PifTransport. A completed packet goes to evt_receive before this returns, and a byte that is
  *        not part of a packet goes to evt_other_packet.
  * @param p_owner Pointer to the protocol instance.
  * @param data Received byte.
@@ -328,7 +329,7 @@ BOOL pifMsp_SendAnswer(PifMsp* p_owner);
 /**
  * @fn pifMsp_GetAnswer
  * @brief Gives the contiguous part of the queued answers, for a client that sends them itself instead of
- *        through an attached PifUart. Remove what was sent with pifMsp_RemoveAnswer() and call again until it
+ *        through an attached PifTransport. Remove what was sent with pifMsp_RemoveAnswer() and call again until it
  *        returns 0, since the answers may wrap around the end of the ring buffer.
  * @param p_owner Pointer to the protocol instance.
  * @param pp_data Receives the address of the first queued byte.

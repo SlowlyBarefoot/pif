@@ -168,15 +168,13 @@ static PifMspFrame _parsingPacket(void* p_parser, uint8_t data)
 }
 
 /**
- * @brief Wakes the TX task of the attached UART, if there is one.
+ * @brief Asks the attached transport, if there is one, to call evt_sending soon.
  * @param p_owner Pointer to the protocol instance.
  * @return None.
  */
 static void _triggerSending(PifMsp* p_owner)
 {
-	if (p_owner->__p_uart && p_owner->__p_uart->_p_tx_task) {
-		pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
-	}
+	if (p_owner->__p_transport) pifTransport_TriggerSend(p_owner->__p_transport);
 }
 
 /**
@@ -185,12 +183,12 @@ static void _triggerSending(PifMsp* p_owner)
  * @param act_receive_data Callback used to pull incoming bytes from the underlying driver.
  * @return TRUE when the callback handled data; otherwise FALSE.
  */
-static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void *p_client, PifActTransportReceive act_receive_data)
 {
 	PifMsp *p_owner = (PifMsp *)p_client;
 	uint8_t data;
 
-	while ((*act_receive_data)(p_owner->__p_uart, &data, 1)) {
+	while ((*act_receive_data)(p_owner->__p_transport, &data, 1)) {
 		if (pifMsp_ParsingPacket(p_owner, data) == MF_PACKET) {
 			_triggerSending(p_owner);
 			return TRUE;
@@ -205,7 +203,7 @@ static BOOL _evtParsing(void *p_client, PifActUartReceiveData act_receive_data)
  * @param act_send_data Callback used to push outgoing bytes to the underlying driver.
  * @return Number of bytes transmitted during this callback invocation.
  */
-static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
+static uint16_t _evtSending(void *p_client, PifActTransportSend act_send_data)
 {
 	PifMsp *p_owner = (PifMsp *)p_client;
 	uint16_t length = 0;
@@ -225,7 +223,7 @@ static uint16_t _evtSending(void *p_client, PifActUartSendData act_send_data)
 
 	case MTS_SENDING:
 		p_data = pifRingBuffer_GetReadPointer(&p_owner->__tx.answer_buffer, p_owner->__tx.pos, &length);
-		length = (*act_send_data)(p_owner->__p_uart, p_data, length);
+		length = (*act_send_data)(p_owner->__p_transport, p_data, length);
 		if (!length) return 0;
 
 		p_owner->__tx.pos += length;
@@ -335,16 +333,24 @@ BOOL pifMsp_AssignAnswerBuffer(PifMsp* p_owner, uint16_t size, uint8_t* p_buffer
 	return TRUE;
 }
 
-void pifMsp_AttachUart(PifMsp* p_owner, PifUart *p_uart)
+BOOL pifMsp_AttachTransport(PifMsp* p_owner, PifTransport *p_transport)
 {
-	p_owner->__p_uart = p_uart;
-	pifUart_AttachClient(p_uart, p_owner, _evtParsing, _evtSending);
+	if (!p_owner || !p_transport) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_owner->__p_transport = p_transport;
+	pifTransport_AttachClient(p_transport, p_owner, _evtParsing, _evtSending, NULL);
+	return TRUE;
 }
 
-void pifMsp_DetachUart(PifMsp* p_owner)
+void pifMsp_DetachTransport(PifMsp* p_owner)
 {
-	pifUart_DetachClient(p_owner->__p_uart);
-	p_owner->__p_uart = NULL;
+	if (!p_owner || !p_owner->__p_transport) return;
+
+	pifTransport_DetachClient(p_owner->__p_transport);
+	p_owner->__p_transport = NULL;
 }
 
 void pifMsp_AttachEvtReceive(PifMsp* p_owner, PifEvtMspReceive evt_receive, PifEvtMspOtherPacket evt_other_packet, PifIssuerP p_issuer)

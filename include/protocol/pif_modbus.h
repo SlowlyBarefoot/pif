@@ -79,12 +79,11 @@ typedef enum EnPifModbusMasterState
 {
 	MBMS_IDLE			= 0,
 	MBMS_REQUEST		= 1,	// The frame is being handed to the UART
-	MBMS_REQUEST_WAIT	= 2,	// The UART is still shifting the frame out
-	MBMS_REQUEST_DELAY	= 3,	// The line is being turned around for the response
-	MBMS_RESPONSE		= 4,	// The response is awaited
-	MBMS_RESPONSE_DELAY	= 5,	// RTU only: the silent interval after the response has to pass
-	MBMS_FINISH			= 6,	// ASCII only: the request is over and _error says how it ended
-	MBMS_ERROR			= 7		// No response came in time
+	MBMS_REQUEST_WAIT	= 2,	// The UART is still shifting the frame out. An RS-485 line is turned around by it.
+	MBMS_RESPONSE		= 3,	// The response is awaited
+	MBMS_RESPONSE_DELAY	= 4,	// RTU only: the silent interval after the response has to pass
+	MBMS_FINISH			= 5,	// ASCII only: the request is over and _error says how it ended
+	MBMS_ERROR			= 6		// No response came in time
 } PifModbusMasterState;
 
 /**

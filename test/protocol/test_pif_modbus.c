@@ -77,29 +77,39 @@ static uint16_t _count(Wire *p_wire)
     return p_wire->tail - p_wire->head;
 }
 
-static uint16_t _sendM(PifUart *p_uart, uint8_t *p_data, uint16_t size)
+static uint16_t _sendM(PifTransport *p_transport, uint8_t *p_data, uint16_t size)
 {
-    (void)p_uart;
+    (void)p_transport;
     _put(&s_wire_ms, p_data, size);
     return size;
 }
 
-static uint16_t _sendS(PifUart *p_uart, uint8_t *p_data, uint16_t size)
+static uint16_t _sendS(PifTransport *p_transport, uint8_t *p_data, uint16_t size)
 {
-    (void)p_uart;
+    (void)p_transport;
     if (!s_mute_slave) _put(&s_wire_sm, p_data, size);
     return size;
 }
 
-static uint16_t _receiveM(PifUart *p_uart, uint8_t *p_data, uint16_t size)
+static uint16_t _actSendM(PifUart *p_uart, uint8_t *p_data, uint16_t size)
 {
-    (void)p_uart;
+    return _sendM(&p_uart->parent, p_data, size);
+}
+
+static uint16_t _actSendS(PifUart *p_uart, uint8_t *p_data, uint16_t size)
+{
+    return _sendS(&p_uart->parent, p_data, size);
+}
+
+static uint16_t _receiveM(PifTransport *p_transport,uint8_t *p_data, uint16_t size)
+{
+    (void)p_transport;
     return _get(&s_wire_sm, p_data, size);
 }
 
-static uint16_t _receiveS(PifUart *p_uart, uint8_t *p_data, uint16_t size)
+static uint16_t _receiveS(PifTransport *p_transport, uint8_t *p_data, uint16_t size)
 {
-    (void)p_uart;
+    (void)p_transport;
     return _get(&s_wire_ms, p_data, size);
 }
 
@@ -625,8 +635,8 @@ int main(void)
         return 1;
     }
     // With act_send_data set and no act_get_tx_rate, a frame counts as out once it is handed over.
-    s_uart_m.act_send_data = _sendM;
-    s_uart_s.act_send_data = _sendS;
+    s_uart_m.act_send_data = _actSendM;
+    s_uart_s.act_send_data = _actSendS;
 
 #ifdef PIF_NO_LOG
     printf("pif_modbus (PIF_NO_LOG)\n");

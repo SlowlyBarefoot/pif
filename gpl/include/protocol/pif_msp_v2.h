@@ -91,24 +91,25 @@ BOOL pifMspV2_Init(PifMspV2* p_owner, PifTimerManager* p_timer, PifId id);
 void pifMspV2_Clear(PifMspV2* p_owner);
 
 /**
- * @fn pifMspV2_AttachUart
- * @brief Attaches a UART that the received bytes come from and the answers go to.
+ * @fn pifMspV2_AttachTransport
+ * @brief Attaches a transport that the received bytes come from and the answers go to.
  * @param p_owner Pointer to the protocol instance.
- * @param p_uart UART interface bound to this protocol instance.
+ * @param p_transport Transport bound to this protocol instance, e.g. &uart.parent.
+ * @return TRUE on success; otherwise FALSE.
  */
-void pifMspV2_AttachUart(PifMspV2* p_owner, PifUart* p_uart);
+BOOL pifMspV2_AttachTransport(PifMspV2* p_owner, PifTransport* p_transport);
 
 /**
- * @fn pifMspV2_DetachUart
- * @brief Detaches the UART attached with pifMspV2_AttachUart().
+ * @fn pifMspV2_DetachTransport
+ * @brief Detaches the transport attached with pifMspV2_AttachTransport().
  * @param p_owner Pointer to the protocol instance.
  */
-void pifMspV2_DetachUart(PifMspV2* p_owner);
+void pifMspV2_DetachTransport(PifMspV2* p_owner);
 
 /**
  * @fn pifMspV2_ParsingPacket
  * @brief Feeds one received byte to the parser, for a client that gets the bytes some other way than through
- *        an attached PifUart. Same as pifMsp_ParsingPacket() on &_msp.
+ *        an attached PifTransport. Same as pifMsp_ParsingPacket() on &_msp.
  * @param p_owner Pointer to the protocol instance.
  * @param data Received byte.
  * @return What the byte did.

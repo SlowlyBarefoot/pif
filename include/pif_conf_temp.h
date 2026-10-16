@@ -295,6 +295,17 @@
 //#define PIF_TOUCH_CALIBRATION_MAX_FAIL	10000
 
 
+// -------- pifUart ------------------------------
+
+// Leaves out XON/XOFF and RTS/CTS flow control: fc_limit, act_get_rx_rate, act_device_flow_state and the
+// pifUart_*FlowControl/*FlowState functions. The flow state of the UART transport is then always ON.
+//#define PIF_UART_NO_FLOW_CONTROL
+
+// Leaves out the direction control of a half-duplex line such as RS-485: dir_delay and
+// pifUart_AttachActDirection/SetDirection. Without it the UART drives the line for each transfer by itself.
+//#define PIF_UART_NO_DIRECTION
+
+
 // -------- pifXmodem ----------------------------
 
 // Time in ms to wait for ACK/NAK after sending one packet or EOT. The time to send the packet on

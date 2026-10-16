@@ -250,14 +250,14 @@ static void _completeCommand(PifLog* p_owner)
 	_redrawLine(p_owner);
 }
 
-static BOOL _getDebugString(PifLog* p_owner, PifActUartReceiveData act_receive_data)
+static BOOL _getDebugString(PifLog* p_owner, PifActTransportReceive act_receive_data)
 {
     char tmp_char;
     BOOL str_get_done_flag = FALSE;
     uint8_t enter = 0;
     static uint8_t pre_enter = 0;
 
-	while ((*act_receive_data)(p_owner->p_uart, (uint8_t*)&tmp_char, 1)) {
+	while ((*act_receive_data)(&p_owner->p_uart->parent, (uint8_t*)&tmp_char, 1)) {
 		if (tmp_char >= 32 && tmp_char <= 126) {
 			_insertChar(p_owner, tmp_char);
 		}
@@ -369,7 +369,7 @@ static int _processDebugCmd(PifLog* p_owner)
     return PIF_LOG_CMD_NO_ERROR;
 }
 
-static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void* p_client, PifActTransportReceive act_receive_data)
 {
 	PifLog* p_owner = (PifLog*)p_client;
 
@@ -445,7 +445,7 @@ static uint32_t _doTask(PifTask* p_task)
 
 #else
 
-static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
+static BOOL _evtParsing(void* p_client, PifActTransportReceive act_receive_data)
 {
     (void)p_client;
     (void)act_receive_data;
@@ -455,7 +455,7 @@ static BOOL _evtParsing(void* p_client, PifActUartReceiveData act_receive_data)
 
 #endif
 
-static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
+static uint16_t _evtSending(void* p_client, PifActTransportSend act_send_data)
 {
 	PifLog* p_owner = (PifLog*)p_client;
 	uint16_t length = 0;
@@ -464,7 +464,7 @@ static uint16_t _evtSending(void* p_client, PifActUartSendData act_send_data)
 
 	if (!pifRingBuffer_IsEmpty(p_owner->p_tx_buffer)) {
 		p_data = pifRingBuffer_GetReadPointer(p_owner->p_tx_buffer, 0, &size);
-		length = (*act_send_data)(p_owner->p_uart, p_data, size);
+		length = (*act_send_data)(&p_owner->p_uart->parent, p_data, size);
 		pifRingBuffer_Remove(p_owner->p_tx_buffer, length);
 	}
 	return length > 0 ? length : !pifRingBuffer_IsEmpty(p_owner->p_tx_buffer);
@@ -712,7 +712,7 @@ BOOL pifLog_AttachUart(PifUart* p_uart, uint16_t size)
     if (!s_log.p_tx_buffer) return FALSE;
 
 	s_log.p_uart = p_uart;
-	pifUart_AttachClient(p_uart, &s_log, _evtParsing, _evtSending);
+	pifTransport_AttachClient(&p_uart->parent, &s_log, _evtParsing, _evtSending, NULL);
 
 #ifdef PIF_LOG_COMMAND
 	if (s_log.p_prompt) {
@@ -727,7 +727,7 @@ void pifLog_DetachUart()
 {
     if (!s_log.p_uart) return;
 
-	pifUart_DetachClient(s_log.p_uart);
+	pifTransport_DetachClient(&s_log.p_uart->parent);
 	s_log.p_uart = NULL;
 
 	pifRingBuffer_Destroy(&s_log.p_tx_buffer);

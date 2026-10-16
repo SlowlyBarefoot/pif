@@ -262,14 +262,14 @@ void pifMspV2_Clear(PifMspV2* p_owner)
 	pifMsp_Clear(&p_owner->_msp);
 }
 
-void pifMspV2_AttachUart(PifMspV2* p_owner, PifUart* p_uart)
+BOOL pifMspV2_AttachTransport(PifMspV2* p_owner, PifTransport* p_transport)
 {
-	pifMsp_AttachUart(&p_owner->_msp, p_uart);
+	return pifMsp_AttachTransport(&p_owner->_msp, p_transport);
 }
 
-void pifMspV2_DetachUart(PifMspV2* p_owner)
+void pifMspV2_DetachTransport(PifMspV2* p_owner)
 {
-	pifMsp_DetachUart(&p_owner->_msp);
+	pifMsp_DetachTransport(&p_owner->_msp);
 }
 
 PifMspFrame pifMspV2_ParsingPacket(PifMspV2* p_owner, uint8_t data)
@@ -357,9 +357,7 @@ BOOL pifMspV2_MakePacket(PifMspV2* p_owner, PifMspVersion version, uint8_t direc
 	if (!pifRingBuffer_PutData(p_buffer, trailer, trailer_size)) goto rollback;
 	pifRingBuffer_CommitPutting(p_buffer);
 
-	if (p_parent->__p_uart && p_parent->__p_uart->_p_tx_task) {
-		pifTask_SetTrigger(p_parent->__p_uart->_p_tx_task, 0);
-	}
+	if (p_parent->__p_transport) pifTransport_TriggerSend(p_parent->__p_transport);
 	return TRUE;
 
 rollback:

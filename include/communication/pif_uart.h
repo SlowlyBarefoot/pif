@@ -4,6 +4,7 @@
 
 
 #include "communication/pif_transport.h"
+#include "core/pif_ascii.h"
 #include "core/pif_ring_buffer.h"
 #include "core/pif_task_manager.h"
 #if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_UART)
@@ -12,45 +13,12 @@
 #endif
 
 
-#define ASCII_NUL	0	// Null Character
-#define ASCII_SOH	1	// Start of Header
-#define ASCII_STX	2	// Start of Text
-#define ASCII_ETX	3	// End of Text
-#define ASCII_EOT	4	// End of Transmission
-#define ASCII_ENQ	5	// Enquiry
-#define ASCII_ACK	6	// Acknowledgment
-#define ASCII_BEL	7	// Bell
-#define ASCII_BS	8	// Backspace
-#define ASCII_HT	9	// Horizontal Tab
-#define ASCII_LF	10	// Line feed
-#define ASCII_VT	11	// Vertical Tab
-#define ASCII_FF	12	// Form feed
-#define ASCII_CR	13	// Carriage return
-#define ASCII_SO	14	// Shift Out
-#define ASCII_SI	15	// Shift In
-#define ASCII_DLE	16	// Data Link Escape
-#define ASCII_DC1	17	// Device Control 1
-#define ASCII_XON	17	// Resume transmission
-#define ASCII_DC2	18	// Device Control 2
-#define ASCII_DC3	19	// Device Control 3
-#define ASCII_XOFF	19	// Pause transmission
-#define ASCII_DC4	20	// Device Control 4
-#define ASCII_NAK	21	// Negative Acknowledgment
-#define ASCII_SYN	22	// Synchronous idle
-#define ASCII_ETB	23	// End of Transmission Block
-#define ASCII_CAN	24	// Cancel
-#define ASCII_EM	25	// End of Medium
-#define ASCII_SUB	26	// Substitute
-#define ASCII_ESC	27	// Escape
-#define ASCII_FS	28	// File Separator
-#define ASCII_GS	29	// Group Separator
-#define ASCII_RS	30	// Record Separator
-#define ASCII_US	31	// Unit Separator
-
 #define PIF_UART_SEND_DATA_STATE_INIT		0
 #define PIF_UART_SEND_DATA_STATE_DATA		1
 #define PIF_UART_SEND_DATA_STATE_EMPTY		2
 
+
+#ifndef PIF_UART_NO_FLOW_CONTROL
 
 typedef enum EnPifUartFlowControl
 {
@@ -63,6 +31,8 @@ typedef enum EnPifUartFlowControl
 	UFC_HOST_MASK		= 2,
 	UFC_DEVICE_MASK		= 4
 } PifUartFlowControl;
+
+#endif	// PIF_UART_NO_FLOW_CONTROL
 
 typedef enum EnPifUartRxState
 {
@@ -77,11 +47,16 @@ typedef enum EnPifUartTxState
 	UTS_SENDING		= 1
 } PifUartTxState;
 
+#ifndef PIF_UART_NO_DIRECTION
+
+// Direction of a half-duplex line such as RS-485, given to the action attached with pifUart_AttachActDirection().
 typedef enum EnPifUartDirection
 {
-	UD_RX		= 0,
-	UD_TX		= 1
+	UD_RX		= 0,	// Receive: the driver is off and the line is left to the other side, e.g. RS-485 DE low and /RE low
+	UD_TX		= 1		// Transmit: this side drives the line, e.g. RS-485 DE high (/RE high too when it is tied to DE)
 } PifUartDirection;
+
+#endif	// PIF_UART_NO_DIRECTION
 
 #ifdef COLLECT_SIGNAL_UART
 
@@ -89,9 +64,9 @@ typedef enum EnPifUartCsFlag
 {
 	UA_CSF_OFF			= 0,
 
-	UA_CSF_FC_IDX		= 0,	// _fc_state: ON while the other side may send
+	UA_CSF_FC_IDX		= 0,	// _fc_state: ON while the other side may send. Not with PIF_UART_NO_FLOW_CONTROL.
 	UA_CSF_TX_IDX		= 1,	// PifUartTxState
-	UA_CSF_DIR_IDX		= 2,	// PifUartDirection given to the direction action, e.g. RS-485 DE
+	UA_CSF_DIR_IDX		= 2,	// _direction, e.g. RS-485 DE. Not with PIF_UART_NO_DIRECTION.
 
 	UA_CSF_FC_BIT		= 1,
 	UA_CSF_TX_BIT		= 2,
@@ -112,28 +87,38 @@ typedef uint16_t (*PifActUartReceiveData)(PifUart* p_uart, uint8_t* p_data, uint
 typedef uint16_t (*PifActUartSendData)(PifUart* p_uart, uint8_t* p_data, uint16_t size);
 typedef BOOL (*PifActUartStartTransfer)(PifUart* p_uart);
 typedef uint8_t (*PifActUartGetRate)(PifUart* p_uart);
-typedef void (*PifActUartDeviceFlowState)(PifUart* p_uart, SWITCH state);
-typedef void (*PifActUartDirection)(PifUartDirection direction);
 
-typedef BOOL (*PifEvtUartParsing)(void* p_client, PifActUartReceiveData act_receive_data);
-typedef uint16_t (*PifEvtUartSending)(void* p_client, PifActUartSendData act_send_data);
-typedef void (*PifEvtUartAbortRx)(void* p_client);
+#ifndef PIF_UART_NO_DIRECTION
+typedef void (*PifActUartDirection)(PifUartDirection direction);
+#endif
+
+#ifndef PIF_UART_NO_FLOW_CONTROL
+typedef void (*PifActUartDeviceFlowState)(PifUart* p_uart, SWITCH state);
 typedef void (*PifEvtUartHostFlowState)(void* p_client, SWITCH state);
+#endif
 
 
 /**
  * @class StPifUart
  * @brief UART abstraction that encapsulates buffers, flow control, and task hooks.
  *
- * parent makes the UART a PifTransport, so a protocol written for PifTransport attaches to &uart.parent.
- * A UART has one client at a time, attached either that way or with pifUart_AttachClient().
+ * parent makes the UART a PifTransport. A protocol attaches to &uart.parent with pifTransport_AttachClient(),
+ * and a UART has one client at a time.
+ * With PIF_UART_NO_FLOW_CONTROL the flow control members and functions are left out of the build, and the
+ * flow state of the transport is always ON.
+ * With PIF_UART_NO_DIRECTION the direction control for a half-duplex line such as RS-485 is left out.
  */
 struct StPifUart
 {
 	PifTransport parent;
 
 	// Public Member Variable
+#ifndef PIF_UART_NO_FLOW_CONTROL
 	uint8_t fc_limit;							// Range: 0% ~ 100%, default: 50%
+#endif
+#ifndef PIF_UART_NO_DIRECTION
+	uint8_t dir_delay;							// Byte times from the end of a transfer to UD_RX, default: 2
+#endif
 
 	// Public Action Function
     PifActUartSetBaudrate act_set_baudrate;
@@ -141,41 +126,51 @@ struct StPifUart
     PifActUartSendData act_send_data;
     PifActUartStartTransfer act_start_transfer;
     PifActUartGetRate act_get_tx_rate;
+#ifndef PIF_UART_NO_FLOW_CONTROL
     PifActUartGetRate act_get_rx_rate;
     PifActUartDeviceFlowState act_device_flow_state;
-
-    // Public Event Function
-    // Called by pifUart_AbortRx() with the client. Attaching a client sets it, to the evt_abort_rx given to
-    // pifTransport_AttachClient() or to NULL with pifUart_AttachClient(), so a client of the latter sets it
-    // after attaching. Detaching clears it.
-    PifEvtUartAbortRx evt_abort_rx;
+#endif
 
 	// Read-only Member Variable
     PifId _id;
     uint32_t _baudrate;
+#ifndef PIF_UART_NO_FLOW_CONTROL
     PifUartFlowControl _flow_control;
+#endif
     uint8_t _frame_size;
     uint16_t _transfer_time;
     PifRingBuffer* _p_tx_buffer;
     PifRingBuffer* _p_rx_buffer;
     PifTask* _p_tx_task;
     PifTask* _p_rx_task;
+#ifndef PIF_UART_NO_FLOW_CONTROL
     SWITCH _fc_state;
+#endif
+#ifndef PIF_UART_NO_DIRECTION
+    PifUartDirection _direction;
+#endif
 
 	// Private Member Variable
     void* __p_client;
     volatile PifUartTxState __tx_state;
     volatile PifUartRxState __rx_state;
+#ifndef PIF_UART_NO_DIRECTION
+    BOOL __dir_auto;							// The UART drove the line for a transfer and gives it back
+    BOOL __dir_wait;							// The transfer is done and the line waits for dir_delay
+    uint32_t __tx_end_time;
 
 	// Private Action Function
     PifActUartDirection __act_direction;
+#endif
 
     // Private Event Function
-    PifEvtUartParsing __evt_parsing;
-    PifEvtUartSending __evt_sending;
+    // Set by pifTransport_AttachClient() and cleared by pifTransport_DetachClient().
+    PifEvtTransportParsing __evt_parsing;
+    PifEvtTransportSending __evt_sending;
+    PifEvtTransportAbortRx __evt_abort_rx;		// Called by pifUart_AbortRx() with the client.
+#ifndef PIF_UART_NO_FLOW_CONTROL
     PifEvtUartHostFlowState __evt_host_flow_state;
-    PifEvtTransportParsing __evt_transport_parsing;	// Set instead of __evt_parsing for a PifTransport client.
-    PifEvtTransportSending __evt_transport_sending;
+#endif
 #ifdef COLLECT_SIGNAL_UART
 	PifCollectSignalChannel __cs[UA_CSF_COUNT];
 #endif
@@ -259,40 +254,36 @@ BOOL pifUart_SetFrameSize(PifUart* p_owner, uint8_t frame_size);
  */
 BOOL pifUart_ChangeBaudrate(PifUart* p_owner, uint32_t baudrate);
 
-/**
- * @fn pifUart_AttachClient
- * @brief Attaches protocol callbacks used for RX parsing and TX payload generation. A client attached
- *        before, through pifTransport_AttachClient() too, is replaced.
- * @param p_owner Pointer to the UART object.
- * @param p_client User-defined client context passed to callbacks.
- * @param evt_parsing Callback invoked to parse incoming bytes.
- * @param evt_sending Callback invoked to prepare outgoing bytes.
- */
-void pifUart_AttachClient(PifUart* p_owner, void* p_client, PifEvtUartParsing evt_parsing, PifEvtUartSending evt_sending);
+#ifndef PIF_UART_NO_DIRECTION
 
 /**
  * @fn pifUart_AttachActDirection
- * @brief Attaches a callback used to control external RX/TX direction hardware.
+ * @brief Attaches a callback that drives the direction of a half-duplex line, e.g. the DE/RE pins of an
+ *        RS-485 transceiver. From then on the UART switches it by itself while it is UD_RX: to UD_TX before
+ *        the first byte of a transfer goes to the hardware or the TX buffer, and back to UD_RX dir_delay
+ *        byte times after pifUart_CheckTxTransfer() reports the transfer done. Going back needs the TX task,
+ *        and with act_send_data it needs act_get_tx_rate too, as the transfer counts as done once handed
+ *        over without it.
  * @param p_owner Pointer to the UART object.
  * @param act_direction Callback that switches the external data direction.
- * @param init_state Initial direction state applied after attaching.
+ * @param init_state Initial direction state applied after attaching. Give UD_RX for the switching above,
+ *        as UD_TX holds the line as pifUart_SetDirection() does.
  */
 void pifUart_AttachActDirection(PifUart* p_owner, PifActUartDirection act_direction, PifUartDirection init_state);
 
 /**
  * @fn pifUart_SetDirection
- * @brief Switches the external RX/TX direction hardware through the attached action, if any.
+ * @brief Switches the external RX/TX direction hardware through the attached action, if any. A transfer
+ *        switches it by itself, so this is only for holding the line: UD_TX keeps it driven, through
+ *        transfers too, until UD_RX is set here again.
  * @param p_owner Pointer to the UART object.
  * @param direction Direction to apply.
  */
 void pifUart_SetDirection(PifUart* p_owner, PifUartDirection direction);
 
-/**
- * @fn pifUart_DetachClient
- * @brief Detaches previously attached client callbacks and context.
- * @param p_owner Pointer to the UART object.
- */
-void pifUart_DetachClient(PifUart* p_owner);
+#endif	// PIF_UART_NO_DIRECTION
+
+#ifndef PIF_UART_NO_FLOW_CONTROL
 
 /**
  * @fn pifUart_ResetFlowControl
@@ -326,6 +317,8 @@ BOOL pifUart_ChangeRxFlowState(PifUart* p_owner, SWITCH state);
  * @param state Remote flow state signaled by the counterpart.
  */
 void pifUart_SigTxFlowState(PifUart* p_owner, SWITCH state);
+
+#endif	// PIF_UART_NO_FLOW_CONTROL
 
 /**
  * @fn pifUart_GetFillSizeOfRxBuffer
@@ -412,7 +405,8 @@ uint16_t pifUart_SendTxData(PifUart* p_owner, uint8_t* p_data, uint16_t length);
 
 /**
  * @fn pifUart_AbortRx
- * @brief Aborts current RX operation and triggers the abort callback if attached.
+ * @brief Empties the RX buffer and calls the evt_abort_rx that the client gave, if any, so the frame it
+ *        was parsing is dropped.
  * @param p_owner Pointer to the UART object.
  */
 void pifUart_AbortRx(PifUart* p_owner);
