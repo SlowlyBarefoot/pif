@@ -33,7 +33,7 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
@@ -50,6 +50,9 @@ CS_DEP  := $(ROOT)/source/core/pif_collect_signal.c $(ROOT)/include/core/pif_col
 TIMER_SRC := core/test_pif_timer.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c \
                  pif_task_manager.c pif_timer.c pif_timer_manager.c)
 TIMER_DEP := $(ROOT)/include/core/pif_timer.h $(ROOT)/include/core/pif_timer_manager.h
+PWM_GEN_SRC := core/test_pif_pwm_gen.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_pwm_gen.c pif_task.c \
+               pif_task_manager.c pif_timer.c pif_timer_manager.c)
+PWM_GEN_DEP := $(TIMER_DEP) $(ROOT)/include/core/pif_pwm_gen.h
 # test_pif_gpio.c includes pif_gpio.c itself to reach its polling task.
 GPIO_SRC  := core/test_pif_gpio.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 # With PIF_COLLECT_SIGNAL the channels pull in pif_log.c and what it needs.
@@ -135,7 +138,8 @@ run-test_pif_ring_buffer: run-test_pif_bst_key8
 run-test_pif_ring_data: run-test_pif_ring_buffer
 run-test_pif_sequence: run-test_pif_ring_data
 run-test_pif_timer: run-test_pif_sequence
-run-test_pif_collect_signal: run-test_pif_timer
+run-test_pif_pwm_gen: run-test_pif_timer
+run-test_pif_collect_signal: run-test_pif_pwm_gen
 run-test_pif_gpio: run-test_pif_collect_signal
 run-test_pif_gpio_cs: run-test_pif_gpio
 run-test_pif_link: run-test_pif_gpio_cs
@@ -180,6 +184,9 @@ $(BUILD)/test_pif_sequence$(EXE):core/test_pif_sequence.c $(ROOT)/source/core/pi
 
 $(BUILD)/test_pif_timer$(EXE): $(TIMER_SRC) $(TIMER_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(TIMER_SRC) -o $@
+
+$(BUILD)/test_pif_pwm_gen$(EXE): $(PWM_GEN_SRC) $(PWM_GEN_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(PWM_GEN_SRC) -o $@
 
 $(BUILD)/test_pif_collect_signal$(EXE): $(CS_SRC) $(CS_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_COLLECT_SIGNAL $(INC) $(CS_SRC) -o $@

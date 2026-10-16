@@ -338,37 +338,37 @@ PifStorageStart pifStorage_StartTransfer(PifStorage* p_owner, BOOL write, uint32
 	return SS_START_TIMED;
 }
 
-PIF_INLINE BOOL pifStorage_IsFormat(PifStorage* p_owner)
+BOOL pifStorage_IsFormat(PifStorage* p_owner)
 {
 	return (*p_owner->__fn_is_format)(p_owner);
 }
 
-PIF_INLINE BOOL pifStorage_Format(PifStorage* p_owner)
+BOOL pifStorage_Format(PifStorage* p_owner)
 {
 	return (*p_owner->__fn_format)(p_owner);
 }
 
-PIF_INLINE PifStorageDataInfoP pifStorage_Create(PifStorage* p_owner, uint16_t id, uint16_t size)
+PifStorageDataInfoP pifStorage_Create(PifStorage* p_owner, uint16_t id, uint16_t size)
 {
 	return (*p_owner->__fn_create)(p_owner, id, size);
 }
 
-PIF_INLINE BOOL pifStorage_Delete(PifStorage* p_owner, uint16_t id)
+BOOL pifStorage_Delete(PifStorage* p_owner, uint16_t id)
 {
 	return (*p_owner->__fn_delete)(p_owner, id);
 }
 
-PIF_INLINE PifStorageDataInfoP pifStorage_Open(PifStorage* p_owner, uint16_t id)
+PifStorageDataInfoP pifStorage_Open(PifStorage* p_owner, uint16_t id)
 {
 	return (*p_owner->__fn_open)(p_owner, id);
 }
 
-PIF_INLINE PifStorageStart pifStorage_Read(PifStorage* p_owner, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size)
+PifStorageStart pifStorage_Read(PifStorage* p_owner, uint8_t* p_dst, PifStorageDataInfoP p_src, size_t size)
 {
 	return (*p_owner->__fn_read)(p_owner, p_dst, p_src, size);
 }
 
-PIF_INLINE PifStorageStart pifStorage_Write(PifStorage* p_owner, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size)
+PifStorageStart pifStorage_Write(PifStorage* p_owner, PifStorageDataInfoP p_dst, uint8_t* p_src, size_t size)
 {
 	return (*p_owner->__fn_write)(p_owner, p_dst, p_src, size);
 }

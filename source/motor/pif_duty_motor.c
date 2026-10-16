@@ -102,7 +102,7 @@ void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state, char *tag
 
 #else
 
-PIF_INLINE void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state)
+void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state)
 {
 	p_owner->_state = state;
 #ifdef COLLECT_SIGNAL_DUTY_MOTOR

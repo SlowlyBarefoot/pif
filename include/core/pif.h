@@ -20,6 +20,20 @@
 #define PIF_WEAK __attribute__ ((weak))
 #endif
 
+// Short accessors are defined in the headers with this so they can be inlined across files.
+// static keeps every compiler free of duplicate symbols even when it does not inline.
+#ifndef PIF_STATIC_INLINE
+	#if defined(__cplusplus) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L)
+		#define PIF_STATIC_INLINE	static inline
+	#elif defined(__GNUC__)
+		#define PIF_STATIC_INLINE	static __inline__
+	#elif defined(_MSC_VER) || defined(__CC_ARM) || defined(__ICCARM__)
+		#define PIF_STATIC_INLINE	static __inline
+	#else
+		#define PIF_STATIC_INLINE	static
+	#endif
+#endif
+
 #ifndef BOOL
 #define BOOL   unsigned char
 #endif

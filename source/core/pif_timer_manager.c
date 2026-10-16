@@ -78,7 +78,7 @@ void pifTimerManager_Clear(PifTimerManager *p_manager)
 {
 	PifObjArrayIterator it;
 
-	// Stops every timer, including those marked for removal, so that a PWM output is left off.
+	// Stops every timer, including those marked for removal.
 	it = pifObjArray_Begin(&p_manager->__timers);
 	while (it) {
 		PifTimer *p_timer = (PifTimer *)it->data;
@@ -125,7 +125,7 @@ void pifTimerManager_sigTick(PifTimerManager *p_manager)
 {
 	char *p_slot;
 	int i, max_count, stride;
-	uint32_t current, target, duty;
+	uint32_t current;
 
 	if (!p_manager || !p_manager->__ready) return;
 
@@ -164,17 +164,6 @@ void pifTimerManager_sigTick(PifTimerManager *p_manager)
 			else {
 				p_timer->__current = current;
 			}
-			break;
-
-		case TT_PWM:
-			target = p_timer->_target;
-			duty = p_timer->__pwm_duty;
-			if (!current) {
-				current = target;
-				if (duty != target && p_timer->act_pwm) (*p_timer->act_pwm)(OFF);
-			}
-			p_timer->__current = current;
-			if (duty != target && current == duty && p_timer->act_pwm) (*p_timer->act_pwm)(ON);
 			break;
 		}
 	}

@@ -45,8 +45,9 @@ BOOL pifTimerManager_Init(PifTimerManager *p_manager, PifId id, uint32_t period1
 /**
  * @fn pifTimerManager_Clear
  * @brief Clears the timer manager state and releases resources currently owned by the instance.
- *        Every timer is stopped first, which leaves a PWM output off, and no finish callback runs
- *        for them any more. The tick may keep coming: pifTimerManager_sigTick() returns at once.
+ *        Every timer is stopped first, and no finish callback runs for them any more. Stop or clear
+ *        a PifPwmGen on this manager first, since its output is left as it was. The tick may keep
+ *        coming: pifTimerManager_sigTick() returns at once.
  * @param p_manager Pointer to the timer manager instance.
  */
 void pifTimerManager_Clear(PifTimerManager *p_manager);

@@ -116,7 +116,10 @@ void pifDutyMotorPos_Stop(PifDutyMotorPos* p_owner);
  * @param p_owner Pointer to the position-control motor instance.
  * @return Current falling-edge pulse count.
  */
-uint32_t pifDutyMotorPos_GetCurrentPulse(PifDutyMotorPos* p_owner);
+PIF_STATIC_INLINE uint32_t pifDutyMotorPos_GetCurrentPulse(PifDutyMotorPos* p_owner)
+{
+	return p_owner->__p_encoder->falling_count;
+}
 
 /**
  * @fn pifDutyMotorPos_Emergency

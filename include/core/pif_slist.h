@@ -84,7 +84,10 @@ void pifSList_RemoveFirst(PifSList* p_owner);
  * @param p_owner Target list.
  * @return Current node count.
  */
-int pifSList_Size(PifSList* p_owner);
+PIF_STATIC_INLINE int pifSList_Size(PifSList* p_owner)
+{
+	return p_owner ? p_owner->size : 0;
+}
 
 /**
  * @fn pifSList_Begin
@@ -92,7 +95,10 @@ int pifSList_Size(PifSList* p_owner);
  * @param p_owner Target list.
  * @return Head iterator, or NULL if empty.
  */
-PifSListIterator pifSList_Begin(PifSList* p_owner);
+PIF_STATIC_INLINE PifSListIterator pifSList_Begin(PifSList* p_owner)
+{
+	return p_owner ? p_owner->p_head : NULL;
+}
 
 /**
  * @fn pifSList_End
@@ -101,7 +107,10 @@ PifSListIterator pifSList_Begin(PifSList* p_owner);
  * @param p_owner Target list.
  * @return Tail iterator, or NULL if empty.
  */
-PifSListIterator pifSList_End(PifSList* p_owner);
+PIF_STATIC_INLINE PifSListIterator pifSList_End(PifSList* p_owner)
+{
+	return p_owner ? p_owner->p_tail : NULL;
+}
 
 /**
  * @fn pifSList_Next
@@ -109,7 +118,10 @@ PifSListIterator pifSList_End(PifSList* p_owner);
  * @param it Current iterator.
  * @return Next iterator, or NULL at end.
  */
-PifSListIterator pifSList_Next(PifSListIterator it);
+PIF_STATIC_INLINE PifSListIterator pifSList_Next(PifSListIterator it)
+{
+	return it ? it->p_next : NULL;
+}
 
 /**
  * @fn pifSList_Find

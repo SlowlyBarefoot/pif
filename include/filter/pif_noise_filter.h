@@ -58,7 +58,10 @@ extern "C" {
  * @brief Resets a filter instance to its initial state.
  * @param p_parent Pointer to the filter instance to reset.
  */
-void pifNoiseFilter_Reset(PifNoiseFilter* p_parent);
+PIF_STATIC_INLINE void pifNoiseFilter_Reset(PifNoiseFilter* p_parent)
+{
+	(*p_parent->__fn_reset)(p_parent);
+}
 
 /**
  * @fn pifNoiseFilter_Process
@@ -68,7 +71,10 @@ void pifNoiseFilter_Reset(PifNoiseFilter* p_parent);
  * @return Pointer to the filtered result value, or NULL when output is not
  *         yet available for the current sample.
  */
-PifNoiseFilterValueP pifNoiseFilter_Process(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value);
+PIF_STATIC_INLINE PifNoiseFilterValueP pifNoiseFilter_Process(PifNoiseFilter* p_parent, PifNoiseFilterValueP p_value)
+{
+	return (*p_parent->__fn_process)(p_parent, p_value);
+}
 
 #ifdef __cplusplus
 }

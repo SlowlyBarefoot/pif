@@ -190,31 +190,6 @@ void pifDList_Remove(PifDList* p_owner, void* p_data)
     pifDList_RemoveIterator(p_owner, p_node);
 }
 
-PIF_INLINE int pifDList_Size(PifDList* p_owner)
-{
-	return p_owner ? p_owner->size : 0;
-}
-
-PIF_INLINE PifDListIterator pifDList_Begin(PifDList* p_owner)
-{
-	return p_owner ? p_owner->p_head : NULL;
-}
-
-PIF_INLINE PifDListIterator pifDList_Next(PifDListIterator it)
-{
-	return it ? it->p_next : NULL;
-}
-
-PIF_INLINE PifDListIterator pifDList_End(PifDList* p_owner)
-{
-	return p_owner ? p_owner->p_tail : NULL;
-}
-
-PIF_INLINE PifDListIterator pifDList_Prev(PifDListIterator it)
-{
-	return it ? it->p_prev : NULL;
-}
-
 PifDListIterator pifDList_Find(PifDList* p_owner, int index)
 {
 	if (!p_owner || index < 0) return NULL;

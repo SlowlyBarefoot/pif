@@ -21,8 +21,6 @@ static PifTimerManager s_manager;
 static uint32_t s_now_us;
 static int s_finish[MAX_TIMERS];
 static PifTimer *s_p_victim;
-static char s_pwm[32];
-static int s_pwm_len;
 
 
 static uint32_t _timer1us(void)
@@ -41,9 +39,11 @@ static void _evtFinishRemove(PifIssuerP p_issuer)
     pifTimerManager_Remove(s_p_victim);
 }
 
-static void _actPwm(SWITCH value)
+// Starts the timer again from its own callback, in the interrupt, as pif_pwm_gen does.
+static void _evtFinishRestart(PifIssuerP p_issuer)
 {
-    if (s_pwm_len < (int)sizeof(s_pwm) - 1) s_pwm[s_pwm_len++] = value ? '1' : '0';
+    s_finish[0]++;
+    if (s_finish[0] < 3) pifTimer_Start((PifTimer *)p_issuer, (uint32_t)s_finish[0] + 1);
 }
 
 // One tick of the interrupt, then one pass of the main loop.
@@ -60,8 +60,6 @@ static BOOL _setUp(void)
     // A failed test returns early, so free what it left behind.
     pifTimerManager_Clear(&s_manager);
     memset(s_finish, 0, sizeof(s_finish));
-    s_pwm_len = 0;
-    memset(s_pwm, 0, sizeof(s_pwm));
     return pifTimerManager_Init(&s_manager, PIF_ID_AUTO, 1000, MAX_TIMERS);
 }
 
@@ -118,27 +116,27 @@ static void testIntFinish(void)
     CHECK(s_finish[0] == 2);
 }
 
-static void testPwm(void)
+static void testRestartFromCallback(void)
 {
     PifTimer *p_timer;
 
     CHECK(_setUp());
-    p_timer = pifTimerManager_Add(&s_manager, TT_PWM);
-    p_timer->act_pwm = _actPwm;
-    CHECK(pifTimer_Start(p_timer, 4));
-    pifTimer_SetPwmDuty(p_timer, PIF_PWM_MAX_DUTY / 4);
-    // Off at the start of each period, on for the last quarter of it.
-    _tick(8);
-    CHECK(strcmp(s_pwm, "1010") == 0);
+    p_timer = pifTimerManager_Add(&s_manager, TT_ONCE);
+    pifTimer_AttachEvtFinish(p_timer, _evtFinishRestart, p_timer, TRUE);
+    CHECK(pifTimer_Start(p_timer, 1));
 
-    s_pwm_len = 0;
-    memset(s_pwm, 0, sizeof(s_pwm));
-    pifTimer_SetPwmDuty(p_timer, PIF_PWM_MAX_DUTY);
-    _tick(8);
-    CHECK(strcmp(s_pwm, "1") == 0);
-
-    pifTimer_Stop(p_timer);
-    CHECK(strcmp(s_pwm, "10") == 0);
+    // Each restart counts its full length from the next tick, and no event is left for the task.
+    pifTimerManager_sigTick(&s_manager);
+    CHECK(s_finish[0] == 1 && p_timer->_step == TS_RUNNING && pifTimer_Remain(p_timer) == 2);
+    CHECK(!p_timer->__event);
+    _tick(1);
+    CHECK(s_finish[0] == 1);
+    _tick(1);
+    CHECK(s_finish[0] == 2 && pifTimer_Remain(p_timer) == 3);
+    _tick(3);
+    CHECK(s_finish[0] == 3 && p_timer->_step == TS_STOP && !p_timer->__event);
+    _tick(3);
+    CHECK(s_finish[0] == 3);
 }
 
 static void testSetTarget(void)
@@ -171,62 +169,26 @@ static void testSetTarget(void)
     CHECK(pifTimer_SetTarget(p_timer, 3) && p_timer->_step == TS_STOP && p_timer->_target == 3);
 }
 
-static void testPwmTarget(void)
-{
-    PifTimer *p_timer;
-
-    CHECK(_setUp());
-    p_timer = pifTimerManager_Add(&s_manager, TT_PWM);
-    p_timer->act_pwm = _actPwm;
-
-    // A duty set before the timer runs leaves it stopped.
-    pifTimer_SetPwmDuty(p_timer, PIF_PWM_MAX_DUTY / 2);
-    CHECK(p_timer->_step == TS_STOP);
-
-    CHECK(pifTimer_Start(p_timer, 4));
-    pifTimer_SetPwmDuty(p_timer, PIF_PWM_MAX_DUTY / 4);
-    CHECK(p_timer->_step == TS_RUNNING && p_timer->__pwm_duty == 1);
-
-    // The on-time follows the period, so the ratio stays a quarter.
-    CHECK(pifTimer_SetTarget(p_timer, 8));
-    CHECK(p_timer->_step == TS_RUNNING && p_timer->__pwm_duty == 2);
-    _tick(4);
-    s_pwm_len = 0;
-    memset(s_pwm, 0, sizeof(s_pwm));
-    // Off for 6 ticks, then on for 2.
-    _tick(5);
-    CHECK(strcmp(s_pwm, "") == 0);
-    _tick(1);
-    CHECK(strcmp(s_pwm, "1") == 0);
-    _tick(2);
-    CHECK(strcmp(s_pwm, "10") == 0);
-
-    // A duty beyond the maximum is the maximum: the output stays on.
-    pifTimer_SetPwmDuty(p_timer, PIF_PWM_MAX_DUTY + 1);
-    CHECK(p_timer->__pwm_duty == 8 && strcmp(s_pwm, "101") == 0);
-    _tick(16);
-    CHECK(strcmp(s_pwm, "101") == 0);
-}
-
 static void testClear(void)
 {
-    PifTimer *p_pwm, *p_once;
+    PifTimer *p_repeat, *p_once;
 
     CHECK(_setUp());
-    p_pwm = pifTimerManager_Add(&s_manager, TT_PWM);
-    p_pwm->act_pwm = _actPwm;
+    p_repeat = pifTimerManager_Add(&s_manager, TT_REPEAT);
+    pifTimer_AttachEvtFinish(p_repeat, _evtFinish, (PifIssuerP)0, FALSE);
     p_once = pifTimerManager_Add(&s_manager, TT_ONCE);
-    pifTimer_AttachEvtFinish(p_once, _evtFinish, (PifIssuerP)0, TRUE);
-    CHECK(pifTimer_Start(p_pwm, 4) && pifTimer_Start(p_once, 2));
-    pifTimer_SetPwmDuty(p_pwm, PIF_PWM_MAX_DUTY);
-    CHECK(strcmp(s_pwm, "1") == 0);
+    pifTimer_AttachEvtFinish(p_once, _evtFinish, (PifIssuerP)1, TRUE);
+    CHECK(pifTimer_Start(p_repeat, 1) && pifTimer_Start(p_once, 2));
+    pifTimerManager_sigTick(&s_manager);
+    CHECK(p_repeat->__event);
 
-    // The output is left off, and ticks that keep coming find nothing to count.
+    // The event raised is dropped, and ticks that keep coming find nothing to count.
     pifTimerManager_Clear(&s_manager);
-    CHECK(strcmp(s_pwm, "10") == 0 && pifTimerManager_Count(&s_manager) == 0);
+    CHECK(pifTimerManager_Count(&s_manager) == 0);
     pifTimerManager_sigTick(&s_manager);
     pifTimerManager_sigTick(&s_manager);
-    CHECK(s_finish[0] == 0 && strcmp(s_pwm, "10") == 0);
+    pifTaskManager_Loop();
+    CHECK(s_finish[0] == 0 && s_finish[1] == 0);
 }
 
 static void testRemove(void)
@@ -292,9 +254,8 @@ static const TestCase s_tests[] = {
     { "once", testOnce },
     { "repeat", testRepeat },
     { "interrupt finish", testIntFinish },
-    { "pwm", testPwm },
+    { "restart from callback", testRestartFromCallback },
     { "set target", testSetTarget },
-    { "pwm target", testPwmTarget },
     { "clear", testClear },
     { "remove", testRemove },
     { "remove from callback", testRemoveFromCallback }

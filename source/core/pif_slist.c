@@ -94,26 +94,6 @@ void pifSList_RemoveFirst(PifSList* p_owner)
     p_owner->size--;
 }
 
-PIF_INLINE int pifSList_Size(PifSList* p_owner)
-{
-	return p_owner ? p_owner->size : 0;
-}
-
-PIF_INLINE PifSListIterator pifSList_Begin(PifSList* p_owner)
-{
-	return p_owner ? p_owner->p_head : NULL;
-}
-
-PIF_INLINE PifSListIterator pifSList_End(PifSList* p_owner)
-{
-	return p_owner ? p_owner->p_tail : NULL;
-}
-
-PIF_INLINE PifSListIterator pifSList_Next(PifSListIterator it)
-{
-	return it ? it->p_next : NULL;
-}
-
 PifSListIterator pifSList_Find(PifSList* p_owner, int index)
 {
 	if (!p_owner || index < 0) return NULL;

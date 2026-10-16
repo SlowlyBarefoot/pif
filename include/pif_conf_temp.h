@@ -7,9 +7,7 @@
 
 //#define PIF_DEBUG
 
-//#define PIF_INLINE
-#define PIF_INLINE                      	inline
-//#define PIF_INLINE                      	__inline
+//#define PIF_STATIC_INLINE			static inline
 
 //#define PIF_WEAK							__attribute__ ((weak))
 
@@ -215,6 +213,11 @@
 //#define PIF_PULSE_DATA_SIZE				4
 
 
+// -------- pifPwmGen ----------------------------
+
+//#define PIF_PWM_GEN_MAX_DUTY				1000
+
+
 // -------- pifSequence --------------------------
 
 // How often (us) a wait looks for its signal, which is the latency between the signal and the next step.
@@ -273,11 +276,6 @@
 
 // Color depth: 16 (RGB565), 32 (XRGB8888)
 #define PIF_COLOR_DEPTH 					16
-
-
-// -------- pifTimer -----------------------------
-
-//#define PIF_PWM_MAX_DUTY					1000
 
 
 // -------- pifTouchScreen -----------------------

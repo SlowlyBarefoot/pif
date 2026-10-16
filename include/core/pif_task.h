@@ -306,7 +306,11 @@ void pifTask_ResetMaxExecutionTime(PifTask* p_owner);
  * @return Average in microseconds, or PIF_TASK_AVERAGE_NONE until PIF_TASK_AVERAGE_MIN_COUNT
  *         samples are collected.
  */
-uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner);
+PIF_STATIC_INLINE uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner)
+{
+	if (p_owner->__execution_count < PIF_TASK_AVERAGE_MIN_COUNT) return PIF_TASK_AVERAGE_NONE;
+	return (p_owner->__total_delta_time[0] + p_owner->__total_delta_time[1]) / p_owner->__execution_count;
+}
 
 /**
  * @fn pifTask_GetAverageExecuteTime
@@ -315,7 +319,11 @@ uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner);
  * @return Average in microseconds, or PIF_TASK_AVERAGE_NONE until PIF_TASK_AVERAGE_MIN_COUNT
  *         samples are collected.
  */
-uint32_t pifTask_GetAverageExecuteTime(PifTask* p_owner);
+PIF_STATIC_INLINE uint32_t pifTask_GetAverageExecuteTime(PifTask* p_owner)
+{
+	if (p_owner->__execution_count < PIF_TASK_AVERAGE_MIN_COUNT) return PIF_TASK_AVERAGE_NONE;
+	return (p_owner->__sum_execution_time[0] + p_owner->__sum_execution_time[1]) / p_owner->__execution_count;
+}
 
 /**
  * @fn pifTask_GetAverageTriggerTime
@@ -324,7 +332,11 @@ uint32_t pifTask_GetAverageExecuteTime(PifTask* p_owner);
  * @return Average in microseconds, or PIF_TASK_AVERAGE_NONE until PIF_TASK_AVERAGE_MIN_COUNT
  *         samples are collected.
  */
-uint32_t pifTask_GetAverageTriggerTime(PifTask* p_owner);
+PIF_STATIC_INLINE uint32_t pifTask_GetAverageTriggerTime(PifTask* p_owner)
+{
+	if (p_owner->__trigger_count < PIF_TASK_AVERAGE_MIN_COUNT) return PIF_TASK_AVERAGE_NONE;
+	return (p_owner->__total_trigger_delay[0] + p_owner->__total_trigger_delay[1]) / p_owner->__trigger_count;
+}
 
 #endif
 

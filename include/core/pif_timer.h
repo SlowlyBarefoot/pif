@@ -6,21 +6,13 @@
 #include "core/pif_task.h"
 
 
-#ifndef PIF_PWM_MAX_DUTY
-#define PIF_PWM_MAX_DUTY				1000
-#endif
-
-
-typedef void (*PifActTimerPwm)(SWITCH value);
-
 typedef void (*PifEvtTimerFinish)(PifIssuerP p_issuer);
 
 
 typedef enum EnPifTimerType
 {
     TT_ONCE			= 0,
-    TT_REPEAT		= 1,
-	TT_PWM			= 2
+    TT_REPEAT		= 1
 } PifTimerType;
 
 typedef enum EnPifTimerStep
@@ -37,9 +29,6 @@ typedef enum EnPifTimerStep
  */
 typedef struct StPifTimer
 {
-    // Public Action Function
-    PifActTimerPwm act_pwm;
-
 	// Read-only Member Variable
 	// Set with pifTimer_Start() or pifTimer_SetTarget(). pifTimerManager_sigTick() reads it at every
 	// reload, and on an 8-bit target it could read a value written directly half way.
@@ -52,8 +41,6 @@ typedef struct StPifTimer
 	// Private Member Variable
     volatile uint32_t __current;
     PifIssuerP __p_finish_issuer;
-    volatile uint32_t __pwm_duty;		// On-time in ticks
-    uint16_t __pwm_ratio;				// On-time per PIF_PWM_MAX_DUTY, to follow a new target
     BOOL __event_into_int;
 	volatile BOOL __event;
 
@@ -93,21 +80,11 @@ void pifTimer_Reset(PifTimer* p_owner);
  * @fn pifTimer_SetTarget
  * @brief Changes the tick count of the timer. A running timer finishes its current period and
  *        uses the new count from the next reload, as pifTimer_Reset() and repeat timers do.
- *        A PWM timer keeps the duty ratio last set with pifTimer_SetPwmDuty().
  * @param p_owner Pointer to the target object instance.
  * @param target Target tick count, greater than 0.
  * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTimer_SetTarget(PifTimer* p_owner, uint32_t target);
-
-/**
- * @fn pifTimer_SetPwmDuty
- * @brief Sets the on-time of a PWM timer as a ratio of its period. Safe while the timer runs.
- *        pifTimer_Start() sets it back to 0, so call this after starting.
- * @param p_owner Pointer to the target object instance.
- * @param duty PWM duty ratio value, 0 to PIF_PWM_MAX_DUTY. Larger values are taken as the maximum.
- */
-void pifTimer_SetPwmDuty(PifTimer* p_owner, uint16_t duty);
 
 /**
  * @fn pifTimer_Remain

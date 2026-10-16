@@ -700,7 +700,7 @@ int pifTaskManager_Count()
 	return pifObjArray_Count(&s_tasks);
 }
 
-PIF_INLINE PifTask *pifTaskManager_CurrentTask()
+PifTask *pifTaskManager_CurrentTask()
 {
 	return s_current_task;
 }

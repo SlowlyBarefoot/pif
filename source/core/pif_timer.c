@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_timer.h"
 
-// Timer control helpers for one-shot, repeat, and PWM timer modes.
+// Timer control helpers for one-shot and repeat timer modes.
 
 // The tick handler passes over a stopped timer, so it cannot read what is written while the timer
 // is held. On an 8-bit target a 32-bit store takes several instructions.
@@ -39,12 +39,6 @@ BOOL pifTimer_Start(PifTimer* p_owner, uint32_t target)
     p_owner->_step = TS_STOP;
     p_owner->_target = target;
     p_owner->__current = target;
-
-    if (p_owner->_type == TT_PWM) {
-    	// Duty is set explicitly after start.
-    	p_owner->__pwm_duty = 0;
-    	p_owner->__pwm_ratio = 0;
-    }
     p_owner->_step = TS_RUNNING;
     return TRUE;
 }
@@ -54,10 +48,6 @@ void pifTimer_Stop(PifTimer* p_owner)
 	// Stopped first, so that the tick handler leaves __current alone while it is cleared.
 	if (p_owner->_step != TS_REMOVE) p_owner->_step = TS_STOP;
 	p_owner->__current = 0;
-	if (p_owner->_type == TT_PWM) {
-		// Ensure PWM output is turned off on stop.
-		if (p_owner->act_pwm) (*p_owner->act_pwm)(OFF);
-	}
 }
 
 void pifTimer_Reset(PifTimer* p_owner)
@@ -78,33 +68,8 @@ BOOL pifTimer_SetTarget(PifTimer* p_owner, uint32_t target)
 
 	BOOL held = _hold(p_owner);
 	p_owner->_target = target;
-	// The on-time is kept in ticks, so it follows the period to keep the ratio.
-	if (p_owner->_type == TT_PWM) {
-		p_owner->__pwm_duty = target * p_owner->__pwm_ratio / PIF_PWM_MAX_DUTY;
-	}
 	_release(p_owner, held);
 	return TRUE;
-}
-
-void pifTimer_SetPwmDuty(PifTimer* p_owner, uint16_t duty)
-{
-	uint32_t target = p_owner->_target;
-	uint32_t on_time;
-	BOOL held;
-
-	// More than the full period would never meet the count and leave the output off.
-	if (duty > PIF_PWM_MAX_DUTY) duty = PIF_PWM_MAX_DUTY;
-	p_owner->__pwm_ratio = duty;
-
-	// Convert duty ratio to an absolute on-time based on target period.
-	on_time = target * duty / PIF_PWM_MAX_DUTY;
-	held = _hold(p_owner);
-	p_owner->__pwm_duty = on_time;
-	_release(p_owner, held);
-
-	if (on_time == target) {
-		if (p_owner->act_pwm) (*p_owner->act_pwm)(ON);
-	}
 }
 
 uint32_t pifTimer_Remain(PifTimer* p_owner)
