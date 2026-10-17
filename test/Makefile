@@ -34,7 +34,8 @@ else
 endif
 
 NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
-           test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial
+           test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
+           test_pif_nvram test_pif_nor_flash
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
 LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
@@ -129,6 +130,25 @@ RC_SERIAL_SRC := rc/test_pif_rc_serial.c $(ROOT)/source/communication/pif_uart.c
                  $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_buffer.c pif_task.c pif_task_manager.c)
 RC_SERIAL_DEP := $(addprefix $(ROOT)/include/rc/, pif_rc.h pif_rc_sbus.h pif_rc_spektrum.h pif_rc_sumd.h)
 
+# pif_nvram over media in memory, with the timer that carries its transfers.
+NVRAM_SRC := storage/test_pif_nvram.c $(ROOT)/source/storage/pif_nvram.c \
+               $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_i2c.c) \
+               $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c pif_timer.c \
+                   pif_timer_manager.c)
+NVRAM_DEP := $(ROOT)/include/storage/pif_nvram.h
+# pif_nor_flash over an SPI NOR flash in memory.
+NOR_FLASH_SRC := storage/test_pif_nor_flash.c $(ROOT)/source/storage/pif_nor_flash.c \
+                 $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_spi.c) \
+                 $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+NOR_FLASH_DEP := $(ROOT)/include/storage/pif_nor_flash.h storage/nor_flash_emu.h
+# littlefs on pif_nor_flash. littlefs is not part of pif, so this one is not in "run": give the directory it is in,
+#   make -C test LFS_DIR=path/to/littlefs run-test_pif_littlefs
+LITTLEFS_SRC := storage/test_pif_littlefs.c $(addprefix $(ROOT)/source/storage/, pif_littlefs.c pif_nor_flash.c) \
+                $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_spi.c) \
+                $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c) \
+                $(if $(LFS_DIR),$(LFS_DIR)/lfs.c $(LFS_DIR)/lfs_util.c)
+LITTLEFS_DEP := $(NOR_FLASH_DEP) $(ROOT)/include/storage/pif_littlefs.h
+
 LINK_DEP :=$(ROOT)/source/protocol/pif_link.c $(ROOT)/include/protocol/pif_link.h \
             $(ROOT)/include/protocol/pif_link_fragment.h
 
@@ -168,6 +188,8 @@ run-test_pif_led: run-test_pif_fnd
 run-test_pif_modbus: run-test_pif_led
 run-test_pif_modbus_nolog: run-test_pif_modbus
 run-test_pif_rc_serial: run-test_pif_modbus_nolog
+run-test_pif_nvram: run-test_pif_rc_serial
+run-test_pif_nor_flash: run-test_pif_nvram
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
 	$(call RUN,$<)
@@ -271,6 +293,20 @@ $(BUILD)/test_pif_modbus_nolog$(EXE): $(MODBUS_SRC) $(MODBUS_DEP) | $(BUILD)
 
 $(BUILD)/test_pif_rc_serial$(EXE): $(RC_SERIAL_SRC) $(RC_SERIAL_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(RC_SERIAL_SRC) -o $@
+
+$(BUILD)/test_pif_nvram$(EXE): $(NVRAM_SRC) $(NVRAM_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(NVRAM_SRC) -o $@
+
+$(BUILD)/test_pif_nor_flash$(EXE): $(NOR_FLASH_SRC) $(NOR_FLASH_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(NOR_FLASH_SRC) -o $@
+
+.PHONY: run-test_pif_littlefs
+run-test_pif_littlefs: $(BUILD)/test_pif_littlefs$(EXE)
+	$(call RUN,$<)
+
+$(BUILD)/test_pif_littlefs$(EXE): $(LITTLEFS_SRC) $(LITTLEFS_DEP) | $(BUILD)
+	$(if $(LFS_DIR),,$(error LFS_DIR has to name the directory of littlefs))
+	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_USE_LITTLEFS -DLFS_NO_DEBUG -DLFS_NO_WARN -DLFS_NO_ERROR $(INC) -I$(LFS_DIR) $(LITTLEFS_SRC) -o $@
 
 $(BUILD):
 	$(call MKDIR,$(BUILD))

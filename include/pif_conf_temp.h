@@ -177,6 +177,12 @@
 //#define PIF_LINK_TX_FRAGMENT_SIZE			(PIF_LINK_RX_PACKET_SIZE - 1)
 
 
+// -------- pifLittlefs --------------------------
+
+// Builds pif_littlefs, which needs littlefs (lfs.c, lfs_util.c and lfs.h) in the build.
+//#define PIF_USE_LITTLEFS
+
+
 // -------- pifLog -------------------------------
 
 //#define PIF_NO_LOG

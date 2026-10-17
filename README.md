@@ -88,7 +88,7 @@ To compile with more modules, add additional source files from `source/`:
 gcc -std=c11 -Iinclude \
   -c source/core/pif.c \
   -c source/core/pif_task.c \
-  -c source/storage/pif_storage.c
+  -c source/storage/pif_nvram.c
 ```
 
 ### CMake integration example
@@ -116,6 +116,18 @@ target_link_libraries(app PRIVATE pif)
 ```
 
 If you want faster build times, replace `GLOB_RECURSE` with an explicit source list for only the modules you use.
+
+### Optional: littlefs
+
+`storage/pif_littlefs` puts [littlefs](https://github.com/littlefs-project/littlefs) (BSD-3-Clause) on an SPI NOR flash driven by `storage/pif_nor_flash`. littlefs is not bundled with PIF. To use it, add its `lfs.c` and `lfs_util.c` to your build, put `lfs.h` on the include path, and define `PIF_USE_LITTLEFS` in `pif_conf.h`. Without that macro `pif_littlefs.c` compiles to nothing, so the `GLOB_RECURSE` build above works with or without littlefs.
+
+Which storage module fits which media:
+
+| Media | Module |
+| --- | --- |
+| I2C/SPI EEPROM, FRAM (written in place) | `pif_nvram` (raw slots, or records kept safe from a write cut short) |
+| MCU internal flash | `pif_flash` |
+| SPI NOR flash, files | `pif_nor_flash` + `pif_littlefs` |
 
 ## Integration Model
 

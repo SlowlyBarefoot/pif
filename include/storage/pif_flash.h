@@ -10,7 +10,7 @@
  * A region of flash that a record, such as a settings image, is written into as a stream and read
  * back from.
  *
- * Flash differs from the media pif_storage is built for in two ways. It is written only after it
+ * Flash differs from the media pif_nvram is built for in two ways. It is written only after it
  * has been erased, a whole erase unit (a sector or a page) at a time, and it is programmed only in
  * whole program units (a word, a double word, a 256-bit flash word) at aligned addresses. So a
  * record cannot be patched in place; it is written again from the start, and the bytes the client
