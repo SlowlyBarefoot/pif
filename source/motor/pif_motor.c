@@ -5,21 +5,21 @@
 /**
  * @brief Human-readable names for each motor state.
  *
- * The index order matches the PifMotorState enumeration so log messages and
+ * Each entry is placed at its PifMotorState index so log messages and
  * debug output can print state names directly.
  */
-const char* kMotorState[MS_COUNT] =
+const char* const kMotorState[MS_COUNT] =
 {
-	    "Idle",
-	    "Gained",
-	    "Stable",
-	    "Const",
-	    "Reduce",
-	    "LowConst",
-	    "OverRun",
-	    "Break",
-	    "Breaking",
-	    "Stopping",
-	    "Stop"
+    [MS_IDLE]       = "Idle",
+    [MS_GAINED]     = "Gained",
+    [MS_STABLE]     = "Stable",
+    [MS_CONST]      = "Const",
+    [MS_REDUCE]     = "Reduce",
+    [MS_LOW_CONST]  = "LowConst",
+    [MS_OVER_RUN]   = "OverRun",
+    [MS_BRAKE]      = "Brake",
+    [MS_BRAKING]   = "Braking",
+    [MS_STOPPING]   = "Stopping",
+    [MS_STOP]       = "Stop"
 };
 

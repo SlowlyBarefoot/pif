@@ -32,7 +32,7 @@ typedef struct StPifDutyMotorPosStage
     // Deceleration stage
     uint16_t rs_low_duty;       // Low duty used near final position
     uint16_t rs_ctrl_duty;      // Duty decrement per control period (0 disables ramped deceleration)
-    uint16_t rs_break_time;     // Break hold time for mechanical/electrical brake
+    uint16_t rs_brake_time;     // Brake hold time for mechanical/electrical brake
 
     uint32_t total_pulse;       // Total pulses for the move
 } PifDutyMotorPosStage;
@@ -123,7 +123,7 @@ PIF_STATIC_INLINE uint32_t pifDutyMotorPos_GetCurrentPulse(PifDutyMotorPos* p_ow
 
 /**
  * @fn pifDutyMotorPos_Emergency
- * @brief Forces immediate emergency deceleration/break state.
+ * @brief Forces immediate emergency deceleration/brake state.
  * @param p_owner Pointer to the position-control motor instance.
  */
 void pifDutyMotorPos_Emergency(PifDutyMotorPos* p_owner);

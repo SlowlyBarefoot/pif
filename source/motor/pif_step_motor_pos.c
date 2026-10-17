@@ -7,7 +7,7 @@
 
 
 /**
- * @brief Delay timer callback used while transitioning from break to stop.
+ * @brief Delay timer callback used while transitioning from brake to stop.
  * @param p_issuer Issuer pointer cast to `PifStepMotor*`.
  */
 static void _evtTimerDelayFinish(PifIssuerP p_issuer)
@@ -15,7 +15,7 @@ static void _evtTimerDelayFinish(PifIssuerP p_issuer)
     PifStepMotor* p_parent = (PifStepMotor*)p_issuer;
 
 	switch (p_parent->_state) {
-	case MS_BREAKING:
+	case MS_BRAKING:
 #ifndef PIF_NO_LOG
 		pifStepMotor_SetState(p_parent, MS_STOPPING, "SMP");
 #else
@@ -73,9 +73,9 @@ static uint32_t _doTask(PifTask* p_task)
 			else {
 				tmp_pps = 0;
 #ifndef PIF_NO_LOG
-				pifStepMotor_SetState(p_parent, MS_BREAK, "SMP");
+				pifStepMotor_SetState(p_parent, MS_BRAKE, "SMP");
 #else
-				pifStepMotor_SetState(p_parent, MS_BREAK);
+				pifStepMotor_SetState(p_parent, MS_BRAKE);
 #endif
 			}
 		}
@@ -95,11 +95,11 @@ static uint32_t _doTask(PifTask* p_task)
 	if (p_stage->mode & MM_PC_MASK) {
 		if (p_parent->_current_pulse >= p_stage->total_pulse) {
 			tmp_pps = 0;
-			if (p_parent->_state < MS_BREAK) {
+			if (p_parent->_state < MS_BRAKE) {
 #ifndef PIF_NO_LOG
-				pifStepMotor_SetState(p_parent, MS_BREAK, "SMP");
+				pifStepMotor_SetState(p_parent, MS_BRAKE, "SMP");
 #else
-				pifStepMotor_SetState(p_parent, MS_BREAK);
+				pifStepMotor_SetState(p_parent, MS_BRAKE);
 #endif
 			}
 		}
@@ -122,14 +122,14 @@ static uint32_t _doTask(PifTask* p_task)
 #endif
 	}
 
-    if (p_parent->_state == MS_BREAK) {
-    	pifStepMotor_Break(p_parent);
-		if (p_stage->rs_break_time &&
-				pifTimer_Start(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
+    if (p_parent->_state == MS_BRAKE) {
+    	pifStepMotor_Brake(p_parent);
+		if (p_stage->rs_brake_time &&
+				pifTimer_Start(p_parent->__p_timer_delay, p_stage->rs_brake_time)) {
 #ifndef PIF_NO_LOG
-			pifStepMotor_SetState(p_parent, MS_BREAKING, "SMP");
+			pifStepMotor_SetState(p_parent, MS_BRAKING, "SMP");
 #else
-			pifStepMotor_SetState(p_parent, MS_BREAKING);
+			pifStepMotor_SetState(p_parent, MS_BRAKING);
 #endif
     	}
     	else {
@@ -154,7 +154,7 @@ static uint32_t _doTask(PifTask* p_task)
 		if (p_stage->mode & MM_CFPS_MASK) {
 	    	if (p_stage->p_stop_sensor) {
 	    		if (p_stage->p_stop_sensor->_curr_state == OFF) {
-	    			p_parent->__error = 1;
+	    			p_parent->_error = ME_STOP_POSITION;
 	    		}
 	    	}
 	    }
@@ -200,7 +200,7 @@ static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorVa
 }
 
 /**
- * @brief Stop-sensor event callback that forces transition to break state.
+ * @brief Stop-sensor event callback that forces transition to brake state.
  * @param p_owner Sensor that generated the event.
  * @param state New switch state.
  * @param p_value Optional sensor value payload.
@@ -213,13 +213,13 @@ static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValu
 	(void)p_owner;
 	(void)p_value;
 
-	if (p_motor->_state >= MS_BREAK) return;
+	if (p_motor->_state >= MS_BRAKE) return;
 
 	if (state) {
 #ifndef PIF_NO_LOG
-		pifStepMotor_SetState(p_motor, MS_BREAK, "SMP");
+		pifStepMotor_SetState(p_motor, MS_BRAKE, "SMP");
 #else
-		pifStepMotor_SetState(p_motor, MS_BREAK);
+		pifStepMotor_SetState(p_motor, MS_BRAKE);
 #endif
 	}
 }
@@ -235,9 +235,9 @@ static void _fnStopStep(PifStepMotor* p_parent)
 	pifCollectSignal_Put(&p_parent->__cs[SM_CSF_PPS_IDX], 0);
 #endif
 #ifndef PIF_NO_LOG
-	pifStepMotor_SetState(p_parent, MS_BREAK, "SMP");
+	pifStepMotor_SetState(p_parent, MS_BRAKE, "SMP");
 #else
-	pifStepMotor_SetState(p_parent, MS_BREAK);
+	pifStepMotor_SetState(p_parent, MS_BRAKE);
 #endif
 
 #ifndef PIF_NO_LOG
@@ -379,7 +379,7 @@ BOOL pifStepMotorPos_Start(PifStepMotorPos* p_owner, uint8_t stage_index, uint32
     	pifStepMotor_SetState(p_parent, MS_CONST);
 #endif
     }
-    p_parent->__error = 0;
+    p_parent->_error = ME_NONE;
 
     if (pstStage->mode & MM_PC_MASK) {
     	pifStepMotor_Start(p_parent, pstStage->total_pulse);
@@ -406,8 +406,8 @@ void pifStepMotorPos_Stop(PifStepMotorPos* p_owner)
 void pifStepMotorPos_Emergency(PifStepMotorPos* p_owner)
 {
 #ifndef PIF_NO_LOG
-   	pifStepMotor_SetState(&p_owner->parent, MS_BREAK, "SMP");
+   	pifStepMotor_SetState(&p_owner->parent, MS_BRAKE, "SMP");
 #else
-   	pifStepMotor_SetState(&p_owner->parent, MS_BREAK);
+   	pifStepMotor_SetState(&p_owner->parent, MS_BRAKE);
 #endif
 }

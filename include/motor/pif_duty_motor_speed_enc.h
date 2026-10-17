@@ -42,7 +42,7 @@ typedef struct StPifDutyMotorSpeedEncStage
     // Deceleration stage
     uint16_t rs_low_duty;           // Low duty used near stop threshold
     uint16_t rs_ctrl_duty;          // Duty decrement per control period
-    uint16_t rs_break_time;         // Break hold time for mechanical/electrical brake
+    uint16_t rs_brake_time;         // Brake hold time for mechanical/electrical brake
 } PifDutyMotorSpeedEncStage;
 
 /**
@@ -136,7 +136,7 @@ void pifDutyMotorSpeedEnc_Stop(PifDutyMotorSpeedEnc* p_owner);
 
 /**
  * @fn pifDutyMotorSpeedEnc_Emergency
- * @brief Forces immediate emergency break state.
+ * @brief Forces immediate emergency brake state.
  * @param p_owner Pointer to the encoder speed-control motor instance.
  */
 void pifDutyMotorSpeedEnc_Emergency(PifDutyMotorSpeedEnc* p_owner);

@@ -31,7 +31,7 @@ typedef struct StPifStepMotorPosStage
     // Deceleration stage
     uint16_t rs_low_pps;        // Low-speed pulses-per-second near final position
     uint16_t rs_ctrl_pps;       // Decrement per control period (0 disables ramped deceleration)
-    uint16_t rs_break_time;     // Break hold time for mechanical/electrical brake
+    uint16_t rs_brake_time;     // Brake hold time for mechanical/electrical brake
 
     uint32_t total_pulse;       // Total pulses for the move
 } PifStepMotorPosStage;
@@ -109,7 +109,7 @@ void pifStepMotorPos_Stop(PifStepMotorPos* p_owner);
 
 /**
  * @fn pifStepMotorPos_Emergency
- * @brief Forces immediate emergency break state.
+ * @brief Forces immediate emergency brake state.
  * @param p_owner Pointer to the position-control motor instance.
  */
 void pifStepMotorPos_Emergency(PifStepMotorPos* p_owner);

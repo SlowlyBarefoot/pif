@@ -14,9 +14,9 @@
 struct StPifDutyMotor;
 typedef struct StPifDutyMotor PifDutyMotor;
 
-typedef void (*PifActDutyMotorSetDuty)(uint16_t duty);
-typedef void (*PifActDutyMotorSetDirection)(uint8_t dir);
-typedef void (*PifActDutyMotorOperateBreak)(uint8_t state);
+typedef void (*PifActDutyMotorSetDuty)(PifDutyMotor* p_owner, uint16_t duty);
+typedef void (*PifActDutyMotorSetDirection)(PifDutyMotor* p_owner, uint8_t dir);
+typedef void (*PifActDutyMotorOperateBrake)(PifDutyMotor* p_owner, uint8_t state);
 
 typedef void (*PifEvtDutyMotorStable)(PifDutyMotor* p_owner);
 typedef void (*PifEvtDutyMotorStop)(PifDutyMotor* p_owner);
@@ -52,7 +52,7 @@ struct StPifDutyMotor
     // Public Action Function
     PifActDutyMotorSetDuty act_set_duty;
     PifActDutyMotorSetDirection act_set_direction;
-    PifActDutyMotorOperateBreak act_operate_break;
+    PifActDutyMotorOperateBrake act_operate_brake;
 
     // Public Event Function
     PifEvtDutyMotorStable evt_stable;
@@ -66,12 +66,13 @@ struct StPifDutyMotor
 	uint16_t _current_duty;
 	uint8_t _direction;
     PifMotorState _state;
+    PifMotorError _error;           // Cause of the last error, cleared when a stage starts
 
 	// Private Member Variable
-    uint8_t __error;
+    BOOL __error_notified;      // evt_error was already called for the current error
 
 	PifTimer* __p_timer_delay;
-	PifTimer* __p_timer_break;
+	PifTimer* __p_timer_brake;
 
     PifTask* __p_task;
 #ifdef COLLECT_SIGNAL_DUTY_MOTOR
@@ -110,7 +111,7 @@ void pifDutyMotor_Clear(PifDutyMotor* p_owner);
      * @param state New motor state.
      * @param tag Log tag string.
      */
-    void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state, char *tag);
+    void pifDutyMotor_SetState(PifDutyMotor* p_owner, PifMotorState state, const char *tag);
 #else
     /**
      * @fn pifDutyMotor_SetState
@@ -141,7 +142,7 @@ void pifDutyMotor_SetDuty(PifDutyMotor* p_owner, uint16_t duty);
  * @fn pifDutyMotor_SetOperatingTime
  * @brief Starts a one-shot timer that triggers deceleration after runtime expires.
  * @param p_owner Pointer to the motor instance.
- * @param operating_time Runtime value for the break timer.
+ * @param operating_time Runtime value for the brake timer.
  * @return `TRUE` if timer setup/start succeeds, otherwise `FALSE`.
  */
 BOOL pifDutyMotor_SetOperatingTime(PifDutyMotor* p_owner, uint32_t operating_time);
@@ -156,12 +157,12 @@ BOOL pifDutyMotor_SetOperatingTime(PifDutyMotor* p_owner, uint32_t operating_tim
 BOOL pifDutyMotor_Start(PifDutyMotor* p_owner, uint16_t duty);
 
 /**
- * @fn pifDutyMotor_BreakRelease
- * @brief Sets duty to zero and optionally engages timed break handling.
+ * @fn pifDutyMotor_BrakeRelease
+ * @brief Sets duty to zero and optionally engages timed brake handling.
  * @param p_owner Pointer to the motor instance.
- * @param break_time Break hold time; `0` skips timed break.
+ * @param brake_time Brake hold time; `0` skips timed brake.
  */
-void pifDutyMotor_BreakRelease(PifDutyMotor* p_owner, uint16_t break_time);
+void pifDutyMotor_BrakeRelease(PifDutyMotor* p_owner, uint16_t brake_time);
 
 /**
  * @fn pifDutyMotor_StartControl

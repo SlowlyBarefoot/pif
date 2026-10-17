@@ -29,9 +29,9 @@ typedef struct StPifStepMotorSpeedStage
     uint16_t fs_overtime;       // Delay before deceleration after stop request
 
     // Deceleration stage
-    uint16_t rs_stop_pps;       // Threshold speed to switch to break handling
+    uint16_t rs_stop_pps;       // Threshold speed to switch to brake handling
     uint16_t rs_ctrl_pps;       // Decrement per control period (0 disables deceleration ramp)
-    uint16_t rs_break_time;     // Break hold time for mechanical/electrical brake
+    uint16_t rs_brake_time;     // Brake hold time for mechanical/electrical brake
 } PifStepMotorSpeedStage;
 
 /**
@@ -107,7 +107,7 @@ void pifStepMotorSpeed_Stop(PifStepMotorSpeed* p_owner);
 
 /**
  * @fn pifStepMotorSpeed_Emergency
- * @brief Forces immediate emergency break state.
+ * @brief Forces immediate emergency brake state.
  * @param p_owner Pointer to the speed-control motor instance.
  */
 void pifStepMotorSpeed_Emergency(PifStepMotorSpeed* p_owner);

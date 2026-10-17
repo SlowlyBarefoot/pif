@@ -17,16 +17,38 @@ typedef enum EnPifStepMotorOperation
     SMO_2P_4W_1S        = 2,    // 2-Phase 4-Wire: 1-Step sequence
     SMO_2P_4W_2S        = 3,    // 2-Phase 4-Wire: 2-Step sequence
     SMO_2P_4W_1_2S      = 4,    // 2-Phase 4-Wire: 1-2 Step sequence
-#if 0
-    SMO_5P_PG           = 5     // 5-Phase Pentagon
-#endif
+    SMO_5P_PG           = 5,    // 5-Phase Pentagon: full step, 10 steps per electrical cycle
+    SMO_5P_PG_HALF      = 6,    // 5-Phase Pentagon: half step, 20 steps per electrical cycle
+    SMO_STEP_DIR        = 7     // STEP/DIR driver (A4988, DRV8825, TMC...): phase is a SMSD_* bit field
 } PifStepMotorOperation;
+
+// In SMO_5P_PG and SMO_5P_PG_HALF the phase gives the 5 terminals of the pentagon, one half bridge per
+// terminal. Bits 0 to 4 (SM5P_A to SM5P_E) are the levels: a set bit drives that terminal to the supply and
+// a clear bit to ground. Each full step moves one terminal, so 3 and 2 terminals are high in turn.
+// SMO_5P_PG_HALF puts a half step between two full steps, with the moving terminal turned off (both
+// switches of its half bridge open), marked by SM5P_OFF() of that terminal; its level bit is clear then.
+// The full steps energize 4 windings and the half steps 5. pifStepMotor_Release() gives 0, with every
+// terminal at ground and no current.
+#define SM5P_A          0x01
+#define SM5P_B          0x02
+#define SM5P_C          0x04
+#define SM5P_D          0x08
+#define SM5P_E          0x10
+#define SM5P_LEVEL_MASK 0x1F
+#define SM5P_OFF(T)     ((uint16_t)(T) << 8)    // The terminal T is turned off (high impedance)
+
+// Bits of the phase given to act_set_step in SMO_STEP_DIR. Each pulse is one tick with SMSD_STEP set
+// and one tick without, and pifStepMotor_Release() gives 0, which clears SMSD_ENABLE.
+#define SMSD_STEP       0x01    // STEP line level
+#define SMSD_DIR        0x02    // DIR line level, set when _direction is not 0
+#define SMSD_ENABLE     0x04    // Driver enable, active high (invert it in act_set_step if needed)
 
 
 struct StPifStepMotor;
 typedef struct StPifStepMotor PifStepMotor;
 
-typedef void (*PifActStepMotorSetStep)(uint16_t phase);
+typedef void (*PifActStepMotorSetStep)(PifStepMotor* p_owner, uint16_t phase);
+typedef void (*PifActStepMotorSetMicrostep)(PifStepMotor* p_owner, uint16_t microstep);
 
 typedef void (*PifEvtStepMotorStable)(PifStepMotor* p_owner);
 typedef void (*PifEvtStepMotorStop)(PifStepMotor* p_owner);
@@ -62,6 +84,7 @@ struct StPifStepMotor
 {
     // Public Action Function
     PifActStepMotorSetStep act_set_step;
+    PifActStepMotorSetMicrostep act_set_microstep;  // Optional: sets the MS pins of a STEP/DIR driver
 
     // Public Event Function
     PifEvtStepMotorStable evt_stable;
@@ -75,20 +98,24 @@ struct StPifStepMotor
     uint16_t _resolution;
 	uint16_t _current_pps;
     uint8_t _reduction_gear_ratio;
+    uint16_t _microstep;            // STEP pulses per full step in SMO_STEP_DIR (see pifStepMotor_SetMicrostep)
     uint8_t _direction;
     PifMotorState _state;
-    uint32_t _current_pulse;
+    PifMotorError _error;           // Cause of the last error, cleared when a stage starts
+    uint32_t _current_pulse;        // Pulses since start, in the same unit as pps (see pifStepMotor_SetPps)
 
 	// Private Member Variable
-    uint8_t __error;
+    BOOL __error_notified;      // evt_error was already called for the current error
 	uint8_t __step_size;
-	uint16_t __step_period1us;
+	uint32_t __ticks_per_pulse;	// Step timer ticks per pulse: gear ratio x half step or STEP/DIR edges x microstep
+	uint32_t __tick_count;
+	uint32_t __step_period1us;	// Step timer tick period
 
 	PifTask* __p_task;
 
 	PifTimer* __p_timer_step;
 	PifTimer* __p_timer_delay;
-	PifTimer* __p_timer_break;
+	PifTimer* __p_timer_brake;
 
 	uint8_t __current_step;
 	uint32_t __target_pulse;
@@ -133,7 +160,7 @@ void pifStepMotor_Clear(PifStepMotor* p_owner);
      * @param state New motor state.
      * @param tag Log tag string.
      */
-    void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state, char *tag);
+    void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state, const char *tag);
 #else
     /**
      * @fn pifStepMotor_SetState
@@ -157,7 +184,7 @@ BOOL pifStepMotor_SetDirection(PifStepMotor* p_owner, uint8_t direction);
  * @fn pifStepMotor_SetOperatingTime
  * @brief Starts a one-shot timer that triggers deceleration after runtime expires.
  * @param p_owner Pointer to the motor instance.
- * @param operating_time Runtime value for the break timer.
+ * @param operating_time Runtime value for the brake timer.
  * @return `TRUE` if timer setup/start succeeds, otherwise `FALSE`.
  */
 BOOL pifStepMotor_SetOperatingTime(PifStepMotor* p_owner, uint32_t operating_time);
@@ -174,6 +201,11 @@ BOOL pifStepMotor_SetOperation(PifStepMotor* p_owner, PifStepMotorOperation oper
 /**
  * @fn pifStepMotor_SetPps
  * @brief Sets speed in pulses-per-second and updates step timer period.
+ *
+ * A pulse is one full step of the output shaft: `_resolution` pulses turn it once. The motor itself
+ * makes `_reduction_gear_ratio` full steps per pulse, two step timer ticks for each of them in
+ * SMO_2P_4W_1_2S and SMO_5P_PG_HALF. In SMO_STEP_DIR a full step is `_microstep` STEP pulses of two
+ * ticks each. `_current_pulse` and the target pulse use the same unit.
  * @param p_owner Pointer to the motor instance.
  * @param pps Target pulses-per-second.
  * @return `TRUE` if speed is valid and applied, otherwise `FALSE`.
@@ -182,12 +214,25 @@ BOOL pifStepMotor_SetPps(PifStepMotor* p_owner, uint16_t pps);
 
 /**
  * @fn pifStepMotor_SetReductionGearRatio
- * @brief Sets gear ratio used by speed conversion.
+ * @brief Sets the gear ratio: motor full steps per pulse of the output shaft.
  * @param p_owner Pointer to the motor instance.
- * @param reduction_gear_ratio Reduction gear ratio.
+ * @param reduction_gear_ratio Reduction gear ratio, 1 or more.
  * @return `TRUE` if applied in idle state, otherwise `FALSE`.
  */
 BOOL pifStepMotor_SetReductionGearRatio(PifStepMotor* p_owner, uint8_t reduction_gear_ratio);
+
+/**
+ * @fn pifStepMotor_SetMicrostep
+ * @brief Sets the microstep division of a STEP/DIR driver: STEP pulses per full step.
+ *
+ * Give the division the driver is set to, and set `act_set_microstep` to have it set the MS pins of the
+ * driver too. The unit of pps and pulses stays one full step, so the speed is kept. The division is used
+ * in SMO_STEP_DIR only.
+ * @param p_owner Pointer to the motor instance.
+ * @param microstep 1 (full step), 2, 4, 8 and so on up to 256.
+ * @return `TRUE` if applied while the motor does not step, otherwise `FALSE`.
+ */
+BOOL pifStepMotor_SetMicrostep(PifStepMotor* p_owner, uint16_t microstep);
 
 /**
  * @fn pifStepMotor_SetRpm
@@ -225,26 +270,26 @@ BOOL pifStepMotor_SetTargetPulse(PifStepMotor* p_owner, uint32_t target_pulse);
 BOOL pifStepMotor_Start(PifStepMotor* p_owner, uint32_t target_pulse);
 
 /**
- * @fn pifStepMotor_Break
+ * @fn pifStepMotor_Brake
  * @brief Stops step generation immediately.
  * @param p_owner Pointer to the motor instance.
  */
-void pifStepMotor_Break(PifStepMotor* p_owner);
+void pifStepMotor_Brake(PifStepMotor* p_owner);
 
 /**
  * @fn pifStepMotor_Release
- * @brief De-energizes all motor phases.
+ * @brief De-energizes all motor phases (in SMO_STEP_DIR, disables the driver).
  * @param p_owner Pointer to the motor instance.
  */
 void pifStepMotor_Release(PifStepMotor* p_owner);
 
 /**
- * @fn pifStepMotor_BreakRelease
- * @brief Stops stepping and optionally holds break before releasing phases.
+ * @fn pifStepMotor_BrakeRelease
+ * @brief Stops stepping and optionally holds brake before releasing phases.
  * @param p_owner Pointer to the motor instance.
- * @param break_time Break hold time; `0` releases immediately.
+ * @param brake_time Brake hold time; `0` releases immediately.
  */
-void pifStepMotor_BreakRelease(PifStepMotor* p_owner, uint16_t break_time);
+void pifStepMotor_BrakeRelease(PifStepMotor* p_owner, uint16_t brake_time);
 
 /**
  * @fn pifStepMotor_StartControl

@@ -37,7 +37,7 @@ const uint16_t kOperation_2P_4W_1_2S[] = {
 		0x09		// 10 01 : ~B  A
 };
 
-#if 0
+// Each step moves one terminal, in the order C, D, E, A, B.
 const uint16_t kOperation_5P_PG[] = {
 		0x16,		// 1 0 1 1 0 : E   C B
 		0x12,		// 1 0 0 1 0 : E     B
@@ -50,8 +50,49 @@ const uint16_t kOperation_5P_PG[] = {
 		0x15,		// 1 0 1 0 1 : E   C   A
 		0x14		// 1 0 1 0 0 : E   C
 };
-#endif
 
+// kOperation_5P_PG with a half step between two full steps: the terminal that moves is off in between.
+const uint16_t kOperation_5P_PG_HALF[] = {
+		0x16,						// E   C B
+		0x12 | SM5P_OFF(SM5P_C),	// E   - B
+		0x12,						// E     B
+		0x12 | SM5P_OFF(SM5P_D),	// E -   B
+		0x1A,						// E D   B
+		0x0A | SM5P_OFF(SM5P_E),	// - D   B
+		0x0A,						//   D   B
+		0x0A | SM5P_OFF(SM5P_A),	//   D   B -
+		0x0B,						//   D   B A
+		0x09 | SM5P_OFF(SM5P_B),	//   D   - A
+		0x09,						//   D     A
+		0x09 | SM5P_OFF(SM5P_C),	//   D -   A
+		0x0D,						//   D C   A
+		0x05 | SM5P_OFF(SM5P_D),	//   - C   A
+		0x05,						//     C   A
+		0x05 | SM5P_OFF(SM5P_E),	// -   C   A
+		0x15,						// E   C   A
+		0x14 | SM5P_OFF(SM5P_A),	// E   C   -
+		0x14,						// E   C
+		0x14 | SM5P_OFF(SM5P_B)		// E   C -
+};
+
+// Index 1 raises STEP and index 0 lowers it, so a pulse ends with STEP low.
+const uint16_t kOperation_StepDir[] = {
+		SMSD_ENABLE,
+		SMSD_ENABLE | SMSD_STEP
+};
+
+
+/**
+ * @brief Returns the phase output of the current step, with DIR added in SMO_STEP_DIR.
+ * @param p_owner Pointer to the step motor instance.
+ */
+static uint16_t _getPhase(PifStepMotor* p_owner)
+{
+	uint16_t phase = p_owner->__p_phase_operation[p_owner->__current_step];
+
+	if (p_owner->_operation == SMO_STEP_DIR && p_owner->_direction) phase |= SMSD_DIR;
+	return phase;
+}
 
 /**
  * @brief Advances or reverses one commutation step and applies the phase output.
@@ -59,7 +100,8 @@ const uint16_t kOperation_5P_PG[] = {
  */
 static void _setStep(PifStepMotor* p_owner)
 {
-    if (p_owner->_direction == 0) {
+	// In SMO_STEP_DIR the direction is on the DIR line, so the STEP table always runs forward.
+    if (p_owner->_direction == 0 || p_owner->_operation == SMO_STEP_DIR) {
 		p_owner->__current_step++;
 		if (p_owner->__current_step == p_owner->__step_size) {
 			p_owner->__current_step = 0;
@@ -72,9 +114,39 @@ static void _setStep(PifStepMotor* p_owner)
 		p_owner->__current_step--;
 	}
 
-	p_owner->_current_pulse++;
+	p_owner->__tick_count++;
+	if (p_owner->__tick_count >= p_owner->__ticks_per_pulse) {
+		p_owner->__tick_count = 0;
+		p_owner->_current_pulse++;
+	}
 
-	(*p_owner->act_set_step)(p_owner->__p_phase_operation[p_owner->__current_step]);
+	(*p_owner->act_set_step)(p_owner, _getPhase(p_owner));
+}
+
+/**
+ * @brief Recomputes the step timer ticks per pulse and reapplies the current speed.
+ * @param p_owner Pointer to the step motor instance.
+ */
+static void _updateTicksPerPulse(PifStepMotor* p_owner)
+{
+	uint32_t ticks = p_owner->_reduction_gear_ratio;
+
+	switch (p_owner->_operation) {
+	case SMO_2P_4W_1_2S:
+	case SMO_5P_PG_HALF:
+		ticks *= 2;
+		break;
+
+	case SMO_STEP_DIR:
+		ticks *= 2UL * p_owner->_microstep;
+		break;
+
+	default:
+		break;
+	}
+	p_owner->__ticks_per_pulse = ticks;
+
+	if (p_owner->_current_pps) pifStepMotor_SetPps(p_owner, p_owner->_current_pps);
 }
 
 /**
@@ -98,7 +170,24 @@ static void _evtTimerStepFinish(PifIssuerP p_issuer)
 
 void pifStepMotor_Control(PifStepMotor* p_owner)
 {
+    if (p_owner->_error) {
+        if (p_owner->_state < MS_BRAKE) {
+#ifndef PIF_NO_LOG
+			pifStepMotor_SetState(p_owner, MS_BRAKE, "SM");
+#else
+			pifStepMotor_SetState(p_owner, MS_BRAKE);
+#endif
+        }
+
+        if (!p_owner->__error_notified) {
+            p_owner->__error_notified = TRUE;
+            if (p_owner->evt_error) (*p_owner->evt_error)(p_owner);
+        }
+    }
+
 	if (p_owner->_state == MS_STOP) {
+		// Cancel a pending operating time so it does not cut into the next run.
+		if (p_owner->__p_timer_brake) pifTimer_Stop(p_owner->__p_timer_brake);
 		pifTask_Pause(p_owner->__p_task);
 #ifndef PIF_NO_LOG
 		pifStepMotor_SetState(p_owner, MS_IDLE, "SM");
@@ -110,10 +199,10 @@ void pifStepMotor_Control(PifStepMotor* p_owner)
 }
 
 /**
- * @brief Break-timer callback that requests reduction or releases motor hold.
+ * @brief Brake-timer callback that requests reduction or releases motor hold.
  * @param p_issuer Issuer pointer cast to `PifStepMotor*`.
  */
-static void _evtTimerBreakFinish(void *p_issuer)
+static void _evtTimerBrakeFinish(void *p_issuer)
 {
     PifStepMotor* p_owner = (PifStepMotor*)p_issuer;
 
@@ -131,7 +220,7 @@ static void _evtTimerBreakFinish(void *p_issuer)
 
 BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifTimerManager* p_timer_manager, uint16_t resolution, PifStepMotorOperation operation)
 {
-    if (!p_owner || !p_timer_manager) {
+    if (!p_owner || !p_timer_manager || !resolution) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -143,12 +232,13 @@ BOOL pifStepMotor_Init(PifStepMotor* p_owner, PifId id, PifTimerManager* p_timer
     if (!p_owner->__p_timer_step) goto fail;
     pifTimer_AttachEvtFinish(p_owner->__p_timer_step, _evtTimerStepFinish, p_owner, FALSE);
 
-	pifStepMotor_SetOperation(p_owner, operation);
+    p_owner->_reduction_gear_ratio = 1;
+    p_owner->_microstep = 1;
+	if (!pifStepMotor_SetOperation(p_owner, operation)) goto fail;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
     p_owner->_resolution = resolution;
-    p_owner->_reduction_gear_ratio = 1;
     p_owner->__step_period1us = 1000;
     return TRUE;
 
@@ -166,9 +256,9 @@ void pifStepMotor_Clear(PifStepMotor* p_owner)
 		pifTimerManager_Remove(p_owner->__p_timer_step);
 		p_owner->__p_timer_step = NULL;
 	}
-	if (p_owner->__p_timer_break) {
-		pifTimerManager_Remove(p_owner->__p_timer_break);
-		p_owner->__p_timer_break = NULL;
+	if (p_owner->__p_timer_brake) {
+		pifTimerManager_Remove(p_owner->__p_timer_brake);
+		p_owner->__p_timer_brake = NULL;
 	}
 	if (p_owner->__p_timer_delay) {
 		pifTimerManager_Remove(p_owner->__p_timer_delay);
@@ -178,10 +268,10 @@ void pifStepMotor_Clear(PifStepMotor* p_owner)
 
 #ifndef PIF_NO_LOG
 
-void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state, char *tag)
+void pifStepMotor_SetState(PifStepMotor* p_owner, PifMotorState state, const char *tag)
 {
 	pifLog_Printf(LT_INFO, "%s(%u) %s->%s E:%d", tag, p_owner->_id,
-			kMotorState[p_owner->_state], kMotorState[state], p_owner->__error);
+			kMotorState[p_owner->_state], kMotorState[state], p_owner->_error);
 	p_owner->_state = state;
 #ifdef COLLECT_SIGNAL_STEP_MOTOR
 	pifCollectSignal_Put(&p_owner->__cs[SM_CSF_STATE_IDX], state);
@@ -213,12 +303,14 @@ BOOL pifStepMotor_SetDirection(PifStepMotor* p_owner, uint8_t direction)
 
 BOOL pifStepMotor_SetOperatingTime(PifStepMotor* p_owner, uint32_t operating_time)
 {
-	if (!p_owner->__p_timer_break) {
-		p_owner->__p_timer_break = pifTimerManager_Add(p_owner->_p_timer_manager, TT_ONCE);
+	if (!operating_time) return TRUE;
+
+	if (!p_owner->__p_timer_brake) {
+		p_owner->__p_timer_brake = pifTimerManager_Add(p_owner->_p_timer_manager, TT_ONCE);
 	}
-	if (p_owner->__p_timer_break) {
-		pifTimer_AttachEvtFinish(p_owner->__p_timer_break, _evtTimerBreakFinish, p_owner, FALSE);
-		if (pifTimer_Start(p_owner->__p_timer_break, operating_time)) {
+	if (p_owner->__p_timer_brake) {
+		pifTimer_AttachEvtFinish(p_owner->__p_timer_brake, _evtTimerBrakeFinish, p_owner, FALSE);
+		if (pifTimer_Start(p_owner->__p_timer_brake, operating_time)) {
 			return TRUE;
 		}
 	}
@@ -253,18 +345,29 @@ BOOL pifStepMotor_SetOperation(PifStepMotor* p_owner, PifStepMotorOperation oper
 		p_owner->__p_phase_operation = kOperation_2P_4W_1_2S;
 		break;
 
-#if 0
 	case SMO_5P_PG:
 		p_owner->__step_size = 10;
 		p_owner->__p_phase_operation = kOperation_5P_PG;
 		break;
-#endif
+
+	case SMO_5P_PG_HALF:
+		p_owner->__step_size = 20;
+		p_owner->__p_phase_operation = kOperation_5P_PG_HALF;
+		break;
+
+	case SMO_STEP_DIR:
+		p_owner->__step_size = 2;
+		p_owner->__p_phase_operation = kOperation_StepDir;
+		break;
 
 	default:
         pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 	p_owner->_operation = operation;
+	// The previous table may have been longer.
+	if (p_owner->__current_step >= p_owner->__step_size) p_owner->__current_step = 0;
+	_updateTicksPerPulse(p_owner);
 	return TRUE;
 }
 
@@ -275,10 +378,7 @@ BOOL pifStepMotor_SetPps(PifStepMotor* p_owner, uint16_t pps)
 		return FALSE;
     }
 
-	uint16_t period = 1000000.0 / (pps * p_owner->_reduction_gear_ratio) + 0.5;
-	if (p_owner->_operation == SMO_2P_4W_1_2S) {
-		period /= 2;
-	}
+	uint32_t period = 1000000.0 / ((double)pps * p_owner->__ticks_per_pulse) + 0.5;
 
 	if (period < 2 * p_owner->_p_timer_manager->_period1us) {
 		pif_error = E_WRONG_DATA;
@@ -294,8 +394,8 @@ BOOL pifStepMotor_SetPps(PifStepMotor* p_owner, uint16_t pps)
 
 #ifndef PIF_NO_LOG
 	if (pif_log_flag.bt.step_motor) {
-		pifLog_Printf(LT_INFO, "SM(%u) %s P/S:%d SP:%uus", p_owner->_id,
-				kMotorState[p_owner->_state], pps, p_owner->__step_period1us);
+		pifLog_Printf(LT_INFO, "SM(%u) %s P/S:%d SP:%luus", p_owner->_id,
+				kMotorState[p_owner->_state], pps, (unsigned long)p_owner->__step_period1us);
 	}
 #endif
 	return TRUE;
@@ -303,12 +403,35 @@ BOOL pifStepMotor_SetPps(PifStepMotor* p_owner, uint16_t pps)
 
 BOOL pifStepMotor_SetReductionGearRatio(PifStepMotor* p_owner, uint8_t reduction_gear_ratio)
 {
+    if (!reduction_gear_ratio) {
+        pif_error = E_INVALID_PARAM;
+		return FALSE;
+    }
 	if (p_owner->_state != MS_IDLE) {
         pif_error = E_INVALID_STATE;
 		return FALSE;
     }
 
 	p_owner->_reduction_gear_ratio = reduction_gear_ratio;
+	_updateTicksPerPulse(p_owner);
+	return TRUE;
+}
+
+BOOL pifStepMotor_SetMicrostep(PifStepMotor* p_owner, uint16_t microstep)
+{
+	// A power of 2 from 1 to 256, as the drivers take.
+	if (!microstep || microstep > 256 || (microstep & (microstep - 1))) {
+        pif_error = E_INVALID_PARAM;
+		return FALSE;
+    }
+	if (p_owner->__p_timer_step->_step != TS_STOP) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
+
+	p_owner->_microstep = microstep;
+	if (p_owner->act_set_microstep) (*p_owner->act_set_microstep)(p_owner, microstep);
+	_updateTicksPerPulse(p_owner);
 	return TRUE;
 }
 
@@ -331,42 +454,49 @@ BOOL pifStepMotor_SetTargetPulse(PifStepMotor* p_owner, uint32_t target_pulse)
 
     p_owner->__target_pulse = target_pulse;
     p_owner->_current_pulse = 0;
+    p_owner->__tick_count = 0;
 	return TRUE;
 }
 
 BOOL pifStepMotor_Start(PifStepMotor* p_owner, uint32_t target_pulse)
 {
-	if (p_owner->__step_period1us < 2 * p_owner->_p_timer_manager->_period1us) {
+	if (!p_owner->act_set_step || p_owner->__step_period1us < 2 * p_owner->_p_timer_manager->_period1us) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
-	if (!pifTimer_Start(p_owner->__p_timer_step, p_owner->__step_period1us / p_owner->_p_timer_manager->_period1us)) return FALSE;
+	// Set before the step timer runs, since its callback compares against them.
     p_owner->__target_pulse = target_pulse;
     p_owner->_current_pulse = 0;
-	return TRUE;
+    p_owner->__tick_count = 0;
+	if (p_owner->_operation == SMO_STEP_DIR) {
+		// Enable the driver and set DIR ahead of the first STEP edge.
+		p_owner->__current_step = 0;
+		(*p_owner->act_set_step)(p_owner, _getPhase(p_owner));
+	}
+	return pifTimer_Start(p_owner->__p_timer_step, p_owner->__step_period1us / p_owner->_p_timer_manager->_period1us);
 }
 
-void pifStepMotor_Break(PifStepMotor* p_owner)
+void pifStepMotor_Brake(PifStepMotor* p_owner)
 {
    	pifTimer_Stop(p_owner->__p_timer_step);
 }
 
 void pifStepMotor_Release(PifStepMotor* p_owner)
 {
-	(*p_owner->act_set_step)(0);
+	if (p_owner->act_set_step) (*p_owner->act_set_step)(p_owner, 0);
 }
 
-void pifStepMotor_BreakRelease(PifStepMotor* p_owner, uint16_t break_time)
+void pifStepMotor_BrakeRelease(PifStepMotor* p_owner, uint16_t brake_time)
 {
-	pifStepMotor_Break(p_owner);
+	pifStepMotor_Brake(p_owner);
 
-	if (break_time) {
-	    if (!p_owner->__p_timer_break) {
-	    	p_owner->__p_timer_break = pifTimerManager_Add(p_owner->_p_timer_manager, TT_ONCE);
+	if (brake_time) {
+	    if (!p_owner->__p_timer_brake) {
+	    	p_owner->__p_timer_brake = pifTimerManager_Add(p_owner->_p_timer_manager, TT_ONCE);
 	    }
-	    if (p_owner->__p_timer_break) {
-	    	pifTimer_AttachEvtFinish(p_owner->__p_timer_break, _evtTimerBreakFinish, p_owner, FALSE);
-			if (pifTimer_Start(p_owner->__p_timer_break, break_time)) return;
+	    if (p_owner->__p_timer_brake) {
+	    	pifTimer_AttachEvtFinish(p_owner->__p_timer_brake, _evtTimerBrakeFinish, p_owner, FALSE);
+			if (pifTimer_Start(p_owner->__p_timer_brake, brake_time)) return;
 	    }
 	}
 
@@ -380,6 +510,7 @@ BOOL pifStepMotor_StartControl(PifStepMotor* p_owner)
 	    return FALSE;
     }
 
+    p_owner->__error_notified = FALSE;
     pifTask_Resume(p_owner->__p_task);
     return TRUE;
 }

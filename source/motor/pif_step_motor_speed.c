@@ -7,7 +7,7 @@
 
 
 /**
- * @brief Delay timer callback used during overrun and break transition handling.
+ * @brief Delay timer callback used during overrun and brake transition handling.
  * @param p_issuer Issuer pointer cast to `PifStepMotor*`.
  */
 static void _evtTimerDelayFinish(PifIssuerP p_issuer)
@@ -23,7 +23,7 @@ static void _evtTimerDelayFinish(PifIssuerP p_issuer)
 #endif
         break;
 
-	case MS_BREAKING:
+	case MS_BRAKING:
 #ifndef PIF_NO_LOG
 		pifStepMotor_SetState(p_parent, MS_STOPPING, "SMS");
 #else
@@ -72,9 +72,9 @@ static uint32_t _doTask(PifTask* p_task)
 		if (!p_stage->rs_ctrl_pps) {
 			tmp_pps = 0;
 #ifndef PIF_NO_LOG
-			pifStepMotor_SetState(p_parent, MS_BREAK, "SMS");
+			pifStepMotor_SetState(p_parent, MS_BRAKE, "SMS");
 #else
-			pifStepMotor_SetState(p_parent, MS_BREAK);
+			pifStepMotor_SetState(p_parent, MS_BRAKE);
 #endif
 		}
 		else if (tmp_pps > p_stage->rs_ctrl_pps && tmp_pps > p_stage->rs_stop_pps) {
@@ -83,9 +83,9 @@ static uint32_t _doTask(PifTask* p_task)
 		else if (tmp_pps) {
 			tmp_pps = 0;
 #ifndef PIF_NO_LOG
-			pifStepMotor_SetState(p_parent, MS_BREAK, "SMS");
+			pifStepMotor_SetState(p_parent, MS_BRAKE, "SMS");
 #else
-			pifStepMotor_SetState(p_parent, MS_BREAK);
+			pifStepMotor_SetState(p_parent, MS_BRAKE);
 #endif
 		}
 	}
@@ -98,14 +98,14 @@ static uint32_t _doTask(PifTask* p_task)
 #endif
 	}
 
-    if (p_parent->_state == MS_BREAK) {
-    	pifStepMotor_Break(p_parent);
-		if (p_stage->rs_break_time &&
-				pifTimer_Start(p_parent->__p_timer_delay, p_stage->rs_break_time)) {
+    if (p_parent->_state == MS_BRAKE) {
+    	pifStepMotor_Brake(p_parent);
+		if (p_stage->rs_brake_time &&
+				pifTimer_Start(p_parent->__p_timer_delay, p_stage->rs_brake_time)) {
 #ifndef PIF_NO_LOG
-			pifStepMotor_SetState(p_parent, MS_BREAKING, "SMS");
+			pifStepMotor_SetState(p_parent, MS_BRAKING, "SMS");
 #else
-			pifStepMotor_SetState(p_parent, MS_BREAKING);
+			pifStepMotor_SetState(p_parent, MS_BRAKING);
 #endif
     	}
     	else {
@@ -130,7 +130,7 @@ static uint32_t _doTask(PifTask* p_task)
 		if (p_stage->mode & MM_CFPS_MASK) {
 	    	if (p_stage->p_stop_sensor) {
 	    		if (p_stage->p_stop_sensor->_curr_state == OFF) {
-	    			p_parent->__error = 1;
+	    			p_parent->_error = ME_STOP_POSITION;
 	    		}
 	    	}
 	    }
@@ -176,7 +176,7 @@ static void _evtSwitchReduceChange(PifSensor* p_owner, SWITCH state, PifSensorVa
 }
 
 /**
- * @brief Stop-sensor event callback that forces break transition.
+ * @brief Stop-sensor event callback that forces brake transition.
  * @param p_owner Sensor that generated the event.
  * @param state New switch state.
  * @param p_value Optional sensor value payload.
@@ -189,13 +189,13 @@ static void _evtSwitchStopChange(PifSensor* p_owner, SWITCH state, PifSensorValu
 	(void)p_owner;
 	(void)p_value;
 
-	if (p_motor->_state >= MS_BREAK) return;
+	if (p_motor->_state >= MS_BRAKE) return;
 
 	if (state) {
 #ifndef PIF_NO_LOG
-		pifStepMotor_SetState(p_motor, MS_BREAK, "SMS");
+		pifStepMotor_SetState(p_motor, MS_BRAKE, "SMS");
 #else
-		pifStepMotor_SetState(p_motor, MS_BREAK);
+		pifStepMotor_SetState(p_motor, MS_BRAKE);
 #endif
 	}
 }
@@ -336,7 +336,7 @@ BOOL pifStepMotorSpeed_Start(PifStepMotorSpeed* p_owner, uint8_t stage_index, ui
 		pifStepMotor_SetState(p_parent, MS_CONST);
 #endif
     }
-    p_parent->__error = 0;
+    p_parent->_error = ME_NONE;
 
     pifStepMotor_Start(p_parent, 0);
     return TRUE;
@@ -368,8 +368,8 @@ void pifStepMotorSpeed_Stop(PifStepMotorSpeed* p_owner)
 void pifStepMotorSpeed_Emergency(PifStepMotorSpeed* p_owner)
 {
 #ifndef PIF_NO_LOG
-	pifStepMotor_SetState(&p_owner->parent, MS_BREAK, "SMS");
+	pifStepMotor_SetState(&p_owner->parent, MS_BRAKE, "SMS");
 #else
-	pifStepMotor_SetState(&p_owner->parent, MS_BREAK);
+	pifStepMotor_SetState(&p_owner->parent, MS_BRAKE);
 #endif
 }
