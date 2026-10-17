@@ -34,7 +34,7 @@ else
 endif
 
 NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
-           test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog
+           test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
 LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
@@ -123,6 +123,12 @@ TRANSPORT_SRC := protocol/test_pif_transport.c \
 TRANSPORT_DEP := $(wildcard $(ROOT)/include/communication/*.h) $(ROOT)/include/protocol/pif_link.h \
                  $(ROOT)/include/protocol/pif_xmodem.h
 
+# The S.BUS, Spektrum and SUMD receivers over an in-memory wire, with their parsers called directly.
+RC_SERIAL_SRC := rc/test_pif_rc_serial.c $(ROOT)/source/communication/pif_uart.c $(ROOT)/source/communication/pif_transport.c \
+                 $(addprefix $(ROOT)/source/rc/, pif_rc.c pif_rc_sbus.c pif_rc_spektrum.c pif_rc_sumd.c) \
+                 $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_buffer.c pif_task.c pif_task_manager.c)
+RC_SERIAL_DEP := $(addprefix $(ROOT)/include/rc/, pif_rc.h pif_rc_sbus.h pif_rc_spektrum.h pif_rc_sumd.h)
+
 LINK_DEP :=$(ROOT)/source/protocol/pif_link.c $(ROOT)/include/protocol/pif_link.h \
             $(ROOT)/include/protocol/pif_link_fragment.h
 
@@ -161,6 +167,7 @@ run-test_pif_fnd: run-test_pif_dot_matrix
 run-test_pif_led: run-test_pif_fnd
 run-test_pif_modbus: run-test_pif_led
 run-test_pif_modbus_nolog: run-test_pif_modbus
+run-test_pif_rc_serial: run-test_pif_modbus_nolog
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
 	$(call RUN,$<)
@@ -261,6 +268,9 @@ $(BUILD)/test_pif_modbus$(EXE): $(MODBUS_SRC) $(MODBUS_DEP) | $(BUILD)
 
 $(BUILD)/test_pif_modbus_nolog$(EXE): $(MODBUS_SRC) $(MODBUS_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(MODBUS_SRC) -o $@
+
+$(BUILD)/test_pif_rc_serial$(EXE): $(RC_SERIAL_SRC) $(RC_SERIAL_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(RC_SERIAL_SRC) -o $@
 
 $(BUILD):
 	$(call MKDIR,$(BUILD))

@@ -28,18 +28,20 @@ typedef struct StPifRcSpektrum
 
 	// Read-only Member Variable
 	uint8_t _protocol_id;
-	double _pos_factor;
+	uint8_t _pos_shift;		// Right shift that brings a raw position down to 1024 steps (us above 988)
 
 	// Private Member Variable
-	PifUart* __p_uart;
-    uint8_t __p_buffer[SPEKTRUM_FRAME_SIZE];
     uint8_t __index;    // Current message length.
     uint8_t __id_mask;
     uint8_t __id_shift;
     uint8_t __pos_mask;
+    uint8_t __last_ch;      // Channel sent in the last slot of the next frame
+    uint8_t __fades;        // Fade count of the last frame
+    BOOL __hunting;         // A frame start is being searched for after a bad system byte
+    uint8_t __p_buffer[SPEKTRUM_FRAME_SIZE];
     uint16_t __channel[PIF_SPEKTRUM_CHANNEL_COUNT];
-	uint32_t __last_time;
-	uint8_t __last_ch;
+	uint32_t __last_time;   // Time the last byte was received
+	PifUart* __p_uart;
 } PifRcSpektrum;
 
 
@@ -76,9 +78,12 @@ void pifRcSpektrum_DetachUart(PifRcSpektrum* p_owner);
  * @fn pifRcSpektrum_SendFrame
  * @brief Encodes and transmits one Spektrum frame.
  * @param p_owner Pointer to the Spektrum receiver object.
- * @param p_channel Pointer to channel values.
- * @param count Number of channel values available in p_channel.
- * @return TRUE if the frame is queued for transmission, otherwise FALSE.
+ * @param p_channel Pointer to raw servo positions (0 to 1023 for the 1024 protocol, 0 to 2047
+ *                  for the others), not the pulse widths in us that evt_receive gets.
+ * @param count Number of channel values available in p_channel. The first 6 channels go in every
+ *              frame, and the last slot carries channel 7, or channels 7 and 8 in turn. Slots
+ *              without a channel are sent empty.
+ * @return TRUE if the whole frame is queued for transmission, otherwise FALSE.
  */
 BOOL pifRcSpektrum_SendFrame(PifRcSpektrum* p_owner, uint16_t* p_channel, uint8_t count);
 

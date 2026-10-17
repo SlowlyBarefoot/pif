@@ -27,13 +27,13 @@ typedef struct StPifRcPpm
 
 	// Private Member Variable
 	BOOL __time_valid;
-	uint16_t __valid_range_min;
-	uint16_t __valid_range_max;		// 0 when no valid range is set
-	uint16_t __threshold_1us;
 	BOOL __frame_error;
 	uint8_t __max_channel;
 	uint8_t __process_step;
 	uint8_t __learn_count;
+	uint16_t __valid_range_min;
+	uint16_t __valid_range_max;		// 0 when no valid range is set
+	uint16_t __threshold_1us;
 	uint32_t __last_time;
 	uint16_t* __p_channel;			// Channels of the last good frame, given to evt_receive
 	uint16_t* __p_work;				// Channels of the frame being received

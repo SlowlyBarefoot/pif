@@ -19,10 +19,10 @@ typedef struct StPifRcPwm
 	PifRc parent;
 
 	// Private Member Variable
-	uint16_t __valid_range_min;
-	uint16_t __valid_range_max;		// 0 when no valid range is set
 	BOOL __frame_error;
 	uint8_t __max_channel;
+	uint16_t __valid_range_min;
+	uint16_t __valid_range_max;		// 0 when no valid range is set
 	uint32_t* __p_rising;			// Rising edge time per channel, 0 when none is pending
 	uint16_t* __p_channel;
 } PifRcPwm;

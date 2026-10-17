@@ -83,10 +83,10 @@ struct StPifRcIbus
     uint8_t _tlm_address;     // Sensor address of the last sensor request received.
 
 	// Private Member Variable
-    PifUart* __p_uart;
     uint8_t __rx_buffer[IBUS_FRAME_SIZE];	// Frame being received, checksum included
-    uint32_t __last_time;					// pif_cumulative_timer1ms of the last byte
 	uint8_t __ptr;							// Bytes of the frame received so far; 0 between frames
+    uint32_t __last_time;					// pif_cumulative_timer1ms of the last byte
+    PifUart* __p_uart;
 };
 
 

@@ -27,10 +27,10 @@ typedef struct StPifRcSumd
 	PifRc parent;
 
 	// Private Member Variable
-    PifUart* __p_uart;
     uint8_t __p_buffer[SUMD_FRAME_SIZE];
     uint8_t __index;    // Current message length.
-    uint32_t __last_time;
+    uint32_t __last_time;   // Time the last byte was received
+    PifUart* __p_uart;
 } PifRcSumd;
 
 
@@ -66,9 +66,10 @@ void pifRcSumd_DetachUart(PifRcSumd* p_owner);
  * @fn pifRcSumd_SendFrame
  * @brief Encodes and transmits one SUMD frame.
  * @param p_owner Pointer to the SUMD receiver object.
- * @param p_channel Pointer to channel values.
- * @param count Number of channel values available in p_channel.
- * @return TRUE if the frame is queued for transmission, otherwise FALSE.
+ * @param p_channel Pointer to channel values in 1/8 us steps (12000 is 1500 us), not the pulse
+ *                  widths in us that evt_receive gets.
+ * @param count Number of channels to send, 2 to PIF_SUMD_CHANNEL_COUNT.
+ * @return TRUE if the whole frame is queued for transmission, otherwise FALSE.
  */
 BOOL pifRcSumd_SendFrame(PifRcSumd* p_owner, uint16_t* p_channel, uint8_t count);
 

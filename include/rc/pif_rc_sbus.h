@@ -22,10 +22,10 @@ typedef struct StPifRcSbus
 	PifRc parent;
 
 	// Private Member Variable
-    PifUart* __p_uart;
     uint8_t __index;                    // Bytes of the frame received so far
     uint8_t __buffer[SBUS_FRAME_SIZE];
-    uint32_t __last_time;
+    uint32_t __last_time;               // Time the last byte was received
+    PifUart* __p_uart;
 } PifRcSbus;
 
 
@@ -61,9 +61,11 @@ void pifRcSbus_DetachUart(PifRcSbus* p_owner);
  * @fn pifRcSbus_SendFrame
  * @brief Encodes and transmits one SBUS frame.
  * @param p_owner Pointer to the SBUS receiver object.
- * @param p_channel Pointer to channel values.
- * @param count Number of channel values available in p_channel.
- * @return TRUE if the frame is queued for transmission, otherwise FALSE.
+ * @param p_channel Pointer to raw 11-bit S.BUS channel values (0 to 2047, one step is 0.625 us
+ *                  and 1024 is 1520 us), not the pulse widths in us that evt_receive gets.
+ * @param count Number of channel values available in p_channel. Only the first 16 are sent, and
+ *              channels from count on are sent as 0.
+ * @return TRUE if the whole frame is queued for transmission, otherwise FALSE.
  */
 BOOL pifRcSbus_SendFrame(PifRcSbus* p_owner, uint16_t* p_channel, uint8_t count);
 
