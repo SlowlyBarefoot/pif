@@ -6,7 +6,7 @@
  * @fn _measure
  * @brief Reads the device once.
  * @param p_owner Pointer to the owner instance.
- * @param p_quarter Thermocouple temperature after p_filter in 0.25 degree units, or NULL.
+ * @param p_quarter Thermocouple temperature after the attached filter in 0.25 degree units, or NULL.
  * @param p_internal Cold junction temperature in degree Celsius, or NULL.
  * @return TRUE on success, FALSE on failure.
  */
@@ -38,11 +38,7 @@ static BOOL _measure(PifMax31855* p_owner, int16_t* p_quarter, double* p_interna
 		else {
 			data = (raw[0] << 6) | (raw[1] >> 2);
 		}
-		if (p_owner->p_filter) {
-			int16_t* p_data = (int16_t*)pifNoiseFilter_Process(p_owner->p_filter, &data);
-
-			if (p_data) data = *p_data;		// Unfiltered while the filter is filling its window
-		}
+		if (p_owner->__p_filter) data = *(int16_t*)pifNoiseFilter_Process(p_owner->__p_filter, &data);
 		*p_quarter = data;
 	}
 	return TRUE;
@@ -137,6 +133,17 @@ void pifMax31855_Clear(PifMax31855* p_owner)
 		pifTaskManager_Remove(p_owner->_p_task);
 		p_owner->_p_task = NULL;
 	}
+}
+
+BOOL pifMax31855_AttachFilter(PifMax31855* p_owner, PifNoiseFilter* p_filter)
+{
+	if (!p_owner || !pifNoiseFilter_Check(p_filter, NFV_INT16)) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_owner->__p_filter = p_filter;
+	return TRUE;
 }
 
 BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_internal)

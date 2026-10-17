@@ -43,6 +43,17 @@ void pifSensorSwitch_Clear(PifSensorSwitch* p_owner)
 #endif
 }
 
+BOOL pifSensorSwitch_AttachFilter(PifSensorSwitch* p_owner, PifNoiseFilter* p_filter)
+{
+	if (!p_owner || !pifNoiseFilter_Check(p_filter, NFV_SWITCH)) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_owner->__p_filter = p_filter;
+	return TRUE;
+}
+
 void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner)
 {
 	PifSensor *p_parent = &p_owner->parent;
@@ -54,11 +65,9 @@ void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner)
 void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state)
 {
 	state = state ? ON : OFF;
-	if (p_owner->p_filter) {
-		SWITCH* p_state = (SWITCH*)pifNoiseFilter_Process(p_owner->p_filter, &state);
-
-		if (p_state) p_owner->__state = *p_state;		// NULL while the filter is filling its window
-    }
+	if (p_owner->__p_filter) {
+		p_owner->__state = *(SWITCH*)pifNoiseFilter_Process(p_owner->__p_filter, &state);
+	}
 	else {
 		p_owner->__state = state;
 	}

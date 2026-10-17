@@ -243,7 +243,6 @@ static uint32_t _doTask(PifTask* p_task)
 	PifTouchScreen* p_owner = p_task->_p_client;
 	PifTftLcd* p_lcd = p_owner->__p_lcd;
 	int16_t tpx, tpy;
-	PifNoiseFilterValueP p_vx, p_vy;
 
 	// While a calibration is running, the display and the panel belong to it and no touch data is
 	// reported. It advances by one step per release, which is what makes the control period the
@@ -276,11 +275,10 @@ static uint32_t _doTask(PifTask* p_task)
 
 	if (p_owner->__p_filter_x && p_owner->__p_filter_y) {
 		p_owner->__filter_active = TRUE;
-		p_vx = pifNoiseFilter_Process(p_owner->__p_filter_x, &tpx);
-		p_vy = pifNoiseFilter_Process(p_owner->__p_filter_y, &tpy);
-		if (!p_vx || !p_vy) return 0;
-		tpx = *(int16_t*)p_vx;
-		tpy = *(int16_t*)p_vy;
+		tpx = *(int16_t*)pifNoiseFilter_Process(p_owner->__p_filter_x, &tpx);
+		tpy = *(int16_t*)pifNoiseFilter_Process(p_owner->__p_filter_y, &tpy);
+		// The first samples of a press are noisy, so nothing is reported until the windows are full.
+		if (!p_owner->__p_filter_x->_ready || !p_owner->__p_filter_y->_ready) return 0;
 	}
 
 	p_owner->_x = (tpx - p_owner->__clx) / p_owner->__px;
@@ -347,7 +345,7 @@ BOOL pifTouchScreen_AttachAction(PifTouchScreen* p_owner, PifActTouchPosition ac
 
 BOOL pifTouchScreen_AttachFilter(PifTouchScreen* p_owner, PifNoiseFilter* p_filter_x, PifNoiseFilter* p_filter_y)
 {
-	if (!p_owner || !p_filter_x || !p_filter_y) {
+	if (!p_owner || !p_filter_x || !p_filter_y || p_filter_x->_value != NFV_INT16 || p_filter_y->_value != NFV_INT16) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}

@@ -169,10 +169,11 @@ BOOL pifTouchScreen_AttachAction(PifTouchScreen* p_owner, PifActTouchPosition ac
 
 /**
  * @fn pifTouchScreen_AttachFilter
- * @brief Attaches optional noise filters for X and Y raw data streams.
+ * @brief Attaches optional noise filters for X and Y raw data streams. A press is reported once both
+ *        windows are full, and the filters are reset when it is released.
  * @param p_owner Pointer to the touch-screen instance.
- * @param p_filter_x Filter applied to raw X values.
- * @param p_filter_y Filter applied to raw Y values.
+ * @param p_filter_x Filter applied to raw X values. It takes and gives int16_t (NFV_INT16).
+ * @param p_filter_y Filter applied to raw Y values. It takes and gives int16_t (NFV_INT16).
  * @return `TRUE` if both filters are valid and attached, otherwise `FALSE`.
  */
 BOOL pifTouchScreen_AttachFilter(PifTouchScreen* p_owner, PifNoiseFilter* p_filter_x, PifNoiseFilter* p_filter_y);

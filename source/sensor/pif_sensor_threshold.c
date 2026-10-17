@@ -43,6 +43,17 @@ void pifSensorThreshold_Clear(PifSensorThreshold* p_owner)
 #endif
 }
 
+BOOL pifSensorThreshold_AttachFilter(PifSensorThreshold* p_owner, PifNoiseFilter* p_filter)
+{
+	if (!p_owner || !pifNoiseFilter_Check(p_filter, NFV_INT32)) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_owner->__p_filter = p_filter;
+	return TRUE;
+}
+
 void pifSensorThreshold_InitialState(PifSensorThreshold* p_owner)
 {
 	PifSensor* p_parent = &p_owner->parent;
@@ -67,11 +78,9 @@ BOOL pifSensorThreshold_SetThreshold(PifSensorThreshold* p_owner, int32_t low_th
 
 void pifSensorThreshold_sigData(PifSensorThreshold* p_owner, int32_t level)
 {
-	if (p_owner->p_filter) {
-		int32_t* p_level = (int32_t*)pifNoiseFilter_Process(p_owner->p_filter, &level);
-
-		if (!p_level) return;		// The filter is still filling its window.
-		level = *p_level;
+	if (p_owner->__p_filter) {
+		level = *(int32_t*)pifNoiseFilter_Process(p_owner->__p_filter, &level);
+		if (!p_owner->__p_filter->_ready) return;
 	}
 	p_owner->_curr_level = level;
 	p_owner->__level_set = TRUE;

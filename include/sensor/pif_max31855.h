@@ -44,16 +44,13 @@ struct StPifMax31855
 	// The parent variable must be at the beginning of this structure.
 	PifSensor parent;
 
-	// Public Member Variable
-    PifNoiseFilter* p_filter;		// Applied to the thermocouple only, and must take and give int16_t in 0.25 degree units.
-    								// Measures are unfiltered while it is filling its window.
-
 	// Read-only Member Variable
 	PifDeviceReg *_p_device;
     PifTask* _p_task;
 	double _internal;				// Cold junction temperature of the last periodic measurement, in degree Celsius
 
 	// Private Member Variable
+    PifNoiseFilter* __p_filter;
 	int32_t __low_threshold;			// In 0.25 degree units, rounded up
 	int32_t __high_threshold;
 	BOOL __threshold_set;
@@ -89,6 +86,17 @@ BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, void *
  * @param p_owner Pointer to the owner instance.
  */
 void pifMax31855_Clear(PifMax31855* p_owner);
+
+/**
+ * @fn pifMax31855_AttachFilter
+ * @brief Attaches a filter that every thermocouple measure goes through, such as a PifNfInt16Median. The cold
+ *        junction temperature is not filtered.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_filter Filter that takes and gives int16_t (NFV_INT16) in 0.25 degree units, or NULL to detach it. It
+ *                 must stay valid while it is attached.
+ * @return TRUE on success, FALSE with E_INVALID_PARAM when the filter takes another type.
+ */
+BOOL pifMax31855_AttachFilter(PifMax31855* p_owner, PifNoiseFilter* p_filter);
 
 /**
  * @fn pifMax31855_Measure

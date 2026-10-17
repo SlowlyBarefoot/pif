@@ -46,13 +46,11 @@ struct StPifSensorThreshold
 	// The parent variable must be at the beginning of this structure.
 	PifSensor parent;
 
-	// Public Member Variable
-    PifNoiseFilter* p_filter;		// Must take and give int32_t, such as a pifNoiseFilterInt32
-
 	// Read-only Member Variable
-    int32_t _curr_level;			// Last level after p_filter
+    int32_t _curr_level;			// Last level after the attached filter
 
 	// Private Member Variable
+    PifNoiseFilter* __p_filter;
 	int32_t __low_threshold;
 	int32_t __high_threshold;
 	BOOL __threshold_set;
@@ -88,6 +86,16 @@ BOOL pifSensorThreshold_Init(PifSensorThreshold* p_owner, PifId id, SWITCH init_
 void pifSensorThreshold_Clear(PifSensorThreshold* p_owner);
 
 /**
+ * @fn pifSensorThreshold_AttachFilter
+ * @brief Attaches a filter that every level goes through, such as a PifNfInt32Average.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_filter Filter that takes and gives int32_t (NFV_INT32), or NULL to detach it. It must stay valid
+ *                 while it is attached.
+ * @return TRUE on success, FALSE with E_INVALID_PARAM when the filter takes another type.
+ */
+BOOL pifSensorThreshold_AttachFilter(PifSensorThreshold* p_owner, PifNoiseFilter* p_filter);
+
+/**
  * @fn pifSensorThreshold_InitialState
  * @brief Returns to the initial state and forgets the last level, without calling the change event.
  * @param p_owner Pointer to the owner instance.
@@ -107,9 +115,9 @@ BOOL pifSensorThreshold_SetThreshold(PifSensorThreshold* p_owner, int32_t low_th
 
 /**
  * @fn pifSensorThreshold_sigData
- * @brief Gives a level, through p_filter when it is set, for sensors without act_acquire. It may be
+ * @brief Gives a level, through the attached filter if any, for sensors without act_acquire. It may be
  *        called from an interrupt, and the state changes at the next pifSensorThreshold_ProcessAcquire().
- *        Levels given while p_filter is still filling its window are not used.
+ *        Levels given while the filter is still filling its window are not used.
  * @param p_owner Pointer to the owner instance.
  * @param level Sampled level.
  */

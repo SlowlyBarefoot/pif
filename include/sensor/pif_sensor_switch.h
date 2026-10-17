@@ -36,18 +36,16 @@ typedef enum EnPifSensorSwitchCsFlag
 /**
  * @class StPifSensorSwitch
  * @brief An ON/OFF input such as a limit switch, a photo interrupter or a door sensor, debounced by
- *        p_filter (a pifNoiseFilterBit) and reported on every change. Buttons that need clicks or
- *        long presses belong to pifKeypad.
+ *        the filter of pifSensorSwitch_AttachFilter() (a PifNfBit) and reported on every change. Buttons
+ *        that need clicks or long presses belong to pifKeypad.
  */
 struct StPifSensorSwitch
 {
 	// The parent variable must be at the beginning of this structure.
 	PifSensor parent;
 
-	// Public Member Variable
-    PifNoiseFilter* p_filter;
-
 	// Private Member Variable
+    PifNoiseFilter* __p_filter;
     SWITCH __state;
 
 #ifdef COLLECT_SIGNAL_SENSOR_SWITCH
@@ -79,6 +77,16 @@ BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state,
 void pifSensorSwitch_Clear(PifSensorSwitch* p_owner);
 
 /**
+ * @fn pifSensorSwitch_AttachFilter
+ * @brief Attaches a filter that every sample goes through, such as a PifNfBit.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_filter Filter that takes and gives SWITCH (NFV_SWITCH), or NULL to detach it. It must stay valid
+ *                 while it is attached.
+ * @return TRUE on success, FALSE with E_INVALID_PARAM when the filter takes another type.
+ */
+BOOL pifSensorSwitch_AttachFilter(PifSensorSwitch* p_owner, PifNoiseFilter* p_filter);
+
+/**
  * @fn pifSensorSwitch_InitialState
  * @brief Initializes sensor switch initial state and prepares it for use.
  * @param p_owner Pointer to the owner instance.
@@ -87,7 +95,7 @@ void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner);
 
 /**
  * @fn pifSensorSwitch_sigData
- * @brief Gives a sample, through p_filter when it is set, for sensors without act_acquire. It may be
+ * @brief Gives a sample, through the attached filter if any, for sensors without act_acquire. It may be
  *        called from an interrupt, and the state changes at the next pifSensorSwitch_ProcessAcquire().
  * @param p_owner Pointer to the owner instance.
  * @param state Sampled state. Any value but OFF counts as ON.

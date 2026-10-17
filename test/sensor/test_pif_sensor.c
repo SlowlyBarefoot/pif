@@ -150,15 +150,19 @@ static void testSwitchSigData(void)
 
 static void testSwitchFilter(void)
 {
-    static PifNoiseFilterManager s_filter;
+    PifNfBit filter;
+    PifNfInt32Average wrong;
+    int32_t buffer[3];
     PifSensorSwitch sensor;
     int i;
 
     _clearEvents();
-    CHECK(pifNoiseFilterManager_Init(&s_filter, 1));
     CHECK(pifSensorSwitch_Init(&sensor, PIF_ID_AUTO, OFF, _actAcquire));
-    sensor.p_filter = pifNoiseFilterBit_AddCount(&s_filter, 5);
-    CHECK(sensor.p_filter);
+    CHECK(pifNoiseFilterBit_InitCount(&filter, 5));
+    CHECK(pifNoiseFilterInt32_InitAverage(&wrong, buffer, 3));
+    // A filter of another value type is refused.
+    CHECK(!pifSensorSwitch_AttachFilter(&sensor, &wrong.parent));
+    CHECK(pifSensorSwitch_AttachFilter(&sensor, &filter.parent));
     pifSensor_AttachEvtChange(&sensor.parent, _evtChange, NULL);
 
     // A single glitch is filtered out, a lasting change is not.
@@ -171,7 +175,6 @@ static void testSwitchFilter(void)
     s_sample = ON;
     for (i = 0; i < 5; i++) pifSensorSwitch_ProcessAcquire(&sensor);
     CHECK(s_events == 1 && s_event_state == ON);
-    pifNoiseFilterManager_Clear(&s_filter);
 }
 
 static void testThresholdInit(void)
@@ -277,25 +280,28 @@ static void testThresholdSingle(void)
 
 static void testThresholdFilter(void)
 {
-    static PifNoiseFilterManager s_filter;
+    PifNfInt32Average filter;
+    PifNfBit wrong;
+    int32_t buffer[4];
     PifSensorThreshold sensor;
     int i;
 
     _clearEvents();
-    CHECK(pifNoiseFilterManager_Init(&s_filter, 1));
     CHECK(pifSensorThreshold_Init(&sensor, PIF_ID_AUTO, OFF, _actAcquire));
-    sensor.p_filter = pifNoiseFilterInt32_AddAverage(&s_filter, 4);
-    CHECK(sensor.p_filter);
+    CHECK(pifNoiseFilterInt32_InitAverage(&filter, buffer, 4));
+    CHECK(pifNoiseFilterBit_InitCount(&wrong, 5));
+    // A filter of another value type is refused.
+    CHECK(!pifSensorThreshold_AttachFilter(&sensor, &wrong.parent));
+    CHECK(pifSensorThreshold_AttachFilter(&sensor, &filter.parent));
     pifSensor_AttachEvtChange(&sensor.parent, _evtChange, NULL);
     CHECK(pifSensorThreshold_SetThreshold(&sensor, 100000, 100000));
 
     // Levels are not used while the filter fills its window, and levels beyond 16 bits pass it.
     s_sample = 200000;
-    for (i = 0; i < 4; i++) pifSensorThreshold_ProcessAcquire(&sensor);
+    for (i = 0; i < 3; i++) pifSensorThreshold_ProcessAcquire(&sensor);
     CHECK(s_events == 0 && sensor._curr_level == 0);
-    for (i = 0; i < 4; i++) pifSensorThreshold_ProcessAcquire(&sensor);
+    pifSensorThreshold_ProcessAcquire(&sensor);
     CHECK(s_events == 1 && s_event_state == ON && sensor._curr_level == 200000);
-    pifNoiseFilterManager_Clear(&s_filter);
 }
 
 static void testMax31855Threshold(void)
