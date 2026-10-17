@@ -3,6 +3,71 @@
 
 
 /**
+ * @fn _measure
+ * @brief Reads the device once.
+ * @param p_owner Pointer to the owner instance.
+ * @param p_quarter Thermocouple temperature after p_filter in 0.25 degree units, or NULL.
+ * @param p_internal Cold junction temperature in degree Celsius, or NULL.
+ * @return TRUE on success, FALSE on failure.
+ */
+static BOOL _measure(PifMax31855* p_owner, int16_t* p_quarter, double* p_internal)
+{
+	uint8_t raw[4];
+	int16_t data;
+
+	if (!pifSpiDevice_Transfer((PifSpiDevice *)p_owner->_p_device, NULL, raw, 4)) return FALSE;
+	if ((raw[1] & 1) || (raw[3] & 7)) {
+		pif_error = E_WRONG_DATA;
+		return FALSE;
+	}
+
+	if (p_internal) {
+		if (raw[2] & 0x80) {
+			data = (int16_t)(0xF000 | (raw[2] << 4) | (raw[3] >> 4));
+		}
+		else {
+			data = (raw[2] << 4) | (raw[3] >> 4);
+		}
+		*p_internal = data / 16.0;
+	}
+
+	if (p_quarter) {
+		if (raw[0] & 0x80) {
+			data = (int16_t)(0xC000 | (raw[0] << 6) | (raw[1] >> 2));
+		}
+		else {
+			data = (raw[0] << 6) | (raw[1] >> 2);
+		}
+		if (p_owner->p_filter) {
+			int16_t* p_data = (int16_t*)pifNoiseFilter_Process(p_owner->p_filter, &data);
+
+			if (p_data) data = *p_data;		// Unfiltered while the filter is filling its window
+		}
+		*p_quarter = data;
+	}
+	return TRUE;
+}
+
+/**
+ * @fn _toQuarter
+ * @brief Converts degrees to the smallest 0.25 degree count not below them, so that comparing counts
+ *        gives the same result as comparing the degrees.
+ * @param degree Temperature in degree Celsius.
+ * @return The count.
+ */
+static int32_t _toQuarter(double degree)
+{
+	double quarter = degree * 4;
+	int32_t count;
+
+	if (quarter >= 2147483647.0) return 2147483647L;
+	if (quarter <= -2147483648.0) return -2147483647L - 1;
+	count = (int32_t)quarter;		// Truncated toward zero
+	if (count < quarter) count++;
+	return count;
+}
+
+/**
  * @fn _doTask
  * @brief Internal helper that supports do task logic.
  * @param p_task Pointer to the task instance that invokes this callback.
@@ -12,28 +77,19 @@ static uint32_t _doTask(PifTask* p_task)
 {
 	PifMax31855* p_owner = (PifMax31855*)p_task->_p_client;
 	PifSensor* p_parent = &p_owner->parent;
+	int16_t quarter;
 	double temperature;
+	SWITCH state;
 
-	if (!pifMax31855_Measure(p_owner, &temperature, &p_owner->_internal)) return 0;
+	if (!_measure(p_owner, &quarter, &p_owner->_internal)) return 0;
+	temperature = quarter / 4.0;
 
-	if (p_parent->__evt_change) {
-		if (p_parent->_curr_state) {
-			if (temperature < p_owner->__low_threshold) {
-				p_parent->_curr_state = OFF;
-				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->__p_issuer);
+	if (p_owner->__threshold_set) {
+		state = pifSensor_Hysteresis(p_parent->_curr_state, quarter, p_owner->__low_threshold, p_owner->__high_threshold);
+		if (pifSensor_ChangeState(p_parent, state, &temperature)) {
 #ifdef COLLECT_SIGNAL_MAX31855
-				pifCollectSignal_Put(&p_owner->__cs[M3_CSF_STATE_IDX], p_parent->_curr_state);
+			pifCollectSignal_Put(&p_owner->__cs[M3_CSF_STATE_IDX], state);
 #endif
-			}
-		}
-		else {
-			if (temperature >= p_owner->__high_threshold) {
-				p_parent->_curr_state = ON;
-				(*p_parent->__evt_change)(p_parent, p_parent->_curr_state, (PifSensorValueP)&temperature, p_parent->__p_issuer);
-#ifdef COLLECT_SIGNAL_MAX31855
-				pifCollectSignal_Put(&p_owner->__cs[M3_CSF_STATE_IDX], p_parent->_curr_state);
-#endif
-			}
 		}
 	}
 
@@ -85,39 +141,10 @@ void pifMax31855_Clear(PifMax31855* p_owner)
 
 BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_internal)
 {
-	uint8_t raw[4];
-	int16_t data;
+	int16_t quarter;
 
-	if (!pifSpiDevice_Transfer((PifSpiDevice *)p_owner->_p_device, NULL, raw, 4)) return FALSE;
-	if ((raw[1] & 1) || (raw[3] & 7)) {
-		pif_error = E_WRONG_DATA;
-		return FALSE;
-	}
-
-	if (p_internal) {
-		if (raw[2] & 0x80) {
-			data = (int16_t)(0xF000 | (raw[2] << 4) | (raw[3] >> 4));
-		}
-		else {
-			data = (raw[2] << 4) | (raw[3] >> 4);
-		}
-		*p_internal = data / 16.0;
-	}
-
-	if (p_temperature) {
-		if (raw[0] & 0x80) {
-			data = (int16_t)(0xC000 | (raw[0] << 6) | (raw[1] >> 2));
-		}
-		else {
-			data = (raw[0] << 6) | (raw[1] >> 2);
-		}
-		if (p_owner->p_filter) {
-			*p_temperature = *(int16_t*)pifNoiseFilter_Process(p_owner->p_filter, &data) / 4.0;
-		}
-		else {
-			*p_temperature = data / 4.0;
-		}
-	}
+	if (!_measure(p_owner, p_temperature ? &quarter : NULL, p_internal)) return FALSE;
+	if (p_temperature) *p_temperature = quarter / 4.0;
 	return TRUE;
 }
 
@@ -156,8 +183,9 @@ BOOL pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double
 		return FALSE;
 	}
 
-	p_owner->__low_threshold = low_threshold;
-	p_owner->__high_threshold = high_threshold;
+	p_owner->__low_threshold = _toQuarter(low_threshold);
+	p_owner->__high_threshold = _toQuarter(high_threshold);
+	p_owner->__threshold_set = TRUE;
 	return TRUE;
 }
 

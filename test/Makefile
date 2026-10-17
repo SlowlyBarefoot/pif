@@ -33,7 +33,7 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_encoder test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_encoder test_pif_sensor test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
            test_pif_nvram test_pif_nor_flash test_pif_motor
 
@@ -65,6 +65,16 @@ PULSE_SRC := sensor/test_pif_pulse.c $(ROOT)/source/sensor/pif_pulse.c \
              $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 ENCODER_SRC := sensor/test_pif_encoder.c $(ROOT)/source/sensor/pif_encoder.c \
                $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+# test_pif_sensor.c includes pif_max31855.c itself to run its task directly.
+SENSOR_SRC := sensor/test_pif_sensor.c \
+              $(addprefix $(ROOT)/source/sensor/, pif_sensor.c pif_sensor_switch.c pif_sensor_threshold.c) \
+              $(addprefix $(ROOT)/source/filter/, pif_noise_filter.c pif_noise_filter_bit.c pif_noise_filter_int32.c \
+                  pif_noise_filter_manager.c) \
+              $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_spi.c) \
+              $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ptr_array.c pif_task.c \
+                  pif_task_manager.c)
+SENSOR_DEP := $(addprefix $(ROOT)/include/sensor/, pif_sensor.h pif_sensor_switch.h pif_sensor_threshold.h pif_max31855.h) \
+              $(ROOT)/source/sensor/pif_max31855.c
 
 # The slack rule that a trigger waits for exists only with PIF_USE_BLOCK_TIME.
 TASK_SRC := core/test_pif_task_manager.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c \
@@ -184,7 +194,8 @@ run-test_pif_transport: run-test_pif_spi_fd_stream
 run-test_pif_transport_min: run-test_pif_transport
 run-test_pif_pulse: run-test_pif_transport_min
 run-test_pif_encoder: run-test_pif_pulse
-run-test_pif_task_manager: run-test_pif_encoder
+run-test_pif_sensor: run-test_pif_encoder
+run-test_pif_task_manager: run-test_pif_sensor
 run-test_pif_solenoid: run-test_pif_task_manager
 run-test_pif_solenoid_cs: run-test_pif_solenoid
 run-test_pif_dot_matrix: run-test_pif_solenoid_cs
@@ -270,6 +281,9 @@ $(BUILD)/test_pif_pulse$(EXE): $(PULSE_SRC) $(ROOT)/include/sensor/pif_pulse.h |
 
 $(BUILD)/test_pif_encoder$(EXE): $(ENCODER_SRC) $(ROOT)/include/sensor/pif_encoder.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(ENCODER_SRC) -o $@
+
+$(BUILD)/test_pif_sensor$(EXE): $(SENSOR_SRC) $(SENSOR_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(SENSOR_SRC) -o $@
 
 $(BUILD)/test_pif_task_manager$(EXE): $(TASK_SRC) $(TASK_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_USE_BLOCK_TIME $(INC) $(TASK_SRC) -o $@

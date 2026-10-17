@@ -53,8 +53,11 @@ void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner)
 
 void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state)
 {
+	state = state ? ON : OFF;
 	if (p_owner->p_filter) {
-    	p_owner->__state = *(SWITCH*)pifNoiseFilter_Process(p_owner->p_filter, &state);
+		SWITCH* p_state = (SWITCH*)pifNoiseFilter_Process(p_owner->p_filter, &state);
+
+		if (p_state) p_owner->__state = *p_state;		// NULL while the filter is filling its window
     }
 	else {
 		p_owner->__state = state;
@@ -64,24 +67,19 @@ void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state)
 #endif
 }
 
-uint16_t pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner)
+void pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner)
 {
 	PifSensor* p_parent = &p_owner->parent;
 
 	if (p_parent->__act_acquire) {
-		pifSensorSwitch_sigData(p_owner, (*p_parent->__act_acquire)(p_parent));
+		pifSensorSwitch_sigData(p_owner, (*p_parent->__act_acquire)(p_parent) ? ON : OFF);
 	}
 
-	if (p_owner->__state != p_parent->_curr_state) {
-		if (p_parent->__evt_change) {
-			(*p_parent->__evt_change)(p_parent, p_owner->__state, NULL, p_parent->__p_issuer);
-		}
+	if (pifSensor_ChangeState(p_parent, p_owner->__state, NULL)) {
 #ifdef COLLECT_SIGNAL_SENSOR_SWITCH
 		pifCollectSignal_Put(&p_owner->__cs[SS_CSF_FILTER_IDX], p_owner->__state);
 #endif
-		p_parent->_curr_state = p_owner->__state;
 	}
-	return 0;
 }
 
 PifTask* pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifId id, PifTaskMode mode, uint32_t period, BOOL start)

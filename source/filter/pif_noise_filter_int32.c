@@ -64,7 +64,7 @@ static PifNoiseFilterValueP _processAverage(PifNoiseFilter* p_parent, PifNoiseFi
 	PifNfInt32Common* p_common = &p_owner->common;
 	uint8_t min_p, max_p, i;
 	int32_t min_v, max_v;
-	int32_t sum;
+	int64_t sum;
 
 	p_common->p_buffer[p_common->current] = *(int32_t*)p_value;
 	p_common->current = (p_common->current + 1) % p_common->size;
@@ -85,12 +85,14 @@ static PifNoiseFilterValueP _processAverage(PifNoiseFilter* p_parent, PifNoiseFi
 			max_v = p_common->p_buffer[i];
 		}
 	}
+	// min_p and max_p meet only when every sample is the same, and two of them must still be left out.
+	if (min_p == max_p) max_p = 1;
 
 	sum = 0;
 	for (i = 0; i < p_common->size; i++) {
 		if (i != min_p && i != max_p) sum += p_common->p_buffer[i];
 	}
-	p_common->result = sum / (p_common->size - 2);
+	p_common->result = (int32_t)(sum / (p_common->size - 2));
 	return &p_common->result;
 }
 

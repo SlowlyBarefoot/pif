@@ -35,7 +35,9 @@ typedef enum EnPifSensorSwitchCsFlag
 
 /**
  * @class StPifSensorSwitch
- * @brief Defines the st pif sensor switch data structure.
+ * @brief An ON/OFF input such as a limit switch, a photo interrupter or a door sensor, debounced by
+ *        p_filter (a pifNoiseFilterBit) and reported on every change. Buttons that need clicks or
+ *        long presses belong to pifKeypad.
  */
 struct StPifSensorSwitch
 {
@@ -85,23 +87,41 @@ void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner);
 
 /**
  * @fn pifSensorSwitch_sigData
- * @brief Performs the sensor switch sig data operation.
+ * @brief Gives a sample, through p_filter when it is set, for sensors without act_acquire. It may be
+ *        called from an interrupt, and the state changes at the next pifSensorSwitch_ProcessAcquire().
  * @param p_owner Pointer to the owner instance.
- * @param swState Parameter swState used by this operation.
+ * @param state Sampled state. Any value but OFF counts as ON.
  */
 void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state);
 
 /**
  * @fn pifSensorSwitch_ProcessAcquire
- * @brief Processes one acquisition cycle for sensor switch process acquire.
+ * @brief Takes a sample from act_acquire when it is set, and calls the change event when the
+ *        filtered state differs from _curr_state.
+ *
+ * pifSensorSwitch_AttachTaskAcquire() runs it on a task of the sensor's own. To poll several
+ * sensors on one task instead, call it for each of them from that task. Sensors without
+ * act_acquire can then share one read of the port, given to each with pifSensorSwitch_sigData():
+ *
+ *     static uint32_t _taskSwitches(PifTask* p_task)
+ *     {
+ *         uint8_t port = readPort();
+ *
+ *         for (int i = 0; i < SWITCH_COUNT; i++) {
+ *             pifSensorSwitch_sigData(&s_switch[i], (port >> i) & 1);
+ *             pifSensorSwitch_ProcessAcquire(&s_switch[i]);
+ *         }
+ *         return 0;
+ *     }
+ *
  * @param p_owner Pointer to the owner instance.
- * @return Computed integer value.
  */
-uint16_t pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner);
+void pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner);
 
 /**
  * @fn pifSensorSwitch_AttachTaskAcquire
- * @brief Creates and attaches a task for sensor switch attach task acquire processing.
+ * @brief Creates a task of the sensor's own that calls pifSensorSwitch_ProcessAcquire(). For several
+ *        sensors, one task that calls it for each of them saves the tasks.
  * @param p_owner Pointer to the owner instance.
  * @param id Unique identifier for the instance or task.
  * @param mode Task operating mode that controls scheduling behavior.

@@ -45,7 +45,8 @@ struct StPifMax31855
 	PifSensor parent;
 
 	// Public Member Variable
-    PifNoiseFilter* p_filter;		// Applied to the thermocouple only, and must take and give int16_t in 0.25 degree units
+    PifNoiseFilter* p_filter;		// Applied to the thermocouple only, and must take and give int16_t in 0.25 degree units.
+    								// Measures are unfiltered while it is filling its window.
 
 	// Read-only Member Variable
 	PifDeviceReg *_p_device;
@@ -53,8 +54,9 @@ struct StPifMax31855
 	double _internal;				// Cold junction temperature of the last periodic measurement, in degree Celsius
 
 	// Private Member Variable
-	double __low_threshold;
-	double __high_threshold;
+	int32_t __low_threshold;			// In 0.25 degree units, rounded up
+	int32_t __high_threshold;
+	BOOL __threshold_set;
     PifIssuerP __p_issuer;
 
 #ifdef COLLECT_SIGNAL_MAX31855
@@ -120,7 +122,7 @@ void pifMax31855_StopMeasurement(PifMax31855* p_owner);
 /**
  * @fn pifMax31855_SetThreshold
  * @brief Sets the hysteresis of the state given to the change event: it turns ON at or above
- *        high_threshold and OFF below low_threshold. Both are 0 until this is called.
+ *        high_threshold and OFF below low_threshold. The state stays as it is until this is called.
  * @param p_owner Pointer to the owner instance.
  * @param low_threshold Lower threshold level.
  * @param high_threshold Upper threshold level.

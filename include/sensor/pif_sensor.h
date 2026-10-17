@@ -6,12 +6,17 @@
 #include "core/pif.h"
 
 
+// The value that a change event points to depends on the sensor, and is valid only during the event:
+//   PifSensorSwitch     NULL
+//   PifSensorThreshold  int32_t*, the level that crossed the threshold
+//   PifMax31855         double*, the temperature in degree Celsius
 typedef void* PifSensorValueP;
 
 struct StPifSensor;
 typedef struct StPifSensor PifSensor;
 
-typedef uint16_t (*PifActSensorAcquire)(PifSensor* p_owner);
+// Returns the sample: OFF or ON for PifSensorSwitch, the level for PifSensorThreshold.
+typedef int32_t (*PifActSensorAcquire)(PifSensor* p_owner);
 typedef void (*PifEvtSensorChange)(PifSensor* p_owner, SWITCH state, PifSensorValueP p_value, PifIssuerP p_issuer);
 
 
@@ -56,6 +61,30 @@ void pifSensor_AttachEvtChange(PifSensor *p_owner, PifEvtSensorChange evt_change
  * @param p_owner Pointer to the owner instance.
  */
 void pifSensor_DetachEvtChange(PifSensor *p_owner);
+
+/**
+ * @fn pifSensor_ChangeState
+ * @brief Sets _curr_state and, when it changed, calls the change event with the new state already
+ *        set. For the sensors built on PifSensor.
+ * @param p_owner Pointer to the owner instance.
+ * @param state New state.
+ * @param p_value Value given to the change event, see PifSensorValueP.
+ * @return TRUE when the state changed.
+ */
+BOOL pifSensor_ChangeState(PifSensor *p_owner, SWITCH state, PifSensorValueP p_value);
+
+/**
+ * @fn pifSensor_Hysteresis
+ * @brief Applies a hysteresis to a level: OFF turns ON at or above high_threshold, and ON turns OFF
+ *        below low_threshold. Below rather than at, so that equal thresholds make a single threshold
+ *        that does not toggle on every sample at its own level.
+ * @param state Current state.
+ * @param level Level to compare.
+ * @param low_threshold Lower threshold level, not above high_threshold.
+ * @param high_threshold Upper threshold level.
+ * @return The new state.
+ */
+SWITCH pifSensor_Hysteresis(SWITCH state, int32_t level, int32_t low_threshold, int32_t high_threshold);
 
 #ifdef __cplusplus
 }
