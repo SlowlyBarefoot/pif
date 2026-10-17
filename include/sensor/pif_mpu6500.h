@@ -494,13 +494,7 @@ typedef enum EnPifMpu6500Clksel
 #define MPU6500_DISABLE_YA(N)		((N) << 4)
 #define MPU6500_DISABLE_XA(N)		((N) << 5)
 
-typedef enum EnPifMpu6500LpWakeCtrl
-{
-    MPU6500_LP_WAKE_CTRL_1_25HZ		= 0 << 6,
-    MPU6500_LP_WAKE_CTRL_5HZ		= 1 << 6,
-    MPU6500_LP_WAKE_CTRL_20HZ		= 2 << 6,
-    MPU6500_LP_WAKE_CTRL_40HZ		= 3 << 6
-} PifMpu6500LpWakeCtrl;
+// Bits 7:6 are reserved. The MPU-6050's LP_WAKE_CTRL became LP_ACCEL_ODR (see PifMpu6500LposcClksel).
 
 #define MPU6500_DISABLE_ZG_MASK		0x01
 #define MPU6500_DISABLE_YG_MASK		0x02
@@ -508,7 +502,6 @@ typedef enum EnPifMpu6500LpWakeCtrl
 #define MPU6500_DISABLE_ZA_MASK		0x08
 #define MPU6500_DISABLE_YA_MASK		0x10
 #define MPU6500_DISABLE_XA_MASK		0x20
-#define MPU6500_LP_WAKE_CTRL_MASK	0xC0
 
 
 /**

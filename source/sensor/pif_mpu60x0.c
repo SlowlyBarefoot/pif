@@ -34,7 +34,7 @@ static BOOL _changeAfsSel(PifImuSensor* p_imu_sensor, PifMpu60x0AfsSel afs_sel)
 
 BOOL pifMpu60x0_Config(PifMpu60x0* p_owner, PifId id, PifImuSensor* p_imu_sensor)
 {
-	uint8_t data;
+	uint8_t data, org;
 
 	if (!p_owner || !p_imu_sensor || !p_owner->_p_device) {
 		pif_error = E_INVALID_PARAM;
@@ -46,6 +46,18 @@ BOOL pifMpu60x0_Config(PifMpu60x0* p_owner, PifId id, PifImuSensor* p_imu_sensor
 
     if (!pifDeviceReg_ReadRegBit8(p_owner->_p_device, MPU60X0_REG_ACCEL_CONFIG, MPU60X0_AFS_SEL_MASK, &data)) return FALSE;
     if (!_changeAfsSel(p_imu_sensor, data)) return FALSE;
+
+    // DEVICE_RESET leaves the chip asleep (PWR_MGMT_1 = 0x40) on its internal oscillator, so the
+    // outputs stay at 0 until it is woken. The datasheet recommends a gyro PLL as the clock.
+    if (!pifDeviceReg_ReadRegByte(p_owner->_p_device, MPU60X0_REG_PWR_MGMT_1, &data)) return FALSE;
+    org = data;
+    RESET_BIT_FILED(data, MPU60X0_SLEEP_MASK | MPU60X0_TEMP_DIS_MASK);
+    if ((data & MPU60X0_CLKSEL_MASK) == MPU60X0_CLKSEL_INTERNAL_8MHZ) {
+    	SET_BIT_FILED(data, MPU60X0_CLKSEL_MASK, MPU60X0_CLKSEL_PLL_XGYRO);
+    }
+    if (data != org) {
+    	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU60X0_REG_PWR_MGMT_1, data)) return FALSE;
+    }
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
@@ -68,6 +80,11 @@ BOOL pifMpu60x0_Config(PifMpu60x0* p_owner, PifId id, PifImuSensor* p_imu_sensor
 
 BOOL pifMpu60x0_SetGyroConfig(PifMpu60x0* p_owner, uint8_t gyro_config)
 {
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
     if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU60X0_REG_GYRO_CONFIG, gyro_config)) return FALSE;
     _changeFsSel(p_owner->__p_imu_sensor, gyro_config & MPU60X0_FS_SEL_MASK);
 	return TRUE;
@@ -75,6 +92,11 @@ BOOL pifMpu60x0_SetGyroConfig(PifMpu60x0* p_owner, uint8_t gyro_config)
 
 BOOL pifMpu60x0_SetFsSel(PifMpu60x0* p_owner, PifMpu60x0FsSel fs_sel)
 {
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
     if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, MPU60X0_REG_GYRO_CONFIG, MPU60X0_FS_SEL_MASK, fs_sel)) return FALSE;
     _changeFsSel(p_owner->__p_imu_sensor, fs_sel);
 	return TRUE;
@@ -82,6 +104,11 @@ BOOL pifMpu60x0_SetFsSel(PifMpu60x0* p_owner, PifMpu60x0FsSel fs_sel)
 
 BOOL pifMpu60x0_SetAccelConfig(PifMpu60x0* p_owner, uint8_t accel_config)
 {
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
     if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU60X0_REG_ACCEL_CONFIG, accel_config)) return FALSE;
     _changeAfsSel(p_owner->__p_imu_sensor, accel_config & MPU60X0_AFS_SEL_MASK);
 	return TRUE;
@@ -89,6 +116,11 @@ BOOL pifMpu60x0_SetAccelConfig(PifMpu60x0* p_owner, uint8_t accel_config)
 
 BOOL pifMpu60x0_SetAfsSel(PifMpu60x0* p_owner, PifMpu60x0AfsSel afs_sel)
 {
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
     if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, MPU60X0_REG_ACCEL_CONFIG, MPU60X0_AFS_SEL_MASK, afs_sel)) return FALSE;
     _changeAfsSel(p_owner->__p_imu_sensor, afs_sel);
 	return TRUE;
@@ -98,11 +130,16 @@ BOOL pifMpu60x0_ReadGyro(PifMpu60x0* p_owner, int16_t* p_gyro)
 {
 	uint8_t data[6];
 
+	if (!p_owner || !p_gyro) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
 	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU60X0_REG_GYRO_XOUT_H, data, 6)) return FALSE;
 
-	p_gyro[AXIS_X] = (data[0] << 8) + data[1];
-	p_gyro[AXIS_Y] = (data[2] << 8) + data[3];
-	p_gyro[AXIS_Z] = (data[4] << 8) + data[5];
+	p_gyro[AXIS_X] = (int16_t)((data[0] << 8) | data[1]);
+	p_gyro[AXIS_Y] = (int16_t)((data[2] << 8) | data[3]);
+	p_gyro[AXIS_Z] = (int16_t)((data[4] << 8) | data[5]);
 	if (p_owner->gyro_scale > 0) {
 		p_gyro[AXIS_X] /= p_owner->gyro_scale;
 		p_gyro[AXIS_Y] /= p_owner->gyro_scale;
@@ -115,11 +152,16 @@ BOOL pifMpu60x0_ReadAccel(PifMpu60x0* p_owner, int16_t* p_accel)
 {
 	uint8_t data[6];
 
+	if (!p_owner || !p_accel) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
     if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU60X0_REG_ACCEL_XOUT_H, data, 6)) return FALSE;
 
-	p_accel[AXIS_X] = (data[0] << 8) + data[1];
-	p_accel[AXIS_Y] = (data[2] << 8) + data[3];
-	p_accel[AXIS_Z] = (data[4] << 8) + data[5];
+	p_accel[AXIS_X] = (int16_t)((data[0] << 8) | data[1]);
+	p_accel[AXIS_Y] = (int16_t)((data[2] << 8) | data[3]);
+	p_accel[AXIS_Z] = (int16_t)((data[4] << 8) | data[5]);
 	if (p_owner->accel_scale > 0) {
 		p_accel[AXIS_X] /= p_owner->accel_scale;
 		p_accel[AXIS_Y] /= p_owner->accel_scale;
@@ -132,19 +174,36 @@ BOOL pifMpu60x0_ReadTemperature(PifMpu60x0* p_owner, int16_t* p_temperature)
 {
 	uint8_t data[2];
 
+	if (!p_owner || !p_temperature) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
     if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU60X0_REG_TEMP_OUT_H, data, 2)) return FALSE;
-    *p_temperature = ((int16_t)((data[0] << 8) + data[1]) / 340.0 + 36.53) * p_owner->temp_scale;
+    *p_temperature = ((int16_t)((data[0] << 8) | data[1]) / 340.0 + 36.53) * p_owner->temp_scale;
 	return TRUE;
 }
 
 BOOL pifMpu60x0_CalibrationGyro(PifMpu60x0* p_owner, uint8_t samples)
 {
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
 	return pifImuSensor_CalibrateGyro(p_owner->__p_imu_sensor, samples, 5);
 }
 
 BOOL pifMpu60x0_SetThreshold(PifMpu60x0* p_owner, uint8_t multiple)
 {
-	PifImuSensor* p_imu_sensor = p_owner->__p_imu_sensor;
+	PifImuSensor* p_imu_sensor;
+
+	if (!p_owner || !p_owner->__p_imu_sensor) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_imu_sensor = p_owner->__p_imu_sensor;
 
 	// A deadband needs the noise level, so calibrate first if that was not done yet.
 	if (multiple && !p_imu_sensor->__gyro_calibrated) {

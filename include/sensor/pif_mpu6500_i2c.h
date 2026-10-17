@@ -22,7 +22,8 @@ BOOL pifMpu6500I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client);
 
 /**
  * @fn pifMpu6500I2c_Init
- * @brief Initializes mpu6500 i2c init and prepares it for use.
+ * @brief Initializes mpu6500 i2c init and prepares it for use. The chip is reset first, which
+ *        holds the CPU for 100ms.
  * @param p_owner Pointer to the owner instance.
  * @param id Unique identifier for the instance or task.
  * @param p_i2c Pointer to i2c.

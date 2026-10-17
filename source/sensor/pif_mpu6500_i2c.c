@@ -15,13 +15,8 @@ BOOL pifMpu6500I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client)
 
 	if (!pifDeviceReg_ReadRegByte((PifDeviceReg *)p_device, MPU6500_REG_WHO_AM_I, &data)) return FALSE;
 	if (data != MPU6500_WHO_AM_I_CONST) return FALSE;
-#ifndef PIF_NO_LOG	
-	if (data < 32) {
-		pifLog_Printf(LT_INFO, "%s%Xh", ident, data >> 1);
-	}
-	else {
-		pifLog_Printf(LT_INFO, "%s%c", ident, data >> 1);
-	}
+#ifndef PIF_NO_LOG
+	pifLog_Printf(LT_INFO, "%s%Xh", ident, data);
 #endif
 	return TRUE;
 }
@@ -40,6 +35,12 @@ BOOL pifMpu6500I2c_Init(PifMpu6500* p_owner, PifId id, PifI2cPort* p_i2c, uint8_
     p_device = pifI2cPort_AddDevice(p_i2c, PIF_ID_AUTO, addr, p_client);
     if (!p_device) return FALSE;
     p_owner->_p_device = &p_device->parent;
+
+	// Start from the reset state, so nothing an earlier run left behind (FIFO, interrupts, the
+	// I2C master) is still active. Initialization runs before there is anything to schedule, so
+	// the wait holds the CPU and nothing is lost by it.
+	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU6500_REG_PWR_MGMT_1, MPU6500_DEVICE_RESET(1))) goto fail;
+	pif_Delay1ms(100);
 
 	if (!pifMpu6500_Config(p_owner, id, p_imu_sensor)) goto fail;
     return TRUE;

@@ -223,6 +223,7 @@ typedef struct StPifMpu30x0
 {
 	// Public Member Variable
 	uint8_t scale;
+	uint8_t temp_scale;
 
 	// Read-only Member Variable
 	PifId _id;
@@ -297,12 +298,13 @@ BOOL pifMpu30x0_ReadGyro(PifMpu30x0* p_owner, int16_t* p_gyro);
 
 /**
  * @fn pifMpu30x0_ReadTemperature
- * @brief Reads raw data from mpu30x0 read temperature.
+ * @brief Reads the temperature in degrees Celsius multiplied by temp_scale, as the MPU60x0 and
+ *        MPU6500 drivers do.
  * @param p_owner Pointer to the owner instance.
  * @param p_temperature Pointer to temperature.
  * @return TRUE on success, FALSE on failure.
  */
-BOOL pifMpu30x0_ReadTemperature(PifMpu30x0* p_owner, float* p_temperature);
+BOOL pifMpu30x0_ReadTemperature(PifMpu30x0* p_owner, int16_t* p_temperature);
 
 /**
  * @fn pifMpu30x0_CalibrationGyro

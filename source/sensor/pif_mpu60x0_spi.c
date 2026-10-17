@@ -59,6 +59,10 @@ BOOL pifMpu60x0Spi_Init(PifMpu60x0* p_owner, PifId id, PifSpiPort* p_spi, void *
 			MPU60X0_GYRO_RESET(1) | MPU60X0_ACCEL_RESET(1) | MPU60X0_TEMP_RESET(1))) goto fail;
 	pif_Delay1ms(100);
 
+	// The reset turns the I2C interface back on. Left on, noise on the bus pins can switch the
+	// chip into I2C mode, so the datasheet asks to disable it when SPI is used.
+	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU60X0_REG_USER_CTRL, MPU60X0_I2C_IF_DIS(1))) goto fail;
+
 	if (!pifMpu60x0_Config(p_owner, id, p_imu_sensor)) goto fail;
     return TRUE;
 

@@ -21,7 +21,10 @@ BOOL pifMpu6500Spi_Detect(PifSpiPort* p_spi, void *p_client);
 
 /**
  * @fn pifMpu6500Spi_Init
- * @brief Initializes mpu6500 spi init and prepares it for use.
+ * @brief Initializes mpu6500 spi init and prepares it for use. The chip is reset first, with
+ *        DEVICE_RESET and then SIGNAL_PATH_RESET as the datasheet asks for on SPI, which holds the
+ *        CPU for 200ms, and the I2C interface is disabled (I2C_IF_DIS). The port's act_read must
+ *        set bit 7 of the register address, which the chip takes as the read flag.
  * @param p_owner Pointer to the owner instance.
  * @param id Unique identifier for the instance or task.
  * @param p_spi Pointer to spi.

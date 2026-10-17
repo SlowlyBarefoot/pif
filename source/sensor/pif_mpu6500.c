@@ -83,6 +83,11 @@ BOOL pifMpu6500_Config(PifMpu6500* p_owner, PifId id, PifImuSensor* p_imu_sensor
 
 BOOL pifMpu6500_SetGyroConfig(PifMpu6500* p_owner, uint8_t gyro_config)
 {
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
     if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU6500_REG_GYRO_CONFIG, gyro_config)) return FALSE;
     _changeFsSel(p_owner->__p_imu_sensor, gyro_config & MPU6500_GYRO_FS_SEL_MASK);
 	return TRUE;
@@ -90,6 +95,11 @@ BOOL pifMpu6500_SetGyroConfig(PifMpu6500* p_owner, uint8_t gyro_config)
 
 BOOL pifMpu6500_SetGyroFsSel(PifMpu6500* p_owner, PifMpu6500GyroFsSel gyro_fs_sel)
 {
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
     if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, MPU6500_REG_GYRO_CONFIG, MPU6500_GYRO_FS_SEL_MASK, gyro_fs_sel)) return FALSE;
     _changeFsSel(p_owner->__p_imu_sensor, gyro_fs_sel);
 	return TRUE;
@@ -97,6 +107,11 @@ BOOL pifMpu6500_SetGyroFsSel(PifMpu6500* p_owner, PifMpu6500GyroFsSel gyro_fs_se
 
 BOOL pifMpu6500_SetAccelConfig(PifMpu6500* p_owner, uint8_t accel_config)
 {
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
     if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU6500_REG_ACCEL_CONFIG, accel_config)) return FALSE;
     _changeAccelFsSel(p_owner->__p_imu_sensor, accel_config & MPU6500_ACCEL_FS_SEL_MASK);
 	return TRUE;
@@ -104,6 +119,11 @@ BOOL pifMpu6500_SetAccelConfig(PifMpu6500* p_owner, uint8_t accel_config)
 
 BOOL pifMpu6500_SetAccelFsSel(PifMpu6500* p_owner, PifMpu6500AccelFsSel accel_fs_sel)
 {
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
     if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, MPU6500_REG_ACCEL_CONFIG, MPU6500_ACCEL_FS_SEL_MASK, accel_fs_sel)) return FALSE;
     _changeAccelFsSel(p_owner->__p_imu_sensor, accel_fs_sel);
 	return TRUE;
@@ -113,11 +133,16 @@ BOOL pifMpu6500_ReadGyro(PifMpu6500* p_owner, int16_t* p_gyro)
 {
 	uint8_t data[6];
 
+	if (!p_owner || !p_gyro) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
 	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU6500_REG_GYRO_XOUT_H, data, 6)) return FALSE;
 
-	p_gyro[AXIS_X] = (data[0] << 8) + data[1];
-	p_gyro[AXIS_Y] = (data[2] << 8) + data[3];
-	p_gyro[AXIS_Z] = (data[4] << 8) + data[5];
+	p_gyro[AXIS_X] = (int16_t)((data[0] << 8) | data[1]);
+	p_gyro[AXIS_Y] = (int16_t)((data[2] << 8) | data[3]);
+	p_gyro[AXIS_Z] = (int16_t)((data[4] << 8) | data[5]);
 	if (p_owner->gyro_scale > 0) {
 		p_gyro[AXIS_X] /= p_owner->gyro_scale;
 		p_gyro[AXIS_Y] /= p_owner->gyro_scale;
@@ -130,11 +155,16 @@ BOOL pifMpu6500_ReadAccel(PifMpu6500* p_owner, int16_t* p_accel)
 {
 	uint8_t data[6];
 
+	if (!p_owner || !p_accel) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
     if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU6500_REG_ACCEL_XOUT_H, data, 6)) return FALSE;
 
-	p_accel[AXIS_X] = (data[0] << 8) + data[1];
-	p_accel[AXIS_Y] = (data[2] << 8) + data[3];
-	p_accel[AXIS_Z] = (data[4] << 8) + data[5];
+	p_accel[AXIS_X] = (int16_t)((data[0] << 8) | data[1]);
+	p_accel[AXIS_Y] = (int16_t)((data[2] << 8) | data[3]);
+	p_accel[AXIS_Z] = (int16_t)((data[4] << 8) | data[5]);
 	if (p_owner->accel_scale > 0) {
 		p_accel[AXIS_X] /= p_owner->accel_scale;
 		p_accel[AXIS_Y] /= p_owner->accel_scale;
@@ -147,6 +177,11 @@ BOOL pifMpu6500_ReadTemperature(PifMpu6500* p_owner, int16_t* p_temperature)
 {
 	uint8_t data[2];
 
+	if (!p_owner || !p_temperature) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
     if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, MPU6500_REG_TEMP_OUT_H, data, 2)) return FALSE;
     *p_temperature = (21 + (int16_t)((data[0] << 8) | data[1]) / 333.87f) * p_owner->temp_scale;
 	return TRUE;
@@ -154,12 +189,24 @@ BOOL pifMpu6500_ReadTemperature(PifMpu6500* p_owner, int16_t* p_temperature)
 
 BOOL pifMpu6500_CalibrationGyro(PifMpu6500* p_owner, uint8_t samples)
 {
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
 	return pifImuSensor_CalibrateGyro(p_owner->__p_imu_sensor, samples, 5);
 }
 
 BOOL pifMpu6500_SetThreshold(PifMpu6500* p_owner, uint8_t multiple)
 {
-	PifImuSensor* p_imu_sensor = p_owner->__p_imu_sensor;
+	PifImuSensor* p_imu_sensor;
+
+	if (!p_owner || !p_owner->__p_imu_sensor) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_imu_sensor = p_owner->__p_imu_sensor;
 
 	// A deadband needs the noise level, so calibrate first if that was not done yet.
 	if (multiple && !p_imu_sensor->__gyro_calibrated) {

@@ -16,13 +16,8 @@ BOOL pifMpu60x0I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client)
 	if (!pifDeviceReg_ReadRegByte((PifDeviceReg *)p_device, MPU60X0_REG_WHO_AM_I, &data)) return FALSE;
 	// WHO_AM_I does not follow the AD0 pin, so it is the same at either address.
 	if (data != MPU60X0_WHO_AM_I_CONST) return FALSE;
-#ifndef PIF_NO_LOG	
-	if (data < 32) {
-		pifLog_Printf(LT_INFO, "%s%Xh", ident, data >> 1);
-	}
-	else {
-		pifLog_Printf(LT_INFO, "%s%c", ident, data >> 1);
-	}
+#ifndef PIF_NO_LOG
+	pifLog_Printf(LT_INFO, "%s%Xh", ident, data);
 #endif
 	return TRUE;
 }
