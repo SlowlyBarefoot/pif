@@ -53,7 +53,7 @@ static BOOL _isTimeout(PifPulse* p_owner, uint32_t last_falling)
  */
 static BOOL _isInRange(PifPulse* p_owner, int index, uint32_t value)
 {
-	if (!p_owner->__valid_range[index].check) return TRUE;
+	if (!p_owner->__valid_range[index].max) return TRUE;
 	return value >= p_owner->__valid_range[index].min && value <= p_owner->__valid_range[index].max;
 }
 
@@ -159,7 +159,6 @@ BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint32_t mi
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
-	p_owner->__valid_range[index].check = TRUE;
 	p_owner->__valid_range[index].min = min;
 	p_owner->__valid_range[index].max = max;
 	return TRUE;

@@ -67,8 +67,8 @@ static uint16_t _processPulse(PifRcPpm* p_owner, uint16_t diff)
 		return 0;
 	}
 
-	if (p_owner->__valid_range.check) {
-		if (diff < p_owner->__valid_range.min || diff > p_owner->__valid_range.max) {
+	if (p_owner->__valid_range_max) {
+		if (diff < p_owner->__valid_range_min || diff > p_owner->__valid_range_max) {
 			p_owner->__frame_error = TRUE;
 			return 0;
 		}
@@ -129,9 +129,8 @@ BOOL pifRcPpm_SetValidRange(PifRcPpm* p_owner, uint16_t min, uint16_t max)
 		return FALSE;
 	}
 
-	p_owner->__valid_range.check = TRUE;
-	p_owner->__valid_range.min = min > 0x7FFF ? 0x7FFF : min;
-	p_owner->__valid_range.max = max;
+	p_owner->__valid_range_min = min;
+	p_owner->__valid_range_max = max;
 	return TRUE;
 }
 

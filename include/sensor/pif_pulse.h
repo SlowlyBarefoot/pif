@@ -110,9 +110,8 @@ struct StPifPulse
 	volatile uint32_t __last_edge_time;
 	uint32_t __timeout;
 	struct {
-		BOOL check;
 		uint32_t min;
-		uint32_t max;
+		uint32_t max;					// 0 when no valid range is set
 	} __valid_range[3];
 	PifIssuerP __p_issuer;
 
@@ -168,7 +167,7 @@ void pifPulse_ResetMeasureMode(PifPulse* p_owner, uint8_t measure_mode);
  * @param p_owner Pointer to the target object instance.
  * @param measure_mode One of PULSE_PMM_PERIOD, PULSE_PMM_LOW_WIDTH or PULSE_PMM_HIGH_WIDTH.
  * @param min Minimum accepted measurement value in microseconds.
- * @param max Maximum accepted measurement value in microseconds.
+ * @param max Maximum accepted measurement value in microseconds. 0 turns the range check off.
  * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifPulse_SetValidRange(PifPulse* p_owner, uint8_t measure_mode, uint32_t min, uint32_t max);

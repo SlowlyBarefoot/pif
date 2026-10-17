@@ -26,17 +26,14 @@ typedef struct StPifRcPpm
 	int8_t _channel;				// Index of the last pulse in the current frame, -1 right after a sync
 
 	// Private Member Variable
-	struct {
-		uint16_t check	: 1;
-		uint16_t min	: 15;
-		uint16_t max;
-	} __valid_range;
 	BOOL __time_valid;
+	uint16_t __valid_range_min;
+	uint16_t __valid_range_max;		// 0 when no valid range is set
+	uint16_t __threshold_1us;
 	BOOL __frame_error;
 	uint8_t __max_channel;
 	uint8_t __process_step;
 	uint8_t __learn_count;
-	uint16_t __threshold_1us;
 	uint32_t __last_time;
 	uint16_t* __p_channel;			// Channels of the last good frame, given to evt_receive
 	uint16_t* __p_work;				// Channels of the frame being received
@@ -71,8 +68,8 @@ void pifRcPpm_Clear(PifRcPpm* p_owner);
  * @brief Sets the valid pulse width range for decoded channel values.
  *        A frame with any channel outside the range is counted as an error frame and not delivered.
  * @param p_owner Pointer to the PPM receiver object.
- * @param min Minimum accepted pulse width in microseconds. Values above 0x7FFF are clamped.
- * @param max Maximum accepted pulse width in microseconds.
+ * @param min Minimum accepted pulse width in microseconds.
+ * @param max Maximum accepted pulse width in microseconds. 0 turns the range check off.
  * @return TRUE if the range is applied, FALSE if min is greater than max.
  */
 BOOL pifRcPpm_SetValidRange(PifRcPpm* p_owner, uint16_t min, uint16_t max);
