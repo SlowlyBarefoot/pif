@@ -11,6 +11,14 @@
 #endif
 
 
+// How long a measurement may wait for its echo, from the trigger to the rising edge or from there
+// to the falling edge, before the next visit of the task triggers again. The echo of the sensor
+// lasts at most about 38ms, which is what it gives when nothing is in range.
+#ifndef PIF_HC_SR04_ECHO_TIMEOUT_US
+#define PIF_HC_SR04_ECHO_TIMEOUT_US		60000UL
+#endif
+
+
 typedef enum EnPifHcSr04State
 {
 	HSS_READY		= 0,
@@ -51,14 +59,15 @@ typedef struct StPifHcSr04
 	PifEvtSonarRead evt_read;
 
 	// Read-only Member Variable
-	PifId _id;
     PifTask* _p_task;
     float _transform_const;
+	PifId _id;
 
 	// Private Member Variable
-    PifHcSr04State __state;
-    uint32_t __trigger_time_us;
-	int32_t __distance;
+	// Shared with pifHcSr04_sigReceiveEcho(), which is normally called from an interrupt.
+    volatile PifHcSr04State __state;
+    volatile uint32_t __trigger_time_us;
+	volatile int32_t __distance;
 #ifdef COLLECT_SIGNAL_HC_SR04
 	PifCollectSignalChannel __cs[HS_CSF_COUNT];
 #endif
@@ -95,16 +104,17 @@ BOOL pifHcSr04_Trigger(PifHcSr04* p_owner);
 
 /**
  * @fn pifHcSr04_StartTrigger
- * @brief Performs the hc sr04 start trigger operation.
+ * @brief Triggers a measurement every period. The sensor wants at least 60ms between
+ *        measurements, so that an echo of the previous one is not taken for the next.
  * @param p_owner Pointer to the owner instance.
- * @param period Task period value; its unit depends on the selected mode.
+ * @param period1ms Trigger period in units of 1 ms.
  * @return TRUE on success, FALSE on failure.
  */
-BOOL pifHcSr04_StartTrigger(PifHcSr04* p_owner, uint16_t period);
+BOOL pifHcSr04_StartTrigger(PifHcSr04* p_owner, uint16_t period1ms);
 
 /**
  * @fn pifHcSr04_StopTrigger
- * @brief Performs the hc sr04 stop trigger operation.
+ * @brief Stops the periodic trigger. A measurement on its way is dropped.
  * @param p_owner Pointer to the owner instance.
  */
 void pifHcSr04_StopTrigger(PifHcSr04* p_owner);

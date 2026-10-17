@@ -18,6 +18,12 @@
 #define PIF_ADS1X1X_SPIN_LIMIT_US	1000UL
 #endif
 
+// Added to the wait of every single shot conversion for the device to wake up from power-down
+// before it starts converting.
+#ifndef PIF_ADS1X1X_WAKEUP_US
+#define PIF_ADS1X1X_WAKEUP_US		50UL
+#endif
+
 
 typedef enum EnPifAds1x1xType
 {
@@ -185,9 +191,9 @@ struct StPifAds1x1x
 	PifId _id;
 	PifAds1x1xType _type;
 	PifDeviceReg *_p_device;
-    uint16_t _config;
-	PifAds1x1xState _state;
+    uint16_t _config;				// Configuration register, never with the OS bit that starts a conversion
 	int16_t _value;					// Sample of the most recent single shot conversion
+	PifAds1x1xState _state;
 
 	// Private Member Variable
     uint8_t __resolution;
@@ -293,7 +299,11 @@ PifAds1x1xStart pifAds1x1x_StartMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 
 /**
  * @fn pifAds1x1x_SetConfig
- * @brief Sets configuration values required by ads1x1x set config.
+ * @brief Writes the whole configuration register and updates convert_voltage and the conversion
+ *        time to match it. The value is written as given, so ADS1X1X_SSCS_SINGLE in it starts a
+ *        conversion, but _config keeps it without that bit.
+ *        This and every other function that changes the configuration fails with
+ *        E_INVALID_STATE while a timed conversion is on its way.
  * @param p_owner Pointer to the owner instance.
  * @param config Configuration value to apply.
  * @return TRUE on success, FALSE on failure.
@@ -302,7 +312,8 @@ BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, uint16_t config);
 
 /**
  * @fn pifAds1x1x_SingleShotConvert
- * @brief Performs the ads1x1x single shot convert operation.
+ * @brief Starts a single shot conversion with the current configuration. Waiting for it and
+ *        reading it with pifAds1x1x_Read() is left to the caller.
  * @param p_owner Pointer to the owner instance.
  * @return TRUE on success, FALSE on failure.
  */

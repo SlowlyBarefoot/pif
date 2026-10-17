@@ -22,6 +22,9 @@
 // Conversions no longer than this (us) are waited out with the CPU held instead of through the timer.
 //#define PIF_ADS1X1X_SPIN_LIMIT_US			1000UL
 
+// Time (us) added to the wait of every single shot conversion for the device to wake up from power-down.
+//#define PIF_ADS1X1X_WAKEUP_US				50UL
+
 
 // -------- pifBasic -----------------------------
 
@@ -134,6 +137,13 @@
 // Payload bytes a received UBX packet may carry. NAV-SVINFO with 32 channels sets the size unless
 // this asks for more. Raise it to read NAV-SAT from a receiver tracking many satellites.
 //#define PIF_GPS_UBLOX_RX_PAYLOAD_SIZE		1
+
+
+// -------- pifHcSr04 ----------------------------
+
+// How long (us) a measurement may wait for each edge of its echo before it is triggered again.
+// The echo lasts at most about 38ms, which is what the sensor gives when nothing is in range.
+//#define PIF_HC_SR04_ECHO_TIMEOUT_US		60000UL
 
 
 // -------- pifKeypad ----------------------------

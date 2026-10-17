@@ -14,7 +14,7 @@ static uint32_t _doTask(PifTask* p_task)
 	PifSensor* p_parent = &p_owner->parent;
 	double temperature;
 
-	if (!pifMax31855_Measure(p_owner, &temperature, NULL)) return 0;
+	if (!pifMax31855_Measure(p_owner, &temperature, &p_owner->_internal)) return 0;
 
 	if (p_parent->__evt_change) {
 		if (p_parent->_curr_state) {
@@ -88,7 +88,7 @@ BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_
 	uint8_t raw[4];
 	int16_t data;
 
-	pifSpiDevice_Transfer((PifSpiDevice *)p_owner->_p_device, NULL, raw, 4);
+	if (!pifSpiDevice_Transfer((PifSpiDevice *)p_owner->_p_device, NULL, raw, 4)) return FALSE;
 	if ((raw[1] & 1) || (raw[3] & 7)) {
 		pif_error = E_WRONG_DATA;
 		return FALSE;
@@ -127,6 +127,10 @@ BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifE
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
 	}
+	if (p_owner->_p_task) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
 
 	p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000UL, _doTask, p_owner, TRUE);
 	if (!p_owner->_p_task) return FALSE;
@@ -139,14 +143,22 @@ BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifE
 
 void pifMax31855_StopMeasurement(PifMax31855* p_owner)
 {
-	pifTaskManager_Remove(p_owner->_p_task);
-	p_owner->_p_task = NULL;
+	if (p_owner->_p_task) {
+		pifTaskManager_Remove(p_owner->_p_task);
+		p_owner->_p_task = NULL;
+	}
 }
 
-void pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double high_threshold)
+BOOL pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double high_threshold)
 {
+	if (low_threshold > high_threshold) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
 	p_owner->__low_threshold = low_threshold;
 	p_owner->__high_threshold = high_threshold;
+	return TRUE;
 }
 
 #ifdef COLLECT_SIGNAL_MAX31855

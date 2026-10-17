@@ -11,15 +11,21 @@
  */
 static double _convertVoltage(PifAds1x1x* p_owner)
 {
+	// One LSB is the full scale over 2^15 codes (2^11 for the 12 bit parts), not over 2^15 - 1.
+	double codes = 0x8000 >> p_owner->__bit_offset;
+
+	// The ADS1x13 has no PGA: its full scale is 2.048V whatever the PGA bits say.
+	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return 2.048 / codes;
+
     switch (p_owner->_config & ADS1X1X_PGA_MASK) {
-        case ADS1X1X_PGA_FSR_6_144V: return 6.144 / (0x7FFF >> p_owner->__bit_offset);
-        case ADS1X1X_PGA_FSR_4_096V: return 4.096 / (0x7FFF >> p_owner->__bit_offset);
-        case ADS1X1X_PGA_FSR_2_048V: return 2.048 / (0x7FFF >> p_owner->__bit_offset);
-        case ADS1X1X_PGA_FSR_1_024V: return 1.024 / (0x7FFF >> p_owner->__bit_offset);
-        case ADS1X1X_PGA_FSR_0_512V: return 0.512 / (0x7FFF >> p_owner->__bit_offset);
-        case ADS1X1X_PGA_FSR_0_256V: return 0.256 / (0x7FFF >> p_owner->__bit_offset);
+        case ADS1X1X_PGA_FSR_6_144V: return 6.144 / codes;
+        case ADS1X1X_PGA_FSR_4_096V: return 4.096 / codes;
+        case ADS1X1X_PGA_FSR_2_048V: return 2.048 / codes;
+        case ADS1X1X_PGA_FSR_1_024V: return 1.024 / codes;
+        case ADS1X1X_PGA_FSR_0_512V: return 0.512 / codes;
     }
-    return 2.048 / (0x7FFF >> p_owner->__bit_offset);
+    // 101, 110 and 111 are all 0.256V.
+    return 0.256 / codes;
 }
 
 /**
@@ -41,7 +47,9 @@ static uint32_t _conversionDelay(PifAds1x1x* p_owner)
             case ADS1X1X_DR_12B_0920_SPS: data_rate = 920; break;
             case ADS1X1X_DR_12B_1600_SPS: data_rate = 1600; break;
             case ADS1X1X_DR_12B_2400_SPS: data_rate = 2400; break;
-            case ADS1X1X_DR_12B_3300_SPS: data_rate = 3300; break;
+            case ADS1X1X_DR_12B_3300_SPS:
+            case ADS1X1X_DR_MASK:		// 111 is 3300 SPS as well
+            	data_rate = 3300; break;
         }
     }
     else {
@@ -58,6 +66,10 @@ static uint32_t _conversionDelay(PifAds1x1x* p_owner)
     }
     if (data_rate) {
 		delay = (1000000UL - 1) / data_rate + 1;
+		// The data rate comes from the internal oscillator and may run up to 10% slow, and a single
+		// shot conversion starts only once the device has woken up, so a wait of exactly 1/DR can
+		// read the previous sample.
+		delay += delay / 10 + PIF_ADS1X1X_WAKEUP_US;
     }
     return delay;
 }
@@ -80,6 +92,53 @@ static uint32_t _conversionTicks(PifAds1x1x* p_owner)
 }
 
 /**
+ * @fn _toValue
+ * @brief Turns a conversion or threshold register into a sample. The 12 bit parts keep their
+ *        sample left aligned, so the register is made signed first and the shift then carries the
+ *        sign down with it.
+ * @param p_owner Pointer to the owner instance.
+ * @param data Register value as read from the device.
+ * @return Signed sample.
+ */
+static int16_t _toValue(PifAds1x1x* p_owner, uint16_t data)
+{
+	return (int16_t)data >> p_owner->__bit_offset;
+}
+
+/**
+ * @fn _checkIdle
+ * @brief Refuses a change of the configuration while a timed conversion is on its way, which
+ *        would change the conversion the timer is waiting out.
+ * @param p_owner Pointer to the owner instance.
+ * @return TRUE when the configuration may be changed, otherwise FALSE.
+ */
+static BOOL _checkIdle(PifAds1x1x* p_owner)
+{
+	if (p_owner->_state != ADS1X1X_STATE_IDLE) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
+	return TRUE;
+}
+
+/**
+ * @fn _writeConfig
+ * @brief Writes one field of the configuration to the device. _config never carries the bit that
+ *        starts a single shot conversion, so a change of a field does not start one.
+ * @param p_owner Pointer to the owner instance.
+ * @param mask Mask of the field.
+ * @param value Value of the field, already in place.
+ * @return TRUE on success, FALSE on failure.
+ */
+static BOOL _writeConfig(PifAds1x1x* p_owner, uint16_t mask, uint16_t value)
+{
+	if (!_checkIdle(p_owner)) return FALSE;
+
+	SET_BIT_FILED(p_owner->_config, mask, value);
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
+}
+
+/**
  * @fn _readConversion
  * @brief Reads the conversion that has finished into _value. Handing the sample on is left to the
  *        caller, which is what keeps the waited path from having to call the read event at all.
@@ -93,7 +152,7 @@ static BOOL _readConversion(PifAds1x1x* p_owner)
 	p_owner->_state = ADS1X1X_STATE_IDLE;
 	if (!pifDeviceReg_ReadRegWord(p_owner->_p_device, ADS1X1X_REG_CONVERSION, &data)) return FALSE;
 
-	p_owner->_value = (int16_t)(data >> p_owner->__bit_offset);
+	p_owner->_value = _toValue(p_owner, data);
 	return TRUE;
 }
 
@@ -147,6 +206,9 @@ BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cP
     p_owner->_type = type;
     p_owner->__bit_offset = p_owner->__resolution == 12 ? 4 : 0;
     if (!pifDeviceReg_ReadRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, &p_owner->_config)) goto fail;
+    // Read back, the bit is the operational status, which an idle device reports as 1. Kept in
+    // _config, it would start a conversion with every later write of the configuration.
+    p_owner->_config &= ~ADS1X1X_OS_SSCS_MASK;
     p_owner->convert_voltage = _convertVoltage(p_owner);
     p_owner->__conversion_delay = _conversionDelay(p_owner);
     return TRUE;
@@ -172,7 +234,7 @@ int16_t pifAds1x1x_Read(PifAds1x1x* p_owner)
 	uint16_t data;
 
 	if (!pifDeviceReg_ReadRegWord(p_owner->_p_device, ADS1X1X_REG_CONVERSION, &data)) return 0;
-	return data >> p_owner->__bit_offset;
+	return _toValue(p_owner, data);
 }
 
 BOOL pifAds1x1x_AttachTimer(PifAds1x1x* p_owner, PifTimerManager* p_timer_manager, PifEvtAds1x1xRead evt_read)
@@ -234,8 +296,7 @@ PifAds1x1xStart pifAds1x1x_StartMux(PifAds1x1x* p_owner, PifAds1x1xMux mux)
 	SET_BIT_FILED(p_owner->_config, ADS1X1X_MUX_MASK, mux);
 	// The bit that starts the conversion is written to the device but kept out of _config, which
 	// describes the configuration rather than the one shot that used it.
-	config = p_owner->_config;
-	config |= ADS1X1X_SSCS_SINGLE;
+	config = p_owner->_config | ADS1X1X_SSCS_SINGLE;
 	if (!pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, config)) return ADS1X1X_START_FAILURE;
 
 	// Too short for the timer to express, so it is waited out here. The answer goes back through
@@ -264,76 +325,81 @@ double pifAds1x1x_Voltage(PifAds1x1x* p_owner)
 
 BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, uint16_t config)
 {
-	p_owner->_config = config;
-	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
+	if (!_checkIdle(p_owner)) return FALSE;
+
+	// Written as given, so a config carrying ADS1X1X_SSCS_SINGLE still starts a conversion, but
+	// that bit is kept out of _config like everywhere else.
+	p_owner->_config = config & ~ADS1X1X_OS_SSCS_MASK;
+    p_owner->convert_voltage = _convertVoltage(p_owner);
+    p_owner->__conversion_delay = _conversionDelay(p_owner);
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, config);
 }
 
 BOOL pifAds1x1x_SingleShotConvert(PifAds1x1x* p_owner)
 {
-	SET_BIT_FILED(p_owner->_config, ADS1X1X_OS_SSCS_MASK, ADS1X1X_SSCS_SINGLE);
-	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
+	if (!_checkIdle(p_owner)) return FALSE;
+
+	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config | ADS1X1X_SSCS_SINGLE);
 }
 
 BOOL pifAds1x1x_SetMux(PifAds1x1x* p_owner, PifAds1x1xMux mux)
 {
 	if (p_owner->__channels == 1) return FALSE;
 
-	SET_BIT_FILED(p_owner->_config, ADS1X1X_MUX_MASK, mux);
-	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return _writeConfig(p_owner, ADS1X1X_MUX_MASK, mux);
 }
 
 BOOL pifAds1x1x_SetGain(PifAds1x1x* p_owner, PifAds1x1xPGA pga)
 {
+	BOOL result;
+
 	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
-	SET_BIT_FILED(p_owner->_config, ADS1X1X_PGA_MASK, pga);
+	result = _writeConfig(p_owner, ADS1X1X_PGA_MASK, pga);
     p_owner->convert_voltage = _convertVoltage(p_owner);
-	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return result;
 }
 
 BOOL pifAds1x1x_SetMode(PifAds1x1x* p_owner, PifAds1x1xMode mode)
 {
-	SET_BIT_FILED(p_owner->_config, ADS1X1X_MODE_MASK, mode);
-	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return _writeConfig(p_owner, ADS1X1X_MODE_MASK, mode);
 }
 
 BOOL pifAds1x1x_SetDataRate(PifAds1x1x* p_owner, PifAds1x1xDR dr)
 {
-	SET_BIT_FILED(p_owner->_config, ADS1X1X_DR_MASK, dr);
+	BOOL result;
+
+	result = _writeConfig(p_owner, ADS1X1X_DR_MASK, dr);
     p_owner->__conversion_delay = _conversionDelay(p_owner);
-	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return result;
 }
 
 BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xCompMode comp_mode)
 {
 	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
-	SET_BIT_FILED(p_owner->_config, ADS1X1X_COMP_MODE_MASK, comp_mode);
-	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return _writeConfig(p_owner, ADS1X1X_COMP_MODE_MASK, comp_mode);
 }
 
 BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xCompPol comp_pol)
 {
 	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
-	SET_BIT_FILED(p_owner->_config, ADS1X1X_COMP_POL_MASK, comp_pol);
-	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return _writeConfig(p_owner, ADS1X1X_COMP_POL_MASK, comp_pol);
 }
 
 BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xCompLat comp_lat)
 {
 	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
-	SET_BIT_FILED(p_owner->_config, ADS1X1X_COMP_LAT_MASK, comp_lat);
-	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return _writeConfig(p_owner, ADS1X1X_COMP_LAT_MASK, comp_lat);
 }
 
 BOOL pifAds1x1x_SetCompQue(PifAds1x1x* p_owner, PifAds1x1xCompQue comp_que)
 {
 	if (p_owner->_type == ADS1X1X_TYPE_1013 || p_owner->_type == ADS1X1X_TYPE_1113) return FALSE;
 
-	SET_BIT_FILED(p_owner->_config, ADS1X1X_COMP_QUE_MASK, comp_que);
-	return pifDeviceReg_WriteRegWord(p_owner->_p_device, ADS1X1X_REG_CONFIG, p_owner->_config);
+	return _writeConfig(p_owner, ADS1X1X_COMP_QUE_MASK, comp_que);
 }
 
 BOOL pifAds1x1x_SetLoThresh(PifAds1x1x* p_owner, int16_t threshold)
@@ -347,7 +413,7 @@ int16_t pifAds1x1x_GetLoThresh(PifAds1x1x* p_owner)
 	uint16_t data;
 
     if (!pifDeviceReg_ReadRegWord(p_owner->_p_device, ADS1X1X_REG_LO_THRESH, &data)) return 0;
-    return data >> p_owner->__bit_offset;
+    return _toValue(p_owner, data);
 }
 
 BOOL pifAds1x1x_SetLoThreshVoltage(PifAds1x1x* p_owner, double threshold)
@@ -371,7 +437,7 @@ int16_t pifAds1x1x_GetHiThresh(PifAds1x1x* p_owner)
 	uint16_t data;
 
     if (!pifDeviceReg_ReadRegWord(p_owner->_p_device, ADS1X1X_REG_HI_THRESH, &data)) return 0;
-    return data >> p_owner->__bit_offset;
+    return _toValue(p_owner, data);
 }
 
 BOOL pifAds1x1x_SetHiThreshVoltage(PifAds1x1x* p_owner, double threshold)

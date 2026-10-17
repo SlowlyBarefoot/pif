@@ -16,7 +16,7 @@
 struct StPifMax31855;
 typedef struct StPifMax31855 PifMax31855;
 
-typedef void (*PifEvtMax31855Measure)(PifMax31855* p_owner, double temperature, PifIssuerP p_issuer);		// distance unit : degree
+typedef void (*PifEvtMax31855Measure)(PifMax31855* p_owner, double temperature, PifIssuerP p_issuer);		// temperature unit : degree Celsius
 
 
 #ifdef COLLECT_SIGNAL_MAX31855
@@ -39,18 +39,18 @@ typedef enum EnPifMax31855CsFlag
  * @class StPifMax31855
  * @brief Defines the st pif max31855 data structure.
  */
-typedef struct StPifMax31855
+struct StPifMax31855
 {
 	// The parent variable must be at the beginning of this structure.
 	PifSensor parent;
 
 	// Public Member Variable
-    PifNoiseFilter* p_filter;
+    PifNoiseFilter* p_filter;		// Applied to the thermocouple only, and must take and give int16_t in 0.25 degree units
 
 	// Read-only Member Variable
 	PifDeviceReg *_p_device;
     PifTask* _p_task;
-	double _internal;
+	double _internal;				// Cold junction temperature of the last periodic measurement, in degree Celsius
 
 	// Private Member Variable
 	double __low_threshold;
@@ -63,7 +63,7 @@ typedef struct StPifMax31855
 
 	// Private Event Function
 	PifEvtMax31855Measure __evt_measure;
-} PifMax31855;
+};
 
 
 #ifdef __cplusplus
@@ -100,7 +100,8 @@ BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_
 
 /**
  * @fn pifMax31855_StartMeasurement
- * @brief Performs the max31855 start measurement operation.
+ * @brief Measures every period on a task of its own. Fails with E_INVALID_STATE while that task
+ *        is already running.
  * @param p_owner Pointer to the owner instance.
  * @param period1ms Task period in units of 1 ms.
  * @param evt_measure Parameter evt_measure used by this operation.
@@ -118,12 +119,14 @@ void pifMax31855_StopMeasurement(PifMax31855* p_owner);
 
 /**
  * @fn pifMax31855_SetThreshold
- * @brief Sets configuration values required by max31855 set threshold.
+ * @brief Sets the hysteresis of the state given to the change event: it turns ON at or above
+ *        high_threshold and OFF below low_threshold. Both are 0 until this is called.
  * @param p_owner Pointer to the owner instance.
  * @param low_threshold Lower threshold level.
  * @param high_threshold Upper threshold level.
+ * @return TRUE on success, FALSE when low_threshold is above high_threshold.
  */
-void pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double high_threshold);
+BOOL pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double high_threshold);
 
 #ifdef COLLECT_SIGNAL_MAX31855
 

@@ -38,6 +38,15 @@ static uint32_t _doTask(PifTask* p_task)
 		_setState(p_owner, HSS_READY);
 		break;
 
+	case HSS_TRIGGER:
+	case HSS_HIGH:
+		// An echo that never started or never ended, from a missing sensor or a missed edge, would
+		// otherwise hold the state here for good and no measurement would follow.
+		if ((*pif_act_timer1us)() - p_owner->__trigger_time_us >= PIF_HC_SR04_ECHO_TIMEOUT_US) {
+			pifHcSr04_Trigger(p_owner);
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -83,18 +92,21 @@ BOOL pifHcSr04_Trigger(PifHcSr04* p_owner)
 	(*p_owner->act_trigger)(ON);
 	pif_Delay1us(11);
 	(*p_owner->act_trigger)(OFF);
+	// Overwritten by the rising edge of the echo; until then it times the wait for that edge.
+	p_owner->__trigger_time_us = (*pif_act_timer1us)();
 	_setState(p_owner, HSS_TRIGGER);
     return TRUE;
 }
 
-BOOL pifHcSr04_StartTrigger(PifHcSr04* p_owner, uint16_t period)
+BOOL pifHcSr04_StartTrigger(PifHcSr04* p_owner, uint16_t period1ms)
 {
-	if (!p_owner || !period) {
+	if (!p_owner || !period1ms) {
 		pif_error = E_INVALID_PARAM;
     	return FALSE;
 	}
 
-	pifTask_ChangePeriod(p_owner->_p_task, period);
+	if (!pifTask_ChangePeriod(p_owner->_p_task, period1ms * 1000UL)) return FALSE;
+	_setState(p_owner, HSS_READY);
 	pifTask_Resume(p_owner->_p_task);
 	return TRUE;
 }
@@ -102,6 +114,8 @@ BOOL pifHcSr04_StartTrigger(PifHcSr04* p_owner, uint16_t period)
 void pifHcSr04_StopTrigger(PifHcSr04* p_owner)
 {
 	pifTask_Pause(p_owner->_p_task);
+	// A measurement cut short here is dropped, rather than reported as stale on the next start.
+	_setState(p_owner, HSS_READY);
 }
 
 void pifHcSr04_SetTemperature(PifHcSr04* p_owner, float temperature)
