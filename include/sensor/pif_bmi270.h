@@ -686,6 +686,7 @@ typedef struct StPifBmi270
 
 	// Private Member Variable
 	PifImuSensor* __p_imu_sensor;
+	BOOL __dummy_read;				// Over SPI every read starts with a byte that is not data
 } PifBmi270;
 
 
@@ -695,7 +696,9 @@ extern "C" {
 
 /**
  * @fn pifBmi270_Config
- * @brief Performs the bmi270 config operation.
+ * @brief Resets the device, checks its chip ID, loads the configuration file and turns the
+ *        accelerometer, the gyroscope and the temperature sensor on in performance mode
+ *        (accelerometer 100Hz, gyroscope 200Hz). It holds the CPU for some tens of ms.
  * @param p_owner Pointer to the owner instance.
  * @param id Unique identifier for the instance or task.
  * @param p_imu_sensor Pointer to imu sensor.
@@ -705,11 +708,31 @@ BOOL pifBmi270_Config(PifBmi270* p_owner, PifId id, PifImuSensor* p_imu_sensor);
 
 /**
  * @fn pifBmi270_UploadConfig
- * @brief Performs the bmi270 upload config operation.
+ * @brief Loads the configuration file into the feature engine, in pieces of the device's
+ *        max_transfer_size when it has one, and waits for INTERNAL_STATUS to report it taken.
+ *        pifBmi270_Config() already does this.
  * @param p_owner Pointer to the owner instance.
- * @return TRUE on success, FALSE on failure.
+ * @return TRUE on success, FALSE on failure or when the engine does not report init OK.
  */
 BOOL pifBmi270_UploadConfig(PifBmi270 *p_owner);
+
+/**
+ * @fn pifBmi270_SetGyroRange
+ * @brief Sets the gyroscope range and the matching gain of the IMU sensor.
+ * @param p_owner Pointer to the owner instance.
+ * @param range Gyroscope range.
+ * @return TRUE on success, FALSE on failure.
+ */
+BOOL pifBmi270_SetGyroRange(PifBmi270* p_owner, PifBmi270GrGyrRange range);
+
+/**
+ * @fn pifBmi270_SetAccelRange
+ * @brief Sets the accelerometer range and the matching gain of the IMU sensor.
+ * @param p_owner Pointer to the owner instance.
+ * @param range Accelerometer range.
+ * @return TRUE on success, FALSE on failure.
+ */
+BOOL pifBmi270_SetAccelRange(PifBmi270* p_owner, PifBmi270ArAccRange range);
 
 /**
  * @fn pifBmi270_ReadGyro

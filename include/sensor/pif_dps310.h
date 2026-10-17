@@ -225,7 +225,7 @@ typedef struct StPifDps310
 	int32_t __raw_temperature;
 	float __last_temp;
 	//compensation coefficients
-	int32_t __c0_half;
+	float __c0_half;
 	int32_t __c1;
 	int32_t __c00;
 	int32_t __c10;

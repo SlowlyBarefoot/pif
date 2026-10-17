@@ -85,7 +85,13 @@ static uint32_t _doTask(PifTask* p_task)
 
 	switch (p_owner->__state) {
 	case BMP280_STATE_START:
+		// The read period counts from here, so a start that has to be retried below does not move
+		// the grid along with it.
 		p_owner->__start_time = pif_cumulative_timer1ms;
+		p_owner->__state = BMP280_STATE_TRIGGER;
+		// fall through
+
+	case BMP280_STATE_TRIGGER:
 		if (pifBmp280_StartMeasurement(p_owner)) {
 			delay = p_owner->__delay * 1000UL;
 			p_owner->__state = BMP280_STATE_WAIT;
@@ -137,7 +143,7 @@ static uint32_t _doTask(PifTask* p_task)
 
 BOOL pifBmp280_Config(PifBmp280* p_owner, PifId id)
 {
-	uint8_t data;
+	uint8_t data, osrs_p, osrs_t;
 
 	if (!p_owner || !p_owner->_p_device) {
 		pif_error = E_INVALID_PARAM;
@@ -150,7 +156,14 @@ BOOL pifBmp280_Config(PifBmp280* p_owner, PifId id)
 	if (!pifDeviceReg_ReadRegBytes(p_owner->_p_device, BMP280_REG_CALIB, (uint8_t*)&p_owner->__calib_param, 24)) return FALSE;
 
     if (!pifDeviceReg_ReadRegByte(p_owner->_p_device, BMP280_REG_CTRL_MEAS, &data)) return FALSE;
-	pifBmp280_SetOverSamplingRate(p_owner, data & BMP280_OSRS_P_MASK, data & BMP280_OSRS_T_MASK);
+	// CTRL_MEAS is 0 after power-on, which skips both measurements and leaves the pressure stuck
+	// at 0x80000. A skipped one is taken at x1 instead until pifBmp280_SetOverSamplingRate() says
+	// otherwise.
+	osrs_p = data & BMP280_OSRS_P_MASK;
+	if (osrs_p == BMP280_OSRS_P_SKIP) osrs_p = BMP280_OSRS_P_X1;
+	osrs_t = data & BMP280_OSRS_T_MASK;
+	if (osrs_t == BMP280_OSRS_T_SKIP) osrs_t = BMP280_OSRS_T_X1;
+	pifBmp280_SetOverSamplingRate(p_owner, osrs_p, osrs_t);
 
 	if (!pifDeviceReg_WriteRegBit8(p_owner->_p_device, BMP280_REG_CONFIG, BMP280_FILTER_MASK, BMP280_FILTER_X16)) return FALSE;
     return TRUE;
@@ -159,15 +172,20 @@ BOOL pifBmp280_Config(PifBmp280* p_owner, PifId id)
 void pifBmp280_SetOverSamplingRate(PifBmp280* p_owner, uint8_t osrs_p, uint8_t osrs_t)
 {
 	uint8_t b;
-	int i;
+	uint32_t us;
 
 	p_owner->_osrs_p = osrs_p;
 	p_owner->_osrs_t = osrs_t;
-	p_owner->__delay = 6;		// 5.5ms =:= 6ms
-	b = osrs_p >> 2;
-	for (i = 1; i < b; i++) p_owner->__delay += 1 << b;
+
+	// Maximum measurement time from the datasheet (section 3.8.1):
+	// 1.25 + 2.3 * T_os + (2.3 * P_os + 0.575) ms, where a setting n of 1 to 5 means 2^(n - 1)
+	// samples and 0 skips the measurement.
+	us = 1250;
 	b = osrs_t >> 5;
-	for (i = 1; i < b; i++) p_owner->__delay += 1 << b;
+	if (b) us += 2300UL << (b - 1);
+	b = osrs_p >> 2;
+	if (b) us += (2300UL << (b - 1)) + 575;
+	p_owner->__delay = (us + 999) / 1000;
 }
 
 BOOL pifBmp280_StartMeasurement(PifBmp280* p_owner)
@@ -197,10 +215,14 @@ BOOL pifBmp280_ReadRawData(PifBmp280* p_owner, int32_t* p_pressure, int32_t* p_t
 BOOL pifBmp280_ReadBarometric(PifBmp280* p_owner, float* p_pressure, float* p_temperature)
 {
 	int32_t pressure, temperature;
+	float value;
 
 	if (!pifBmp280_ReadRawData(p_owner, &pressure, &temperature)) return FALSE;
 
-    if (p_temperature) *p_temperature = _compensate_T(p_owner, temperature);
+	// The temperature is compensated even when it is not asked for: that is what updates the
+	// t_fine the pressure compensation depends on.
+	value = _compensate_T(p_owner, temperature);
+    if (p_temperature) *p_temperature = value;
     if (p_pressure) *p_pressure = _compensate_P(p_owner, pressure);
 	return TRUE;
 }
