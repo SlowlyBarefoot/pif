@@ -28,14 +28,14 @@
  */
 typedef struct StPifUbxDdcProtocol
 {
-	PifDeviceStreamProtocol parent;
+	PifDeviceStreamProtocol parent;		///< Protocol part of the stream. Must stay the first member.
 
 	// Private Member Variable
-	uint8_t __count_reg;				// First of the two count registers.
-	uint16_t __pending;					// Bytes the receiver holds that are not read yet.
-	uint16_t __read_size;				// Bytes asked for by the read that is running.
+	uint8_t __count_reg;				///< First of the two count registers.
+	uint16_t __pending;					///< Bytes the receiver holds that are not read yet.
+	uint16_t __read_size;				///< Bytes asked for by the read that is running.
 	uint8_t __count[2];
-	uint8_t __phase;					// What the read that is running reads.
+	uint8_t __phase;					///< What the read that is running reads.
 } PifUbxDdcProtocol;
 
 /**
@@ -45,10 +45,10 @@ typedef struct StPifUbxDdcProtocol
 typedef struct StPifUbxDdcStream
 {
 	// Public Member Variable
-	PifDeviceStream stream;				// Its task is stream._p_task, whose period is the poll period.
+	PifDeviceStream stream;				///< Its task is stream._p_task, whose period is the poll period.
 
 	// Read-only Member Variable
-	PifI2cDevice *_p_device;			// Set its parent.timeout and parent.max_transfer_size as the port needs.
+	PifI2cDevice *_p_device;			///< Set its parent.timeout and parent.max_transfer_size as the port needs.
 
 	// Private Member Variable
 	PifUbxDdcProtocol __protocol;
@@ -60,7 +60,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifUbxDdcStream_Init
  * @brief Adds the receiver to the I2C port and initializes the stream, whose task waits until a client is
  *        attached.
  * @param p_owner Pointer to the stream.
@@ -77,7 +76,6 @@ BOOL pifUbxDdcStream_Init(PifUbxDdcStream *p_owner, PifId id, PifI2cPort *p_port
 		uint16_t tx_size, uint16_t period1ms);
 
 /**
- * @fn pifUbxDdcStream_Clear
  * @brief Detaches the client, waits for a read that is running, then removes the task and the device and
  *        frees the buffers.
  * @param p_owner Pointer to the stream.

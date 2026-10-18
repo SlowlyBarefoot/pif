@@ -28,9 +28,9 @@
 #include "protocol/pif_link.h"
 
 
-// Default largest data size of one fragment sent by pifLink_MakeLargeRequest(), without its fragment byte.
-// The fragment with its fragment byte has to fit in the receive packet of the other end.
-// It can be changed later with pifLink_SetTxFragmentSize().
+/// Default largest data size of one fragment sent by pifLink_MakeLargeRequest(), without its fragment byte.
+/// The fragment with its fragment byte has to fit in the receive packet of the other end.
+/// It can be changed later with pifLink_SetTxFragmentSize().
 #ifndef PIF_LINK_TX_FRAGMENT_SIZE
 #define PIF_LINK_TX_FRAGMENT_SIZE	(PIF_LINK_RX_PACKET_SIZE - 1)
 #endif
@@ -41,9 +41,9 @@
  */
 typedef enum EnPifLinkFragmentMode
 {
-	LINK_FM_NONE			= 0,	// Fragmented questions are answered with LINK_E_UNSUPPORTED. Large requests can be sent.
-	LINK_FM_STREAM			= 1,	// evt_answer is called for every fragment with its offset and more.
-	LINK_FM_REASSEMBLE		= 2		// evt_answer is called once with the whole data after the last fragment.
+	LINK_FM_NONE			= 0,	///< Fragmented questions are answered with LINK_E_UNSUPPORTED. Large requests can be sent.
+	LINK_FM_STREAM			= 1,	///< evt_answer is called for every fragment with its offset and more.
+	LINK_FM_REASSEMBLE		= 2		///< evt_answer is called once with the whole data after the last fragment.
 } PifLinkFragmentMode;
 
 /**
@@ -52,25 +52,25 @@ typedef enum EnPifLinkFragmentMode
  */
 typedef struct StPifLinkFragment
 {
-	// Sending
-	PifRingBuffer tx_buffer;		// Frame of the fragment being sent. Allocated by the first large request.
-	uint16_t tx_size;				// Largest data size of a fragment, without the fragment byte.
-	uint8_t *p_tx_data;				// Data of the large request in progress.
-	uint16_t tx_total;				// Data size of the large request in progress.
-	uint16_t tx_offset;				// Data bytes sent in the fragments before the current one.
-	uint16_t tx_chunk;				// Data bytes in the current fragment.
-	uint8_t tx_seq;					// seq of the current fragment.
+	/// Sending
+	PifRingBuffer tx_buffer;		///< Frame of the fragment being sent. Allocated by the first large request.
+	uint16_t tx_size;				///< Largest data size of a fragment, without the fragment byte.
+	uint8_t *p_tx_data;				///< Data of the large request in progress.
+	uint16_t tx_total;				///< Data size of the large request in progress.
+	uint16_t tx_offset;				///< Data bytes sent in the fragments before the current one.
+	uint16_t tx_chunk;				///< Data bytes in the current fragment.
+	uint8_t tx_seq;					///< seq of the current fragment.
 
-	// Receiving
+	/// Receiving
 	PifLinkFragmentMode rx_mode;
-	BOOL rx_active;					// A fragmented question is being received.
-	uint8_t rx_command;				// command of the fragmented question being received.
-	uint8_t rx_src_id;				// src_id of the fragmented question being received.
-	uint8_t rx_seq;					// seq expected in the next fragment.
-	uint16_t rx_offset;				// Data bytes of the fragmented question received so far.
-	uint8_t *p_message;				// LINK_FM_REASSEMBLE: whole data of the fragmented question.
-	uint16_t message_size;			// Size of p_message.
-	PifLinkPacket message;			// LINK_FM_REASSEMBLE: reassembled question passed to evt_answer.
+	BOOL rx_active;					///< A fragmented question is being received.
+	uint8_t rx_command;				///< command of the fragmented question being received.
+	uint8_t rx_src_id;				///< src_id of the fragmented question being received.
+	uint8_t rx_seq;					///< seq expected in the next fragment.
+	uint16_t rx_offset;				///< Data bytes of the fragmented question received so far.
+	uint8_t *p_message;				///< LINK_FM_REASSEMBLE: whole data of the fragmented question.
+	uint16_t message_size;			///< Size of p_message.
+	PifLinkPacket message;			///< LINK_FM_REASSEMBLE: reassembled question passed to evt_answer.
 } PifLinkFragment;
 
 
@@ -79,7 +79,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifLink_EnableFragment
  * @brief Enables fragmentation on a link, or changes its receive mode when it is already enabled. A fragmented
  *        question being received is dropped. The state is freed by pifLink_Clear().
  * @param p_owner Pointer to the link.
@@ -91,7 +90,6 @@ extern "C" {
 BOOL pifLink_EnableFragment(PifLink *p_owner, PifLinkFragmentMode rx_mode, uint16_t message_size);
 
 /**
- * @fn pifLink_SetTxFragmentSize
  * @brief Changes the largest data size of a fragment sent by pifLink_MakeLargeRequest().
  *        The default is PIF_LINK_TX_FRAGMENT_SIZE.
  * @param p_owner Pointer to the link.
@@ -103,7 +101,6 @@ BOOL pifLink_EnableFragment(PifLink *p_owner, PifLinkFragmentMode rx_mode, uint1
 BOOL pifLink_SetTxFragmentSize(PifLink *p_owner, uint16_t fragment_size);
 
 /**
- * @fn pifLink_MakeLargeRequest
  * @brief Queues a request whose data is sent in fragments. Queued requests, large or not, are sent one at a
  *        time, each after the previous one is finished.
  * @param p_owner Pointer to the link.

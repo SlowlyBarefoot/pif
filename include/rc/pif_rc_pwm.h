@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_rc_pwm.h
+ * @brief PWM receiver decoded from one input pin per channel.
+ *
+ * The platform gives each edge of each channel with pifRcPwm_sigEdge(), usually from an edge interrupt. Not to
+ * be confused with core/pif_pwm_gen, which makes a PWM output.
+ */
 #ifndef PIF_RC_PWM_H
 #define PIF_RC_PWM_H
 
@@ -6,7 +13,7 @@
 #include "rc/pif_rc.h"
 
 
-#define PIF_RC_PWM_DEFAULT_TIMEOUT_MS	100
+#define PIF_RC_PWM_DEFAULT_TIMEOUT_MS	100	///< A receiver whose pulses stop for this long has lost the link.
 
 
 /**
@@ -15,15 +22,15 @@
  */
 typedef struct StPifRcPwm
 {
-	// The parent variable must be at the beginning of this structure.
+	/// The parent variable must be at the beginning of this structure.
 	PifRc parent;
 
 	// Private Member Variable
 	BOOL __frame_error;
 	uint8_t __max_channel;
 	uint16_t __valid_range_min;
-	uint16_t __valid_range_max;		// 0 when no valid range is set
-	uint32_t* __p_rising;			// Rising edge time per channel, 0 when none is pending
+	uint16_t __valid_range_max;		///< 0 when no valid range is set
+	uint32_t* __p_rising;			///< Rising edge time per channel, 0 when none is pending
 	uint16_t* __p_channel;
 } PifRcPwm;
 
@@ -33,7 +40,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifRcPwm_Init
  * @brief Initializes a PWM receiver instance.
  * @param p_owner Pointer to the PWM receiver object.
  * @param id Object identifier. Use PIF_ID_AUTO to allocate automatically.
@@ -43,14 +49,12 @@ extern "C" {
 BOOL pifRcPwm_Init(PifRcPwm* p_owner, PifId id, uint8_t channel_count);
 
 /**
- * @fn pifRcPwm_Clear
  * @brief Releases resources allocated by the PWM receiver instance.
  * @param p_owner Pointer to the PWM receiver object.
  */
 void pifRcPwm_Clear(PifRcPwm* p_owner);
 
 /**
- * @fn pifRcPwm_SetValidRange
  * @brief Sets the valid pulse width range for decoded PWM values.
  * @param p_owner Pointer to the PWM receiver object.
  * @param min Minimum accepted pulse width in microseconds.
@@ -60,7 +64,6 @@ void pifRcPwm_Clear(PifRcPwm* p_owner);
 BOOL pifRcPwm_SetValidRange(PifRcPwm* p_owner, uint16_t min, uint16_t max);
 
 /**
- * @fn pifRcPwm_SetTimeout
  * @brief Sets how long without a good frame counts as a lost link for pifRc_CheckFailSafe().
  * @param p_owner Pointer to the PWM receiver object.
  * @param timeout_ms Time in milliseconds, or 0 for no timeout.
@@ -68,14 +71,12 @@ BOOL pifRcPwm_SetValidRange(PifRcPwm* p_owner, uint16_t min, uint16_t max);
 void pifRcPwm_SetTimeout(PifRcPwm* p_owner, uint16_t timeout_ms);
 
 /**
- * @fn pifRcPwm_ResetMeasureValue
  * @brief Discards pending rising edges and the error state of the current frame.
  * @param p_owner Pointer to the PWM receiver object.
  */
 void pifRcPwm_ResetMeasureValue(PifRcPwm* p_owner);
 
 /**
- * @fn pifRcPwm_sigEdge
  * @brief Processes one PWM edge event.
  * @details Usually called from an edge interrupt, so the receive event also runs in that interrupt.
  * @param p_owner Pointer to the PWM receiver object.

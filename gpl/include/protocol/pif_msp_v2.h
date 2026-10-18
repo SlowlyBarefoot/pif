@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Portions derived from Betaflight msp_serial.c, GPL-3.0-or-later.
 // See THIRD_PARTY_NOTICES.md.
-
+/**
+ * @file pif_msp_v2.h
+ * @brief MSPv2, native and over MSPv1, on top of pif_msp.
+ */
 #ifndef PIF_MSP_V2_H
 #define PIF_MSP_V2_H
 
@@ -9,35 +12,38 @@
 #include "protocol/pif_msp.h"
 
 
-// MSPv1 command that carries an MSPv2 frame as its payload (MSPv2 over MSPv1).
+/// MSPv1 command that carries an MSPv2 frame as its payload (MSPv2 over MSPv1).
 #define PIF_MSP_V2_FRAME_ID			255
 
-// MSPv1 size byte of a jumbo frame. The real size follows in 16 bits.
+/// MSPv1 size byte of a jumbo frame. The real size follows in 16 bits.
 #define PIF_MSP_V1_JUMBO_SIZE		255
 
-// Most bytes a frame adds to its payload: '$', 'M', direction, the MSPv1 size and command, the jumbo size,
-// the MSPv2 header and both checksums of an MSPv2 over MSPv1 jumbo frame.
+/// Most bytes a frame adds to its payload: '$', 'M', direction, the MSPv1 size and command, the jumbo size,
+/// the MSPv2 header and both checksums of an MSPv2 over MSPv1 jumbo frame.
 #define PIF_MSP_V2_MAX_OVERHEAD		14
 
 
+/**
+ * @brief Receive state of the MSPv2 parser.
+ */
 typedef enum EnPifMspV2RxState
 {
-	MV2RS_IDLE					= 0,
-	MV2RS_HEADER_START			= 1,
-	MV2RS_HEADER_M				= 2,
-	MV2RS_HEADER_X				= 3,
+	MV2RS_IDLE					= 0,	///< Waiting for '$'
+	MV2RS_HEADER_START			= 1,	///< '$' received
+	MV2RS_HEADER_M				= 2,	///< 'M' received
+	MV2RS_HEADER_X				= 3,	///< 'X' received
 
-	MV2RS_HEADER_V1				= 4,
-	MV2RS_PAYLOAD_V1			= 5,
-	MV2RS_CHECKSUM_V1			= 6,
+	MV2RS_HEADER_V1				= 4,	///< MSPv1 header
+	MV2RS_PAYLOAD_V1			= 5,	///< MSPv1 payload
+	MV2RS_CHECKSUM_V1			= 6,	///< MSPv1 checksum
 
-	MV2RS_HEADER_V2_OVER_V1		= 7,
-	MV2RS_PAYLOAD_V2_OVER_V1	= 8,
-	MV2RS_CHECKSUM_V2_OVER_V1	= 9,
+	MV2RS_HEADER_V2_OVER_V1		= 7,	///< MSPv2 header inside an MSPv1 frame
+	MV2RS_PAYLOAD_V2_OVER_V1	= 8,	///< MSPv2 payload inside an MSPv1 frame
+	MV2RS_CHECKSUM_V2_OVER_V1	= 9,	///< MSPv2 checksum inside an MSPv1 frame
 
-	MV2RS_HEADER_V2_NATIVE		= 10,
-	MV2RS_PAYLOAD_V2_NATIVE		= 11,
-	MV2RS_CHECKSUM_V2_NATIVE	= 12
+	MV2RS_HEADER_V2_NATIVE		= 10,	///< Native MSPv2 header
+	MV2RS_PAYLOAD_V2_NATIVE		= 11,	///< Native MSPv2 payload
+	MV2RS_CHECKSUM_V2_NATIVE	= 12	///< Native MSPv2 checksum
 } PifMspV2RxState;
 
 
@@ -59,13 +65,13 @@ typedef struct StPifMspV2
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PifMsp _msp;
+	PifMsp _msp;				///< The pif_msp instance that receives and sends. Use &_msp with the pifMsp functions.
 
 	// Private Member Variable
-	uint8_t __header[7];		// MSPv1 size and command, then the MSPv2 flags, command and size
+	uint8_t __header[7];		///< MSPv1 size and command, then the MSPv2 flags, command and size
 	uint16_t __offset;
-	uint8_t __checksum1;		// MSPv1 XOR
-	uint8_t __checksum2;		// MSPv2 CRC-8/DVB-S2
+	uint8_t __checksum1;		///< MSPv1 XOR
+	uint8_t __checksum2;		///< MSPv2 CRC-8/DVB-S2
 } PifMspV2;
 
 
@@ -74,7 +80,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifMspV2_Init
  * @brief Initializes the pif_msp parent and puts the MSPv1/MSPv2 parser in place of its own.
  * @param p_owner Pointer to the protocol instance.
  * @param p_timer Timer manager used for the receive timeout. May be NULL when PIF_MSP_RECEIVE_TIMEOUT is 0.
@@ -84,14 +89,12 @@ extern "C" {
 BOOL pifMspV2_Init(PifMspV2* p_owner, PifTimerManager* p_timer, PifId id);
 
 /**
- * @fn pifMspV2_Clear
- * @brief Releases resources owned by the instance.
+ * @brief Frees what the pif_msp instance in _msp allocated.
  * @param p_owner Pointer to the protocol instance.
  */
 void pifMspV2_Clear(PifMspV2* p_owner);
 
 /**
- * @fn pifMspV2_AttachTransport
  * @brief Attaches a transport that the received bytes come from and the answers go to.
  * @param p_owner Pointer to the protocol instance.
  * @param p_transport Transport bound to this protocol instance, e.g. &uart.parent.
@@ -100,14 +103,12 @@ void pifMspV2_Clear(PifMspV2* p_owner);
 BOOL pifMspV2_AttachTransport(PifMspV2* p_owner, PifTransport* p_transport);
 
 /**
- * @fn pifMspV2_DetachTransport
  * @brief Detaches the transport attached with pifMspV2_AttachTransport().
  * @param p_owner Pointer to the protocol instance.
  */
 void pifMspV2_DetachTransport(PifMspV2* p_owner);
 
 /**
- * @fn pifMspV2_ParsingPacket
  * @brief Feeds one received byte to the parser, for a client that gets the bytes some other way than through
  *        an attached PifTransport. Same as pifMsp_ParsingPacket() on &_msp.
  * @param p_owner Pointer to the protocol instance.
@@ -117,7 +118,6 @@ void pifMspV2_DetachTransport(PifMspV2* p_owner);
 PifMspFrame pifMspV2_ParsingPacket(PifMspV2* p_owner, uint8_t data);
 
 /**
- * @fn pifMspV2_GetFrameSize
  * @brief Gives the size of the frame that carries a payload, header and checksums included.
  * @param version Frame the payload goes out in.
  * @param data_size Payload length in bytes.
@@ -126,7 +126,6 @@ PifMspFrame pifMspV2_ParsingPacket(PifMspV2* p_owner, uint8_t data);
 uint16_t pifMspV2_GetFrameSize(PifMspVersion version, uint16_t data_size);
 
 /**
- * @fn pifMspV2_MakePacket
  * @brief Queues one frame in the answer buffer and wakes the TX task of the attached UART. The frame is
  *        queued whole or not at all.
  * @param p_owner Pointer to the protocol instance.
@@ -142,7 +141,6 @@ BOOL pifMspV2_MakePacket(PifMspV2* p_owner, PifMspVersion version, uint8_t direc
 		uint8_t* p_data, uint16_t data_size);
 
 /**
- * @fn pifMspV2_MakeAnswer
  * @brief Queues the reply to a received command, in the frame the command came in.
  * @param p_owner Pointer to the protocol instance.
  * @param p_question Question packet that should be answered.
@@ -153,7 +151,6 @@ BOOL pifMspV2_MakePacket(PifMspV2* p_owner, PifMspVersion version, uint8_t direc
 BOOL pifMspV2_MakeAnswer(PifMspV2* p_owner, PifMspPacket* p_question, uint8_t* p_data, uint16_t data_size);
 
 /**
- * @fn pifMspV2_MakeError
  * @brief Queues an error reply to a received command, in the frame the command came in.
  * @param p_owner Pointer to the protocol instance.
  * @param p_question Question packet that should be answered.

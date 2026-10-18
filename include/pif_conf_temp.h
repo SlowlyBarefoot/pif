@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_conf_temp.h
+ * @brief Template of pif_conf.h, the build options of PIF.
+ *
+ * Copy it to pif_conf.h on the include path and enable the options the target needs. Every option is commented
+ * out at its default.
+ */
 #ifndef PIF_CONF_H
 #define PIF_CONF_H
 
@@ -291,7 +298,7 @@
 // -------- pifTftLcd ----------------------------
 
 // Color depth: 16 (RGB565), 32 (XRGB8888)
-#define PIF_COLOR_DEPTH 					16
+#define PIF_COLOR_DEPTH 					16	///< Color depth of the TFT LCD drivers: 16 (RGB565) or 32 (XRGB8888)
 
 
 // -------- pifTouchScreen -----------------------

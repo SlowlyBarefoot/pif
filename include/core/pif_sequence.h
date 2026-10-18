@@ -1,57 +1,75 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_sequence.h
+ * @brief Sequence of steps run one after another, with delays and waits for a signal.
+ *
+ * A sequence runs on a TM_PERIOD task of its own, added by pifSequence_Init(). The task is
+ * paused while the sequence is idle, and while it runs it is released when the pending step is
+ * due. Steps measure time against pif_cumulative_timer1ms.
+ *
+ * The task asks for its next release through the return value of its loop, never through
+ * pifTask_SetTrigger(): a trigger is taken before the pause flag and before the check that the
+ * run fits in the time left before a TM_REALTIME release, and a step is ordinary work that should
+ * be subject to both.
+ *
+ * Each step decides what follows by calling pifSequence_Next(), pifSequence_Delay() or
+ * pifSequence_Wait() before it returns. A step that calls none of them ends the sequence.
+ */
 #ifndef PIF_SEQUENCE_H
 #define PIF_SEQUENCE_H
 
 
 #include "core/pif_task_manager.h"
 #if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_SEQUENCE)
-	#define COLLECT_SIGNAL_SEQUENCE
+	#define COLLECT_SIGNAL_SEQUENCE	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_SEQUENCE is not
 	#include "core/pif_collect_signal.h"
 #endif
 
 
-// A sequence runs on a TM_PERIOD task of its own, added by pifSequence_Init(). The task is
-// paused while the sequence is idle, and while it runs it is released when the pending step is
-// due. Steps measure time against pif_cumulative_timer1ms.
-//
-// The task asks for its next release through the return value of its loop, never through
-// pifTask_SetTrigger(): a trigger is taken before the pause flag and before the check that the
-// run fits in the time left before a TM_REALTIME release, and a step is ordinary work that should
-// be subject to both.
-//
-// Each step decides what follows by calling pifSequence_Next(), pifSequence_Delay() or
-// pifSequence_Wait() before it returns. A step that calls none of them ends the sequence.
-
-// How often a wait looks for its signal. pifSequence_Signal() only raises a flag, so this is the
-// latency between the signal and the step that follows it.
+/// How often a wait looks for its signal. pifSequence_Signal() only raises a flag, so this is the
+/// latency between the signal and the step that follows it.
 #ifndef PIF_SEQUENCE_WAIT_POLL_US
 #define PIF_SEQUENCE_WAIT_POLL_US		1000UL
 #endif
 
-// Returned for a step that is due at once: asked for as soon as the ring comes round again.
+/// Returned for a step that is due at once: asked for as soon as the ring comes round again.
 #define PIF_SEQUENCE_NEXT_US			1UL
 
 struct StPifSequence;
 typedef struct StPifSequence PifSequence;
 
+/**
+ * @brief One step of a sequence.
+ *
+ * Before it returns, it calls pifSequence_Next(), pifSequence_Delay() or pifSequence_Wait() to choose what
+ * follows. A step that calls none of them ends the sequence.
+ */
 typedef void (*PifSequenceStep)(PifSequence *p_owner);
 
+/**
+ * @brief State of a sequence.
+ */
 typedef enum EnPifSequenceState
 {
-	SQS_IDLE		= 0,
-	SQS_RUN			= 1,
-	SQS_DELAY		= 2,
-	SQS_WAIT		= 3
+	SQS_IDLE		= 0,	///< Not running
+	SQS_RUN			= 1,	///< The next step is due at once
+	SQS_DELAY		= 2,	///< Waiting for a delay to pass
+	SQS_WAIT		= 3	///< Waiting for pifSequence_Signal() or a timeout
 } PifSequenceState;
 
 #ifdef COLLECT_SIGNAL_SEQUENCE
 
+/**
+ * @brief Signals of a sequence for pifSequence_SetCsFlag() and pifSequence_ResetCsFlag().
+ *
+ * The _IDX values index the signals, the _BIT values select them.
+ */
 typedef enum EnPifSequenceCsFlag
 {
     SQ_CSF_OFF			= 0,
 
-    SQ_CSF_STATE_IDX	= 0,	// PifSequenceState
-    SQ_CSF_STEP_IDX		= 1,	// Steps run since the start, so a step that follows a step of the same state shows
+    SQ_CSF_STATE_IDX	= 0,	///< PifSequenceState
+    SQ_CSF_STEP_IDX		= 1,	///< Steps run since the start, so a step that follows a step of the same state shows
 
 	SQ_CSF_STATE_BIT	= 1,
 	SQ_CSF_STEP_BIT		= 2,
@@ -62,13 +80,16 @@ typedef enum EnPifSequenceCsFlag
 
 #endif	// COLLECT_SIGNAL_SEQUENCE
 
+/**
+ * @brief Steps run one after another on a task of its own.
+ */
 struct StPifSequence
 {
 	// Public Member Variable
-	void *p_param;
+	void *p_param;	///< Parameter the steps may use
 
 	// Read-only Member Variable
-	PifTask *_p_task;
+	PifTask *_p_task;	///< Task that runs the steps
 
 	// Private Member Variable
 	PifSequenceStep __step;
@@ -89,7 +110,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifSequence_Init
  * @brief Initializes the sequence instance in the idle state and adds the task it runs on.
  *        The task stays registered, paused while the sequence is idle, until pifSequence_Clear().
  * @param p_owner Pointer to the target object instance.
@@ -100,14 +120,12 @@ extern "C" {
 BOOL pifSequence_Init(PifSequence *p_owner, PifId id, void *p_param);
 
 /**
- * @fn pifSequence_Clear
  * @brief Stops the sequence and removes its task. Do not call it from a step.
  * @param p_owner Pointer to the target object instance.
  */
 void pifSequence_Clear(PifSequence *p_owner);
 
 /**
- * @fn pifSequence_Start
  * @brief Starts the sequence at the given step, which runs on the next poll.
  * @param p_owner Pointer to the target object instance.
  * @param step First step of the sequence.
@@ -117,14 +135,12 @@ void pifSequence_Clear(PifSequence *p_owner);
 BOOL pifSequence_Start(PifSequence *p_owner, PifSequenceStep step);
 
 /**
- * @fn pifSequence_Stop
  * @brief Stops the sequence. No further step runs until it is started again.
  * @param p_owner Pointer to the target object instance.
  */
 void pifSequence_Stop(PifSequence *p_owner);
 
 /**
- * @fn pifSequence_IsRunning
  * @brief Checks whether the sequence has a step pending.
  * @param p_owner Pointer to the target object instance.
  * @return TRUE while running, otherwise FALSE.
@@ -132,7 +148,6 @@ void pifSequence_Stop(PifSequence *p_owner);
 BOOL pifSequence_IsRunning(PifSequence *p_owner);
 
 /**
- * @fn pifSequence_Next
  * @brief Called from a step: runs the next step on the following poll.
  * @param p_owner Pointer to the target object instance.
  * @param next Step to run.
@@ -140,7 +155,6 @@ BOOL pifSequence_IsRunning(PifSequence *p_owner);
 void pifSequence_Next(PifSequence *p_owner, PifSequenceStep next);
 
 /**
- * @fn pifSequence_Delay
  * @brief Called from a step: runs the next step once the delay has passed.
  * @param p_owner Pointer to the target object instance.
  * @param next Step to run.
@@ -149,7 +163,6 @@ void pifSequence_Next(PifSequence *p_owner, PifSequenceStep next);
 void pifSequence_Delay(PifSequence *p_owner, PifSequenceStep next, uint16_t delay1ms);
 
 /**
- * @fn pifSequence_Wait
  * @brief Called from a step: runs the next step once pifSequence_Signal() is called.
  * @details Signals raised before this call are discarded, so call it before starting whatever
  *          produces the signal, e.g. before sending a command whose answer raises it.
@@ -161,7 +174,6 @@ void pifSequence_Delay(PifSequence *p_owner, PifSequenceStep next, uint16_t dela
 void pifSequence_Wait(PifSequence *p_owner, PifSequenceStep next, uint16_t timeout1ms, PifSequenceStep on_timeout);
 
 /**
- * @fn pifSequence_Signal
  * @brief Raises the event a pifSequence_Wait() step waits for. It only sets a flag, so it may be
  *        called from an interrupt.
  * @param p_owner Pointer to the target object instance.
@@ -171,7 +183,6 @@ void pifSequence_Signal(PifSequence *p_owner);
 #ifdef COLLECT_SIGNAL_SEQUENCE
 
 /**
- * @fn pifSequence_SetCsFlag
  * @brief Adds the selected signals of the sequence to pifCollectSignal as channels.
  * @param p_owner Pointer to the target object instance.
  * @param flag Bit mask of the signals to add.
@@ -180,7 +191,6 @@ void pifSequence_Signal(PifSequence *p_owner);
 BOOL pifSequence_SetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag);
 
 /**
- * @fn pifSequence_ResetCsFlag
  * @brief Removes the selected signals of the sequence from pifCollectSignal.
  * @param p_owner Pointer to the target object instance.
  * @param flag Bit mask of the signals to remove.

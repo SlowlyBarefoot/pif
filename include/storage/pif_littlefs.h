@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
-#ifndef PIF_LITTLEFS_H
-#define PIF_LITTLEFS_H
-
-
-/*
+/**
+ * @file pif_littlefs.h
+ * @brief littlefs file system on an SPI NOR flash.
+ *
  * Puts littlefs (https://github.com/littlefs-project/littlefs, BSD-3-Clause) on an SPI NOR flash
  * of pif_nor_flash. littlefs keeps its files intact across a power loss and spreads the wear
  * over the device by itself.
@@ -16,6 +15,8 @@
  * waited for inside the call that needs it. Call it from a task that may take that long, not
  * from one with a deadline.
  */
+#ifndef PIF_LITTLEFS_H
+#define PIF_LITTLEFS_H
 
 
 #include "core/pif.h"
@@ -33,13 +34,13 @@
 typedef struct StPifLittlefs
 {
 	// Public Member Variable
-	// What lfs_format() and lfs_mount() take. pifLittlefs_Init() fills it; its sizes may be changed
-	// before the file system is mounted, the callbacks and the geometry may not.
+	/// What lfs_format() and lfs_mount() take. pifLittlefs_Init() fills it; its sizes may be changed
+	/// before the file system is mounted, the callbacks and the geometry may not.
 	struct lfs_config cfg;
 
 	// Read-only Member Variable
-	PifNorFlash* _p_flash;
-	uint32_t _base;					// Where the area begins in the flash
+	PifNorFlash* _p_flash;			///< NOR flash the file system is on
+	uint32_t _base;					///< Where the area begins in the flash
 } PifLittlefs;
 
 
@@ -48,7 +49,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifLittlefs_Init
  * @brief Describes an area of the flash to littlefs. One block is one 4KB sector. The rest of
  *        the configuration is set to what suits a NOR flash: reads and programs of 16 bytes at
  *        least, caches of one page (256 bytes), a lookahead of 32 bytes (256 blocks) and wear

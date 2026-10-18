@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_noise_filter_bit.h
+ * @brief Noise filters for digital inputs that take and give SWITCH: majority, glitch removal and integrating debounce.
+ */
 #ifndef PIF_NOISE_FILTER_BIT_H
 #define PIF_NOISE_FILTER_BIT_H
 
@@ -15,12 +19,12 @@
  */
 typedef struct StPifNfBit
 {
-	// The parent variable must be at the beginning of this structure.
+	/// The parent variable must be at the beginning of this structure.
 	PifNoiseFilter parent;
 
 	// Read-only Member Variable
-	uint8_t _size;
-	SWITCH _result;
+	uint8_t _size;	///< Number of bits in the history window
+	SWITCH _result;	///< Filtered output
 
 	// Private Member Variable
 	uint8_t __half;
@@ -40,16 +44,16 @@ typedef struct StPifNfBit
  */
 typedef struct StPifNfBitIntegrator
 {
-	// The parent variable must be at the beginning of this structure.
+	/// The parent variable must be at the beginning of this structure.
 	PifNoiseFilter parent;
 
 	// Read-only Member Variable
-	uint16_t _on_count;
-	uint16_t _off_count;
-	SWITCH _result;
+	uint16_t _on_count;		///< Net ON samples that turn the output ON
+	uint16_t _off_count;	///< Net OFF samples that turn the output OFF
+	SWITCH _result;			///< Filtered output
 
 	// Private Member Variable
-	uint16_t __count;		// 0 to _on_count while OFF, and _off_count down to 0 while ON
+	uint16_t __count;		///< 0 to _on_count while OFF, and _off_count down to 0 while ON
 } PifNfBitIntegrator;
 
 
@@ -58,7 +62,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifNoiseFilterBit_InitCount
  * @brief Initializes a bit filter that outputs the majority value in the history window.
  * @param p_owner Pointer to the filter instance.
  * @param size Number of bits in the history window. Valid range is 3 to 31. An odd size gives a strict majority;
@@ -68,7 +71,6 @@ extern "C" {
 BOOL pifNoiseFilterBit_InitCount(PifNfBit* p_owner, uint8_t size);
 
 /**
- * @fn pifNoiseFilterBit_InitContinue
  * @brief Initializes a bit filter that suppresses short glitches in state transitions.
  *
  * A run of size / 2 samples or fewer that is broken by the opposite state is taken as a glitch and rewritten to
@@ -80,7 +82,6 @@ BOOL pifNoiseFilterBit_InitCount(PifNfBit* p_owner, uint8_t size);
 BOOL pifNoiseFilterBit_InitContinue(PifNfBit* p_owner, uint8_t size);
 
 /**
- * @fn pifNoiseFilterBit_InitIntegrator
  * @brief Initializes an integrating debounce filter. The output starts OFF, and the filter is _ready from the first
  *        sample.
  * @param p_owner Pointer to the filter instance.

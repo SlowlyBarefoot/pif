@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_bmi270_i2c.h
+ * @brief Attaches a BMI270 on I2C: detection and initialization of a PifBmi270.
+ */
 #ifndef PIF_BMI270_I2C_H
 #define PIF_BMI270_I2C_H
 
@@ -11,33 +15,29 @@ extern "C" {
 #endif
 
 /**
- * @fn pifBmi270I2c_Detect
- * @brief Performs the bmi270 i2c detect operation.
- * @param p_i2c Pointer to i2c.
+ * @brief Tells whether a BMI270 answers at addr, by reading its ID register through a temporary device.
+ * @param p_i2c I2C port the device is on.
  * @param addr Device address on the bus.
- * @param p_client Pointer to optional client context data.
+ * @param p_client Client pointer handed to the port functions of the device.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmi270I2c_Detect(PifI2cPort *p_i2c, uint8_t addr, void *p_client);
 
 /**
- * @fn pifBmi270I2c_Init
- * @brief Initializes bmi270 i2c init and prepares it for use.
+ * @brief Adds the BMI270 at addr to the I2C port and sets it up.
  * @param p_owner Pointer to the owner instance.
- * @param id Unique identifier for the instance or task.
- * @param p_i2c Pointer to i2c.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param p_i2c I2C port the device is on.
  * @param addr Device address on the bus.
- * @param p_client Pointer to optional client context data.
- * @param p_imu_sensor Pointer to imu sensor.
+ * @param p_client Client pointer handed to the port functions of the device.
+ * @param p_imu_sensor IMU sensor the driver registers its sensors with.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmi270I2c_Init(PifBmi270 *p_owner, PifId id, PifI2cPort *p_i2c, uint8_t addr, void *p_client, PifImuSensor *p_imu_sensor);
 
 /**
- * @fn pifBmi270I2c_Clear
- * @brief Releases resources used by bmi270 i2c clear.
+ * @brief Removes the device of the sensor from the port.
  * @param p_owner Pointer to the owner instance.
- * @return None.
  */
 void pifBmi270I2c_Clear(PifBmi270 *p_owner);
 

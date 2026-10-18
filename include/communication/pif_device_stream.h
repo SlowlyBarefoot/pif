@@ -37,9 +37,9 @@ typedef struct StPifDeviceStreamProtocol PifDeviceStreamProtocol;
  */
 typedef enum EnPifDeviceStreamNext
 {
-	DSN_WAIT,			// Nothing until the next period.
-	DSN_NEXT_RUN,		// The device holds more, so the next transfer runs in the next release of the task.
-	DSN_NOW				// The next transfer belongs to this one, so it starts at once.
+	DSN_WAIT,			///< Nothing until the next period.
+	DSN_NEXT_RUN,		///< The device holds more, so the next transfer runs in the next release of the task.
+	DSN_NOW				///< The next transfer belongs to this one, so it starts at once.
 } PifDeviceStreamNext;
 
 /**
@@ -48,19 +48,19 @@ typedef enum EnPifDeviceStreamNext
  */
 typedef struct StPifDeviceStreamProtocolOps
 {
-	// Starts the next transfer in the background, or returns FALSE when there is nothing to do. It is
-	// called only while no transfer is running, the port is free and the client has read every byte of
-	// the last one. It may read into __p_rx (__rx_size bytes) and send from __p_tx (__tx_len bytes), but
-	// has to copy what it sends: __p_tx may be emptied while the transfer runs, when the client changes.
+	/// Starts the next transfer in the background, or returns FALSE when there is nothing to do. It is
+	/// called only while no transfer is running, the port is free and the client has read every byte of
+	/// the last one. It may read into __p_rx (__rx_size bytes) and send from __p_tx (__tx_len bytes), but
+	/// has to copy what it sends: __p_tx may be emptied while the transfer runs, when the client changes.
 	BOOL (*start)(PifDeviceStreamProtocol *p_protocol, PifDeviceStream *p_stream);
-	// Ends the transfer that start began. ok is FALSE when it failed. It gives the bytes read to the client
-	// with pifDeviceStream_SetRx() and takes what it sent from __p_tx with pifDeviceStream_TakeTx(). A client
-	// hands over new bytes only after finish, so emptied bytes are never taken from the next ones.
+	/// Ends the transfer that start began. ok is FALSE when it failed. It gives the bytes read to the client
+	/// with pifDeviceStream_SetRx() and takes what it sent from __p_tx with pifDeviceStream_TakeTx(). A client
+	/// hands over new bytes only after finish, so emptied bytes are never taken from the next ones.
 	PifDeviceStreamNext (*finish)(PifDeviceStreamProtocol *p_protocol, PifDeviceStream *p_stream, BOOL ok);
-	// Optional. Writes the __tx_len bytes of __p_tx, waiting until it is over, for a device whose reads
-	// cannot carry them. Without it start sends them.
+	/// Optional. Writes the __tx_len bytes of __p_tx, waiting until it is over, for a device whose reads
+	/// cannot carry them. Without it start sends them.
 	void (*write)(PifDeviceStreamProtocol *p_protocol, PifDeviceStream *p_stream);
-	// Optional. Forgets what the protocol knows of a device, when it is given to a stream.
+	/// Optional. Forgets what the protocol knows of a device, when it is given to a stream.
 	void (*reset)(PifDeviceStreamProtocol *p_protocol);
 } PifDeviceStreamProtocolOps;
 
@@ -80,28 +80,28 @@ struct StPifDeviceStreamProtocol
  */
 struct StPifDeviceStream
 {
-	PifTransport parent;
+	PifTransport parent;	///< Transport the client uses. Must stay the first member.
 
 	// Read-only Member Variable
-	PifId _id;
-	PifDeviceReg *_p_device;			// Set its timeout and max_transfer_size as the device needs.
-	PifDeviceStreamProtocol *_p_protocol;
-	PifTask *_p_task;					// Polls the device. Its period is the poll period.
+	PifId _id;	///< Instance ID
+	PifDeviceReg *_p_device;			///< Set its timeout and max_transfer_size as the device needs.
+	PifDeviceStreamProtocol *_p_protocol;	///< Protocol that moves the bytes, changed with pifDeviceStream_SetProtocol()
+	PifTask *_p_task;					///< Polls the device. Its period is the poll period.
 
-	// Private Member Variable, also used by the protocol
+	/// Private Member Variable, also used by the protocol
 	void *__p_client;
 	PifEvtTransportParsing __evt_parsing;
 	PifEvtTransportSending __evt_sending;
 	PifEvtTransportAbortRx __evt_abort_rx;
-	uint8_t *__p_rx;					// __rx_size bytes, followed by the __tx_size bytes of __p_tx.
+	uint8_t *__p_rx;					///< __rx_size bytes, followed by the __tx_size bytes of __p_tx.
 	uint8_t *__p_tx;
 	uint16_t __rx_size;
 	uint16_t __tx_size;
-	uint16_t __rx_pos;					// Bytes of __p_rx the client has read.
-	uint16_t __rx_len;					// Bytes of __p_rx given to the client.
-	uint16_t __tx_len;					// Bytes of __p_tx not sent yet.
-	BOOL __running;						// A transfer from start is running.
-	BOOL __more;						// The last finish asked for DSN_NEXT_RUN.
+	uint16_t __rx_pos;					///< Bytes of __p_rx the client has read.
+	uint16_t __rx_len;					///< Bytes of __p_rx given to the client.
+	uint16_t __tx_len;					///< Bytes of __p_tx not sent yet.
+	BOOL __running;						///< A transfer from start is running.
+	BOOL __more;						///< The last finish asked for DSN_NEXT_RUN.
 };
 
 
@@ -110,7 +110,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifDeviceStreamProtocol_Init
  * @brief Sets the transfers of a protocol. A protocol calls it from its own init.
  * @param p_owner Pointer to the protocol base embedded in the protocol.
  * @param p_ops Transfers of the protocol. They must stay valid while the protocol is used.
@@ -118,7 +117,6 @@ extern "C" {
 void pifDeviceStreamProtocol_Init(PifDeviceStreamProtocol *p_owner, const PifDeviceStreamProtocolOps *p_ops);
 
 /**
- * @fn pifDeviceStream_Init
  * @brief Initializes a stream and adds its task, which waits until a client is attached.
  * @param p_owner Pointer to the stream.
  * @param id Logical ID, or PIF_ID_AUTO.
@@ -136,7 +134,6 @@ BOOL pifDeviceStream_Init(PifDeviceStream *p_owner, PifId id, PifDeviceReg *p_de
 		PifDeviceStreamProtocol *p_protocol, uint16_t rx_size, uint16_t tx_size, uint16_t period1ms, const char *name);
 
 /**
- * @fn pifDeviceStream_Clear
  * @brief Detaches the client, waits for a transfer that is running, then removes the task and frees the
  *        buffers. The device stays on its port.
  * @param p_owner Pointer to the stream.
@@ -144,7 +141,6 @@ BOOL pifDeviceStream_Init(PifDeviceStream *p_owner, PifId id, PifDeviceReg *p_de
 void pifDeviceStream_Clear(PifDeviceStream *p_owner);
 
 /**
- * @fn pifDeviceStream_SetProtocol
  * @brief Changes the protocol of the stream, for a device found to speak another one. The bytes the client
  *        has not read or sent yet are dropped.
  * @param p_owner Pointer to the stream.
@@ -155,7 +151,6 @@ void pifDeviceStream_Clear(PifDeviceStream *p_owner);
 BOOL pifDeviceStream_SetProtocol(PifDeviceStream *p_owner, PifDeviceStreamProtocol *p_protocol);
 
 /**
- * @fn pifDeviceStream_SetRx
  * @brief For a protocol: gives the first size bytes of __p_rx to the client.
  * @param p_owner Pointer to the stream.
  * @param size Bytes, up to __rx_size.
@@ -163,7 +158,6 @@ BOOL pifDeviceStream_SetProtocol(PifDeviceStream *p_owner, PifDeviceStreamProtoc
 void pifDeviceStream_SetRx(PifDeviceStream *p_owner, uint16_t size);
 
 /**
- * @fn pifDeviceStream_TakeTx
  * @brief For a protocol: removes the first size bytes of __p_tx, which have been sent.
  * @param p_owner Pointer to the stream.
  * @param size Bytes, up to __tx_len.
@@ -171,7 +165,6 @@ void pifDeviceStream_SetRx(PifDeviceStream *p_owner, uint16_t size);
 void pifDeviceStream_TakeTx(PifDeviceStream *p_owner, uint16_t size);
 
 /**
- * @fn pifDeviceStream_AbortRx
  * @brief For a protocol: tells the client that received bytes were lost, and drops the bytes it has not
  *        read yet.
  * @param p_owner Pointer to the stream.

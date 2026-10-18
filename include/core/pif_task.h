@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_task.h
+ * @brief Task of the cooperative scheduler, with its modes, triggers and run statistics.
+ *
+ * Tasks are added and run by pif_task_manager. Each task has a loop function that runs to its end, so tasks
+ * share the CPU only between runs.
+ */
 #ifndef PIF_TASK_H
 #define PIF_TASK_H
 
@@ -12,24 +19,27 @@
 #define PIF_USE_BLOCK_TIME
 #endif
 
-// Samples the moving average needs before pifTask_GetAverage*() reports a value.
+/// Samples the moving average needs before pifTask_GetAverage*() reports a value.
 #define PIF_TASK_AVERAGE_MIN_COUNT		20
 
-// Returned by pifTask_GetAverage*() while there are not enough samples yet. It is distinct from
-// an average of 0, which a task short enough to measure as 0 microseconds can produce.
+/// Returned by pifTask_GetAverage*() while there are not enough samples yet. It is distinct from
+/// an average of 0, which a task short enough to measure as 0 microseconds can produce.
 #define PIF_TASK_AVERAGE_NONE			0xFFFFFFFFUL
 
 
+/**
+ * @brief How a task is released.
+ */
 typedef enum EnPifTaskMode
 {
-	TM_NONE				= 0,
+	TM_NONE				= 0,	///< Not used
 
-	TM_EXTERNAL			= 0x10,
-	TM_PERIOD			= 0x20,
-	// Takes priority over every other task at its release. The release comes from the period,
-	// from pifTask_SetTrigger(), or from both, so a period of zero means released by trigger
-	// alone. A non zero period is also the window kept free before the release, which is why a
-	// task released by trigger alone is protected only while a delayed trigger is pending.
+	TM_EXTERNAL			= 0x10,	///< Released only by pifTask_SetTrigger()
+	TM_PERIOD			= 0x20,	///< Released every period
+	/// Takes priority over every other task at its release. The release comes from the period,
+	/// from pifTask_SetTrigger(), or from both, so a period of zero means released by trigger
+	/// alone. A non zero period is also the window kept free before the release, which is why a
+	/// task released by trigger alone is protected only while a delayed trigger is pending.
 	TM_REALTIME			= 0x40
 } PifTaskMode;
 
@@ -46,7 +56,7 @@ typedef enum EnPifTaskMode
 typedef struct StPifBlockTime
 {
 	// Read-only Member Variable
-	uint32_t _max;				// Longest run of the window, the delay this owner can cause
+	uint32_t _max;				///< Longest run of the window, the delay this owner can cause
 
 	// Private Member Variable
 	uint32_t __bucket[2];
@@ -60,44 +70,56 @@ typedef struct StPifBlockTime
 struct StPifTask;
 typedef struct StPifTask PifTask;
 
+/**
+ * @brief Loop of a task, run each time the task is released.
+ *
+ * For TM_PERIOD and TM_REALTIME it returns the period in microseconds until the next release, or 0 to keep the
+ * default period. For TM_EXTERNAL a non zero value triggers the task again after that many microseconds.
+ */
 typedef uint32_t (*PifEvtTaskLoop)(PifTask* p_task);
+/**
+ * @brief Drives a debug pin, TRUE while a task runs. Only with PIF_DEBUG.
+ */
 typedef void (*PifActTaskSignal)(BOOL state);
 
+/**
+ * @brief Finds the task that is due, used by the task manager for each mode.
+ */
 typedef PifTask* (*PifTaskProcessing)(PifTask* p_owner);
 
 
 /**
  * @struct StPifTask
- * @brief Represents the task data structure used by this module.
+ * @brief One task of the scheduler, added with pifTaskManager_Add().
  */
 struct StPifTask
 {
 	// Public Member Variable
-	const char* name;
-	// How many times in a row a release of this task may be held back because its measured run
-	// does not fit before the next realtime release. On the next visit after that it is let
-	// through and counted as a guard lapse, which turns an unbounded wait into a stated one: at
-	// most this many passes of the ring while the task is already due.
-	// 0 takes PIF_TASK_MAX_SKIP, which is what a task registered without an opinion gets.
+	const char* name;	///< Name shown in the task statistics. May be NULL.
+	/// How many times in a row a release of this task may be held back because its measured run
+	/// does not fit before the next realtime release. On the next visit after that it is let
+	/// through and counted as a guard lapse, which turns an unbounded wait into a stated one: at
+	/// most this many passes of the ring while the task is already due.
+	/// 0 takes PIF_TASK_MAX_SKIP, which is what a task registered without an opinion gets.
 	uint16_t max_skip;
 
 	// Read-only Member Variable
-	BOOL _pause;					// Set by pifTask_Pause(), cleared by pifTask_Resume() and pifTask_Restart()
-	PifId _id;
-	PifTaskMode _mode;
-	uint32_t _default_period;
-	uint32_t _delta_time;
-	void *_p_client;
-	uint32_t _last_execute_time;
+	BOOL _pause;					///< Set by pifTask_Pause(), cleared by pifTask_Resume() and pifTask_Restart()
+	PifId _id;						///< Task ID
+	PifTaskMode _mode;				///< How the task is released
+	uint32_t _default_period;		///< Period in microseconds given at the start
+	uint32_t _delta_time;			///< Time in microseconds since the previous run
+	void *_p_client;					///< Client given to pifTaskManager_Add()
+	uint32_t _last_execute_time;		///< Time in microseconds of the start of the last run
 #ifdef PIF_USE_TASK_STATISTICS
-    uint32_t _total_execution_time;		// Sum of the run times of this task (us)
-    uint32_t _max_execution_time;
-	uint32_t _max_trigger_delay;
-	uint32_t _max_delay;				// Longest start past the period of this task. A release by
-										// a trigger is measured by _max_trigger_delay instead.
+    uint32_t _total_execution_time;		///< Sum of the run times of this task (us)
+    uint32_t _max_execution_time;		///< Longest run of this task (us)
+	uint32_t _max_trigger_delay;		///< Longest delay of a release by trigger (us)
+	uint32_t _max_delay;				///< Longest start past the period of this task. A release by
+										///< a trigger is measured by _max_trigger_delay instead.
 #endif
 #ifdef PIF_USE_BLOCK_TIME
-	PifBlockTime _block_time;			// longest single run, the delay this task can cause
+	PifBlockTime _block_time;			///< longest single run, the delay this task can cause
 #endif
 
 	// Private Member Variable
@@ -109,15 +131,15 @@ struct StPifTask
 	uint32_t __pretime;
 	uint32_t __trigger_time;
 	uint32_t __trigger_delay;
-	uint16_t __skip_count;			// Releases held back in a row, against max_skip
+	uint16_t __skip_count;			///< Releases held back in a row, against max_skip
 #ifdef PIF_USE_BLOCK_TIME
 	BOOL __ignore_block;
-	uint32_t __next_block_time;		// Length the task declared for its next run, 0 to use _block_time._max
+	uint32_t __next_block_time;		///< Length the task declared for its next run, 0 to use _block_time._max
 #endif
 #ifdef PIF_USE_TASK_STATISTICS
-	// Moving average buckets. The pair holds up to 199 samples, so their sum overflows once the
-	// average sample passes about 21 seconds. A task with a period that long reports a wrong
-	// average delta time.
+	/// Moving average buckets. The pair holds up to 199 samples, so their sum overflows once the
+	/// average sample passes about 21 seconds. A task with a period that long reports a wrong
+	/// average delta time.
 	uint32_t __total_delta_time[2];
     uint32_t __sum_execution_time[2];
 	uint32_t __total_trigger_delay[2];
@@ -150,7 +172,7 @@ typedef struct StPifTaskTimeout
 	// Private Member Variable
 	PifTask* __p_task;
 	uint32_t __start;
-	uint32_t __time;				// 0 while stopped
+	uint32_t __time;				///< 0 while stopped
 } PifTaskTimeout;
 
 
@@ -159,53 +181,47 @@ extern "C" {
 #endif
 
 /**
- * @fn pifTask_Init
- * @brief Initializes the task instance and prepares all internal fields for safe use.
+ * @brief Gives a task its ID. Used by the task manager.
  * @param p_owner Pointer to the target object instance.
- * @param id Identifier value for the object or task.
+ * @param id Task ID, or PIF_ID_AUTO.
  */
 void pifTask_Init(PifTask* p_owner, PifId id);
 
 /**
- * @fn pifTask_CheckParam
- * @brief Executes the pifTask_CheckParam operation for the task module according to the API contract.
- * @param p_mode Pointer to task mode output or mode selector.
- * @param period Execution period value for scheduling.
- * @return TRUE on success, otherwise FALSE.
+ * @brief Checks a mode and a period for a task: TM_PERIOD needs a period, and only one task can be TM_REALTIME.
+ * @param p_mode Mode to check.
+ * @param period Period in microseconds.
+ * @return TRUE when they are valid, FALSE with pif_error set otherwise.
  */
 BOOL pifTask_CheckParam(PifTaskMode* p_mode, uint32_t period);
 
 /**
- * @fn pifTask_SetParam
  * @brief Sets configuration or runtime state for the task based on the provided parameters.
  * @param p_owner Pointer to the target object instance.
- * @param mode Operating mode configuration value.
+ * @param mode Mode of the task.
  * @param period Execution period value for scheduling.
  * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifTask_SetParam(PifTask* p_owner, PifTaskMode mode, uint32_t period);
 
 /**
- * @fn pifTask_ChangeMode
- * @brief Changes runtime configuration of the task while preserving object ownership semantics.
+ * @brief Changes the mode and the period of a task.
  * @param p_owner Pointer to the target object instance.
- * @param mode Operating mode configuration value.
- * @param period Execution period value for scheduling.
- * @return TRUE on success, otherwise FALSE.
+ * @param mode New mode.
+ * @param period New period in microseconds.
+ * @return TRUE on success, FALSE with pif_error set otherwise.
  */
 BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint32_t period);
 
 /**
- * @fn pifTask_ChangePeriod
- * @brief Changes runtime configuration of the task while preserving object ownership semantics.
+ * @brief Changes the period of a TM_PERIOD or TM_REALTIME task.
  * @param p_owner Pointer to the target object instance.
- * @param period Execution period value for scheduling.
- * @return TRUE on success, otherwise FALSE.
+ * @param period New period in microseconds.
+ * @return TRUE on success, FALSE with pif_error set otherwise.
  */
 BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period);
 
 /**
- * @fn pifTask_SetTrigger
  * @brief Releases the task once after the delay. When the delay is over the release is due the
  *        way a period is: with PIF_USE_BLOCK_TIME and a TM_REALTIME task it is held back while the
  *        run of the task does not fit before the next realtime release, by the same rule and bound
@@ -219,7 +235,6 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period);
 BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay);
 
 /**
- * @fn pifTask_SetCutinTrigger
  * @brief Releases the task at the next loop, ahead of the ring and of the realtime task, and
  *        without asking whether its run fits before the next realtime release. Only one cut in is
  *        held at a time: while one is pending the task gets pifTask_SetTrigger() with no delay
@@ -230,7 +245,6 @@ BOOL pifTask_SetTrigger(PifTask* p_owner, uint32_t delay);
 BOOL pifTask_SetCutinTrigger(PifTask *p_owner);
 
 /**
- * @fn pifTask_CancelTrigger
  * @brief Withdraws a release that pifTask_SetTrigger(), pifTask_SetCutinTrigger() or the return
  *        value of a TM_EXTERNAL task asked for and that has not happened yet. A pause does not do
  *        this: a trigger releases a paused task.
@@ -240,7 +254,6 @@ BOOL pifTask_SetCutinTrigger(PifTask *p_owner);
 void pifTask_CancelTrigger(PifTask *p_owner);
 
 /**
- * @fn pifTask_Pause
  * @brief Stops the periodic release of the task. A trigger still releases it: pifTask_CancelTrigger()
  *        withdraws one that is pending. A TM_EXTERNAL task has no periodic release, so this has no
  *        effect on it.
@@ -249,7 +262,6 @@ void pifTask_CancelTrigger(PifTask *p_owner);
 void pifTask_Pause(PifTask *p_owner);
 
 /**
- * @fn pifTask_Resume
  * @brief Lets the periodic release run again on the grid it had. A task paused for longer than its
  *        period is therefore released on its next visit; pifTask_Restart() counts the period from
  *        now instead. No effect on a TM_EXTERNAL task.
@@ -258,7 +270,6 @@ void pifTask_Pause(PifTask *p_owner);
 void pifTask_Resume(PifTask *p_owner);
 
 /**
- * @fn pifTask_Restart
  * @brief Resumes the task and counts the period from now, so that the first release after it is
  *        one full period later. The period a run returned is dropped for the default one. A pending
  *        trigger is kept.
@@ -267,7 +278,6 @@ void pifTask_Resume(PifTask *p_owner);
 void pifTask_Restart(PifTask *p_owner);
 
 /**
- * @fn pifTask_IsSubPeriodElapsed
  * @brief Divides the runs of a periodic task into a slower step, such as the blink of a display
  *        refreshed by that task. Returns TRUE once every period. After a gap longer than a period,
  *        a paused task for instance, it starts over from now instead of catching up with a burst.
@@ -280,7 +290,6 @@ BOOL pifTask_IsSubPeriodElapsed(uint32_t *p_time_us, uint32_t period_us);
 #ifdef PIF_USE_TASK_STATISTICS
 
 /**
- * @fn pifTask_ResetStatistics
  * @brief Resets all accumulated statistics for the task, including total execution time,
  *        maximum execution time, maximum trigger delay, maximum block time, delta time
  *        counters, and execution count. Use this to clear historical data when measuring
@@ -290,7 +299,6 @@ BOOL pifTask_IsSubPeriodElapsed(uint32_t *p_time_us, uint32_t period_us);
 void pifTask_ResetStatistics(PifTask* p_owner);
 
 /**
- * @fn pifTask_ResetMaxExecutionTime
  * @brief Resets only the maximum execution time statistic for the task to zero,
  *        leaving all other accumulated statistics unchanged.
  *        Use this to start tracking a new peak execution time without discarding
@@ -300,7 +308,6 @@ void pifTask_ResetStatistics(PifTask* p_owner);
 void pifTask_ResetMaxExecutionTime(PifTask* p_owner);
 
 /**
- * @fn pifTask_GetAverageDeltaTime
  * @brief Retrieves the average time between the executions of the task.
  * @param p_owner Pointer to the target object instance.
  * @return Average in microseconds, or PIF_TASK_AVERAGE_NONE until PIF_TASK_AVERAGE_MIN_COUNT
@@ -313,7 +320,6 @@ PIF_STATIC_INLINE uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner)
 }
 
 /**
- * @fn pifTask_GetAverageExecuteTime
  * @brief Retrieves the average execution time of the task.
  * @param p_owner Pointer to the target object instance.
  * @return Average in microseconds, or PIF_TASK_AVERAGE_NONE until PIF_TASK_AVERAGE_MIN_COUNT
@@ -326,7 +332,6 @@ PIF_STATIC_INLINE uint32_t pifTask_GetAverageExecuteTime(PifTask* p_owner)
 }
 
 /**
- * @fn pifTask_GetAverageTriggerTime
  * @brief Retrieves the average delay between a trigger and the execution it caused.
  * @param p_owner Pointer to the target object instance.
  * @return Average in microseconds, or PIF_TASK_AVERAGE_NONE until PIF_TASK_AVERAGE_MIN_COUNT
@@ -343,14 +348,12 @@ PIF_STATIC_INLINE uint32_t pifTask_GetAverageTriggerTime(PifTask* p_owner)
 #ifdef PIF_USE_BLOCK_TIME
 
 /**
- * @fn pifTask_ResetBlockTime
  * @brief Clears a block time measurement, both buckets of its moving window.
  * @param p_owner Pointer to the target measurement.
  */
 void pifTask_ResetBlockTime(PifBlockTime *p_owner);
 
 /**
- * @fn pifTask_UpdateBlockTime
  * @brief Adds one run to a block time measurement. The scheduler calls this where the run ends,
  *        which is the return of the task or of the callback.
  * @param p_owner Pointer to the target measurement.
@@ -359,7 +362,6 @@ void pifTask_ResetBlockTime(PifBlockTime *p_owner);
 void pifTask_UpdateBlockTime(PifBlockTime *p_owner, uint32_t block_time);
 
 /**
- * @fn pifTask_ResetMaxBlockTime
  * @brief Clears the longest run measured for the task, both buckets of the moving window.
  *        The window forgets an outlier on its own, so this is for starting a measurement from
  *        a known baseline rather than for undoing one long run: pifTask_IgnoreBlockTime()
@@ -369,7 +371,6 @@ void pifTask_UpdateBlockTime(PifBlockTime *p_owner, uint32_t block_time);
 void pifTask_ResetMaxBlockTime(PifTask *p_owner);
 
 /**
- * @fn pifTask_SetNextBlockTime
  * @brief Declares how long the next run of the task will be, for the scheduler to judge against
  *        the time left before the next realtime release. It replaces _block_time._max for that
  *        one run only, and the declaration is consumed when the task is dispatched: a task that
@@ -384,7 +385,6 @@ void pifTask_ResetMaxBlockTime(PifTask *p_owner);
 void pifTask_SetNextBlockTime(PifTask *p_owner, uint32_t block_time);
 
 /**
- * @fn pifTask_IgnoreBlockTime
  * @brief Leaves the current execution out of the block time of the task. Call it from inside the
  *        task when the run is not representative, such as an initialization path or a flash
  *        erase.
@@ -399,7 +399,6 @@ void pifTask_IgnoreBlockTime(PifTask *p_owner);
 
 
 /**
- * @fn pifTaskTimeout_Init
  * @brief Stops the timeout and binds it to the task released at its expiry.
  * @param p_owner Pointer to the timeout.
  * @param p_task Task to trigger at the deadline, or NULL for a timeout that is only polled.
@@ -407,7 +406,6 @@ void pifTask_IgnoreBlockTime(PifTask *p_owner);
 void pifTaskTimeout_Init(PifTaskTimeout *p_owner, PifTask *p_task);
 
 /**
- * @fn pifTaskTimeout_Start
  * @brief Starts or restarts the timeout from now, and triggers its task for the deadline unless a
  *        nearer trigger is already pending. Not for interrupt context.
  * @param p_owner Pointer to the timeout.
@@ -416,14 +414,12 @@ void pifTaskTimeout_Init(PifTaskTimeout *p_owner, PifTask *p_task);
 void pifTaskTimeout_Start(PifTaskTimeout *p_owner, uint32_t time_us);
 
 /**
- * @fn pifTaskTimeout_Stop
  * @brief Stops the timeout. See PifTaskTimeout for the trigger it leaves.
  * @param p_owner Pointer to the timeout.
  */
 void pifTaskTimeout_Stop(PifTaskTimeout *p_owner);
 
 /**
- * @fn pifTaskTimeout_IsRunning
  * @brief Tells whether the timeout is started and not yet reported as expired.
  * @param p_owner Pointer to the timeout.
  * @return TRUE while it runs.
@@ -431,7 +427,6 @@ void pifTaskTimeout_Stop(PifTaskTimeout *p_owner);
 BOOL pifTaskTimeout_IsRunning(PifTaskTimeout *p_owner);
 
 /**
- * @fn pifTaskTimeout_IsExpired
  * @brief Checks the timeout and stops it when it has expired, so that each expiry is reported once.
  *        While the deadline is still ahead it triggers the task for it, as pifTaskTimeout_Start()
  *        does, which is what keeps the remaining timeouts of a task armed after the task has run

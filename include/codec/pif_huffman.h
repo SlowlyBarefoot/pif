@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_huffman.h
+ * @brief Huffman coding of byte streams with a fixed code table.
+ *
+ * The table is made in advance from sample data by tools/gen_huffman_table.py and shared by the encoder and the
+ * decoder, so nothing about the code is sent with the data. The encoder can be fed in pieces.
+ */
 #ifndef PIF_HUFFMAN_H
 #define PIF_HUFFMAN_H
 
@@ -6,8 +13,8 @@
 #include "core/pif.h"
 
 
-#define PIF_HUFFMAN_SYMBOLS			256		// One code per byte value
-#define PIF_HUFFMAN_MAX_LENGTH		16
+#define PIF_HUFFMAN_SYMBOLS			256		///< One code per byte value
+#define PIF_HUFFMAN_MAX_LENGTH		16	///< Longest code in bits
 
 
 /**
@@ -19,8 +26,8 @@
  */
 typedef struct StPifHuffmanCode
 {
-	uint16_t code;				// Code bits, right aligned; sent most significant bit first
-	uint8_t length;				// Number of bits, 1 to PIF_HUFFMAN_MAX_LENGTH
+	uint16_t code;				///< Code bits, right aligned; sent most significant bit first
+	uint8_t length;				///< Number of bits, 1 to PIF_HUFFMAN_MAX_LENGTH
 } PifHuffmanCode;
 
 /**
@@ -35,14 +42,14 @@ typedef struct StPifHuffmanEncoder
 	// Public Member Variable
 
 	// Read-only Member Variable
-	uint16_t _bytes;			// Bytes written so far, including a partly filled last byte
-	BOOL _overflow;				// Set when a code did not fit; later input is ignored
+	uint16_t _bytes;			///< Bytes written so far, including a partly filled last byte
+	BOOL _overflow;				///< Set when a code did not fit; later input is ignored
 
 	// Private Member Variable
 	const PifHuffmanCode* __p_table;
 	uint8_t* __p_out;
 	uint16_t __out_size;
-	uint8_t __bit_pos;			// Bits used in the last byte, 0 when it is full
+	uint8_t __bit_pos;			///< Bits used in the last byte, 0 when it is full
 } PifHuffmanEncoder;
 
 
@@ -51,7 +58,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifHuffman_InitEncoder
  * @brief Starts encoding into a buffer.
  * @param p_owner Pointer to the target object instance.
  * @param p_table Code table of PIF_HUFFMAN_SYMBOLS entries. It must stay valid while encoding.
@@ -61,7 +67,6 @@ extern "C" {
 void pifHuffman_InitEncoder(PifHuffmanEncoder* p_owner, const PifHuffmanCode* p_table, uint8_t* p_out, uint16_t out_size);
 
 /**
- * @fn pifHuffman_Encode
  * @brief Encodes bytes and appends their codes to the output.
  * @param p_owner Pointer to the target object instance.
  * @param p_in Bytes to encode.
@@ -71,7 +76,6 @@ void pifHuffman_InitEncoder(PifHuffmanEncoder* p_owner, const PifHuffmanCode* p_
 BOOL pifHuffman_Encode(PifHuffmanEncoder* p_owner, const uint8_t* p_in, uint16_t in_len);
 
 /**
- * @fn pifHuffman_Decode
  * @brief Decodes up to out_count bytes from a bit stream written by pifHuffman_Encode().
  *
  * Each symbol is found by comparing the bits read so far with every code of the

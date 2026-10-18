@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_max31855.h
+ * @brief MAX31855 thermocouple converter on SPI, as a PifSensor.
+ *
+ * A task reads the thermocouple and the cold junction temperatures, and the sensor turns ON or OFF at a
+ * temperature threshold.
+ */
 #ifndef PIF_MAX31855_H
 #define PIF_MAX31855_H
 
@@ -8,7 +15,7 @@
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
 #if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_MAX31855)
-	#define COLLECT_SIGNAL_MAX31855
+	#define COLLECT_SIGNAL_MAX31855	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_MAX31855 is not
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -16,11 +23,19 @@
 struct StPifMax31855;
 typedef struct StPifMax31855 PifMax31855;
 
-typedef void (*PifEvtMax31855Measure)(PifMax31855* p_owner, double temperature, PifIssuerP p_issuer);		// temperature unit : degree Celsius
+/**
+ * @brief Gets each temperature measured, in degree Celsius.
+ */
+typedef void (*PifEvtMax31855Measure)(PifMax31855* p_owner, double temperature, PifIssuerP p_issuer);
 
 
 #ifdef COLLECT_SIGNAL_MAX31855
 
+/**
+ * @brief Signals of a MAX31855 for pifMax31855_SetCsFlag() and pifMax31855_ResetCsFlag().
+ *
+ * The _IDX values index the signals, the _BIT values select them.
+ */
 typedef enum EnPifMax31855CsFlag
 {
     M3_CSF_OFF			= 0,
@@ -37,21 +52,21 @@ typedef enum EnPifMax31855CsFlag
 
 /**
  * @class StPifMax31855
- * @brief Defines the st pif max31855 data structure.
+ * @brief MAX31855 thermocouple converter.
  */
 struct StPifMax31855
 {
-	// The parent variable must be at the beginning of this structure.
+	/// The parent variable must be at the beginning of this structure.
 	PifSensor parent;
 
 	// Read-only Member Variable
-	PifDeviceReg *_p_device;
-    PifTask* _p_task;
-	double _internal;				// Cold junction temperature of the last periodic measurement, in degree Celsius
+	PifDeviceReg *_p_device;		///< SPI device of the converter
+    PifTask* _p_task;				///< Measurement task
+	double _internal;				///< Cold junction temperature of the last periodic measurement, in degree Celsius
 
 	// Private Member Variable
     PifNoiseFilter* __p_filter;
-	int32_t __low_threshold;			// In 0.25 degree units, rounded up
+	int32_t __low_threshold;			///< In 0.25 degree units, rounded up
 	int32_t __high_threshold;
 	BOOL __threshold_set;
     PifIssuerP __p_issuer;
@@ -70,25 +85,22 @@ extern "C" {
 #endif
 
 /**
- * @fn pifMax31855_Init
- * @brief Initializes max31855 init and prepares it for use.
+ * @brief Adds the MAX31855 to the SPI port.
  * @param p_owner Pointer to the owner instance.
- * @param id Unique identifier for the instance or task.
- * @param p_port Pointer to the communication port interface.
- * @param p_client Pointer to optional client context data.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param p_port SPI port the device is on.
+ * @param p_client Client pointer handed to the port functions of the device.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, void *p_client);
 
 /**
- * @fn pifMax31855_Clear
- * @brief Releases resources used by max31855 clear.
+ * @brief Stops the measurement and removes the device from the port.
  * @param p_owner Pointer to the owner instance.
  */
 void pifMax31855_Clear(PifMax31855* p_owner);
 
 /**
- * @fn pifMax31855_AttachFilter
  * @brief Attaches a filter that every thermocouple measure goes through, such as a PifNfInt16Median. The cold
  *        junction temperature is not filtered.
  * @param p_owner Pointer to the owner instance.
@@ -99,36 +111,32 @@ void pifMax31855_Clear(PifMax31855* p_owner);
 BOOL pifMax31855_AttachFilter(PifMax31855* p_owner, PifNoiseFilter* p_filter);
 
 /**
- * @fn pifMax31855_Measure
- * @brief Performs the max31855 measure operation.
+ * @brief Reads the thermocouple and the cold junction temperatures, waiting for the transfer.
  * @param p_owner Pointer to the owner instance.
- * @param p_temperature Pointer to temperature.
- * @param p_internal Pointer to internal.
- * @return TRUE on success, FALSE on failure.
+ * @param p_temperature Receives the thermocouple temperature in degree Celsius. May be NULL.
+ * @param p_internal Receives the cold junction temperature in degree Celsius. May be NULL.
+ * @return TRUE on success, FALSE when the transfer failed or the converter reports a fault.
  */
 BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_internal);
 
 /**
- * @fn pifMax31855_StartMeasurement
  * @brief Measures every period on a task of its own. Fails with E_INVALID_STATE while that task
  *        is already running.
  * @param p_owner Pointer to the owner instance.
  * @param period1ms Task period in units of 1 ms.
- * @param evt_measure Parameter evt_measure used by this operation.
- * @param p_issuer Pointer to issuer.
+ * @param evt_measure Gets each temperature. May be NULL.
+ * @param p_issuer Pointer handed to evt_measure.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifEvtMax31855Measure evt_measure, PifIssuerP p_issuer);
 
 /**
- * @fn pifMax31855_StopMeasurement
- * @brief Performs the max31855 stop measurement operation.
+ * @brief Removes the measurement task.
  * @param p_owner Pointer to the owner instance.
  */
 void pifMax31855_StopMeasurement(PifMax31855* p_owner);
 
 /**
- * @fn pifMax31855_SetThreshold
  * @brief Sets the hysteresis of the state given to the change event: it turns ON at or above
  *        high_threshold and OFF below low_threshold. The state stays as it is until this is called.
  * @param p_owner Pointer to the owner instance.
@@ -141,7 +149,6 @@ BOOL pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double
 #ifdef COLLECT_SIGNAL_MAX31855
 
 /**
- * @fn pifMax31855_SetCsFlag
  * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
  * @param p_owner Pointer to the owner instance.
  * @param flag Bit mask of the signals to add.
@@ -150,7 +157,6 @@ BOOL pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double
 BOOL pifMax31855_SetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag);
 
 /**
- * @fn pifMax31855_ResetCsFlag
  * @brief Removes the selected signals of the instance from pifCollectSignal.
  * @param p_owner Pointer to the owner instance.
  * @param flag Bit mask of the signals to remove.

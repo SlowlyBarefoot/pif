@@ -64,35 +64,35 @@
 #include "core/pif_timer_manager.h"
 
 
-// Largest data size of one received packet. The buffer allocated in pifLink_Init() is
-// LINK_MULTI_HEADER_SIZE + 3 bytes larger to also hold the header and CRC. It can be changed later with pifLink_ResizeRxPacket().
+/// Largest data size of one received packet. The buffer allocated in pifLink_Init() is
+/// LINK_MULTI_HEADER_SIZE + 3 bytes larger to also hold the header and CRC. It can be changed later with pifLink_ResizeRxPacket().
 #ifndef PIF_LINK_RX_PACKET_SIZE
 #define PIF_LINK_RX_PACKET_SIZE		32
 #endif
 
-// Size of the ring buffer that holds the requests waiting to be sent or answered.
-// Each request takes its encoded frame plus 2 + sizeof(void *) bytes of bookkeeping.
+/// Size of the ring buffer that holds the requests waiting to be sent or answered.
+/// Each request takes its encoded frame plus 2 + sizeof(void *) bytes of bookkeeping.
 #ifndef PIF_LINK_TX_REQUEST_SIZE
 #define PIF_LINK_TX_REQUEST_SIZE	64
 #endif
 
-// Size of the ring buffer that holds the answers and NAKs waiting to be sent.
+/// Size of the ring buffer that holds the answers and NAKs waiting to be sent.
 #ifndef PIF_LINK_TX_ANSWER_SIZE
 #define PIF_LINK_TX_ANSWER_SIZE		32
 #endif
 
-// Timeout used to receive one complete packet.
-// 0: no timeout limit.
-// 1 or greater: multiplied by the timer unit of the timer manager given to pifLink_Init().
-//               Default is 50; at 1 ms timer unit, that equals 50 ms.
+/// Timeout used to receive one complete packet.
+/// 0: no timeout limit.
+/// 1 or greater: multiplied by the timer unit of the timer manager given to pifLink_Init().
+///               Default is 50; at 1 ms timer unit, that equals 50 ms.
 #ifndef PIF_LINK_RECEIVE_TIMEOUT
 #define PIF_LINK_RECEIVE_TIMEOUT	50
 #endif
 
-// Delay before a request is sent again after a NAK or a broken response.
-// 0: retry at once.
-// 1 or greater: multiplied by the timer unit of the timer manager given to pifLink_Init().
-//               Default is 10; at 1 ms timer unit, that equals 10 ms.
+/// Delay before a request is sent again after a NAK or a broken response.
+/// 0: retry at once.
+/// 1 or greater: multiplied by the timer unit of the timer manager given to pifLink_Init().
+///               Default is 10; at 1 ms timer unit, that equals 10 ms.
 #ifndef PIF_LINK_RETRY_DELAY
 #define PIF_LINK_RETRY_DELAY		10
 #endif
@@ -106,8 +106,8 @@
  */
 typedef enum EnPifLinkType
 {
-	LINK_T_SINGLE			= 1,	// Point-to-point. 6-byte header without addresses.
-	LINK_T_MULTI			= 2		// Shared bus. 8-byte header with src_id and dst_id.
+	LINK_T_SINGLE			= 1,	///< Point-to-point. 6-byte header without addresses.
+	LINK_T_MULTI			= 2		///< Shared bus. 8-byte header with src_id and dst_id.
 } PifLinkType;
 
 /**
@@ -139,12 +139,12 @@ typedef enum EnPifLinkType
  * Both are followed by the escaped data, the 3-byte CRC and ETX.
  * @{
  */
-#define LINK_SINGLE_HEADER_SIZE	6
-#define LINK_MULTI_HEADER_SIZE	8
-#define LINK_MAX_DATA_SIZE		0x3FFF
+#define LINK_SINGLE_HEADER_SIZE	6		///< Header bytes of a LINK_T_SINGLE frame
+#define LINK_MULTI_HEADER_SIZE	8		///< Header bytes of a LINK_T_MULTI frame
+#define LINK_MAX_DATA_SIZE		0x3FFF	///< Largest data size of a frame
 
-#define LINK_MAX_ADDRESS		0x7E	// Largest node address.
-#define LINK_BROADCAST			0x7F	// dst_id that every node handles.
+#define LINK_MAX_ADDRESS		0x7E	///< Largest node address.
+#define LINK_BROADCAST			0x7F	///< dst_id that every node handles.
 /** @} */
 
 /**
@@ -155,46 +155,46 @@ typedef enum EnPifLinkType
  * share a value, as do RESPONSE and ANSWER.
  * @{
  */
-#define LINK_F_DEFAULT			0x00
+#define LINK_F_DEFAULT			0x00	///< Every flag at its default
 
-// Kind of the frame.
+/// Kind of the frame.
 #define LINK_F_TYPE_MASK		0x01
-#define LINK_F_TYPE_REQUEST		0x00	// Default
-#define LINK_F_TYPE_RESPONSE	0x01
-#define LINK_F_TYPE_QUESTION	0x00	// Default
-#define LINK_F_TYPE_ANSWER		0x01
+#define LINK_F_TYPE_REQUEST		0x00	///< Default
+#define LINK_F_TYPE_RESPONSE	0x01	///< A response to a request
+#define LINK_F_TYPE_QUESTION	0x00	///< Default
+#define LINK_F_TYPE_ANSWER		0x01	///< An answer to a question
 
-// Whether the sender of a request waits for a response.
+/// Whether the sender of a request waits for a response.
 #define LINK_F_RESPONSE_MASK	0x02
-#define LINK_F_RESPONSE_YES		0x00	// Default
-#define LINK_F_RESPONSE_NO		0x02
+#define LINK_F_RESPONSE_YES		0x00	///< Default
+#define LINK_F_RESPONSE_NO		0x02	///< The sender does not wait for a response
 
-// The same bit seen by the receiver: whether the question expects an answer.
+/// The same bit seen by the receiver: whether the question expects an answer.
 #define LINK_F_ANSWER_MASK		0x02
-#define LINK_F_ANSWER_YES		0x00	// Default
-#define LINK_F_ANSWER_NO		0x02
+#define LINK_F_ANSWER_YES		0x00	///< Default
+#define LINK_F_ANSWER_NO		0x02	///< The question expects no answer
 
-// Set by the link on a request sent again after the first attempt.
+/// Set by the link on a request sent again after the first attempt.
 #define LINK_F_RETRY			0x04
 
-// Whether the frame is logged when it is sent or received.
+/// Whether the frame is logged when it is sent or received.
 #define LINK_F_LOG_PRINT_MASK	0x08
-#define LINK_F_LOG_PRINT_NO		0x00	// Default
-#define LINK_F_LOG_PRINT_YES	0x08
+#define LINK_F_LOG_PRINT_NO		0x00	///< Default
+#define LINK_F_LOG_PRINT_YES	0x08	///< Logged
 
-// Whether runs of 3 or more equal data bytes are run-length encoded.
+/// Whether runs of 3 or more equal data bytes are run-length encoded.
 #define LINK_F_RLE_MASK			0x10
-#define LINK_F_RLE_NO			0x00	// Default
-#define LINK_F_RLE_YES			0x10
+#define LINK_F_RLE_NO			0x00	///< Default
+#define LINK_F_RLE_YES			0x10	///< Run-length encoded
 
-// Set on an answer whose data is one PifLinkError code instead of the answer data.
+/// Set on an answer whose data is one PifLinkError code instead of the answer data.
 #define LINK_F_ERROR			0x20
 
-// Set on every fragment of a request sent in fragments. The data starts with the fragment byte.
-// See protocol/pif_link_fragment.h.
+/// Set on every fragment of a request sent in fragments. The data starts with the fragment byte.
+/// See protocol/pif_link_fragment.h.
 #define LINK_F_FRAGMENT			0x40
 
-// Always set in a frame so the flags byte is 0x20 or above.
+/// Always set in a frame so the flags byte is 0x20 or above.
 #define LINK_F_ALWAYS			0x80
 /** @} */
 
@@ -205,19 +205,19 @@ typedef enum EnPifLinkType
  */
 typedef enum EnPifLinkError
 {
-	LINK_E_NONE				= 0x00,
+	LINK_E_NONE				= 0x00,	///< No error
 
-	// Sent by the receiver of a question.
-	LINK_E_UNSUPPORTED		= 0x01,	// No handler for the command.
-	LINK_E_INVALID_PARAM	= 0x02,	// The data of the question is not valid.
-	LINK_E_BUSY				= 0x03,	// The question cannot be handled now; it may be asked again later.
-	LINK_E_FAILED			= 0x04,	// The question was handled but failed.
-	LINK_E_USER				= 0x40,	// 0x40 to 0x7F are free for the application.
+	/// Sent by the receiver of a question.
+	LINK_E_UNSUPPORTED		= 0x01,	///< No handler for the command.
+	LINK_E_INVALID_PARAM	= 0x02,	///< The data of the question is not valid.
+	LINK_E_BUSY				= 0x03,	///< The question cannot be handled now; it may be asked again later.
+	LINK_E_FAILED			= 0x04,	///< The question was handled but failed.
+	LINK_E_USER				= 0x40,	///< 0x40 to 0x7F are free for the application.
 
-	// Found by the sender of a request.
-	LINK_E_TIMEOUT			= 0x80,	// No response after all retries.
-	LINK_E_NO_TIMER			= 0x81,	// The response timer could not be started.
-	LINK_E_NO_MEMORY		= 0x82	// The buffer for the fragments could not be allocated.
+	/// Found by the sender of a request.
+	LINK_E_TIMEOUT			= 0x80,	///< No response after all retries.
+	LINK_E_NO_TIMER			= 0x81,	///< The response timer could not be started.
+	LINK_E_NO_MEMORY		= 0x82	///< The buffer for the fragments could not be allocated.
 } PifLinkError;
 
 /**
@@ -225,13 +225,13 @@ typedef enum EnPifLinkError
  */
 typedef enum EnPifLinkRxState
 {
-	LINK_RS_IDLE			= 0,	// Waiting for STX, ACK or NAK.
+	LINK_RS_IDLE			= 0,	///< Waiting for STX, ACK or NAK.
 	LINK_RS_GET_HEADER		= 1,
 	LINK_RS_GET_DATA		= 2,
 	LINK_RS_GET_CRC			= 3,
-	LINK_RS_GET_TAILER		= 4,	// Waiting for ETX.
-	LINK_RS_DONE			= 5,	// A complete frame is in the buffer.
-	LINK_RS_ACK				= 6,	// An ACK was received for the request in progress.
+	LINK_RS_GET_TAILER		= 4,	///< Waiting for ETX.
+	LINK_RS_DONE			= 5,	///< A complete frame is in the buffer.
+	LINK_RS_ACK				= 6,	///< An ACK was received for the request in progress.
 	LINK_RS_ERROR			= 7
 } PifLinkRxState;
 
@@ -240,12 +240,12 @@ typedef enum EnPifLinkRxState
  */
 typedef enum EnPifLinkTxState
 {
-	LINK_TS_IDLE			= 0,	// No request in progress.
-	LINK_TS_SENDING			= 1,	// Writing the request frame to the transport.
-	LINK_TS_WAIT_SENDED		= 2,	// The whole frame is handed to the transport.
-	LINK_TS_WAIT_RESPONSE	= 3,	// Waiting for the response, ACK or NAK until the request timeout.
-	LINK_TS_RETRY_DELAY		= 4,	// Waiting PIF_LINK_RETRY_DELAY before the next attempt.
-	LINK_TS_RETRY			= 5		// The next attempt is due.
+	LINK_TS_IDLE			= 0,	///< No request in progress.
+	LINK_TS_SENDING			= 1,	///< Writing the request frame to the transport.
+	LINK_TS_WAIT_SENDED		= 2,	///< The whole frame is handed to the transport.
+	LINK_TS_WAIT_RESPONSE	= 3,	///< Waiting for the response, ACK or NAK until the request timeout.
+	LINK_TS_RETRY_DELAY		= 4,	///< Waiting PIF_LINK_RETRY_DELAY before the next attempt.
+	LINK_TS_RETRY			= 5		///< The next attempt is due.
 } PifLinkTxState;
 
 
@@ -257,18 +257,18 @@ typedef enum EnPifLinkTxState
  */
 typedef struct StPifLinkPacket
 {
-	uint8_t flags;			// LINK_F_* bits as received. LINK_F_ANSWER_MASK tells whether the question expects an answer.
-	uint8_t command;		// Command byte.
-	uint16_t length;		// Data size given in the header.
-	uint16_t crc;			// Received CRC-16/CCITT-FALSE.
-	BOOL more;				// LINK_FM_STREAM: TRUE while more fragments follow. The link answers those fragments
-							// itself unless the handler answers, for example with pifLink_MakeError().
-	uint8_t packet_id;		// Identifier of the request, copied into its answer.
-	uint8_t src_id;			// LINK_T_MULTI: address of the sender. 0 for LINK_T_SINGLE.
-	uint8_t dst_id;			// LINK_T_MULTI: own address or LINK_BROADCAST. 0 for LINK_T_SINGLE.
-	uint16_t data_count;	// Number of data bytes received.
-	uint16_t offset;		// LINK_FM_STREAM: position of p_data in the whole data of a fragmented question. 0 otherwise.
-	uint8_t *p_data;		// Unescaped data, or NULL when length is 0.
+	uint8_t flags;			///< LINK_F_* bits as received. LINK_F_ANSWER_MASK tells whether the question expects an answer.
+	uint8_t command;		///< Command byte.
+	uint16_t length;		///< Data size given in the header.
+	uint16_t crc;			///< Received CRC-16/CCITT-FALSE.
+	BOOL more;				///< LINK_FM_STREAM: TRUE while more fragments follow. The link answers those fragments
+							///< itself unless the handler answers, for example with pifLink_MakeError().
+	uint8_t packet_id;		///< Identifier of the request, copied into its answer.
+	uint8_t src_id;			///< LINK_T_MULTI: address of the sender. 0 for LINK_T_SINGLE.
+	uint8_t dst_id;			///< LINK_T_MULTI: own address or LINK_BROADCAST. 0 for LINK_T_SINGLE.
+	uint16_t data_count;	///< Number of data bytes received.
+	uint16_t offset;		///< LINK_FM_STREAM: position of p_data in the whole data of a fragmented question. 0 otherwise.
+	uint8_t *p_data;		///< Unescaped data, or NULL when length is 0.
 } PifLinkPacket;
 
 struct StPifLink;
@@ -282,19 +282,19 @@ struct StPifLinkFragment;
  */
 typedef struct StPifLinkFragmentOps
 {
-	// Takes a question with LINK_F_FRAGMENT. Returns the packet to hand to evt_answer, or NULL when it is done.
+	/// Takes a question with LINK_F_FRAGMENT. Returns the packet to hand to evt_answer, or NULL when it is done.
 	PifLinkPacket *(*handle_question)(PifLink *p_owner, PifLinkPacket *p_packet, BOOL supported);
 
-	// Starts the large request entry at the head of the request buffer. Sets entry_size before anything else,
-	// then makes the first fragment and sets p_frame_buffer, frame_base, length, crc_pos, flags, packet_id and
-	// dst_id. Returns FALSE when the fragment cannot be made.
+	/// Starts the large request entry at the head of the request buffer. Sets entry_size before anything else,
+	/// then makes the first fragment and sets p_frame_buffer, frame_base, length, crc_pos, flags, packet_id and
+	/// dst_id. Returns FALSE when the fragment cannot be made.
 	BOOL (*start_request)(PifLink *p_owner);
 
-	// Called when the current fragment is answered. Returns 1 when the next fragment is made, 0 when the
-	// request is complete, or -1 when the next fragment cannot be made.
+	/// Called when the current fragment is answered. Returns 1 when the next fragment is made, 0 when the
+	/// request is complete, or -1 when the next fragment cannot be made.
 	int8_t (*next_fragment)(PifLink *p_owner);
 
-	// Frees the fragment state. Called by pifLink_Clear().
+	/// Frees the fragment state. Called by pifLink_Clear().
 	void (*clear)(PifLink *p_owner);
 } PifLinkFragmentOps;
 
@@ -325,11 +325,11 @@ typedef void (*PifEvtLinkError)(PifLink *p_owner, const PifLinkRequest *p_reques
  */
 struct StPifLinkRequest
 {
-    uint8_t command;				// Command byte, 0x20 or above.
-    uint8_t flags;					// LINK_F_RESPONSE_*, LINK_F_LOG_PRINT_* and LINK_F_RLE_* bits. Other bits are ignored.
-    uint8_t retry;					// Number of times the request is sent again after the first attempt.
-    uint16_t timeout;				// Time to wait for the response per attempt, in timer ticks.
-    PifEvtLinkFinish evt_response;	// Called with the response. Can be NULL.
+    uint8_t command;				///< Command byte, 0x20 or above.
+    uint8_t flags;					///< LINK_F_RESPONSE_*, LINK_F_LOG_PRINT_* and LINK_F_RLE_* bits. Other bits are ignored.
+    uint8_t retry;					///< Number of times the request is sent again after the first attempt.
+    uint16_t timeout;				///< Time to wait for the response per attempt, in timer ticks.
+    PifEvtLinkFinish evt_response;	///< Called with the response. Can be NULL.
 };
 
 /**
@@ -340,9 +340,9 @@ struct StPifLinkRequest
  */
 typedef struct StPifLinkQuestion
 {
-    uint8_t command;				// Command byte, 0x20 or above.
-    uint8_t flags;					// Reserved. Not used by the link.
-    PifEvtLinkFinish evt_answer;	// Called with the question. Can be NULL.
+    uint8_t command;				///< Command byte, 0x20 or above.
+    uint8_t flags;					///< Reserved. Not used by the link.
+    PifEvtLinkFinish evt_answer;	///< Called with the question. Can be NULL.
 } PifLinkQuestion;
 
 /**
@@ -351,15 +351,15 @@ typedef struct StPifLinkQuestion
  */
 typedef struct StPifLinkRx
 {
-	PifLinkRxState state;
-	uint8_t *p_packet;				// Header, data and CRC of the frame being received.
-	uint16_t packet_size;			// Size of p_packet.
-	uint8_t header_count;
-	uint8_t crc_count;
-	uint16_t crc;					// CRC calculated over the bytes received so far.
-	uint8_t data_state;				// Decoding state of the escape and run-length sequences in the data.
-	uint8_t rle_count;				// Length of the run whose value is awaited.
-	PifLinkPacket packet;
+	PifLinkRxState state;			///< Receive state
+	uint8_t *p_packet;				///< Header, data and CRC of the frame being received.
+	uint16_t packet_size;			///< Size of p_packet.
+	uint8_t header_count;			///< Header bytes received so far
+	uint8_t crc_count;				///< CRC bytes received so far
+	uint16_t crc;					///< CRC calculated over the bytes received so far.
+	uint8_t data_state;				///< Decoding state of the escape and run-length sequences in the data.
+	uint8_t rle_count;				///< Length of the run whose value is awaited.
+	PifLinkPacket packet;			///< Frame decoded last
 #if PIF_LINK_RECEIVE_TIMEOUT
 	PifTimer *p_timer;
 #endif
@@ -371,14 +371,14 @@ typedef struct StPifLinkRx
  */
 typedef struct StPifLinkLastQuestion
 {
-	BOOL valid;
-	uint8_t command;
-	uint8_t packet_id;
-	uint8_t src_id;
-	uint8_t *p_answer;				// Copy of the answer frame.
-	uint16_t answer_size;			// Size of p_answer.
-	uint16_t answer_length;			// Length of the answer frame, 0 while it is not made yet.
-	BOOL answered;					// An answer was made for it, even one too large to keep a copy of.
+	BOOL valid;						///< The other fields hold a question
+	uint8_t command;				///< Command of the question
+	uint8_t packet_id;				///< packet_id of the question
+	uint8_t src_id;					///< Address of the node that asked
+	uint8_t *p_answer;				///< Copy of the answer frame.
+	uint16_t answer_size;			///< Size of p_answer.
+	uint16_t answer_length;			///< Length of the answer frame, 0 while it is not made yet.
+	BOOL answered;					///< An answer was made for it, even one too large to keep a copy of.
 } PifLinkLastQuestion;
 
 /**
@@ -387,26 +387,26 @@ typedef struct StPifLinkLastQuestion
  */
 typedef struct StPifLinkTx
 {
-    PifRingBuffer request_buffer;	// Queued requests: [frame length (2)][CRC position (2)][PifLinkRequest*][frame]
-    								// or, for a large request, [0 (2)][data size (2)][PifLinkRequest*][data*][dst_id]
-    								// put by pif_link_fragment.c.
-    PifRingBuffer answer_buffer;	// Queued answer frames and NAK bytes.
-	const PifLinkRequest *p_request;	// Request in progress.
-	PifLinkTxState state;
-	BOOL large;						// The request in progress is sent in fragments.
-	uint16_t entry_size;			// Size of the request buffer entry of the request in progress.
-	PifRingBuffer *p_frame_buffer;	// Buffer holding the frame being sent: the request buffer or the fragment's.
-	uint16_t frame_base;			// Position of the frame in p_frame_buffer.
-	uint16_t length;				// Frame length of the request in progress.
-	uint16_t pos;					// Send position in p_frame_buffer.
-	uint8_t retry;					// Remaining retries of the request in progress.
-	uint8_t packet_id;				// packet_id of the request in progress.
-	uint8_t flags;					// flags byte of the request in progress.
-	uint8_t dst_id;					// dst_id of the request in progress.
-	uint16_t crc_pos;				// Position of the CRC in the frame of the request in progress.
-	uint16_t answer_length;			// Bytes of the answer buffer being sent, 0 when idle.
-	uint16_t answer_pos;
-	PifTimer *p_timer;				// Response timeout and retry delay.
+    PifRingBuffer request_buffer;	///< Queued requests: [frame length (2)][CRC position (2)][PifLinkRequest*][frame]
+    								///< or, for a large request, [0 (2)][data size (2)][PifLinkRequest*][data*][dst_id]
+    								///< put by pif_link_fragment.c.
+    PifRingBuffer answer_buffer;	///< Queued answer frames and NAK bytes.
+	const PifLinkRequest *p_request;	///< Request in progress.
+	PifLinkTxState state;				///< Transmit state
+	BOOL large;						///< The request in progress is sent in fragments.
+	uint16_t entry_size;			///< Size of the request buffer entry of the request in progress.
+	PifRingBuffer *p_frame_buffer;	///< Buffer holding the frame being sent: the request buffer or the fragment's.
+	uint16_t frame_base;			///< Position of the frame in p_frame_buffer.
+	uint16_t length;				///< Frame length of the request in progress.
+	uint16_t pos;					///< Send position in p_frame_buffer.
+	uint8_t retry;					///< Remaining retries of the request in progress.
+	uint8_t packet_id;				///< packet_id of the request in progress.
+	uint8_t flags;					///< flags byte of the request in progress.
+	uint8_t dst_id;					///< dst_id of the request in progress.
+	uint16_t crc_pos;				///< Position of the CRC in the frame of the request in progress.
+	uint16_t answer_length;			///< Bytes of the answer buffer being sent, 0 when idle.
+	uint16_t answer_pos;			///< Bytes of the answer buffer sent so far
+	PifTimer *p_timer;				///< Response timeout and retry delay.
 } PifLinkTx;
 
 /**
@@ -418,12 +418,12 @@ struct StPifLink
 	// Public Member Variable
 
 	// Public Event Function
-    PifEvtLinkError evt_error;
+    PifEvtLinkError evt_error;		///< Called when a request fails. May be NULL.
 
 	// Read-only Member Variable
-    PifId _id;
-    PifLinkType _type;
-    uint8_t _address;				// Own address for LINK_T_MULTI.
+    PifId _id;						///< Instance ID
+    PifLinkType _type;				///< LINK_T_SINGLE or LINK_T_MULTI
+    uint8_t _address;				///< Own address for LINK_T_MULTI.
 
 	// Private Member Variable
     PifTimerManager *__p_timer_manager;
@@ -434,7 +434,7 @@ struct StPifLink
     PifLinkLastQuestion __last;
 	uint8_t __header_size;
 	uint8_t __packet_id;
-	const PifLinkFragmentOps *__p_fragment_ops;	// NULL until pifLink_EnableFragment() is called.
+	const PifLinkFragmentOps *__p_fragment_ops;	///< NULL until pifLink_EnableFragment() is called.
 	struct StPifLinkFragment *__p_fragment;
 };
 
@@ -444,7 +444,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifLink_Init
  * @brief Initializes a link and allocates its buffers and timers.
  * @param p_owner Pointer to the link to initialize.
  * @param id Identifier of the link, or PIF_ID_AUTO.
@@ -459,14 +458,12 @@ BOOL pifLink_Init(PifLink *p_owner, PifId id, PifTimerManager *p_timer_manager, 
 		const PifLinkQuestion *p_questions);
 
 /**
- * @fn pifLink_Clear
  * @brief Frees the buffers and timers of a link.
  * @param p_owner Pointer to the link to clear.
  */
 void pifLink_Clear(PifLink *p_owner);
 
 /**
- * @fn pifLink_ResizeRxPacket
  * @brief Changes the largest data size of a received packet. A packet being received is dropped.
  * @param p_owner Pointer to the link.
  * @param rx_packet_size New largest data size, 1 to LINK_MAX_DATA_SIZE (16383).
@@ -475,7 +472,6 @@ void pifLink_Clear(PifLink *p_owner);
 BOOL pifLink_ResizeRxPacket(PifLink *p_owner, uint16_t rx_packet_size);
 
 /**
- * @fn pifLink_ResizeTxRequest
  * @brief Changes the size of the request buffer. Queued requests are discarded.
  * @param p_owner Pointer to the link.
  * @param tx_request_size New size in bytes.
@@ -484,7 +480,6 @@ BOOL pifLink_ResizeRxPacket(PifLink *p_owner, uint16_t rx_packet_size);
 BOOL pifLink_ResizeTxRequest(PifLink *p_owner, uint16_t tx_request_size);
 
 /**
- * @fn pifLink_ResizeTxResponse
  * @brief Changes the size of the answer buffer and of the copy of the last answer.
  *        Queued answers and the copy are discarded.
  * @param p_owner Pointer to the link.
@@ -494,7 +489,6 @@ BOOL pifLink_ResizeTxRequest(PifLink *p_owner, uint16_t tx_request_size);
 BOOL pifLink_ResizeTxResponse(PifLink *p_owner, uint16_t tx_response_size);
 
 /**
- * @fn pifLink_AttachTransport
  * @brief Attaches the link to a transport as its client. It must be called before any frame is made.
  * @param p_owner Pointer to the link.
  * @param p_transport Transport to send and receive with.
@@ -502,14 +496,12 @@ BOOL pifLink_ResizeTxResponse(PifLink *p_owner, uint16_t tx_response_size);
 void pifLink_AttachTransport(PifLink *p_owner, PifTransport *p_transport);
 
 /**
- * @fn pifLink_DetachTransport
  * @brief Detaches the link from its transport.
  * @param p_owner Pointer to the link.
  */
 void pifLink_DetachTransport(PifLink *p_owner);
 
 /**
- * @fn pifLink_MakeRequest
  * @brief Encodes a request and queues it. Queued requests are sent one at a time, each after the previous
  *        one is finished.
  * @param p_owner Pointer to the link.
@@ -525,7 +517,6 @@ BOOL pifLink_MakeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkRequest 
 		uint16_t data_size);
 
 /**
- * @fn pifLink_MakeAnswer
  * @brief Encodes an answer to a received question and queues it. It is usually called from evt_answer.
  * @param p_owner Pointer to the link.
  * @param p_question Question to answer. Its command and packet_id are copied into the answer, which goes to
@@ -540,7 +531,6 @@ BOOL pifLink_MakeAnswer(PifLink *p_owner, PifLinkPacket *p_question, uint8_t fla
 		uint8_t *p_data, uint16_t data_size);
 
 /**
- * @fn pifLink_MakeError
  * @brief Encodes an LINK_F_ERROR answer to a received question and queues it. The sender gets the code through
  *        its evt_error instead of evt_response.
  * @param p_owner Pointer to the link.
@@ -554,7 +544,6 @@ BOOL pifLink_MakeAnswer(PifLink *p_owner, PifLinkPacket *p_question, uint8_t fla
 BOOL pifLink_MakeError(PifLink *p_owner, PifLinkPacket *p_question, uint8_t flags, PifLinkError error);
 
 /**
- * @fn pifLink_NewPacketId
  * @brief Returns the packet_id for a new request and advances it. Used by pif_link_fragment.c.
  * @param p_owner Pointer to the link.
  * @return packet_id, 0x20 to 0xFF.
@@ -562,7 +551,6 @@ BOOL pifLink_MakeError(PifLink *p_owner, PifLinkPacket *p_question, uint8_t flag
 uint8_t pifLink_NewPacketId(PifLink *p_owner);
 
 /**
- * @fn pifLink_PutFrame
  * @brief Encodes a whole frame into a buffer. Used by pif_link_fragment.c.
  * @param p_owner Pointer to the link.
  * @param p_buffer Buffer to put the frame into.
@@ -582,7 +570,6 @@ uint16_t pifLink_PutFrame(PifLink *p_owner, PifRingBuffer *p_buffer, uint8_t fla
 		uint16_t *p_crc_pos);
 
 /**
- * @fn pifLink_PutU16
  * @brief Writes a 16-bit value in the payload byte order (little-endian).
  * @param p_buffer Destination of 2 bytes.
  * @param value Value to write.
@@ -591,7 +578,6 @@ uint16_t pifLink_PutFrame(PifLink *p_owner, PifRingBuffer *p_buffer, uint8_t fla
 uint8_t *pifLink_PutU16(uint8_t *p_buffer, uint16_t value);
 
 /**
- * @fn pifLink_PutU32
  * @brief Writes a 32-bit value in the payload byte order (little-endian).
  * @param p_buffer Destination of 4 bytes.
  * @param value Value to write.
@@ -600,7 +586,6 @@ uint8_t *pifLink_PutU16(uint8_t *p_buffer, uint16_t value);
 uint8_t *pifLink_PutU32(uint8_t *p_buffer, uint32_t value);
 
 /**
- * @fn pifLink_PutFloat
  * @brief Writes an IEEE 754 single precision value in the payload byte order (little-endian).
  * @param p_buffer Destination of 4 bytes.
  * @param value Value to write.
@@ -609,7 +594,6 @@ uint8_t *pifLink_PutU32(uint8_t *p_buffer, uint32_t value);
 uint8_t *pifLink_PutFloat(uint8_t *p_buffer, float value);
 
 /**
- * @fn pifLink_GetU16
  * @brief Reads a 16-bit value in the payload byte order (little-endian).
  * @param p_buffer Source of 2 bytes.
  * @return Value read.
@@ -617,7 +601,6 @@ uint8_t *pifLink_PutFloat(uint8_t *p_buffer, float value);
 uint16_t pifLink_GetU16(const uint8_t *p_buffer);
 
 /**
- * @fn pifLink_GetU32
  * @brief Reads a 32-bit value in the payload byte order (little-endian).
  * @param p_buffer Source of 4 bytes.
  * @return Value read.
@@ -625,7 +608,6 @@ uint16_t pifLink_GetU16(const uint8_t *p_buffer);
 uint32_t pifLink_GetU32(const uint8_t *p_buffer);
 
 /**
- * @fn pifLink_GetFloat
  * @brief Reads an IEEE 754 single precision value in the payload byte order (little-endian).
  * @param p_buffer Source of 4 bytes.
  * @return Value read.

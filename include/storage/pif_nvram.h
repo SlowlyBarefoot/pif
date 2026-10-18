@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
-#ifndef PIF_NVRAM_H
-#define PIF_NVRAM_H
-
-
-/*
+/**
+ * @file pif_nvram.h
+ * @brief Non-volatile memory written in place (EEPROM, FRAM), as raw slots or as records safe from a cut write.
+ *
  * Non-volatile memory that is written in place, a byte at a time: an I2C or SPI EEPROM, an FRAM, a
  * battery backed RAM. The media is cut into slots of one size, numbered from 0.
  *
@@ -25,20 +24,25 @@
  * not what this is for: see pif_flash for a record in MCU flash and pif_nor_flash for an SPI NOR
  * flash.
  */
+#ifndef PIF_NVRAM_H
+#define PIF_NVRAM_H
 
 
 #include "communication/pif_i2c.h"
 #include "core/pif_timer_manager.h"
 
 
-// Bytes a record adds in front of its data in each slot: sequence number, length and CRC.
+/// Bytes a record adds in front of its data in each slot: sequence number, length and CRC.
 #define PIF_NVRAM_RECORD_HEADER	6
 
 
+/**
+ * @brief Size of the internal address of an I2C memory.
+ */
 typedef enum EnPifNvramI2cIAddrSize
 {
-    NIC_I_ADDR_SIZE_1	= 1,
-    NIC_I_ADDR_SIZE_2	= 2
+    NIC_I_ADDR_SIZE_1	= 1,	///< One byte
+    NIC_I_ADDR_SIZE_2	= 2	///< Two bytes
 } PifNvramI2cIAddrSize;
 
 /**
@@ -47,8 +51,8 @@ typedef enum EnPifNvramI2cIAddrSize
  */
 typedef enum EnPifNvramMode
 {
-	NM_RAW				= 0,	// A slot is read and written as it is
-	NM_RECORD			= 1		// Two slots hold one record, kept safe from a write cut short
+	NM_RAW				= 0,	///< A slot is read and written as it is
+	NM_RECORD			= 1		///< Two slots hold one record, kept safe from a write cut short
 } PifNvramMode;
 
 /**
@@ -58,8 +62,8 @@ typedef enum EnPifNvramMode
  */
 typedef enum EnPifNvramState
 {
-	NS_IDLE				= 0,	// No transfer is on its way
-	NS_TRANSFER			= 1		// One is, and the timer is carrying it
+	NS_IDLE				= 0,	///< No transfer is on its way
+	NS_TRANSFER			= 1		///< One is, and the timer is carrying it
 } PifNvramState;
 
 /**
@@ -69,16 +73,15 @@ typedef enum EnPifNvramState
  */
 typedef enum EnPifNvramStart
 {
-	NS_START_FAILURE	= 0,	// Nothing was started, and pif_error says why
-	NS_START_TIMED		= 1,	// On its way: the done event reports the end
-	NS_START_DONE		= 2		// Already over, with no event involved
+	NS_START_FAILURE	= 0,	///< Nothing was started, and pif_error says why
+	NS_START_TIMED		= 1,	///< On its way: the done event reports the end
+	NS_START_DONE		= 2		///< Already over, with no event involved
 } PifNvramStart;
 
 struct StPifNvram;
 typedef struct StPifNvram PifNvram;
 
 /**
- * @fn PifEvtNvramDone
  * @brief Reports the end of a transfer that was returned as NS_START_TIMED. A transfer that
  *        finished inside the call is reported by its return value instead, so this is never
  *        called from inside one and asking for the next transfer from here is safe.
@@ -88,7 +91,6 @@ typedef struct StPifNvram PifNvram;
 typedef void (*PifEvtNvramDone)(PifNvram* p_owner, BOOL result);
 
 /**
- * @fn PifActNvramRead
  * @brief Reads bytes from the media.
  * @param p_owner Pointer to the NVRAM instance.
  * @param p_dst Where the bytes go.
@@ -99,7 +101,6 @@ typedef void (*PifEvtNvramDone)(PifNvram* p_owner, BOOL result);
 typedef BOOL (*PifActNvramRead)(PifNvram* p_owner, uint8_t* p_dst, uint32_t src, size_t size);
 
 /**
- * @fn PifActNvramWrite
  * @brief Writes bytes to the media. They never cross a page boundary.
  * @param p_owner Pointer to the NVRAM instance.
  * @param dst Where in the media they go, in bytes.
@@ -115,8 +116,8 @@ typedef BOOL (*PifActNvramWrite)(PifNvram* p_owner, uint32_t dst, uint8_t* p_src
  */
 typedef struct StPifNvramRecord
 {
-	uint16_t seq;				// Sequence number of the latest copy
-	uint8_t slot;				// Which of the two slots holds it, or one of the RECORD_ values
+	uint16_t seq;				///< Sequence number of the latest copy
+	uint8_t slot;				///< Which of the two slots holds it, or one of the RECORD_ values
 } PifNvramRecord;
 
 /**
@@ -128,33 +129,33 @@ struct StPifNvram
 	// Public Member Variable
 
 	// Read-only Member Variable
-    PifId _id;
-	PifDeviceReg *_p_device;
-	uint32_t _capacity;
-	uint32_t _slot_size;			// 0 after pifNvram_SetLayout(), where every slot has its own size
-	uint16_t _slot_count;			// Two per record in NM_RECORD mode
-	PifNvramMode _mode;
-	PifNvramState _state;
+    PifId _id;						///< Instance ID
+	PifDeviceReg *_p_device;		///< I2C or SPI device of the memory
+	uint32_t _capacity;				///< Bytes of the memory
+	uint32_t _slot_size;			///< 0 after pifNvram_SetLayout(), where every slot has its own size
+	uint16_t _slot_count;			///< Two per record in NM_RECORD mode
+	PifNvramMode _mode;				///< NM_RAW or NM_RECORD
+	PifNvramState _state;			///< State of the operation in progress
 
 	// Private Member Variable
 	uint8_t __addr;
 	uint8_t __write_delay_ms;
 	uint16_t __page_size;
-	uint32_t __ready_time;			// When the write cycle of the last write is over
-	BOOL __write_pending;			// A write cycle has been started and not waited out yet
+	uint32_t __ready_time;			///< When the write cycle of the last write is over
+	BOOL __write_pending;			///< A write cycle has been started and not waited out yet
 	PifTimerManager* __p_timer_manager;
 	PifTimer* __p_timer;
-	PifNvramRecord* __p_record;	// One per record in NM_RECORD mode, NULL in NM_RAW mode
-	uint32_t* __p_offset;			// From pifNvram_SetLayout(): where each slot or record begins, and the end
+	PifNvramRecord* __p_record;	///< One per record in NM_RECORD mode, NULL in NM_RAW mode
+	uint32_t* __p_offset;			///< From pifNvram_SetLayout(): where each slot or record begins, and the end
 
-	// The transfer that is on its way, a page at a time
-	uint32_t __op_pos;				// Where in the media the next page goes
-	uint8_t* __op_buffer;			// Where in the caller buffer it comes from or goes to
+	/// The transfer that is on its way, a page at a time
+	uint32_t __op_pos;				///< Where in the media the next page goes
+	uint8_t* __op_buffer;			///< Where in the caller buffer it comes from or goes to
 	size_t __op_remain;
 	BOOL __op_write;
-	uint8_t __op_head[PIF_NVRAM_RECORD_HEADER];	// Header of the record that is being written
-	uint8_t __op_head_remain;		// Bytes of it that have not been written yet
-	uint16_t __op_record;			// Record that is being written, if one is
+	uint8_t __op_head[PIF_NVRAM_RECORD_HEADER];	///< Header of the record that is being written
+	uint8_t __op_head_remain;		///< Bytes of it that have not been written yet
+	uint16_t __op_record;			///< Record that is being written, if one is
 	uint16_t __op_seq;
 	uint8_t __op_slot;
 
@@ -172,7 +173,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifNvram_Init
  * @brief Initializes an NVRAM instance. The media comes next, with pifNvram_SetMedia(), and the
  *        way to reach it, with pifNvram_AttachActMedia() or pifNvram_AttachI2c().
  * @param p_owner Pointer to the NVRAM instance.
@@ -182,14 +182,12 @@ extern "C" {
 BOOL pifNvram_Init(PifNvram* p_owner, PifId id);
 
 /**
- * @fn pifNvram_Clear
  * @brief Gives back what the instance holds: the record table, the timer and the I2C device.
  * @param p_owner Pointer to the NVRAM instance.
  */
 void pifNvram_Clear(PifNvram* p_owner);
 
 /**
- * @fn pifNvram_SetMedia
  * @brief Describes the media and cuts it into slots.
  * @param p_owner Pointer to the NVRAM instance.
  * @param capacity Size of the media, or of the part of it to use, in bytes.
@@ -205,7 +203,6 @@ void pifNvram_Clear(PifNvram* p_owner);
 BOOL pifNvram_SetMedia(PifNvram* p_owner, uint32_t capacity, uint16_t page_size, uint32_t slot_size, PifNvramMode mode);
 
 /**
- * @fn pifNvram_SetLayout
  * @brief Describes the media and lays the slots or records out on it one after the other from its
  *        start, each with a size of its own. This is what pifNvram_SetMedia() does with slots of
  *        one size, without the room a small record leaves unused in a slot sized for the largest.
@@ -232,7 +229,6 @@ BOOL pifNvram_SetLayout(PifNvram* p_owner, uint32_t capacity, uint16_t page_size
 		PifNvramMode mode);
 
 /**
- * @fn pifNvram_AttachActMedia
  * @brief Attaches low-level read and write callbacks to an NVRAM instance.
  * @param p_owner Pointer to the NVRAM instance.
  * @param act_read Callback used to read bytes from the underlying media.
@@ -242,7 +238,6 @@ BOOL pifNvram_SetLayout(PifNvram* p_owner, uint32_t capacity, uint16_t page_size
 BOOL pifNvram_AttachActMedia(PifNvram* p_owner, PifActNvramRead act_read, PifActNvramWrite act_write);
 
 /**
- * @fn pifNvram_AttachI2c
  * @brief Attaches an I2C device and configures internal address handling callbacks. A write goes
  *        out in pieces of max_transfer_size of the device when that is set, each piece a write
  *        cycle of its own.
@@ -261,14 +256,12 @@ BOOL pifNvram_AttachActMedia(PifNvram* p_owner, PifActNvramRead act_read, PifAct
 BOOL pifNvram_AttachI2c(PifNvram* p_owner, PifI2cPort* p_port, uint8_t addr, void *p_client, PifNvramI2cIAddrSize i_addr_size, uint8_t write_delay_ms);
 
 /**
- * @fn pifNvram_DetachI2c
  * @brief Detaches the currently attached I2C device and clears access callbacks.
  * @param p_owner Pointer to the NVRAM instance.
  */
 void pifNvram_DetachI2c(PifNvram* p_owner);
 
 /**
- * @fn pifNvram_AttachTimer
  * @brief Gives the instance the timer it needs to carry a transfer of more than one page without
  *        holding the CPU. A device with a write cycle has to be left alone between pages, and
  *        there is nothing to ask it about, so that wait is what the timer is for. Raw reads have
@@ -289,7 +282,6 @@ void pifNvram_DetachI2c(PifNvram* p_owner);
 BOOL pifNvram_AttachTimer(PifNvram* p_owner, PifTimerManager* p_timer_manager, PifEvtNvramDone evt_done);
 
 /**
- * @fn pifNvram_DetachTimer
  * @brief Gives the transfer timer back. A transfer on its way is abandoned and its event never
  *        comes. A record it was writing is looked for again on its next access.
  * @param p_owner Pointer to the NVRAM instance.
@@ -297,7 +289,6 @@ BOOL pifNvram_AttachTimer(PifNvram* p_owner, PifTimerManager* p_timer_manager, P
 void pifNvram_DetachTimer(PifNvram* p_owner);
 
 /**
- * @fn pifNvram_Read
  * @brief Reads a slot in NM_RAW mode. The first page is read before this returns; a read that
  *        needs more than one page is carried by the timer from there, a page per release, and
  *        ends with the done event.
@@ -313,7 +304,6 @@ void pifNvram_DetachTimer(PifNvram* p_owner);
 PifNvramStart pifNvram_Read(PifNvram* p_owner, uint16_t id, uint8_t* p_dst, size_t size);
 
 /**
- * @fn pifNvram_Write
  * @brief Writes a slot in NM_RAW mode, from its beginning. The first page is written before this
  *        returns; a write that needs more than one page is carried by the timer from there, a page
  *        per release, and ends with the done event. Nothing has to be paged by the caller.
@@ -329,7 +319,6 @@ PifNvramStart pifNvram_Read(PifNvram* p_owner, uint16_t id, uint8_t* p_dst, size
 PifNvramStart pifNvram_Write(PifNvram* p_owner, uint16_t id, uint8_t* p_src, size_t size);
 
 /**
- * @fn pifNvram_ReadRecord
  * @brief Reads the latest intact copy of a record in NM_RECORD mode. The copy is checked against
  *        its CRC before a byte of it is put in the buffer, so the buffer is either filled from an
  *        intact copy or left as it was. This is done before it returns, holding the CPU for the
@@ -349,7 +338,6 @@ PifNvramStart pifNvram_Write(PifNvram* p_owner, uint16_t id, uint8_t* p_src, siz
 BOOL pifNvram_ReadRecord(PifNvram* p_owner, uint16_t id, uint8_t* p_dst, size_t size, uint16_t* p_size);
 
 /**
- * @fn pifNvram_WriteRecord
  * @brief Writes a record in NM_RECORD mode, over the copy that is not the latest. The latest copy
  *        stays as it is until the new one is complete, so a write that never ends leaves the
  *        record as it was. Pages go as pifNvram_Write() sends them.
@@ -366,7 +354,6 @@ BOOL pifNvram_ReadRecord(PifNvram* p_owner, uint16_t id, uint8_t* p_dst, size_t 
 PifNvramStart pifNvram_WriteRecord(PifNvram* p_owner, uint16_t id, uint8_t* p_src, size_t size);
 
 /**
- * @fn pifNvram_DeleteRecord
  * @brief Spoils the header of both copies of a record in NM_RECORD mode, so it reads as never
  *        written. It is done before this returns.
  * @param p_owner Pointer to the NVRAM instance.

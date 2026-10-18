@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_duty_motor_speed_enc.h
+ * @brief Duty motor that keeps the speed of its stage from encoder feedback, with a PID controller.
+ *
+ * The encoder pulses are counted by the PifPulse given to pifDutyMotorSpeedEnc_Init(), and the control task
+ * adjusts the duty to the pulse count of the stage.
+ */
 #ifndef PIF_DUTY_MOTOR_SPEED_ENC_H
 #define PIF_DUTY_MOTOR_SPEED_ENC_H
 
@@ -9,7 +16,7 @@
 #include "sensor/pif_sensor.h"
 
 
-#define MAX_STABLE_CNT				(10)
+#define MAX_STABLE_CNT				(10)	///< Encoder samples averaged to check that the speed is stable
 
 
 /**
@@ -18,31 +25,31 @@
  */
 typedef struct StPifDutyMotorSpeedEncStage
 {
-    uint8_t mode;                   // PifMotorMode bit field
+    uint8_t mode;                   ///< PifMotorMode bit field
 
-    // Optional stage sensors
+    /// Optional stage sensors
     PifSensor* p_start_sensor;
-    PifSensor* p_reduce_sensor;
-    PifSensor* p_stop_sensor;
+    PifSensor* p_reduce_sensor;		///< Sensor that starts the deceleration, or NULL
+    PifSensor* p_stop_sensor;		///< Sensor that stops the motor, or NULL
 
-    // Acceleration stage
-    uint8_t gs_arrive_ratio;        // Arrival ratio percentage (0-100)
-    uint16_t gs_start_duty;         // Initial duty at start
-    uint16_t gs_ctrl_duty;          // Duty increment per control period
-    uint16_t gs_arrive_timeout;     // Timeout while waiting to reach arrival ratio
+    /// Acceleration stage
+    uint8_t gs_arrive_ratio;        ///< Arrival ratio percentage (0-100)
+    uint16_t gs_start_duty;         ///< Initial duty at start
+    uint16_t gs_ctrl_duty;          ///< Duty increment per control period
+    uint16_t gs_arrive_timeout;     ///< Timeout while waiting to reach arrival ratio
 
-    // Constant-speed stage
-    float fs_pulses_per_period;     // Target encoder pulses per control period
-    uint16_t fs_high_duty;          // High duty limit
-    uint16_t fs_overtime;           // Delay before deceleration after stop request
-    uint16_t fs_stable_timeout;     // Timeout while waiting for stable feedback
-    uint8_t fs_stable_err_low;      // Lower acceptable error percentage
-    uint8_t fs_stable_err_high;     // Upper acceptable error percentage
+    /// Constant-speed stage
+    float fs_pulses_per_period;     ///< Target encoder pulses per control period
+    uint16_t fs_high_duty;          ///< High duty limit
+    uint16_t fs_overtime;           ///< Delay before deceleration after stop request
+    uint16_t fs_stable_timeout;     ///< Timeout while waiting for stable feedback
+    uint8_t fs_stable_err_low;      ///< Lower acceptable error percentage
+    uint8_t fs_stable_err_high;     ///< Upper acceptable error percentage
 
-    // Deceleration stage
-    uint16_t rs_low_duty;           // Low duty used near stop threshold
-    uint16_t rs_ctrl_duty;          // Duty decrement per control period
-    uint16_t rs_brake_time;         // Brake hold time for mechanical/electrical brake
+    /// Deceleration stage
+    uint16_t rs_low_duty;           ///< Low duty used near stop threshold
+    uint16_t rs_ctrl_duty;          ///< Duty decrement per control period
+    uint16_t rs_brake_time;         ///< Brake hold time for mechanical/electrical brake
 } PifDutyMotorSpeedEncStage;
 
 /**
@@ -51,11 +58,11 @@ typedef struct StPifDutyMotorSpeedEncStage
  */
 typedef struct StPifDutyMotorSpeedEnc
 {
-	// The parent variable must be at the beginning of this structure.
+	/// The parent variable must be at the beginning of this structure.
 	PifDutyMotor parent;
 
 	// Read-only Member Variable
-    uint8_t _stage_index;
+    uint8_t _stage_index;	///< Index of the current stage
 
 	// Private Member Variable
     uint8_t __stage_size;
@@ -79,7 +86,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifDutyMotorSpeedEnc_Init
  * @brief Initializes an encoder-feedback speed-control duty motor instance.
  * @param p_owner Pointer to the object to initialize.
  * @param id Motor identifier, or `PIF_ID_AUTO` for auto allocation.
@@ -93,14 +99,12 @@ BOOL pifDutyMotorSpeedEnc_Init(PifDutyMotorSpeedEnc* p_owner, PifId id, PifTimer
 		uint16_t max_duty, uint16_t period1ms, PifPulse* p_encoder);
 
 /**
- * @fn pifDutyMotorSpeedEnc_Clear
  * @brief Releases all resources owned by encoder-feedback speed control.
  * @param p_owner Pointer to the encoder speed-control motor instance.
  */
 void pifDutyMotorSpeedEnc_Clear(PifDutyMotorSpeedEnc* p_owner);
 
 /**
- * @fn pifDutyMotorSpeedEnc_AddStages
  * @brief Registers stage table for encoder-feedback speed control.
  * @param p_owner Pointer to the encoder speed-control motor instance.
  * @param stage_size Number of entries in `p_stages`.
@@ -110,7 +114,6 @@ void pifDutyMotorSpeedEnc_Clear(PifDutyMotorSpeedEnc* p_owner);
 BOOL pifDutyMotorSpeedEnc_AddStages(PifDutyMotorSpeedEnc* p_owner, uint8_t stage_size, const PifDutyMotorSpeedEncStage* p_stages);
 
 /**
- * @fn pifDutyMotorSpeedEnc_GetPidControl
  * @brief Returns the PID controller used for feedback compensation.
  * @param p_owner Pointer to the encoder speed-control motor instance.
  * @return Pointer to internal `PifPidControl`.
@@ -118,7 +121,6 @@ BOOL pifDutyMotorSpeedEnc_AddStages(PifDutyMotorSpeedEnc* p_owner, uint8_t stage
 PifPidControl *pifDutyMotorSpeedEnc_GetPidControl(PifDutyMotorSpeedEnc* p_owner);
 
 /**
- * @fn pifDutyMotorSpeedEnc_Start
  * @brief Starts operation using the selected encoder stage profile.
  * @param p_owner Pointer to the encoder speed-control motor instance.
  * @param stage_index Index of the stage profile to run.
@@ -128,14 +130,12 @@ PifPidControl *pifDutyMotorSpeedEnc_GetPidControl(PifDutyMotorSpeedEnc* p_owner)
 BOOL pifDutyMotorSpeedEnc_Start(PifDutyMotorSpeedEnc* p_owner, uint8_t stage_index, uint32_t operating_time);
 
 /**
- * @fn pifDutyMotorSpeedEnc_Stop
  * @brief Requests stop sequence according to the active stage settings.
  * @param p_owner Pointer to the encoder speed-control motor instance.
  */
 void pifDutyMotorSpeedEnc_Stop(PifDutyMotorSpeedEnc* p_owner);
 
 /**
- * @fn pifDutyMotorSpeedEnc_Emergency
  * @brief Forces immediate emergency brake state.
  * @param p_owner Pointer to the encoder speed-control motor instance.
  */

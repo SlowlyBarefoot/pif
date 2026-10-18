@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_rc_ppm.h
+ * @brief PPM (CPPM) receiver decoded from the edges of one input pin.
+ *
+ * The platform gives the time of the same edge of every pulse with pifRcPpm_sigTick(), usually from an edge
+ * interrupt. After the sync gap, the channels of the frame go to the evt_receive of PifRc.
+ */
 #ifndef PIF_RC_PPM_H
 #define PIF_RC_PPM_H
 
@@ -6,10 +13,10 @@
 #include "rc/pif_rc.h"
 
 
-// _channel is an int8_t that may sit one past the last channel, so this is the most channels allowed.
+/// _channel is an int8_t that may sit one past the last channel, so this is the most channels allowed.
 #define PIF_RC_PPM_MAX_CHANNEL			(INT8_MAX - 1)
 
-// A receiver that stops sending frames for this long has lost the link.
+/// A receiver that stops sending frames for this long has lost the link.
 #define PIF_RC_PPM_DEFAULT_TIMEOUT_MS	100
 
 
@@ -19,11 +26,11 @@
  */
 typedef struct StPifRcPpm
 {
-	// The parent variable must be at the beginning of this structure.
+	/// The parent variable must be at the beginning of this structure.
 	PifRc parent;
 
 	// Read-only Member Variable
-	int8_t _channel;				// Index of the last pulse in the current frame, -1 right after a sync
+	int8_t _channel;				///< Index of the last pulse in the current frame, -1 right after a sync
 
 	// Private Member Variable
 	BOOL __time_valid;
@@ -32,11 +39,11 @@ typedef struct StPifRcPpm
 	uint8_t __process_step;
 	uint8_t __learn_count;
 	uint16_t __valid_range_min;
-	uint16_t __valid_range_max;		// 0 when no valid range is set
+	uint16_t __valid_range_max;		///< 0 when no valid range is set
 	uint16_t __threshold_1us;
 	uint32_t __last_time;
-	uint16_t* __p_channel;			// Channels of the last good frame, given to evt_receive
-	uint16_t* __p_work;				// Channels of the frame being received
+	uint16_t* __p_channel;			///< Channels of the last good frame, given to evt_receive
+	uint16_t* __p_work;				///< Channels of the frame being received
 } PifRcPpm;
 
 
@@ -45,7 +52,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifRcPpm_Init
  * @brief Initializes a PPM receiver instance.
  * @param p_owner Pointer to the PPM receiver object.
  * @param id Object identifier. Use PIF_ID_AUTO to allocate automatically.
@@ -57,14 +63,12 @@ extern "C" {
 BOOL pifRcPpm_Init(PifRcPpm* p_owner, PifId id, uint8_t channel_count, uint16_t threshold_1us);
 
 /**
- * @fn pifRcPpm_Clear
  * @brief Releases resources allocated by the PPM receiver instance.
  * @param p_owner Pointer to the PPM receiver object.
  */
 void pifRcPpm_Clear(PifRcPpm* p_owner);
 
 /**
- * @fn pifRcPpm_SetValidRange
  * @brief Sets the valid pulse width range for decoded channel values.
  *        A frame with any channel outside the range is counted as an error frame and not delivered.
  * @param p_owner Pointer to the PPM receiver object.
@@ -75,7 +79,6 @@ void pifRcPpm_Clear(PifRcPpm* p_owner);
 BOOL pifRcPpm_SetValidRange(PifRcPpm* p_owner, uint16_t min, uint16_t max);
 
 /**
- * @fn pifRcPpm_SetTimeout
  * @brief Sets how long without a good frame counts as a lost link for pifRc_CheckFailSafe().
  * @param p_owner Pointer to the PPM receiver object.
  * @param timeout_ms Time in milliseconds, or 0 for no timeout.
@@ -83,14 +86,12 @@ BOOL pifRcPpm_SetValidRange(PifRcPpm* p_owner, uint16_t min, uint16_t max);
 void pifRcPpm_SetTimeout(PifRcPpm* p_owner, uint16_t timeout_ms);
 
 /**
- * @fn pifRcPpm_ResetMeasureValue
  * @brief Restarts decoding from the next sync and learns the channel count again.
  * @param p_owner Pointer to the PPM receiver object.
  */
 void pifRcPpm_ResetMeasureValue(PifRcPpm* p_owner);
 
 /**
- * @fn pifRcPpm_sigTick
  * @brief Processes one captured pulse timestamp.
  *        It is usually called from an edge interrupt, and evt_receive is then called in that interrupt.
  *        The channel count is learned from two frames in a row with the same count before frames are delivered.

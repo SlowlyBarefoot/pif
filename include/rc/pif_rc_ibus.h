@@ -1,4 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_rc_ibus.h
+ * @brief FlySky iBus receiver on a UART, with the sensor telemetry of the iBus servo port.
+ *
+ * Decodes the channel frames of the FS-iA6B and FS-iA6 and answers the sensor requests through evt_telemetry.
+ */
 #ifndef PIF_RC_IBUS_H
 #define PIF_RC_IBUS_H
 
@@ -7,22 +13,25 @@
 #include "rc/pif_rc.h"
 
 
-#define PIF_IBUS_CHANNEL_COUNT		14
-#define PIF_IBUS_EXP_CHANNEL_COUNT	(PIF_IBUS_CHANNEL_COUNT + 4)
+#define PIF_IBUS_CHANNEL_COUNT		14		///< Channels of a frame
+#define PIF_IBUS_EXP_CHANNEL_COUNT	(PIF_IBUS_CHANNEL_COUNT + 4)	///< Channels with the extra channels packed into the high nibbles
 
-#define IBUS_COMMAND_SERVO          0x40    // Servo command.
-#define IBUS_COMMAND_DISCOVER       0x80    // Sensor discovery command.
-#define IBUS_COMMAND_TYPE           0x90    // Sensor type query command.
-#define IBUS_COMMAND_VALUE          0xA0    // Sensor value query command.
+#define IBUS_COMMAND_SERVO          0x40    ///< Servo command.
+#define IBUS_COMMAND_DISCOVER       0x80    ///< Sensor discovery command.
+#define IBUS_COMMAND_TYPE           0x90    ///< Sensor type query command.
+#define IBUS_COMMAND_VALUE          0xA0    ///< Sensor value query command.
 
-#define IBUS_FRAME_SIZE				0x20
-#define IBUS_TELEMETRY_SIZE			0x04
+#define IBUS_FRAME_SIZE				0x20	///< Bytes of a channel frame
+#define IBUS_TELEMETRY_SIZE			0x04	///< Bytes of a telemetry request
 
 
+/**
+ * @brief Receiver model, found from the frames.
+ */
 typedef enum EnPifRcIbusModel
 {
-	IBUS_MODEL_IA6B	= 0,
-	IBUS_MODEL_IA6	= 1,
+	IBUS_MODEL_IA6B	= 0,	///< FS-iA6B and similar, with the iBus header
+	IBUS_MODEL_IA6	= 1,	///< FS-iA6, with its own header
 } PifRcIbusModel;
 
 /**
@@ -30,9 +39,9 @@ typedef enum EnPifRcIbusModel
  */
 typedef enum EnPifRcIbusFrame
 {
-	IBUS_FRAME_NONE			= 0,	// No frame, or one that is not for us.
-	IBUS_FRAME_SERVO		= 1,	// A servo frame; its channels have gone to evt_receive.
-	IBUS_FRAME_TELEMETRY	= 2,	// A sensor request; see _tlm_command and _tlm_address.
+	IBUS_FRAME_NONE			= 0,	///< No frame, or one that is not for us.
+	IBUS_FRAME_SERVO		= 1,	///< A servo frame; its channels have gone to evt_receive.
+	IBUS_FRAME_TELEMETRY	= 2,	///< A sensor request; see _tlm_command and _tlm_address.
 } PifRcIbusFrame;
 
 
@@ -41,10 +50,10 @@ typedef enum EnPifRcIbusFrame
  */
 typedef struct StPifRcIbusSensorinfo
 {
-    uint8_t type;          // Sensor type identifier.
-    uint8_t length;        // Sensor payload length in bytes.
-    uint8_t offset;
-    uint8_t value[29];     // Sensor payload bytes.
+    uint8_t type;          ///< Sensor type identifier.
+    uint8_t length;        ///< Sensor payload length in bytes.
+    uint8_t offset;			///< Not used
+    uint8_t value[29];     ///< Sensor payload bytes.
 } PifRcIbusSensorinfo;
 
 
@@ -70,22 +79,22 @@ typedef BOOL (*PifEvtRcIbusTelemetry)(PifRcIbus* p_owner, uint8_t command, uint8
  */
 struct StPifRcIbus
 {
-	// The parent variable must be at the beginning of this structure.
+	/// The parent variable must be at the beginning of this structure.
 	PifRc parent;
 
     // Public Event Function
-	PifEvtRcIbusTelemetry evt_telemetry;
+	PifEvtRcIbusTelemetry evt_telemetry;	///< Answers the sensor requests. May be NULL.
 
 	// Read-only Member Variable
-    PifRcIbusModel _model;
-    uint8_t _length;          // Size of the frame being received, checksum included.
-    uint8_t _tlm_command;     // Command of the last sensor request received.
-    uint8_t _tlm_address;     // Sensor address of the last sensor request received.
+    PifRcIbusModel _model;		///< Receiver model found from the frames
+    uint8_t _length;          ///< Size of the frame being received, checksum included.
+    uint8_t _tlm_command;     ///< Command of the last sensor request received.
+    uint8_t _tlm_address;     ///< Sensor address of the last sensor request received.
 
 	// Private Member Variable
-    uint8_t __rx_buffer[IBUS_FRAME_SIZE];	// Frame being received, checksum included
-	uint8_t __ptr;							// Bytes of the frame received so far; 0 between frames
-    uint32_t __last_time;					// pif_cumulative_timer1ms of the last byte
+    uint8_t __rx_buffer[IBUS_FRAME_SIZE];	///< Frame being received, checksum included
+	uint8_t __ptr;							///< Bytes of the frame received so far; 0 between frames
+    uint32_t __last_time;					///< pif_cumulative_timer1ms of the last byte
     PifUart* __p_uart;
 };
 
@@ -95,7 +104,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifRcIbus_Init
  * @brief Initializes an iBUS receciver instance.
  * @param p_owner Pointer to the iBUS receiver object.
  * @param id Object identifier. Use PIF_ID_AUTO to allocate automatically.
@@ -104,14 +112,12 @@ extern "C" {
 BOOL pifRcIbus_Init(PifRcIbus* p_owner, PifId id);
 
 /**
- * @fn pifRcIbus_Clear
  * @brief Clears iBUS runtime state.
  * @param p_owner Pointer to the iBUS receiver object.
  */
 void pifRcIbus_Clear(PifRcIbus* p_owner);
 
 /**
- * @fn pifRcIbus_AttachUart
  * @brief Attaches a UART interface to the iBUS parser.
  * @param p_owner Pointer to the iBUS receiver object.
  * @param p_uart UART instance to attach.
@@ -119,14 +125,12 @@ void pifRcIbus_Clear(PifRcIbus* p_owner);
 void pifRcIbus_AttachUart(PifRcIbus* p_owner, PifUart* p_uart);
 
 /**
- * @fn pifRcIbus_DetachUart
  * @brief Detaches the UART interface from the iBUS parser.
  * @param p_owner Pointer to the iBUS receiver object.
  */
 void pifRcIbus_DetachUart(PifRcIbus* p_owner);
 
 /**
- * @fn pifRcIbus_ParsingPacket
  * @brief Feeds one received byte to the iBUS parser, as the UART receive callback does. For a
  *        client that gets the bytes some other way than through an attached PifUart, for example
  *        from the receive interrupt. The channels of a servo frame go to evt_receive from here, so
@@ -140,7 +144,6 @@ void pifRcIbus_DetachUart(PifRcIbus* p_owner);
 PifRcIbusFrame pifRcIbus_ParsingPacket(PifRcIbus* p_owner, uint8_t data);
 
 /**
- * @fn pifRcIbus_SendTelemetry
  * @brief Answers a sensor request: gets the sensor from evt_telemetry, then builds the reply and
  *        sends it through the attached PifUart. The attached UART path calls this itself.
  * @param p_owner Pointer to the iBUS receiver object.
@@ -152,7 +155,6 @@ PifRcIbusFrame pifRcIbus_ParsingPacket(PifRcIbus* p_owner, uint8_t data);
 BOOL pifRcIbus_SendTelemetry(PifRcIbus* p_owner, uint8_t command, uint8_t address);
 
 /**
- * @fn pifRcIbus_SendFrame
  * @brief Encodes and transmits one iBUS servo frame.
  * @param p_owner Pointer to the iBUS receiver object.
  * @param p_channel Pointer to channel values.

@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_ili9341.h
+ * @brief Driver of the ILI9341 TFT LCD controller (240 x 320), as a PifTftLcd.
+ *
+ * Supports the MCU parallel and the serial interfaces of the controller in 16 or 18 bit pixel formats. Drawing
+ * is done with the pifTftLcd functions on &lcd.parent.
+ */
 #ifndef PIF_ILI9341_H
 #define PIF_ILI9341_H
 
@@ -6,21 +13,29 @@
 #include "display/pif_tft_lcd.h"
 
 
-#define ILI9341_WIDTH   		240
-#define ILI9341_HEIGHT  		320
+#define ILI9341_WIDTH   		240	///< Width in pixels at TLR_0_DEGREE
+#define ILI9341_HEIGHT  		320	///< Height in pixels at TLR_0_DEGREE
 
-#define ILI9341_MADCTL_MY  		0x80
-#define ILI9341_MADCTL_MX  		0x40
-#define ILI9341_MADCTL_MV  		0x20
-#define ILI9341_MADCTL_ML  		0x10
-#define ILI9341_MADCTL_MH  		0x04
-#define ILI9341_MADCTL_BGR 		0x08
-#define ILI9341_MADCTL_RGB 		0x00
+/** @name MADCTL bits
+ *  Bits of the Memory Access Control register (36h), which set the scan direction and the color order.
+ *  @{
+ */
+#define ILI9341_MADCTL_MY  		0x80	///< Row address order
+#define ILI9341_MADCTL_MX  		0x40	///< Column address order
+#define ILI9341_MADCTL_MV  		0x20	///< Row and column exchange
+#define ILI9341_MADCTL_ML  		0x10	///< Vertical refresh order
+#define ILI9341_MADCTL_MH  		0x04	///< Horizontal refresh order
+#define ILI9341_MADCTL_BGR 		0x08	///< BGR color order
+#define ILI9341_MADCTL_RGB 		0x00	///< RGB color order
+/** @} */
 
 
+/**
+ * @brief Commands of the ILI9341, as named in its datasheet.
+ */
 typedef enum EnPifIli9341Cmd
 {
-	// Level 1 Command
+	/// Level 1 Command
 	ILI9341_CMD_NOP						= 0x00,
 	ILI9341_CMD_SOFT_RESET				= 0x01,
 	ILI9341_CMD_READ_DISP_ID_INFO		= 0x04,
@@ -39,7 +54,7 @@ typedef enum EnPifIli9341Cmd
 	ILI9341_CMD_MEM_ACCESS_CTRL			= 0x36,
 	ILI9341_CMD_PIXEL_FORMAT_SET   		= 0x3A,
 
-	// Level 2 Command
+	/// Level 2 Command
 	ILI9341_CMD_FRAME_RATE_CTRL_NORMAL	= 0xB1,
 	ILI9341_CMD_DISP_FUNC_CTRL	     	= 0xB6,
 	ILI9341_CMD_ENTRY_MODE_SET  	    = 0xB7,
@@ -51,7 +66,7 @@ typedef enum EnPifIli9341Cmd
 	ILI9341_CMD_POS_GAMMA_CORRECT		= 0xE0,
 	ILI9341_CMD_NEG_GAMMA_CORRECT		= 0xE1,
 
-	// Extend register command
+	/// Extend register command
 	ILI9341_CMD_POWER_CTRL_A  	 		= 0xCB,
 	ILI9341_CMD_POWER_CTRL_B   			= 0xCF,
 	ILI9341_CMD_DRIVER_TIM_CTRL_A1  	= 0xE8,
@@ -63,6 +78,12 @@ typedef enum EnPifIli9341Cmd
 	ILI9341_CMD_PUMP_RATIO_CTRL			= 0xF7
 } PifIli9341Cmd;
 
+/**
+ * @brief Interface of the controller, as set by its IM pins.
+ *
+ * MCU is the 8080 parallel bus and 3_WIRE and 4_WIRE the serial bus. I and II are the two pin assignments of the
+ * datasheet.
+ */
 typedef enum EnPifIli9341Interface
 {
 	ILI9341_IF_MCU_8BIT_I				= 0x00,
@@ -79,17 +100,25 @@ typedef enum EnPifIli9341Interface
 	ILI9341_IF_4_WIRE_8BIT_II			= 0x0E
 } PifIli9341Interface;
 
+/**
+ * @brief Pixel format of the controller (COLMOD, 3Ah).
+ */
 typedef enum EnPifIli9341PixelFormat
 {
-	ILI9341_PF_16BIT					= 5,
-	ILI9341_PF_18BIT					= 6,
-	ILI9341_PF_16BIT_RIM				= 13,
-	ILI9341_PF_18BIT_RIM				= 14
+	ILI9341_PF_16BIT					= 5,	///< 16 bits per pixel, RGB 565
+	ILI9341_PF_18BIT					= 6,	///< 18 bits per pixel, RGB 666
+	ILI9341_PF_16BIT_RIM				= 13,	///< 16 bits per pixel in RGB interface mode
+	ILI9341_PF_18BIT_RIM				= 14	///< 18 bits per pixel in RGB interface mode
 } PifIli9341PixelFormat;
 
 struct StPifIli9341;
 typedef struct StPifIli9341 PifIli9341;
 
+/**
+ * @brief Converts a color to the words the interface sends for one pixel.
+ *
+ * Writes them to p_data and returns their number.
+ */
 typedef uint8_t (*PifIli9341ConvertColor)(PifIli9341* p_owner, PifColor color, uint32_t* p_data);
 
 /**
@@ -98,14 +127,14 @@ typedef uint8_t (*PifIli9341ConvertColor)(PifIli9341* p_owner, PifColor color, u
  */
 struct StPifIli9341
 {
-	// The parent variable must be at the beginning of this structure.
+	/// The parent variable must be at the beginning of this structure.
 	PifTftLcd parent;
 
 	// Public Member Variable
 
 	// Read-only Member Variable
-    uint32_t _ic_id_04;
-    uint32_t _ic_id_D3;
+    uint32_t _ic_id_04;	///< Display ID read with command 04h
+    uint32_t _ic_id_D3;	///< IC ID read with command D3h
 
 	// Private Member Variable
     const uint8_t* __p_rotation;
@@ -124,7 +153,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifIli9341_Init
  * @brief Initializes the ILI9341 driver and configures interface-specific defaults.
  * @param p_owner Pointer to the ILI9341 instance to initialize.
  * @param id Unique object identifier. Use `PIF_ID_AUTO` to assign one automatically.
@@ -134,7 +162,6 @@ extern "C" {
 BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interface);
 
 /**
- * @fn pifIli9341_AttachActParallel
  * @brief Attaches parallel bus callback handlers used for low-level LCD transactions.
  * @param p_owner Pointer to an initialized ILI9341 instance.
  * @param act_reset Callback that resets the LCD controller.
@@ -149,7 +176,6 @@ BOOL pifIli9341_AttachActParallel(PifIli9341* p_owner, PifActLcdReset act_reset,
 		PifActLcdWriteCmd act_write_cmd, PifActLcdWriteData act_write_data, PifActLcdWriteRepeat act_write_repeat);
 
 /**
- * @fn pifIli9341_Setup
  * @brief Applies controller initialization commands and optional rotation register values.
  * @param p_owner Pointer to an initialized ILI9341 instance with attached callbacks.
  * @param p_setup Pointer to a setup command stream terminated by `0`. Each entry has at most 16 parameters.
@@ -160,7 +186,6 @@ BOOL pifIli9341_AttachActParallel(PifIli9341* p_owner, PifActLcdReset act_reset,
 BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation);
 
 /**
- * @fn pifIli9341_SetRotation
  * @brief Updates panel rotation and applies matching controller address mode settings.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param rotation Target rotation value.
@@ -169,7 +194,6 @@ BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 
 /**
- * @fn pifIli9341_DrawPixel
  * @brief Draws one pixel at the specified coordinate.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x Horizontal pixel coordinate.
@@ -179,7 +203,6 @@ BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 void pifIli9341_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor color);
 
 /**
- * @fn pifIli9341_DrawHorLine
  * @brief Draws a horizontal line starting at `(x, y)`.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x Start X coordinate.
@@ -190,7 +213,6 @@ void pifIli9341_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor 
 void pifIli9341_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
- * @fn pifIli9341_DrawVerLine
  * @brief Draws a vertical line starting at `(x, y)`.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x Fixed X coordinate.
@@ -201,7 +223,6 @@ void pifIli9341_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 void pifIli9341_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
- * @fn pifIli9341_DrawFillRect
  * @brief Fills a rectangular region with a constant color, clipped to the panel.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x1 Left X coordinate of the rectangle.
@@ -213,7 +234,6 @@ void pifIli9341_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 void pifIli9341_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color);
 
 /**
- * @fn pifIli9341_DrawArea
  * @brief Writes a rectangular pixel block from a source color map. Nothing is drawn if the area
  *        does not lie entirely on the panel.
  * @param p_parent Pointer to the base TFT LCD context.

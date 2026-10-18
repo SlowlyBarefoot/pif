@@ -1,19 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Portions derived from Betaflight dshot.c, dshot_command.c, dshot_dpwm.c and dshot_bitbang_decode.c, GPL-3.0-or-later.
 // See THIRD_PARTY_NOTICES.md.
-
-#ifndef PIF_DSHOT_H
-#define PIF_DSHOT_H
-
-
-#include "core/pif.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_DSHOT)
-	#define COLLECT_SIGNAL_DSHOT
-	#include "core/pif_collect_signal.h"
-#endif
-
-
-/*
+/**
+ * @file pif_dshot.h
+ * @brief DShot and ProShot output to brushless ESCs, with commands and bidirectional telemetry.
+ *
  * DShot is the digital protocol flight controllers use to drive brushless ESCs. A frame is 16 bits,
  * sent MSB first:
  *
@@ -36,69 +27,83 @@
  * output cycle in pifDshot_Update(), which hands them to act_write. The helpers of the
  * "Frame and buffer" and "Telemetry" groups below need no instance and can be used on their own.
  */
+#ifndef PIF_DSHOT_H
+#define PIF_DSHOT_H
+
+
+#include "core/pif.h"
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_DSHOT)
+	#define COLLECT_SIGNAL_DSHOT	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_DSHOT is not
+	#include "core/pif_collect_signal.h"
+#endif
 
 
 #ifndef PIF_DSHOT_MAX_MOTORS
-#define PIF_DSHOT_MAX_MOTORS			8
+#define PIF_DSHOT_MAX_MOTORS			8	///< Most motors of one instance
 #endif
 
-// How many commands may wait in the queue. Each takes PIF_DSHOT_MAX_MOTORS + 12 bytes.
+/// How many commands may wait in the queue. Each takes PIF_DSHOT_MAX_MOTORS + 12 bytes.
 #ifndef PIF_DSHOT_COMMAND_QUEUE_SIZE
 #define PIF_DSHOT_COMMAND_QUEUE_SIZE	3
 #endif
 
-#define PIF_DSHOT_ALL_MOTORS			0xFF
+#define PIF_DSHOT_ALL_MOTORS			0xFF	///< Motor index that sends a command to every motor
 
-#define PIF_DSHOT_MIN_THROTTLE			48
-#define PIF_DSHOT_MAX_THROTTLE			2047
-#define PIF_DSHOT_MAX_COMMAND			47
+#define PIF_DSHOT_MIN_THROTTLE			48	///< Smallest throttle value
+#define PIF_DSHOT_MAX_THROTTLE			2047	///< Largest throttle value
+#define PIF_DSHOT_MAX_COMMAND			47	///< Largest command value
 
-// 3D mode: 48 to 1047 is one direction, 1048 to 2047 the other.
+/// 3D mode: 48 to 1047 is one direction, 1048 to 2047 the other.
 #define PIF_DSHOT_3D_FORWARD_MIN_THROTTLE	1048
 
-// Timer ticks of a 0 and a 1 bit for a bit period of SYMBOL ticks: 37.5% and 75% high.
+/// Timer ticks of a 0 and a 1 bit for a bit period of SYMBOL ticks: 37.5% and 75% high.
 #define PIF_DSHOT_BIT0_TICKS(SYMBOL)	((SYMBOL) * 3 / 8)
-#define PIF_DSHOT_BIT1_TICKS(SYMBOL)	((SYMBOL) * 3 / 4)
+#define PIF_DSHOT_BIT1_TICKS(SYMBOL)	((SYMBOL) * 3 / 4)	///< Timer ticks of a 1 bit
 
-// Entries pifDshot_LoadBuffer() and pifDshot_LoadBufferProshot() fill: the frame and two zero
-// entries that hold the line low until the next frame.
+/// Entries pifDshot_LoadBuffer() and pifDshot_LoadBufferProshot() fill: the frame and two zero
+/// entries that hold the line low until the next frame.
 #define PIF_DSHOT_BUFFER_SIZE			18
-#define PIF_PROSHOT_BUFFER_SIZE			6
+#define PIF_PROSHOT_BUFFER_SIZE			6	///< Entries pifDshot_LoadBufferProshot() fills
 
-// Entries of a bit-bang buffer: 3 slots for each of the 16 bits and 3 for the hold bit.
+/// Entries of a bit-bang buffer: 3 slots for each of the 16 bits and 3 for the hold bit.
 #define PIF_DSHOT_BITBANG_BUFFER_SIZE	(17 * 3)
 
-// ProShot1000 sends a nibble per pulse, 4 pulses a frame. A pulse is BASE + nibble * WIDTH ticks
-// of a 24 MHz timer: 1us to 2.25us in 83.3ns steps, in a 3.33us period.
+/// ProShot1000 sends a nibble per pulse, 4 pulses a frame. A pulse is BASE + nibble * WIDTH ticks
+/// of a 24 MHz timer: 1us to 2.25us in 83.3ns steps, in a 3.33us period.
 #define PIF_PROSHOT_BASE_SYMBOL_24MHZ	24
-#define PIF_PROSHOT_BIT_WIDTH_24MHZ		3
-#define PIF_PROSHOT_PERIOD_24MHZ		80
+#define PIF_PROSHOT_BIT_WIDTH_24MHZ		3				///< Ticks of one nibble step
+#define PIF_PROSHOT_PERIOD_24MHZ		80				///< Ticks of one pulse period
 
-// Answers of pifDshot_EdgesToGcr() and pifDshot_SamplesToGcr() that are not a GCR frame.
-#define PIF_DSHOT_GCR_NONE				0xFFFFFFFEUL	// No answer was seen at all
-#define PIF_DSHOT_GCR_INVALID			0xFFFFFFFFUL	// An answer was seen and does not decode
+/// Answers of pifDshot_EdgesToGcr() and pifDshot_SamplesToGcr() that are not a GCR frame.
+#define PIF_DSHOT_GCR_NONE				0xFFFFFFFEUL	///< No answer was seen at all
+#define PIF_DSHOT_GCR_INVALID			0xFFFFFFFFUL	///< An answer was seen and does not decode
 
 
+/**
+ * @brief DShot commands, sent as the 11-bit value of a frame while the motors stand still.
+ *
+ * Most commands have to be repeated and followed by a delay, which the command queue does.
+ */
 typedef enum EnPifDshotCommand
 {
-	DSC_MOTOR_STOP					= 0,
-	DSC_BEACON1						= 1,
-	DSC_BEACON2						= 2,
-	DSC_BEACON3						= 3,
-	DSC_BEACON4						= 4,
-	DSC_BEACON5						= 5,
-	DSC_ESC_INFO					= 6,
-	DSC_SPIN_DIRECTION_1			= 7,
-	DSC_SPIN_DIRECTION_2			= 8,
-	DSC_3D_MODE_OFF					= 9,
-	DSC_3D_MODE_ON					= 10,
-	DSC_SETTINGS_REQUEST			= 11,
-	DSC_SAVE_SETTINGS				= 12,
-	DSC_EXTENDED_TELEMETRY_ENABLE	= 13,
-	DSC_EXTENDED_TELEMETRY_DISABLE	= 14,
-	DSC_SPIN_DIRECTION_NORMAL		= 20,
-	DSC_SPIN_DIRECTION_REVERSED		= 21,
-	DSC_LED0_ON						= 22,	// BLHeli32 only
+	DSC_MOTOR_STOP					= 0,				///< Stops the motor
+	DSC_BEACON1						= 1,				///< Beeps tone 1
+	DSC_BEACON2						= 2,	///< Beeps tone 2
+	DSC_BEACON3						= 3,	///< Beeps tone 3
+	DSC_BEACON4						= 4,	///< Beeps tone 4
+	DSC_BEACON5						= 5,	///< Beeps tone 5
+	DSC_ESC_INFO					= 6,	///< Asks the ESC for its information
+	DSC_SPIN_DIRECTION_1			= 7,	///< Spin direction 1
+	DSC_SPIN_DIRECTION_2			= 8,	///< Spin direction 2
+	DSC_3D_MODE_OFF					= 9,	///< 3D mode off
+	DSC_3D_MODE_ON					= 10,	///< 3D mode on
+	DSC_SETTINGS_REQUEST			= 11,	///< Asks the ESC for its settings
+	DSC_SAVE_SETTINGS				= 12,	///< Saves the settings in the ESC
+	DSC_EXTENDED_TELEMETRY_ENABLE	= 13,	///< Turns Extended DShot Telemetry on
+	DSC_EXTENDED_TELEMETRY_DISABLE	= 14,	///< Turns Extended DShot Telemetry off
+	DSC_SPIN_DIRECTION_NORMAL		= 20,	///< Normal spin direction
+	DSC_SPIN_DIRECTION_REVERSED		= 21,	///< Reversed spin direction
+	DSC_LED0_ON						= 22,	///< BLHeli32 only
 	DSC_LED1_ON						= 23,
 	DSC_LED2_ON						= 24,
 	DSC_LED3_ON						= 25,
@@ -106,39 +111,45 @@ typedef enum EnPifDshotCommand
 	DSC_LED1_OFF					= 27,
 	DSC_LED2_OFF					= 28,
 	DSC_LED3_OFF					= 29,
-	DSC_AUDIO_STREAM_MODE_ON_OFF	= 30,	// KISS only
-	DSC_SILENT_MODE_ON_OFF			= 31	// KISS only
+	DSC_AUDIO_STREAM_MODE_ON_OFF	= 30,	///< KISS only
+	DSC_SILENT_MODE_ON_OFF			= 31	///< KISS only
 } PifDshotCommand;
 
+/**
+ * @brief What a telemetry answer carries.
+ */
 typedef enum EnPifDshotTelemetryType
 {
-	DTT_ERPM			= 0,	// value: electrical RPM, 0 when the motor stands still
-	DTT_TEMPERATURE		= 1,	// value: degrees Celsius
-	DTT_VOLTAGE			= 2,	// value: millivolts, in steps of 250
-	DTT_CURRENT			= 3,	// value: milliamperes, in steps of 1000
-	DTT_DEBUG1			= 4,	// value: as the ESC firmware defines it
+	DTT_ERPM			= 0,	///< value: electrical RPM, 0 when the motor stands still
+	DTT_TEMPERATURE		= 1,	///< value: degrees Celsius
+	DTT_VOLTAGE			= 2,	///< value: millivolts, in steps of 250
+	DTT_CURRENT			= 3,	///< value: milliamperes, in steps of 1000
+	DTT_DEBUG1			= 4,	///< value: as the ESC firmware defines it
 	DTT_DEBUG2			= 5,
-	DTT_STRESS			= 6,	// value: stress level, 0 to 255
-	DTT_STATUS			= 7		// value: status and event bits, as the ESC firmware defines them
+	DTT_STRESS			= 6,	///< value: stress level, 0 to 255
+	DTT_STATUS			= 7		///< value: status and event bits, as the ESC firmware defines them
 } PifDshotTelemetryType;
 
+/**
+ * @brief Step of a command sequence.
+ */
 typedef enum EnPifDshotCommandState
 {
-	DCS_IDLE_WAIT		= 0,	// Waiting for every motor to be at 0
-	DCS_START_DELAY		= 1,	// Holding the output before a sequence of commands
-	DCS_ACTIVE			= 2,	// Sending the command, repeated as the command needs
-	DCS_POST_DELAY		= 3		// Holding the output after it
+	DCS_IDLE_WAIT		= 0,	///< Waiting for every motor to be at 0
+	DCS_START_DELAY		= 1,	///< Holding the output before a sequence of commands
+	DCS_ACTIVE			= 2,	///< Sending the command, repeated as the command needs
+	DCS_POST_DELAY		= 3		///< Holding the output after it
 } PifDshotCommandState;
 
 #ifdef COLLECT_SIGNAL_DSHOT
 
-// Recorded by pifDshot_Update(), so a change shows at the cycle that made it.
+/// Recorded by pifDshot_Update(), so a change shows at the cycle that made it.
 typedef enum EnPifDshotCsFlag
 {
 	DS_CSF_OFF			= 0,
 
-	DS_CSF_STATE_IDX	= 0,	// PifDshotCommandState of the command going out, PIF_DSHOT_CS_NO_COMMAND without one
-	DS_CSF_COMMAND_IDX	= 1,	// PifDshotCommand going out, 0 without one
+	DS_CSF_STATE_IDX	= 0,	///< PifDshotCommandState of the command going out, PIF_DSHOT_CS_NO_COMMAND without one
+	DS_CSF_COMMAND_IDX	= 1,	///< PifDshotCommand going out, 0 without one
 
 	DS_CSF_STATE_BIT	= 1,
 	DS_CSF_COMMAND_BIT	= 2,
@@ -147,36 +158,45 @@ typedef enum EnPifDshotCsFlag
 	DS_CSF_COUNT		= 2
 } PifDshotCsFlag;
 
-#define PIF_DSHOT_CS_NO_COMMAND		4
+#define PIF_DSHOT_CS_NO_COMMAND		4	///< DS_CSF_STATE_IDX value while no command goes out
 
 #endif	// COLLECT_SIGNAL_DSHOT
 
 
+/**
+ * @brief One decoded telemetry answer.
+ */
 typedef struct StPifDshotTelemetry
 {
-	PifDshotTelemetryType type;
-	uint32_t value;
+	PifDshotTelemetryType type;	///< What value carries
+	uint32_t value;				///< Value, in the unit of type
 } PifDshotTelemetry;
 
+/**
+ * @brief Throttle and telemetry of one motor.
+ */
 typedef struct StPifDshotMotor
 {
-	uint16_t value;				// Throttle: 0, or PIF_DSHOT_MIN_THROTTLE to PIF_DSHOT_MAX_THROTTLE
-	BOOL request_telemetry;		// Sets the telemetry bit of the next frame only
+	uint16_t value;				///< Throttle: 0, or PIF_DSHOT_MIN_THROTTLE to PIF_DSHOT_MAX_THROTTLE
+	BOOL request_telemetry;		///< Sets the telemetry bit of the next frame only
 
 	// Read-only: bidirectional telemetry of this motor
-	uint32_t _erpm;				// Last eRPM the ESC answered with
-	uint32_t _telemetry_count;	// Answers that decoded
-	uint32_t _error_count;		// Answers that did not
-	uint32_t _missing_count;	// Frames the ESC did not answer
+	uint32_t _erpm;				///< Last eRPM the ESC answered with
+	uint32_t _telemetry_count;	///< Answers that decoded
+	uint32_t _error_count;		///< Answers that did not
+	uint32_t _missing_count;	///< Frames the ESC did not answer
 } PifDshotMotor;
 
+/**
+ * @brief One queued command and where its sequence stands.
+ */
 typedef struct StPifDshotCommandControl
 {
-	PifDshotCommandState state;
-	uint32_t delay_cycles;		// Output cycles left to hold
-	uint32_t post_delay_us;
-	uint8_t repeats;
-	uint8_t command[PIF_DSHOT_MAX_MOTORS];
+	PifDshotCommandState state;	///< Step of the command sequence
+	uint32_t delay_cycles;		///< Output cycles left to hold
+	uint32_t post_delay_us;		///< Time in us to hold the output after the command
+	uint8_t repeats;			///< Times the command is sent
+	uint8_t command[PIF_DSHOT_MAX_MOTORS];	///< Command of each motor
 } PifDshotCommandControl;
 
 
@@ -184,7 +204,6 @@ struct StPifDshot;
 typedef struct StPifDshot PifDshot;
 
 /**
- * @fn PifActDshotWrite
  * @brief Puts the frames of one output cycle on the wire, one per motor. It is called from
  *        pifDshot_Update() and has to return quickly: load the DMA buffers, with
  *        pifDshot_LoadBuffer() for instance, and start the transfer.
@@ -195,7 +214,6 @@ typedef struct StPifDshot PifDshot;
 typedef void (*PifActDshotWrite)(PifDshot* p_owner, const uint16_t* p_frames, uint8_t count);
 
 /**
- * @fn PifEvtDshotTelemetry
  * @brief Reports a bidirectional telemetry answer that decoded. It is called from
  *        pifDshot_PutGcr(), in whatever context the client calls that from.
  * @param p_owner Pointer to the DShot instance.
@@ -212,20 +230,20 @@ typedef void (*PifEvtDshotTelemetry)(PifDshot* p_owner, uint8_t index, const Pif
 struct StPifDshot
 {
 	// Public Member Variable
-	// TRUE once the ESCs have been told DSC_EXTENDED_TELEMETRY_ENABLE, which is when an answer
-	// can be a temperature or voltage rather than an eRPM. Left to the client, since only the
-	// ESC knows whether it took the command.
+	/// TRUE once the ESCs have been told DSC_EXTENDED_TELEMETRY_ENABLE, which is when an answer
+	/// can be a temperature or voltage rather than an eRPM. Left to the client, since only the
+	/// ESC knows whether it took the command.
 	BOOL extended_telemetry;
 
 	// Public Event Function
-	PifEvtDshotTelemetry evt_telemetry;
+	PifEvtDshotTelemetry evt_telemetry;	///< Called for each telemetry answer that decoded. May be NULL.
 
 	// Read-only Member Variable
-	PifId _id;
-	uint8_t _motor_count;
-	BOOL _bidirectional;
-	uint32_t _cycle_us;			// Period pifDshot_Update() is called at
-	PifDshotMotor _motor[PIF_DSHOT_MAX_MOTORS];
+	PifId _id;					///< Instance ID
+	uint8_t _motor_count;		///< Number of motors
+	BOOL _bidirectional;		///< TRUE for bidirectional DShot with telemetry answers
+	uint32_t _cycle_us;			///< Period pifDshot_Update() is called at
+	PifDshotMotor _motor[PIF_DSHOT_MAX_MOTORS];	///< Throttle and telemetry of each motor
 
 	// Private Member Variable
 	PifDshotCommandControl __queue[PIF_DSHOT_COMMAND_QUEUE_SIZE + 1];
@@ -247,7 +265,6 @@ extern "C" {
 // -------- Frame and buffer --------------------
 
 /**
- * @fn pifDshot_MakeFrame
  * @brief Builds a frame.
  * @param value 11-bit value: 0, a command, or a throttle. Anything above 2047 is cut to 11 bits.
  * @param telemetry TRUE to set the telemetry bit.
@@ -257,7 +274,6 @@ extern "C" {
 uint16_t pifDshot_MakeFrame(uint16_t value, BOOL telemetry, BOOL bidirectional);
 
 /**
- * @fn pifDshot_LoadBuffer
  * @brief Fills a timer compare buffer with a frame, a compare value per bit and two zeros after
  *        them, PIF_DSHOT_BUFFER_SIZE entries in all.
  * @param p_buffer Buffer to fill.
@@ -271,7 +287,6 @@ uint16_t pifDshot_MakeFrame(uint16_t value, BOOL telemetry, BOOL bidirectional);
 uint8_t pifDshot_LoadBuffer(uint32_t* p_buffer, uint8_t stride, uint16_t frame, uint32_t bit0, uint32_t bit1);
 
 /**
- * @fn pifDshot_LoadBufferProshot
  * @brief Fills a timer compare buffer with a frame in ProShot1000 form, a pulse per nibble and
  *        two zeros after them, PIF_PROSHOT_BUFFER_SIZE entries in all.
  * @param p_buffer Buffer to fill.
@@ -296,7 +311,6 @@ uint8_t pifDshot_LoadBufferProshot(uint32_t* p_buffer, uint8_t stride, uint16_t 
  */
 
 /**
- * @fn pifDshot_InitBitbangBuffer
  * @brief Sets up the slots of a bit-bang buffer that are the same in every frame, for one pin.
  *        Call it once per pin of the port on a zeroed buffer.
  * @param p_buffer Buffer of PIF_DSHOT_BITBANG_BUFFER_SIZE entries.
@@ -307,7 +321,6 @@ uint8_t pifDshot_LoadBufferProshot(uint32_t* p_buffer, uint8_t stride, uint16_t 
 void pifDshot_InitBitbangBuffer(uint32_t* p_buffer, uint32_t set_mask, uint32_t reset_mask, BOOL inverted);
 
 /**
- * @fn pifDshot_ClearBitbangBuffer
  * @brief Clears the slots of a bit-bang buffer that carry the frames, before the next ones are
  *        loaded.
  * @param p_buffer Buffer set up with pifDshot_InitBitbangBuffer().
@@ -315,7 +328,6 @@ void pifDshot_InitBitbangBuffer(uint32_t* p_buffer, uint32_t set_mask, uint32_t 
 void pifDshot_ClearBitbangBuffer(uint32_t* p_buffer);
 
 /**
- * @fn pifDshot_LoadBitbangBuffer
  * @brief Loads the frame of one pin into a bit-bang buffer, ORed with the other pins of the port.
  * @param p_buffer Buffer set up with pifDshot_InitBitbangBuffer() and cleared with
  *        pifDshot_ClearBitbangBuffer() since the last frame.
@@ -329,7 +341,6 @@ void pifDshot_LoadBitbangBuffer(uint32_t* p_buffer, uint32_t set_mask, uint32_t 
 // -------- Telemetry --------------------
 
 /**
- * @fn pifDshot_EdgesToGcr
  * @brief Turns the times of the edges of an answer, as input capture takes them, into its GCR
  *        frame. Every edge stands for a 1 and the time to the next one for the 0s after it; the
  *        run after the last edge is whatever is left of the 21 bits, since the line rests at the
@@ -343,7 +354,6 @@ void pifDshot_LoadBitbangBuffer(uint32_t* p_buffer, uint32_t set_mask, uint32_t 
 uint32_t pifDshot_EdgesToGcr(const uint32_t* p_edges, uint8_t count, uint32_t bit_ticks);
 
 /**
- * @fn pifDshot_SamplesToGcr
  * @brief Turns samples of a port taken at a fixed rate, as bit-banged DShot takes them, into the
  *        GCR frame of the answer on one pin. The line idles high; the answer starts at the first
  *        low sample.
@@ -357,7 +367,6 @@ uint32_t pifDshot_EdgesToGcr(const uint32_t* p_edges, uint8_t count, uint32_t bi
 uint32_t pifDshot_SamplesToGcr(const uint16_t* p_samples, uint16_t count, uint16_t mask, uint8_t oversample);
 
 /**
- * @fn pifDshot_DecodeGcr
  * @brief Decodes a GCR frame into the 12-bit value of the answer and checks its checksum.
  * @param gcr 21-bit GCR frame from pifDshot_EdgesToGcr() or pifDshot_SamplesToGcr().
  * @param p_value Where the 12-bit value goes.
@@ -366,7 +375,6 @@ uint32_t pifDshot_SamplesToGcr(const uint16_t* p_samples, uint16_t count, uint16
 BOOL pifDshot_DecodeGcr(uint32_t gcr, uint16_t* p_value);
 
 /**
- * @fn pifDshot_DecodeTelemetry
  * @brief Tells what a 12-bit answer carries and converts it.
  * @param value 12-bit value from pifDshot_DecodeGcr().
  * @param extended TRUE if the ESC sends Extended DShot Telemetry, in which case values with a
@@ -379,7 +387,6 @@ BOOL pifDshot_DecodeTelemetry(uint16_t value, BOOL extended, PifDshotTelemetry* 
 // -------- Instance --------------------
 
 /**
- * @fn pifDshot_Init
  * @brief Initializes a DShot instance. Every motor starts at 0.
  * @param p_owner Pointer to the instance.
  * @param id Identifier, or PIF_ID_AUTO.
@@ -392,7 +399,6 @@ BOOL pifDshot_DecodeTelemetry(uint16_t value, BOOL extended, PifDshotTelemetry* 
 BOOL pifDshot_Init(PifDshot* p_owner, PifId id, uint8_t motor_count, BOOL bidirectional, uint32_t cycle_us, PifActDshotWrite act_write);
 
 /**
- * @fn pifDshot_Clear
  * @brief Releases what the instance holds. Call it before the instance is freed or goes out of
  *        scope.
  * @param p_owner Pointer to the instance.
@@ -400,7 +406,6 @@ BOOL pifDshot_Init(PifDshot* p_owner, PifId id, uint8_t motor_count, BOOL bidire
 void pifDshot_Clear(PifDshot* p_owner);
 
 /**
- * @fn pifDshot_SetCyclePeriod
  * @brief Changes the period pifDshot_Update() is called at. A command already queued keeps the
  *        delay it was counting down.
  * @param p_owner Pointer to the instance.
@@ -409,7 +414,6 @@ void pifDshot_Clear(PifDshot* p_owner);
 void pifDshot_SetCyclePeriod(PifDshot* p_owner, uint32_t cycle_us);
 
 /**
- * @fn pifDshot_SetThrottle
  * @brief Sets the throttle of a motor. 1 to 47 would be read as a command and are raised to
  *        PIF_DSHOT_MIN_THROTTLE; above PIF_DSHOT_MAX_THROTTLE is cut to it.
  * @param p_owner Pointer to the instance.
@@ -419,7 +423,6 @@ void pifDshot_SetCyclePeriod(PifDshot* p_owner, uint32_t cycle_us);
 void pifDshot_SetThrottle(PifDshot* p_owner, uint8_t index, uint16_t value);
 
 /**
- * @fn pifDshot_Command
  * @brief Queues a command. It goes out from pifDshot_Update() once every motor is at 0, repeated
  *        as often as the command needs (10 times for the ones the ESC stores, once for the rest),
  *        with the pauses ESCs expect around it: at least 10ms before a sequence, 1ms between
@@ -436,7 +439,6 @@ void pifDshot_SetThrottle(PifDshot* p_owner, uint8_t index, uint16_t value);
 BOOL pifDshot_Command(PifDshot* p_owner, uint8_t index, uint8_t command);
 
 /**
- * @fn pifDshot_IsCommandBusy
  * @brief Tells whether a command is queued or going out.
  * @param p_owner Pointer to the instance.
  * @return TRUE while the queue is not empty.
@@ -444,7 +446,6 @@ BOOL pifDshot_Command(PifDshot* p_owner, uint8_t index, uint8_t command);
 BOOL pifDshot_IsCommandBusy(PifDshot* p_owner);
 
 /**
- * @fn pifDshot_Update
  * @brief Builds the frames of one output cycle and hands them to act_write, or holds the output
  *        for this cycle while a command sequence needs a pause. Call it every cycle_us.
  * @param p_owner Pointer to the instance.
@@ -453,7 +454,6 @@ BOOL pifDshot_IsCommandBusy(PifDshot* p_owner);
 BOOL pifDshot_Update(PifDshot* p_owner);
 
 /**
- * @fn pifDshot_PutGcr
  * @brief Hands the instance the answer of a motor to its last frame, as pifDshot_EdgesToGcr() or
  *        pifDshot_SamplesToGcr() returned it. It is decoded, counted, and reported through
  *        evt_telemetry; an eRPM is kept in _erpm as well.
@@ -467,7 +467,6 @@ BOOL pifDshot_PutGcr(PifDshot* p_owner, uint8_t index, uint32_t gcr);
 #ifdef COLLECT_SIGNAL_DSHOT
 
 /**
- * @fn pifDshot_SetCsFlag
  * @brief Adds the selected signals of the command queue to pifCollectSignal as channels.
  * @param p_owner Pointer to the instance.
  * @param flag Bit mask of the signals to add.
@@ -476,7 +475,6 @@ BOOL pifDshot_PutGcr(PifDshot* p_owner, uint8_t index, uint32_t gcr);
 BOOL pifDshot_SetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag);
 
 /**
- * @fn pifDshot_ResetCsFlag
  * @brief Removes the selected signals of the command queue from pifCollectSignal.
  * @param p_owner Pointer to the instance.
  * @param flag Bit mask of the signals to remove.

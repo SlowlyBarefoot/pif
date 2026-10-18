@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * @file pif_gps_nmea.h
+ * @brief NMEA GPS receiver over a PifTransport, feeding a PifGps.
+ */
 #ifndef PIF_GPS_NMEA_H
 #define PIF_GPS_NMEA_H
 
@@ -14,7 +18,7 @@
 typedef struct StPifGpsNmea
 {
 	// Read-only Member Variable
-    PifGps _gps;
+    PifGps _gps;	///< GPS data. Use &_gps with the pifGps functions.
 
 	// Private Member Variable
 	PifTransport *__p_transport;
@@ -26,7 +30,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifGpsNmea_Init
  * @brief Initializes an NMEA GPS wrapper instance.
  * @param p_owner Pointer to the wrapper instance to initialize.
  * @param usPifId Requested object ID. Use `PIF_ID_AUTO` for automatic allocation.
@@ -35,14 +38,12 @@ extern "C" {
 BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId usPifId);
 
 /**
- * @fn pifGpsNmea_Clear
  * @brief Detaches the transport and clears resources owned by the NMEA wrapper.
  * @param p_owner Pointer to the wrapper instance.
  */
 void pifGpsNmea_Clear(PifGpsNmea* p_owner);
 
 /**
- * @fn pifGpsNmea_AttachTransport
  * @brief Attaches the wrapper to the transport the receiver sends through, as its only client, and starts
  *        parsing the NMEA bytes that arrive.
  * @param p_owner Pointer to the wrapper instance.
@@ -52,7 +53,6 @@ void pifGpsNmea_Clear(PifGpsNmea* p_owner);
 BOOL pifGpsNmea_AttachTransport(PifGpsNmea *p_owner, PifTransport *p_transport);
 
 /**
- * @fn pifGpsNmea_DetachTransport
  * @brief Detaches the wrapper from its transport. Nothing happens when none is attached.
  * @param p_owner Pointer to the wrapper instance.
  */

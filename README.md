@@ -4,6 +4,8 @@ PIF (Platform-independent framework) is a portable C framework for embedded syst
 
 It helps you keep business logic and reusable modules independent from MCU/board-specific code.
 
+**Manual and API reference: https://slowlybarefoot.github.io/pif/**
+
 ## TL;DR
 
 - Keep platform code thin.
@@ -207,6 +209,8 @@ These modules are written from published formulas, not from other code:
 - pif_pid_control (derivative on measurement, anti-windup by clamping and back-calculation, feedforward): K. J. Åström and T. Hägglund, "Advanced PID Control", ISA, 2006
 
 ## Tools
+
+- `tools/gen_docs.sh`, `tools/gen_docs.cmd` (Windows): build the manual with Doxygen into `docs/build/html`. See `docs/README.md` for how to write pages.
 
 - `tools/gen_huffman_table.py`: generates a `PifHuffmanCode` table for `pif_huffman` from sample files that look like the data to compress. Every byte value gets a code of at most 16 bits.
 

@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_ssd1963.h
+ * @brief Driver of the SSD1963 TFT LCD controller (480 x 272 by default), as a PifTftLcd.
+ *
+ * The controller drives the panel through its RGB interface and takes commands and pixels on its MCU parallel
+ * interface. Drawing is done with the pifTftLcd functions on &lcd.parent.
+ */
 #ifndef PIF_SSD1963_H
 #define PIF_SSD1963_H
 
@@ -6,10 +13,13 @@
 #include "display/pif_tft_lcd.h"
 
 
-#define SSD1963_WIDTH   		480
-#define SSD1963_HEIGHT  		272
+#define SSD1963_WIDTH   		480	///< Default width in pixels
+#define SSD1963_HEIGHT  		272	///< Default height in pixels
 
 
+/**
+ * @brief Commands of the SSD1963, as named in its datasheet.
+ */
 typedef enum EnPifSsd1963Cmd
 {
 	SSD1963_CMD_NOP					= 0x00,
@@ -99,20 +109,28 @@ typedef enum EnPifSsd1963Cmd
 	SSD1963_CMD_GET_PIX_DATA_IF		= 0xF1
 } PifSsd1963Cmd;
 
+/**
+ * @brief Pixel data format of the MCU interface (SET_PIXEL_DATA_INTERFACE, F0h).
+ */
 typedef enum EnPifSsd1963PixelFormat
 {
-	SSD1963_PF_8BIT				= 0,
-	SSD1963_PF_12BIT			= 1,
-	SSD1963_PF_16BIT_PACKED		= 2,
-	SSD1963_PF_16BIT_565		= 3,
-	SSD1963_PF_18BIT			= 4,
-	SSD1963_PF_24BIT			= 5,
-	SSD1963_PF_9BIT				= 6
+	SSD1963_PF_8BIT				= 0,	///< 8 bit bus
+	SSD1963_PF_12BIT			= 1,	///< 12 bit bus
+	SSD1963_PF_16BIT_PACKED		= 2,	///< 16 bit bus, packed
+	SSD1963_PF_16BIT_565		= 3,	///< 16 bit bus, RGB 565
+	SSD1963_PF_18BIT			= 4,	///< 18 bit bus
+	SSD1963_PF_24BIT			= 5,	///< 24 bit bus
+	SSD1963_PF_9BIT				= 6	///< 9 bit bus
 } PifSsd1963PixelFormat;
 
 struct StPifSsd1963;
 typedef struct StPifSsd1963 PifSsd1963;
 
+/**
+ * @brief Converts a color to the words the interface sends for one pixel.
+ *
+ * Writes them to p_data and returns their number.
+ */
 typedef uint8_t (*PifSsd1963ConvertColor)(PifColor color, uint32_t* p_data);
 
 /**
@@ -121,7 +139,7 @@ typedef uint8_t (*PifSsd1963ConvertColor)(PifColor color, uint32_t* p_data);
  */
 struct StPifSsd1963
 {
-	// The parent variable must be at the beginning of this structure.
+	/// The parent variable must be at the beginning of this structure.
 	PifTftLcd parent;
 
 	// Public Member Variable
@@ -142,7 +160,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifSsd1963_Init
  * @brief Initializes the SSD1963 driver instance and binds drawing callbacks.
  * @param p_owner Pointer to the SSD1963 instance to initialize.
  * @param id Unique object identifier. Use `PIF_ID_AUTO` to assign one automatically.
@@ -151,7 +168,6 @@ extern "C" {
 BOOL pifSsd1963_Init(PifSsd1963* p_owner, PifId id);
 
 /**
- * @fn pifSsd1963_AttachActParallel
  * @brief Attaches low-level parallel bus control callbacks required by the SSD1963 driver.
  * @param p_owner Pointer to an initialized SSD1963 instance.
  * @param act_reset Callback that resets the LCD controller hardware.
@@ -166,7 +182,6 @@ BOOL pifSsd1963_AttachActParallel(PifSsd1963* p_owner, PifActLcdReset act_reset,
 		PifActLcdWriteCmd act_write_cmd, PifActLcdWriteData act_write_data, PifActLcdWriteRepeat act_write_repeat);
 
 /**
- * @fn pifSsd1963_Setup
  * @brief Applies panel initialization commands and optional rotation mapping data.
  * @param p_owner Pointer to an initialized SSD1963 instance with attached hardware callbacks.
  * @param p_setup Pointer to a setup command stream terminated by `0`. Each entry has at most 10 parameters.
@@ -178,7 +193,6 @@ BOOL pifSsd1963_AttachActParallel(PifSsd1963* p_owner, PifActLcdReset act_reset,
 BOOL pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation);
 
 /**
- * @fn pifSsd1963_SetRotation
  * @brief Updates panel rotation and applies the matching set_address_mode value.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param rotation Target rotation value.
@@ -187,7 +201,6 @@ BOOL pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t
 BOOL pifSsd1963_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 
 /**
- * @fn pifSsd1963_DrawPixel
  * @brief Draws a single pixel at the specified coordinate.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x Horizontal pixel coordinate.
@@ -197,7 +210,6 @@ BOOL pifSsd1963_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 void pifSsd1963_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor color);
 
 /**
- * @fn pifSsd1963_DrawHorLine
  * @brief Draws a horizontal line using repeated pixel writes.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x Start X coordinate.
@@ -208,7 +220,6 @@ void pifSsd1963_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor 
 void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
- * @fn pifSsd1963_DrawVerLine
  * @brief Draws a vertical line using repeated pixel writes.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x Fixed X coordinate.
@@ -219,7 +230,6 @@ void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 void pifSsd1963_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
- * @fn pifSsd1963_DrawFillRect
  * @brief Fills a rectangular area with a single color, clipped to the panel.
  * @param p_parent Pointer to the base TFT LCD context.
  * @param x1 Left X coordinate of the rectangle.
@@ -231,7 +241,6 @@ void pifSsd1963_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 void pifSsd1963_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color);
 
 /**
- * @fn pifSsd1963_DrawArea
  * @brief Draws a rectangular bitmap area from a color buffer. Nothing is drawn if the area does not
  *        lie entirely on the panel.
  * @param p_parent Pointer to the base TFT LCD context.

@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_slew_filter.h
+ * @brief Slew-rate limiter that bounds how fast a value may change.
+ */
 #ifndef PIF_SLEW_FILTER_H
 #define PIF_SLEW_FILTER_H
 
@@ -13,10 +17,10 @@
 typedef struct StPifSlewFilter
 {
 	// Public Member Variable
-	float max_step;				// Largest change of the output per sample, > 0
+	float max_step;				///< Largest change of the output per sample, > 0
 
 	// Read-only Member Variable
-	float _output;
+	float _output;				///< Last output
 } PifSlewFilter;
 
 
@@ -25,7 +29,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifSlewFilter_Init
  * @brief Initializes the limiter.
  * @param p_owner Pointer to the target object instance.
  * @param max_step Largest change of the output per sample. For a rate in units
@@ -35,7 +38,6 @@ extern "C" {
 void pifSlewFilter_Init(PifSlewFilter* p_owner, float max_step, float initial);
 
 /**
- * @fn pifSlewFilter_Reset
  * @brief Sets the output to a value without limiting.
  * @param p_owner Pointer to the target object instance.
  * @param value New output value.
@@ -43,7 +45,6 @@ void pifSlewFilter_Init(PifSlewFilter* p_owner, float max_step, float initial);
 void pifSlewFilter_Reset(PifSlewFilter* p_owner, float value);
 
 /**
- * @fn pifSlewFilter_Apply
  * @brief Moves the output toward the input by at most max_step.
  * @param p_owner Pointer to the target object instance.
  * @param input Input sample.

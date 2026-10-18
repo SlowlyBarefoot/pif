@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
-#ifndef PIF_FLASH_H
-#define PIF_FLASH_H
-
-
-#include "core/pif.h"
-
-
-/*
+/**
+ * @file pif_flash.h
+ * @brief Record written as a stream into a region of MCU flash and read back.
+ *
  * A region of flash that a record, such as a settings image, is written into as a stream and read
  * back from.
  *
@@ -27,9 +23,14 @@
  * sector takes long, a second or two for 128 KB on an STM32F4, and the erase and program actions
  * are expected to wait for it, so a record is written when nothing time-critical runs.
  */
+#ifndef PIF_FLASH_H
+#define PIF_FLASH_H
 
 
-// Largest program unit a PifFlash accepts, and the size of the buffer it gathers one in.
+#include "core/pif.h"
+
+
+/// Largest program unit a PifFlash accepts, and the size of the buffer it gathers one in.
 #ifndef PIF_FLASH_MAX_PROGRAM_SIZE
 #define PIF_FLASH_MAX_PROGRAM_SIZE		32
 #endif
@@ -39,7 +40,6 @@ struct StPifFlash;
 typedef struct StPifFlash PifFlash;
 
 /**
- * @fn PifActFlashErase
  * @brief Erases the erase unit that begins at an address, and waits for it.
  * @param p_owner Pointer to the flash instance.
  * @param addr Address of the unit, base + a multiple of the erase size.
@@ -48,7 +48,6 @@ typedef struct StPifFlash PifFlash;
 typedef BOOL (*PifActFlashErase)(PifFlash* p_owner, uint32_t addr);
 
 /**
- * @fn PifActFlashProgram
  * @brief Programs one program unit, and waits for it.
  * @param p_owner Pointer to the flash instance.
  * @param addr Address of the unit, base + a multiple of the program size.
@@ -59,7 +58,6 @@ typedef BOOL (*PifActFlashErase)(PifFlash* p_owner, uint32_t addr);
 typedef BOOL (*PifActFlashProgram)(PifFlash* p_owner, uint32_t addr, const uint8_t* p_data, uint16_t size);
 
 /**
- * @fn PifActFlashRead
  * @brief Reads from the region. On memory-mapped flash it is a memcpy().
  * @param p_owner Pointer to the flash instance.
  * @param addr Address to read from.
@@ -70,7 +68,6 @@ typedef BOOL (*PifActFlashProgram)(PifFlash* p_owner, uint32_t addr, const uint8
 typedef BOOL (*PifActFlashRead)(PifFlash* p_owner, uint32_t addr, uint8_t* p_data, size_t size);
 
 /**
- * @fn PifActFlashLock
  * @brief Unlocks the flash controller before a write and locks it again after.
  * @param p_owner Pointer to the flash instance.
  * @param lock FALSE to unlock, TRUE to lock.
@@ -85,23 +82,23 @@ typedef void (*PifActFlashLock)(PifFlash* p_owner, BOOL lock);
 struct StPifFlash
 {
 	// Read-only Member Variable
-	PifId _id;
-	uint32_t _base;				// Address of the region
-	uint32_t _size;				// Size of the region, a multiple of the erase size
-	uint32_t _erase_size;		// Erase unit, 0 for media that need no erase
-	uint16_t _program_size;		// Program unit
-	uint8_t _erased_value;		// What an erased byte reads as, and what a last unit is padded with
-	BOOL _writing;				// Between pifFlash_Begin() and pifFlash_End()
-	uint32_t _position;			// Bytes written since pifFlash_Begin()
+	PifId _id;					///< Instance ID
+	uint32_t _base;				///< Address of the region
+	uint32_t _size;				///< Size of the region, a multiple of the erase size
+	uint32_t _erase_size;		///< Erase unit, 0 for media that need no erase
+	uint16_t _program_size;		///< Program unit
+	uint8_t _erased_value;		///< What an erased byte reads as, and what a last unit is padded with
+	BOOL _writing;				///< Between pifFlash_Begin() and pifFlash_End()
+	uint32_t _position;			///< Bytes written since pifFlash_Begin()
 
 	// Private Member Variable
 	union {
 		uint8_t b[PIF_FLASH_MAX_PROGRAM_SIZE];
-		uint64_t align;			// So that act_program may read the unit as words
+		uint64_t align;			///< So that act_program may read the unit as words
 	} __unit;
-	uint16_t __fill;			// Bytes in __unit
-	uint32_t __next_erase;		// Offset of the first unit not erased yet
-	PifError __error;			// First failure since pifFlash_Begin(), E_SUCCESS if none
+	uint16_t __fill;			///< Bytes in __unit
+	uint32_t __next_erase;		///< Offset of the first unit not erased yet
+	PifError __error;			///< First failure since pifFlash_Begin(), E_SUCCESS if none
 
 	// Private Action Function
 	PifActFlashErase __act_erase;
@@ -116,7 +113,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifFlash_Init
  * @brief Initializes a flash instance over a region.
  * @param p_owner Pointer to the instance.
  * @param id Identifier, or PIF_ID_AUTO.
@@ -134,7 +130,6 @@ BOOL pifFlash_Init(PifFlash* p_owner, PifId id, uint32_t base, uint32_t size, ui
 		PifActFlashErase act_erase, PifActFlashProgram act_program, PifActFlashRead act_read);
 
 /**
- * @fn pifFlash_AttachActLock
  * @brief Gives the instance a way to unlock the flash controller for a write.
  * @param p_owner Pointer to the instance.
  * @param act_lock Unlocks and locks the controller.
@@ -142,7 +137,6 @@ BOOL pifFlash_Init(PifFlash* p_owner, PifId id, uint32_t base, uint32_t size, ui
 void pifFlash_AttachActLock(PifFlash* p_owner, PifActFlashLock act_lock);
 
 /**
- * @fn pifFlash_SetErasedValue
  * @brief Sets what an erased byte reads as, 0xFF unless the flash says otherwise. The last unit of
  *        a record is padded with it, which leaves the padding as good as unwritten.
  * @param p_owner Pointer to the instance.
@@ -151,7 +145,6 @@ void pifFlash_AttachActLock(PifFlash* p_owner, PifActFlashLock act_lock);
 void pifFlash_SetErasedValue(PifFlash* p_owner, uint8_t value);
 
 /**
- * @fn pifFlash_Read
  * @brief Reads from the region.
  * @param p_owner Pointer to the instance.
  * @param offset Offset in the region.
@@ -163,7 +156,6 @@ void pifFlash_SetErasedValue(PifFlash* p_owner, uint8_t value);
 BOOL pifFlash_Read(PifFlash* p_owner, uint32_t offset, uint8_t* p_data, size_t size);
 
 /**
- * @fn pifFlash_Begin
  * @brief Starts writing a record at the beginning of the region, unlocking the controller. Nothing
  *        is erased yet: each erase unit is erased when the stream reaches it, so a record that
  *        fills part of the region erases only that part.
@@ -173,7 +165,6 @@ BOOL pifFlash_Read(PifFlash* p_owner, uint32_t offset, uint8_t* p_data, size_t s
 BOOL pifFlash_Begin(PifFlash* p_owner);
 
 /**
- * @fn pifFlash_Write
  * @brief Adds bytes to the record. Once something has failed nothing more is written, and every
  *        call returns FALSE until pifFlash_End().
  * @param p_owner Pointer to the instance.
@@ -184,7 +175,6 @@ BOOL pifFlash_Begin(PifFlash* p_owner);
 BOOL pifFlash_Write(PifFlash* p_owner, const uint8_t* p_data, size_t size);
 
 /**
- * @fn pifFlash_End
  * @brief Programs whatever is left of the record, padded to a whole unit, and locks the
  *        controller again.
  * @param p_owner Pointer to the instance.

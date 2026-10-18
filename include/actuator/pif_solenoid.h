@@ -1,4 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_solenoid.h
+ * @brief Solenoid driver with timed ON pulses, delayed commands and optional direction.
+ *
+ * One PifSolenoid drives up to PIF_SOLENOID_MAX_COUNT solenoids of the same type through one act_control
+ * callback. Each channel can switch OFF by itself after on_time, and commands can be delayed or queued in a ring
+ * buffer.
+ */
 #ifndef PIF_SOLENOID_H
 #define PIF_SOLENOID_H
 
@@ -6,12 +14,12 @@
 #include "core/pif_ring_data.h"
 #include "core/pif_task_manager.h"
 #if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_SOLENOID)
-	#define COLLECT_SIGNAL_SOLENOID
+	#define COLLECT_SIGNAL_SOLENOID	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_SOLENOID is not
 	#include "core/pif_collect_signal.h"
 #endif
 
 
-// Channels one instance takes at most, up to 255.
+/// Channels one instance takes at most, up to 255.
 #ifndef PIF_SOLENOID_MAX_COUNT
 #define PIF_SOLENOID_MAX_COUNT		16
 #endif
@@ -27,26 +35,42 @@
 #endif
 
 
+/**
+ * @brief Wiring of the solenoids of an instance.
+ */
 typedef enum EnPifSolenoidType
 {
-	ST_1POINT		= 0,
-	ST_2POINT		= 1,
-	ST_3POINT		= 2
+	ST_1POINT		= 0,	///< One coil. The direction is ignored.
+	ST_2POINT		= 1,	///< Two coils, one per direction. A direction is required, and a command in the current direction is skipped.
+	ST_3POINT		= 2	///< Three positions. The direction is passed to act_control as given.
 } PifSolenoidType;
 
+/**
+ * @brief Direction of a command.
+ */
 typedef enum EnPifSolenoidDir
 {
-    SD_INVALID		= 0,
-    SD_LEFT			= 1,
-    SD_RIGHT	    = 2
+    SD_INVALID		= 0,	///< No direction, or not known yet
+    SD_LEFT			= 1,	///< Left coil or position
+    SD_RIGHT	    = 2	///< Right coil or position
 } PifSolenoidDir;
 
 
 struct StPifSolenoid;
 typedef struct StPifSolenoid PifSolenoid;
 
+/**
+ * @brief Drives the hardware of one solenoid.
+ *
+ * index is the channel, action ON or OFF, and dir the direction of the command (SD_INVALID for ST_1POINT).
+ */
 typedef void (*PifActSolenoidControl)(uint8_t index, SWITCH action, PifSolenoidDir dir);
 
+/**
+ * @brief Reports an event of a solenoid instance.
+ *
+ * evt_off gets the channel whose ON pulse ended, evt_error gets 0 when the timing task could not be triggered.
+ */
 typedef void (*PifEvtSolenoid)(PifSolenoid* p_owner, uint8_t index);
 
 
@@ -56,12 +80,17 @@ typedef void (*PifEvtSolenoid)(PifSolenoid* p_owner, uint8_t index);
  */
 typedef struct StPifSolenoidContent
 {
-	uint32_t delay;				// In microseconds, from the command queued before it
-	PifSolenoidDir dir;
+	uint32_t delay;				///< In microseconds, from the command queued before it
+	PifSolenoidDir dir;	///< Direction of the queued command
 } PifSolenoidContent;
 
 #ifdef COLLECT_SIGNAL_SOLENOID
 
+/**
+ * @brief Signals of a channel for pifSolenoid_SetCsFlag() and pifSolenoid_ResetCsFlag().
+ *
+ * The _IDX values index the signals of a channel, the _BIT values select them.
+ */
 typedef enum EnPifSolenoidCsFlag
 {
     SN_CSF_OFF			= 0,
@@ -85,14 +114,14 @@ typedef enum EnPifSolenoidCsFlag
 typedef struct StPifSolenoidChannel
 {
 	// Public Member Variable
-    uint16_t on_time;			// ON pulse duration in milliseconds, 0 for no automatic OFF
+    uint16_t on_time;			///< ON pulse duration in milliseconds, 0 for no automatic OFF
 
 	// Private Member Variable
     BOOL __state;
     PifSolenoidDir __current_dir;
-    BOOL __on_pending;			// The pulse is timed and __on_end is when it ends
+    BOOL __on_pending;			///< The pulse is timed and __on_end is when it ends
     uint32_t __on_end;
-    BOOL __delay_pending;		// A delayed command waits until __delay_end, in __dir
+    BOOL __delay_pending;		///< A delayed command waits until __delay_end, in __dir
     uint32_t __delay_end;
     PifSolenoidDir __dir;
 	PifRingData* __p_buffer;
@@ -112,14 +141,14 @@ typedef struct StPifSolenoidChannel
 struct StPifSolenoid
 {
 	// Public Event Function
-    PifEvtSolenoid evt_off;
-    PifEvtSolenoid evt_error;
+    PifEvtSolenoid evt_off;	///< Called when the ON pulse of a channel ends. May be NULL.
+    PifEvtSolenoid evt_error;	///< Called when the timing task cannot be triggered. May be NULL.
 
     // Read-only Member Variable
-    PifId _id;
-    PifSolenoidType _type;
-    uint8_t _count;
-    PifTask* _p_task;
+    PifId _id;	///< Instance ID
+    PifSolenoidType _type;	///< Wiring of the solenoids
+    uint8_t _count;	///< Number of channels
+    PifTask* _p_task;	///< Task that times the pulses and delayed commands
 
 	// Private Member Variable
     PifSolenoidChannel* __p_channel;
@@ -134,7 +163,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifSolenoid_Init
  * @brief Initializes an instance of count solenoids and adds the task that times them, so
  *        pifTaskManager_Init() must have room for one more task.
  * @param p_owner Target solenoid instance to initialize.
@@ -153,7 +181,6 @@ BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, uint8_t count, PifSolenoid
 		PifActSolenoidControl act_control);
 
 /**
- * @fn pifSolenoid_Clear
  * @brief Switches every channel that is ON OFF and releases resources allocated by
  *        pifSolenoid_Init and pifSolenoid_SetBuffer.
  * @param p_owner Solenoid instance to clear.
@@ -161,7 +188,6 @@ BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, uint8_t count, PifSolenoid
 void pifSolenoid_Clear(PifSolenoid* p_owner);
 
 /**
- * @fn pifSolenoid_SetBuffer
  * @brief Creates a ring buffer for delayed or queued commands of one channel. A buffer set before
  *        is released together with the commands still in it.
  * @param p_owner Solenoid instance to configure.
@@ -172,7 +198,6 @@ void pifSolenoid_Clear(PifSolenoid* p_owner);
 BOOL pifSolenoid_SetBuffer(PifSolenoid* p_owner, uint8_t index, uint16_t size);
 
 /**
- * @fn pifSolenoid_SetInvalidDirection
  * @brief Resets the current direction state of one channel to SD_INVALID.
  * @param p_owner Solenoid instance to update.
  * @param index Zero-based channel index, less than count.
@@ -181,7 +206,6 @@ BOOL pifSolenoid_SetBuffer(PifSolenoid* p_owner, uint8_t index, uint16_t size);
 BOOL pifSolenoid_SetInvalidDirection(PifSolenoid* p_owner, uint8_t index);
 
 /**
- * @fn pifSolenoid_SetOnTime
  * @brief Updates the ON pulse duration of one channel.
  * @param p_owner Solenoid instance to update.
  * @param index Zero-based channel index, less than count.
@@ -192,7 +216,6 @@ BOOL pifSolenoid_SetInvalidDirection(PifSolenoid* p_owner, uint8_t index);
 BOOL pifSolenoid_SetOnTime(PifSolenoid* p_owner, uint8_t index, uint16_t on_time);
 
 /**
- * @fn pifSolenoid_ActionOn
  * @brief Turns one channel ON immediately or after a delay, without a direction.
  * @param p_owner Solenoid instance to control.
  * @param index Zero-based channel index, less than count.
@@ -203,7 +226,6 @@ BOOL pifSolenoid_SetOnTime(PifSolenoid* p_owner, uint8_t index, uint16_t on_time
 BOOL pifSolenoid_ActionOn(PifSolenoid* p_owner, uint8_t index, uint16_t delay);
 
 /**
- * @fn pifSolenoid_ActionOnDir
  * @brief Turns one channel ON with the specified direction, immediately or after a delay.
  * @param p_owner Solenoid instance to control.
  * @param index Zero-based channel index, less than count.
@@ -216,7 +238,6 @@ BOOL pifSolenoid_ActionOn(PifSolenoid* p_owner, uint8_t index, uint16_t delay);
 BOOL pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint8_t index, uint16_t delay, PifSolenoidDir dir);
 
 /**
- * @fn pifSolenoid_ActionOff
  * @brief Forces one channel OFF immediately, stops timing its pulse and cancels its delayed and
  *        queued commands, so that none of them switches it back on.
  * @param p_owner Solenoid instance to control.
@@ -226,7 +247,6 @@ BOOL pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint8_t index, uint16_t delay
 BOOL pifSolenoid_ActionOff(PifSolenoid* p_owner, uint8_t index);
 
 /**
- * @fn pifSolenoid_IsOn
  * @brief Tells whether one channel is ON.
  * @param p_owner Solenoid instance to read.
  * @param index Zero-based channel index, less than count.
@@ -238,9 +258,8 @@ BOOL pifSolenoid_IsOn(PifSolenoid* p_owner, uint8_t index);
 #ifdef COLLECT_SIGNAL_SOLENOID
 
 /**
- * @fn pifSolenoid_SetCsFlag
  * @brief Adds the selected signals of every channel to pifCollectSignal. Channel n gets
- *        SNA<n>_<id>, its state in 1 bit, and SND<n>_<id>, its direction in 2 bits, where <id> is
+ *        SNA\<n\>_\<id\>, its state in 1 bit, and SND\<n\>_\<id\>, its direction in 2 bits, where \<id\> is
  *        the instance ID in hex. On failure none of the selected signals is left added.
  * @param p_owner Pointer to the owner instance.
  * @param flag Bit mask of the signals to add.
@@ -249,7 +268,6 @@ BOOL pifSolenoid_IsOn(PifSolenoid* p_owner, uint8_t index);
 BOOL pifSolenoid_SetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
 
 /**
- * @fn pifSolenoid_ResetCsFlag
  * @brief Removes the selected signals of the instance from pifCollectSignal.
  * @param p_owner Pointer to the owner instance.
  * @param flag Bit mask of the signals to remove.

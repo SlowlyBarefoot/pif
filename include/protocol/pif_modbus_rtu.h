@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_modbus_rtu.h
+ * @brief CRC-16 of Modbus RTU frames.
+ */
 #ifndef PIF_MODBUS_RTU_H
 #define PIF_MODBUS_RTU_H
 
@@ -11,11 +15,10 @@ extern "C" {
 #endif
 
 /**
- * @fn pifModbusRtu_CalcCrc
- * @brief Calculates a checksum or CRC value.
+ * @brief Calculates the CRC-16/MODBUS of a frame (polynomial 0xA001 reflected, starting from 0xFFFF).
  * @param p_data Pointer to a payload buffer.
  * @param length Number of bytes in the input buffer.
- * @return Computed or decoded 16-bit value.
+ * @return CRC, sent low byte first.
  */
 uint16_t pifModbusRtu_CalcCrc(const uint8_t *p_data, uint16_t length);
 

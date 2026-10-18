@@ -1,16 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
-#ifndef PIF_BUZZER_H
-#define PIF_BUZZER_H
-
-
-#include "core/pif_task_manager.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_BUZZER)
-	#define COLLECT_SIGNAL_BUZZER
-	#include "core/pif_collect_signal.h"
-#endif
-
-
-/*
+/**
+ * @file pif_buzzer.h
+ * @brief Buzzer that plays ON/OFF sequences on a task.
+ *
  * Sequence format
  *
  * A sequence is an array of durations, counted in task periods (period1ms of
@@ -25,33 +17,64 @@
  * sequence ends. PIF_BUZZER_REPEAT(N) plays the whole sequence N times in all
  * (1 to 16), so PIF_BUZZER_REPEAT(1) is the same as PIF_BUZZER_STOP.
  */
-#define PIF_BUZZER_STOP			0xF0
-#define PIF_BUZZER_REPEAT(N)	(0xF0 + ((N) - 1))
+#ifndef PIF_BUZZER_H
+#define PIF_BUZZER_H
 
 
+#include "core/pif_task_manager.h"
+#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_BUZZER)
+	#define COLLECT_SIGNAL_BUZZER	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_BUZZER is not
+	#include "core/pif_collect_signal.h"
+#endif
+
+
+#define PIF_BUZZER_STOP			0xF0	///< Ends a sequence
+#define PIF_BUZZER_REPEAT(N)	(0xF0 + ((N) - 1))	///< Ends a sequence that is played N times in all, 1 to 16
+
+
+/**
+ * @brief Turns the buzzer ON (TRUE) or OFF (FALSE).
+ */
 typedef void (*PifActBuzzerAction)(BOOL action);
 
+/**
+ * @brief Called at every period of the task while a sequence plays.
+ */
 typedef void (*PifEvtBuzzerPeriod)(PifId id);
+/**
+ * @brief Called when the output changes, with the new level.
+ */
 typedef void (*PifEvtBuzzerChange)(PifId id, BOOL state);
+/**
+ * @brief Called when a sequence has finished.
+ */
 typedef void (*PifEvtBuzzerFinish)(PifId id);
 
+/**
+ * @brief State of a buzzer.
+ */
 typedef enum EnPifBuzzerState
 {
-	BS_IDLE			= 0,
-	BS_START		= 1,
-	BS_ON			= 2,
-	BS_OFF			= 3,
-	BS_STOP			= 4		// No longer entered: a finished sequence goes straight to BS_IDLE.
+	BS_IDLE			= 0,	///< Not playing
+	BS_START		= 1,	///< A sequence is starting
+	BS_ON			= 2,	///< Output ON
+	BS_OFF			= 3,	///< Output OFF
+	BS_STOP			= 4		///< No longer entered: a finished sequence goes straight to BS_IDLE.
 } PifBuzzerState;
 
 #ifdef COLLECT_SIGNAL_BUZZER
 
+/**
+ * @brief Signals of a buzzer for pifBuzzer_SetCsFlag() and pifBuzzer_ResetCsFlag().
+ *
+ * The _IDX values index the signals, the _BIT values select them.
+ */
 typedef enum EnPifBuzzerCsFlag
 {
 	BZ_CSF_OFF			= 0,
 
-	BZ_CSF_STATE_IDX	= 0,	// PifBuzzerState
-	BZ_CSF_OUTPUT_IDX	= 1,	// Level given to the action
+	BZ_CSF_STATE_IDX	= 0,	///< PifBuzzerState
+	BZ_CSF_OUTPUT_IDX	= 1,	///< Level given to the action
 
 	BZ_CSF_STATE_BIT	= 1,
 	BZ_CSF_OUTPUT_BIT	= 2,
@@ -71,15 +94,15 @@ typedef struct StPifBuzzer
 	// Public Member Variable
 
 	// Private Event Function
-	PifEvtBuzzerPeriod evt_period;
-	PifEvtBuzzerChange evt_change;
-	PifEvtBuzzerFinish evt_finish;
+	PifEvtBuzzerPeriod evt_period;	///< May be NULL
+	PifEvtBuzzerChange evt_change;	///< May be NULL
+	PifEvtBuzzerFinish evt_finish;	///< May be NULL
 
 	// Read-only Member Variable
-    PifId _id;
-    PifTask* _p_task;
-    PifBuzzerState _state;
-    BOOL _output;				// Current output level, as last passed to the action.
+    PifId _id;					///< Instance ID
+    PifTask* _p_task;			///< Task that plays the sequence
+    PifBuzzerState _state;		///< State of the sequence
+    BOOL _output;				///< Current output level, as last passed to the action.
 
 	// Private Member Variable
     const uint8_t* __p_sequence;
@@ -100,7 +123,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifBuzzer_Init
  * @brief Initializes a buzzer instance and creates its periodic state-machine task.
  * @details act_action and evt_change are called only when the output level changes. While
  *          they handle the first edge of a sequence, _state is still BS_START.
@@ -113,14 +135,12 @@ extern "C" {
 BOOL pifBuzzer_Init(PifBuzzer* p_owner, PifId id, uint16_t period1ms, PifActBuzzerAction act_action);
 
 /**
- * @fn pifBuzzer_Clear
  * @brief Releases resources owned by the buzzer instance.
  * @param p_owner Pointer to the buzzer instance to clear.
  */
 void pifBuzzer_Clear(PifBuzzer* p_owner);
 
 /**
- * @fn pifBuzzer_Start
  * @brief Starts buzzer playback using the given encoded ON/OFF sequence.
  * @details Playback begins on the next task period. Starting while a sequence plays replaces
  *          it from its first entry; the output changes only if the new sequence needs it.
@@ -133,7 +153,6 @@ void pifBuzzer_Clear(PifBuzzer* p_owner);
 BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sequence);
 
 /**
- * @fn pifBuzzer_Stop
  * @brief Stops buzzer playback immediately, drives the output OFF and returns to idle.
  * @details evt_finish is not called.
  * @param p_owner Pointer to the buzzer instance.
@@ -141,7 +160,6 @@ BOOL pifBuzzer_Start(PifBuzzer* p_owner, const uint8_t* p_sequence);
 void pifBuzzer_Stop(PifBuzzer* p_owner);
 
 /**
- * @fn pifBuzzer_State
  * @brief Checks whether the buzzer output is currently on.
  * @param p_owner Pointer to the buzzer instance.
  * @return TRUE if the output is ON, otherwise FALSE.
@@ -151,7 +169,6 @@ BOOL pifBuzzer_State(PifBuzzer* p_owner);
 #ifdef COLLECT_SIGNAL_BUZZER
 
 /**
- * @fn pifBuzzer_SetCsFlag
  * @brief Adds the selected signals of the buzzer to pifCollectSignal as channels.
  * @param p_owner Pointer to the buzzer instance.
  * @param flag Bit mask of the signals to add.
@@ -160,7 +177,6 @@ BOOL pifBuzzer_State(PifBuzzer* p_owner);
 BOOL pifBuzzer_SetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag);
 
 /**
- * @fn pifBuzzer_ResetCsFlag
  * @brief Removes the selected signals of the buzzer from pifCollectSignal.
  * @param p_owner Pointer to the buzzer instance.
  * @param flag Bit mask of the signals to remove.

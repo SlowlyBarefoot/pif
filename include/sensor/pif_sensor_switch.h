@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_sensor_switch.h
+ * @brief ON/OFF input such as a limit switch or a photo interrupter, debounced and reported on change.
+ *
+ * A PifSensor whose samples come from act_acquire on a task or from pifSensorSwitch_sigData(), optionally
+ * through a bit noise filter.
+ */
 #ifndef PIF_SENSOR_SWITCH_H
 #define PIF_SENSOR_SWITCH_H
 
@@ -7,7 +14,7 @@
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
 #if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_SENSOR_SWITCH)
-	#define COLLECT_SIGNAL_SENSOR_SWITCH
+	#define COLLECT_SIGNAL_SENSOR_SWITCH	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_SENSOR_SWITCH is not
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -17,12 +24,17 @@ typedef struct StPifSensorSwitch PifSensorSwitch;
 
 #ifdef COLLECT_SIGNAL_SENSOR_SWITCH
 
+/**
+ * @brief Signals of a switch sensor for pifSensorSwitch_SetCsFlag() and pifSensorSwitch_ResetCsFlag().
+ *
+ * The _IDX values index the signals, the _BIT values select them.
+ */
 typedef enum EnPifSensorSwitchCsFlag
 {
     SS_CSF_OFF			= 0,
 
-    SS_CSF_RAW_IDX		= 0,
-	SS_CSF_FILTER_IDX	= 1,
+    SS_CSF_RAW_IDX		= 0,	///< Raw sample
+	SS_CSF_FILTER_IDX	= 1,	///< Filtered state
 
 	SS_CSF_RAW_BIT		= 1,
     SS_CSF_FILTER_BIT	= 2,
@@ -41,7 +53,7 @@ typedef enum EnPifSensorSwitchCsFlag
  */
 struct StPifSensorSwitch
 {
-	// The parent variable must be at the beginning of this structure.
+	/// The parent variable must be at the beginning of this structure.
 	PifSensor parent;
 
 	// Private Member Variable
@@ -59,25 +71,23 @@ extern "C" {
 #endif
 
 /**
- * @fn pifSensorSwitch_Init
- * @brief Initializes sensor switch init and prepares it for use.
+ * @brief Sets up a switch sensor.
  * @param p_owner Pointer to the owner instance.
- * @param id Unique identifier for the instance or task.
- * @param init_state Parameter init_state used by this operation.
- * @param act_acquire Parameter act_acquire used by this operation.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param init_state State until the first sample.
+ * @param act_acquire Reads the switch for pifSensorSwitch_ProcessAcquire() and the task of pifSensorSwitch_AttachTaskAcquire(). NULL when the samples are given with
+ *                    pifSensorSwitch_sigData().
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state, PifActSensorAcquire act_acquire);
 
 /**
- * @fn pifSensorSwitch_Clear
- * @brief Releases resources used by sensor switch clear.
+ * @brief Removes the collected signals of the sensor.
  * @param p_owner Pointer to the owner instance.
  */
 void pifSensorSwitch_Clear(PifSensorSwitch* p_owner);
 
 /**
- * @fn pifSensorSwitch_AttachFilter
  * @brief Attaches a filter that every sample goes through, such as a PifNfBit.
  * @param p_owner Pointer to the owner instance.
  * @param p_filter Filter that takes and gives SWITCH (NFV_SWITCH), or NULL to detach it. It must stay valid
@@ -87,14 +97,12 @@ void pifSensorSwitch_Clear(PifSensorSwitch* p_owner);
 BOOL pifSensorSwitch_AttachFilter(PifSensorSwitch* p_owner, PifNoiseFilter* p_filter);
 
 /**
- * @fn pifSensorSwitch_InitialState
- * @brief Initializes sensor switch initial state and prepares it for use.
+ * @brief Puts the sensor back to its initial state, without a change event.
  * @param p_owner Pointer to the owner instance.
  */
 void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner);
 
 /**
- * @fn pifSensorSwitch_sigData
  * @brief Gives a sample, through the attached filter if any, for sensors without act_acquire. It may be
  *        called from an interrupt, and the state changes at the next pifSensorSwitch_ProcessAcquire().
  * @param p_owner Pointer to the owner instance.
@@ -103,7 +111,6 @@ void pifSensorSwitch_InitialState(PifSensorSwitch* p_owner);
 void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state);
 
 /**
- * @fn pifSensorSwitch_ProcessAcquire
  * @brief Takes a sample from act_acquire when it is set, and calls the change event when the
  *        filtered state differs from _curr_state.
  *
@@ -127,11 +134,10 @@ void pifSensorSwitch_sigData(PifSensorSwitch* p_owner, SWITCH state);
 void pifSensorSwitch_ProcessAcquire(PifSensorSwitch* p_owner);
 
 /**
- * @fn pifSensorSwitch_AttachTaskAcquire
  * @brief Creates a task of the sensor's own that calls pifSensorSwitch_ProcessAcquire(). For several
  *        sensors, one task that calls it for each of them saves the tasks.
  * @param p_owner Pointer to the owner instance.
- * @param id Unique identifier for the instance or task.
+ * @param id Instance ID, or PIF_ID_AUTO.
  * @param mode Task operating mode that controls scheduling behavior.
  * @param period Task period value; its unit depends on the selected mode.
  * @param start Set to TRUE to start the task immediately.
@@ -143,7 +149,6 @@ PifTask *pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifId id, P
 #ifdef COLLECT_SIGNAL_SENSOR_SWITCH
 
 /**
- * @fn pifSensorSwitch_SetCsFlag
  * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
  * @param p_owner Pointer to the owner instance.
  * @param flag Bit mask of the signals to add.
@@ -152,7 +157,6 @@ PifTask *pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifId id, P
 BOOL pifSensorSwitch_SetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag);
 
 /**
- * @fn pifSensorSwitch_ResetCsFlag
  * @brief Removes the selected signals of the instance from pifCollectSignal.
  * @param p_owner Pointer to the owner instance.
  * @param flag Bit mask of the signals to remove.

@@ -1,4 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_ads1x1x.h
+ * @brief ADS1013/1014/1015 (12 bit) and ADS1113/1114/1115 (16 bit) ADC on I2C.
+ *
+ * Reads a single shot or continuous conversion of a channel, with the gain, the rate and the comparator set
+ * through the config register. A conversion can be waited out or timed by a PifTimer and reported through
+ * evt_read.
+ */
 #ifndef PIF_ADS1X1X_H
 #define PIF_ADS1X1X_H
 
@@ -7,54 +15,70 @@
 #include "core/pif_timer_manager.h"
 
 
-#define ADS1X1X_I2C_ADDR(N)		(0x48 + (N))
+#define ADS1X1X_I2C_ADDR(N)		(0x48 + (N))	///< I2C address with the ADDR pin on GND (0), VDD (1), SDA (2) or SCL (3)
 
-// Conversions no longer than this are waited out with the CPU held instead of through the timer.
-// The timer counts in ticks of its manager, so a wait this short either does not fit in one tick
-// at all or gets rounded up to one, and a tick can be many times the wait itself: at 3300 SPS the
-// conversion takes 303us, which a manager running at 1ms cannot express at all. Holding the CPU
-// for it is both shorter and more accurate than what the rounding would cost.
+/// Conversions no longer than this are waited out with the CPU held instead of through the timer.
+/// The timer counts in ticks of its manager, so a wait this short either does not fit in one tick
+/// at all or gets rounded up to one, and a tick can be many times the wait itself: at 3300 SPS the
+/// conversion takes 303us, which a manager running at 1ms cannot express at all. Holding the CPU
+/// for it is both shorter and more accurate than what the rounding would cost.
 #ifndef PIF_ADS1X1X_SPIN_LIMIT_US
 #define PIF_ADS1X1X_SPIN_LIMIT_US	1000UL
 #endif
 
-// Added to the wait of every single shot conversion for the device to wake up from power-down
-// before it starts converting.
+/// Added to the wait of every single shot conversion for the device to wake up from power-down
+/// before it starts converting.
 #ifndef PIF_ADS1X1X_WAKEUP_US
 #define PIF_ADS1X1X_WAKEUP_US		50UL
 #endif
 
 
+/**
+ * @brief Model of the converter.
+ */
 typedef enum EnPifAds1x1xType
 {
-	ADS1X1X_TYPE_1115		= 0,
-	ADS1X1X_TYPE_1114		= 1,
-	ADS1X1X_TYPE_1113		= 2,
-	ADS1X1X_TYPE_1015		= 3,
-	ADS1X1X_TYPE_1014		= 4,
-	ADS1X1X_TYPE_1013		= 5
+	ADS1X1X_TYPE_1115		= 0,	///< 16 bit, 4 channels, PGA and comparator
+	ADS1X1X_TYPE_1114		= 1,	///< 16 bit, 1 channel, PGA and comparator
+	ADS1X1X_TYPE_1113		= 2,	///< 16 bit, 1 channel
+	ADS1X1X_TYPE_1015		= 3,	///< 12 bit, 4 channels, PGA and comparator
+	ADS1X1X_TYPE_1014		= 4,	///< 12 bit, 1 channel, PGA and comparator
+	ADS1X1X_TYPE_1013		= 5	///< 12 bit, 1 channel
 } PifAds1x1xType;
 
+/**
+ * @brief Register pointer values.
+ */
 typedef enum EnPifAds1x1xReg
 {
-    ADS1X1X_REG_CONVERSION,
-	ADS1X1X_REG_CONFIG,
-	ADS1X1X_REG_LO_THRESH,
-	ADS1X1X_REG_HI_THRESH
+    ADS1X1X_REG_CONVERSION,	///< Result of the last conversion
+	ADS1X1X_REG_CONFIG,	///< Configuration
+	ADS1X1X_REG_LO_THRESH,	///< Low threshold of the comparator
+	ADS1X1X_REG_HI_THRESH	///< High threshold of the comparator
 } PifAds1x1xReg;
 
 
 // Register : Config
+/** @name Config register
+ *  Fields of the config register, ORed together.
+ *  @{
+ */
 
+/**
+ * @brief Bit 15 (OS): starts a single shot conversion.
+ */
 typedef enum EnPifAds1x1xSscs
 {
-    ADS1X1X_SSCS_NO_EFFECT			= 0 << 15,
-	ADS1X1X_SSCS_SINGLE				= 1 << 15
+    ADS1X1X_SSCS_NO_EFFECT			= 0 << 15,	///< No effect
+	ADS1X1X_SSCS_SINGLE				= 1 << 15	///< Starts a conversion
 } PifAds1x1xSscs;
 
+/**
+ * @brief Bits 14-12 (MUX): input of the conversion, differential or single ended.
+ */
 typedef enum ENPifAds1x1xMux
 {
-    ADS1X1X_MUX_DIFF_0_1			= 0 << 12, 	// default
+    ADS1X1X_MUX_DIFF_0_1			= 0 << 12, 	///< default
 	ADS1X1X_MUX_DIFF_0_3			= 1 << 12,
 	ADS1X1X_MUX_DIFF_1_3			= 2 << 12,
 	ADS1X1X_MUX_DIFF_2_3			= 3 << 12,
@@ -64,79 +88,101 @@ typedef enum ENPifAds1x1xMux
 	ADS1X1X_MUX_SINGLE_3			= 7 << 12
 } PifAds1x1xMux;
 
+/**
+ * @brief Bits 11-9 (PGA): full scale range.
+ */
 typedef enum EnPifAds1x1xPGA
 {
     ADS1X1X_PGA_FSR_6_144V			= 0 << 9,
 	ADS1X1X_PGA_FSR_4_096V			= 1 << 9,
-	ADS1X1X_PGA_FSR_2_048V			= 2 << 9,	// default
+	ADS1X1X_PGA_FSR_2_048V			= 2 << 9,	///< default
 	ADS1X1X_PGA_FSR_1_024V			= 3 << 9,
 	ADS1X1X_PGA_FSR_0_512V			= 4 << 9,
 	ADS1X1X_PGA_FSR_0_256V			= 5 << 9
 } PifAds1x1xPGA;
 
+/**
+ * @brief Bit 8 (MODE): continuous or single shot.
+ */
 typedef enum EnPifAds1x1xMode
 {
     ADS1X1X_MODE_CONTINUOUS			= 0 << 8,
 	ADS1X1X_MODE_SINGLE_SHOT		= 1 << 8
 } PifAds1x1xMode;
 
+/**
+ * @brief Bits 7-5 (DR): data rate in samples per second, by model width.
+ */
 typedef enum EnPifAds1x1xDR
 {
-    // for 12bit model
+    /// for 12bit model
     ADS1X1X_DR_12B_0128_SPS			= 0 << 5,
 	ADS1X1X_DR_12B_0250_SPS			= 1 << 5,
 	ADS1X1X_DR_12B_0490_SPS			= 2 << 5,
 	ADS1X1X_DR_12B_0920_SPS			= 3 << 5,
-	ADS1X1X_DR_12B_1600_SPS			= 4 << 5,	// default
+	ADS1X1X_DR_12B_1600_SPS			= 4 << 5,	///< default
 	ADS1X1X_DR_12B_2400_SPS			= 5 << 5,
 	ADS1X1X_DR_12B_3300_SPS			= 6 << 5,
 
-    // for 16bit model
+    /// for 16bit model
 	ADS1X1X_DR_16B_0008_SPS			= 0 << 5,
 	ADS1X1X_DR_16B_0016_SPS			= 1 << 5,
 	ADS1X1X_DR_16B_0032_SPS			= 2 << 5,
 	ADS1X1X_DR_16B_0064_SPS			= 3 << 5,
-	ADS1X1X_DR_16B_0128_SPS			= 4 << 5,	// default
+	ADS1X1X_DR_16B_0128_SPS			= 4 << 5,	///< default
 	ADS1X1X_DR_16B_0250_SPS			= 5 << 5,
 	ADS1X1X_DR_16B_0475_SPS			= 6 << 5,
 	ADS1X1X_DR_16B_0860_SPS			= 7 << 5
 } PifAds1x1xDR;
 
+/**
+ * @brief Bit 4 (COMP_MODE): comparator mode.
+ */
 typedef enum EnPifAds1x1xCompMode
 {
-    ADS1X1X_COMP_MODE_TRADITIONAL	= 0 << 4, 	// default
+    ADS1X1X_COMP_MODE_TRADITIONAL	= 0 << 4, 	///< default
 	ADS1X1X_COMP_MODE_WINDOW		= 1 << 4
 } PifAds1x1xCompMode;
 
+/**
+ * @brief Bit 3 (COMP_POL): polarity of the ALERT/RDY pin.
+ */
 typedef enum EnPifAds1x1xCompPol
 {
-    ADS1X1X_COMP_POL_ACTIVE_L		= 0 << 3, 	// default
+    ADS1X1X_COMP_POL_ACTIVE_L		= 0 << 3, 	///< default
 	ADS1X1X_COMP_POL_ACTIVE_H		= 1 << 3
 } PifAds1x1xCompPol;
 
+/**
+ * @brief Bit 2 (COMP_LAT): latching comparator.
+ */
 typedef enum EnPifAds1x1xCompLat
 {
-    ADS1X1X_COMP_LAT_DISABLE		= 0 << 2, 	// default
+    ADS1X1X_COMP_LAT_DISABLE		= 0 << 2, 	///< default
 	ADS1X1X_COMP_LAT_ENABLE			= 1 << 2
 } PifAds1x1xCompLat;
 
+/**
+ * @brief Bits 1-0 (COMP_QUE): conversions over a threshold that assert ALERT/RDY, or no comparator.
+ */
 typedef enum EnPifAds1x1xCompQue
 {
-    ADS1X1X_COMP_QUE_ONE			= 0,
-	ADS1X1X_COMP_QUE_TWO			= 1,
-	ADS1X1X_COMP_QUE_FOUR			= 2,
-	ADS1X1X_COMP_QUE_DISABLE		= 3
+    ADS1X1X_COMP_QUE_ONE			= 0,		///< After one conversion
+	ADS1X1X_COMP_QUE_TWO			= 1,	///< After two conversions
+	ADS1X1X_COMP_QUE_FOUR			= 2,	///< After four conversions
+	ADS1X1X_COMP_QUE_DISABLE		= 3		///< Comparator off, ALERT/RDY high impedance
 } PifAds1x1xCompQue;
+/** @} */
 
-#define ADS1X1X_COMP_QUE_MASK		0x0003	// Comparator queue and disable (ADS1114 and ADS1115 only)
-#define ADS1X1X_COMP_LAT_MASK		0x0004	// Latching comparator (ADS1114 and ADS1115 only)
-#define ADS1X1X_COMP_POL_MASK		0x0008	// Comparator polarity (ADS1114 and ADS1115 only)
-#define ADS1X1X_COMP_MODE_MASK		0x0010	// Comparator mode (ADS1114 and ADS1115 only)
-#define ADS1X1X_DR_MASK				0x00E0	// Data rate
-#define ADS1X1X_MODE_MASK			0x0100	// Device operating mode
-#define ADS1X1X_PGA_MASK			0x0E00	// Programmable gain amplifier configuration
-#define ADS1X1X_MUX_MASK			0x7000	// Input multiplexer configuration (ADS1115 only)
-#define ADS1X1X_OS_SSCS_MASK		0x8000 	// Operational Status(R) or single-shot conversion start(W) */
+#define ADS1X1X_COMP_QUE_MASK		0x0003	///< Comparator queue and disable (ADS1114 and ADS1115 only)
+#define ADS1X1X_COMP_LAT_MASK		0x0004	///< Latching comparator (ADS1114 and ADS1115 only)
+#define ADS1X1X_COMP_POL_MASK		0x0008	///< Comparator polarity (ADS1114 and ADS1115 only)
+#define ADS1X1X_COMP_MODE_MASK		0x0010	///< Comparator mode (ADS1114 and ADS1115 only)
+#define ADS1X1X_DR_MASK				0x00E0	///< Data rate
+#define ADS1X1X_MODE_MASK			0x0100	///< Device operating mode
+#define ADS1X1X_PGA_MASK			0x0E00	///< Programmable gain amplifier configuration
+#define ADS1X1X_MUX_MASK			0x7000	///< Input multiplexer configuration (ADS1115 only)
+#define ADS1X1X_OS_SSCS_MASK		0x8000 	///< Operational Status(R) or single-shot conversion start(W) */
 
 
 struct StPifAds1x1x;
@@ -149,8 +195,8 @@ typedef struct StPifAds1x1x PifAds1x1x;
  */
 typedef enum EnPifAds1x1xState
 {
-	ADS1X1X_STATE_IDLE		= 0,	// Nothing is being converted
-	ADS1X1X_STATE_CONVERT	= 1		// A conversion is running and its timer has yet to finish
+	ADS1X1X_STATE_IDLE		= 0,	///< Nothing is being converted
+	ADS1X1X_STATE_CONVERT	= 1		///< A conversion is running and its timer has yet to finish
 } PifAds1x1xState;
 
 /**
@@ -160,13 +206,12 @@ typedef enum EnPifAds1x1xState
  */
 typedef enum EnPifAds1x1xStart
 {
-	ADS1X1X_START_FAILURE	= 0,	// Nothing was started, and pif_error says why
-	ADS1X1X_START_TIMED		= 1,	// On its way: the read event brings the sample later
-	ADS1X1X_START_DONE		= 2		// Already over: _value holds the sample now
+	ADS1X1X_START_FAILURE	= 0,	///< Nothing was started, and pif_error says why
+	ADS1X1X_START_TIMED		= 1,	///< On its way: the read event brings the sample later
+	ADS1X1X_START_DONE		= 2		///< Already over: _value holds the sample now
 } PifAds1x1xStart;
 
 /**
- * @fn PifEvtAds1x1xRead
  * @brief Reports a conversion that was timed rather than waited out. A conversion that finished
  *        inside pifAds1x1x_StartMux() is reported by its return value instead, so this is never
  *        called from inside that call and starting the next conversion from here is safe.
@@ -180,20 +225,20 @@ typedef void (*PifEvtAds1x1xRead)(PifAds1x1x* p_owner, BOOL result, int16_t valu
 
 /**
  * @class StPifAds1x1x
- * @brief Defines the st pif ads1x1x data structure.
+ * @brief ADS1x1x converter.
  */
 struct StPifAds1x1x
 {
 	// Public Member Variable
-	double convert_voltage;
+	double convert_voltage;			///< Volts per LSB at the current full scale range
 
 	// Read-only Member Variable
-	PifId _id;
-	PifAds1x1xType _type;
-	PifDeviceReg *_p_device;
-    uint16_t _config;				// Configuration register, never with the OS bit that starts a conversion
-	int16_t _value;					// Sample of the most recent single shot conversion
-	PifAds1x1xState _state;
+	PifId _id;						///< Instance ID
+	PifAds1x1xType _type;			///< Model
+	PifDeviceReg *_p_device;		///< I2C device of the converter
+    uint16_t _config;				///< Configuration register, never with the OS bit that starts a conversion
+	int16_t _value;					///< Sample of the most recent single shot conversion
+	PifAds1x1xState _state;			///< Whether a single shot conversion is on its way
 
 	// Private Member Variable
     uint8_t __resolution;
@@ -213,43 +258,38 @@ extern "C" {
 #endif
 
 /**
- * @fn pifAds1x1x_Init
- * @brief Initializes ads1x1x init and prepares it for use.
+ * @brief Adds the converter at addr to the I2C port and reads its configuration.
  * @param p_owner Pointer to the owner instance.
- * @param id Unique identifier for the instance or task.
- * @param type Sensor or device type selection.
- * @param port Parameter port used by this operation.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param type Model of the converter.
+ * @param p_port I2C port the converter is on.
  * @param addr Device address on the bus.
- * @param p_client Pointer to optional client context data.
+ * @param p_client Client pointer handed to the port functions of the device.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_Init(PifAds1x1x* p_owner, PifId id, PifAds1x1xType type, PifI2cPort* p_port, uint8_t addr, void *p_client);
 
 /**
- * @fn pifAds1x1x_Clear
- * @brief Releases resources used by ads1x1x clear.
+ * @brief Detaches the timer, if any, and removes the device of the converter from the port.
  * @param p_owner Pointer to the owner instance.
  */
 void pifAds1x1x_Clear(PifAds1x1x* p_owner);
 
 /**
- * @fn pifAds1x1x_Read
- * @brief Reads raw data from ads1x1x read.
+ * @brief Reads the conversion register, the result of the last conversion.
  * @param p_owner Pointer to the owner instance.
- * @return Computed integer value.
+ * @return The sample, or 0 when the read failed. Multiply it by convert_voltage for volts.
  */
 int16_t pifAds1x1x_Read(PifAds1x1x* p_owner);
 
 /**
- * @fn pifAds1x1x_Voltage
- * @brief Converts the latest sample from ads1x1x voltage into a voltage value.
+ * @brief Reads the result of the last conversion in volts.
  * @param p_owner Pointer to the owner instance.
- * @return Computed floating-point value.
+ * @return The voltage.
  */
 double pifAds1x1x_Voltage(PifAds1x1x* p_owner);
 
 /**
- * @fn pifAds1x1x_AttachTimer
  * @brief Gives the instance the timer it needs to convert one channel at a time without holding
  *        the CPU. A single shot conversion takes the inverse of the data rate, up to 125ms at the
  *        slowest of them, and there is nothing to ask the device in the meantime, so the wait is
@@ -270,7 +310,6 @@ double pifAds1x1x_Voltage(PifAds1x1x* p_owner);
 BOOL pifAds1x1x_AttachTimer(PifAds1x1x* p_owner, PifTimerManager* p_timer_manager, PifEvtAds1x1xRead evt_read);
 
 /**
- * @fn pifAds1x1x_DetachTimer
  * @brief Gives the conversion timer back. A conversion that is on its way is abandoned and its
  *        callback never comes.
  * @param p_owner Pointer to the owner instance.
@@ -278,7 +317,6 @@ BOOL pifAds1x1x_AttachTimer(PifAds1x1x* p_owner, PifTimerManager* p_timer_manage
 void pifAds1x1x_DetachTimer(PifAds1x1x* p_owner);
 
 /**
- * @fn pifAds1x1x_StartMux
  * @brief Points the multiplexer at one input and starts a single shot conversion there.
  *        A conversion longer than PIF_ADS1X1X_SPIN_LIMIT_US is timed: ADS1X1X_START_TIMED comes
  *        back at once and the sample arrives later through the callback given to
@@ -298,7 +336,6 @@ void pifAds1x1x_DetachTimer(PifAds1x1x* p_owner);
 PifAds1x1xStart pifAds1x1x_StartMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 
 /**
- * @fn pifAds1x1x_SetConfig
  * @brief Writes the whole configuration register and updates convert_voltage and the conversion
  *        time to match it. The value is written as given, so ADS1X1X_SSCS_SINGLE in it starts a
  *        conversion, but _config keeps it without that bit.
@@ -311,7 +348,6 @@ PifAds1x1xStart pifAds1x1x_StartMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, uint16_t config);
 
 /**
- * @fn pifAds1x1x_SingleShotConvert
  * @brief Starts a single shot conversion with the current configuration. Waiting for it and
  *        reading it with pifAds1x1x_Read() is left to the caller.
  * @param p_owner Pointer to the owner instance.
@@ -320,8 +356,7 @@ BOOL pifAds1x1x_SetConfig(PifAds1x1x* p_owner, uint16_t config);
 BOOL pifAds1x1x_SingleShotConvert(PifAds1x1x* p_owner);
 
 /**
- * @fn pifAds1x1x_SetMux
- * @brief Sets configuration values required by ads1x1x set mux.
+ * @brief Selects the input of the conversions.
  * @param p_owner Pointer to the owner instance.
  * @param mux Input multiplexer channel selection.
  * @return TRUE on success, FALSE on failure.
@@ -329,8 +364,7 @@ BOOL pifAds1x1x_SingleShotConvert(PifAds1x1x* p_owner);
 BOOL pifAds1x1x_SetMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 
 /**
- * @fn pifAds1x1x_SetGain
- * @brief Sets configuration values required by ads1x1x set gain.
+ * @brief Sets the full scale range, and with it convert_voltage.
  * @param p_owner Pointer to the owner instance.
  * @param pga Programmable gain amplifier setting.
  * @return TRUE on success, FALSE on failure.
@@ -338,17 +372,15 @@ BOOL pifAds1x1x_SetMux(PifAds1x1x* p_owner, PifAds1x1xMux mux);
 BOOL pifAds1x1x_SetGain(PifAds1x1x* p_owner, PifAds1x1xPGA pga);
 
 /**
- * @fn pifAds1x1x_SetMode
- * @brief Sets configuration values required by ads1x1x set mode.
+ * @brief Selects continuous or single shot conversions.
  * @param p_owner Pointer to the owner instance.
- * @param mode Task operating mode that controls scheduling behavior.
+ * @param mode One of PifAds1x1xMode.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifAds1x1x_SetMode(PifAds1x1x* p_owner, PifAds1x1xMode mode);
 
 /**
- * @fn pifAds1x1x_SetDataRate
- * @brief Sets configuration values required by ads1x1x set data rate.
+ * @brief Sets the data rate of the conversions.
  * @param p_owner Pointer to the owner instance.
  * @param dr Data rate configuration.
  * @return TRUE on success, FALSE on failure.
@@ -356,8 +388,7 @@ BOOL pifAds1x1x_SetMode(PifAds1x1x* p_owner, PifAds1x1xMode mode);
 BOOL pifAds1x1x_SetDataRate(PifAds1x1x* p_owner, PifAds1x1xDR dr);
 
 /**
- * @fn pifAds1x1x_SetCompMode
- * @brief Sets configuration values required by ads1x1x set comp mode.
+ * @brief Sets the comparator mode.
  * @param p_owner Pointer to the owner instance.
  * @param comp_mode Comparator operating mode.
  * @return TRUE on success, FALSE on failure.
@@ -365,8 +396,7 @@ BOOL pifAds1x1x_SetDataRate(PifAds1x1x* p_owner, PifAds1x1xDR dr);
 BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xCompMode comp_mode);
 
 /**
- * @fn pifAds1x1x_SetCompPol
- * @brief Sets configuration values required by ads1x1x set comp pol.
+ * @brief Sets the active level of the ALERT/RDY pin.
  * @param p_owner Pointer to the owner instance.
  * @param comp_pol Comparator polarity setting.
  * @return TRUE on success, FALSE on failure.
@@ -374,8 +404,7 @@ BOOL pifAds1x1x_SetCompMode(PifAds1x1x* p_owner, PifAds1x1xCompMode comp_mode);
 BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xCompPol comp_pol);
 
 /**
- * @fn pifAds1x1x_SetCompLat
- * @brief Sets configuration values required by ads1x1x set comp lat.
+ * @brief Sets whether the comparator output latches.
  * @param p_owner Pointer to the owner instance.
  * @param comp_lat Comparator latching behavior setting.
  * @return TRUE on success, FALSE on failure.
@@ -383,8 +412,7 @@ BOOL pifAds1x1x_SetCompPol(PifAds1x1x* p_owner, PifAds1x1xCompPol comp_pol);
 BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xCompLat comp_lat);
 
 /**
- * @fn pifAds1x1x_SetCompQue
- * @brief Sets configuration values required by ads1x1x set comp que.
+ * @brief Sets how many conversions over a threshold assert ALERT/RDY, or turns the comparator off.
  * @param p_owner Pointer to the owner instance.
  * @param comp_que Comparator queue setting.
  * @return TRUE on success, FALSE on failure.
@@ -392,8 +420,7 @@ BOOL pifAds1x1x_SetCompLat(PifAds1x1x* p_owner, PifAds1x1xCompLat comp_lat);
 BOOL pifAds1x1x_SetCompQue(PifAds1x1x* p_owner, PifAds1x1xCompQue comp_que);
 
 /**
- * @fn pifAds1x1x_SetLoThresh
- * @brief Sets configuration values required by ads1x1x set lo thresh.
+ * @brief Writes the low threshold of the comparator, in sample units.
  * @param p_owner Pointer to the owner instance.
  * @param threshold Threshold value to apply.
  * @return TRUE on success, FALSE on failure.
@@ -401,16 +428,14 @@ BOOL pifAds1x1x_SetCompQue(PifAds1x1x* p_owner, PifAds1x1xCompQue comp_que);
 BOOL pifAds1x1x_SetLoThresh(PifAds1x1x* p_owner, int16_t threshold);
 
 /**
- * @fn pifAds1x1x_GetLoThresh
- * @brief Retrieves the current value from ads1x1x get lo thresh.
+ * @brief Reads the low threshold of the comparator, in sample units.
  * @param p_owner Pointer to the owner instance.
- * @return Computed integer value.
+ * @return The threshold, or 0 when the read failed.
  */
 int16_t pifAds1x1x_GetLoThresh(PifAds1x1x* p_owner);
 
 /**
- * @fn pifAds1x1x_SetLoThreshVoltage
- * @brief Sets configuration values required by ads1x1x set lo thresh voltage.
+ * @brief Writes the low threshold of the comparator, in volts.
  * @param p_owner Pointer to the owner instance.
  * @param threshold Threshold value to apply.
  * @return TRUE on success, FALSE on failure.
@@ -418,16 +443,14 @@ int16_t pifAds1x1x_GetLoThresh(PifAds1x1x* p_owner);
 BOOL pifAds1x1x_SetLoThreshVoltage(PifAds1x1x* p_owner, double threshold);
 
 /**
- * @fn pifAds1x1x_GetLoThreshVoltage
- * @brief Retrieves the current value from ads1x1x get lo thresh voltage.
+ * @brief Reads the low threshold of the comparator, in volts.
  * @param p_owner Pointer to the owner instance.
- * @return Computed floating-point value.
+ * @return The threshold, or 0 when the read failed.
  */
 double pifAds1x1x_GetLoThreshVoltage(PifAds1x1x* p_owner);
 
 /**
- * @fn pifAds1x1x_SetHiThresh
- * @brief Sets configuration values required by ads1x1x set hi thresh.
+ * @brief Writes the high threshold of the comparator, in sample units.
  * @param p_owner Pointer to the owner instance.
  * @param threshold Threshold value to apply.
  * @return TRUE on success, FALSE on failure.
@@ -435,16 +458,14 @@ double pifAds1x1x_GetLoThreshVoltage(PifAds1x1x* p_owner);
 BOOL pifAds1x1x_SetHiThresh(PifAds1x1x* p_owner, int16_t threshold);
 
 /**
- * @fn pifAds1x1x_GetHiThresh
- * @brief Retrieves the current value from ads1x1x get hi thresh.
+ * @brief Reads the high threshold of the comparator, in sample units.
  * @param p_owner Pointer to the owner instance.
- * @return Computed integer value.
+ * @return The threshold, or 0 when the read failed.
  */
 int16_t pifAds1x1x_GetHiThresh(PifAds1x1x* p_owner);
 
 /**
- * @fn pifAds1x1x_SetHiThreshVoltage
- * @brief Sets configuration values required by ads1x1x set hi thresh voltage.
+ * @brief Writes the high threshold of the comparator, in volts.
  * @param p_owner Pointer to the owner instance.
  * @param threshold Threshold value to apply.
  * @return TRUE on success, FALSE on failure.
@@ -452,10 +473,9 @@ int16_t pifAds1x1x_GetHiThresh(PifAds1x1x* p_owner);
 BOOL pifAds1x1x_SetHiThreshVoltage(PifAds1x1x* p_owner, double threshold);
 
 /**
- * @fn pifAds1x1x_GetHiThreshVoltage
- * @brief Retrieves the current value from ads1x1x get hi thresh voltage.
+ * @brief Reads the high threshold of the comparator, in volts.
  * @param p_owner Pointer to the owner instance.
- * @return Computed floating-point value.
+ * @return The threshold, or 0 when the read failed.
  */
 double pifAds1x1x_GetHiThreshVoltage(PifAds1x1x* p_owner);
 

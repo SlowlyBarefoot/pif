@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_ring_buffer.h
+ * @brief Byte ring buffer for one writer and one reader, safe across an interrupt.
+ *
+ * Used by the UART and the stream drivers. When full, a buffer can refuse new data or chop off old data by a
+ * character or a length.
+ */
 #ifndef PIF_RING_BUFFER_H
 #define PIF_RING_BUFFER_H
 
@@ -6,15 +13,14 @@
 #include "core/pif.h"
 
 
-#define RB_CHOP_OFF_NONE	0
-#define RB_CHOP_OFF_CHAR	1
-#define RB_CHOP_OFF_LENGTH	2
+#define RB_CHOP_OFF_NONE	0	///< Refuse new data when full
+#define RB_CHOP_OFF_CHAR	1	///< Drop old data up to a chosen character
+#define RB_CHOP_OFF_LENGTH	2	///< Drop old data by a chosen length
 
 
 typedef struct StPifRingBuffer PifRingBuffer;
 
 /**
- * @fn PifActRingBufferLock
  * @brief Keeps the other side of the buffer out while the tail moves, by masking its interrupt for example.
  * @param p_owner Pointer to the ring buffer instance.
  * @param lock TRUE to enter, FALSE to leave.
@@ -40,21 +46,21 @@ struct StPifRingBuffer
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PifId _id;
+	PifId _id;	///< Instance ID
 	struct {
-		unsigned int is_static	: 1;
-		unsigned int chop_off	: 2;	// RB_CHOP_OFF_
-		unsigned int putting	: 1;	// Inside pifRingBuffer_BeginPutting() and its commit or rollback
-	} _bt;
-    uint16_t _size;
+		unsigned int is_static	: 1;	///< The memory is the caller's
+		unsigned int chop_off	: 2;	///< RB_CHOP_OFF_
+		unsigned int putting	: 1;	///< Inside pifRingBuffer_BeginPutting() and its commit or rollback
+	} _bt;	///< Flags
+    uint16_t _size;	///< Bytes of the buffer. One fewer byte can be held.
 
 	// Private Member Variable
 	const char* __p_name;
     uint8_t* __p_buffer;
-    volatile uint16_t __head;		// End of the bytes the reader may take
+    volatile uint16_t __head;		///< End of the bytes the reader may take
     volatile uint16_t __tail;
-    uint16_t __put_head;			// Where the writer puts next; ahead of __head only inside a put session
-    volatile uint16_t __claim;		// Bytes from the tail handed out by pifRingBuffer_GetReadPointer()
+    uint16_t __put_head;			///< Where the writer puts next; ahead of __head only inside a put session
+    volatile uint16_t __claim;		///< Bytes from the tail handed out by pifRingBuffer_GetReadPointer()
     union {
 		char chop_off_char;
 		uint16_t chop_off_length;
@@ -70,77 +76,69 @@ extern "C" {
 #endif
 
 /**
- * @fn pifRingBuffer_CreateHeap
- * @brief Creates and initializes a new ring buffer instance, then returns its handle when successful.
- * @param id Identifier value for the object or task.
- * @param size Size value used for allocation or capacity.
- * @return Pointer to the resulting object or data, or NULL if unavailable.
+ * @brief Allocates a ring buffer object with a buffer of size bytes from the heap.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param size Size of the buffer in bytes. One byte less can be held.
+ * @return The new ring buffer, or NULL with pif_error set. Free it with pifRingBuffer_Destroy().
  */
 PifRingBuffer* pifRingBuffer_CreateHeap(PifId id, uint16_t size);
 
 /**
- * @fn pifRingBuffer_CreateStatic
- * @brief Creates and initializes a new ring buffer instance, then returns its handle when successful.
- * @param id Identifier value for the object or task.
- * @param size Size value used for allocation or capacity.
- * @param p_buffer Pointer to the caller-provided buffer.
- * @return Pointer to the resulting object or data, or NULL if unavailable.
+ * @brief Allocates a ring buffer object from the heap on a buffer of the caller's.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param size Size of p_buffer in bytes. One byte less can be held.
+ * @param p_buffer Buffer of size bytes. It must stay valid while the ring buffer is used.
+ * @return The new ring buffer, or NULL with pif_error set. Free it with pifRingBuffer_Destroy().
  */
 PifRingBuffer* pifRingBuffer_CreateStatic(PifId id, uint16_t size, uint8_t* p_buffer);
 
 /**
- * @fn pifRingBuffer_Destroy
- * @brief Destroys the ring buffer instance and frees all resources associated with it.
- * @param pp_owner Address of the object pointer to destroy or clear.
+ * @brief Frees a ring buffer made by pifRingBuffer_CreateHeap() or pifRingBuffer_CreateStatic(), and its
+ *        buffer if it allocated one.
+ * @param pp_owner Address of the pointer to the ring buffer. It is set to NULL.
  */
 void pifRingBuffer_Destroy(PifRingBuffer** pp_owner);
 
 /**
- * @fn pifRingBuffer_InitHeap
- * @brief Initializes the ring buffer with heap memory allocation and default runtime state.
- * @param p_owner Pointer to the target object instance.
- * @param id Identifier value for the object or task.
- * @param size Size value used for allocation or capacity.
- * @return TRUE on success, otherwise FALSE.
+ * @brief Sets up a ring buffer object of the caller's with a buffer of size bytes from the heap.
+ * @param p_owner Ring buffer to set up.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param size Size of the buffer in bytes. One byte less can be held.
+ * @return TRUE on success, FALSE with pif_error set otherwise.
  */
 BOOL pifRingBuffer_InitHeap(PifRingBuffer* p_owner, PifId id, uint16_t size);
 
 /**
- * @fn pifRingBuffer_InitStatic
- * @brief Initializes the ring buffer with caller-provided static memory and default runtime state.
- * @param p_owner Pointer to the target object instance.
- * @param id Identifier value for the object or task.
- * @param size Size value used for allocation or capacity.
- * @param p_buffer Pointer to the caller-provided buffer.
- * @return TRUE on success, otherwise FALSE.
+ * @brief Sets up a ring buffer object of the caller's on a buffer of the caller's.
+ * @param p_owner Ring buffer to set up.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param size Size of p_buffer in bytes. One byte less can be held.
+ * @param p_buffer Buffer of size bytes. It must stay valid while the ring buffer is used.
+ * @return TRUE on success, FALSE with pif_error set otherwise.
  */
 BOOL pifRingBuffer_InitStatic(PifRingBuffer* p_owner, PifId id, uint16_t size, uint8_t* p_buffer);
 
 /**
- * @fn pifRingBuffer_Clear
- * @brief Clears the ring buffer state and releases resources currently owned by the instance.
- * @param p_owner Pointer to the target object instance.
+ * @brief Frees the buffer if the ring buffer allocated it, and leaves the object empty.
+ * @param p_owner Ring buffer.
  */
 void pifRingBuffer_Clear(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_Empty
  * @brief Marks the ring buffer as empty by resetting read/write progress to an empty state.
  * @param p_owner Pointer to the target object instance.
  */
 void pifRingBuffer_Empty(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_ResizeHeap
  * @brief Resizes internal storage used by the ring buffer while preserving valid runtime constraints.
  * @param p_owner Pointer to the target object instance.
- * @param size Size value used for allocation or capacity.
+ * @param size New size of the buffer in bytes.
  * @return TRUE on success, otherwise FALSE.
  */
 BOOL pifRingBuffer_ResizeHeap(PifRingBuffer* p_owner, uint16_t size);
 
 /**
- * @fn pifRingBuffer_SetName
  * @brief Sets configuration or runtime state for the ring buffer based on the provided parameters.
  * @param p_owner Pointer to the target object instance.
  * @param p_name Human-readable name string.
@@ -148,7 +146,6 @@ BOOL pifRingBuffer_ResizeHeap(PifRingBuffer* p_owner, uint16_t size);
 void pifRingBuffer_SetName(PifRingBuffer* p_owner, const char* p_name);
 
 /**
- * @fn pifRingBuffer_AttachActLock
  * @brief Gives the instance a way to keep the other side out while the tail moves. Without one, no locking is done.
  * @param p_owner Pointer to the target object instance.
  * @param act_lock Enters and leaves the locked section, or NULL to remove it.
@@ -156,7 +153,6 @@ void pifRingBuffer_SetName(PifRingBuffer* p_owner, const char* p_name);
 void pifRingBuffer_AttachActLock(PifRingBuffer* p_owner, PifActRingBufferLock act_lock);
 
 /**
- * @fn pifRingBuffer_GetBuffer
  * @brief Returns the start of the buffer memory, _size bytes long, to hand to a circular DMA that
  *        pifRingBuffer_SetHead() follows. A heap buffer moves on pifRingBuffer_ResizeHeap(), so set the DMA up again
  *        after one.
@@ -166,16 +162,14 @@ void pifRingBuffer_AttachActLock(PifRingBuffer* p_owner, PifActRingBufferLock ac
 uint8_t* pifRingBuffer_GetBuffer(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_GetTailPointer
- * @brief Retrieves the requested value or pointer from the ring buffer without changing ownership.
- * @param p_owner Pointer to the target object instance.
- * @param pos Offset position within the buffer.
- * @return Pointer to the resulting object or data, or NULL if unavailable.
+ * @brief Gives the address of a byte of the buffer, pos bytes after the tail. Nothing is removed.
+ * @param p_owner Ring buffer.
+ * @param pos Offset from the tail. It is not checked against the fill size.
+ * @return Address of the byte.
  */
 uint8_t* pifRingBuffer_GetTailPointer(PifRingBuffer* p_owner, uint16_t pos);
 
 /**
- * @fn pifRingBuffer_GetReadPointer
  * @brief Returns where the bytes from pos after the tail start and how many follow without wrapping, and claims
  *        them so that a chop-off cannot drop them before the reader removes them.
  * @param p_owner Pointer to the target object instance.
@@ -186,16 +180,16 @@ uint8_t* pifRingBuffer_GetTailPointer(PifRingBuffer* p_owner, uint16_t pos);
 uint8_t* pifRingBuffer_GetReadPointer(PifRingBuffer* p_owner, uint16_t pos, uint16_t* p_length);
 
 /**
- * @fn pifRingBuffer_MoveHeadForLinear
- * @brief Executes the pifRingBuffer_MoveHeadForLinear operation for the ring buffer module according to the API contract.
- * @param p_owner Pointer to the target object instance.
- * @param size Size value used for allocation or capacity.
- * @return TRUE on success, otherwise FALSE.
+ * @brief Prepares the buffer for size bytes that have to lie in one piece, by moving the empty buffer
+ *        back to its start when they would not fit before its end.
+ * @param p_owner Ring buffer.
+ * @param size Bytes that are to be written in one piece.
+ * @return TRUE when they can be written in one piece, FALSE when the buffer is not empty, size is too
+ *         large or a put session is open.
  */
 BOOL pifRingBuffer_MoveHeadForLinear(PifRingBuffer* p_owner, uint16_t size);
 
 /**
- * @fn pifRingBuffer_SetHead
  * @brief Moves the head to where a writer outside the library, a circular DMA for example, has written up to.
  *
  * For a circular RX DMA over the whole buffer, pass _size minus the remaining transfer count from the half,
@@ -210,62 +204,55 @@ BOOL pifRingBuffer_MoveHeadForLinear(PifRingBuffer* p_owner, uint16_t size);
 BOOL pifRingBuffer_SetHead(PifRingBuffer* p_owner, uint16_t pos);
 
 /**
- * @fn pifRingBuffer_ChopsOffNone
- * @brief Executes the pifRingBuffer_ChopsOffNone operation for the ring buffer module according to the API contract.
- * @param p_owner Pointer to the target object instance.
+ * @brief Refuses new data when the buffer is full. This is the default.
+ * @param p_owner Ring buffer.
  */
 void pifRingBuffer_ChopsOffNone(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_ChopsOffChar
- * @brief Executes the pifRingBuffer_ChopsOffChar operation for the ring buffer module according to the API contract.
- * @param p_owner Pointer to the target object instance.
- * @param ch Single character value to output.
+ * @brief When the buffer is full, drops old data up to an occurrence of ch, for example the start of a
+ *        line, so that whole records are dropped.
+ * @param p_owner Ring buffer.
+ * @param ch Character that starts a record. The dropped data ends before it.
  */
 void pifRingBuffer_ChopsOffChar(PifRingBuffer* p_owner, char ch);
 
 /**
- * @fn pifRingBuffer_ChopsOffLength
- * @brief Executes the pifRingBuffer_ChopsOffLength operation for the ring buffer module according to the API contract.
- * @param p_owner Pointer to the target object instance.
- * @param length Length value in bytes or elements.
+ * @brief When the buffer is full, drops old data in steps of length bytes, for records of a fixed size.
+ * @param p_owner Ring buffer.
+ * @param length Size of a record in bytes.
  */
 void pifRingBuffer_ChopsOffLength(PifRingBuffer* p_owner, uint16_t length);
 
 /**
- * @fn pifRingBuffer_IsBuffer
- * @brief Checks whether the ring buffer currently satisfies the requested condition.
- * @param p_owner Pointer to the target object instance.
- * @return TRUE on success, otherwise FALSE.
+ * @brief Tells whether the ring buffer has a buffer, that is whether it was set up.
+ * @param p_owner Ring buffer.
+ * @return TRUE when it has a buffer.
  */
 BOOL pifRingBuffer_IsBuffer(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_IsEmpty
- * @brief Checks whether the ring buffer currently satisfies the requested condition.
- * @param p_owner Pointer to the target object instance.
- * @return TRUE on success, otherwise FALSE.
+ * @brief Tells whether the buffer holds no data.
+ * @param p_owner Ring buffer.
+ * @return TRUE when it is empty.
  */
 BOOL pifRingBuffer_IsEmpty(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_GetFillSize
  * @brief Returns the number of bytes the reader may take. Bytes of an open put session are not counted.
  * @param p_owner Pointer to the target object instance.
- * @return Result value returned by this API.
+ * @return Bytes held.
  */
 uint16_t pifRingBuffer_GetFillSize(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_GetRemainSize
  * @brief Returns the room left for the writer. Bytes of an open put session count as used.
  * @param p_owner Pointer to the target object instance.
- * @return Result value returned by this API.
+ * @return Bytes that can still be added.
  */
 uint16_t pifRingBuffer_GetRemainSize(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_BeginPutting
  * @brief Starts a put session. Bytes put until pifRingBuffer_CommitPutting() stay hidden from the reader, and
  *        pifRingBuffer_RollbackPutting() discards them. An unfinished earlier session is discarded.
  * @param p_owner Pointer to the target object instance.
@@ -273,112 +260,103 @@ uint16_t pifRingBuffer_GetRemainSize(PifRingBuffer* p_owner);
 void pifRingBuffer_BeginPutting(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_CommitPutting
  * @brief Ends the put session and hands all of its bytes to the reader at once.
  * @param p_owner Pointer to the target object instance.
  */
 void pifRingBuffer_CommitPutting(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_RollbackPutting
  * @brief Ends the put session and discards its bytes. Does nothing outside a session.
  * @param p_owner Pointer to the target object instance.
  */
 void pifRingBuffer_RollbackPutting(PifRingBuffer* p_owner);
 
 /**
- * @fn pifRingBuffer_GetPointerPutting
  * @brief Returns a byte of the open put session, to patch it before the commit.
  * @param p_owner Pointer to the target object instance.
  * @param pos Offset from the start of the session.
- * @return Pointer to the resulting object or data, or NULL if unavailable.
+ * @return Address of the byte pos bytes after the start of the put session.
  */
 uint8_t* pifRingBuffer_GetPointerPutting(PifRingBuffer* p_owner, uint16_t pos);
 
 /**
- * @fn pifRingBuffer_PutByte
- * @brief Writes input data into the ring buffer buffer while respecting capacity and overflow policies.
- * @param p_owner Pointer to the target object instance.
- * @param data Input byte value used in the operation.
- * @return TRUE on success, otherwise FALSE.
+ * @brief Adds one byte. When the buffer is full the chop-off policy decides.
+ * @param p_owner Ring buffer.
+ * @param data Byte to add.
+ * @return TRUE when it was added, FALSE with E_OVERFLOW_BUFFER when there was no room.
  */
 BOOL pifRingBuffer_PutByte(PifRingBuffer* p_owner, uint8_t data);
 
 /**
- * @fn pifRingBuffer_PutData
- * @brief Writes input data into the ring buffer buffer while respecting capacity and overflow policies.
- * @param p_owner Pointer to the target object instance.
- * @param p_data Pointer to input or output data buffer.
- * @param length Length value in bytes or elements.
- * @return TRUE on success, otherwise FALSE.
+ * @brief Adds a block of bytes, all or none. When the buffer is full the chop-off policy decides.
+ * @param p_owner Ring buffer.
+ * @param p_data Bytes to add.
+ * @param length Number of bytes.
+ * @return TRUE when they were added, FALSE with E_OVERFLOW_BUFFER when there was no room.
  */
 BOOL pifRingBuffer_PutData(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t length);
 
 /**
- * @fn pifRingBuffer_PutString
- * @brief Writes input data into the ring buffer buffer while respecting capacity and overflow policies.
- * @param p_owner Pointer to the target object instance.
- * @param p_string Pointer to a null-terminated text string.
- * @return TRUE on success, otherwise FALSE.
+ * @brief Adds a string without its NUL, all or none.
+ * @param p_owner Ring buffer.
+ * @param p_string String to add.
+ * @return TRUE when it was added, FALSE with E_OVERFLOW_BUFFER when there was no room.
  */
 BOOL pifRingBuffer_PutString(PifRingBuffer* p_owner, char* p_string);
 
 /**
- * @fn pifRingBuffer_GetByte
- * @brief Retrieves the requested value or pointer from the ring buffer without changing ownership.
- * @param p_owner Pointer to the target object instance.
- * @param p_data Pointer to input or output data buffer.
- * @return TRUE on success, otherwise FALSE.
+ * @brief Removes the oldest byte.
+ * @param p_owner Ring buffer.
+ * @param p_data Where the byte goes.
+ * @return TRUE when a byte was taken, FALSE when the buffer is empty.
  */
 BOOL pifRingBuffer_GetByte(PifRingBuffer* p_owner, uint8_t* p_data);
 
 /**
- * @fn pifRingBuffer_GetBytes
- * @brief Retrieves the requested value or pointer from the ring buffer without changing ownership.
- * @param p_owner Pointer to the target object instance.
- * @param p_data Pointer to input or output data buffer.
- * @param length Length value in bytes or elements.
- * @return Result value returned by this API.
+ * @brief Removes up to length of the oldest bytes.
+ * @param p_owner Ring buffer.
+ * @param p_data Where the bytes go.
+ * @param length Most bytes to take.
+ * @return Number of bytes taken.
  */
 uint16_t pifRingBuffer_GetBytes(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t length);
 
 /**
- * @fn pifRingBuffer_CopyToArray
- * @brief Copies data managed by the ring buffer according to the requested range and boundary rules.
- * @param p_dst Pointer to destination buffer or object.
- * @param count Number of items or channels.
- * @param p_src Pointer to source buffer or object.
- * @param pos Offset position within the buffer.
- * @return Result value returned by this API.
+ * @brief Copies bytes from a ring buffer into an array, leaving them in the ring buffer.
+ * @param p_dst Destination array.
+ * @param count Most bytes to copy.
+ * @param p_src Ring buffer to copy from.
+ * @param pos Offset from the tail of p_src where the copy starts.
+ * @return Number of bytes copied.
  */
 uint16_t pifRingBuffer_CopyToArray(uint8_t* p_dst, uint16_t count, PifRingBuffer* p_src, uint16_t pos);
 
 /**
- * @fn pifRingBuffer_CopyAll
- * @brief Copies data managed by the ring buffer according to the requested range and boundary rules.
- * @param p_dst Pointer to destination buffer or object.
- * @param p_src Pointer to source buffer or object.
- * @param pos Offset position within the buffer.
- * @return Result value returned by this API.
+ * @brief Copies the bytes of a ring buffer from pos on into another, as many as fit, leaving them in the
+ *        source.
+ * @param p_dst Ring buffer to add to.
+ * @param p_src Ring buffer to copy from.
+ * @param pos Offset from the tail of p_src where the copy starts.
+ * @return Number of bytes copied.
  */
 uint16_t pifRingBuffer_CopyAll(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16_t pos);
 
 /**
- * @fn pifRingBuffer_CopyLength
- * @brief Copies data managed by the ring buffer according to the requested range and boundary rules.
- * @param p_dst Pointer to destination buffer or object.
- * @param p_src Pointer to source buffer or object.
- * @param pos Offset position within the buffer.
- * @param length Length value in bytes or elements.
- * @return TRUE on success, otherwise FALSE.
+ * @brief Copies length bytes of a ring buffer from pos on into another, all or none, leaving them in the
+ *        source.
+ * @param p_dst Ring buffer to add to.
+ * @param p_src Ring buffer to copy from.
+ * @param pos Offset from the tail of p_src where the copy starts.
+ * @param length Number of bytes to copy.
+ * @return TRUE on success, FALSE with E_INVALID_PARAM when p_src holds fewer bytes, or
+ *         E_OVERFLOW_BUFFER when p_dst has no room.
  */
 BOOL pifRingBuffer_CopyLength(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16_t pos, uint16_t length);
 
 /**
- * @fn pifRingBuffer_Remove
  * @brief Drops bytes from the tail and releases what pifRingBuffer_GetReadPointer() claimed.
  * @param p_owner Pointer to the target object instance.
- * @param size Size value used for allocation or capacity.
+ * @param size Bytes to remove from the tail. All of them when there are fewer.
  */
 void pifRingBuffer_Remove(PifRingBuffer* p_owner, uint16_t size);
 

@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_bst.h
+ * @brief Sorted map from an integer key to a fixed-size payload, kept as an AVL-balanced binary search tree.
+ *
+ * Each node holds its key and data_size bytes of payload. Lookups, inserts and removals take O(log n), and the
+ * iterator functions walk the keys in order.
+ */
 #ifndef PIF_BST_H
 #define PIF_BST_H
 
@@ -6,8 +13,8 @@
 #include "core/pif.h"
 
 
-// Key width in bits. Every node is padded to the payload alignment anyway, so
-// a narrower key rarely saves memory; it only narrows the range of keys.
+/// Key width in bits. Every node is padded to the payload alignment anyway, so
+/// a narrower key rarely saves memory; it only narrows the range of keys.
 #ifndef PIF_BST_KEY
 #define PIF_BST_KEY		32
 #endif
@@ -29,11 +36,11 @@ typedef uint32_t PifBstKey;
  */
 typedef union UnPifBstAlign
 {
-    void *p;
-    uint32_t u32;
-    uint64_t u64;
-    float f;
-    double d;
+    void *p;	///< Pointer alignment
+    uint32_t u32;	///< 32 bit alignment
+    uint64_t u64;	///< 64 bit alignment
+    float f;	///< float alignment
+    double d;	///< double alignment
 } PifBstAlign;
 
 /**
@@ -42,14 +49,17 @@ typedef union UnPifBstAlign
  */
 typedef struct StPifBstNode
 {
-	struct StPifBstNode *p_parent;
-	struct StPifBstNode *p_small;
-	struct StPifBstNode *p_big;
-    PifBstKey key;
-    uint8_t height;
-	PifBstAlign data[];		// Payload of PifBst.data_size bytes.
+	struct StPifBstNode *p_parent;	///< Parent node, NULL for the root
+	struct StPifBstNode *p_small;	///< Subtree of the smaller keys
+	struct StPifBstNode *p_big;	///< Subtree of the bigger keys
+    PifBstKey key;	///< Key of the node
+    uint8_t height;	///< Height of the subtree, for the balancing
+	PifBstAlign data[];		///< Payload of PifBst.data_size bytes.
 } PifBstNode;
 
+/**
+ * @brief Position in a tree, a node. NULL is past the end.
+ */
 typedef PifBstNode *PifBstIterator;
 
 /**
@@ -58,11 +68,14 @@ typedef PifBstNode *PifBstIterator;
  */
 typedef struct StPifBst
 {
-	PifBstIterator p_root;
-    int data_size;
-    int size;
+	PifBstIterator p_root;	///< Root node, NULL for an empty tree
+    int data_size;	///< Payload bytes of each node
+    int size;	///< Number of nodes
 } PifBst;
 
+/**
+ * @brief Called for each node removed by pifBst_Clear() to free what its payload refers to.
+ */
 typedef void (*PifEvtBstClear)(PifBstKey key, void *p_data);
 
 
@@ -71,7 +84,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifBst_Init
  * @brief Initializes an empty tree whose nodes all carry a payload of the same size.
  * @param p_owner Tree instance to initialize.
  * @param data_size Payload size in bytes for every node. Zero makes a key-only set.
@@ -80,7 +92,6 @@ extern "C" {
 BOOL pifBst_Init(PifBst *p_owner, int data_size);
 
 /**
- * @fn pifBst_Clear
  * @brief Removes and frees every node without recursion.
  * @param p_owner Target tree.
  * @param evt_clear Optional callback invoked for each node payload before free.
@@ -88,7 +99,6 @@ BOOL pifBst_Init(PifBst *p_owner, int data_size);
 void pifBst_Clear(PifBst *p_owner, PifEvtBstClear evt_clear);
 
 /**
- * @fn pifBst_Add
  * @brief Inserts a new key with a zero-filled payload.
  * @param p_owner Target tree.
  * @param key Key to insert.
@@ -98,7 +108,6 @@ void pifBst_Clear(PifBst *p_owner, PifEvtBstClear evt_clear);
 void *pifBst_Add(PifBst *p_owner, PifBstKey key);
 
 /**
- * @fn pifBst_Set
  * @brief Inserts a key, or reuses its node when it already exists, and copies the payload.
  * @param p_owner Target tree.
  * @param key Key to insert or update.
@@ -109,7 +118,6 @@ void *pifBst_Add(PifBst *p_owner, PifBstKey key);
 void *pifBst_Set(PifBst *p_owner, PifBstKey key, const void *p_data);
 
 /**
- * @fn pifBst_Remove
  * @brief Removes the node holding the key.
  * @param p_owner Target tree.
  * @param key Key to remove.
@@ -118,7 +126,6 @@ void *pifBst_Set(PifBst *p_owner, PifBstKey key, const void *p_data);
 BOOL pifBst_Remove(PifBst *p_owner, PifBstKey key);
 
 /**
- * @fn pifBst_Erase
  * @brief Removes the node an iterator points to. Iterators to other nodes stay valid.
  * @param p_owner Target tree.
  * @param it Iterator to remove.
@@ -127,7 +134,6 @@ BOOL pifBst_Remove(PifBst *p_owner, PifBstKey key);
 PifBstIterator pifBst_Erase(PifBst *p_owner, PifBstIterator it);
 
 /**
- * @fn pifBst_Size
  * @brief Returns the number of nodes in the tree.
  * @param p_owner Target tree.
  * @return Current node count.
@@ -135,7 +141,6 @@ PifBstIterator pifBst_Erase(PifBst *p_owner, PifBstIterator it);
 int pifBst_Size(PifBst *p_owner);
 
 /**
- * @fn pifBst_Find
  * @brief Finds the node holding the key.
  * @param p_owner Target tree.
  * @param key Key to look up.
@@ -144,7 +149,6 @@ int pifBst_Size(PifBst *p_owner);
 PifBstIterator pifBst_Find(PifBst *p_owner, PifBstKey key);
 
 /**
- * @fn pifBst_FindData
  * @brief Finds the payload of the node holding the key.
  * @param p_owner Target tree.
  * @param key Key to look up.
@@ -153,7 +157,6 @@ PifBstIterator pifBst_Find(PifBst *p_owner, PifBstKey key);
 void *pifBst_FindData(PifBst *p_owner, PifBstKey key);
 
 /**
- * @fn pifBst_LowerBound
  * @brief Finds the first node whose key is not less than the given key.
  * @param p_owner Target tree.
  * @param key Lower bound of the range.
@@ -162,7 +165,6 @@ void *pifBst_FindData(PifBst *p_owner, PifBstKey key);
 PifBstIterator pifBst_LowerBound(PifBst *p_owner, PifBstKey key);
 
 /**
- * @fn pifBst_Begin
  * @brief Returns an iterator to the node with the smallest key.
  * @param p_owner Target tree.
  * @return First iterator, or NULL if empty.
@@ -170,7 +172,6 @@ PifBstIterator pifBst_LowerBound(PifBst *p_owner, PifBstKey key);
 PifBstIterator pifBst_Begin(PifBst *p_owner);
 
 /**
- * @fn pifBst_End
  * @brief Returns an iterator to the node with the largest key.
  * @param p_owner Target tree.
  * @return Last iterator, or NULL if empty.
@@ -178,7 +179,6 @@ PifBstIterator pifBst_Begin(PifBst *p_owner);
 PifBstIterator pifBst_End(PifBst *p_owner);
 
 /**
- * @fn pifBst_Next
  * @brief Advances an iterator to the node with the next larger key.
  * @param it Current iterator.
  * @return Next iterator, or NULL at end.
@@ -186,7 +186,6 @@ PifBstIterator pifBst_End(PifBst *p_owner);
 PifBstIterator pifBst_Next(PifBstIterator it);
 
 /**
- * @fn pifBst_Prev
  * @brief Moves an iterator to the node with the next smaller key.
  * @param it Current iterator.
  * @return Previous iterator, or NULL at begin.

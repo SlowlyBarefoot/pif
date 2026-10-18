@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_mpu60x0.h
+ * @brief InvenSense MPU-6000 and MPU-6050 6-axis gyroscope and accelerometer, as a PifImuSensor.
+ *
+ * pif_mpu60x0_i2c and pif_mpu60x0_spi attach the device. The register map below follows the register map
+ * document of the chip.
+ */
 #ifndef PIF_MPU60X0_H
 #define PIF_MPU60X0_H
 
@@ -8,14 +15,17 @@
 #include "sensor/pif_imu_sensor.h"
 
 
-#define MPU60X0_I2C_ADDR(N)			(0x68 + (N))
+#define MPU60X0_I2C_ADDR(N)			(0x68 + (N))	///< I2C address with AD0 on GND (0) or VDD (1)
 
-#define MPU60X0_WHO_AM_I_CONST		0x68
+#define MPU60X0_WHO_AM_I_CONST		0x68		///< Value of the WHO_AM_I register
 
 
+/**
+ * @brief Register addresses, named as in the register map document.
+ */
 typedef enum EnPifMpu60x0Reg
 {
-	MPU60X0_REG_PRODUCT_ID       	= 0x0C,		// Not in the register map, but read by the MPU-6000 drivers to tell its revisions apart
+	MPU60X0_REG_PRODUCT_ID       	= 0x0C,		///< Not in the register map, but read by the MPU-6000 drivers to tell its revisions apart
 	MPU60X0_REG_SELF_TEST_X     	= 0x0D,
 	MPU60X0_REG_SELF_TEST_Y      	= 0x0E,
 	MPU60X0_REG_SELF_TEST_Z     	= 0x0F,
@@ -103,37 +113,54 @@ typedef enum EnPifMpu60x0Reg
 
 // Register : SELF_TEST_X, SELF_TEST_Y, SELF_TEST_Z
 
-#define MPU60X0_G_TEST(N)		(N)
-#define MPU60X0_A_TEST(N)		((N) << 5)
+/** @name MPU60X0 SELF_TEST_X, SELF_TEST_Y, SELF_TEST_Z register
+ *  @{
+ */
+#define MPU60X0_G_TEST(N)		(N)	///< Puts N into the G_TEST field
+#define MPU60X0_A_TEST(N)		((N) << 5)	///< Puts N into the A_TEST field
 
-#define MPU60X0_G_TEST_MASK		0x1F
-#define MPU60X0_A_TEST_MASK		0xE0
+#define MPU60X0_G_TEST_MASK		0x1F	///< Mask of the G_TEST field
+#define MPU60X0_A_TEST_MASK		0xE0	///< Mask of the A_TEST field
+/** @} */
 
 
 // Register : SELF_TEST_A
 
-#define MPU60X0_ZA_TEST(N)		(N)
-#define MPU60X0_YA_TEST(N)		((N) << 2)
-#define MPU60X0_XA_TEST(N)		((N) << 4)
+/** @name MPU60X0 SELF_TEST_A register
+ *  @{
+ */
+#define MPU60X0_ZA_TEST(N)		(N)	///< Puts N into the ZA_TEST field
+#define MPU60X0_YA_TEST(N)		((N) << 2)	///< Puts N into the YA_TEST field
+#define MPU60X0_XA_TEST(N)		((N) << 4)	///< Puts N into the XA_TEST field
 
-#define MPU60X0_ZA_TEST_MASK	0x03
-#define MPU60X0_YA_TEST_MASK	0x0C
-#define MPU60X0_XA_TEST_MASK	0x30
+#define MPU60X0_ZA_TEST_MASK	0x03	///< Mask of the ZA_TEST field
+#define MPU60X0_YA_TEST_MASK	0x0C	///< Mask of the YA_TEST field
+#define MPU60X0_XA_TEST_MASK	0x30	///< Mask of the XA_TEST field
+/** @} */
 
 
 // Register : CONFIG
 
+/** @name MPU60X0 CONFIG register
+ *  @{
+ */
+/**
+ * @brief Bits 2-0 (DLPF_CFG): bandwidth of the digital low pass filter of the accelerometer and the gyro.
+ */
 typedef enum EnPifMpu60x0DlpfCfg
 {
-	MPU60X0_DLPF_CFG_A260HZ_G256HZ		= 0,	// This is the default setting, no need to uncomment, just for reference
+	MPU60X0_DLPF_CFG_A260HZ_G256HZ		= 0,	///< This is the default setting, no need to uncomment, just for reference
 	MPU60X0_DLPF_CFG_A184HZ_G188HZ		= 1,
 	MPU60X0_DLPF_CFG_A94HZ_G98HZ		= 2,
 	MPU60X0_DLPF_CFG_A44HZ_G42HZ		= 3,
 	MPU60X0_DLPF_CFG_A21HZ_G20HZ		= 4,
 	MPU60X0_DLPF_CFG_A10HZ_G10HZ		= 5,
-    MPU60X0_DLPF_CFG_A5HZ_G5HZ      	= 6		// Use this only in extreme cases, rather change motors and/or props
+    MPU60X0_DLPF_CFG_A5HZ_G5HZ      	= 6		///< Use this only in extreme cases, rather change motors and/or props
 } PifMpu60x0DlpfCfg;
 
+/**
+ * @brief Bits 5-3 (EXT_SYNC_SET): sample whose LSB carries the FSYNC input.
+ */
 typedef enum EnPifMpu60x0ExtSyncSet
 {
 	MPU60X0_EXT_SYNC_SET_INPUT_DISABLE	= 0 << 3,
@@ -146,15 +173,22 @@ typedef enum EnPifMpu60x0ExtSyncSet
     MPU60X0_EXT_SYNC_SET_ACCEL_ZOUT		= 7 << 3
 } PifMpu60x0ExtSyncSet;
 
-#define MPU60X0_DLPF_CFG_MASK			0x07
-#define MPU60X0_EXT_SYNC_SET_MASK		0x38
+#define MPU60X0_DLPF_CFG_MASK			0x07	///< Mask of the DLPF_CFG field
+#define MPU60X0_EXT_SYNC_SET_MASK		0x38	///< Mask of the EXT_SYNC_SET field
+/** @} */
 
 
 // Register : GYRO_CONFIG
 
+/** @name MPU60X0 GYRO_CONFIG register
+ *  @{
+ */
+/**
+ * @brief Bits 4-3 (FS_SEL): full scale range of the gyro.
+ */
 typedef enum EnPifMpu60x0FsSel
 {
-    MPU60X0_FS_SEL_250DPS		= 0 << 3,	// Default
+    MPU60X0_FS_SEL_250DPS		= 0 << 3,	///< Default
     MPU60X0_FS_SEL_500DPS		= 1 << 3,
     MPU60X0_FS_SEL_1000DPS		= 2 << 3,
     MPU60X0_FS_SEL_2000DPS		= 3 << 3,
@@ -162,21 +196,28 @@ typedef enum EnPifMpu60x0FsSel
     MPU60X0_FS_SEL_DEFAULT	 	= 0 << 3
 } PifMpu60x0FsSel;
 
-#define MPU60X0_ZG_ST(N)		((N) << 5)
-#define MPU60X0_YG_ST(N)		((N) << 6)
-#define MPU60X0_XG_ST(N)		((N) << 7)
+#define MPU60X0_ZG_ST(N)		((N) << 5)	///< Puts N into the ZG_ST field
+#define MPU60X0_YG_ST(N)		((N) << 6)	///< Puts N into the YG_ST field
+#define MPU60X0_XG_ST(N)		((N) << 7)	///< Puts N into the XG_ST field
 
-#define MPU60X0_FS_SEL_MASK		0x18		// Use pifMpu60x0_SetGyroConfig or pifMpu60x0_SetFsSel to change this value.
-#define MPU60X0_ZG_ST_MASK		0x20
-#define MPU60X0_YG_ST_MASK		0x40
-#define MPU60X0_XG_ST_MASK		0x80
+#define MPU60X0_FS_SEL_MASK		0x18		///< Use pifMpu60x0_SetGyroConfig or pifMpu60x0_SetFsSel to change this value.
+#define MPU60X0_ZG_ST_MASK		0x20		///< Mask of the ZG_ST field
+#define MPU60X0_YG_ST_MASK		0x40		///< Mask of the YG_ST field
+#define MPU60X0_XG_ST_MASK		0x80		///< Mask of the XG_ST field
+/** @} */
 
 
 // Register : ACCEL_CONFIG
 
+/** @name MPU60X0 ACCEL_CONFIG register
+ *  @{
+ */
+/**
+ * @brief Bits 4-3 (AFS_SEL): full scale range of the accelerometer.
+ */
 typedef enum EnPifMpu60x0AfsSel
 {
-    MPU60X0_AFS_SEL_2G			= 0 << 3,	// Default
+    MPU60X0_AFS_SEL_2G			= 0 << 3,	///< Default
     MPU60X0_AFS_SEL_4G			= 1 << 3,
     MPU60X0_AFS_SEL_8G			= 2 << 3,
     MPU60X0_AFS_SEL_16G			= 3 << 3,
@@ -184,42 +225,53 @@ typedef enum EnPifMpu60x0AfsSel
     MPU60X0_AFS_SEL_DEFAULT		= 0 << 3
 } PifMpu60x0AfsSel;
 
-#define MPU60X0_ZA_ST(N)		((N) << 5)
-#define MPU60X0_YA_ST(N)		((N) << 6)
-#define MPU60X0_XA_ST(N)		((N) << 7)
+#define MPU60X0_ZA_ST(N)		((N) << 5)	///< Puts N into the ZA_ST field
+#define MPU60X0_YA_ST(N)		((N) << 6)	///< Puts N into the YA_ST field
+#define MPU60X0_XA_ST(N)		((N) << 7)	///< Puts N into the XA_ST field
 
-#define MPU60X0_AFS_SEL_MASK	0x18		// Use pifMpu60x0_SetAccelConfig or pifMpu60x0_SetAfsSel to change this value.
-#define MPU60X0_ZA_ST_MASK		0x20
-#define MPU60X0_YA_ST_MASK		0x40
-#define MPU60X0_XA_ST_MASK		0x80
+#define MPU60X0_AFS_SEL_MASK	0x18		///< Use pifMpu60x0_SetAccelConfig or pifMpu60x0_SetAfsSel to change this value.
+#define MPU60X0_ZA_ST_MASK		0x20		///< Mask of the ZA_ST field
+#define MPU60X0_YA_ST_MASK		0x40		///< Mask of the YA_ST field
+#define MPU60X0_XA_ST_MASK		0x80		///< Mask of the XA_ST field
+/** @} */
 
 
 // Register : FIFO_EN
 
-#define MPU60X0_SLV0_FIFO_EN(N)		(N)
-#define MPU60X0_SLV1_FIFO_EN(N)		((N) << 1)
-#define MPU60X0_SLV2_FIFO_EN(N)		((N) << 2)
-#define MPU60X0_ACCEL_FIFO_EN(N)	((N) << 3)
-#define MPU60X0_ZG_FIFO_EN(N)		((N) << 4)
-#define MPU60X0_YG_FIFO_EN(N)		((N) << 5)
-#define MPU60X0_XG_FIFO_EN(N)		((N) << 6)
-#define MPU60X0_TEMP_FIFO_EN(N)		((N) << 7)
+/** @name MPU60X0 FIFO_EN register
+ *  @{
+ */
+#define MPU60X0_SLV0_FIFO_EN(N)		(N)	///< Puts N into the SLV0_FIFO_EN field
+#define MPU60X0_SLV1_FIFO_EN(N)		((N) << 1)	///< Puts N into the SLV1_FIFO_EN field
+#define MPU60X0_SLV2_FIFO_EN(N)		((N) << 2)	///< Puts N into the SLV2_FIFO_EN field
+#define MPU60X0_ACCEL_FIFO_EN(N)	((N) << 3)	///< Puts N into the ACCEL_FIFO_EN field
+#define MPU60X0_ZG_FIFO_EN(N)		((N) << 4)	///< Puts N into the ZG_FIFO_EN field
+#define MPU60X0_YG_FIFO_EN(N)		((N) << 5)	///< Puts N into the YG_FIFO_EN field
+#define MPU60X0_XG_FIFO_EN(N)		((N) << 6)	///< Puts N into the XG_FIFO_EN field
+#define MPU60X0_TEMP_FIFO_EN(N)		((N) << 7)	///< Puts N into the TEMP_FIFO_EN field
 
-#define MPU60X0_SLV0_FIFO_EN_MASK	0x01
-#define MPU60X0_SLV1_FIFO_EN_MASK	0x02
-#define MPU60X0_SLV2_FIFO_EN_MASK	0x04
-#define MPU60X0_ACCEL_FIFO_EN_MASK	0x08
-#define MPU60X0_ZG_FIFO_EN_MASK		0x10
-#define MPU60X0_YG_FIFO_EN_MASK		0x20
-#define MPU60X0_XG_FIFO_EN_MASK		0x40
-#define MPU60X0_TEMP_FIFO_EN_MASK	0x80
+#define MPU60X0_SLV0_FIFO_EN_MASK	0x01	///< Mask of the SLV0_FIFO_EN field
+#define MPU60X0_SLV1_FIFO_EN_MASK	0x02	///< Mask of the SLV1_FIFO_EN field
+#define MPU60X0_SLV2_FIFO_EN_MASK	0x04	///< Mask of the SLV2_FIFO_EN field
+#define MPU60X0_ACCEL_FIFO_EN_MASK	0x08	///< Mask of the ACCEL_FIFO_EN field
+#define MPU60X0_ZG_FIFO_EN_MASK		0x10	///< Mask of the ZG_FIFO_EN field
+#define MPU60X0_YG_FIFO_EN_MASK		0x20	///< Mask of the YG_FIFO_EN field
+#define MPU60X0_XG_FIFO_EN_MASK		0x40	///< Mask of the XG_FIFO_EN field
+#define MPU60X0_TEMP_FIFO_EN_MASK	0x80	///< Mask of the TEMP_FIFO_EN field
+/** @} */
 
 
 // Register : I2C_MST_CTRL
 
+/** @name MPU60X0 I2C_MST_CTRL register
+ *  @{
+ */
+/**
+ * @brief Bits 3-0 (I2C_MST_CLK): clock of the auxiliary I2C master.
+ */
 typedef enum EnPifMpu60x0I2cMstClk
 {
-    MPU60X0_I2C_MST_CLK_348KHZ		= 0,	// Default
+    MPU60X0_I2C_MST_CLK_348KHZ		= 0,	///< Default
     MPU60X0_I2C_MST_CLK_333KHZ		= 1,
     MPU60X0_I2C_MST_CLK_320KHZ		= 2,
     MPU60X0_I2C_MST_CLK_308KHZ		= 3,
@@ -239,151 +291,194 @@ typedef enum EnPifMpu60x0I2cMstClk
     MPU60X0_I2C_MST_CLK_DEFAULT		= 0
 } PifMpu60x0I2cMstClk;
 
-#define MPU60X0_I2C_MST_P_NSR(N)	((N) << 4)
-#define MPU60X0_SLV3_FIFO_EN(N)		((N) << 5)
-#define MPU60X0_WAIT_FOR_ES(N)		((N) << 6)
-#define MPU60X0_MULT_MST_EN(N)		((N) << 7)
+#define MPU60X0_I2C_MST_P_NSR(N)	((N) << 4)	///< Puts N into the I2C_MST_P_NSR field
+#define MPU60X0_SLV3_FIFO_EN(N)		((N) << 5)	///< Puts N into the SLV3_FIFO_EN field
+#define MPU60X0_WAIT_FOR_ES(N)		((N) << 6)	///< Puts N into the WAIT_FOR_ES field
+#define MPU60X0_MULT_MST_EN(N)		((N) << 7)	///< Puts N into the MULT_MST_EN field
 
-#define MPU60X0_I2C_MST_CLK_MASK	0x0F
-#define MPU60X0_I2C_MST_P_NSR_MASK	0x10
-#define MPU60X0_SLV3_FIFO_EN_MASK	0x20
-#define MPU60X0_WAIT_FOR_ES_MASK	0x40
-#define MPU60X0_MULT_MST_EN_MASK	0x80
+#define MPU60X0_I2C_MST_CLK_MASK	0x0F	///< Mask of the I2C_MST_CLK field
+#define MPU60X0_I2C_MST_P_NSR_MASK	0x10	///< Mask of the I2C_MST_P_NSR field
+#define MPU60X0_SLV3_FIFO_EN_MASK	0x20	///< Mask of the SLV3_FIFO_EN field
+#define MPU60X0_WAIT_FOR_ES_MASK	0x40	///< Mask of the WAIT_FOR_ES field
+#define MPU60X0_MULT_MST_EN_MASK	0x80	///< Mask of the MULT_MST_EN field
+/** @} */
 
 
 // Register : I2C_SLVx_ADDR
 
-#define MPU60X0_I2C_SLV_ADDR(N)		(N)
-#define MPU60X0_I2C_SLV_RW(N)		((N) << 7)
+/** @name MPU60X0 I2C_SLVx_ADDR register
+ *  @{
+ */
+#define MPU60X0_I2C_SLV_ADDR(N)		(N)	///< Puts N into the I2C_SLV_ADDR field
+#define MPU60X0_I2C_SLV_RW(N)		((N) << 7)	///< Puts N into the I2C_SLV_RW field
 
-#define MPU60X0_I2C_SLV_ADDR_MASK	0x7F
-#define MPU60X0_I2C_SLV_RW_MASK		0x80
+#define MPU60X0_I2C_SLV_ADDR_MASK	0x7F	///< Mask of the I2C_SLV_ADDR field
+#define MPU60X0_I2C_SLV_RW_MASK		0x80	///< Mask of the I2C_SLV_RW field
+/** @} */
 
 
 // Register : I2C_SLVx_CTRL
 
-#define MPU60X0_I2C_SLV_LEN(N)			(N)
-#define MPU60X0_I2C_SLV_GRP(N)			((N) << 4)
-#define MPU60X0_I2C_SLV_REG_DIS(N)		((N) << 5)
-#define MPU60X0_I2C_SLV_BYTE_SW(N)		((N) << 6)
-#define MPU60X0_I2C_SLV_EN(N)			((N) << 7)
+/** @name MPU60X0 I2C_SLVx_CTRL register
+ *  @{
+ */
+#define MPU60X0_I2C_SLV_LEN(N)			(N)	///< Puts N into the I2C_SLV_LEN field
+#define MPU60X0_I2C_SLV_GRP(N)			((N) << 4)	///< Puts N into the I2C_SLV_GRP field
+#define MPU60X0_I2C_SLV_REG_DIS(N)		((N) << 5)	///< Puts N into the I2C_SLV_REG_DIS field
+#define MPU60X0_I2C_SLV_BYTE_SW(N)		((N) << 6)	///< Puts N into the I2C_SLV_BYTE_SW field
+#define MPU60X0_I2C_SLV_EN(N)			((N) << 7)	///< Puts N into the I2C_SLV_EN field
 
-#define MPU60X0_I2C_SLV_LEN_MASK		0x0F
-#define MPU60X0_I2C_SLV_GRP_MASK		0x10
-#define MPU60X0_I2C_SLV_REG_DIS_MASK	0x20
-#define MPU60X0_I2C_SLV_BYTE_SW_MASK	0x40
-#define MPU60X0_I2C_SLV_EN_MASK			0x80
+#define MPU60X0_I2C_SLV_LEN_MASK		0x0F	///< Mask of the I2C_SLV_LEN field
+#define MPU60X0_I2C_SLV_GRP_MASK		0x10	///< Mask of the I2C_SLV_GRP field
+#define MPU60X0_I2C_SLV_REG_DIS_MASK	0x20	///< Mask of the I2C_SLV_REG_DIS field
+#define MPU60X0_I2C_SLV_BYTE_SW_MASK	0x40	///< Mask of the I2C_SLV_BYTE_SW field
+#define MPU60X0_I2C_SLV_EN_MASK			0x80	///< Mask of the I2C_SLV_EN field
+/** @} */
 
 
 // Register : I2C_MST_STSTUS
 
-#define MPU60X0_I2C_SLV0_NACK(N)	(N)
-#define MPU60X0_I2C_SLV1_NACK(N)	((N) << 1)
-#define MPU60X0_I2C_SLV2_NACK(N)	((N) << 2)
-#define MPU60X0_I2C_SLV3_NACK(N)	((N) << 3)
-#define MPU60X0_I2C_SLV4_NACK(N)	((N) << 4)
-#define MPU60X0_I2C_LOST_ARB(N)		((N) << 5)
-#define MPU60X0_I2C_SLV4_DONE(N)	((N) << 6)
-#define MPU60X0_PASS_THROUGH(N)		((N) << 7)
+/** @name MPU60X0 I2C_MST_STATUS register
+ *  @{
+ */
+#define MPU60X0_I2C_SLV0_NACK(N)	(N)	///< Puts N into the I2C_SLV0_NACK field
+#define MPU60X0_I2C_SLV1_NACK(N)	((N) << 1)	///< Puts N into the I2C_SLV1_NACK field
+#define MPU60X0_I2C_SLV2_NACK(N)	((N) << 2)	///< Puts N into the I2C_SLV2_NACK field
+#define MPU60X0_I2C_SLV3_NACK(N)	((N) << 3)	///< Puts N into the I2C_SLV3_NACK field
+#define MPU60X0_I2C_SLV4_NACK(N)	((N) << 4)	///< Puts N into the I2C_SLV4_NACK field
+#define MPU60X0_I2C_LOST_ARB(N)		((N) << 5)	///< Puts N into the I2C_LOST_ARB field
+#define MPU60X0_I2C_SLV4_DONE(N)	((N) << 6)	///< Puts N into the I2C_SLV4_DONE field
+#define MPU60X0_PASS_THROUGH(N)		((N) << 7)	///< Puts N into the PASS_THROUGH field
 
-#define MPU60X0_I2C_SLV0_NACK_MASK	0x01
-#define MPU60X0_I2C_SLV1_NACK_MASK	0x02
-#define MPU60X0_I2C_SLV2_NACK_MASK	0x04
-#define MPU60X0_I2C_SLV3_NACK_MASK	0x08
-#define MPU60X0_I2C_SLV4_NACK_MASK	0x10
-#define MPU60X0_I2C_LOST_ARB_MASK	0x20
-#define MPU60X0_I2C_SLV4_DONE_MASK	0x40
-#define MPU60X0_PASS_THROUGH_MASK	0x80
+#define MPU60X0_I2C_SLV0_NACK_MASK	0x01	///< Mask of the I2C_SLV0_NACK field
+#define MPU60X0_I2C_SLV1_NACK_MASK	0x02	///< Mask of the I2C_SLV1_NACK field
+#define MPU60X0_I2C_SLV2_NACK_MASK	0x04	///< Mask of the I2C_SLV2_NACK field
+#define MPU60X0_I2C_SLV3_NACK_MASK	0x08	///< Mask of the I2C_SLV3_NACK field
+#define MPU60X0_I2C_SLV4_NACK_MASK	0x10	///< Mask of the I2C_SLV4_NACK field
+#define MPU60X0_I2C_LOST_ARB_MASK	0x20	///< Mask of the I2C_LOST_ARB field
+#define MPU60X0_I2C_SLV4_DONE_MASK	0x40	///< Mask of the I2C_SLV4_DONE field
+#define MPU60X0_PASS_THROUGH_MASK	0x80	///< Mask of the PASS_THROUGH field
+/** @} */
 
 
 // Register : INT_PIN_CFG
 
-#define MPU60X0_I2C_BYPASS_EN(N)		((N) << 1)
-#define MPU60X0_FSYNC_INT_EN(N)			((N) << 2)
-#define MPU60X0_FSYNC_INT_LEVEL(N)		((N) << 3)
-#define MPU60X0_INT_RD_CLEAR(N)			((N) << 4)
-#define MPU60X0_LATCH_INT_EN(N)			((N) << 5)
-#define MPU60X0_INT_OPEN(N)				((N) << 6)
-#define MPU60X0_INT_LEVEL(N)			((N) << 7)
+/** @name MPU60X0 INT_PIN_CFG register
+ *  @{
+ */
+#define MPU60X0_I2C_BYPASS_EN(N)		((N) << 1)	///< Puts N into the I2C_BYPASS_EN field
+#define MPU60X0_FSYNC_INT_EN(N)			((N) << 2)	///< Puts N into the FSYNC_INT_EN field
+#define MPU60X0_FSYNC_INT_LEVEL(N)		((N) << 3)	///< Puts N into the FSYNC_INT_LEVEL field
+#define MPU60X0_INT_RD_CLEAR(N)			((N) << 4)	///< Puts N into the INT_RD_CLEAR field
+#define MPU60X0_LATCH_INT_EN(N)			((N) << 5)	///< Puts N into the LATCH_INT_EN field
+#define MPU60X0_INT_OPEN(N)				((N) << 6)	///< Puts N into the INT_OPEN field
+#define MPU60X0_INT_LEVEL(N)			((N) << 7)	///< Puts N into the INT_LEVEL field
 
-#define MPU60X0_I2C_BYPASS_EN_MASK		0x02
-#define MPU60X0_FSYNC_INT_EN_MASK		0x04
-#define MPU60X0_FSYNC_INT_LEVEL_MASK	0x08
-#define MPU60X0_INT_RD_CLEAR_MASK		0x10
-#define MPU60X0_LATCH_INT_EN_MASK		0x20
-#define MPU60X0_INT_OPEN_MASK			0x40
-#define MPU60X0_INT_LEVEL_MASK			0x80
+#define MPU60X0_I2C_BYPASS_EN_MASK		0x02	///< Mask of the I2C_BYPASS_EN field
+#define MPU60X0_FSYNC_INT_EN_MASK		0x04	///< Mask of the FSYNC_INT_EN field
+#define MPU60X0_FSYNC_INT_LEVEL_MASK	0x08	///< Mask of the FSYNC_INT_LEVEL field
+#define MPU60X0_INT_RD_CLEAR_MASK		0x10	///< Mask of the INT_RD_CLEAR field
+#define MPU60X0_LATCH_INT_EN_MASK		0x20	///< Mask of the LATCH_INT_EN field
+#define MPU60X0_INT_OPEN_MASK			0x40	///< Mask of the INT_OPEN field
+#define MPU60X0_INT_LEVEL_MASK			0x80	///< Mask of the INT_LEVEL field
+/** @} */
 
 
 // Register : INT_ENABLE
 
-#define MPU60X0_DATA_RDY_EN(N)			(N)
-#define MPU60X0_I2C_MST_INT_EN(N)		((N) << 3)
-#define MPU60X0_FIFO_OFLOW_EN(N)		((N) << 4)
+/** @name MPU60X0 INT_ENABLE register
+ *  @{
+ */
+#define MPU60X0_DATA_RDY_EN(N)			(N)	///< Puts N into the DATA_RDY_EN field
+#define MPU60X0_I2C_MST_INT_EN(N)		((N) << 3)	///< Puts N into the I2C_MST_INT_EN field
+#define MPU60X0_FIFO_OFLOW_EN(N)		((N) << 4)	///< Puts N into the FIFO_OFLOW_EN field
 
-#define MPU60X0_DATA_RDY_EN_MASK		0x01
-#define MPU60X0_I2C_MST_INT_EN_MASK		0x08
-#define MPU60X0_FIFO_OFLOW_EN_MASK		0x10
+#define MPU60X0_DATA_RDY_EN_MASK		0x01	///< Mask of the DATA_RDY_EN field
+#define MPU60X0_I2C_MST_INT_EN_MASK		0x08	///< Mask of the I2C_MST_INT_EN field
+#define MPU60X0_FIFO_OFLOW_EN_MASK		0x10	///< Mask of the FIFO_OFLOW_EN field
+/** @} */
 
 
 // Register : INT_STATUS
 
-#define MPU60X0_DATA_RDY_INT(N)			(N)
-#define MPU60X0_I2C_MST_INT(N)			((N) << 3)
-#define MPU60X0_FIFO_OFLOW_INT(N)		((N) << 4)
+/** @name MPU60X0 INT_STATUS register
+ *  @{
+ */
+#define MPU60X0_DATA_RDY_INT(N)			(N)	///< Puts N into the DATA_RDY_INT field
+#define MPU60X0_I2C_MST_INT(N)			((N) << 3)	///< Puts N into the I2C_MST_INT field
+#define MPU60X0_FIFO_OFLOW_INT(N)		((N) << 4)	///< Puts N into the FIFO_OFLOW_INT field
 
-#define MPU60X0_DATA_RDY_INT_MASK		0x01
-#define MPU60X0_I2C_MST_INT_MASK		0x08
-#define MPU60X0_FIFO_OFLOW_INT_MASK		0x10
+#define MPU60X0_DATA_RDY_INT_MASK		0x01	///< Mask of the DATA_RDY_INT field
+#define MPU60X0_I2C_MST_INT_MASK		0x08	///< Mask of the I2C_MST_INT field
+#define MPU60X0_FIFO_OFLOW_INT_MASK		0x10	///< Mask of the FIFO_OFLOW_INT field
+/** @} */
 
 
 // Register : I2C_MST_DELAY_CTRL
 
-#define MPU60X0_I2C_SLV0_DLY_EN(N)		(N)
-#define MPU60X0_I2C_SLV1_DLY_EN(N)		((N) << 1)
-#define MPU60X0_I2C_SLV2_DLY_EN(N)		((N) << 2)
-#define MPU60X0_I2C_SLV3_DLY_EN(N)		((N) << 3)
-#define MPU60X0_I2C_SLV4_DLY_EN(N)		((N) << 4)
-#define MPU60X0_DELAY_ES_SHADOW(N)		((N) << 7)
+/** @name MPU60X0 I2C_MST_DELAY_CTRL register
+ *  @{
+ */
+#define MPU60X0_I2C_SLV0_DLY_EN(N)		(N)	///< Puts N into the I2C_SLV0_DLY_EN field
+#define MPU60X0_I2C_SLV1_DLY_EN(N)		((N) << 1)	///< Puts N into the I2C_SLV1_DLY_EN field
+#define MPU60X0_I2C_SLV2_DLY_EN(N)		((N) << 2)	///< Puts N into the I2C_SLV2_DLY_EN field
+#define MPU60X0_I2C_SLV3_DLY_EN(N)		((N) << 3)	///< Puts N into the I2C_SLV3_DLY_EN field
+#define MPU60X0_I2C_SLV4_DLY_EN(N)		((N) << 4)	///< Puts N into the I2C_SLV4_DLY_EN field
+#define MPU60X0_DELAY_ES_SHADOW(N)		((N) << 7)	///< Puts N into the DELAY_ES_SHADOW field
 
-#define MPU60X0_I2C_SLV0_DLY_EN_MASK	0x01
-#define MPU60X0_I2C_SLV1_DLY_EN_MASK	0x02
-#define MPU60X0_I2C_SLV2_DLY_EN_MASK	0x04
-#define MPU60X0_I2C_SLV3_DLY_EN_MASK	0x08
-#define MPU60X0_I2C_SLV4_DLY_EN_MASK	0x10
-#define MPU60X0_DELAY_ES_SHADOW_MASK	0x80
+#define MPU60X0_I2C_SLV0_DLY_EN_MASK	0x01	///< Mask of the I2C_SLV0_DLY_EN field
+#define MPU60X0_I2C_SLV1_DLY_EN_MASK	0x02	///< Mask of the I2C_SLV1_DLY_EN field
+#define MPU60X0_I2C_SLV2_DLY_EN_MASK	0x04	///< Mask of the I2C_SLV2_DLY_EN field
+#define MPU60X0_I2C_SLV3_DLY_EN_MASK	0x08	///< Mask of the I2C_SLV3_DLY_EN field
+#define MPU60X0_I2C_SLV4_DLY_EN_MASK	0x10	///< Mask of the I2C_SLV4_DLY_EN field
+#define MPU60X0_DELAY_ES_SHADOW_MASK	0x80	///< Mask of the DELAY_ES_SHADOW field
+/** @} */
 
 
 // Register : SIGNAL_PATH_RESET
 
-#define MPU60X0_TEMP_RESET(N)		(N)
-#define MPU60X0_ACCEL_RESET(N)		((N) << 1)
-#define MPU60X0_GYRO_RESET(N)		((N) << 2)
+/** @name MPU60X0 SIGNAL_PATH_RESET register
+ *  @{
+ */
+#define MPU60X0_TEMP_RESET(N)		(N)	///< Puts N into the TEMP_RESET field
+#define MPU60X0_ACCEL_RESET(N)		((N) << 1)	///< Puts N into the ACCEL_RESET field
+#define MPU60X0_GYRO_RESET(N)		((N) << 2)	///< Puts N into the GYRO_RESET field
 
-#define MPU60X0_TEMP_RESET_MASK		0x01
-#define MPU60X0_ACCEL_RESET_MASK	0x02
-#define MPU60X0_GYRO_RESET_MASK		0x04
+#define MPU60X0_TEMP_RESET_MASK		0x01	///< Mask of the TEMP_RESET field
+#define MPU60X0_ACCEL_RESET_MASK	0x02	///< Mask of the ACCEL_RESET field
+#define MPU60X0_GYRO_RESET_MASK		0x04	///< Mask of the GYRO_RESET field
+/** @} */
 
 
 // Register : USER_CTRL
 
-#define MPU60X0_SIG_COND_RESET(N)		(N)
-#define MPU60X0_I2C_MST_RESET(N)		((N) << 1)
-#define MPU60X0_FIFO_RESET(N)			((N) << 2)
-#define MPU60X0_I2C_IF_DIS(N)			((N) << 4)
-#define MPU60X0_I2C_MST_EN(N)			((N) << 5)
-#define MPU60X0_FIFO_EN(N)				((N) << 6)
+/** @name MPU60X0 USER_CTRL register
+ *  @{
+ */
+#define MPU60X0_SIG_COND_RESET(N)		(N)	///< Puts N into the SIG_COND_RESET field
+#define MPU60X0_I2C_MST_RESET(N)		((N) << 1)	///< Puts N into the I2C_MST_RESET field
+#define MPU60X0_FIFO_RESET(N)			((N) << 2)	///< Puts N into the FIFO_RESET field
+#define MPU60X0_I2C_IF_DIS(N)			((N) << 4)	///< Puts N into the I2C_IF_DIS field
+#define MPU60X0_I2C_MST_EN(N)			((N) << 5)	///< Puts N into the I2C_MST_EN field
+#define MPU60X0_FIFO_EN(N)				((N) << 6)	///< Puts N into the FIFO_EN field
 
-#define MPU60X0_SIG_COND_RESET_MASK		0x01
-#define MPU60X0_I2C_MST_RESET_MASK		0x02
-#define MPU60X0_FIFO_RESET_MASK			0x04
-#define MPU60X0_I2C_IF_DIS_MASK			0x10
-#define MPU60X0_I2C_MST_EN_MASK			0x20
-#define MPU60X0_FIFO_EN_MASK			0x40
+#define MPU60X0_SIG_COND_RESET_MASK		0x01	///< Mask of the SIG_COND_RESET field
+#define MPU60X0_I2C_MST_RESET_MASK		0x02	///< Mask of the I2C_MST_RESET field
+#define MPU60X0_FIFO_RESET_MASK			0x04	///< Mask of the FIFO_RESET field
+#define MPU60X0_I2C_IF_DIS_MASK			0x10	///< Mask of the I2C_IF_DIS field
+#define MPU60X0_I2C_MST_EN_MASK			0x20	///< Mask of the I2C_MST_EN field
+#define MPU60X0_FIFO_EN_MASK			0x40	///< Mask of the FIFO_EN field
+/** @} */
 
 
 // Register : PWR_MGMT_1
 
+/** @name MPU60X0 PWR_MGMT_1 register
+ *  @{
+ */
+/**
+ * @brief Bits 2-0 (CLKSEL): clock source.
+ */
 typedef enum EnPifMpu60x0Clksel
 {
     MPU60X0_CLKSEL_INTERNAL_8MHZ   	= 0,
@@ -395,27 +490,34 @@ typedef enum EnPifMpu60x0Clksel
     MPU60X0_CLKSEL_KEEP_RESET      	= 7
 } PifMpu60x0Clksel;
 
-#define MPU60X0_TEMP_DIS(N)			((N) << 3)
-#define MPU60X0_CYCLE(N)			((N) << 5)
-#define MPU60X0_SLEEP(N)			((N) << 6)
-#define MPU60X0_DEVICE_RESET(N)		((N) << 7)
+#define MPU60X0_TEMP_DIS(N)			((N) << 3)	///< Puts N into the TEMP_DIS field
+#define MPU60X0_CYCLE(N)			((N) << 5)	///< Puts N into the CYCLE field
+#define MPU60X0_SLEEP(N)			((N) << 6)	///< Puts N into the SLEEP field
+#define MPU60X0_DEVICE_RESET(N)		((N) << 7)	///< Puts N into the DEVICE_RESET field
 
-#define MPU60X0_CLKSEL_MASK			0x07
-#define MPU60X0_TEMP_DIS_MASK		0x08
-#define MPU60X0_CYCLE_MASK			0x20
-#define MPU60X0_SLEEP_MASK			0x40
-#define MPU60X0_DEVICE_RESET_MASK	0x80
+#define MPU60X0_CLKSEL_MASK			0x07	///< Mask of the CLKSEL field
+#define MPU60X0_TEMP_DIS_MASK		0x08	///< Mask of the TEMP_DIS field
+#define MPU60X0_CYCLE_MASK			0x20	///< Mask of the CYCLE field
+#define MPU60X0_SLEEP_MASK			0x40	///< Mask of the SLEEP field
+#define MPU60X0_DEVICE_RESET_MASK	0x80	///< Mask of the DEVICE_RESET field
+/** @} */
 
 
 // Register : PWR_MGMT_2
 
-#define MPU60X0_STBY_ZG(N)			(N)
-#define MPU60X0_STBY_YG(N)			((N) << 1)
-#define MPU60X0_STBY_XG(N)			((N) << 2)
-#define MPU60X0_STBY_ZA(N)			((N) << 3)
-#define MPU60X0_STBY_YA(N)			((N) << 4)
-#define MPU60X0_STBY_XA(N)			((N) << 5)
+/** @name MPU60X0 PWR_MGMT_2 register
+ *  @{
+ */
+#define MPU60X0_STBY_ZG(N)			(N)	///< Puts N into the STBY_ZG field
+#define MPU60X0_STBY_YG(N)			((N) << 1)	///< Puts N into the STBY_YG field
+#define MPU60X0_STBY_XG(N)			((N) << 2)	///< Puts N into the STBY_XG field
+#define MPU60X0_STBY_ZA(N)			((N) << 3)	///< Puts N into the STBY_ZA field
+#define MPU60X0_STBY_YA(N)			((N) << 4)	///< Puts N into the STBY_YA field
+#define MPU60X0_STBY_XA(N)			((N) << 5)	///< Puts N into the STBY_XA field
 
+/**
+ * @brief Bits 7-6 (LP_WAKE_CTRL): wake-up rate in accelerometer only low power mode.
+ */
 typedef enum EnPifMpu60x0LpWakeCtrl
 {
     MPU60X0_LP_WAKE_CTRL_1_25HZ		= 0 << 6,
@@ -424,29 +526,30 @@ typedef enum EnPifMpu60x0LpWakeCtrl
     MPU60X0_LP_WAKE_CTRL_40HZ		= 3 << 6
 } PifMpu60x0LpWakeCtrl;
 
-#define MPU60X0_STBY_ZG_MASK		0x01
-#define MPU60X0_STBY_YG_MASK		0x02
-#define MPU60X0_STBY_XG_MASK		0x04
-#define MPU60X0_STBY_ZA_MASK		0x08
-#define MPU60X0_STBY_YA_MASK		0x10
-#define MPU60X0_STBY_XA_MASK		0x20
-#define MPU60X0_LP_WAKE_CTRL_MASK	0xC0
+#define MPU60X0_STBY_ZG_MASK		0x01	///< Mask of the STBY_ZG field
+#define MPU60X0_STBY_YG_MASK		0x02	///< Mask of the STBY_YG field
+#define MPU60X0_STBY_XG_MASK		0x04	///< Mask of the STBY_XG field
+#define MPU60X0_STBY_ZA_MASK		0x08	///< Mask of the STBY_ZA field
+#define MPU60X0_STBY_YA_MASK		0x10	///< Mask of the STBY_YA field
+#define MPU60X0_STBY_XA_MASK		0x20	///< Mask of the STBY_XA field
+#define MPU60X0_LP_WAKE_CTRL_MASK	0xC0	///< Mask of the LP_WAKE_CTRL field
+/** @} */
 
 
 /**
  * @class StPifMpu60x0
- * @brief Defines the st pif mpu60x0 data structure.
+ * @brief MPU-6000/6050 gyroscope and accelerometer.
  */
 typedef struct StPifMpu60x0
 {
 	// Public Member Variable
-	uint8_t gyro_scale;
-	uint8_t accel_scale;
-	uint8_t temp_scale;
+	uint8_t gyro_scale;	///< Divider of the raw gyro values, 0 for none
+	uint8_t accel_scale;	///< Divider of the raw accelerometer values, 0 for none
+	uint8_t temp_scale;	///< Multiplier of the temperature
 
 	// Read-only Member Variable
-	PifId _id;
-	PifDeviceReg *_p_device;
+	PifId _id;	///< Instance ID
+	PifDeviceReg *_p_device;	///< I2C or SPI device of the sensor
 
 
 	// Private Member Variable
@@ -459,28 +562,25 @@ extern "C" {
 #endif
 
 /**
- * @fn pifMpu60x0_Config
  * @brief Reads the full-scale ranges and registers the sensor on the IMU sensor. Called by the
  *        bus specific Init functions once _p_device is set up and the chip has been reset.
  * @param p_owner Pointer to the owner instance.
- * @param id Unique identifier for the instance or task.
- * @param p_imu_sensor Pointer to imu sensor.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param p_imu_sensor IMU sensor the driver registers its sensors with.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_Config(PifMpu60x0* p_owner, PifId id, PifImuSensor* p_imu_sensor);
 
 /**
- * @fn pifMpu60x0_SetGyroConfig
- * @brief Sets configuration values required by mpu60x0 set gyro config.
+ * @brief Writes the GYRO_CONFIG register and updates the gyro gain of the IMU sensor to its range.
  * @param p_owner Pointer to the owner instance.
- * @param gyro_config Parameter gyro_config used by this operation.
+ * @param gyro_config Fields of the register, ORed together.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_SetGyroConfig(PifMpu60x0* p_owner, uint8_t gyro_config);
 
 /**
- * @fn pifMpu60x0_SetFsSel
- * @brief Sets configuration values required by mpu60x0 set fs sel.
+ * @brief Sets the gyro range and updates the gyro gain of the IMU sensor to it.
  * @param p_owner Pointer to the owner instance.
  * @param fs_sel Gyroscope full-scale range selection.
  * @return TRUE on success, FALSE on failure.
@@ -488,17 +588,15 @@ BOOL pifMpu60x0_SetGyroConfig(PifMpu60x0* p_owner, uint8_t gyro_config);
 BOOL pifMpu60x0_SetFsSel(PifMpu60x0* p_owner, PifMpu60x0FsSel fs_sel);
 
 /**
- * @fn pifMpu60x0_SetAccelConfig
- * @brief Sets configuration values required by mpu60x0 set accel config.
+ * @brief Writes the ACCEL_CONFIG register and updates the accelerometer gain of the IMU sensor to its range.
  * @param p_owner Pointer to the owner instance.
- * @param accel_config Parameter accel_config used by this operation.
+ * @param accel_config Fields of the register, ORed together.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_SetAccelConfig(PifMpu60x0* p_owner, uint8_t accel_config);
 
 /**
- * @fn pifMpu60x0_SetAfsSel
- * @brief Sets configuration values required by mpu60x0 set afs sel.
+ * @brief Sets the accelerometer range and updates the accelerometer gain of the IMU sensor to it.
  * @param p_owner Pointer to the owner instance.
  * @param afs_sel Accelerometer full-scale range selection.
  * @return TRUE on success, FALSE on failure.
@@ -506,34 +604,30 @@ BOOL pifMpu60x0_SetAccelConfig(PifMpu60x0* p_owner, uint8_t accel_config);
 BOOL pifMpu60x0_SetAfsSel(PifMpu60x0* p_owner, PifMpu60x0AfsSel afs_sel);
 
 /**
- * @fn pifMpu60x0_ReadGyro
- * @brief Reads raw data from mpu60x0 read gyro.
+ * @brief Reads the raw gyro values of the 3 axes, divided by gyro_scale when it is not 0.
  * @param p_owner Pointer to the owner instance.
- * @param p_gyro Pointer to gyro.
+ * @param p_gyro Receives the values of the 3 axes.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_ReadGyro(PifMpu60x0* p_owner, int16_t* p_gyro);
 
 /**
- * @fn pifMpu60x0_ReadAccel
- * @brief Reads raw data from mpu60x0 read accel.
+ * @brief Reads the raw accelerometer values of the 3 axes, divided by accel_scale when it is not 0.
  * @param p_owner Pointer to the owner instance.
- * @param p_accel Pointer to accel.
+ * @param p_accel Receives the values of the 3 axes.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_ReadAccel(PifMpu60x0* p_owner, int16_t* p_accel);
 
 /**
- * @fn pifMpu60x0_ReadTemperature
- * @brief Reads raw data from mpu60x0 read temperature.
+ * @brief Reads the temperature in degrees C, multiplied by temp_scale.
  * @param p_owner Pointer to the owner instance.
- * @param p_temperature Pointer to temperature.
+ * @param p_temperature Receives the temperature.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0_ReadTemperature(PifMpu60x0* p_owner, int16_t* p_temperature);
 
 /**
- * @fn pifMpu60x0_CalibrationGyro
  * @brief Measures the gyro bias and noise at rest, taking a sample every 5 ms.
  *        Wraps pifImuSensor_CalibrateGyro().
  * @param p_owner Pointer to the owner instance.
@@ -543,7 +637,6 @@ BOOL pifMpu60x0_ReadTemperature(PifMpu60x0* p_owner, int16_t* p_temperature);
 BOOL pifMpu60x0_CalibrationGyro(PifMpu60x0* p_owner, uint8_t samples);
 
 /**
- * @fn pifMpu60x0_SetThreshold
  * @brief Sets the gyro deadband as a multiple of the measured noise, calibrating
  *        with 50 samples first if needed. Wraps pifImuSensor_SetGyroDeadband().
  * @param p_owner Pointer to the owner instance.

@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_bmi270_spi.h
+ * @brief Attaches a BMI270 on SPI: detection and initialization of a PifBmi270.
+ */
 #ifndef PIF_BMI270_SPI_H
 #define PIF_BMI270_SPI_H
 
@@ -11,31 +15,27 @@ extern "C" {
 #endif
 
 /**
- * @fn pifBmi270Spi_Detect
- * @brief Performs the bmi270 spi detect operation.
- * @param p_spi Pointer to spi.
- * @param p_client Pointer to optional client context data.
+ * @brief Tells whether a BMI270 answers on the port, by reading its ID register through a temporary device.
+ * @param p_spi SPI port the device is on.
+ * @param p_client Client pointer handed to the port functions of the device.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmi270Spi_Detect(PifSpiPort *p_spi, void *p_client);
 
 /**
- * @fn pifBmi270Spi_Init
- * @brief Initializes bmi270 spi init and prepares it for use.
+ * @brief Adds the BMI270 to the SPI port and sets it up.
  * @param p_owner Pointer to the owner instance.
- * @param id Unique identifier for the instance or task.
- * @param p_spi Pointer to spi.
- * @param p_client Pointer to optional client context data.
- * @param p_imu_sensor Pointer to imu sensor.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param p_spi SPI port the device is on.
+ * @param p_client Client pointer handed to the port functions of the device.
+ * @param p_imu_sensor IMU sensor the driver registers its sensors with.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmi270Spi_Init(PifBmi270 *p_owner, PifId id, PifSpiPort *p_spi, void *p_client, PifImuSensor *p_imu_sensor);
 
 /**
- * @fn pifBmi270Spi_Clear
- * @brief Releases resources used by bmi270 spi clear.
+ * @brief Removes the device of the sensor from the port.
  * @param p_owner Pointer to the owner instance.
- * @return None.
  */
 void pifBmi270Spi_Clear(PifBmi270 *p_owner);
 

@@ -1,0 +1,112 @@
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Doxygen configuration for the PIF manual.
+#
+# Only the settings that differ from the Doxygen defaults are listed here.
+# Run it from the repository root, or use tools/gen_docs.sh:
+#
+#   doxygen docs/Doxyfile
+#
+# The output goes to docs/build/html/index.html.
+
+#---------------------------------------------------------------------------
+# Project
+#---------------------------------------------------------------------------
+
+PROJECT_NAME           = PIF
+PROJECT_BRIEF          = "Platform-independent framework for embedded systems"
+# Set by tools/gen_docs.sh from git describe. Empty when Doxygen is run directly.
+PROJECT_NUMBER         = $(PIF_DOC_VERSION)
+OUTPUT_DIRECTORY       = docs/build
+INPUT_ENCODING         = UTF-8
+
+#---------------------------------------------------------------------------
+# Input
+#---------------------------------------------------------------------------
+
+# docs/manual holds the hand-written pages (Markdown and .dox),
+# the headers hold the API reference.
+INPUT                  = docs/manual \
+                         include \
+                         gpl/include
+FILE_PATTERNS          = *.md \
+                         *.dox \
+                         *.h
+RECURSIVE              = YES
+EXCLUDE_PATTERNS       = *.bak
+IMAGE_PATH             = docs/manual/images
+# Code shown with @include, @snippet or @dontinclude is looked up here.
+EXAMPLE_PATH           = docs/manual/examples \
+                         test
+EXAMPLE_RECURSIVE      = YES
+
+# Show headers by their include string, for example core/pif.h.
+FULL_PATH_NAMES        = YES
+STRIP_FROM_PATH        = include \
+                         gpl/include
+STRIP_FROM_INC_PATH    = include \
+                         gpl/include
+
+#---------------------------------------------------------------------------
+# What to extract
+#---------------------------------------------------------------------------
+
+OPTIMIZE_OUTPUT_FOR_C  = YES
+# Most headers have no @file block, and Doxygen leaves out the functions of an
+# undocumented file unless everything is extracted.
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+# __name fields are private to their module, so they stay out of the manual.
+EXCLUDE_SYMBOLS        = __*
+# Keep members in the order they are declared in the header.
+SORT_MEMBER_DOCS       = NO
+TOC_INCLUDE_HEADINGS   = 3
+
+#---------------------------------------------------------------------------
+# Preprocessor
+#---------------------------------------------------------------------------
+
+ENABLE_PREPROCESSING   = YES
+SEARCH_INCLUDES        = YES
+INCLUDE_PATH           = include \
+                         gpl/include
+# Turn on the optional APIs so that they are documented too.
+PREDEFINED             = PIF_COLLECT_SIGNAL \
+                         PIF_USE_BLOCK_TIME \
+                         PIF_USE_TASK_STATISTICS \
+                         PIF_USE_LITTLEFS \
+                         PIF_LOG_COMMAND \
+                         PIF_NF_INT_BITS=16 \
+                         PIF_NF_INT_WIDE_T=int32_t
+# filter/pif_noise_filter_int.h builds its names with these macros. Expanding them
+# documents the template under its 16 bit names, for example
+# pifNoiseFilterInt16_InitAverage(). The 32 bit ones are the same.
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+EXPAND_AS_DEFINED      = PIF_NF_INT_CAT \
+                         PIF_NF_INT_CAT_ \
+                         PIF_NF_INT_T \
+                         PIF_NF_INT_AVERAGE \
+                         PIF_NF_INT_MEDIAN \
+                         PIF_NF_INT_EMA \
+                         PIF_NF_INT_DEADBAND
+
+#---------------------------------------------------------------------------
+# Warnings
+#---------------------------------------------------------------------------
+
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_NO_PARAMDOC       = YES
+WARN_LOGFILE           = docs/build/warnings.log
+
+#---------------------------------------------------------------------------
+# Output
+#---------------------------------------------------------------------------
+
+GENERATE_HTML          = YES
+GENERATE_TREEVIEW      = YES
+HTML_COLORSTYLE        = TOGGLE
+GENERATE_LATEX         = NO
+# Graphviz is optional. Set to YES when dot is on the PATH for call and include graphs.
+HAVE_DOT               = NO

@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_dps310_i2c.h
+ * @brief Attaches a DPS310 on I2C: detection and initialization of a PifDps310.
+ */
 #ifndef PIF_DPS310_I2C_H
 #define PIF_DPS310_I2C_H
 
@@ -11,30 +15,27 @@ extern "C" {
 #endif
 
 /**
- * @fn pifDps310I2c_Detect
- * @brief Performs the dps310 i2c detect operation.
- * @param p_i2c Pointer to i2c.
+ * @brief Tells whether a DPS310 answers at addr, by reading its ID register through a temporary device.
+ * @param p_i2c I2C port the device is on.
  * @param addr Device address on the bus.
- * @param p_client Pointer to optional client context data.
+ * @param p_client Client pointer handed to the port functions of the device.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifDps310I2c_Detect(PifI2cPort* p_i2c, uint8_t addr, void *p_client);
 
 /**
- * @fn pifDps310I2c_Init
- * @brief Initializes dps310 i2c init and prepares it for use.
+ * @brief Adds the DPS310 at addr to the I2C port and sets it up.
  * @param p_owner Pointer to the owner instance.
- * @param id Unique identifier for the instance or task.
- * @param p_i2c Pointer to i2c.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param p_i2c I2C port the device is on.
  * @param addr Device address on the bus.
- * @param p_client Pointer to optional client context data.
+ * @param p_client Client pointer handed to the port functions of the device.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifDps310I2c_Init(PifDps310* p_owner, PifId id, PifI2cPort* p_i2c, uint8_t addr, void *p_client);
 
 /**
- * @fn pifDps310I2c_Clear
- * @brief Releases resources used by dps310 i2c clear.
+ * @brief Removes the task of the sensor, if any, and its device from the port.
  * @param p_owner Pointer to the owner instance.
  */
 void pifDps310I2c_Clear(PifDps310* p_owner);

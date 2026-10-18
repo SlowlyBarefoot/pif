@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_qmc5883.h
+ * @brief QST QMC5883L 3-axis magnetometer on I2C, as the magnetometer of a PifImuSensor.
+ */
 #ifndef PIF_QMC5883_H
 #define PIF_QMC5883_H
 
@@ -7,9 +11,12 @@
 #include "sensor/pif_imu_sensor.h"
 
 
-#define QMC5883_I2C_ADDR			0x0D
+#define QMC5883_I2C_ADDR			0x0D	///< I2C address
 
 
+/**
+ * @brief Register addresses.
+ */
 typedef enum EnPifQmc5883Reg
 {
 	QMC5883_REG_OUT_X_LSB			= 0x00,
@@ -30,23 +37,36 @@ typedef enum EnPifQmc5883Reg
 
 // Register : STATUS
 
-#define QMC5883_DRDY(N)		(N)
-#define QMC5883_OVL(N)		((N) << 1)
-#define QMC5883_DOR(N)		((N) << 2)
+/** @name QMC5883 STATUS register
+ *  @{
+ */
+#define QMC5883_DRDY(N)		(N)	///< Puts N into the DRDY field
+#define QMC5883_OVL(N)		((N) << 1)	///< Puts N into the OVL field
+#define QMC5883_DOR(N)		((N) << 2)	///< Puts N into the DOR field
 
-#define QMC5883_DRDY_MASK	0x01
-#define QMC5883_OVL_MASK	0x02
-#define QMC5883_DOR_MASK	0x04
+#define QMC5883_DRDY_MASK	0x01	///< Mask of the DRDY field
+#define QMC5883_OVL_MASK	0x02	///< Mask of the OVL field
+#define QMC5883_DOR_MASK	0x04	///< Mask of the DOR field
+/** @} */
 
 
 // Register : CONTROL_1
 
+/** @name QMC5883 CONTROL_1 register
+ *  @{
+ */
+/**
+ * @brief Bits 1-0 (MODE): standby or continuous measurement.
+ */
 typedef enum EnPifQmc5883Mode
 {
     QMC5883_MODE_STANDBY	= 0,
     QMC5883_MODE_CONTIMUOUS	= 1
 } PifQmc5883Mode;
 
+/**
+ * @brief Bits 3-2 (ODR): output data rate.
+ */
 typedef enum EnPifQmc5883Odr
 {
     QMC5883_ODR_10HZ		= 0 << 2,
@@ -55,12 +75,18 @@ typedef enum EnPifQmc5883Odr
     QMC5883_ODR_200HZ		= 3 << 2
 } PifQmc5883Odr;
 
+/**
+ * @brief Bits 5-4 (RNG): full scale range in Gauss.
+ */
 typedef enum EnPifQmc5883Rng
 {
     QMC5883_RNG_2G			= 0 << 4,
     QMC5883_RNG_8G			= 1 << 4
 } PifQmc5883Rng;
 
+/**
+ * @brief Bits 7-6 (OSR): over sample ratio.
+ */
 typedef enum EnPifQmc5883Osr
 {
     QMC5883_OSR_512			= 0 << 6,
@@ -69,43 +95,51 @@ typedef enum EnPifQmc5883Osr
     QMC5883_OSR_64			= 3 << 6
 } PifQmc5883Osr;
 
-#define QMC5883_MODE_MASK	0x03
-#define QMC5883_ODR_MASK	0x0C
-#define QMC5883_RNG_MASK	0x30		// Use pifQmc5883_SetControl1 to change this value.
-#define QMC5883_OSR_MASK	0xC0
+#define QMC5883_MODE_MASK	0x03		///< Mask of the MODE field
+#define QMC5883_ODR_MASK	0x0C		///< Mask of the ODR field
+#define QMC5883_RNG_MASK	0x30		///< Use pifQmc5883_SetControl1 to change this value.
+#define QMC5883_OSR_MASK	0xC0		///< Mask of the OSR field
+/** @} */
 
 
 // Register : CONTROL_2
 
-#define QMC5883_INT_ENB(N)		(N)
-#define QMC5883_ROL_PNT(N)		((N) << 6)
-#define QMC5883_SOFT_RST(N)		((N) << 7)
+/** @name QMC5883 CONTROL_2 register
+ *  @{
+ */
+#define QMC5883_INT_ENB(N)		(N)		///< Puts N into the INT_ENB field
+#define QMC5883_ROL_PNT(N)		((N) << 6)	///< Puts N into the ROL_PNT field
+#define QMC5883_SOFT_RST(N)		((N) << 7)	///< Puts N into the SOFT_RST field
 
-#define QMC5883_INT_ENB_MASK	0x01
-#define QMC5883_ROL_PNT_MASK	0x40
-#define QMC5883_SOFT_RST_MASK	0x80
+#define QMC5883_INT_ENB_MASK	0x01	///< Mask of the INT_ENB field
+#define QMC5883_ROL_PNT_MASK	0x40	///< Mask of the ROL_PNT field
+#define QMC5883_SOFT_RST_MASK	0x80	///< Mask of the SOFT_RST field
+/** @} */
 
 
+/**
+ * @brief Step of pifQmc5883_ReadMagAsync().
+ */
 typedef enum EnPifQmc5883State
 {
-	QMC5883_STATE_IDLE,
-	QMC5883_STATE_READ_STATUS,
-	QMC5883_STATE_READ_DATA
+	QMC5883_STATE_IDLE,	///< Not reading
+	QMC5883_STATE_READ_STATUS,	///< Reading the status
+	QMC5883_STATE_READ_DATA	///< Reading the data
 } PifQmc5883State;
 
 
 /**
  * @class StPifQmc5883
- * @brief Defines the st pif qmc5883 data structure.
+ * @brief QMC5883L magnetometer.
  */
 typedef struct StPifQmc5883
 {
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PifId _id;
-	PifDeviceReg *_p_device;
-	PifQmc5883State _state;			// pifQmc5883_ReadMagAsync() progress
+	PifId _id;						///< Instance ID
+	PifDeviceReg *_p_device;		///< I2C device of the sensor
+	PifQmc5883State _state;			///< pifQmc5883_ReadMagAsync() progress
 
 	// Private Member Variable
 	PifImuSensor* __p_imu_sensor;
@@ -118,54 +152,48 @@ extern "C" {
 #endif
 
 /**
- * @fn pifQmc5883_Detect
  * @brief Checks for a QMC5883L at QMC5883_I2C_ADDR: soft-resets it, checks the chip ID
  *        and writes and reads back the SET/RESET period register. Blocks for 20 ms.
- * @param p_i2c Pointer to i2c.
- * @param p_client Pointer to optional client context data.
+ * @param p_i2c I2C port the device is on.
+ * @param p_client Client pointer handed to the port functions of the device.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifQmc5883_Detect(PifI2cPort* p_i2c, void *p_client);
 
 /**
- * @fn pifQmc5883_Init
- * @brief Initializes qmc5883 init and prepares it for use.
+ * @brief Adds the QMC5883L to the I2C port and registers it as the magnetometer of an IMU sensor.
  * @param p_owner Pointer to the owner instance.
- * @param id Unique identifier for the instance or task.
- * @param p_i2c Pointer to i2c.
- * @param p_client Pointer to optional client context data.
- * @param p_imu_sensor Pointer to imu sensor.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param p_i2c I2C port the device is on.
+ * @param p_client Client pointer handed to the port functions of the device.
+ * @param p_imu_sensor IMU sensor the driver registers its sensors with.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifQmc5883_Init(PifQmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_client, PifImuSensor* p_imu_sensor);
 
 /**
- * @fn pifQmc5883_Clear
- * @brief Releases resources used by qmc5883 clear.
+ * @brief Removes the device of the sensor from the port.
  * @param p_owner Pointer to the owner instance.
  */
 void pifQmc5883_Clear(PifQmc5883* p_owner);
 
 /**
- * @fn pifQmc5883_SetControl1
- * @brief Sets configuration values required by qmc5883 set control1.
+ * @brief Writes the CONTROL_1 register and updates the gain of the IMU sensor to its range.
  * @param p_owner Pointer to the owner instance.
- * @param contorl_1 Parameter contorl_1 used by this operation.
+ * @param contorl_1 Fields of the register, ORed together.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifQmc5883_SetControl1(PifQmc5883* p_owner, uint8_t contorl_1);
 
 /**
- * @fn pifQmc5883_ReadMag
- * @brief Reads raw data from qmc5883 read mag.
+ * @brief Reads the raw values of the 3 axes.
  * @param p_owner Pointer to the owner instance.
- * @param p_mag Pointer to mag.
+ * @param p_mag Receives the values of the 3 axes.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifQmc5883_ReadMag(PifQmc5883* p_owner, int16_t* p_mag);
 
 /**
- * @fn pifQmc5883_ReadMagAsync
  * @brief Reads a sample as pifQmc5883_ReadMag() does, waiting for nothing. Each call moves the
  *        read one step on: it starts the STATUS read, then, if DRDY is set, the read of the six
  *        data bytes, and hands the sample over on the call after that one finished. FALSE means

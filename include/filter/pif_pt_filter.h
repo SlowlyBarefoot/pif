@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_pt_filter.h
+ * @brief Low-pass filter of 1 to 3 first-order stages (PT1, PT2, PT3).
+ *
+ * Cheap enough to update its cutoff every sample, as the D term filter of pif_pid_control and the smoothing of
+ * pif_dyn_notch do.
+ */
 #ifndef PIF_PT_FILTER_H
 #define PIF_PT_FILTER_H
 
@@ -6,7 +13,7 @@
 #include "core/pif.h"
 
 
-#define PIF_PT_FILTER_MAX_ORDER		3
+#define PIF_PT_FILTER_MAX_ORDER		3	///< Most stages of one filter
 
 
 /**
@@ -26,8 +33,8 @@ typedef struct StPifPtFilter
 	// Public Member Variable
 
 	// Read-only Member Variable
-	uint8_t _order;
-	float _k;					// Gain of each stage, 0 to 1
+	uint8_t _order;				///< Number of stages, 1 to PIF_PT_FILTER_MAX_ORDER
+	float _k;					///< Gain of each stage, 0 to 1
 
 	// Private Member Variable
 	float __state[PIF_PT_FILTER_MAX_ORDER];
@@ -39,7 +46,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifPtFilter_Gain
  * @brief Calculates the gain of one stage for an order and a cutoff frequency.
  * @param order Number of stages, 1 to PIF_PT_FILTER_MAX_ORDER.
  * @param cutoff_hz Cutoff (-3 dB) frequency of the whole filter in Hz.
@@ -49,7 +55,6 @@ extern "C" {
 float pifPtFilter_Gain(uint8_t order, float cutoff_hz, float dt);
 
 /**
- * @fn pifPtFilter_Init
  * @brief Initializes the filter and clears its state.
  * @param p_owner Pointer to the target object instance.
  * @param order Number of stages, 1 to PIF_PT_FILTER_MAX_ORDER.
@@ -60,7 +65,6 @@ float pifPtFilter_Gain(uint8_t order, float cutoff_hz, float dt);
 BOOL pifPtFilter_Init(PifPtFilter* p_owner, uint8_t order, float cutoff_hz, float dt);
 
 /**
- * @fn pifPtFilter_SetCutoff
  * @brief Changes the cutoff frequency and keeps the state.
  * @param p_owner Pointer to the target object instance.
  * @param cutoff_hz Cutoff (-3 dB) frequency in Hz.
@@ -69,7 +73,6 @@ BOOL pifPtFilter_Init(PifPtFilter* p_owner, uint8_t order, float cutoff_hz, floa
 void pifPtFilter_SetCutoff(PifPtFilter* p_owner, float cutoff_hz, float dt);
 
 /**
- * @fn pifPtFilter_SetGain
  * @brief Sets the stage gain directly, for example one calculated in advance with pifPtFilter_Gain().
  * @param p_owner Pointer to the target object instance.
  * @param k Stage gain, 0 to 1.
@@ -77,7 +80,6 @@ void pifPtFilter_SetCutoff(PifPtFilter* p_owner, float cutoff_hz, float dt);
 void pifPtFilter_SetGain(PifPtFilter* p_owner, float k);
 
 /**
- * @fn pifPtFilter_Reset
  * @brief Sets every stage to a value so the output starts there without a transient.
  * @param p_owner Pointer to the target object instance.
  * @param value Initial output value.
@@ -85,7 +87,6 @@ void pifPtFilter_SetGain(PifPtFilter* p_owner, float k);
 void pifPtFilter_Reset(PifPtFilter* p_owner, float value);
 
 /**
- * @fn pifPtFilter_Output
  * @brief Returns the last output without filtering a new sample.
  * @param p_owner Pointer to the target object instance.
  * @return Last output, or the value set by pifPtFilter_Reset().
@@ -93,7 +94,6 @@ void pifPtFilter_Reset(PifPtFilter* p_owner, float value);
 float pifPtFilter_Output(const PifPtFilter* p_owner);
 
 /**
- * @fn pifPtFilter_Apply
  * @brief Filters one sample.
  * @param p_owner Pointer to the target object instance.
  * @param input Input sample.

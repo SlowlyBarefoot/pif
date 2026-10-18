@@ -1,4 +1,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_step_motor_speed.h
+ * @brief Step motor that runs at the speeds of its stages, with acceleration and deceleration ramps.
+ *
+ * The deceleration and the stop are started by time or by the sensors of the stage.
+ */
 #ifndef PIF_STEP_MOTOR_SPEED_H
 #define PIF_STEP_MOTOR_SPEED_H
 
@@ -13,25 +19,25 @@
  */
 typedef struct StPifStepMotorSpeedStage
 {
-    uint8_t mode;               // PifMotorMode bit field
+    uint8_t mode;               ///< PifMotorMode bit field
 
-    // Optional stage sensors
+    /// Optional stage sensors
     PifSensor* p_start_sensor;
-    PifSensor* p_reduce_sensor;
-    PifSensor* p_stop_sensor;
+    PifSensor* p_reduce_sensor;	///< Sensor that starts the deceleration, or NULL
+    PifSensor* p_stop_sensor;	///< Sensor that stops the motor, or NULL
 
-    // Acceleration stage
-    uint16_t gs_start_pps;      // Initial pulses-per-second at start
-    uint16_t gs_ctrl_pps;       // Increment per control period (0 disables acceleration stage)
+    /// Acceleration stage
+    uint16_t gs_start_pps;      ///< Initial pulses-per-second at start
+    uint16_t gs_ctrl_pps;       ///< Increment per control period (0 disables acceleration stage)
 
-    // Constant-speed stage
-    uint16_t fs_fixed_pps;      // Target constant speed in pulses-per-second
-    uint16_t fs_overtime;       // Delay before deceleration after stop request
+    /// Constant-speed stage
+    uint16_t fs_fixed_pps;      ///< Target constant speed in pulses-per-second
+    uint16_t fs_overtime;       ///< Delay before deceleration after stop request
 
-    // Deceleration stage
-    uint16_t rs_stop_pps;       // Threshold speed to switch to brake handling
-    uint16_t rs_ctrl_pps;       // Decrement per control period (0 disables deceleration ramp)
-    uint16_t rs_brake_time;     // Brake hold time for mechanical/electrical brake
+    /// Deceleration stage
+    uint16_t rs_stop_pps;       ///< Threshold speed to switch to brake handling
+    uint16_t rs_ctrl_pps;       ///< Decrement per control period (0 disables deceleration ramp)
+    uint16_t rs_brake_time;     ///< Brake hold time for mechanical/electrical brake
 } PifStepMotorSpeedStage;
 
 /**
@@ -40,11 +46,11 @@ typedef struct StPifStepMotorSpeedStage
  */
 typedef struct StPifStepMotorSpeed
 {
-	// The parent variable must be at the beginning of this structure.
+	/// The parent variable must be at the beginning of this structure.
 	PifStepMotor parent;
 
 	// Read-only Member Variable
-    uint8_t _stage_index;
+    uint8_t _stage_index;	///< Index of the current stage
 
 	// Private Member Variable
     uint8_t __stage_size;
@@ -58,7 +64,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifStepMotorSpeed_Init
  * @brief Initializes a speed-control step motor instance.
  * @param p_owner Pointer to the object to initialize.
  * @param id Motor identifier, or `PIF_ID_AUTO` for auto allocation.
@@ -72,14 +77,12 @@ BOOL pifStepMotorSpeed_Init(PifStepMotorSpeed* p_owner, PifId id, PifTimerManage
 		PifStepMotorOperation operation, uint16_t period1ms);
 
 /**
- * @fn pifStepMotorSpeed_Clear
  * @brief Releases all resources owned by the speed-control motor.
  * @param p_owner Pointer to the speed-control motor instance.
  */
 void pifStepMotorSpeed_Clear(PifStepMotorSpeed* p_owner);
 
 /**
- * @fn pifStepMotorSpeed_AddStages
  * @brief Registers the stage table used for speed-control operation.
  * @param p_owner Pointer to the speed-control motor instance.
  * @param stage_size Number of entries in `p_stages`.
@@ -89,7 +92,6 @@ void pifStepMotorSpeed_Clear(PifStepMotorSpeed* p_owner);
 BOOL pifStepMotorSpeed_AddStages(PifStepMotorSpeed* p_owner, uint8_t stage_size, const PifStepMotorSpeedStage* p_stages);
 
 /**
- * @fn pifStepMotorSpeed_Start
  * @brief Starts motion using the selected speed stage profile.
  * @param p_owner Pointer to the speed-control motor instance.
  * @param stage_index Index of the stage profile to run.
@@ -99,14 +101,12 @@ BOOL pifStepMotorSpeed_AddStages(PifStepMotorSpeed* p_owner, uint8_t stage_size,
 BOOL pifStepMotorSpeed_Start(PifStepMotorSpeed* p_owner, uint8_t stage_index, uint32_t operating_time);
 
 /**
- * @fn pifStepMotorSpeed_Stop
  * @brief Requests stop sequence according to the active stage settings.
  * @param p_owner Pointer to the speed-control motor instance.
  */
 void pifStepMotorSpeed_Stop(PifStepMotorSpeed* p_owner);
 
 /**
- * @fn pifStepMotorSpeed_Emergency
  * @brief Forces immediate emergency brake state.
  * @param p_owner Pointer to the speed-control motor instance.
  */

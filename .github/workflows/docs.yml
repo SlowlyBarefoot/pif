@@ -1,0 +1,70 @@
+# Builds the Doxygen manual and publishes it on GitHub Pages:
+# https://slowlybarefoot.github.io/pif/
+#
+# Pull requests only build it, so a broken comment shows up before the merge.
+# Needs Settings > Pages > Source set to "GitHub Actions" once.
+
+name: Manual
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  DOXYGEN_VERSION: "1.18.0"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # git describe in gen_docs.sh needs the tags
+
+      - name: Install Doxygen
+        run: |
+          v="${DOXYGEN_VERSION}"
+          curl -sSfL -o doxygen.tar.gz \
+            "https://github.com/doxygen/doxygen/releases/download/Release_${v//./_}/doxygen-${v}.linux.bin.tar.gz"
+          mkdir -p "$RUNNER_TEMP/doxygen"
+          tar -xzf doxygen.tar.gz -C "$RUNNER_TEMP/doxygen" --strip-components=1
+          rm doxygen.tar.gz
+          echo "DOXYGEN=$RUNNER_TEMP/doxygen/bin/doxygen" >> "$GITHUB_ENV"
+
+      - name: Build the manual
+        run: bash tools/gen_docs.sh
+
+      - name: Show warnings
+        if: always()
+        run: |
+          if [ -s docs/build/warnings.log ]; then
+            sed 's/^/::warning::/' docs/build/warnings.log
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: docs/build/html
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

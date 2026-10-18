@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_bmp280_spi.h
+ * @brief Attaches a BMP280 on SPI: detection and initialization of a PifBmp280.
+ */
 #ifndef PIF_BMP280_SPI_H
 #define PIF_BMP280_SPI_H
 
@@ -11,27 +15,24 @@ extern "C" {
 #endif
 
 /**
- * @fn pifBmp280Spi_Detect
- * @brief Performs the bmp280 spi detect operation.
- * @param p_spi Pointer to spi.
+ * @brief Tells whether a BMP280 answers on the port, by reading its ID register through a temporary device.
+ * @param p_spi SPI port the device is on.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmp280Spi_Detect(PifSpiPort* p_spi);
 
 /**
- * @fn pifBmp280Spi_Init
- * @brief Initializes bmp280 spi init and prepares it for use.
+ * @brief Adds the BMP280 to the SPI port and sets it up.
  * @param p_owner Pointer to the owner instance.
- * @param id Unique identifier for the instance or task.
- * @param p_spi Pointer to spi.
- * @param p_client Pointer to optional client context data.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param p_spi SPI port the device is on.
+ * @param p_client Client pointer handed to the port functions of the device.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifBmp280Spi_Init(PifBmp280* p_owner, PifId id, PifSpiPort* p_spi, void *p_client);
 
 /**
- * @fn pifBmp280Spi_Clear
- * @brief Releases resources used by bmp280 spi clear.
+ * @brief Removes the task of the sensor, if any, and its device from the port.
  * @param p_owner Pointer to the owner instance.
  */
 void pifBmp280Spi_Clear(PifBmp280* p_owner);

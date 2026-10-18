@@ -1,4 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_mpu60x0_spi.h
+ * @brief Attaches an MPU-6000 on SPI: detection and initialization of a PifMpu60x0.
+ */
 #ifndef PIF_MPU60X0_SPI_H
 #define PIF_MPU60X0_SPI_H
 
@@ -11,35 +15,31 @@ extern "C" {
 #endif
 
 /**
- * @fn pifMpu60x0Spi_Detect
- * @brief Performs the mpu60x0 spi detect operation. Only the MPU-6000 has a SPI interface, so
+ * @brief Tells whether a MPU-6000/6050 answers on the port, by reading its ID register through a temporary device. Only the MPU-6000 has a SPI interface, so
  *        besides WHO_AM_I the product ID has to be one of its known revisions.
- * @param p_spi Pointer to spi.
- * @param p_client Pointer to optional client context data.
+ * @param p_spi SPI port the device is on.
+ * @param p_client Client pointer handed to the port functions of the device.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0Spi_Detect(PifSpiPort* p_spi, void *p_client);
 
 /**
- * @fn pifMpu60x0Spi_Init
- * @brief Initializes mpu60x0 spi init and prepares it for use. The chip is reset first, with
+ * @brief Adds the MPU-6000/6050 to the SPI port and sets it up. The chip is reset first, with
  *        DEVICE_RESET and then SIGNAL_PATH_RESET as the datasheet asks for on SPI, which holds the
  *        CPU for 200ms, and the I2C interface is disabled (I2C_IF_DIS). The port's act_read must
  *        set bit 7 of the register address, which the chip takes as the read flag.
  * @param p_owner Pointer to the owner instance.
- * @param id Unique identifier for the instance or task.
- * @param p_spi Pointer to spi.
- * @param p_client Pointer to optional client context data.
- * @param p_imu_sensor Pointer to imu sensor.
+ * @param id Instance ID, or PIF_ID_AUTO.
+ * @param p_spi SPI port the device is on.
+ * @param p_client Client pointer handed to the port functions of the device.
+ * @param p_imu_sensor IMU sensor the driver registers its sensors with.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifMpu60x0Spi_Init(PifMpu60x0* p_owner, PifId id, PifSpiPort* p_spi, void *p_client, PifImuSensor* p_imu_sensor);
 
 /**
- * @fn pifMpu60x0Spi_Clear
- * @brief Releases resources used by mpu60x0 spi clear.
+ * @brief Removes the device of the sensor from the port.
  * @param p_owner Pointer to the owner instance.
- * @return None.
  */
 void pifMpu60x0Spi_Clear(PifMpu60x0* p_owner);
 

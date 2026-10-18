@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif.h
+ * @brief Core of PIF: basic types, error codes, the time base and the platform hooks every module uses.
+ *
+ * Call pif_Init() with a 1 us timer at startup and pif_sigTimer1ms() every millisecond. The time counters,
+ * pif_error and the hooks declared here are shared by all modules.
+ */
 #ifndef PIF_H
 #define PIF_H
 
@@ -12,12 +19,12 @@
 #include "pif_conf.h"
 
 
-#define PIF_VERSION_MAJOR	0
-#define PIF_VERSION_MINOR	1
-#define PIF_VERSION_PATCH	0
+#define PIF_VERSION_MAJOR	0	///< Major version of PIF
+#define PIF_VERSION_MINOR	1	///< Minor version of PIF
+#define PIF_VERSION_PATCH	0	///< Patch version of PIF
 
 #ifndef PIF_WEAK
-#define PIF_WEAK __attribute__ ((weak))
+#define PIF_WEAK __attribute__ ((weak))	///< Marks a function the application may replace. Define it in pif_conf.h for a compiler without __attribute__((weak)).
 #endif
 
 // Short accessors are defined in the headers with this so they can be inlined across files.
@@ -30,177 +37,210 @@
 	#elif defined(_MSC_VER) || defined(__CC_ARM) || defined(__ICCARM__)
 		#define PIF_STATIC_INLINE	static __inline
 	#else
-		#define PIF_STATIC_INLINE	static
+		#define PIF_STATIC_INLINE	static	///< Storage class of the short accessors defined in the headers
 	#endif
 #endif
 
 #ifndef BOOL
-#define BOOL   unsigned char
+#define BOOL   unsigned char	///< Boolean type, TRUE or FALSE. Define it before pif.h to use another type.
 #endif
 
 #ifndef FALSE
-#define FALSE   0
+#define FALSE   0	///< Boolean false
 #endif
 
 #ifndef TRUE
-#define TRUE   1
+#define TRUE   1	///< Boolean true
 #endif
 
 #ifndef SWITCH
-#define SWITCH  unsigned char
+#define SWITCH  unsigned char	///< ON or OFF state of a switch or a pin
 #endif
 
 #ifndef OFF
-#define OFF     0
+#define OFF     0	///< Switch off
 #endif
 
 #ifndef ON
-#define ON      1
+#define ON      1	///< Switch on
 #endif
 
-#define PIF_PI		3.14159265358979323846f
+#define PIF_PI		3.14159265358979323846f	///< Pi as a float
 
-#define PIF_RAD		(PIF_PI / 180.0f)
+#define PIF_RAD		(PIF_PI / 180.0f)	///< Radians in one degree
 
-#define PIF_ID_AUTO			0x0000
-#define PIF_ID_USER(N)		(0x0100 + (N))
+#define PIF_ID_AUTO			0x0000	///< Lets the module take the next free ID from pif_id
+#define PIF_ID_USER(N)		(0x0100 + (N))	///< ID number N chosen by the application, apart from the automatic ones
 
-#define PIF_CHECK_ELAPSE_TIME_1MS(START, ELAPSE)	(pif_cumulative_timer1ms - (START) >= (ELAPSE))
-#define PIF_CHECK_ELAPSE_TIME_1US(START, ELAPSE)	((*pif_act_timer1us)() - (START) >= (ELAPSE))
+#define PIF_CHECK_ELAPSE_TIME_1MS(START, ELAPSE)	(pif_cumulative_timer1ms - (START) >= (ELAPSE))	///< TRUE when ELAPSE milliseconds have passed since START, a value of pif_cumulative_timer1ms
+#define PIF_CHECK_ELAPSE_TIME_1US(START, ELAPSE)	((*pif_act_timer1us)() - (START) >= (ELAPSE))	///< TRUE when ELAPSE microseconds have passed since START, a value of pif_act_timer1us
 
-#define REG_VALUE(V, SM)			((V) << ((SM) >> 8))
+#define REG_VALUE(V, SM)			((V) << ((SM) >> 8))	///< Shifts V into the place of a register field. SM holds the shift in its high byte and the mask in its low byte.
 
 // Left alone when the host project has already defined them. These evaluate
 // their arguments twice, so a host that offers safer ones - Betaflight's
 // common/maths.h wraps them in a statement expression with __typeof__ - must
 // win wherever both are in scope. PIF only needs them to be defined; it does
 // not need them to be its own.
+/** @name MIN, MAX and ABS
+ *  Left alone when the host project has already defined them. They evaluate their arguments twice.
+ *  @{
+ */
 #ifndef MIN
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))	///< Smaller of a and b
 #endif
 #ifndef MAX
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))	///< Larger of a and b
 #endif
 #ifndef ABS
-#define ABS(x) ((x) > 0 ? (x) : -(x))
+#define ABS(x) ((x) > 0 ? (x) : -(x))	///< Absolute value of x
 #endif
+/** @} */
 
-#define _PIF_CONCAT2(x, y) 		x ## y
-#define PIF_CONCAT2(x, y) 		_PIF_CONCAT2(x, y)
+#define _PIF_CONCAT2(x, y) 		x ## y	///< Helper of PIF_CONCAT2
+#define PIF_CONCAT2(x, y) 		_PIF_CONCAT2(x, y)	///< Joins two tokens after expanding them
 
-#define _PIF_CONCAT3(x, y, z) 	x ## y ## z
-#define PIF_CONCAT3(x, y, z) 	_PIF_CONCAT3(x, y, z)
+#define _PIF_CONCAT3(x, y, z) 	x ## y ## z	///< Helper of PIF_CONCAT3
+#define PIF_CONCAT3(x, y, z) 	_PIF_CONCAT3(x, y, z)	///< Joins three tokens after expanding them
 
-#define RESET_BIT_FILED(V, M)	(V) = (V) & ~(M)
-#define SET_BIT_FILED(V, M, D)	(V) = ((V) & ~(M)) | (D)
+#define RESET_BIT_FILED(V, M)	(V) = (V) & ~(M)	///< Clears the bits M of V
+#define SET_BIT_FILED(V, M, D)	(V) = ((V) & ~(M)) | (D)	///< Replaces the bits M of V with D, which must be in place
 
-// CRC-8 polynomials for pifCrc8_Add() (MSB first, no reflection).
-#define PIF_CRC8_POLY_DVB_S2	0xD5	// MSPv2, CRSF, GHST
-#define PIF_CRC8_POLY_BA		0xBA	// CRSF command frames
+/// CRC-8 polynomials for pifCrc8_Add() (MSB first, no reflection).
+#define PIF_CRC8_POLY_DVB_S2	0xD5	///< MSPv2, CRSF, GHST
+#define PIF_CRC8_POLY_BA		0xBA	///< CRSF command frames
 
 
+/**
+ * @brief ID of an object or a task, unique in the application.
+ *
+ * PIF_ID_AUTO lets the module take the next free one.
+ */
 typedef uint16_t PifId;
+/**
+ * @brief Opaque pointer handed back to a callback, usually the object that registered it.
+ */
 typedef void* PifIssuerP;
 
 
+/**
+ * @brief Error codes. The functions that fail set pif_error to one of them.
+ */
 typedef enum EnPifError
 {
-    E_SUCCESS           		= 0x00,
+    E_SUCCESS           		= 0x00,	///< No error
 
-	E_INVALID_PARAM     		= 0x01,
-    E_INVALID_STATE     		= 0x02,
-    E_OUT_OF_HEAP       		= 0x03,
-    E_OVERFLOW_BUFFER			= 0x04,
-	E_EMPTY_IN_BUFFER			= 0x05,
-	E_WRONG_DATA				= 0x06,
-	E_TIMEOUT					= 0x07,
-	E_NOT_SET_EVENT				= 0x08,
-	E_CANNOT_USE				= 0x09,
-	E_TRANSFER_FAILED			= 0x0A,
-	E_NOT_SET_TASK				= 0x0B,
-	E_MISMATCH_CRC				= 0x0C,
-	E_ACCESS_FAILED				= 0x0D,
-	E_CANNOT_FOUND				= 0x0E,
-	E_IS_NOT_FORMATED			= 0x0F,
-	E_RECEIVE_NACK				= 0x10,
-	E_INVALID_ID				= 0x11,
-	E_ALREADY_ATTACHED			= 0x12
+	E_INVALID_PARAM     		= 0x01,	///< A parameter is out of range
+    E_INVALID_STATE     		= 0x02,	///< The object is not in a state that allows the call
+    E_OUT_OF_HEAP       		= 0x03,	///< Memory allocation failed
+    E_OVERFLOW_BUFFER			= 0x04,	///< A buffer has no room left
+	E_EMPTY_IN_BUFFER			= 0x05,	///< A buffer holds no data
+	E_WRONG_DATA				= 0x06,	///< The data is malformed
+	E_TIMEOUT					= 0x07,	///< The operation timed out
+	E_NOT_SET_EVENT				= 0x08,	///< A required event callback is not set
+	E_CANNOT_USE				= 0x09,	///< The function cannot be used in this configuration
+	E_TRANSFER_FAILED			= 0x0A,	///< A transfer on a bus failed
+	E_NOT_SET_TASK				= 0x0B,	///< A required task is not set
+	E_MISMATCH_CRC				= 0x0C,	///< CRC check failed
+	E_ACCESS_FAILED				= 0x0D,	///< Access to a device or memory failed
+	E_CANNOT_FOUND				= 0x0E,	///< The item was not found
+	E_IS_NOT_FORMATED			= 0x0F,	///< The storage is not formatted
+	E_RECEIVE_NACK				= 0x10,	///< The device answered with NACK
+	E_INVALID_ID				= 0x11,	///< The ID is not valid
+	E_ALREADY_ATTACHED			= 0x12	///< Already attached to something else
 } PifError;
 
+/**
+ * @brief Level and edge of a sampled signal.
+ *
+ * Bit 0 is the level, bit 1 tells that it changed.
+ */
 typedef enum EnPifPulseState
 {
-    PS_LOW_LEVEL	= 0,
-    PS_FALLING_EDGE	= 1,
-    PS_RISING_EDGE	= 2,
-    PS_HIGH_LEVEL	= 3,
+    PS_LOW_LEVEL	= 0,	///< Low, no change
+    PS_FALLING_EDGE	= 1,	///< Changed to low
+    PS_RISING_EDGE	= 2,	///< Changed to high
+    PS_HIGH_LEVEL	= 3,	///< High, no change
 
-    PS_LEVEL_MASK	= 1,
-    PS_EDGE_MASK	= 2
+    PS_LEVEL_MASK	= 1,	///< Bit of the level
+    PS_EDGE_MASK	= 2	///< Bit of the edge
 } PifPulseState;
 
 /**
  * @struct StPifDateTime
- * @brief Represents the date time data structure used by this module.
+ * @brief Date and time kept by pif_sigTimer1ms().
  */
 typedef struct StPifDateTime
 {
-    uint8_t year;				// As of 2000
-    uint8_t month;
-    uint8_t day;
-    uint8_t hour;
-    uint8_t minute;
-    uint8_t second;
-    uint16_t millisecond;
+    uint8_t year;				///< As of 2000
+    uint8_t month;	///< 1 to 12
+    uint8_t day;	///< 1 to 31
+    uint8_t hour;	///< 0 to 23
+    uint8_t minute;	///< 0 to 59
+    uint8_t second;	///< 0 to 59
+    uint16_t millisecond;	///< 0 to 999
 } PifDateTime;
+/**
+ * @brief Load and timing of the main loop, measured by the task manager.
+ */
 
 typedef struct StPifPerformance
 {
 	// Public Member Variable
 
 	// Read-only Member Variable
-	volatile uint32_t _count;
-	uint32_t _task_time1us;     // Accumulated task time in the current CPU load measurement window.
-	uint32_t _max_delay;		// Longest delay in microseconds from the release to the dispatch
-	uint32_t _miss_count;		// Number of releases that were delayed by more than one period
-	uint8_t _task_load;         // Ratio of the last measurement window spent in tasks and in the
-								// timer and idle callbacks, as a percentage. Scheduling is not
-								// a task and is excluded, so a saturated system stays a little
-								// under 100%.
+	volatile uint32_t _count;	///< Passes of the main loop in the current second
+	uint32_t _task_time1us;     ///< Accumulated task time in the current CPU load measurement window.
+	uint32_t _max_delay;		///< Longest delay in microseconds from the release to the dispatch
+	uint32_t _miss_count;		///< Number of releases that were delayed by more than one period
+	uint8_t _task_load;         ///< Ratio of the last measurement window spent in tasks and in the
+								///< timer and idle callbacks, as a percentage. Scheduling is not
+								///< a task and is excluded, so a saturated system stays a little
+								///< under 100%.
 
 	// Private Member Variable
-	uint8_t __state;	// 0 : nomal, 1 : 1 ms, 2 : 1 second, 4: 1 minute
+	uint8_t __state;	///< 0 : nomal, 1 : 1 ms, 2 : 1 second, 4: 1 minute
 #ifdef PIF_DEBUG
 	uint32_t __max_loop_time1us;
 #endif
 } PifPerformance;
 
+/**
+ * @brief Returns a free-running 1 us counter of the platform. It wraps around at 2^32.
+ */
 typedef uint32_t (*PifActTimer1us)();
 
+/**
+ * @brief Reads the state of a GPIO port.
+ */
 typedef SWITCH (*PifActGpioRead)(uint16_t port);
+/**
+ * @brief Writes the state of a GPIO port.
+ */
 typedef void (*PifActGpioWrite)(uint16_t port, SWITCH state);
 
-extern PifError pif_error;
+extern PifError pif_error;	///< Error of the last function that failed
 
-extern uint32_t pif_timer1us;
-extern volatile uint16_t pif_timer1ms;
-extern volatile uint32_t pif_timer1sec;
-extern volatile PifDateTime pif_datetime;
+extern uint32_t pif_timer1us;	///< Time in us at the start of the current task run, from pif_act_timer1us
+extern volatile uint16_t pif_timer1ms;	///< Millisecond in the current second, 0 to 999
+extern volatile uint32_t pif_timer1sec;	///< Seconds since pif_Init()
+extern volatile PifDateTime pif_datetime;	///< Date and time kept by pif_sigTimer1ms(), set with pif_SetDateTime()
 
-extern volatile uint32_t pif_cumulative_timer1ms;
+extern volatile uint32_t pif_cumulative_timer1ms;	///< Milliseconds since pif_Init(). Wraps around after about 49 days.
 
-extern PifPerformance pif_performance;
+extern PifPerformance pif_performance;	///< Load and timing of the main loop
 
-extern PifId pif_id;
+extern PifId pif_id;	///< Next ID given for PIF_ID_AUTO
 
-extern PifActTimer1us pif_act_timer1us;
+extern PifActTimer1us pif_act_timer1us;	///< 1 us timer given to pif_Init()
 
-extern PifActGpioRead pif_act_gpio_read;
-extern PifActGpioWrite pif_act_gpio_write;
+extern PifActGpioRead pif_act_gpio_read;	///< Optional GPIO read for debugging. Some modules use it with their ID as the port.
+extern PifActGpioWrite pif_act_gpio_write;	///< Optional GPIO write for debugging. Some modules toggle their ID as the port to show timing.
 
-extern const char* kPifMonth3[12];
+extern const char* kPifMonth3[12];	///< Three letter English names of the months
 
-extern const char* kPifHexUpperChar;
-extern const char* kPifHexLowerChar;
+extern const char* kPifHexUpperChar;	///< "0123456789ABCDEF"
+extern const char* kPifHexLowerChar;	///< "0123456789abcdef"
 
 
 #ifdef __cplusplus
@@ -208,27 +248,24 @@ extern "C" {
 #endif
 
 /**
- * @fn pif_Init
- * @brief Initializes the core instance and prepares all internal fields for safe use.
+ * @brief Starts PIF with the 1 us timer of the platform. Call it once at startup, before any other module.
  * @param act_timer1us Callback that returns the current 1us tick count.
- * @return TRUE on success, otherwise FALSE.
+ * @return TRUE on success, FALSE with E_INVALID_PARAM when act_timer1us is NULL.
  */
 BOOL pif_Init(PifActTimer1us act_timer1us);
 
 /**
- * @fn pif_Exit
- * @brief Executes the pif_Exit operation for the core module according to the API contract.
+ * @brief Ends PIF: removes every task, timer and idle callback from the task manager.
  */
 void pif_Exit();
 
 /**
- * @fn pif_sigTimer1ms
- * @brief Processes an external signal or tick for the core and updates runtime timing state.
+ * @brief Advances the time base by 1 ms: pif_cumulative_timer1ms, pif_timer1ms, pif_timer1sec and pif_datetime.
+ *        Call it every millisecond, from a timer interrupt for example.
  */
 void pif_sigTimer1ms();
 
 /**
- * @fn pif_Delay1ms
  * @brief Waits for the requested time with the CPU held. Nothing else runs meanwhile, so the whole
  *        wait is added to the block time of whichever task is executing and delays a TM_REALTIME
  *        release by that much. Keep it to initialization and to waits a device cannot be asked
@@ -239,139 +276,127 @@ void pif_sigTimer1ms();
 void pif_Delay1ms(uint32_t delay);
 
 /**
- * @fn pif_Delay1us
  * @brief Waits for the requested time with the CPU held, as pif_Delay1ms() does.
  * @param delay Delay duration in microseconds.
  */
 void pif_Delay1us(uint32_t delay);
 
 /**
- * @fn pif_ChangeStatusLed
- * @brief Changes runtime configuration of the core while preserving object ownership semantics.
- * @param num Index number of the status LED to control.
- * @param state Target state value to apply.
+ * @brief Turns a status LED on or off. A weak function that does nothing: the application overrides it to drive
+ *        its LEDs.
+ * @param num Number of the status LED.
+ * @param state TRUE to turn it on, FALSE to turn it off.
  */
 void PIF_WEAK pif_ChangeStatusLed(int num, BOOL state);
 
 /**
- * @fn pif_ToggleStatusLed
- * @brief Executes the pif_ToggleStatusLed operation for the core module according to the API contract.
- * @param num Index number of the status LED to control.
+ * @brief Toggles a status LED. A weak function that does nothing: the application overrides it to drive its
+ *        LEDs.
+ * @param num Number of the status LED.
  */
 void PIF_WEAK pif_ToggleStatusLed(int num);
 
 /**
- * @fn pif_ClearError
- * @brief Executes the pif_ClearError operation for the core module according to the API contract.
+ * @brief Sets pif_error back to E_SUCCESS.
  */
 void pif_ClearError();
 
 /**
- * @fn pif_BinToString
- * @brief Executes the pif_BinToString operation for the core module according to the API contract.
- * @param p_buffer Pointer to the caller-provided buffer.
- * @param value Input numeric value to convert or process.
- * @param str_cnt Maximum number of characters to write to the output string.
- * @return Result value returned by this API.
+ * @brief Writes value as binary digits. No NUL is added.
+ * @param p_buffer Destination, large enough for the digits.
+ * @param value Value to write.
+ * @param str_cnt Number of low bits to write, or 0 for the digits without leading zeros.
+ * @return Number of characters written.
  */
 int pif_BinToString(char* p_buffer, uint32_t value, uint16_t str_cnt);
 
 /**
- * @fn pif_DecToString
- * @brief Executes the pif_DecToString operation for the core module according to the API contract.
- * @param p_buffer Pointer to the caller-provided buffer.
- * @param value Input numeric value to convert or process.
- * @param str_cnt Maximum number of characters to write to the output string.
- * @return Result value returned by this API.
+ * @brief Writes value as decimal digits. No NUL is added.
+ * @param p_buffer Destination, large enough for the digits.
+ * @param value Value to write.
+ * @param str_cnt Smallest number of digits, padded with leading zeros, or 0 for no padding.
+ * @return Number of characters written.
  */
 int pif_DecToString(char* p_buffer, uint32_t value, uint16_t str_cnt);
 
 /**
- * @fn pif_HexToString
- * @brief Executes the pif_HexToString operation for the core module according to the API contract.
- * @param p_buffer Pointer to the caller-provided buffer.
- * @param value Input numeric value to convert or process.
- * @param str_cnt Maximum number of characters to write to the output string.
- * @param upper Set to TRUE to use uppercase alphabetic digits.
- * @return Result value returned by this API.
+ * @brief Writes value as hexadecimal digits. No NUL is added.
+ * @param p_buffer Destination, large enough for the digits.
+ * @param value Value to write.
+ * @param str_cnt Smallest number of digits, padded with leading zeros, or 0 for no padding.
+ * @param upper TRUE for A to F, FALSE for a to f.
+ * @return Number of characters written.
  */
 int pif_HexToString(char* p_buffer, uint32_t value, uint16_t str_cnt, BOOL upper);
 
 /**
- * @fn pif_FloatToString
- * @brief Executes the pif_FloatToString operation for the core module according to the API contract.
- * @param p_buffer Pointer to the caller-provided buffer.
- * @param value Input numeric value to convert or process.
- * @param point Number of digits to place after the decimal point.
- * @return Result value returned by this API.
+ * @brief Writes value as a decimal number with a fraction, truncated. No NUL is added.
+ * @param p_buffer Destination, large enough for the number.
+ * @param value Value to write.
+ * @param point Digits after the decimal point, 0 for 6.
+ * @return Number of characters written.
  */
 int pif_FloatToString(char* p_buffer, double value, uint16_t point);
 
 /**
- * @fn pif_PrintFormat
- * @brief Formats and writes output related to the core using the provided destination.
- * @param p_buffer Pointer to the caller-provided buffer.
- * @param buffer_size Size of the destination buffer in bytes.
- * @param p_data Pointer to input or output data buffer.
- * @param p_format Format string used for text generation.
+ * @brief Formats a string like vsnprintf with the conversions %d, %u, %x, %X, %b, %f, %s, %c and %%. A width
+ *        sets the zero padded digits, or the digits after the point for %f, and l takes a long. The result always ends
+ *        with NUL.
+ * @param p_buffer Destination.
+ * @param buffer_size Size of p_buffer in bytes, the NUL included. What does not fit is dropped.
+ * @param p_data Arguments of the format.
+ * @param p_format Format string.
  */
 void pif_PrintFormat(char* p_buffer, size_t buffer_size, va_list* p_data, const char* p_format);
 
 /**
- * @fn pif_Printf
- * @brief Formats and writes output related to the core using the provided destination.
- * @param p_buffer Pointer to the caller-provided buffer.
- * @param buffer_size Size of the destination buffer in bytes.
- * @param p_format Format string used for text generation.
+ * @brief Formats a string like snprintf, with the conversions of pif_PrintFormat().
+ * @param p_buffer Destination.
+ * @param buffer_size Size of p_buffer in bytes, the NUL included. What does not fit is dropped.
+ * @param p_format Format string, followed by its arguments.
  */
 void pif_Printf(char* p_buffer, size_t buffer_size, const char* p_format, ...);
 
 /**
- * @fn pifCrc7_Add
- * @brief Adds an item to the crc7 and updates internal bookkeeping for subsequent operations.
- * @param crc Current CRC accumulator value.
- * @param data Input byte value used in CRC accumulation.
- * @return Return value of this API.
+ * @brief Adds one byte to a CRC-7 (polynomial 0x09, as SD cards use it). Start with 0.
+ * @param crc CRC so far.
+ * @param data Byte to add.
+ * @return New CRC.
  */
 uint8_t pifCrc7_Add(uint8_t crc, uint8_t data);
 
 /**
- * @fn pifCrc7_Result
- * @brief Executes the pifCrc7_Result operation for the crc7 module according to the API contract.
- * @param crc Current CRC accumulator value.
- * @return Return value of this API.
+ * @brief Turns a CRC-7 into the byte that is sent: the CRC shifted left with the end bit set.
+ * @param crc CRC from pifCrc7_Add().
+ * @return Byte to send.
  */
 uint8_t pifCrc7_Result(uint8_t crc);
 
 /**
- * @fn pifCrc7
- * @brief Executes the pifCrc7 operation for the crc7 module according to the API contract.
- * @param p_data Pointer to the data buffer used by this operation.
- * @param length Number of bytes to process.
- * @return Return value of this API.
+ * @brief Calculates the CRC-7 byte of a block, as pifCrc7_Result() gives it.
+ * @param p_data Data.
+ * @param length Number of bytes.
+ * @return Byte to send.
  */
 uint8_t pifCrc7(uint8_t* p_data, uint16_t length);
 
 /**
- * @fn pifCrc16_Add
- * @brief Adds an item to the crc16 and updates internal bookkeeping for subsequent operations.
- * @param crc Current CRC accumulator value.
- * @param data Input byte value used in CRC accumulation.
- * @return Return value of this API.
+ * @brief Adds one byte to a CRC-16/XMODEM (polynomial 0x1021, MSB first). Start with 0.
+ * @param crc CRC so far.
+ * @param data Byte to add.
+ * @return New CRC.
  */
 uint16_t pifCrc16_Add(uint16_t crc, uint8_t data);
 
 /**
- * @fn pifCrc16
- * @brief Executes the pifCrc16 operation for the crc16 module according to the API contract.
- * @param p_data Pointer to the data buffer used by this operation.
- * @param length Number of bytes to process.
- * @return Return value of this API.
+ * @brief Calculates the CRC-16/XMODEM of a block, starting from 0.
+ * @param p_data Data.
+ * @param length Number of bytes.
+ * @return CRC.
  */
 uint16_t pifCrc16(uint8_t* p_data, uint16_t length);
 
 /**
- * @fn pifCrc16_Update
  * @brief Adds a block of bytes to a CRC-16/CCITT (polynomial 0x1021, MSB first).
  *
  * pifCrc16() is this function started from 0 (CRC-16/XMODEM). Start from 0xFFFF
@@ -384,7 +409,6 @@ uint16_t pifCrc16(uint8_t* p_data, uint16_t length);
 uint16_t pifCrc16_Update(uint16_t crc, const uint8_t* p_data, uint16_t length);
 
 /**
- * @fn pifCrc8_Add
  * @brief Adds one byte to a CRC-8 with the given polynomial (MSB first, no reflection, no final XOR).
  * @param crc Current CRC accumulator value.
  * @param data Input byte value used in CRC accumulation.
@@ -394,7 +418,6 @@ uint16_t pifCrc16_Update(uint16_t crc, const uint8_t* p_data, uint16_t length);
 uint8_t pifCrc8_Add(uint8_t crc, uint8_t data, uint8_t poly);
 
 /**
- * @fn pifCrc8_Update
  * @brief Adds a block of bytes to a CRC-8 with the given polynomial.
  * @param crc Current CRC accumulator value.
  * @param p_data Pointer to the data buffer used by this operation.
@@ -405,7 +428,6 @@ uint8_t pifCrc8_Add(uint8_t crc, uint8_t data, uint8_t poly);
 uint8_t pifCrc8_Update(uint8_t crc, const uint8_t* p_data, uint16_t length, uint8_t poly);
 
 /**
- * @fn pifCrc8
  * @brief Calculates a CRC-8 with the given polynomial over a block of bytes, starting from 0.
  * @param p_data Pointer to the data buffer used by this operation.
  * @param length Number of bytes to process.
@@ -415,7 +437,6 @@ uint8_t pifCrc8_Update(uint8_t crc, const uint8_t* p_data, uint16_t length, uint
 uint8_t pifCrc8(const uint8_t* p_data, uint16_t length, uint8_t poly);
 
 /**
- * @fn pifCheckXor_Update
  * @brief Adds a block of bytes to an XOR checksum.
  * @param val Current XOR accumulator value.
  * @param p_data Pointer to the data buffer used by this operation.
@@ -425,20 +446,18 @@ uint8_t pifCrc8(const uint8_t* p_data, uint16_t length, uint8_t poly);
 uint8_t pifCheckXor_Update(uint8_t val, const uint8_t* p_data, uint16_t length);
 
 /**
- * @fn pifCheckSum
- * @brief Executes the pifCheckSum operation for the check sum module according to the API contract.
- * @param p_data Pointer to the data buffer used by this operation.
- * @param length Number of bytes to process.
- * @return Return value of this API.
+ * @brief Adds the bytes of a block.
+ * @param p_data Data.
+ * @param length Number of bytes.
+ * @return Sum of the bytes.
  */
 uint32_t pifCheckSum(uint8_t* p_data, uint16_t length);
 
 /**
- * @fn pifCheckXor
- * @brief Executes the pifCheckXor operation for the check xor module according to the API contract.
- * @param p_data Pointer to the data buffer used by this operation.
- * @param length Number of bytes to process.
- * @return Return value of this API.
+ * @brief XORs the bytes of a block.
+ * @param p_data Data.
+ * @param length Number of bytes.
+ * @return XOR of the bytes.
  */
 uint8_t pifCheckXor(uint8_t* p_data, uint16_t length);
 

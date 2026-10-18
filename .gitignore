@@ -59,3 +59,7 @@ dkms.conf
 
 # Unit test output
 test/build/
+
+# Doxygen output
+docs/build/
+!tools/*.cmd

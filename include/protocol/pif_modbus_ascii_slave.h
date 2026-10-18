@@ -1,4 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_modbus_ascii_slave.h
+ * @brief Modbus ASCII slave on a PifUart.
+ *
+ * Answers the requests sent to its address from the data areas attached with the pifModbusSlave_Attach
+ * functions.
+ */
 #ifndef PIF_MODBUS_ASCII_SLAVE_H
 #define PIF_MODBUS_ASCII_SLAVE_H
 
@@ -10,17 +17,17 @@
 
 /**
  * @class StPifModbusAsciiSlave
- * @brief Represents the StPifModbusAsciiSlave data structure.
+ * @brief Modbus ASCII slave. The common part is parent.
  */
 typedef struct StPifModbusAsciiSlave
 {
-	// The parent variable must be at the beginning of this structure.
+	/// The parent variable must be at the beginning of this structure.
 	PifModbusSlave parent;
 
 	// Public Member Variable
 
 	// Read-only Member Variable
-	PifId _id;
+	PifId _id;	///< Instance ID
 
 	// Private Member Variable
 	PifUart *__p_uart;
@@ -34,7 +41,7 @@ typedef struct StPifModbusAsciiSlave
 	{
 		PifModbusRxState state;
 		uint8_t function;
-		BOOL broadcast;			// The request went to every slave, so it is not answered
+		BOOL broadcast;			///< The request went to every slave, so it is not answered
 	} __rx;
 } PifModbusAsciiSlave;
 
@@ -44,32 +51,29 @@ extern "C" {
 #endif
 
 /**
- * @fn pifModbusAsciiSlave_Init
- * @brief Initializes the instance and required runtime resources.
+ * @brief Sets up a slave that answers the requests to my_addr, with the default receive timeout. Attach a UART
+ *        and the data areas next.
  * @param p_owner Pointer to the protocol instance.
  * @param id Instance identifier. Use PIF_ID_AUTO for automatic assignment.
- * @param my_addr Local slave address handled by this instance.
- * @return TRUE on success; otherwise FALSE.
+ * @param my_addr Own slave address, 1 to 247.
+ * @return TRUE on success, FALSE with E_INVALID_PARAM otherwise.
  */
 BOOL pifModbusAsciiSlave_Init(PifModbusAsciiSlave *p_owner, PifId id, uint8_t my_addr);
 
 /**
- * @fn pifModbusAsciiSlave_Clear
- * @brief Releases resources owned by the instance.
+ * @brief Frees the buffer the slave allocated for bit responses.
  * @param p_owner Pointer to the protocol instance.
  */
 void pifModbusAsciiSlave_Clear(PifModbusAsciiSlave *p_owner);
 
 /**
- * @fn pifModbusAsciiSlave_SetReceiveTimeout
- * @brief Updates a runtime configuration value.
+ * @brief Changes how long the slave waits for the next byte of a frame.
  * @param p_owner Pointer to the protocol instance.
  * @param receive_timeout Time in ms to wait for the next byte of a frame before it is dropped.
  */
 void pifModbusAsciiSlave_SetReceiveTimeout(PifModbusAsciiSlave *p_owner, uint16_t receive_timeout);
 
 /**
- * @fn pifModbusAsciiSlave_AttachUart
  * @brief Attaches the UART. A frame cut short is dropped by its rx task, on the first run past the
  *        receive timeout.
  * @param p_owner Pointer to the protocol instance.
@@ -78,8 +82,7 @@ void pifModbusAsciiSlave_SetReceiveTimeout(PifModbusAsciiSlave *p_owner, uint16_
 void pifModbusAsciiSlave_AttachUart(PifModbusAsciiSlave *p_owner, PifUart *p_uart);
 
 /**
- * @fn pifModbusAsciiSlave_DetachUart
- * @brief Detaches a previously attached interface or callback.
+ * @brief Detaches the slave from its UART.
  * @param p_owner Pointer to the protocol instance.
  */
 void pifModbusAsciiSlave_DetachUart(PifModbusAsciiSlave *p_owner);

@@ -29,14 +29,14 @@
  */
 typedef struct StPifSpiFdProtocol
 {
-	PifDeviceStreamProtocol parent;
+	PifDeviceStreamProtocol parent;	///< Protocol part of the stream. Must stay the first member.
 
 	// Private Member Variable
 	uint8_t __idle_byte;
-	uint8_t *__p_out;					// What the transfer that is running sends.
+	uint8_t *__p_out;					///< What the transfer that is running sends.
 	uint16_t __out_size;
-	uint16_t __sent;					// Bytes of the client in it.
-	uint16_t __size;					// Its length.
+	uint16_t __sent;					///< Bytes of the client in it.
+	uint16_t __size;					///< Its length.
 } PifSpiFdProtocol;
 
 /**
@@ -46,10 +46,10 @@ typedef struct StPifSpiFdProtocol
 typedef struct StPifSpiFdStream
 {
 	// Public Member Variable
-	PifDeviceStream stream;				// Its task is stream._p_task, whose period is the poll period.
+	PifDeviceStream stream;				///< Its task is stream._p_task, whose period is the poll period.
 
 	// Read-only Member Variable
-	PifSpiDevice *_p_device;			// Set its parent.timeout and parent.max_transfer_size as the port needs.
+	PifSpiDevice *_p_device;			///< Set its parent.timeout and parent.max_transfer_size as the port needs.
 
 	// Private Member Variable
 	PifSpiFdProtocol __protocol;
@@ -61,7 +61,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifSpiFdStream_Init
  * @brief Adds the device to the SPI port and initializes the stream, whose task waits until a client is
  *        attached. The idle byte is 0xFF.
  * @param p_owner Pointer to the stream.
@@ -77,7 +76,6 @@ BOOL pifSpiFdStream_Init(PifSpiFdStream *p_owner, PifId id, PifSpiPort *p_port, 
 		uint16_t rx_size, uint16_t tx_size, uint16_t period1ms);
 
 /**
- * @fn pifSpiFdStream_SetIdleByte
  * @brief Sets the byte sent when there is nothing to send, which an empty device answers with too.
  * @param p_owner Pointer to the stream.
  * @param idle_byte The idle byte of the device.
@@ -85,7 +83,6 @@ BOOL pifSpiFdStream_Init(PifSpiFdStream *p_owner, PifId id, PifSpiPort *p_port, 
 void pifSpiFdStream_SetIdleByte(PifSpiFdStream *p_owner, uint8_t idle_byte);
 
 /**
- * @fn pifSpiFdStream_Clear
  * @brief Detaches the client, waits for a transfer that is running, then removes the task and the device and
  *        frees the buffers.
  * @param p_owner Pointer to the stream.

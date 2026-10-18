@@ -24,25 +24,25 @@
  */
 typedef struct StPifCanStream
 {
-	PifTransport parent;
+	PifTransport parent;	///< Transport the protocol uses. Must stay the first member.
 
 	// Read-only Member Variable
-	PifId _id;
-	PifCan *_p_can;
-	uint32_t _tx_id;
-	uint32_t _rx_id;
-	uint8_t _flags;						// CAN_F_EXTENDED, CAN_F_FD and CAN_F_BRS. Both IDs share CAN_F_EXTENDED.
-	uint8_t _frame_size;				// Largest data put in one frame.
-	uint16_t _rx_lost;					// Bytes dropped because the receive buffer was full.
-	PifRingBuffer _rx_buffer;
+	PifId _id;	///< Instance ID
+	PifCan *_p_can;	///< CAN controller the stream is a client of
+	uint32_t _tx_id;	///< ID of the frames sent
+	uint32_t _rx_id;	///< ID of the frames received
+	uint8_t _flags;						///< CAN_F_EXTENDED, CAN_F_FD and CAN_F_BRS. Both IDs share CAN_F_EXTENDED.
+	uint8_t _frame_size;				///< Largest data put in one frame.
+	uint16_t _rx_lost;					///< Bytes dropped because the receive buffer was full.
+	PifRingBuffer _rx_buffer;	///< Received bytes waiting to be read
 
 	// Private Member Variable
-	PifCanClient __can_client;			// Added to _p_can.
+	PifCanClient __can_client;			///< Added to _p_can.
 	void *__p_client;
 	PifEvtTransportParsing __evt_parsing;
 	PifEvtTransportSending __evt_sending;
-	PifCanFrame __tx_frame;				// Bytes written but not queued yet.
-	uint16_t __tx_written;				// Bytes written during the current evt_sending.
+	PifCanFrame __tx_frame;				///< Bytes written but not queued yet.
+	uint16_t __tx_written;				///< Bytes written during the current evt_sending.
 } PifCanStream;
 
 
@@ -51,7 +51,6 @@ extern "C" {
 #endif
 
 /**
- * @fn pifCanStream_Init
  * @brief Initializes a byte stream and adds it to the CAN controller as a client. Received frames with rx_id
  *        go to the stream from then on, unless a client added before it takes them.
  * @param p_owner Pointer to the stream.
@@ -70,7 +69,6 @@ BOOL pifCanStream_Init(PifCanStream *p_owner, PifId id, PifCan *p_can, uint32_t 
 		uint8_t flags, uint8_t frame_size, uint16_t rx_size);
 
 /**
- * @fn pifCanStream_Clear
  * @brief Detaches the client, removes the stream from its CAN controller and frees the receive buffer.
  * @param p_owner Pointer to the stream.
  */

@@ -1,4 +1,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
+/**
+ * @file pif_task_manager.h
+ * @brief Cooperative scheduler that runs the tasks, the timer callbacks and the idle callback.
+ *
+ * Call pifTaskManager_Init() once, add the tasks with pifTaskManager_Add(), and call pifTaskManager_Loop() from
+ * the main loop. A TM_REALTIME task takes priority, and the other tasks run only when their measured run fits
+ * before its next release.
+ */
 #ifndef PIF_TASK_MANAGER_H
 #define PIF_TASK_MANAGER_H
 
@@ -6,33 +14,39 @@
 #include "core/pif_task.h"
 
 
+/**
+ * @brief Callback run at the start of every pass of the main loop.
+ */
 typedef void (*PifEvtTaskTimer)(void *p_client);
 
 /**
  * @struct StPifTaskTimer
- * @brief Represents the task timer data structure used by this module.
+ * @brief Callback run at the start of every pass of the main loop, added with pifTaskManager_AddTimer().
  */
 typedef struct StPifTaskTimer
 {
 	// Public Member Variable
-	// As PifTask::max_skip, for the loops this callback may be held back in a row. A timer
-	// callback is meant to run at the start of every loop, so being held back without a bound
-	// would break that contract rather than merely delay it.
+	/// As PifTask::max_skip, for the loops this callback may be held back in a row. A timer
+	/// callback is meant to run at the start of every loop, so being held back without a bound
+	/// would break that contract rather than merely delay it.
 	uint16_t max_skip;
 
 	// Read-only Member Variable
-    void *_p_client;
+    void *_p_client;			///< Client given to pifTaskManager_AddTimer()
 #ifdef PIF_USE_BLOCK_TIME
-	PifBlockTime _block_time;	// longest run of the callback, the delay it can cause
+	PifBlockTime _block_time;	///< longest run of the callback, the delay it can cause
 #endif
 
 	// Read-only Event Function
-    PifEvtTaskTimer _evt_timer;
+    PifEvtTaskTimer _evt_timer;	///< The callback
 
 	// Private Member Variable
-	uint16_t __skip_count;		// Runs held back in a row, against max_skip
+	uint16_t __skip_count;		///< Runs held back in a row, against max_skip
 } PifTaskTimer;
 
+/**
+ * @brief Callback run when no task is due, set with pifTaskManager_SetIdle().
+ */
 typedef void (*PifEvtTaskIdle)(void);
 
 #ifdef PIF_USE_TASK_STATISTICS
@@ -45,11 +59,11 @@ typedef void (*PifEvtTaskIdle)(void);
  */
 typedef struct StPifTaskIdleStatistics
 {
-	uint32_t total_execution_time;		// Sum of the run times since the callback was set (us)
-	uint32_t max_execution_time;		// Longest run since the last reset (us)
-	uint32_t average_execution_time;	// Average run time (us), or PIF_TASK_AVERAGE_NONE until
-										// PIF_TASK_AVERAGE_MIN_COUNT runs are collected
-	uint32_t average_delta_time;		// Average time between the starts of two runs (us), likewise
+	uint32_t total_execution_time;		///< Sum of the run times since the callback was set (us)
+	uint32_t max_execution_time;		///< Longest run since the last reset (us)
+	uint32_t average_execution_time;	///< Average run time (us), or PIF_TASK_AVERAGE_NONE until
+										///< PIF_TASK_AVERAGE_MIN_COUNT runs are collected
+	uint32_t average_delta_time;		///< Average time between the starts of two runs (us), likewise
 } PifTaskIdleStatistics;
 
 #endif
@@ -66,22 +80,19 @@ extern "C" {
 #endif
 
 /**
- * @fn pifTaskManager_Init
- * @brief Initializes the task manager instance and prepares all internal fields for safe use.
- * @param max_count Maximum number of elements to manage.
- * @param timer_count Maximum number of timer elements to manage.
- * @return TRUE on success, otherwise FALSE.
+ * @brief Allocates the pools of tasks and timer callbacks. Call it once after pif_Init().
+ * @param max_count Most tasks.
+ * @param timer_count Most timer callbacks, 0 for none.
+ * @return TRUE on success, FALSE with pif_error set otherwise.
  */
 BOOL pifTaskManager_Init(int max_count, int timer_count);
 
 /**
- * @fn pifTaskManager_Clear
- * @brief Clears the task manager state and releases resources currently owned by the instance.
+ * @brief Removes every task and timer callback and frees the pools.
  */
 void pifTaskManager_Clear();
 
 /**
- * @fn pifTaskManager_ResetRealtime
  * @brief Clears the monitoring result accumulated in pif_task_realtime.
  */
 void pifTaskManager_ResetRealtime();
@@ -89,7 +100,6 @@ void pifTaskManager_ResetRealtime();
 #ifdef PIF_USE_BLOCK_TIME
 
 /**
- * @fn pifTaskManager_ResetBlockTime
  * @brief Clears the longest run measured for every task and for the timer and idle callbacks.
  *        A single outlier stays in those values forever and keeps delaying the run it belongs
  *        to, so reset it after a one off long run such as an initialization path.
@@ -99,41 +109,36 @@ void pifTaskManager_ResetBlockTime();
 #endif
 
 /**
- * @fn pifTaskManager_Add
- * @brief Adds an item to the task manager and updates internal bookkeeping for subsequent operations.
- * @param id Identifier value for the object or task.
- * @param mode Operating mode configuration value.
- * @param period Execution period value for scheduling.
- * @param evt_loop Task loop callback executed by the scheduler.
- * @param p_client User-defined context pointer owned by the caller.
- * @param start Set to TRUE to start the task immediately after registration.
- * @return Pointer to the resulting object or data, or NULL if unavailable.
+ * @brief Adds a task with its loop function.
+ * @param id Task ID, or PIF_ID_AUTO.
+ * @param mode How the task is released. Only one task can be TM_REALTIME.
+ * @param period Period in microseconds for TM_PERIOD and TM_REALTIME. Ignored for TM_EXTERNAL.
+ * @param evt_loop Loop of the task.
+ * @param p_client Client of the task, kept in _p_client.
+ * @param start TRUE to start it now, FALSE to leave it paused until pifTask_Resume().
+ * @return The task, or NULL with pif_error set.
  */
 PifTask *pifTaskManager_Add(PifId id, PifTaskMode mode, uint32_t period, PifEvtTaskLoop evt_loop, void *p_client, BOOL start);
 
 /**
- * @fn pifTaskManager_Remove
- * @brief Removes an item from the task manager and updates internal bookkeeping for consistency.
- * @param p_task Pointer to the task object.
+ * @brief Removes a task.
+ * @param p_task Task to remove.
  */
 void pifTaskManager_Remove(PifTask *p_task);
 
 /**
- * @fn pifTaskManager_Count
- * @brief Returns the current number of valid items managed by the task manager.
- * @return Result value returned by this API.
+ * @brief Gets the number of tasks.
+ * @return Number of tasks.
  */
 int pifTaskManager_Count();
 
 /**
- * @fn pifTaskManager_CurrentTask
- * @brief Returns the current number of valid items managed by the task manager.
- * @return Return value of this API.
+ * @brief Gets the task whose loop is running.
+ * @return The task, or NULL outside a loop.
  */
 PifTask *pifTaskManager_CurrentTask();
 
 /**
- * @fn pifTaskManager_AddTimer
  * @brief Adds a timer process to the task manager. It runs at the start of every loop, before
  *        any task, and its execution time counts towards pif_performance._task_load.
  *        With PIF_USE_BLOCK_TIME a TM_REALTIME task delays a timer whose measured run does not
@@ -145,14 +150,12 @@ PifTask *pifTaskManager_CurrentTask();
 PifTaskTimer *pifTaskManager_AddTimer(PifEvtTaskTimer evt_timer, void *p_client);
 
 /**
- * @fn pifTaskManager_RemoveTimer
  * @brief Removes a timer process from the task manager.
  * @param p_timer Pointer to the timer object.
  */
 void pifTaskManager_RemoveTimer(PifTaskTimer *p_timer);
 
 /**
- * @fn pifTaskManager_SetIdle
  * @brief Sets the idle process callback for the task manager. It runs only in a loop where no
  *        task was dispatched, which makes it the place for work to be done with the time left
  *        over. That work is work all the same, so its execution time counts towards
@@ -165,7 +168,6 @@ void pifTaskManager_RemoveTimer(PifTaskTimer *p_timer);
 void pifTaskManager_SetIdle(PifEvtTaskIdle evt_idle, uint32_t period_ms);
 
 /**
- * @fn pifTaskManager_Loop
  * @brief Runs one scheduling loop iteration and dispatches eligible tasks in the manager.
  *        A loop callback runs to its end before anything else does: there is no way to give the
  *        CPU up in the middle of one and get it back later. A task that has to wait for something
@@ -179,7 +181,6 @@ void pifTaskManager_SetIdle(PifEvtTaskIdle evt_idle, uint32_t period_ms);
 void pifTaskManager_Loop();
 
 /**
- * @fn pifTaskManager_AllTask
  * @brief Calls the callback once for every task in the manager, in ring order.
  * @param callback Callback function invoked for each task entry.
  * @param p_arg Passed to every call of the callback unchanged, so the caller can carry state
@@ -190,7 +191,6 @@ void pifTaskManager_AllTask(void (*callback)(PifTask *p_task, void *p_arg), void
 #ifdef PIF_USE_TASK_STATISTICS
 
 /**
- * @fn pifTaskManager_GetIdleStatistics
  * @brief Retrieves the statistics of the idle callback set by pifTaskManager_SetIdle().
  * @param p_stat Filled in with the statistics. Left untouched when there is no idle callback.
  * @return FALSE when no idle callback is set, so there is nothing to report.
@@ -198,7 +198,6 @@ void pifTaskManager_AllTask(void (*callback)(PifTask *p_task, void *p_arg), void
 BOOL pifTaskManager_GetIdleStatistics(PifTaskIdleStatistics *p_stat);
 
 /**
- * @fn pifTaskManager_ResetIdleMaxExecutionTime
  * @brief Clears the longest run of the idle callback, as pifTask_ResetMaxExecutionTime() does
  *        for a task.
  */
@@ -209,8 +208,8 @@ void pifTaskManager_ResetIdleMaxExecutionTime();
 #if !defined(PIF_NO_LOG) || defined(PIF_LOG_COMMAND)
 
 /**
- * @fn pifTaskManager_Print
- * @brief Formats and writes output related to the task manager using the provided destination.
+ * @brief Logs every task with its mode, period and, with PIF_USE_BLOCK_TIME or PIF_USE_TASK_STATISTICS, its
+ *        measurements, then the realtime figures and the load.
  */
 void pifTaskManager_Print();
 
