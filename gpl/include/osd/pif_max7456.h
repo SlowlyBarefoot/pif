@@ -40,6 +40,7 @@ typedef enum EnPifMax7456Reg
 	MAX7456_REG_W_RB13	= 0x1D,
 	MAX7456_REG_W_RB14	= 0x1E,
 	MAX7456_REG_W_RB15	= 0x1F,
+	MAX7456_REG_W_OSDBL	= 0x6C,
 
 	MAX7456_REG_R_VM0	= 0x80,
 	MAX7456_REG_R_VM1	= 0x81,
@@ -73,8 +74,10 @@ typedef enum EnPifMax7456Reg
 	MAX7456_REG_R_STAT	= 0xA0,
 	MAX7456_REG_R_DMDO	= 0xB0,
 	MAX7456_REG_R_CMDO	= 0xC0,
-	MAX7456_REG_R_OSDBL	= 0x6C
+	MAX7456_REG_R_OSDBL	= 0xEC
 } PifMax7456Reg;
+
+#define MAX7456_CHAR_DATA_SIZE	54		// Bytes of one character pattern in character memory.
 
 
 // Register : Video Mode 0 (VM0)
@@ -342,13 +345,14 @@ typedef enum EnPifMax7456CharMemStatus
 typedef struct StPifMax7456
 {
 	// Public Member Variable
-	BOOL detected;
+	BOOL detected;						// Set by pifMax7456_Detect(), or by the caller that knows the device is there.
 
 	// Read-only Member Variable
 	PifId _id;
 	PifDeviceReg *_p_device;
 	BOOL _font_is_loading;
-	uint8_t _display_memory_mode;
+	uint8_t _display_memory_mode;		// What the driver writes to DMM. It owns every bit of DMM, so a DMM
+										// written elsewhere is overwritten by the next pifMax7456_Invert().
 
 	// Read-only Function
 
@@ -365,6 +369,15 @@ extern "C" {
 #endif
 
 /**
+ * @fn pifMax7456_Detect
+ * @brief Detects a MAX7456 or a compatible device by reading OSDM, which this driver never writes,
+ *        so it keeps its power-on value 0x1B. Sets `detected` to the result.
+ * @param p_owner Pointer to an initialized MAX7456 instance.
+ * @return `TRUE` if the device was found, otherwise `FALSE`, with pif_error set when the read failed.
+ */
+BOOL pifMax7456_Detect(PifMax7456* p_owner);
+
+/**
  * @fn pifMax7456_Init
  * @brief Initializes a MAX7456 instance and registers it on an SPI port.
  * @param p_owner Pointer to the instance storage to initialize.
@@ -379,25 +392,35 @@ BOOL pifMax7456_Init(PifMax7456* p_owner, PifId id, PifSpiPort* p_port, void *p_
  * @fn pifMax7456_Clear
  * @brief Releases SPI resources associated with a MAX7456 instance.
  * @param p_owner Pointer to an initialized MAX7456 instance.
+ * @return `TRUE` if the device was released, otherwise `FALSE` with pif_error set to
+ *         `E_INVALID_STATE` while a background transfer still holds the port for it. The instance
+ *         keeps the device then, so the call can be made again later.
  */
-void pifMax7456_Clear(PifMax7456* p_owner);
+BOOL pifMax7456_Clear(PifMax7456* p_owner);
 
 /**
  * @fn pifMax7456_WriteNvm
- * @brief Writes one character font pattern from shadow RAM to character NVM.
+ * @brief Writes one character font pattern to shadow RAM and stores it in character NVM. The OSD
+ *        display is turned off while the NVM is written and VM0 is restored afterwards. It waits
+ *        about 12 ms for the NVM, at most 50 ms. The pattern is not stored when shadow RAM could
+ *        not be written in full.
  * @param p_owner Pointer to an initialized and detected MAX7456 instance.
  * @param char_address Character index in MAX7456 character memory.
- * @param font_data Pointer to 54-byte character bitmap data.
- * @return `TRUE` when the write sequence completes, otherwise `FALSE`.
+ * @param font_data Pointer to `MAX7456_CHAR_DATA_SIZE` (54) bytes of character bitmap data.
+ * @return `TRUE` when the pattern was stored, otherwise `FALSE` with pif_error set: `E_INVALID_PARAM`
+ *         for a NULL font_data, `E_INVALID_STATE` when the device is not detected or the port is held,
+ *         `E_TIMEOUT` when the NVM stayed busy (VM0 is not restored then), or the error of a failed access.
  */
 BOOL pifMax7456_WriteNvm(PifMax7456* p_owner, uint8_t char_address, const uint8_t *font_data);
 
 /**
  * @fn pifMax7456_Invert
- * @brief Enables or disables black/white inversion in display memory mode.
+ * @brief Enables or disables black/white inversion in display memory mode. DMM is written only
+ *        when the mode differs from what was last written; a failed write is tried again by the
+ *        next call.
  * @param p_owner Pointer to an initialized MAX7456 instance.
  * @param invert `TRUE` to invert pixels, `FALSE` to keep normal polarity.
- * @return `TRUE` if a register update was applied, otherwise `FALSE`.
+ * @return `TRUE` if the device holds the requested mode, otherwise `FALSE` with pif_error set.
  */
 BOOL pifMax7456_Invert(PifMax7456* p_owner, BOOL invert);
 
@@ -410,12 +433,17 @@ void pifMax7456_InitBrightness(PifMax7456* p_owner);
 
 /**
  * @fn pifMax7456_Brightness
- * @brief Updates row brightness registers for black and white character levels.
+ * @brief Updates row brightness registers for black and white character levels. The rows are
+ *        written only when the levels differ from what was last written; a failed write is tried
+ *        again by the next call. All rows go under one chip select, or one row at a time on a port
+ *        whose max_transfer_size is below 32 bytes.
  * @param p_owner Pointer to an initialized MAX7456 instance.
- * @param black Black level value in range 0 to 3.
- * @param white White level value in range 0 to 3.
+ * @param black Black level, 0 to 3 for 0%, 10%, 20% and 30%.
+ * @param white White level, 0 to 3 for 80%, 90%, 100% and 120%.
+ * @return `TRUE` if the device holds the requested levels, otherwise `FALSE` with pif_error set:
+ *         `E_INVALID_PARAM` for a level above 3, or the error of the failed transfer.
  */
-void pifMax7456_Brightness(PifMax7456* p_owner, uint8_t black, uint8_t white);
+BOOL pifMax7456_Brightness(PifMax7456* p_owner, uint8_t black, uint8_t white);
 
 #ifdef __cplusplus
 }

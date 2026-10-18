@@ -42,6 +42,11 @@ const uint8_t maximum_fifo_config_file[] = {
 // says it does within 20ms.
 #define BMI270_INIT_TIMEOUT			30
 
+// How long the chip is given to answer with its chip ID after a soft reset, in ms. The 2ms of the
+// Bosch Sensor API is not always enough: a chip still booting reads back a wrong ID over SPI or
+// does not acknowledge over I2C.
+#define BMI270_RESET_TIMEOUT		100
+
 
 /**
  * @fn _readRegs
@@ -98,6 +103,8 @@ static void _changeAccelRange(PifImuSensor* p_imu_sensor, uint8_t range)
 BOOL pifBmi270_Config(PifBmi270* p_owner, PifId id, PifImuSensor* p_imu_sensor)
 {
 	uint8_t data;
+	BOOL ok;
+	int i;
 
 	if (!p_owner || !p_imu_sensor || !p_owner->_p_device) {
 		pif_error = E_INVALID_PARAM;
@@ -106,20 +113,25 @@ BOOL pifBmi270_Config(PifBmi270* p_owner, PifId id, PifImuSensor* p_imu_sensor)
 
 	// The waits here hold the CPU on purpose: this runs once at start-up.
     // CMD 0xB6 resets the chip; every register then holds its power-on value. The Bosch Sensor API
-    // leaves it 2ms before touching it again.
+    // leaves it 2ms before touching it again, which is the least waited here (pif_Delay1ms(n) may
+    // return just past n - 1 ms); the loop below gives a slower chip the rest.
 	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, BMI270_REG_CMD, BMI270_C_CMD_SOFT_RESET)) return FALSE;
-	pif_Delay1ms(2);
+	pif_Delay1ms(3);
 
 	// The reset puts the chip back on I2C, and it is the rising edge of CSB at the end of a read
-	// that switches it to SPI again, so what that first read returns is not to be trusted.
-	if (p_owner->__dummy_read) {
-		if (!_readRegs(p_owner, BMI270_REG_CHIP_ID, &data, 1)) return FALSE;
-	}
-
-	if (!_readRegs(p_owner, BMI270_REG_CHIP_ID, &data, 1)) return FALSE;
-	if (data != BMI270_WHO_AM_I_CONST) {
-		pif_error = E_WRONG_DATA;
-		return FALSE;
+	// that switches it to SPI again, so what that first read returns is not to be trusted. A chip
+	// still booting returns a wrong chip ID over SPI and may not acknowledge over I2C, so both are
+	// retried until the chip ID comes back, and a failed read only counts once time is up.
+	for (i = 0; ; i++) {
+		ok = TRUE;
+		if (p_owner->__dummy_read) ok = _readRegs(p_owner, BMI270_REG_CHIP_ID, &data, 1);
+		if (ok) ok = _readRegs(p_owner, BMI270_REG_CHIP_ID, &data, 1);
+		if (ok && data == BMI270_WHO_AM_I_CONST) break;
+		if (i >= BMI270_RESET_TIMEOUT) {
+			if (ok) pif_error = E_WRONG_DATA;
+			return FALSE;
+		}
+		pif_Delay1ms(1);
 	}
 
 	if (!pifBmi270_UploadConfig(p_owner)) return FALSE;
@@ -173,8 +185,9 @@ BOOL pifBmi270_UploadConfig(PifBmi270 *p_owner)
 	}
 
 	// Advanced power save has to be off while the file goes in, and it wants 450us to get there.
+	// pif_Delay1ms(1) may return at once, so 2 makes it at least 1ms.
     if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, BMI270_REG_PWR_CONF, 0)) return FALSE;
-	pif_Delay1ms(1);
+	pif_Delay1ms(2);
     if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, BMI270_REG_INIT_CTRL, 0)) return FALSE;
 
 	for (pos = 0; pos < sizeof(maximum_fifo_config_file); pos += len) {
