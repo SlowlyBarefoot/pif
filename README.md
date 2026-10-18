@@ -45,32 +45,104 @@ Provide platform-specific functions used by selected modules, such as:
 
 ### 4. Initialize core
 
-Initialize PIF during startup (before entering the main loop):
+Split the startup into two parts, as the examples in [pif-example](https://github.com/SlowlyBarefoot/pif-example) do:
+
+- `port_main.c` holds everything that depends on the board: the HAL or Arduino calls, the `act*` callbacks and
+  the interrupt handlers. `portSetup()` starts PIF and the objects that touch the hardware.
+- `app_main.c` holds the application. `appSetup()` uses only PIF objects, so it moves to another board unchanged.
+- `app_port.h` is shared by both: the sizes and the objects that the port makes and the application uses.
+
+`app_port.h`:
 
 ```c
-#include "core/pif.h"
+#ifndef APP_PORT_H
+#define APP_PORT_H
 
-static uint32_t platform_timer1us(void)
+#include "core/pif_task_manager.h"
+#include "display/pif_led.h"
+
+#define TASK_SIZE       4
+
+extern PifLed g_led_l;
+
+BOOL portSetup();
+BOOL appSetup();
+
+#endif
+```
+
+`port_main.c`:
+
+```c
+#include "app_port.h"
+
+PifLed g_led_l;
+
+static uint32_t actTimer1us()
 {
-    // Return current 1 us tick from your platform.
-    return 0;
+    return platform_micros();                       // Free-running 1 us counter of the board
 }
 
-void app_init(void)
+static void actLedLState(PifId id, uint32_t state)
 {
-    if (!pif_Init(platform_timer1us)) {
-        // Handle initialization failure
-        while (1) {}
-    }
+    (void)id;
+    platform_write_led(state & 1);                  // Drive the LED pin
+}
+
+BOOL portSetup()
+{
+    if (!pif_Init(actTimer1us)) return FALSE;
+    if (!pifTaskManager_Init(TASK_SIZE, 0)) return FALSE;
+
+    if (!pifLed_Init(&g_led_l, PIF_ID_AUTO, 1, actLedLState)) return FALSE;
+    return TRUE;
+}
+```
+
+`app_main.c`:
+
+```c
+#include "app_port.h"
+
+BOOL appSetup()
+{
+    if (!pifLed_AttachSBlink(&g_led_l, 500)) return FALSE;     // Blink every 500 ms
+    pifLed_SBlinkOn(&g_led_l, 1 << 0);
+    return TRUE;
 }
 ```
 
 ### 5. Drive periodic signals and tasks
 
-Feed the framework tick signal and execute module tasks:
+`main()` sets up the port and the application, then runs the tasks forever:
 
-- call `pif_sigTimer1ms()` from your 1 ms timer/ISR context (or equivalent timing path)
-- run enabled module task handlers from your main loop
+```c
+#include "app_port.h"
+
+int main(void)
+{
+    // Board and clock initialization of the platform
+
+    if (!portSetup()) return -1;
+    if (!appSetup()) return -1;
+
+    while (1) {
+        pifTaskManager_Loop();
+    }
+    return 0;
+}
+```
+
+The time base of PIF advances with `pif_sigTimer1ms()`, called every 1 ms, usually from a timer interrupt in
+`port_main.c`. A `PifTimerManager` gets its tick there too:
+
+```c
+void platform_timer_1ms_interrupt(void)
+{
+    pif_sigTimer1ms();
+    // pifTimerManager_sigTick(&g_timer_1ms);       // When the board has a PifTimerManager
+}
+```
 
 ## Build and Integration Examples
 
