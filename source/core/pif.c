@@ -11,6 +11,8 @@
 
 PifError pif_error = E_SUCCESS;
 
+volatile BOOL pif_ready = FALSE;
+
 uint32_t pif_timer1us = 0L;
 volatile uint16_t pif_timer1ms = 0;
 volatile uint32_t pif_timer1sec = 0L;
@@ -37,6 +39,9 @@ PifActTimer1us pif_act_timer1us = NULL;
 PifActGpioRead pif_act_gpio_read = NULL;
 PifActGpioWrite pif_act_gpio_write = NULL;
 
+PifActIrqDisable pif_act_irq_disable = NULL;
+PifActIrqRestore pif_act_irq_restore = NULL;
+
 const char* kPifMonth3[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
 const char* kPifHexUpperChar = "0123456789ABCDEF";
@@ -57,11 +62,13 @@ BOOL pif_Init(PifActTimer1us act_timer1us)
 	pif_datetime.month = 1;
 	pif_datetime.day = 1;
 
+	pif_ready = TRUE;
     return TRUE;
 }
 
 void pif_Exit()
 {
+	pif_ready = FALSE;
 	pifTaskManager_Clear();
 }
 
@@ -69,6 +76,8 @@ void pif_sigTimer1ms()
 {
 	uint8_t days;
 	uint16_t year;
+
+	if (!pif_ready) return;
 
 	pif_cumulative_timer1ms++;
     pif_timer1ms++;

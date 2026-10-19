@@ -6,7 +6,7 @@
 BOOL pifObjArray_Init(PifObjArray* p_owner, int size, int max_count, PifEvtObjArrayClear evt_clear)
 {
 	char* p_buffer;
-	int tmp, len = sizeof(PifObjArrayIterator);
+	int i, tmp, len = sizeof(PifObjArrayIterator);
 	PifObjArrayIterator p_node;
 
 	if (!p_owner || !size || !max_count) {
@@ -35,7 +35,7 @@ BOOL pifObjArray_Init(PifObjArray* p_owner, int size, int max_count, PifEvtObjAr
 
 	p_node = p_owner->_p_node;
 	p_owner->_p_free = p_node;
-	for (int i = 1; i < max_count; i++) {
+	for (i = 1; i < max_count; i++) {
 		p_buffer += 2 * len + size;
 		p_node->p_next = (PifObjArrayIterator)p_buffer;
 		p_node->p_prev = NULL;

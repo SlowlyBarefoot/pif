@@ -83,12 +83,12 @@ extern "C" {
  * @brief Allocates the pools of tasks and timer callbacks. Call it once after pif_Init().
  * @param max_count Most tasks.
  * @param timer_count Most timer callbacks, 0 for none.
- * @return TRUE on success, FALSE with pif_error set otherwise.
+ * @return TRUE on success, FALSE with pif_error set otherwise. E_INVALID_STATE before pif_Init().
  */
 BOOL pifTaskManager_Init(int max_count, int timer_count);
 
 /**
- * @brief Removes every task and timer callback and frees the pools.
+ * @brief Removes every task and timer callback and frees the pools. Safe before pif_Init() as well.
  */
 void pifTaskManager_Clear();
 
@@ -177,6 +177,7 @@ void pifTaskManager_SetIdle(PifEvtTaskIdle evt_idle, uint32_t period_ms);
  *        in the time left before its release, whether the task is due by its period, by the delay
  *        it returned or by pifTask_SetTrigger(). Only pifTask_SetCutinTrigger() is dispatched
  *        regardless.
+ *        Returns at once while pif_ready is FALSE.
  */
 void pifTaskManager_Loop();
 

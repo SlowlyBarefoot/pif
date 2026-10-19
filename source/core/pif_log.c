@@ -384,7 +384,7 @@ static BOOL _evtParsing(void* p_client, PifActTransportReceive act_receive_data)
 
 static uint32_t _doTask(PifTask* p_task)
 {
-    int status = PIF_LOG_CMD_NO_ERROR;
+    int i, status = PIF_LOG_CMD_NO_ERROR;
     char msg[40];
 
     (void)p_task;
@@ -396,7 +396,7 @@ static uint32_t _doTask(PifTask* p_task)
 		s_log.char_idx--;
 	}
 
-	for (int i = 0; i < PIF_LOG_CMD_MAX_ARGS; i++) {
+	for (i = 0; i < PIF_LOG_CMD_MAX_ARGS; i++) {
 		s_log.p_argv[i] = 0;
 	}
 

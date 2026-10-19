@@ -94,6 +94,7 @@ static uint32_t _doTask(PifTask* p_task)
 {
 	PifGpio* p_owner = p_task->_p_client;
 	PifGpioState state, changed;
+	int i;
 
 	state = p_owner->__act_in(p_owner->_id) & _mask(p_owner);
 	changed = state ^ p_owner->__read_state;
@@ -104,7 +105,7 @@ static uint32_t _doTask(PifTask* p_task)
 #endif
 
 	if (changed && p_owner->evt_in) {
-		for (int i = 0; i < p_owner->count; i++) {
+		for (i = 0; i < p_owner->count; i++) {
 			if (changed & ((PifGpioState)1 << i)) (*p_owner->evt_in)(p_owner, i, (state >> i) & 1);
 		}
 	}

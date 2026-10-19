@@ -73,6 +73,13 @@ typedef void (*PifActSolenoidControl)(uint8_t index, SWITCH action, PifSolenoidD
  */
 typedef void (*PifEvtSolenoid)(PifSolenoid* p_owner, uint8_t index);
 
+/**
+ * @brief Keeps the other context out of the instance, by masking its interrupt for example.
+ * @param p_owner Solenoid instance.
+ * @param lock TRUE to enter, FALSE to leave.
+ */
+typedef void (*PifActSolenoidLock)(PifSolenoid* p_owner, BOOL lock);
+
 
 /**
  * @class StPifSolenoidContent
@@ -136,7 +143,8 @@ typedef struct StPifSolenoidChannel
  *        buffering. One TM_EXTERNAL task does the timing of all of them, woken by
  *        pifTask_SetTrigger() at the earliest end of a pulse or delayed command among the channels.
  *        It runs in the main context and, with a TM_REALTIME task, waits for the realtime slack
- *        like any other trigger.
+ *        like any other trigger. Commands may come from an interrupt once a lock is attached with
+ *        pifSolenoid_AttachActLock().
  */
 struct StPifSolenoid
 {
@@ -155,6 +163,7 @@ struct StPifSolenoid
 
     // Private Action Function
     PifActSolenoidControl __act_control;
+    PifActSolenoidLock __act_lock;
 };
 
 
@@ -245,6 +254,18 @@ BOOL pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint8_t index, uint16_t delay
  * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifSolenoid_ActionOff(PifSolenoid* p_owner, uint8_t index);
+
+/**
+ * @brief Gives the instance a way to keep the other context out. With it, pifSolenoid_ActionOn(),
+ *        pifSolenoid_ActionOnDir(), pifSolenoid_ActionOff(), pifSolenoid_SetOnTime() and
+ *        pifSolenoid_SetInvalidDirection() may be called from an interrupt that the lock masks, while
+ *        the task of the instance runs in the main context. Those calls and the task do their work
+ *        under the lock, act_control and evt_off included, so keep the callbacks short. An evt_off
+ *        that calls back into the instance needs a lock that nests. Without a lock no locking is done.
+ * @param p_owner Solenoid instance to configure.
+ * @param act_lock Enters and leaves the locked section, or NULL to remove it.
+ */
+void pifSolenoid_AttachActLock(PifSolenoid* p_owner, PifActSolenoidLock act_lock);
 
 /**
  * @brief Tells whether one channel is ON.

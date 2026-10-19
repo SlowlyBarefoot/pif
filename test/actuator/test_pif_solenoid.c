@@ -32,6 +32,11 @@ static Act s_act[MAX_ACTS];
 static int s_act_count;
 static int s_off_count;
 static uint32_t s_off_mask;
+static BOOL s_check_lock;
+static int s_lock_depth;
+static int s_lock_count;
+static BOOL s_lock_error;
+static int s_act_unlocked;
 
 
 static uint32_t _timer1us(void)
@@ -41,6 +46,7 @@ static uint32_t _timer1us(void)
 
 static void _actControl(uint8_t index, SWITCH action, PifSolenoidDir dir)
 {
+    if (s_check_lock && !s_lock_depth) s_act_unlocked++;
     if (s_act_count < MAX_ACTS) {
         s_act[s_act_count].index = index;
         s_act[s_act_count].time_ms = s_now / 1000;
@@ -48,6 +54,21 @@ static void _actControl(uint8_t index, SWITCH action, PifSolenoidDir dir)
         s_act[s_act_count].dir = dir;
     }
     s_act_count++;
+}
+
+// Counts the sections and catches one entered twice or left without being entered.
+static void _actLock(PifSolenoid* p_owner, BOOL lock)
+{
+    (void)p_owner;
+    if (lock) {
+        if (s_lock_depth) s_lock_error = TRUE;
+        s_lock_depth++;
+        s_lock_count++;
+    }
+    else {
+        if (!s_lock_depth) s_lock_error = TRUE;
+        else s_lock_depth--;
+    }
 }
 
 static void _evtOff(PifSolenoid* p_owner, uint8_t index)
@@ -328,6 +349,43 @@ static void testClear(void)
     CHECK(pifTaskManager_Count() == 0 && !solenoid._p_task);
 }
 
+static void testLock(void)
+{
+    PifSolenoid solenoid;
+    int count;
+
+    _setUp(&solenoid, ST_1POINT, 10);
+    CHECK(!s_failed);
+    s_lock_depth = 0;
+    s_lock_count = 0;
+    s_lock_error = FALSE;
+    s_act_unlocked = 0;
+
+    // Every call that changes the state and every run of the task take the lock once, and the
+    // hardware is driven inside it.
+    pifSolenoid_AttachActLock(&solenoid, _actLock);
+    s_check_lock = TRUE;
+    CHECK(pifSolenoid_ActionOn(&solenoid, 0, 0));
+    CHECK(s_lock_count == 1 && s_lock_depth == 0 && _act(0, 0, ON, SD_INVALID));
+    _runUntil(20);
+    CHECK(_act(1, 10, OFF, SD_INVALID) && s_off_count == 1);
+    CHECK(pifSolenoid_SetOnTime(&solenoid, 0, 3) && pifSolenoid_SetInvalidDirection(&solenoid, 0));
+    CHECK(pifSolenoid_ActionOn(&solenoid, 0, 5));
+    _runUntil(30);
+    CHECK(_act(2, 25, ON, SD_INVALID) && _act(3, 28, OFF, SD_INVALID));
+    CHECK(pifSolenoid_ActionOn(&solenoid, 0, 0) && pifSolenoid_ActionOff(&solenoid, 0));
+    s_check_lock = FALSE;
+    CHECK(!s_lock_error && s_lock_depth == 0 && s_act_unlocked == 0 && s_lock_count >= 8);
+
+    // Detached, nothing is locked any more.
+    pifSolenoid_AttachActLock(&solenoid, NULL);
+    count = s_lock_count;
+    CHECK(pifSolenoid_ActionOn(&solenoid, 0, 0));
+    _runUntil(40);
+    CHECK(s_lock_count == count);
+    pifSolenoid_Clear(&solenoid);
+}
+
 static void testCount(void)
 {
     PifSolenoid solenoid;
@@ -478,6 +536,7 @@ int main(void)
         { "action off cancels", testActionOffCancels },
         { "two point", testTwoPoint },
         { "clear", testClear },
+        { "lock", testLock },
         { "count", testCount },
         { "channels independent", testChannelsIndependent },
         { "channels separate queues", testChannelsSeparateQueues },

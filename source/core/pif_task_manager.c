@@ -473,7 +473,8 @@ static void _processingIdle(uint32_t slack)
 
 static void _initCpuLoad()
 {
-	s_task_load_start_time = (*pif_act_timer1us)();
+	// pifTaskManager_Clear() may run before pif_Init(), when there is no timer to read yet.
+	s_task_load_start_time = pif_act_timer1us ? (*pif_act_timer1us)() : 0UL;
 	pif_performance._task_time1us = 0UL;
 	pif_performance._task_load = 0;
 }
@@ -574,6 +575,11 @@ BOOL pifTaskManager_Init(int max_count, int timer_count)
 {
 	if (!max_count) {
 		pif_error = E_INVALID_PARAM;
+	    return FALSE;
+	}
+	// The task manager reads the 1us timer from here on.
+	if (!pif_ready) {
+		pif_error = E_INVALID_STATE;
 	    return FALSE;
 	}
 
@@ -748,6 +754,9 @@ void pifTaskManager_Loop()
 	uint32_t diff, now, block_start, block_time;
 	uint32_t slack;
 	BOOL trigger = FALSE;
+
+	// Before pif_Init() there is no timer to read.
+	if (!pif_ready) return;
 
 	pif_timer1us = (*pif_act_timer1us)();
 

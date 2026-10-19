@@ -17,9 +17,11 @@
 
 static BOOL _writeShadowRam(PifMax7456* p_owner, uint8_t char_address, const uint8_t *font_data)
 {
+	int x;
+
 	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MAX7456_REG_W_CMAH, char_address)) return FALSE;
 
-	for (int x = 0; x < MAX7456_CHAR_DATA_SIZE; x++) {
+	for (x = 0; x < MAX7456_CHAR_DATA_SIZE; x++) {
 		if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MAX7456_REG_W_CMAL, x)) return FALSE;
 		if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MAX7456_REG_W_CMDI, font_data[x])) return FALSE;
 	}
@@ -154,6 +156,7 @@ BOOL pifMax7456_Brightness(PifMax7456* p_owner, uint8_t black, uint8_t white)
 	PifDeviceReg *p_device = p_owner->_p_device;
 	uint8_t reg;
 	uint8_t buf[MAX7456_BRIGHTNESS_SIZE];
+	int i, j;
 
 	if (black > 3 || white > 3) {
 		pif_error = E_INVALID_PARAM;
@@ -164,7 +167,7 @@ BOOL pifMax7456_Brightness(PifMax7456* p_owner, uint8_t black, uint8_t white)
 	if (reg == p_owner->__previous_brightness) return TRUE;
 
 	if (!p_device->max_transfer_size || p_device->max_transfer_size >= MAX7456_BRIGHTNESS_SIZE) {
-		for (int i = MAX7456_REG_W_RB0, j = 0; i <= MAX7456_REG_W_RB15; i++) {
+		for (i = MAX7456_REG_W_RB0, j = 0; i <= MAX7456_REG_W_RB15; i++) {
 			buf[j++] = i;
 			buf[j++] = reg;
 		}
@@ -172,7 +175,7 @@ BOOL pifMax7456_Brightness(PifMax7456* p_owner, uint8_t black, uint8_t white)
 	}
 	else {
 		// The port cannot take all rows under one chip select, so each row is written on its own.
-		for (int i = MAX7456_REG_W_RB0; i <= MAX7456_REG_W_RB15; i++) {
+		for (i = MAX7456_REG_W_RB0; i <= MAX7456_REG_W_RB15; i++) {
 			if (!pifDeviceReg_WriteRegByte(p_device, i, reg)) return FALSE;
 		}
 	}

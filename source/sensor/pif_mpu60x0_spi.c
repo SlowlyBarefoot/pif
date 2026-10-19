@@ -15,6 +15,7 @@ BOOL pifMpu60x0Spi_Detect(PifSpiPort* p_spi, void *p_client)
 	const char ident[] = "MPU6000 Ident: ";
 #endif	
 	uint8_t data;
+	size_t i;
 	PifSpiDevice* p_device;
 
     p_device = pifSpiPort_TemporaryDevice(p_spi, p_client);
@@ -23,7 +24,7 @@ BOOL pifMpu60x0Spi_Detect(PifSpiPort* p_spi, void *p_client)
 	if (data != MPU60X0_WHO_AM_I_CONST) return FALSE;
 
 	if (!pifDeviceReg_ReadRegByte((PifDeviceReg *)p_device, MPU60X0_REG_PRODUCT_ID, &data)) return FALSE;
-	for (size_t i = 0; i < sizeof(c_mpu6000_product_id); i++) {
+	for (i = 0; i < sizeof(c_mpu6000_product_id); i++) {
 		if (data == c_mpu6000_product_id[i]) {
 #ifndef PIF_NO_LOG	
 			pifLog_Printf(LT_INFO, "%s%Xh", ident, data);

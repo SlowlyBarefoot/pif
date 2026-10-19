@@ -219,7 +219,23 @@ typedef SWITCH (*PifActGpioRead)(uint16_t port);
  */
 typedef void (*PifActGpioWrite)(uint16_t port, SWITCH state);
 
+/**
+ * @brief Disables the interrupts of the platform, to begin a section that an interrupt must not enter.
+ * @return Interrupt state before the call, such as PRIMASK on Cortex-M or SREG on AVR, for PifActIrqRestore.
+ */
+typedef uint32_t (*PifActIrqDisable)();
+/**
+ * @brief Puts the interrupts of the platform back in the state PifActIrqDisable returned, to end the section.
+ *        They stay disabled when they already were, so sections may nest and may run inside an interrupt.
+ * @param state Value returned by the PifActIrqDisable call that began the section.
+ */
+typedef void (*PifActIrqRestore)(uint32_t state);
+
 extern PifError pif_error;	///< Error of the last function that failed
+
+/// TRUE from pif_Init() until pif_Exit(). Until then pif_sigTimer1ms() and pifTaskManager_Loop() return at once,
+/// so a timer interrupt or a main loop that starts before the setup is done needs no guard of its own.
+extern volatile BOOL pif_ready;
 
 extern uint32_t pif_timer1us;	///< Time in us at the start of the current task run, from pif_act_timer1us
 extern volatile uint16_t pif_timer1ms;	///< Millisecond in the current second, 0 to 999
@@ -236,6 +252,11 @@ extern PifActTimer1us pif_act_timer1us;	///< 1 us timer given to pif_Init()
 
 extern PifActGpioRead pif_act_gpio_read;	///< Optional GPIO read for debugging. Some modules use it with their ID as the port.
 extern PifActGpioWrite pif_act_gpio_write;	///< Optional GPIO write for debugging. Some modules toggle their ID as the port to show timing.
+
+/// Optional interrupt disable of the platform. NULL leaves a section unguarded. Set it together with
+/// pif_act_irq_restore. Modules call the pair through pif_IrqDisable() and pif_IrqRestore().
+extern PifActIrqDisable pif_act_irq_disable;
+extern PifActIrqRestore pif_act_irq_restore;	///< Optional interrupt restore of the platform, paired with pif_act_irq_disable.
 
 extern const char* kPifMonth3[12];	///< Three letter English names of the months
 
@@ -255,13 +276,13 @@ extern "C" {
 BOOL pif_Init(PifActTimer1us act_timer1us);
 
 /**
- * @brief Ends PIF: removes every task, timer and idle callback from the task manager.
+ * @brief Ends PIF: clears pif_ready, then removes every task, timer and idle callback from the task manager.
  */
 void pif_Exit();
 
 /**
  * @brief Advances the time base by 1 ms: pif_cumulative_timer1ms, pif_timer1ms, pif_timer1sec and pif_datetime.
- *        Call it every millisecond, from a timer interrupt for example.
+ *        Call it every millisecond, from a timer interrupt for example. Does nothing while pif_ready is FALSE.
  */
 void pif_sigTimer1ms();
 
@@ -300,6 +321,24 @@ void PIF_WEAK pif_ToggleStatusLed(int num);
  * @brief Sets pif_error back to E_SUCCESS.
  */
 void pif_ClearError();
+
+/**
+ * @brief Begins a section that an interrupt must not enter, with pif_act_irq_disable when it is set.
+ * @return Interrupt state to pass to pif_IrqRestore(), or 0 when pif_act_irq_disable is NULL.
+ */
+PIF_STATIC_INLINE uint32_t pif_IrqDisable()
+{
+	return pif_act_irq_disable ? (*pif_act_irq_disable)() : 0;
+}
+
+/**
+ * @brief Ends the section begun by pif_IrqDisable(), with pif_act_irq_restore when it is set.
+ * @param state Value returned by the pif_IrqDisable() call that began the section.
+ */
+PIF_STATIC_INLINE void pif_IrqRestore(uint32_t state)
+{
+	if (pif_act_irq_restore) (*pif_act_irq_restore)(state);
+}
 
 /**
  * @brief Writes value as binary digits. No NUL is added.

@@ -238,7 +238,9 @@ void pifDutyMotorSpeed_Clear(PifDutyMotorSpeed* p_owner)
 
 BOOL pifDutyMotorSpeed_AddStages(PifDutyMotorSpeed* p_owner, uint8_t stage_size, const PifDutyMotorSpeedStage* p_stages)
 {
-    for (int i = 0; i < stage_size; i++) {
+    int i;
+
+    for (i = 0; i < stage_size; i++) {
     	if (p_stages[i].mode & MM_SC_MASK) {
             pif_error = E_INVALID_PARAM;
 		    return FALSE;

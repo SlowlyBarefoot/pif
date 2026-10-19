@@ -163,6 +163,8 @@ void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count)
 
 BOOL pifFnd_Init(PifFnd* p_owner, PifId id, uint8_t digit_size, PifActFndDisplay act_display)
 {
+    int i;
+
     if (!p_owner || !digit_size || !act_display) {
         pif_error = E_INVALID_PARAM;
         return FALSE;
@@ -175,7 +177,7 @@ BOOL pifFnd_Init(PifFnd* p_owner, PifId id, uint8_t digit_size, PifActFndDisplay
 		pif_error = E_OUT_OF_HEAP;
 		goto fail;
 	}
-    for (int i = 0; i < digit_size; i++) p_owner->__p_string[i] = 0x20;
+    for (i = 0; i < digit_size; i++) p_owner->__p_string[i] = 0x20;
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
@@ -346,10 +348,11 @@ void pifFnd_SetFloat(PifFnd* p_owner, double value)
 {
 	BOOL minus = FALSE;
 	uint8_t sub = _getSubDigits(p_owner);
+	int i;
 	uint32_t integer, fraction, scale = 1;
 
 	if (sub > 9) sub = 9;		// 10^sub must fit in uint32_t
-	for (int i = 0; i < sub; i++) scale *= 10;
+	for (i = 0; i < sub; i++) scale *= 10;
 
 	if (value < 0.0) {
 		minus = TRUE;
@@ -380,10 +383,10 @@ void pifFnd_SetInteger(PifFnd* p_owner, int32_t value)
 
 void pifFnd_SetString(PifFnd* p_owner, char* p_string)
 {
-    int src = 0;
+    int p, src = 0;
     BOOL last = FALSE;
 
-    for (int p = 0; p < p_owner->_digit_size; p++) {
+    for (p = 0; p < p_owner->_digit_size; p++) {
     	if (!last && p_string[src]) {
     		p_owner->__p_string[p] = p_string[src];
     	}

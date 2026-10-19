@@ -7,6 +7,7 @@ BOOL pifPtrArray_Init(PifPtrArray* p_owner, int max_count, PifEvtPtrArrayClear e
 {
 	char* p_buffer;
 	PifPtrArrayIterator p_node;
+	int i;
 
 	if (!p_owner || !max_count) {
 		pif_error = E_INVALID_PARAM;
@@ -27,7 +28,7 @@ BOOL pifPtrArray_Init(PifPtrArray* p_owner, int max_count, PifEvtPtrArrayClear e
 
 	p_node = p_owner->_p_node;
 	p_owner->_p_free = p_node;
-	for (int i = 1; i < max_count; i++) {
+	for (i = 1; i < max_count; i++) {
 		p_buffer += sizeof(PifPtrArrayNode);
 		p_node->p_next = (PifPtrArrayIterator)p_buffer;
 		p_node->p_prev = NULL;

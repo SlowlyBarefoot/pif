@@ -7,6 +7,11 @@
 // delay below 35 minutes.
 
 
+static void _lock(PifSolenoid* p_owner, BOOL lock)
+{
+	if (p_owner->__act_lock) (*p_owner->__act_lock)(p_owner, lock);
+}
+
 static uint32_t _remain(uint32_t end, uint32_t now)
 {
 	int32_t diff = (int32_t)(end - now);
@@ -167,12 +172,15 @@ static void _processChannel(PifSolenoid* p_owner, uint8_t index, uint32_t now)
 static uint32_t _doTask(PifTask* p_task)
 {
 	PifSolenoid* p_owner = (PifSolenoid*)p_task->_p_client;
-	uint32_t now = (*pif_act_timer1us)();
+	uint32_t now;
 	uint8_t i;
 
+	_lock(p_owner, TRUE);
+	now = (*pif_act_timer1us)();
 	for (i = 0; i < p_owner->_count; i++) _processChannel(p_owner, i, now);
 
 	_schedule(p_owner);
+	_lock(p_owner, FALSE);
 	return 0;
 }
 
@@ -270,7 +278,9 @@ BOOL pifSolenoid_SetInvalidDirection(PifSolenoid* p_owner, uint8_t index)
 
 	if (!p_channel) return FALSE;
 
+	_lock(p_owner, TRUE);
 	p_channel->__current_dir = SD_INVALID;
+	_lock(p_owner, FALSE);
 	return TRUE;
 }
 
@@ -280,7 +290,9 @@ BOOL pifSolenoid_SetOnTime(PifSolenoid* p_owner, uint8_t index, uint16_t on_time
 
 	if (!p_channel) return FALSE;
 
+	_lock(p_owner, TRUE);
     p_channel->on_time = on_time;
+	_lock(p_owner, FALSE);
     return TRUE;
 }
 
@@ -289,19 +301,12 @@ BOOL pifSolenoid_ActionOn(PifSolenoid* p_owner, uint8_t index, uint16_t delay)
 	return pifSolenoid_ActionOnDir(p_owner, index, delay, SD_INVALID);
 }
 
-BOOL pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint8_t index, uint16_t delay, PifSolenoidDir dir)
+// pifSolenoid_ActionOnDir() under the lock.
+static BOOL _actionOnDir(PifSolenoid* p_owner, uint8_t index, uint32_t delay_us, PifSolenoidDir dir)
 {
-	PifSolenoidChannel* p_channel = _channel(p_owner, index);
+	PifSolenoidChannel* p_channel = &p_owner->__p_channel[index];
 	PifSolenoidContent *pstContent;
-	uint32_t delay_us = delay * 1000UL;
 	uint32_t time;
-
-	if (!p_channel) return FALSE;
-
-	if (p_owner->_type == ST_2POINT && dir == SD_INVALID) {
-		pif_error = E_INVALID_PARAM;
-		return FALSE;
-	}
 
 	// Also queued while a delay that is over waits for the task, which takes the queue in order.
 	if (p_channel->__p_buffer && p_channel->__delay_pending) {
@@ -324,12 +329,31 @@ BOOL pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint8_t index, uint16_t delay
 	return TRUE;
 }
 
+BOOL pifSolenoid_ActionOnDir(PifSolenoid* p_owner, uint8_t index, uint16_t delay, PifSolenoidDir dir)
+{
+	PifSolenoidChannel* p_channel = _channel(p_owner, index);
+	BOOL result;
+
+	if (!p_channel) return FALSE;
+
+	if (p_owner->_type == ST_2POINT && dir == SD_INVALID) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	_lock(p_owner, TRUE);
+	result = _actionOnDir(p_owner, index, delay * 1000UL, dir);
+	_lock(p_owner, FALSE);
+	return result;
+}
+
 BOOL pifSolenoid_ActionOff(PifSolenoid* p_owner, uint8_t index)
 {
 	PifSolenoidChannel* p_channel = _channel(p_owner, index);
 
 	if (!p_channel) return FALSE;
 
+	_lock(p_owner, TRUE);
 	// Commands still waiting would switch it back on. A trigger still pending finds nothing due
 	// on this channel.
 	p_channel->__delay_pending = FALSE;
@@ -337,7 +361,13 @@ BOOL pifSolenoid_ActionOff(PifSolenoid* p_owner, uint8_t index)
 	p_channel->__on_pending = FALSE;
 
 	if (p_channel->__state) _switchOff(p_owner, index);
+	_lock(p_owner, FALSE);
 	return TRUE;
+}
+
+void pifSolenoid_AttachActLock(PifSolenoid* p_owner, PifActSolenoidLock act_lock)
+{
+	p_owner->__act_lock = act_lock;
 }
 
 BOOL pifSolenoid_IsOn(PifSolenoid* p_owner, uint8_t index)

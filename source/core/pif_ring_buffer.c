@@ -389,7 +389,7 @@ BOOL pifRingBuffer_PutByte(PifRingBuffer* p_owner, uint8_t data)
 
 BOOL pifRingBuffer_PutData(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t length)
 {
-	uint16_t remain = pifRingBuffer_GetRemainSize(p_owner);
+	uint16_t i, remain = pifRingBuffer_GetRemainSize(p_owner);
 
     if (length > remain) {
     	if (!_chopOff(p_owner, length - remain)) {
@@ -401,7 +401,7 @@ BOOL pifRingBuffer_PutData(PifRingBuffer* p_owner, uint8_t* p_data, uint16_t len
     // Store the head once per byte, and only with a wrapped value, since a
     // reader in an interrupt may be looking at it.
     uint16_t head = p_owner->__put_head;
-    for (uint16_t i = 0; i < length; i++) {
+    for (i = 0; i < length; i++) {
     	p_owner->__p_buffer[head] = p_data[i];
     	head++;
     	if (head >= p_owner->_size) head = 0;
@@ -463,13 +463,13 @@ uint16_t pifRingBuffer_GetBytes(PifRingBuffer* p_owner, uint8_t* p_data, uint16_
 
 uint16_t pifRingBuffer_CopyToArray(uint8_t* p_dst, uint16_t count, PifRingBuffer* p_src, uint16_t pos)
 {
-	uint16_t fill = pifRingBuffer_GetFillSize(p_src);
+	uint16_t i, fill = pifRingBuffer_GetFillSize(p_src);
 
 	if (pos >= fill) return 0;
 	if (count > fill - pos) count = fill - pos;
 
 	uint16_t tail = (p_src->__tail + pos) % p_src->_size;
-	for (uint16_t i = 0; i < count; i++) {
+	for (i = 0; i < count; i++) {
 		p_dst[i] = p_src->__p_buffer[tail];
 		tail++;
 		if (tail >= p_src->_size) tail = 0;
@@ -479,7 +479,7 @@ uint16_t pifRingBuffer_CopyToArray(uint8_t* p_dst, uint16_t count, PifRingBuffer
 
 uint16_t pifRingBuffer_CopyAll(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16_t pos)
 {
-	uint16_t fill = pifRingBuffer_GetFillSize(p_src);
+	uint16_t i, fill = pifRingBuffer_GetFillSize(p_src);
 	uint16_t remain = pifRingBuffer_GetRemainSize(p_dst);
 
     if (pos >= fill) return 0;
@@ -488,7 +488,7 @@ uint16_t pifRingBuffer_CopyAll(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint1
 	uint16_t length = remain < fill ? remain : fill;
 	uint16_t tail = p_src->__tail + pos;
 	if (tail >= p_src->_size) tail -= p_src->_size;
-	for (uint16_t i = 0; i < length; i++) {
+	for (i = 0; i < length; i++) {
 		pifRingBuffer_PutByte(p_dst, p_src->__p_buffer[tail]);
 		tail++;
 		if (tail >= p_src->_size) tail = 0;
@@ -498,7 +498,7 @@ uint16_t pifRingBuffer_CopyAll(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint1
 
 BOOL pifRingBuffer_CopyLength(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16_t pos, uint16_t length)
 {
-	uint16_t fill = pifRingBuffer_GetFillSize(p_src);
+	uint16_t i, fill = pifRingBuffer_GetFillSize(p_src);
 
 	if (pos + length > fill) {
 		pif_error = E_INVALID_PARAM;
@@ -511,7 +511,7 @@ BOOL pifRingBuffer_CopyLength(PifRingBuffer* p_dst, PifRingBuffer* p_src, uint16
 
 	// Start copying from the source offset after range validation.
 	uint16_t usTail = (p_src->__tail + pos) % p_src->_size;
-	for (uint16_t i = 0; i < length; i++) {
+	for (i = 0; i < length; i++) {
 		pifRingBuffer_PutByte(p_dst, p_src->__p_buffer[usTail]);
 		usTail++;
 		if (usTail >= p_src->_size) usTail = 0;

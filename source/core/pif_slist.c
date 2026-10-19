@@ -96,10 +96,12 @@ void pifSList_RemoveFirst(PifSList* p_owner)
 
 PifSListIterator pifSList_Find(PifSList* p_owner, int index)
 {
+	int i;
+
 	if (!p_owner || index < 0) return NULL;
 
 	PifSListIterator it = p_owner->p_head;
-	for (int i = 0; i < index; i++) {
+	for (i = 0; i < index; i++) {
 		if (!it) return NULL;
 
 		it = it->p_next;

@@ -240,7 +240,9 @@ void pifStepMotorSpeed_Clear(PifStepMotorSpeed* p_owner)
 
 BOOL pifStepMotorSpeed_AddStages(PifStepMotorSpeed* p_owner, uint8_t stage_size, const PifStepMotorSpeedStage* p_stages)
 {
-    for (int i = 0; i < stage_size; i++) {
+    int i;
+
+    for (i = 0; i < stage_size; i++) {
     	if (p_stages[i].mode & MM_SC_MASK) {
             pif_error = E_INVALID_PARAM;
 			return FALSE;

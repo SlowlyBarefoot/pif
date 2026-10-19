@@ -290,7 +290,9 @@ void pifStepMotorPos_Clear(PifStepMotorPos* p_owner)
 
 BOOL pifStepMotorPos_AddStages(PifStepMotorPos* p_owner, uint8_t stage_size, const PifStepMotorPosStage* p_stages)
 {
-    for (int i = 0; i < stage_size; i++) {
+    int i;
+
+    for (i = 0; i < stage_size; i++) {
     	if (p_stages[i].mode & MM_SC_MASK) {
             pif_error = E_INVALID_PARAM;
 		    return FALSE;

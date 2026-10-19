@@ -422,8 +422,30 @@ int main(void)
         { "invalid", testInvalid },
     };
 
+    // Before pif_Init() the time base stays still and the loop does not reach the missing timer.
+    pif_sigTimer1ms();
+    pifTaskManager_Loop();
+    if (pif_ready || pif_cumulative_timer1ms) {
+        printf("pif_task_manager: ran before pif_Init\n");
+        return 1;
+    }
+    // Nor do the setup calls, nor their cleanup, reach the missing timer.
+    if (pifTaskManager_Init(1, 0) || pif_error != E_INVALID_STATE) {
+        printf("pif_task_manager: init before pif_Init\n");
+        return 1;
+    }
+    if (pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, 1000, _doOther, NULL, TRUE)) {
+        printf("pif_task_manager: add before pif_Init\n");
+        return 1;
+    }
+    pif_Exit();
+
     if (!pif_Init(_timer1us)) {
         printf("pif_task_manager: setup failed (%d)\n", pif_error);
+        return 1;
+    }
+    if (!pif_ready) {
+        printf("pif_task_manager: pif_ready not set\n");
         return 1;
     }
 
@@ -434,7 +456,14 @@ int main(void)
         printf("  %s %s\n", s_failed ? "FAIL" : "ok  ", tests[t].name);
         if (s_failed) failed++;
     }
-    pifTaskManager_Clear();
+    uint32_t ms_at_exit = pif_cumulative_timer1ms;
+    pif_Exit();
+    pif_sigTimer1ms();
+    pifTaskManager_Loop();
+    if (pif_ready || pif_cumulative_timer1ms != ms_at_exit) {
+        printf("  FAIL ran after pif_Exit\n");
+        failed++;
+    }
     printf("%d failed\n", failed);
     return failed ? 1 : 0;
 }

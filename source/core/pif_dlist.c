@@ -192,10 +192,12 @@ void pifDList_Remove(PifDList* p_owner, void* p_data)
 
 PifDListIterator pifDList_Find(PifDList* p_owner, int index)
 {
+	int i;
+
 	if (!p_owner || index < 0) return NULL;
 
 	PifDListIterator it = p_owner->p_head;
-	for (int i = 0; i < index; i++) {
+	for (i = 0; i < index; i++) {
 		if (!it) return NULL;
 
 		it = it->p_next;

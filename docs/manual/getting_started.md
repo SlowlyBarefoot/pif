@@ -43,3 +43,6 @@ void app_init(void)
 
 - Call pif_sigTimer1ms() every 1 ms, from a timer interrupt for example.
 - Call pifTaskManager_Loop() from the main loop.
+
+Both do nothing until pif_Init() succeeds, which sets pif_ready. The timer interrupt and the main loop may
+therefore start before the setup is finished, with no flag of their own.

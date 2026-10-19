@@ -63,8 +63,9 @@ void pifModbusAscii_ShortToAscii(uint16_t binary, uint8_t *p_ascii)
 uint8_t pifModbusAscii_CalcLrc(uint8_t *p_data, uint16_t length)
 {
 	uint8_t lrc = 0;
+	int i;
 
-	for (int i = 0; i < length; i++)
+	for (i = 0; i < length; i++)
 		lrc += p_data[i];
 
 	return 0x100 - lrc;
@@ -73,9 +74,10 @@ uint8_t pifModbusAscii_CalcLrc(uint8_t *p_data, uint16_t length)
 uint8_t pifModbusAscii_CalcLrcOfAscii(uint8_t *p_ascii, uint16_t length)
 {
 	uint8_t lrc = 0;
+	int i;
 
 	// The LRC is over the bytes the hex digits stand for, not over the digits themselves.
-	for (int i = 0; i + 1 < length; i += 2)
+	for (i = 0; i + 1 < length; i += 2)
 		lrc += (uint8_t)pifModbusAscii_AsciiToChar(&p_ascii[i]);
 
 	return 0x100 - lrc;

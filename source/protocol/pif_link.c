@@ -996,7 +996,7 @@ BOOL pifLink_MakeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkRequest 
 	uint8_t flags;
 	uint8_t info[REQUEST_INFO_SIZE];
 	uint8_t header[LINK_MULTI_HEADER_SIZE];
-	uint8_t packet_id;
+	uint8_t i, packet_id;
 	uint16_t length, crc, crc_pos;
 
 	if (!p_request) {
@@ -1028,7 +1028,7 @@ BOOL pifLink_MakeRequest(PifLink *p_owner, uint8_t dst_id, const PifLinkRequest 
 	if (!length) goto fail;
 	pifLink_PutU16(info, length);
 	pifLink_PutU16(info + 2, crc_pos);
-	for (int i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++) {
 		*pifRingBuffer_GetPointerPutting(&p_owner->__tx.request_buffer, i) = info[i];
 	}
 	pifRingBuffer_CommitPutting(&p_owner->__tx.request_buffer);
