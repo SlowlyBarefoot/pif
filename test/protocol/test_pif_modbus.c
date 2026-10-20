@@ -134,12 +134,16 @@ static void _parsingS(void)
 }
 
 
+#ifdef PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE
+
 static BOOL _evtReadWrite(uint16_t read_address, uint16_t read_quantity, uint16_t write_address, uint16_t write_quantity)
 {
     (void)read_address; (void)read_quantity; (void)write_address; (void)write_quantity;
     s_rw_calls++;
     return TRUE;
 }
+
+#endif
 
 static BOOL _initUart(PifUart *p_uart)
 {
@@ -162,11 +166,17 @@ static void _attachData(PifModbusSlave *p_slave)
         s_inputs[i] = 0x3C ^ i;
     }
     s_rw_calls = 0;
+#ifdef PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS
     pifModbusSlave_AttachDiscreteInput(p_slave, s_inputs, COIL_COUNT, NULL);
+#endif
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
     pifModbusSlave_AttachCoils(p_slave, s_coils, COIL_COUNT, NULL, NULL, NULL);
+#endif
     pifModbusSlave_AttachInputRegisters(p_slave, s_input, REG_COUNT, NULL);
     pifModbusSlave_AttachHoldingRegisters(p_slave, s_holding, REG_COUNT, NULL, NULL, NULL);
+#ifdef PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE
     pifModbusSlave_AttachEvtReadWriteMultipleRegisters(p_slave, _evtReadWrite);
+#endif
 }
 
 static void _resetWires(void)
@@ -269,24 +279,33 @@ static void _testRtuException(void)
     CHECK(s_rtu_m._error == MBE_ILLEGAL_DATA_ADDRESS);
     CHECK(regs[0] == 0x1234);		// Nothing is copied out of an exception
 
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
     // An address past the last coil.
     CHECK(pifModbusRtuMaster_WriteSingleCoil(&s_rtu_m, SLAVE_ADDR, COIL_COUNT, TRUE));
     CHECK(_pump(_checkRtu, &s_rtu_m) == MBMR_ERROR);
     CHECK(s_rtu_m._error == MBE_ILLEGAL_DATA_ADDRESS);
+#endif
 }
 
 static void _testRtuWrites(void)
 {
-    uint16_t regs[3] = {11, 22, 33}, read[2] = {0};
+    uint16_t regs[3] = {11, 22, 33};
+#ifdef PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE
+    uint16_t read[2] = {0};
+#endif
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
     PifModbusBitField coils[2] = {0x0F, 0x01}, bits[2] = {0};
+#endif
 
     CHECK(_setUpRtu());
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
     // The response to a single coil has to echo 0xFF00, which the master checks.
     CHECK(pifModbusRtuMaster_WriteSingleCoil(&s_rtu_m, SLAVE_ADDR, 1, FALSE));
     CHECK(_pump(_checkRtu, &s_rtu_m) == MBMR_DONE);
     CHECK(pifModbusRtuMaster_WriteSingleCoil(&s_rtu_m, SLAVE_ADDR, 1, TRUE));
     CHECK(_pump(_checkRtu, &s_rtu_m) == MBMR_DONE);
     CHECK(PIF_MODBUS_READ_BIT_FIELD(s_coils, 1));
+#endif
 
     CHECK(pifModbusRtuMaster_WriteSingleRegister(&s_rtu_m, SLAVE_ADDR, 260, 0xBEEF));
     CHECK(_pump(_checkRtu, &s_rtu_m) == MBMR_DONE);
@@ -296,6 +315,7 @@ static void _testRtuWrites(void)
     CHECK(_pump(_checkRtu, &s_rtu_m) == MBMR_DONE);
     CHECK(s_holding[REG_COUNT - 3] == 11 && s_holding[REG_COUNT - 1] == 33);
 
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
     CHECK(pifModbusRtuMaster_WriteMultipleCoils(&s_rtu_m, SLAVE_ADDR, 8, 9, coils));
     CHECK(_pump(_checkRtu, &s_rtu_m) == MBMR_DONE);
     CHECK(s_coils[1] == 0x0F && PIF_MODBUS_READ_BIT_FIELD(s_coils, 16));
@@ -303,12 +323,56 @@ static void _testRtuWrites(void)
     CHECK(pifModbusRtuMaster_ReadCoils(&s_rtu_m, SLAVE_ADDR, 8, 9, bits));
     CHECK(_pump(_checkRtu, &s_rtu_m) == MBMR_DONE);
     CHECK(bits[0] == 0x0F && (bits[1] & 1));
+#endif
 
+#ifdef PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE
     // The write goes before the read, and the callback is reached.
     CHECK(pifModbusRtuMaster_ReadWriteMultipleRegisters(&s_rtu_m, SLAVE_ADDR, 10, 2, read, 11, 1, regs));
     CHECK(_pump(_checkRtu, &s_rtu_m) == MBMR_DONE);
     CHECK(read[0] == 1010 && read[1] == 11 && s_rw_calls == 1);
+#endif
 }
+
+#if !defined(PIF_USE_MODBUS_SLAVE_COILS) && !defined(PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS) && \
+		!defined(PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE)
+
+static void _testRtuLeftOutFunctions(void)
+{
+    uint16_t regs[2] = {0};
+    PifModbusBitField bits[1] = {0};
+    uint8_t frame[16];
+    uint8_t response[32];
+    uint16_t length;
+
+    CHECK(_setUpRtu());
+    // A function left out of the build is one the slave lacks.
+    CHECK(pifModbusRtuMaster_ReadCoils(&s_rtu_m, SLAVE_ADDR, 0, 8, bits));
+    CHECK(_pump(_checkRtu, &s_rtu_m) == MBMR_ERROR);
+    CHECK(s_rtu_m._error == MBE_ILLEGAL_FUNCTION);
+    CHECK(pifModbusRtuMaster_ReadDiscreteInputs(&s_rtu_m, SLAVE_ADDR, 0, 8, bits));
+    CHECK(_pump(_checkRtu, &s_rtu_m) == MBMR_ERROR);
+    CHECK(s_rtu_m._error == MBE_ILLEGAL_FUNCTION);
+    CHECK(pifModbusRtuMaster_ReadWriteMultipleRegisters(&s_rtu_m, SLAVE_ADDR, 10, 2, regs, 11, 1, regs));
+    CHECK(_pump(_checkRtu, &s_rtu_m) == MBMR_ERROR);
+    CHECK(s_rtu_m._error == MBE_ILLEGAL_FUNCTION);
+
+    // The frames of other slaves with those functions are still followed to their end, so the
+    // request to this slave after them is found.
+    frame[0] = OTHER_ADDR; frame[1] = MBF_READ_COILS;
+    frame[2] = 0; frame[3] = 0; frame[4] = 0; frame[5] = 8;
+    _putRtuFrame(&s_wire_ms, frame, 6);
+    frame[0] = OTHER_ADDR; frame[1] = MBF_READ_COILS; frame[2] = 1; frame[3] = SLAVE_ADDR;
+    _putRtuFrame(&s_wire_ms, frame, 4);
+    frame[0] = SLAVE_ADDR; frame[1] = MBF_READ_INPUT_REGISTERS;
+    frame[2] = 0; frame[3] = 5; frame[4] = 0; frame[5] = 1;
+    _putRtuFrame(&s_wire_ms, frame, 6);
+    _idleSlave(20);
+    length = _get(&s_wire_sm, response, sizeof(response));
+    CHECK(length == 7 && response[1] == MBF_READ_INPUT_REGISTERS);
+    CHECK(pifModbus_StreamToShort(&response[3]) == 2005);
+}
+
+#endif
 
 static void _testRtuOtherSlaveTraffic(void)
 {
@@ -544,10 +608,17 @@ static void _testAsciiRoundTrip(void)
     CHECK(regs[0] == 1297 && regs[2] == 1299);
 
     CHECK(pifModbusAsciiMaster_WriteSingleCoil(&s_ascii_m, SLAVE_ADDR, 1, TRUE));
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
     CHECK(_pump(_checkAscii, &s_ascii_m) == MBMR_DONE);
     CHECK(pifModbusAsciiMaster_ReadCoils(&s_ascii_m, SLAVE_ADDR, 0, 8, bits));
     CHECK(_pump(_checkAscii, &s_ascii_m) == MBMR_DONE);
     CHECK(bits[0] == (0xA5 | 0x02));
+#else
+    // The ASCII slave answers a function left out of the build as one it lacks.
+    CHECK(_pump(_checkAscii, &s_ascii_m) == MBMR_ERROR);
+    CHECK(s_ascii_m._error == MBE_ILLEGAL_FUNCTION);
+    (void)bits;
+#endif
 
     CHECK(pifModbusAsciiMaster_WriteMultipleRegisters(&s_ascii_m, SLAVE_ADDR, 100, 2, values));
     CHECK(_pump(_checkAscii, &s_ascii_m) == MBMR_DONE);
@@ -612,6 +683,10 @@ static const struct
     { "rtu read holding registers", _testRtuReadHoldingRegisters },
     { "rtu exception", _testRtuException },
     { "rtu writes", _testRtuWrites },
+#if !defined(PIF_USE_MODBUS_SLAVE_COILS) && !defined(PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS) && \
+		!defined(PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE)
+    { "rtu left out functions", _testRtuLeftOutFunctions },
+#endif
     { "rtu other slave traffic", _testRtuOtherSlaveTraffic },
     { "rtu damaged frames", _testRtuDamagedFrames },
     { "rtu broadcast", _testRtuBroadcast },

@@ -33,7 +33,9 @@ Using any file under `gpl/` makes your firmware subject to the GPL-3.0. See [Lic
 
 Start from `include/pif_conf_temp.h` and create `pif_conf.h` in your include path.
 
-Enable only the macros you need for your target.
+Enable only the macros you need for your target. Each module is built with its least features, and a `PIF_USE_`
+macro puts one more in: `PIF_USE_PRINTF_FLOAT` for `%f` in the log, `PIF_USE_UART_FLOW_CONTROL` for flow control,
+the `PIF_USE_MODBUS_SLAVE_` macros for the functions a Modbus slave answers, and so on. The template lists them all.
 
 ### 3. Implement platform hooks
 

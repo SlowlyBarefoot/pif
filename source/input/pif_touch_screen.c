@@ -3,6 +3,8 @@
 #include "input/pif_touch_screen.h"
 
 
+#ifdef PIF_USE_TOUCH_CALIBRATION
+
 /**
  * @brief Draws a calibration crosshair on the LCD.
  * @param p_owner Pointer to the LCD instance.
@@ -233,6 +235,8 @@ static void _processingCalibration(PifTouchScreen* p_owner)
 	}
 }
 
+#endif	// PIF_USE_TOUCH_CALIBRATION
+
 /**
  * @brief Periodic touch task that acquires, filters, and converts touch data.
  * @param p_task Task context that contains a `PifTouchScreen` client pointer.
@@ -244,6 +248,7 @@ static uint32_t _doTask(PifTask* p_task)
 	PifTftLcd* p_lcd = p_owner->__p_lcd;
 	int16_t tpx, tpy;
 
+#ifdef PIF_USE_TOUCH_CALIBRATION
 	// While a calibration is running, the display and the panel belong to it and no touch data is
 	// reported. It advances by one step per release, which is what makes the control period the
 	// interval its debounce counts in.
@@ -251,6 +256,7 @@ static uint32_t _doTask(PifTask* p_task)
 		_processingCalibration(p_owner);
 		return 0;
 	}
+#endif
 
 	if (p_lcd->_rotation & 1) {
 		(*p_owner->__act_position)(p_owner, &tpy, &tpx);
@@ -328,7 +334,9 @@ void pifTouchScreen_Clear(PifTouchScreen* p_owner)
 		pifTaskManager_Remove(p_owner->_p_task);
 		p_owner->_p_task = NULL;
 	}
+#ifdef PIF_USE_TOUCH_CALIBRATION
 	p_owner->_calibration_state = TCS_IDLE;
+#endif
 }
 
 BOOL pifTouchScreen_AttachAction(PifTouchScreen* p_owner, PifActTouchPosition act_position, PifActTouchPressure act_pressure)
@@ -402,10 +410,12 @@ BOOL pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotat
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
+#ifdef PIF_USE_TOUCH_CALIBRATION
 	if (p_owner->_calibration_state != TCS_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
+#endif
 
 	p_lcd = p_owner->__p_lcd;
 
@@ -471,6 +481,8 @@ BOOL pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotat
 	return TRUE;
 }
 
+#ifdef PIF_USE_TOUCH_CALIBRATION
+
 BOOL pifTouchScreen_StartCalibration(PifTouchScreen* p_owner, PifEvtTouchCalibration evt_calibration)
 {
 	PifTftLcd* p_lcd;
@@ -525,3 +537,5 @@ BOOL pifTouchScreen_CancelCalibration(PifTouchScreen* p_owner)
 	_finishCalibration(p_owner, FALSE);
 	return TRUE;
 }
+
+#endif

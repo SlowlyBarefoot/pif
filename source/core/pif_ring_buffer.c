@@ -5,10 +5,18 @@
 
 // Byte ring buffer with overflow policies and transactional put support.
 
+#ifdef PIF_USE_RING_BUFFER_LOCK
+
 static void _lock(PifRingBuffer* p_owner, BOOL lock)
 {
 	if (p_owner->__act_lock) (*p_owner->__act_lock)(p_owner, lock);
 }
+
+#else
+
+#define _lock(p_owner, lock)	((void)(p_owner))
+
+#endif
 
 static void _publish(PifRingBuffer* p_owner)
 {
@@ -195,15 +203,23 @@ BOOL pifRingBuffer_ResizeHeap(PifRingBuffer* p_owner, uint16_t size)
 	return TRUE;
 }
 
+#ifndef PIF_NO_LOG
+
 void pifRingBuffer_SetName(PifRingBuffer* p_owner, const char* p_name)
 {
 	p_owner->__p_name = p_name;
 }
 
+#endif
+
+#ifdef PIF_USE_RING_BUFFER_LOCK
+
 void pifRingBuffer_AttachActLock(PifRingBuffer* p_owner, PifActRingBufferLock act_lock)
 {
 	p_owner->__act_lock = act_lock;
 }
+
+#endif
 
 uint8_t* pifRingBuffer_GetBuffer(PifRingBuffer* p_owner)
 {

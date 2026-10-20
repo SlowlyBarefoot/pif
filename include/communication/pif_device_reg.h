@@ -21,7 +21,7 @@
 typedef uint16_t PifRegMask;
 
 /**
- * @brief State of a read started with pifDeviceReg_StartRead().
+ * @brief State of a transfer started with pifDeviceReg_StartRead() or pifDeviceReg_StartWrite().
  */
 typedef enum EnPifDeviceRegState
 {
@@ -43,8 +43,9 @@ typedef struct StPifDeviceRegOps
 	BOOL (*read)(PifDeviceReg *p_device, uint32_t iaddr, uint8_t isize, uint8_t *p_data, size_t size);	///< Reads size bytes from internal address iaddr of isize bytes, waiting until it is over.
 	BOOL (*write)(PifDeviceReg *p_device, uint32_t iaddr, uint8_t isize, uint8_t *p_data, size_t size);	///< Writes size bytes to internal address iaddr of isize bytes, waiting until it is over.
 	BOOL (*start_read)(PifDeviceReg *p_device, uint32_t iaddr, uint8_t isize, uint8_t *p_data, size_t size);	///< Starts a read and returns at once.
-	PifDeviceRegState (*check_transfer)(PifDeviceReg *p_device);	///< Reports the state of the read started last.
-	BOOL (*is_busy)(PifDeviceReg *p_device);	///< Tells whether the port is held by a transfer started with start_read.
+	BOOL (*start_write)(PifDeviceReg *p_device, uint32_t iaddr, uint8_t isize, uint8_t *p_data, size_t size);	///< Starts a write and returns at once.
+	PifDeviceRegState (*check_transfer)(PifDeviceReg *p_device);	///< Reports the state of the transfer started last.
+	BOOL (*is_busy)(PifDeviceReg *p_device);	///< Tells whether the port is held by a transfer started with start_read or start_write.
 } PifDeviceRegOps;
 
 /**
@@ -64,7 +65,7 @@ struct StPifDeviceReg
 
 	// Private Member Variable
 	const PifDeviceRegOps *__p_ops;
-	uint32_t __start_time1ms;			///< When the transfer from pifDeviceReg_StartRead() started.
+	uint32_t __start_time1ms;			///< When the transfer from pifDeviceReg_StartRead() or pifDeviceReg_StartWrite() started.
 };
 
 
@@ -86,8 +87,8 @@ void pifDeviceReg_Init(PifDeviceReg *p_owner, PifId id, void *p_client, const Pi
  *        max_transfer_size set, a longer block is read in pieces, each from its own internal address (iaddr
  *        plus the bytes already read), so the device has to step the address on by itself.
  *        Fails with pif_error set to E_INVALID_STATE, without touching the bus, while the port is held by a
- *        transfer from pifDeviceReg_StartRead() that pifDeviceReg_CheckTransfer() has not reported over yet. The same
- *        goes for every blocking function built on it.
+ *        transfer from pifDeviceReg_StartRead() or pifDeviceReg_StartWrite() that pifDeviceReg_CheckTransfer() has
+ *        not reported over yet. The same goes for every blocking function built on it.
  * @param p_owner Pointer to the device. NULL fails with E_INVALID_PARAM.
  * @param iaddr Internal address to read from.
  * @param isize Bytes of the internal address. 0 reads from where the device is.
@@ -232,18 +233,44 @@ BOOL pifDeviceReg_StartRead(PifDeviceReg *p_owner, uint32_t iaddr, uint8_t isize
 BOOL pifDeviceReg_StartReadRegBytes(PifDeviceReg *p_owner, uint8_t reg, uint8_t *p_data, size_t size);
 
 /**
- * @brief Reports how a read begun with pifDeviceReg_StartRead() stands, waiting for nothing. DRS_COMPLETE and
- *        DRS_ERROR are each reported once: they free the port. A read that runs past the device timeout is
- *        reported as DRS_ERROR with pif_error set to E_TIMEOUT.
+ * @brief Starts a write to an internal address of the device and returns at once, held and ended as a read from
+ *        pifDeviceReg_StartRead() is. p_data has to stay unchanged until pifDeviceReg_CheckTransfer() reports the
+ *        write over, since the port may still be sending from it. The write is not split, so size must not
+ *        exceed max_transfer_size when it is set. What a write of size 0 sends depends on the bus.
+ *        Fails with pif_error set to E_INVALID_STATE while the port is held.
  * @param p_owner Pointer to the device.
- * @return DRS_RUN while the read is running, DRS_COMPLETE or DRS_ERROR when it is over, and DRS_IDLE when
+ * @param iaddr Internal address to write to.
+ * @param isize Bytes of the internal address. 0 writes from where the device is.
+ * @param p_data Bytes to write.
+ * @param size Bytes to write.
+ * @return TRUE if the write was started, otherwise FALSE with pif_error set.
+ */
+BOOL pifDeviceReg_StartWrite(PifDeviceReg *p_owner, uint32_t iaddr, uint8_t isize, uint8_t *p_data, size_t size);
+
+/**
+ * @brief Starts a write of bytes to an 8-bit register address, as pifDeviceReg_StartWrite().
+ * @param p_owner Pointer to the device.
+ * @param reg Start register address.
+ * @param p_data Bytes to write.
+ * @param size Bytes to write.
+ * @return TRUE if the write was started, otherwise FALSE.
+ */
+BOOL pifDeviceReg_StartWriteRegBytes(PifDeviceReg *p_owner, uint8_t reg, uint8_t *p_data, size_t size);
+
+/**
+ * @brief Reports how a transfer begun with pifDeviceReg_StartRead() or pifDeviceReg_StartWrite() stands, waiting
+ *        for nothing. DRS_COMPLETE and DRS_ERROR are each reported once: they free the port. A transfer that runs
+ *        past the device timeout is reported as DRS_ERROR with pif_error set to E_TIMEOUT.
+ * @param p_owner Pointer to the device.
+ * @return DRS_RUN while the transfer is running, DRS_COMPLETE or DRS_ERROR when it is over, and DRS_IDLE when
  *         nothing was started.
  */
 PifDeviceRegState pifDeviceReg_CheckTransfer(PifDeviceReg *p_owner);
 
 /**
- * @brief Tells whether a transfer from pifDeviceReg_StartRead(), for this device or another on its port, holds
- *        the port, so that any other transfer on the port would fail with E_INVALID_STATE now.
+ * @brief Tells whether a transfer from pifDeviceReg_StartRead() or pifDeviceReg_StartWrite(), for this device or
+ *        another on its port, holds the port, so that any other transfer on the port would fail with
+ *        E_INVALID_STATE now.
  * @param p_owner Pointer to the device.
  * @return TRUE while the port is held, otherwise FALSE.
  */

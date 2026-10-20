@@ -5,7 +5,9 @@
 
 extern PifTask *g_task_cutin;
 
+#ifdef PIF_USE_TASK_REALTIME
 extern PifTask *g_realtime_task;
+#endif
 
 
 // Judged against the reading the scheduler took at the start of the pass rather than a new one.
@@ -48,6 +50,7 @@ void pifTask_Init(PifTask* p_owner, PifId id)
 BOOL pifTask_CheckParam(PifTaskMode* p_mode, uint32_t period)
 {
 	switch (*p_mode) {
+#ifdef PIF_USE_TASK_REALTIME
 	case TM_REALTIME:
 		// Only one task can hold the realtime slot.
 		if (g_realtime_task) {
@@ -57,6 +60,7 @@ BOOL pifTask_CheckParam(PifTaskMode* p_mode, uint32_t period)
 		// A period of zero is accepted here, unlike TM_PERIOD, and leaves the task released by
 		// pifTask_SetTrigger() alone.
     	break;
+#endif
 
     case TM_PERIOD:
     	if (!period) {
@@ -78,6 +82,7 @@ BOOL pifTask_CheckParam(PifTaskMode* p_mode, uint32_t period)
 BOOL pifTask_SetParam(PifTask* p_owner, PifTaskMode mode, uint32_t period)
 {
     switch (mode) {
+#ifdef PIF_USE_TASK_REALTIME
 	case TM_REALTIME:
     	p_owner->__pretime = (*pif_act_timer1us)();
     	// With no period there is no release to poll for, only triggers. _processingPeriod would
@@ -85,6 +90,7 @@ BOOL pifTask_SetParam(PifTask* p_owner, PifTaskMode mode, uint32_t period)
     	p_owner->__processing = period ? _processingPeriod : NULL;
 		g_realtime_task = p_owner;
 		break;
+#endif
 
     case TM_PERIOD:
     	p_owner->__pretime = (*pif_act_timer1us)();
@@ -114,7 +120,9 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint32_t period)
 
 	// The realtime slot is released only after the change is certain. Otherwise a failed change
 	// leaves a task whose mode is TM_REALTIME while another task can take the slot.
+#ifdef PIF_USE_TASK_REALTIME
 	if (p_owner->_mode == TM_REALTIME) g_realtime_task = NULL;
+#endif
 
 	if (!pifTask_SetParam(p_owner, mode, period)) return FALSE;
 
@@ -124,11 +132,13 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint32_t period)
 BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period)
 {
 	switch (p_owner->_mode) {
+#ifdef PIF_USE_TASK_REALTIME
 	case TM_REALTIME:
 		// Dropping the period leaves the task released by trigger alone, so the periodic check
 		// has to go with it.
 		p_owner->__processing = period ? _processingPeriod : NULL;
 		break;
+#endif
 
 	case TM_PERIOD:
 		if (!period) {
@@ -199,7 +209,9 @@ void pifTask_Resume(PifTask *p_owner)
 void pifTask_Restart(PifTask *p_owner)
 {
 	switch (p_owner->_mode) {
+#ifdef PIF_USE_TASK_REALTIME
 	case TM_REALTIME:
+#endif
 	case TM_PERIOD:
 		p_owner->__pretime = (*pif_act_timer1us)();
 		p_owner->__period = p_owner->_default_period;

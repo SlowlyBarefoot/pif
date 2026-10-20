@@ -35,7 +35,7 @@ typedef void (*PifActRingBufferLock)(PifRingBuffer* p_owner, BOOL lock);
  * as long as only it changes what it owns. A few writer calls also move the tail: a chop-off policy
  * dropping old data, pifRingBuffer_SetHead() running over the tail and pifRingBuffer_MoveHeadForLinear().
  * When one of those is used while the other side runs in an interrupt, attach a lock with
- * pifRingBuffer_AttachActLock().
+ * pifRingBuffer_AttachActLock(), which PIF_USE_RING_BUFFER_LOCK puts in the build.
  *
  * Bytes read in place, by DMA for example, should be taken with pifRingBuffer_GetReadPointer(). They stay
  * claimed until the reader removes them, and a chop-off fails rather than drop them, so new data is
@@ -55,7 +55,9 @@ struct StPifRingBuffer
     uint16_t _size;	///< Bytes of the buffer. One fewer byte can be held.
 
 	// Private Member Variable
+#ifndef PIF_NO_LOG
 	const char* __p_name;
+#endif
     uint8_t* __p_buffer;
     volatile uint16_t __head;		///< End of the bytes the reader may take
     volatile uint16_t __tail;
@@ -66,8 +68,10 @@ struct StPifRingBuffer
 		uint16_t chop_off_length;
     } __ui;
 
+#ifdef PIF_USE_RING_BUFFER_LOCK
 	// Private Action Function
 	PifActRingBufferLock __act_lock;
+#endif
 };
 
 
@@ -141,16 +145,29 @@ BOOL pifRingBuffer_ResizeHeap(PifRingBuffer* p_owner, uint16_t size);
 /**
  * @brief Sets configuration or runtime state for the ring buffer based on the provided parameters.
  * @param p_owner Pointer to the target object instance.
- * @param p_name Human-readable name string.
+ * @param p_name Human-readable name string. With PIF_NO_LOG it is not kept.
  */
+#ifndef PIF_NO_LOG
 void pifRingBuffer_SetName(PifRingBuffer* p_owner, const char* p_name);
+#else
+PIF_STATIC_INLINE void pifRingBuffer_SetName(PifRingBuffer* p_owner, const char* p_name)
+{
+	(void)p_owner;
+	(void)p_name;
+}
+#endif
+
+#ifdef PIF_USE_RING_BUFFER_LOCK
 
 /**
  * @brief Gives the instance a way to keep the other side out while the tail moves. Without one, no locking is done.
+ *        Only with PIF_USE_RING_BUFFER_LOCK.
  * @param p_owner Pointer to the target object instance.
  * @param act_lock Enters and leaves the locked section, or NULL to remove it.
  */
 void pifRingBuffer_AttachActLock(PifRingBuffer* p_owner, PifActRingBufferLock act_lock);
+
+#endif
 
 /**
  * @brief Returns the start of the buffer memory, _size bytes long, to hand to a circular DMA that

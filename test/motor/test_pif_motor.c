@@ -129,6 +129,8 @@ static void testStepLowPps(void)
     CHECK(s_step.__step_period1us == 1000000);
 }
 
+#ifdef PIF_USE_STEP_MOTOR_STEP_DIR
+
 static void testStepDirPulses(void)
 {
     int i;
@@ -155,6 +157,8 @@ static void testStepDirPulses(void)
     pifStepMotor_Release(&s_step);
     CHECK(s_phase[s_phase_count - 1] == 0);
 }
+
+#endif
 
 static void testStepPulseUnit(void)
 {
@@ -226,6 +230,8 @@ static void testStepOperatingTimeCancelled(void)
 
     pifTaskManager_Remove(s_step.__p_task);
 }
+
+#ifdef PIF_USE_STEP_MOTOR_5PHASE
 
 static int _bitCount(uint16_t value)
 {
@@ -304,6 +310,10 @@ static void testStep5PhasePentagonHalf(void)
     CHECK(s_phase[s_phase_count - 1] == 0);
 }
 
+#endif
+
+#ifdef PIF_USE_STEP_MOTOR_STEP_DIR
+
 static uint16_t s_microstep;
 
 static void _actSetMicrostep(PifStepMotor* p_owner, uint16_t microstep)
@@ -344,6 +354,35 @@ static void testStepMicrostep(void)
     CHECK(s_step._current_pulse == 2);
     CHECK(pifStepMotor_GetRpm(&s_step) == 60.0f * 125 / 200);
 }
+
+#endif
+
+#if !defined(PIF_USE_STEP_MOTOR_5PHASE) || !defined(PIF_USE_STEP_MOTOR_STEP_DIR)
+
+static void testStepLeftOutOperations(void)
+{
+    CHECK(_setUp());
+    // An operation left out of the build is refused as an unknown one, at Init and later.
+#ifndef PIF_USE_STEP_MOTOR_5PHASE
+    pif_error = E_SUCCESS;
+    CHECK(!pifStepMotor_Init(&s_step, PIF_ID_AUTO, &s_manager, 200, SMO_5P_PG) && pif_error == E_INVALID_PARAM);
+#endif
+#ifndef PIF_USE_STEP_MOTOR_STEP_DIR
+    pif_error = E_SUCCESS;
+    CHECK(!pifStepMotor_Init(&s_step, PIF_ID_AUTO, &s_manager, 200, SMO_STEP_DIR) && pif_error == E_INVALID_PARAM);
+#endif
+    CHECK(_setUpStep(SMO_2P_4W_1S));
+#ifndef PIF_USE_STEP_MOTOR_5PHASE
+    CHECK(!pifStepMotor_SetOperation(&s_step, SMO_5P_PG_HALF));
+#endif
+#ifndef PIF_USE_STEP_MOTOR_STEP_DIR
+    CHECK(!pifStepMotor_SetOperation(&s_step, SMO_STEP_DIR));
+#endif
+    CHECK(s_step._operation == SMO_2P_4W_1S);
+    CHECK(pifStepMotor_SetOperation(&s_step, SMO_2P_4W_1_2S));
+}
+
+#endif
 
 static void testDutyStart(void)
 {
@@ -399,14 +438,23 @@ typedef struct StTestCase
 static const TestCase s_tests[] = {
     { "step init checks", testStepInitChecks },
     { "step low pps", testStepLowPps },
+#ifdef PIF_USE_STEP_MOTOR_STEP_DIR
     { "step STEP/DIR pulses", testStepDirPulses },
+#endif
     { "step pulse unit", testStepPulseUnit },
     { "step gear ratio keeps speed", testStepGearRatioKeepsSpeed },
     { "step error once", testStepErrorOnce },
     { "step operating time cancelled", testStepOperatingTimeCancelled },
+#ifdef PIF_USE_STEP_MOTOR_5PHASE
     { "step 5-phase pentagon", testStep5PhasePentagon },
     { "step 5-phase pentagon half step", testStep5PhasePentagonHalf },
+#endif
+#ifdef PIF_USE_STEP_MOTOR_STEP_DIR
     { "step microstep", testStepMicrostep },
+#endif
+#if !defined(PIF_USE_STEP_MOTOR_5PHASE) || !defined(PIF_USE_STEP_MOTOR_STEP_DIR)
+    { "step left out operations", testStepLeftOutOperations },
+#endif
     { "duty start", testDutyStart },
     { "duty without brake callback", testDutyNoBrakeCallback },
     { "duty error once", testDutyErrorOnce }

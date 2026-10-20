@@ -6,6 +6,10 @@
  * A step timer of a PifTimerManager gives the phases to act_set_step at the pulse rate. 2-phase and 5-phase
  * motors are driven by their phase sequences, and STEP/DIR drivers by pulses. pif_step_motor_speed and
  * pif_step_motor_pos build on it.
+ *
+ * Only the operations put in by PIF_USE_STEP_MOTOR_2PHASE (SMO_2P_*), PIF_USE_STEP_MOTOR_5PHASE (SMO_5P_*) and
+ * PIF_USE_STEP_MOTOR_STEP_DIR (SMO_STEP_DIR) are built. pifStepMotor_Init() and pifStepMotor_SetOperation()
+ * refuse the others with E_INVALID_PARAM, so a target that drives a step motor defines at least one of them.
  */
 #ifndef PIF_STEP_MOTOR_H
 #define PIF_STEP_MOTOR_H
@@ -13,8 +17,8 @@
 
 #include "core/pif_timer_manager.h"
 #include "motor/pif_motor.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_STEP_MOTOR)
-	#define COLLECT_SIGNAL_STEP_MOTOR	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_STEP_MOTOR is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_STEP_MOTOR)
+	#define COLLECT_SIGNAL_STEP_MOTOR	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_STEP_MOTOR is too
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -234,7 +238,9 @@ BOOL pifStepMotor_SetOperatingTime(PifStepMotor* p_owner, uint32_t operating_tim
  * @brief Changes electrical phase operation mode and sequence table.
  * @param p_owner Pointer to the motor instance.
  * @param operation Step operation mode.
- * @return `TRUE` if mode is valid and motor is in valid state, otherwise `FALSE`.
+ * @return `TRUE` if mode is valid and motor is in valid state, otherwise `FALSE`. A mode that
+ *         PIF_USE_STEP_MOTOR_2PHASE, PIF_USE_STEP_MOTOR_5PHASE or PIF_USE_STEP_MOTOR_STEP_DIR did not put in the
+ *         build is refused with E_INVALID_PARAM.
  */
 BOOL pifStepMotor_SetOperation(PifStepMotor* p_owner, PifStepMotorOperation operation);
 

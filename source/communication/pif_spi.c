@@ -82,33 +82,52 @@ static BOOL _write(PifDeviceReg* p_owner, uint32_t iaddr, uint8_t isize, uint8_t
 	return _transfer((PifSpiDevice*)p_owner, TRUE, iaddr, isize, p_data, size);
 }
 
-static BOOL _startRead(PifDeviceReg* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
+/**
+ * @brief Starts a read or write in one piece with act_start, or makes it at once with act when the
+ *        port has no act_start, and leaves the port held until pifDeviceReg_CheckTransfer() reports it
+ *        over.
+ * @return TRUE if the transfer was started, otherwise FALSE with pif_error set.
+ */
+static BOOL _startTransfer(PifDeviceReg* p_owner, PifActSpiRead act_start, PifActSpiRead act, uint32_t iaddr,
+		uint8_t isize, uint8_t* p_data, size_t size)
 {
 	PifSpiDevice* p_device = (PifSpiDevice*)p_owner;
-	PifSpiPort* p_port = p_device->_p_port;
 
-	if ((!p_port->act_start_read && !p_port->act_read) || !size
-			|| (p_owner->max_transfer_size && size > p_owner->max_transfer_size)) {
+	if ((!act_start && !act) || !size || (p_owner->max_transfer_size && size > p_owner->max_transfer_size)) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 	if (!_takePort(p_device)) return FALSE;
 
 	_beginBackground(p_device);
-	if (p_port->act_start_read) {
-		if (!(*p_port->act_start_read)(p_device, iaddr, isize, p_data, size)) {
+	if (act_start) {
+		if (!(*act_start)(p_device, iaddr, isize, p_data, size)) {
 			_failBackground(p_device);
 			return FALSE;
 		}
 	}
 	else {
-		if (!(*p_port->act_read)(p_device, iaddr, isize, p_data, size)) {
+		if (!(*act)(p_device, iaddr, isize, p_data, size)) {
 			_failBackground(p_device);
 			return FALSE;
 		}
 		p_owner->_state = DRS_COMPLETE;
 	}
 	return TRUE;
+}
+
+static BOOL _startRead(PifDeviceReg* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
+{
+	PifSpiPort* p_port = ((PifSpiDevice*)p_owner)->_p_port;
+
+	return _startTransfer(p_owner, p_port->act_start_read, p_port->act_read, iaddr, isize, p_data, size);
+}
+
+static BOOL _startWrite(PifDeviceReg* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
+{
+	PifSpiPort* p_port = ((PifSpiDevice*)p_owner)->_p_port;
+
+	return _startTransfer(p_owner, p_port->act_start_write, p_port->act_write, iaddr, isize, p_data, size);
 }
 
 static PifDeviceRegState _checkTransfer(PifDeviceReg* p_owner)
@@ -144,6 +163,7 @@ static const PifDeviceRegOps c_device_ops = {
 	_read,
 	_write,
 	_startRead,
+	_startWrite,
 	_checkTransfer,
 	_isBusy
 };

@@ -13,8 +13,8 @@
 
 #include "core/pif_ring_data.h"
 #include "core/pif_task_manager.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_SOLENOID)
-	#define COLLECT_SIGNAL_SOLENOID	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_SOLENOID is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_SOLENOID)
+	#define COLLECT_SIGNAL_SOLENOID	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_SOLENOID is too
 	#include "core/pif_collect_signal.h"
 #endif
 

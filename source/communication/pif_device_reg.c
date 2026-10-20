@@ -140,6 +140,20 @@ BOOL pifDeviceReg_StartReadRegBytes(PifDeviceReg *p_owner, uint8_t reg, uint8_t 
 	return pifDeviceReg_StartRead(p_owner, reg, 1, p_data, size);
 }
 
+BOOL pifDeviceReg_StartWrite(PifDeviceReg *p_owner, uint32_t iaddr, uint8_t isize, uint8_t *p_data, size_t size)
+{
+	if (!p_owner) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+	return (*p_owner->__p_ops->start_write)(p_owner, iaddr, isize, p_data, size);
+}
+
+BOOL pifDeviceReg_StartWriteRegBytes(PifDeviceReg *p_owner, uint8_t reg, uint8_t *p_data, size_t size)
+{
+	return pifDeviceReg_StartWrite(p_owner, reg, 1, p_data, size);
+}
+
 PifDeviceRegState pifDeviceReg_CheckTransfer(PifDeviceReg *p_owner)
 {
 	if (!p_owner) return DRS_IDLE;

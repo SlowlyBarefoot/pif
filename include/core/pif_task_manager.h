@@ -4,8 +4,9 @@
  * @brief Cooperative scheduler that runs the tasks, the timer callbacks and the idle callback.
  *
  * Call pifTaskManager_Init() once, add the tasks with pifTaskManager_Add(), and call pifTaskManager_Loop() from
- * the main loop. A TM_REALTIME task takes priority, and the other tasks run only when their measured run fits
- * before its next release.
+ * the main loop. With PIF_USE_TASK_REALTIME a TM_REALTIME task takes priority, and the other tasks run only when
+ * their measured run fits before its next release. Without it the realtime release, the time kept free before it
+ * and max_skip are not built, and the tasks, the timer callbacks and the idle callback run as soon as they are due.
  */
 #ifndef PIF_TASK_MANAGER_H
 #define PIF_TASK_MANAGER_H
@@ -26,10 +27,12 @@ typedef void (*PifEvtTaskTimer)(void *p_client);
 typedef struct StPifTaskTimer
 {
 	// Public Member Variable
+#ifdef PIF_USE_TASK_REALTIME
 	/// As PifTask::max_skip, for the loops this callback may be held back in a row. A timer
 	/// callback is meant to run at the start of every loop, so being held back without a bound
 	/// would break that contract rather than merely delay it.
 	uint16_t max_skip;
+#endif
 
 	// Read-only Member Variable
     void *_p_client;			///< Client given to pifTaskManager_AddTimer()
@@ -40,8 +43,10 @@ typedef struct StPifTaskTimer
 	// Read-only Event Function
     PifEvtTaskTimer _evt_timer;	///< The callback
 
+#ifdef PIF_USE_TASK_REALTIME
 	// Private Member Variable
 	uint16_t __skip_count;		///< Runs held back in a row, against max_skip
+#endif
 } PifTaskTimer;
 
 /**

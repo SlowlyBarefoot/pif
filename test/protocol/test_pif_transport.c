@@ -343,7 +343,7 @@ static void _testUartTransport(void)
     _tearDownMedium();
 }
 
-#ifndef PIF_UART_NO_DIRECTION
+#ifdef PIF_USE_UART_DIRECTION
 
 static uint32_t s_fake_time;
 static PifUartDirection s_dir;
@@ -436,7 +436,7 @@ static void _testUartDirection(void)
     pif_act_timer1us = act_timer;
 }
 
-#endif	// PIF_UART_NO_DIRECTION
+#endif	// PIF_USE_UART_DIRECTION
 
 static const struct {
     const char *p_name;
@@ -449,7 +449,7 @@ static const struct {
     { "xmodem over can", _testXmodemCan },
     { "xmodem over can fd", _testXmodemCanFd },
     { "uart transport", _testUartTransport },
-#ifndef PIF_UART_NO_DIRECTION
+#ifdef PIF_USE_UART_DIRECTION
     { "uart rs-485 direction", _testUartDirection },
 #endif
 };

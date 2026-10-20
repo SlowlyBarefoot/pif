@@ -32,8 +32,8 @@
 
 
 #include "core/pif.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_DSHOT)
-	#define COLLECT_SIGNAL_DSHOT	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_DSHOT is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_DSHOT)
+	#define COLLECT_SIGNAL_DSHOT	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_DSHOT is too
 	#include "core/pif_collect_signal.h"
 #endif
 

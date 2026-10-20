@@ -5,6 +5,9 @@
  *
  * Copy it to pif_conf.h on the include path and enable the options the target needs. Every option is commented
  * out at its default.
+ *
+ * A module is built with its least features. The PIF_USE_ options, and PIF_COLLECT_SIGNAL with its module
+ * selections, each put one feature in for a target that needs it.
  */
 #ifndef PIF_CONF_H
 #define PIF_CONF_H
@@ -17,6 +20,10 @@
 //#define PIF_STATIC_INLINE			static inline
 
 //#define PIF_WEAK							__attribute__ ((weak))
+
+// Puts %f in pif_PrintFormat(), and with it pifLog_Printf(), along with the double arithmetic it needs. Without it
+// %f takes its argument and writes nothing.
+//#define PIF_USE_PRINTF_FLOAT
 
 
 // -------- pifAdc -------------------------------
@@ -68,27 +75,27 @@
 
 //#define PIF_COLLECT_SIGNAL
 
-// With PIF_COLLECT_SIGNAL every module below records its signals. Defining a module's NO_ macro
-// leaves its channels, its Put calls and its SetCsFlag/ResetCsFlag out of the build.
-//#define PIF_COLLECT_SIGNAL_NO_BUZZER
-//#define PIF_COLLECT_SIGNAL_NO_DSHOT
-//#define PIF_COLLECT_SIGNAL_NO_DUTY_MOTOR
-//#define PIF_COLLECT_SIGNAL_NO_ENCODER
-//#define PIF_COLLECT_SIGNAL_NO_GPIO
-//#define PIF_COLLECT_SIGNAL_NO_HC_SR04
-//#define PIF_COLLECT_SIGNAL_NO_I2C
-//#define PIF_COLLECT_SIGNAL_NO_KEYPAD
-//#define PIF_COLLECT_SIGNAL_NO_MAX31855
-//#define PIF_COLLECT_SIGNAL_NO_MODBUS_ASCII_MASTER
-//#define PIF_COLLECT_SIGNAL_NO_MODBUS_RTU_MASTER
-//#define PIF_COLLECT_SIGNAL_NO_PID_CONTROL
-//#define PIF_COLLECT_SIGNAL_NO_PULSE
-//#define PIF_COLLECT_SIGNAL_NO_SENSOR_SWITCH
-//#define PIF_COLLECT_SIGNAL_NO_SENSOR_THRESHOLD
-//#define PIF_COLLECT_SIGNAL_NO_SEQUENCE
-//#define PIF_COLLECT_SIGNAL_NO_SOLENOID
-//#define PIF_COLLECT_SIGNAL_NO_STEP_MOTOR		// pifStepMotorPos and pifStepMotorSpeed too
-//#define PIF_COLLECT_SIGNAL_NO_UART
+// With PIF_COLLECT_SIGNAL the modules selected below record their signals: a module's macro puts its
+// channels, its Put calls and its SetCsFlag/ResetCsFlag in the build.
+//#define PIF_COLLECT_SIGNAL_BUZZER
+//#define PIF_COLLECT_SIGNAL_DSHOT
+//#define PIF_COLLECT_SIGNAL_DUTY_MOTOR
+//#define PIF_COLLECT_SIGNAL_ENCODER
+//#define PIF_COLLECT_SIGNAL_GPIO
+//#define PIF_COLLECT_SIGNAL_HC_SR04
+//#define PIF_COLLECT_SIGNAL_I2C
+//#define PIF_COLLECT_SIGNAL_KEYPAD
+//#define PIF_COLLECT_SIGNAL_MAX31855
+//#define PIF_COLLECT_SIGNAL_MODBUS_ASCII_MASTER
+//#define PIF_COLLECT_SIGNAL_MODBUS_RTU_MASTER
+//#define PIF_COLLECT_SIGNAL_PID_CONTROL
+//#define PIF_COLLECT_SIGNAL_PULSE
+//#define PIF_COLLECT_SIGNAL_SENSOR_SWITCH
+//#define PIF_COLLECT_SIGNAL_SENSOR_THRESHOLD
+//#define PIF_COLLECT_SIGNAL_SEQUENCE
+//#define PIF_COLLECT_SIGNAL_SOLENOID
+//#define PIF_COLLECT_SIGNAL_STEP_MOTOR		// pifStepMotorPos and pifStepMotorSpeed too
+//#define PIF_COLLECT_SIGNAL_UART
 
 // Characters of text a transfer task pass hands to pifLog at most, beyond the line it is on.
 //#define PIF_COLLECT_SIGNAL_TEXT_SIZE		96
@@ -210,6 +217,14 @@
 // takes the next frame for a request again.
 //#define PIF_MODBUS_SLAVE_TIMEOUT  	    300
 
+// The data areas a slave handles, with the functions on them. A request for any other function is answered
+// with exception 1 (Illegal Function).
+//#define PIF_USE_MODBUS_SLAVE_COILS					// Functions 1, 5 and 15
+//#define PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS		// Function 2
+//#define PIF_USE_MODBUS_SLAVE_INPUT_REGISTERS		// Function 4
+//#define PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS		// Functions 3, 6 and 16
+//#define PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE	// Function 23, with the holding registers
+
 
 // -------- pifMsp -------------------------------
 
@@ -221,6 +236,12 @@
 
 // Timeout used to receive one complete packet, in timer units. 0: no timeout limit.
 //#define PIF_MSP_RECEIVE_TIMEOUT			200
+
+
+// -------- pifNvram -----------------------------
+
+// Puts NM_RECORD in, the records kept safe from a write cut short. Without it only raw slots are read and written.
+//#define PIF_USE_NVRAM_RECORD
 
 
 // -------- pifPmlcdI2c --------------------------
@@ -241,6 +262,14 @@
 //#define PIF_PWM_GEN_MAX_DUTY				1000
 
 
+// -------- pifRingBuffer ------------------------
+
+// Puts the lock in every ring buffer, along with pifRingBuffer_AttachActLock(). A target needs it when a chop-off,
+// pifRingBuffer_SetHead() or pifRingBuffer_MoveHeadForLinear() runs against a reader in an interrupt.
+// With PIF_NO_LOG the name a ring buffer is given is not kept.
+//#define PIF_USE_RING_BUFFER_LOCK
+
+
 // -------- pifSequence --------------------------
 
 // How often (us) a wait looks for its signal, which is the latency between the signal and the next step.
@@ -254,12 +283,24 @@
 //#define PIF_SOLENOID_MAX_COUNT			16
 
 
+// -------- pifStepMotor -------------------------
+
+// The operations a target drives. A step motor needs at least one of them, and refuses the others.
+//#define PIF_USE_STEP_MOTOR_2PHASE			// SMO_2P_*
+//#define PIF_USE_STEP_MOTOR_5PHASE			// SMO_5P_*
+//#define PIF_USE_STEP_MOTOR_STEP_DIR		// SMO_STEP_DIR
+
+
 // -------- pifSrml ------------------------------
 
 //#define PIF_SRML_MAX_BUFFER_SIZE     		64
 
 
 // -------- pifTask ------------------------------
+
+// Puts TM_REALTIME in the scheduler, with the time kept free before its release and max_skip. Without it the
+// tasks, timer callbacks and idle callback run as soon as they are due, and the two options below have no use.
+//#define PIF_USE_TASK_REALTIME
 
 // Margin in microseconds that a run has to leave free before the realtime release, on top of its
 // own measured length. It stands for what the scheduler itself spends between deciding that the
@@ -305,6 +346,10 @@
 
 //#define PIF_TOUCH_CONTROL_PERIOD			10
 
+// Puts the interactive calibration in. Without it the edges given to pifTouchScreen_Init() are used, and the
+// calibration options below have no use.
+//#define PIF_USE_TOUCH_CALIBRATION
+
 // Reads of the pressed state that have to agree before calibration accepts a press or a release.
 //#define PIF_TOUCH_CALIBRATION_DEBOUNCE	10
 
@@ -317,16 +362,20 @@
 // Reads of an unpressed panel that make calibration give up on a crosshair.
 //#define PIF_TOUCH_CALIBRATION_MAX_FAIL	10000
 
+// Smallest raw span between the edges that calibration accepts, along X and Y of the panel at TLR_0_DEGREE.
+//#define PIF_TOUCH_CALIBRATION_MIN_RANGE_X	500
+//#define PIF_TOUCH_CALIBRATION_MIN_RANGE_Y	650
+
 
 // -------- pifUart ------------------------------
 
-// Leaves out XON/XOFF and RTS/CTS flow control: fc_limit, act_get_rx_rate, act_device_flow_state and the
-// pifUart_*FlowControl/*FlowState functions. The flow state of the UART transport is then always ON.
-//#define PIF_UART_NO_FLOW_CONTROL
+// Puts in XON/XOFF and RTS/CTS flow control: fc_limit, act_get_rx_rate, act_device_flow_state and the
+// pifUart_*FlowControl/*FlowState functions. Without it the flow state of the UART transport is always ON.
+//#define PIF_USE_UART_FLOW_CONTROL
 
-// Leaves out the direction control of a half-duplex line such as RS-485: dir_delay and
-// pifUart_AttachActDirection/SetDirection. Without it the UART drives the line for each transfer by itself.
-//#define PIF_UART_NO_DIRECTION
+// Puts in the direction control of a half-duplex line such as RS-485: dir_delay and
+// pifUart_AttachActDirection/SetDirection. Without it nothing switches the line between transfers.
+//#define PIF_USE_UART_DIRECTION
 
 
 // -------- pifXmodem ----------------------------

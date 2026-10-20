@@ -27,7 +27,10 @@ static void _outputDigit(PifFnd* p_owner, uint8_t digit)
 		p_owner->__bt.led ^= 1;
 	}
 
-	if (p_owner->__bt.led) {
+	if (p_owner->__bt.led && p_owner->__bt.raw) {
+		seg = p_owner->__p_string[digit];
+	}
+	else if (p_owner->__bt.led) {
 		ch = p_owner->__p_string[digit];
 		if (ch & 0x80) {
 			point = TRUE;
@@ -131,6 +134,7 @@ static void _setNumber(PifFnd* p_owner, uint32_t integer, uint32_t fraction, uin
 	int point = last - sub;		// Position of the last integer digit
 	int p;
 
+	p_owner->__bt.raw = FALSE;
 	for (p = last; p > point; p--) {
 		p_str[p] = '0' + fraction % 10;
 		fraction /= 10;
@@ -386,6 +390,7 @@ void pifFnd_SetString(PifFnd* p_owner, char* p_string)
     int p, src = 0;
     BOOL last = FALSE;
 
+    p_owner->__bt.raw = FALSE;
     for (p = 0; p < p_owner->_digit_size; p++) {
     	if (!last && p_string[src]) {
     		p_owner->__p_string[p] = p_string[src];
@@ -396,4 +401,10 @@ void pifFnd_SetString(PifFnd* p_owner, char* p_string)
     	}
     	src++;
     }
+}
+
+void pifFnd_SetSegments(PifFnd* p_owner, const uint8_t* p_segment)
+{
+	memcpy(p_owner->__p_string, p_segment, p_owner->_digit_size);
+	p_owner->__bt.raw = TRUE;
 }

@@ -94,7 +94,10 @@ struct StPifSpiPort
 	/// Optional. Starts a read like act_read and returns without waiting for it, ended as a transfer
 	/// from act_start_transfer is. Without it pifDeviceReg_StartRead() reads with act_read.
 	PifActSpiRead act_start_read;
-	/// Optional. Polled while a transfer from act_start_transfer or act_start_read is running, for a
+	/// Optional. Starts a write like act_write, as act_start_read starts a read. Without it
+	/// pifDeviceReg_StartWrite() writes with act_write.
+	PifActSpiWrite act_start_write;
+	/// Optional. Polled while a transfer from act_start_transfer, act_start_read or act_start_write is running, for a
 	/// port that cannot call pifSpiPort_sigEndTransfer(). It returns TRUE until the transfer is over.
 	PifActSpiIsBusy act_is_busy;
 

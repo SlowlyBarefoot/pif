@@ -81,7 +81,8 @@ static BOOL _transfer(PifI2cDevice* p_device, BOOL write, uint32_t iaddr, uint8_
 	}
 
 	// Blocking transfers give the port back before they return, and no task runs while one is
-	// waiting, so a port that is taken here is held by a transfer from pifDeviceReg_StartRead().
+	// waiting, so a port that is taken here is held by a transfer from pifDeviceReg_StartRead() or
+	// pifDeviceReg_StartWrite().
 	if (p_port->__use_device) {
 		pif_error = E_INVALID_STATE;
 #ifndef PIF_NO_LOG
@@ -160,12 +161,20 @@ static BOOL _write(PifDeviceReg* p_owner, uint32_t iaddr, uint8_t isize, uint8_t
 	return _transfer((PifI2cDevice*)p_owner, TRUE, iaddr, isize, p_data, size);
 }
 
-static BOOL _startRead(PifDeviceReg* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
+/**
+ * @fn _startTransfer
+ * @brief Starts a read or write in one piece and leaves the port held for the device until
+ *        _checkTransfer() reports it over.
+ * @return TRUE if the transfer was started, otherwise FALSE with pif_error set.
+ */
+static BOOL _startTransfer(PifDeviceReg* p_owner, BOOL write, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
 {
 	PifI2cDevice* p_device = (PifI2cDevice*)p_owner;
 	PifI2cPort* p_port = p_device->_p_port;
+	PifActI2cRead act = write ? p_port->act_write : p_port->act_read;
 
-	if (!p_port->act_read || !size || (p_owner->max_transfer_size && size > p_owner->max_transfer_size)) {
+	// A write of no data still sends the internal address alone, as a blocking one does.
+	if (!act || (!size && !write) || (p_owner->max_transfer_size && size > p_owner->max_transfer_size)) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -178,7 +187,7 @@ static BOOL _startRead(PifDeviceReg* p_owner, uint32_t iaddr, uint8_t isize, uin
 	p_port->__use_device = p_device;
 	_setState(p_device, DRS_RUN);
 	p_owner->__start_time1ms = pif_cumulative_timer1ms;
-	switch ((*p_port->act_read)(p_device, iaddr, isize, p_data, size)) {
+	switch ((*act)(p_device, iaddr, isize, p_data, size)) {
 	case IR_WAIT:
 		break;
 
@@ -188,7 +197,8 @@ static BOOL _startRead(PifDeviceReg* p_owner, uint32_t iaddr, uint8_t isize, uin
 
 	case IR_ERROR:
 #ifndef PIF_NO_LOG
-		pifLog_Printf(LT_ERROR, "I2CR:%u A:%Xh R:%Xh E:%u", __LINE__, p_device->addr, iaddr, pif_error);
+		pifLog_Printf(LT_ERROR, "I2C%c:%u A:%Xh R:%Xh E:%u", write ? 'W' : 'R', __LINE__, p_device->addr, iaddr,
+				pif_error);
 #endif
 		p_port->__use_device = NULL;
 		p_port->error_count++;
@@ -196,6 +206,16 @@ static BOOL _startRead(PifDeviceReg* p_owner, uint32_t iaddr, uint8_t isize, uin
 		return FALSE;
 	}
 	return TRUE;
+}
+
+static BOOL _startRead(PifDeviceReg* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
+{
+	return _startTransfer(p_owner, FALSE, iaddr, isize, p_data, size);
+}
+
+static BOOL _startWrite(PifDeviceReg* p_owner, uint32_t iaddr, uint8_t isize, uint8_t* p_data, size_t size)
+{
+	return _startTransfer(p_owner, TRUE, iaddr, isize, p_data, size);
 }
 
 static PifDeviceRegState _checkTransfer(PifDeviceReg* p_owner)
@@ -234,6 +254,7 @@ static const PifDeviceRegOps c_device_ops = {
 	_read,
 	_write,
 	_startRead,
+	_startWrite,
 	_checkTransfer,
 	_isBusy
 };

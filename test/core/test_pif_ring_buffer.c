@@ -20,6 +20,9 @@ PifId pif_id = 1;
     } while (0)
 
 static BOOL s_failed;
+
+#ifdef PIF_USE_RING_BUFFER_LOCK
+
 static int s_lock_depth;
 static int s_lock_count;
 
@@ -35,6 +38,8 @@ static void _actLock(PifRingBuffer *p_owner, BOOL lock)
         s_lock_depth--;
     }
 }
+
+#endif
 
 static BOOL _putBytes(PifRingBuffer *p_rb, uint8_t first, uint16_t count)
 {
@@ -150,11 +155,17 @@ static void _testChopOffLength(void)
 
     CHECK(pifRingBuffer_InitHeap(&rb, PIF_ID_AUTO, 10));
     pifRingBuffer_ChopsOffLength(&rb, 3);
+#ifdef PIF_USE_RING_BUFFER_LOCK
     pifRingBuffer_AttachActLock(&rb, _actLock);
+#endif
     CHECK(_putBytes(&rb, 0, 9));
+#ifdef PIF_USE_RING_BUFFER_LOCK
     s_lock_count = 0;
+#endif
     CHECK(_putBytes(&rb, 9, 2));
+#ifdef PIF_USE_RING_BUFFER_LOCK
     CHECK(s_lock_count > 0 && s_lock_depth == 0);
+#endif
     // Three oldest bytes went to make room for the two new ones.
     CHECK(pifRingBuffer_GetBytes(&rb, data, 16) == 8);
     CHECK(data[0] == 3 && data[7] == 10);
@@ -163,7 +174,9 @@ static void _testChopOffLength(void)
     pifRingBuffer_ChopsOffLength(&rb, 0);
     CHECK(_putBytes(&rb, 0, 9));
     CHECK(!pifRingBuffer_PutByte(&rb, 9));
+#ifdef PIF_USE_RING_BUFFER_LOCK
     CHECK(s_lock_depth == 0);
+#endif
     pifRingBuffer_Clear(&rb);
 }
 
@@ -211,6 +224,8 @@ static void _testChopOffChar(void)
     pifRingBuffer_Clear(&rb);
 }
 
+#ifdef PIF_USE_RING_BUFFER_LOCK
+
 static void _testLockBalance(void)
 {
     PifRingBuffer rb;
@@ -228,6 +243,21 @@ static void _testLockBalance(void)
     pifRingBuffer_Remove(&rb, 1);
     pifRingBuffer_Empty(&rb);
     CHECK(s_lock_count == 5 && s_lock_depth == 0);
+    pifRingBuffer_Clear(&rb);
+}
+
+#endif
+
+static void _testName(void)
+{
+    PifRingBuffer rb;
+
+    // Kept only while there is a log to show it in, and a no-op otherwise, so callers need no guard.
+    CHECK(pifRingBuffer_InitHeap(&rb, PIF_ID_AUTO, 4));
+    pifRingBuffer_SetName(&rb, "RB");
+#ifndef PIF_NO_LOG
+    CHECK(!strcmp(rb.__p_name, "RB"));
+#endif
     pifRingBuffer_Clear(&rb);
 }
 
@@ -372,7 +402,10 @@ static const struct {
     { "chop off length", _testChopOffLength },
     { "chop off length in session", _testChopOffLengthSession },
     { "chop off char", _testChopOffChar },
+#ifdef PIF_USE_RING_BUFFER_LOCK
     { "lock balance", _testLockBalance },
+#endif
+    { "name", _testName },
     { "move head for linear", _testMoveHead },
     { "set head", _testSetHead },
     { "read pointer", _testReadPointer },

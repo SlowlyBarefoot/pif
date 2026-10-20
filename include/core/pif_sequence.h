@@ -20,8 +20,8 @@
 
 
 #include "core/pif_task_manager.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_SEQUENCE)
-	#define COLLECT_SIGNAL_SEQUENCE	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_SEQUENCE is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_SEQUENCE)
+	#define COLLECT_SIGNAL_SEQUENCE	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_SEQUENCE is too
 	#include "core/pif_collect_signal.h"
 #endif
 

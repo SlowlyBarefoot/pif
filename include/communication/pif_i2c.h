@@ -5,7 +5,9 @@
  *
  * The platform gives a PifI2cPort the functions that move bytes on its bus. Each slave on the bus is a
  * PifI2cDevice, and the drivers of the slaves use it through &device->parent with the pifDeviceReg_ functions. A
- * transfer can run in the background and end with pifI2cPort_sigEndTransfer() or act_check.
+ * transfer can run in the background and end with pifI2cPort_sigEndTransfer() or act_check. A read or a write
+ * started with pifDeviceReg_StartRead() or pifDeviceReg_StartWrite() then returns at once, and the port stays held
+ * until pifDeviceReg_CheckTransfer() reports it over.
  */
 #ifndef PIF_I2C_H
 #define PIF_I2C_H
@@ -13,8 +15,8 @@
 
 #include "communication/pif_device_reg.h"
 #include "core/pif_obj_array.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_I2C)
-	#define COLLECT_SIGNAL_I2C	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_I2C is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_I2C)
+	#define COLLECT_SIGNAL_I2C	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_I2C is too
 	#include "core/pif_collect_signal.h"
 #endif
 
@@ -162,8 +164,8 @@ PifI2cDevice* pifI2cPort_AddDevice(PifI2cPort* p_owner, PifId id, uint8_t addr, 
  * @param p_owner Pointer to the port that owns the device.
  * @param p_device Pointer to the device to remove. `NULL` does nothing.
  * @return `TRUE` if the device was removed, otherwise `FALSE` with pif_error set to
- *         E_INVALID_STATE while a transfer from pifDeviceReg_StartRead() still holds the port for it.
- *         The device stays on the port then.
+ *         E_INVALID_STATE while a transfer from pifDeviceReg_StartRead() or pifDeviceReg_StartWrite() still
+ *         holds the port for it. The device stays on the port then.
  */
 BOOL pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device);
 
@@ -174,8 +176,8 @@ BOOL pifI2cPort_RemoveDevice(PifI2cPort* p_owner, PifI2cDevice* p_device);
  * @param addr 7-bit slave address of the temporary target.
  * @param p_client User-defined client pointer associated with the temporary device.
  * @return Pointer to the temporary device descriptor, or `NULL` with pif_error set to
- *         E_INVALID_STATE while a transfer from pifDeviceReg_StartRead() made with it still holds the
- *         port.
+ *         E_INVALID_STATE while a transfer from pifDeviceReg_StartRead() or pifDeviceReg_StartWrite() made
+ *         with it still holds the port.
  */
 PifI2cDevice* pifI2cPort_TemporaryDevice(PifI2cPort* p_owner, uint8_t addr, void *p_client);
 

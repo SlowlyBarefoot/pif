@@ -107,6 +107,8 @@ static BOOL _setUp(PifNvramMode mode, BOOL timer)
     return TRUE;
 }
 
+#ifdef PIF_USE_NVRAM_RECORD
+
 // A new instance over the same media, as after a reset.
 static BOOL _restart(void)
 {
@@ -115,6 +117,8 @@ static BOOL _restart(void)
     if (!pifNvram_AttachActMedia(&s_nvram, _actRead, _actWrite)) return FALSE;
     return pifNvram_SetMedia(&s_nvram, VOLUME, PAGE_SIZE, SLOT_SIZE, NM_RECORD);
 }
+
+#endif
 
 static void _fill(uint8_t* p_data, size_t size, uint8_t seed)
 {
@@ -130,11 +134,24 @@ static void testSetMedia(void)
 
     CHECK(!pifNvram_SetMedia(&s_nvram, VOLUME, PAGE_SIZE, 0, NM_RAW) && pif_error == E_INVALID_PARAM);
     CHECK(!pifNvram_SetMedia(&s_nvram, 16, PAGE_SIZE, 32, NM_RAW) && pif_error == E_INVALID_PARAM);
+#ifdef PIF_USE_NVRAM_RECORD
     // A record slot has to hold more than the header, and a record needs two slots.
     CHECK(!pifNvram_SetMedia(&s_nvram, VOLUME, PAGE_SIZE, PIF_NVRAM_RECORD_HEADER, NM_RECORD));
     CHECK(!pifNvram_SetMedia(&s_nvram, 40, PAGE_SIZE, 32, NM_RECORD) && pif_error == E_INVALID_PARAM);
     CHECK(pifNvram_SetMedia(&s_nvram, VOLUME, PAGE_SIZE, SLOT_SIZE, NM_RECORD));
     CHECK(s_nvram._mode == NM_RECORD);
+#else
+    {
+        static const uint16_t sizes[] = { 4, 20 };
+
+        // The mode left out of the build is refused, and the raw slots set up before are kept.
+        pif_error = E_SUCCESS;
+        CHECK(!pifNvram_SetMedia(&s_nvram, VOLUME, PAGE_SIZE, SLOT_SIZE, NM_RECORD) && pif_error == E_INVALID_PARAM);
+        pif_error = E_SUCCESS;
+        CHECK(!pifNvram_SetLayout(&s_nvram, VOLUME, PAGE_SIZE, sizes, 2, NM_RECORD) && pif_error == E_INVALID_PARAM);
+        CHECK(s_nvram._mode == NM_RAW && s_nvram._slot_count == VOLUME / SLOT_SIZE);
+    }
+#endif
 }
 
 static void testRaw(void)
@@ -157,9 +174,11 @@ static void testRaw(void)
     CHECK(pifNvram_Write(&s_nvram, 2, data, SLOT_SIZE + 1) == NS_START_FAILURE && pif_error == E_INVALID_PARAM);
     CHECK(pifNvram_Write(&s_nvram, VOLUME / SLOT_SIZE, data, 1) == NS_START_FAILURE && pif_error == E_INVALID_ID);
 
+#ifdef PIF_USE_NVRAM_RECORD
     // The record functions are for the other mode.
     CHECK(!pifNvram_ReadRecord(&s_nvram, 0, read, sizeof(read), NULL) && pif_error == E_CANNOT_USE);
     CHECK(pifNvram_WriteRecord(&s_nvram, 0, data, 4) == NS_START_FAILURE && pif_error == E_CANNOT_USE);
+#endif
 }
 
 static void testRawTimed(void)
@@ -191,6 +210,8 @@ static void testRawTimed(void)
     _tick(4);
     CHECK(s_done_count == 2 && !s_done_result && s_nvram._state == NS_IDLE);
 }
+
+#ifdef PIF_USE_NVRAM_RECORD
 
 static void testRecord(void)
 {
@@ -401,6 +422,8 @@ static void testRecordTimed(void)
     CHECK(pifNvram_ReadRecord(&s_nvram, 0, read, sizeof(read), NULL) && memcmp(read, first, sizeof(first)) == 0);
 }
 
+#endif
+
 // An NVRAM laid out by sizes over media that reads as erased, or the same layout again over the media as it is.
 static BOOL _setUpLayout(const uint16_t* p_size, uint16_t count, PifNvramMode mode, BOOL erase)
 {
@@ -450,6 +473,8 @@ static void testLayoutRaw(void)
     // A refused layout leaves the one before it.
     CHECK(s_nvram._slot_count == 3 && pifNvram_Read(&s_nvram, 2, read, 9) == NS_START_DONE);
 }
+
+#ifdef PIF_USE_NVRAM_RECORD
 
 static void testLayoutRecord(void)
 {
@@ -502,6 +527,8 @@ static void testLayoutRecord(void)
     CHECK(!pifNvram_SetLayout(&s_nvram, VOLUME, PAGE_SIZE, too_large, 2, NM_RECORD) && pif_error == E_OVERFLOW_BUFFER);
 }
 
+#endif
+
 static const struct {
     void (*run)(void);
     const char *p_name;
@@ -509,6 +536,7 @@ static const struct {
     { testSetMedia, "set media" },
     { testRaw, "raw slots" },
     { testRawTimed, "raw slots carried by the timer" },
+#ifdef PIF_USE_NVRAM_RECORD
     { testRecord, "records" },
     { testRecordCutShort, "record write cut short" },
     { testRecordCorrupted, "record copy gone bad" },
@@ -516,8 +544,11 @@ static const struct {
     { testRecordLength, "record length" },
     { testRecordDelete, "record delete" },
     { testRecordTimed, "record carried by the timer" },
+#endif
     { testLayoutRaw, "layout of raw slots" },
+#ifdef PIF_USE_NVRAM_RECORD
     { testLayoutRecord, "layout of records" },
+#endif
 };
 
 int main(void)

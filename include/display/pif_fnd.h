@@ -4,7 +4,8 @@
  * @brief Multiplexed seven-segment (FND) display showing numbers and text.
  *
  * A task lights one digit at a time through act_display. Several displays can share one scanning task as a
- * group.
+ * group. A display shows a number or a string through the font, or segments given as they are with
+ * pifFnd_SetSegments().
  */
 #ifndef PIF_FND_H
 #define PIF_FND_H
@@ -46,6 +47,7 @@ typedef struct StPifFnd
 		uint8_t fill_zero	: 1;
 		uint8_t led			: 1;
 		uint8_t run			: 1;
+		uint8_t raw			: 1;	///< __p_string holds segments from pifFnd_SetSegments(), not characters
 	} __bt;
 	uint8_t __digit_index;			///< Digit of __p_scan to output next
 	uint8_t __string_size;
@@ -185,6 +187,15 @@ void pifFnd_SetInteger(PifFnd* p_owner, int32_t value);
  * @param p_string Pointer to the string buffer to display.
  */
 void pifFnd_SetString(PifFnd* p_owner, char* p_string);
+
+/**
+ * @brief Displays segments as they are, one byte per digit, bit 0 to 6 for the segments a to g and bit 7 for
+ *        the decimal point, as act_display takes them. Blink applies to them as to text. They stay until the
+ *        next pifFnd_SetSegments(), pifFnd_SetString(), pifFnd_SetInteger() or pifFnd_SetFloat().
+ * @param p_owner Pointer to an initialized FND instance.
+ * @param p_segment Segments of every digit, _digit_size bytes. They are copied.
+ */
+void pifFnd_SetSegments(PifFnd* p_owner, const uint8_t* p_segment);
 
 #ifdef __cplusplus
 }

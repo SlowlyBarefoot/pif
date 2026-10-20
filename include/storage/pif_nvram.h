@@ -20,6 +20,9 @@
  * leaves the record whole: as it was before that write, or as the write meant it when every byte
  * that differs had already gone in, never half of each.
  *
+ * NM_RECORD is built only with PIF_USE_NVRAM_RECORD. Without it pifNvram_SetMedia() and pifNvram_SetLayout()
+ * refuse NM_RECORD with E_INVALID_PARAM.
+ *
  * Media that has to be erased before it is written, such as the flash of an MCU or a NOR flash, is
  * not what this is for: see pif_flash for a record in MCU flash and pif_nor_flash for an SPI NOR
  * flash.
@@ -32,8 +35,10 @@
 #include "core/pif_timer_manager.h"
 
 
+#ifdef PIF_USE_NVRAM_RECORD
 /// Bytes a record adds in front of its data in each slot: sequence number, length and CRC.
 #define PIF_NVRAM_RECORD_HEADER	6
+#endif
 
 
 /**
@@ -110,6 +115,8 @@ typedef BOOL (*PifActNvramRead)(PifNvram* p_owner, uint8_t* p_dst, uint32_t src,
  */
 typedef BOOL (*PifActNvramWrite)(PifNvram* p_owner, uint32_t dst, uint8_t* p_src, size_t size);
 
+#ifdef PIF_USE_NVRAM_RECORD
+
 /**
  * @class StPifNvramRecord
  * @brief What is known of one record in NM_RECORD mode.
@@ -119,6 +126,8 @@ typedef struct StPifNvramRecord
 	uint16_t seq;				///< Sequence number of the latest copy
 	uint8_t slot;				///< Which of the two slots holds it, or one of the RECORD_ values
 } PifNvramRecord;
+
+#endif
 
 /**
  * @class StPifNvram
@@ -145,7 +154,9 @@ struct StPifNvram
 	BOOL __write_pending;			///< A write cycle has been started and not waited out yet
 	PifTimerManager* __p_timer_manager;
 	PifTimer* __p_timer;
+#ifdef PIF_USE_NVRAM_RECORD
 	PifNvramRecord* __p_record;	///< One per record in NM_RECORD mode, NULL in NM_RAW mode
+#endif
 	uint32_t* __p_offset;			///< From pifNvram_SetLayout(): where each slot or record begins, and the end
 
 	/// The transfer that is on its way, a page at a time
@@ -153,11 +164,13 @@ struct StPifNvram
 	uint8_t* __op_buffer;			///< Where in the caller buffer it comes from or goes to
 	size_t __op_remain;
 	BOOL __op_write;
+#ifdef PIF_USE_NVRAM_RECORD
 	uint8_t __op_head[PIF_NVRAM_RECORD_HEADER];	///< Header of the record that is being written
 	uint8_t __op_head_remain;		///< Bytes of it that have not been written yet
 	uint16_t __op_record;			///< Record that is being written, if one is
 	uint16_t __op_seq;
 	uint8_t __op_slot;
+#endif
 
 	// Private Action Function
 	PifActNvramRead __act_read;
@@ -318,6 +331,8 @@ PifNvramStart pifNvram_Read(PifNvram* p_owner, uint16_t id, uint8_t* p_dst, size
  */
 PifNvramStart pifNvram_Write(PifNvram* p_owner, uint16_t id, uint8_t* p_src, size_t size);
 
+#ifdef PIF_USE_NVRAM_RECORD
+
 /**
  * @brief Reads the latest intact copy of a record in NM_RECORD mode. The copy is checked against
  *        its CRC before a byte of it is put in the buffer, so the buffer is either filled from an
@@ -361,6 +376,8 @@ PifNvramStart pifNvram_WriteRecord(PifNvram* p_owner, uint16_t id, uint8_t* p_sr
  * @return `TRUE` on success, otherwise `FALSE`.
  */
 BOOL pifNvram_DeleteRecord(PifNvram* p_owner, uint16_t id);
+
+#endif
 
 #ifdef __cplusplus
 }

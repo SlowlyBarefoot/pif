@@ -398,9 +398,18 @@ NEXT_STR:
                     break;
 
                 case 'f':
-					if (offset + (num_str_cnt ? num_str_cnt + 12 : 20) < buffer_size - 1) {
-    					offset += pif_FloatToString(p_buffer + offset, va_arg(*p_data, double), num_str_cnt);
-                    }
+#ifndef PIF_USE_PRINTF_FLOAT
+					// The argument is still taken so that the ones after it stay in place.
+					(void)va_arg(*p_data, double);
+#else
+					{
+						double float_val = va_arg(*p_data, double);
+
+						if (offset + (num_str_cnt ? num_str_cnt + 12 : 20) < buffer_size - 1) {
+							offset += pif_FloatToString(p_buffer + offset, float_val, num_str_cnt);
+						}
+					}
+#endif
                     break;
 
                 case 's':

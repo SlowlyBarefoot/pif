@@ -12,8 +12,8 @@
 #include "communication/pif_uart.h"
 #include "protocol/pif_modbus.h"
 #include "protocol/pif_modbus_rtu.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_MODBUS_RTU_MASTER)
-	#define COLLECT_SIGNAL_MODBUS_RTU_MASTER	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_MODBUS_RTU_MASTER is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_MODBUS_RTU_MASTER)
+	#define COLLECT_SIGNAL_MODBUS_RTU_MASTER	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_MODBUS_RTU_MASTER is too
 	#include "core/pif_collect_signal.h"
 #endif
 

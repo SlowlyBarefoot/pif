@@ -38,6 +38,7 @@ static uint32_t _timer1us(void)
 
 // Each run moves the clock on by its length, so that the scheduler measures what it would on a
 // target.
+#ifdef PIF_USE_TASK_REALTIME
 static uint32_t _doRealtime(PifTask *p_task)
 {
     (void)p_task;
@@ -45,6 +46,7 @@ static uint32_t _doRealtime(PifTask *p_task)
     s_now += RT_RUN_US;
     return 0;
 }
+#endif
 
 static uint32_t _doWork(PifTask *p_task)
 {
@@ -79,7 +81,11 @@ static void _setUp(BOOL realtime)
         s_failed = TRUE;
         return;
     }
+#ifdef PIF_USE_TASK_REALTIME
     s_p_rt = realtime ? pifTaskManager_Add(PIF_ID_AUTO, TM_REALTIME, RT_PERIOD_US, _doRealtime, NULL, TRUE) : NULL;
+#else
+    s_p_rt = NULL;
+#endif
     s_p_work = pifTaskManager_Add(PIF_ID_AUTO, TM_EXTERNAL, 0, _doWork, NULL, FALSE);
     s_p_other = pifTaskManager_Add(PIF_ID_AUTO, TM_EXTERNAL, 0, _doOther, NULL, FALSE);
     if ((realtime && !s_p_rt) || !s_p_work || !s_p_other) s_failed = TRUE;
@@ -89,6 +95,8 @@ static void _loop(int count)
 {
     while (count--) pifTaskManager_Loop();
 }
+
+#ifdef PIF_USE_TASK_REALTIME
 
 static void testTriggerWaitsForSlack(void)
 {
@@ -215,6 +223,8 @@ static void testCutinTakenWaitsForSlack(void)
     CHECK(s_work_runs == 1 && s_work_start == RT_PERIOD_US + RT_RUN_US);
 }
 
+#endif
+
 static void testTriggerWithoutRealtime(void)
 {
     _setUp(FALSE);
@@ -227,6 +237,8 @@ static void testTriggerWithoutRealtime(void)
     CHECK(s_work_runs == 1);
 }
 
+#ifdef PIF_USE_TASK_REALTIME
+
 static void testTriggerOnRealtime(void)
 {
     _setUp(TRUE);
@@ -237,6 +249,26 @@ static void testTriggerOnRealtime(void)
     _loop(1);
     CHECK(s_rt_runs == 1);
 }
+
+#else
+
+static void testRealtimeLeftOut(void)
+{
+    _setUp(FALSE);
+    CHECK(!s_failed);
+
+    // The mode is refused, and with no release to keep free a long run starts as soon as it is due.
+    CHECK(!pifTaskManager_Add(PIF_ID_AUTO, TM_REALTIME, RT_PERIOD_US, _doOther, NULL, TRUE));
+    CHECK(pif_error == E_INVALID_PARAM);
+    CHECK(!pifTask_ChangeMode(s_p_other, TM_REALTIME, RT_PERIOD_US) && pif_error == E_INVALID_PARAM);
+    s_now = RT_PERIOD_US - 100;
+    pifTask_SetNextBlockTime(s_p_work, 10 * WORK_RUN_US);
+    CHECK(pifTask_SetTrigger(s_p_work, 0));
+    _loop(1);
+    CHECK(s_work_runs == 1 && s_work_start == RT_PERIOD_US - 100);
+}
+
+#endif
 
 static void testCancelTrigger(void)
 {
@@ -405,6 +437,7 @@ int main(void)
         const char* name;
         void (*fn)(void);
     } tests[] = {
+#ifdef PIF_USE_TASK_REALTIME
         { "trigger waits for slack", testTriggerWaitsForSlack },
         { "trigger delay", testTriggerDelay },
         { "returned delay waits for slack", testReturnedDelayWaitsForSlack },
@@ -412,8 +445,13 @@ int main(void)
         { "max skip one", testMaxSkipOne },
         { "cut in ahead of realtime", testCutinAheadOfRealtime },
         { "cut in taken waits for slack", testCutinTakenWaitsForSlack },
+#endif
         { "trigger without realtime", testTriggerWithoutRealtime },
+#ifdef PIF_USE_TASK_REALTIME
         { "trigger on realtime", testTriggerOnRealtime },
+#else
+        { "realtime left out", testRealtimeLeftOut },
+#endif
         { "cancel trigger", testCancelTrigger },
         { "restart", testRestart },
         { "sub period", testSubPeriod },

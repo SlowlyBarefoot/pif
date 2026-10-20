@@ -16,7 +16,8 @@ The GPL-3.0 modules (GPS, DShot, MAX7456, MSPv2, HMC5883, MS5611, GY-86) are kep
 ## Create the configuration header
 
 Copy `include/pif_conf_temp.h` to `pif_conf.h` somewhere on your include path, and enable only the
-macros your target needs.
+macros your target needs. Each module is built with its least features, and each `PIF_USE_` macro puts
+one more in, so a feature the target does not use costs neither code nor RAM.
 
 ## Initialize the core
 

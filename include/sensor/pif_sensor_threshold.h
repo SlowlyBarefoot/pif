@@ -13,8 +13,8 @@
 #include "core/pif_task_manager.h"
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_SENSOR_THRESHOLD)
-	#define COLLECT_SIGNAL_SENSOR_THRESHOLD	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_SENSOR_THRESHOLD is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_SENSOR_THRESHOLD)
+	#define COLLECT_SIGNAL_SENSOR_THRESHOLD	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_SENSOR_THRESHOLD is too
 	#include "core/pif_collect_signal.h"
 #endif
 

@@ -2,6 +2,8 @@
 #include "protocol/pif_modbus_slave.h"
 
 
+#if defined(PIF_MODBUS_SLAVE_READ_BITS) || defined(PIF_MODBUS_SLAVE_READ_REGISTERS)
+
 /**
  * @brief Checks a requested range the way the Modbus specification orders it: the quantity first,
  *        then the addresses it covers.
@@ -18,6 +20,10 @@ static PifModbusError _checkRange(uint16_t address, uint16_t quantity, uint16_t 
 	return MBE_NONE;
 }
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS
+
 void pifModbusSlave_AttachDiscreteInput(PifModbusSlave *p_owner, uint8_t *p_buffer, uint16_t size,
 		PifEvtModbusReadDiscreteInputs evtReadDiscreteInputs)
 {
@@ -25,6 +31,10 @@ void pifModbusSlave_AttachDiscreteInput(PifModbusSlave *p_owner, uint8_t *p_buff
 	p_owner->__discrete_inputs_size = size;
 	p_owner->__evtReadDiscreteInputs = evtReadDiscreteInputs;
 }
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
 
 void pifModbusSlave_AttachCoils(PifModbusSlave *p_owner, uint8_t *p_buffer, uint16_t size,
 		PifEvtModbusReadCoils evtReadCoils, PifEvtModbusWriteSingleCoil evtWriteSingleCoil,
@@ -37,6 +47,10 @@ void pifModbusSlave_AttachCoils(PifModbusSlave *p_owner, uint8_t *p_buffer, uint
 	p_owner->__evtWriteMultipleCoils = evtWriteMultipleCoils;
 }
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_INPUT_REGISTERS
+
 void pifModbusSlave_AttachInputRegisters(PifModbusSlave *p_owner, uint16_t *p_buffer, uint16_t size,
 		PifEvtModbusReadInputRegisters evtReadInputRegisters)
 {
@@ -44,6 +58,10 @@ void pifModbusSlave_AttachInputRegisters(PifModbusSlave *p_owner, uint16_t *p_bu
 	p_owner->__input_registers_size = size;
 	p_owner->__evtReadInputRegisters = evtReadInputRegisters;
 }
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
 
 void pifModbusSlave_AttachHoldingRegisters(PifModbusSlave *p_owner, uint16_t *p_buffer, uint16_t size,
 		PifEvtModbusReadHoldingRegisters evtReadHoldingRegisters, PifEvtModbusWriteSingleRegister evtWriteSingleRegister,
@@ -56,11 +74,19 @@ void pifModbusSlave_AttachHoldingRegisters(PifModbusSlave *p_owner, uint16_t *p_
 	p_owner->__evtWriteMultipleRegisters = evtWriteMultipleRegisters;
 }
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE
+
 void pifModbusSlave_AttachEvtReadWriteMultipleRegisters(PifModbusSlave *p_owner,
 		PifEvtModbusReadWriteMultipleRegisters evtReadWriteMultipleRegisters)
 {
 	p_owner->__evtReadWriteMultipleRegisters = evtReadWriteMultipleRegisters;
 }
+
+#endif
+
+#ifdef PIF_MODBUS_SLAVE_READ_BITS
 
 BOOL pifModbusSlave_AllocTmpBits(PifModbusSlave *p_owner, uint16_t quantity)
 {
@@ -90,6 +116,19 @@ BOOL pifModbusSlave_AllocTmpBits(PifModbusSlave *p_owner, uint16_t quantity)
 	return TRUE;
 }
 
+void pifModbusSlave_FreeTmpBits(PifModbusSlave *p_owner)
+{
+	if (p_owner->__p_tmp_bits) {
+		free(p_owner->__p_tmp_bits);
+		p_owner->__p_tmp_bits = NULL;
+		p_owner->__tmp_bits_size = 0;
+	}
+}
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
+
 PifModbusError pifModbusSlave_ReadCoils(PifModbusSlave *p_owner, uint16_t *p_quantity)
 {
 	uint16_t i, address;
@@ -112,6 +151,10 @@ PifModbusError pifModbusSlave_ReadCoils(PifModbusSlave *p_owner, uint16_t *p_qua
 	}
 	return MBE_NONE;
 }
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS
 
 PifModbusError pifModbusSlave_ReadDiscreteInputs(PifModbusSlave *p_owner, uint16_t *p_quantity)
 {
@@ -136,6 +179,10 @@ PifModbusError pifModbusSlave_ReadDiscreteInputs(PifModbusSlave *p_owner, uint16
 	return MBE_NONE;
 }
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
+
 PifModbusError pifModbusSlave_ReadHoldingRegisters(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity)
 {
 	PifModbusError exception;
@@ -150,6 +197,10 @@ PifModbusError pifModbusSlave_ReadHoldingRegisters(PifModbusSlave *p_owner, uint
 	}
 	return MBE_NONE;
 }
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_INPUT_REGISTERS
 
 PifModbusError pifModbusSlave_ReadInputRegisters(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity)
 {
@@ -166,6 +217,10 @@ PifModbusError pifModbusSlave_ReadInputRegisters(PifModbusSlave *p_owner, uint16
 	return MBE_NONE;
 }
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
+
 PifModbusError pifModbusSlave_WriteSingleCoil(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_value)
 {
 	*p_address = pifModbus_StreamToShort(&p_owner->__p_buffer[2]);
@@ -180,6 +235,10 @@ PifModbusError pifModbusSlave_WriteSingleCoil(PifModbusSlave *p_owner, uint16_t 
 	return MBE_NONE;
 }
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
+
 PifModbusError pifModbusSlave_WriteSingleRegister(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_value)
 {
 	*p_address = pifModbus_StreamToShort(&p_owner->__p_buffer[2]);
@@ -192,6 +251,10 @@ PifModbusError pifModbusSlave_WriteSingleRegister(PifModbusSlave *p_owner, uint1
 	}
 	return MBE_NONE;
 }
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
 
 PifModbusError pifModbusSlave_WriteMultipleCoils(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity)
 {
@@ -215,6 +278,10 @@ PifModbusError pifModbusSlave_WriteMultipleCoils(PifModbusSlave *p_owner, uint16
 	return MBE_NONE;
 }
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
+
 PifModbusError pifModbusSlave_WriteMultipleRegisters(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity)
 {
 	uint16_t i, pos;
@@ -235,6 +302,10 @@ PifModbusError pifModbusSlave_WriteMultipleRegisters(PifModbusSlave *p_owner, ui
 	}
 	return MBE_NONE;
 }
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE
 
 PifModbusError pifModbusSlave_ReadWriteMultipleRegisters(PifModbusSlave *p_owner, uint16_t *p_read_address, uint16_t *p_read_quantity)
 {
@@ -261,3 +332,5 @@ PifModbusError pifModbusSlave_ReadWriteMultipleRegisters(PifModbusSlave *p_owner
 	}
 	return MBE_NONE;
 }
+
+#endif

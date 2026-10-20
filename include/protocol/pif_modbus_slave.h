@@ -6,12 +6,40 @@
  * The application attaches its coils, discrete inputs, input registers and holding registers. The slave reads
  * and writes them directly, and the events let the application refresh a value before it is read or act on a
  * value after it is written.
+ *
+ * A slave handles only the data areas, and the functions on them, that these options in pif_conf.h put in the
+ * build. A request for any other function is answered with exception 1, as for a function the slave lacks.
+ * - PIF_USE_MODBUS_SLAVE_COILS: Read Coils (1), Write Single Coil (5) and Write Multiple Coils (15)
+ * - PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS: Read Discrete Inputs (2)
+ * - PIF_USE_MODBUS_SLAVE_INPUT_REGISTERS: Read Input Registers (4)
+ * - PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS: Read Holding Registers (3), Write Single Register (6) and Write
+ *   Multiple Registers (16)
+ * - PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE: Read/Write Multiple Registers (23), on the holding registers, which
+ *   it puts in as well
  */
 #ifndef PIF_MODBUS_SLAVE_H
 #define PIF_MODBUS_SLAVE_H
 
 
 #include "protocol/pif_modbus.h"
+
+
+#ifdef PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE
+	#ifndef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
+		#define PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
+	#endif
+#endif
+
+// What the RTU and ASCII slaves build their responses from, by the data areas put in.
+#if defined(PIF_USE_MODBUS_SLAVE_COILS) || defined(PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS)
+	#define PIF_MODBUS_SLAVE_READ_BITS			///< A function reads bits
+#endif
+#if defined(PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS) || defined(PIF_USE_MODBUS_SLAVE_INPUT_REGISTERS)
+	#define PIF_MODBUS_SLAVE_READ_REGISTERS		///< A function reads registers
+#endif
+#if defined(PIF_USE_MODBUS_SLAVE_COILS) || defined(PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS)
+	#define PIF_MODBUS_SLAVE_WRITE				///< A function writes coils or registers
+#endif
 
 
 /**
@@ -86,33 +114,55 @@ typedef struct StPifModbusSlave
 	// Private Member Variable
 	uint8_t *__p_buffer;
 	PifModbusSlaveState __state;
+#ifdef PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS
 	uint8_t *__p_discrete_inputs;
-	uint8_t *__p_coils;
-	uint16_t *__p_input_registers;
-	uint16_t *__p_holding_registers;
-	uint8_t *__p_tmp_bits;
 	uint16_t __discrete_inputs_size;
+#endif
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
+	uint8_t *__p_coils;
 	uint16_t __coils_size;
+#endif
+#ifdef PIF_USE_MODBUS_SLAVE_INPUT_REGISTERS
+	uint16_t *__p_input_registers;
 	uint16_t __input_registers_size;
+#endif
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
+	uint16_t *__p_holding_registers;
 	uint16_t __holding_registers_size;
+#endif
+#ifdef PIF_MODBUS_SLAVE_READ_BITS
+	uint8_t *__p_tmp_bits;
 	uint16_t __tmp_bits_size;
+#endif
 
 	/// Private Event Variable
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
 	PifEvtModbusReadCoils __evtReadCoils;
-	PifEvtModbusReadDiscreteInputs __evtReadDiscreteInputs;
-	PifEvtModbusReadHoldingRegisters __evtReadHoldingRegisters;
-	PifEvtModbusReadInputRegisters __evtReadInputRegisters;
 	PifEvtModbusWriteSingleCoil __evtWriteSingleCoil;
-	PifEvtModbusWriteSingleRegister __evtWriteSingleRegister;
 	PifEvtModbusWriteMultipleCoils __evtWriteMultipleCoils;
+#endif
+#ifdef PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS
+	PifEvtModbusReadDiscreteInputs __evtReadDiscreteInputs;
+#endif
+#ifdef PIF_USE_MODBUS_SLAVE_INPUT_REGISTERS
+	PifEvtModbusReadInputRegisters __evtReadInputRegisters;
+#endif
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
+	PifEvtModbusReadHoldingRegisters __evtReadHoldingRegisters;
+	PifEvtModbusWriteSingleRegister __evtWriteSingleRegister;
 	PifEvtModbusWriteMultipleRegisters __evtWriteMultipleRegisters;
+#endif
+#ifdef PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE
 	PifEvtModbusReadWriteMultipleRegisters __evtReadWriteMultipleRegisters;
+#endif
 } PifModbusSlave;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS
 
 /**
  * @brief Gives the slave the discrete inputs the master reads, 8 per byte.
@@ -123,6 +173,10 @@ extern "C" {
  */
 void pifModbusSlave_AttachDiscreteInput(PifModbusSlave *p_owner, uint8_t *p_buffer, uint16_t size,
 		PifEvtModbusReadDiscreteInputs evtReadDiscreteInputs);
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
 
 /**
  * @brief Gives the slave the coils the master reads and writes, 8 per byte.
@@ -137,6 +191,10 @@ void pifModbusSlave_AttachCoils(PifModbusSlave *p_owner, uint8_t *p_buffer, uint
 		PifEvtModbusReadCoils evtReadCoils, PifEvtModbusWriteSingleCoil evtWriteSingleCoil,
 		PifEvtModbusWriteMultipleCoils evtWriteMultipleCoils);
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_INPUT_REGISTERS
+
 /**
  * @brief Gives the slave the input registers the master reads.
  * @param p_owner Pointer to the protocol instance.
@@ -146,6 +204,10 @@ void pifModbusSlave_AttachCoils(PifModbusSlave *p_owner, uint8_t *p_buffer, uint
  */
 void pifModbusSlave_AttachInputRegisters(PifModbusSlave *p_owner, uint16_t *p_buffer, uint16_t size,
 		PifEvtModbusReadInputRegisters evtReadInputRegisters);
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
 
 /**
  * @brief Gives the slave the holding registers the master reads and writes.
@@ -160,6 +222,10 @@ void pifModbusSlave_AttachHoldingRegisters(PifModbusSlave *p_owner, uint16_t *p_
 		PifEvtModbusReadHoldingRegisters evtReadHoldingRegisters, PifEvtModbusWriteSingleRegister evtWriteSingleRegister,
 		PifEvtModbusWriteMultipleRegisters evtWriteMultipleRegisters);
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE
+
 /**
  * @brief Attaches the callback a Read/Write Multiple Registers request (function 23) calls once it
  *        has written the holding registers. It works on the buffer given to
@@ -170,6 +236,10 @@ void pifModbusSlave_AttachHoldingRegisters(PifModbusSlave *p_owner, uint16_t *p_
 void pifModbusSlave_AttachEvtReadWriteMultipleRegisters(PifModbusSlave *p_owner,
 		PifEvtModbusReadWriteMultipleRegisters evtReadWriteMultipleRegisters);
 
+#endif
+
+#ifdef PIF_MODBUS_SLAVE_READ_BITS
+
 /**
  * @brief Makes sure the buffer for bit responses holds quantity bits. Used by the RTU and ASCII slaves.
  * @param p_owner Pointer to the protocol instance.
@@ -177,6 +247,16 @@ void pifModbusSlave_AttachEvtReadWriteMultipleRegisters(PifModbusSlave *p_owner,
  * @return TRUE on success; otherwise FALSE.
  */
 BOOL pifModbusSlave_AllocTmpBits(PifModbusSlave *p_owner, uint16_t quantity);
+
+/**
+ * @brief Frees the buffer for bit responses. Used by the RTU and ASCII slaves.
+ * @param p_owner Pointer to the protocol instance.
+ */
+void pifModbusSlave_FreeTmpBits(PifModbusSlave *p_owner);
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
 
 /**
  * @brief Handles the Read Coils request in the receive buffer: checks the range, calls the read event and
@@ -187,6 +267,10 @@ BOOL pifModbusSlave_AllocTmpBits(PifModbusSlave *p_owner, uint16_t quantity);
  */
 PifModbusError pifModbusSlave_ReadCoils(PifModbusSlave *p_owner, uint16_t *p_quantity);
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS
+
 /**
  * @brief Handles the Read Discrete Inputs request in the receive buffer: checks the range, calls the read event
  *        and gathers the inputs for the response. Used by the RTU and ASCII slaves.
@@ -195,6 +279,10 @@ PifModbusError pifModbusSlave_ReadCoils(PifModbusSlave *p_owner, uint16_t *p_qua
  * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_ReadDiscreteInputs(PifModbusSlave *p_owner, uint16_t *p_quantity);
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
 
 /**
  * @brief Handles the Read Holding Registers request in the receive buffer: checks the range and calls the read
@@ -206,6 +294,10 @@ PifModbusError pifModbusSlave_ReadDiscreteInputs(PifModbusSlave *p_owner, uint16
  */
 PifModbusError pifModbusSlave_ReadHoldingRegisters(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity);
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_INPUT_REGISTERS
+
 /**
  * @brief Handles the Read Input Registers request in the receive buffer: checks the range and calls the read
  *        event. Used by the RTU and ASCII slaves.
@@ -215,6 +307,10 @@ PifModbusError pifModbusSlave_ReadHoldingRegisters(PifModbusSlave *p_owner, uint
  * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_ReadInputRegisters(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity);
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
 
 /**
  * @brief Handles the Write Single Coil request in the receive buffer: checks it, writes the coil and calls the
@@ -226,6 +322,10 @@ PifModbusError pifModbusSlave_ReadInputRegisters(PifModbusSlave *p_owner, uint16
  */
 PifModbusError pifModbusSlave_WriteSingleCoil(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_value);
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
+
 /**
  * @brief Handles the Write Single Register request in the receive buffer: checks it, writes the register and
  *        calls the write event. Used by the RTU and ASCII slaves.
@@ -235,6 +335,10 @@ PifModbusError pifModbusSlave_WriteSingleCoil(PifModbusSlave *p_owner, uint16_t 
  * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_WriteSingleRegister(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_value);
+
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
 
 /**
  * @brief Handles the Write Multiple Coils request in the receive buffer: checks it, writes the coils and calls
@@ -246,6 +350,10 @@ PifModbusError pifModbusSlave_WriteSingleRegister(PifModbusSlave *p_owner, uint1
  */
 PifModbusError pifModbusSlave_WriteMultipleCoils(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity);
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
+
 /**
  * @brief Handles the Write Multiple Registers request in the receive buffer: checks it, writes the registers and
  *        calls the write event. Used by the RTU and ASCII slaves.
@@ -256,6 +364,10 @@ PifModbusError pifModbusSlave_WriteMultipleCoils(PifModbusSlave *p_owner, uint16
  */
 PifModbusError pifModbusSlave_WriteMultipleRegisters(PifModbusSlave *p_owner, uint16_t *p_address, uint16_t *p_quantity);
 
+#endif
+
+#ifdef PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE
+
 /**
  * @brief Handles the Read/Write Multiple Registers request in the receive buffer: checks it, writes the
  *        registers, calls the event and leaves the read part for the response. Used by the RTU and ASCII slaves.
@@ -265,6 +377,8 @@ PifModbusError pifModbusSlave_WriteMultipleRegisters(PifModbusSlave *p_owner, ui
  * @return Modbus error code indicating the result of the operation.
  */
 PifModbusError pifModbusSlave_ReadWriteMultipleRegisters(PifModbusSlave *p_owner, uint16_t *p_read_address, uint16_t *p_read_quantity);
+
+#endif
 
 #ifdef __cplusplus
 }

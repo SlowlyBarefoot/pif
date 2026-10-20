@@ -13,8 +13,8 @@
 #include "core/pif_task_manager.h"
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_SENSOR_SWITCH)
-	#define COLLECT_SIGNAL_SENSOR_SWITCH	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_SENSOR_SWITCH is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_SENSOR_SWITCH)
+	#define COLLECT_SIGNAL_SENSOR_SWITCH	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_SENSOR_SWITCH is too
 	#include "core/pif_collect_signal.h"
 #endif
 

@@ -14,8 +14,8 @@
 #include "core/pif_task_manager.h"
 #include "filter/pif_noise_filter.h"
 #include "sensor/pif_sensor.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_MAX31855)
-	#define COLLECT_SIGNAL_MAX31855	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_MAX31855 is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_MAX31855)
+	#define COLLECT_SIGNAL_MAX31855	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_MAX31855 is too
 	#include "core/pif_collect_signal.h"
 #endif
 

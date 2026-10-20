@@ -21,8 +21,8 @@
 
 
 #include "core/pif.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_ENCODER)
-	#define COLLECT_SIGNAL_ENCODER	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_ENCODER is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_ENCODER)
+	#define COLLECT_SIGNAL_ENCODER	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_ENCODER is too
 	#include "core/pif_collect_signal.h"
 #endif
 

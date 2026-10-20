@@ -31,6 +31,8 @@ static void _sendCommand(PifModbusAsciiSlave *p_owner, uint8_t function, uint16_
 	pifTask_SetTrigger(p_owner->__p_uart->_p_tx_task, 0);
 }
 
+#ifdef PIF_MODBUS_SLAVE_WRITE
+
 /**
  * @brief Decodes a write command and applies it through the supplied slave callback.
  * @param p_owner Pointer to the protocol instance that owns this operation.
@@ -50,6 +52,10 @@ static PifModbusError _writeCommand(PifModbusAsciiSlave *p_owner, PifModbusError
 	_sendCommand(p_owner, p_owner->__rx.function, 13);
 	return exception;
 }
+
+#endif
+
+#ifdef PIF_MODBUS_SLAVE_READ_BITS
 
 /**
  * @brief Decodes a bit-field read command and prepares the corresponding response payload.
@@ -76,6 +82,10 @@ static PifModbusError _readBitField(PifModbusAsciiSlave *p_owner, PifModbusError
 	return exception;
 }
 
+#endif
+
+#ifdef PIF_MODBUS_SLAVE_READ_REGISTERS
+
 /**
  * @brief Decodes a register read command and fills the response register payload.
  * @param p_owner Pointer to the protocol instance that owns this operation.
@@ -101,6 +111,8 @@ static PifModbusError _readRegisters(PifModbusAsciiSlave *p_owner, PifModbusErro
 	_sendCommand(p_owner, p_owner->__rx.function, pos);
 	return exception;
 }
+
+#endif
 
 /**
  * @brief Serializes and queues an exception response frame for transmission.
@@ -258,49 +270,70 @@ static PifModbusError _parsingPacket(PifModbusAsciiSlave *p_owner, PifActTranspo
 static BOOL _evtParsing(void *p_client, PifActTransportReceive act_receive_data)
 {
 	PifModbusAsciiSlave *p_owner = (PifModbusAsciiSlave *)p_client;
+#ifdef PIF_MODBUS_SLAVE_READ_REGISTERS
 	PifModbusSlave *p_parent = &p_owner->parent;
+#endif
 	PifModbusError exception;
 
 	exception = _parsingPacket(p_owner, act_receive_data);
 
 	switch (p_owner->__rx.state) {
 	case MBRS_FINISH:
+		// A function left out of the build falls to the default and is answered with exception 1.
 		switch (p_owner->__buffer[1]) {
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
 		case MBF_READ_COILS:
 			exception = _readBitField(p_owner, pifModbusSlave_ReadCoils);
 			break;
+#endif
 
+#ifdef PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS
 		case MBF_READ_DISCRETE_INPUTS:
 			exception = _readBitField(p_owner, pifModbusSlave_ReadDiscreteInputs);
 			break;
+#endif
 
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
 		case MBF_READ_HOLDING_REGISTERS:
 			exception = _readRegisters(p_owner, pifModbusSlave_ReadHoldingRegisters, p_parent->__p_holding_registers);
 			break;
+#endif
 
+#ifdef PIF_USE_MODBUS_SLAVE_INPUT_REGISTERS
 		case MBF_READ_INPUT_REGISTERS:
 			exception = _readRegisters(p_owner, pifModbusSlave_ReadInputRegisters, p_parent->__p_input_registers);
 			break;
+#endif
 
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
 		case MBF_WRITE_SINGLE_COIL:
 			exception = _writeCommand(p_owner, pifModbusSlave_WriteSingleCoil);
 			break;
+#endif
 
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
 		case MBF_WRITE_SINGLE_REGISTER:
 			exception = _writeCommand(p_owner, pifModbusSlave_WriteSingleRegister);
 			break;
+#endif
 
+#ifdef PIF_USE_MODBUS_SLAVE_COILS
 		case MBF_WRITE_MULTIPLE_COILS:
 			exception = _writeCommand(p_owner, pifModbusSlave_WriteMultipleCoils);
 			break;
+#endif
 
+#ifdef PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS
 		case MBF_WRITE_MULTIPLE_REGISTERS:
 			exception = _writeCommand(p_owner, pifModbusSlave_WriteMultipleRegisters);
 			break;
+#endif
 
+#ifdef PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE
 		case MBF_READ_WRITE_MULTIPLE_REGISTERS:
 			exception = _readRegisters(p_owner, pifModbusSlave_ReadWriteMultipleRegisters, p_parent->__p_holding_registers);
 			break;
+#endif
 
 		default:
 			exception = MBE_ILLEGAL_FUNCTION;
@@ -373,12 +406,11 @@ BOOL pifModbusAsciiSlave_Init(PifModbusAsciiSlave *p_owner, PifId id, uint8_t my
 
 void pifModbusAsciiSlave_Clear(PifModbusAsciiSlave *p_owner)
 {
-	PifModbusSlave *p_parent = &p_owner->parent;
-
-	if (p_parent->__p_tmp_bits) {
-		free(p_parent->__p_tmp_bits);
-		p_parent->__p_tmp_bits = NULL;
-	}
+#ifdef PIF_MODBUS_SLAVE_READ_BITS
+	pifModbusSlave_FreeTmpBits(&p_owner->parent);
+#else
+	(void)p_owner;
+#endif
 }
 
 void pifModbusAsciiSlave_SetReceiveTimeout(PifModbusAsciiSlave *p_owner, uint16_t receive_timeout)

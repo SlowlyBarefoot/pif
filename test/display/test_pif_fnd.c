@@ -233,6 +233,36 @@ static void testSegment(void)
     CHECK(s_segment[3] == 0x08);
 }
 
+static void testRawSegment(void)
+{
+    static const uint8_t raw[4] = { 0x01, 0x20, 0x80, 0x00 };
+
+    CHECK(_setUp(4));
+    pifFnd_Start(&s_fnd);
+
+    // Bytes that are not characters of the font go out as they are.
+    pifFnd_SetSegments(&s_fnd, raw);
+    _advance(8);
+    CHECK(s_segment[0] == 0x01 && s_segment[1] == 0x20 && s_segment[2] == 0x80 && s_segment[3] == 0x00);
+
+    // Blink applies to them as to text.
+    CHECK(pifFnd_BlinkOn(&s_fnd, 100));
+    _advance(102);
+    CHECK(!s_fnd.__bt.led);
+    _advance(8);
+    CHECK(s_segment[0] == 0 && s_segment[1] == 0 && s_segment[2] == 0);
+    pifFnd_BlinkOff(&s_fnd);
+
+    // Text and numbers go back through the font.
+    pifFnd_SetString(&s_fnd, "1-");
+    _advance(8);
+    CHECK(s_segment[0] == 0x06 && s_segment[1] == 0x40 && s_segment[2] == 0x00);
+    pifFnd_SetSegments(&s_fnd, raw);
+    pifFnd_SetInteger(&s_fnd, 7);
+    _advance(8);
+    CHECK(s_segment[0] == 0x00 && s_segment[3] == 0x07);
+}
+
 static void testBlink(void)
 {
     CHECK(_setUp(4));
@@ -405,6 +435,7 @@ int main(void)
         { "integer", testInteger },
         { "float", testFloat },
         { "segment", testSegment },
+        { "raw segment", testRawSegment },
         { "blink", testBlink },
         { "share scan", testShareScan },
         { "share scan without a slot", testShareScanNoSlot },

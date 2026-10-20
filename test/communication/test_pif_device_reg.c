@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// PifDeviceReg over pif_i2c and pif_spi: the same register functions on both buses, and the background reads.
+// PifDeviceReg over pif_i2c and pif_spi: the same register functions on both buses, and the background transfers.
 #include "communication/pif_i2c.h"
 #include "communication/pif_spi.h"
 
@@ -41,6 +41,7 @@ static Call s_reads[LOG_SIZE], s_writes[LOG_SIZE];
 static int s_read_count, s_write_count;
 
 static PifI2cReturn s_i2c_answer;		// What act_read answers for a read that does not fail.
+static PifI2cReturn s_i2c_write_answer;	// What act_write answers for a write that does not fail.
 static BOOL s_fail;						// The next transfer fails.
 static int s_recover_count;
 
@@ -96,7 +97,7 @@ static PifI2cReturn _i2cRead(PifI2cDevice *p_owner, uint32_t iaddr, uint8_t isiz
 
 static PifI2cReturn _i2cWrite(PifI2cDevice *p_owner, uint32_t iaddr, uint8_t isize, uint8_t *p_data, size_t size)
 {
-    return _regWrite(iaddr, isize, p_data, size) ? IR_COMPLETE : IR_ERROR;
+    return _regWrite(iaddr, isize, p_data, size) ? s_i2c_write_answer : IR_ERROR;
 }
 
 static void _i2cRecover(PifI2cDevice *p_owner)
@@ -156,6 +157,7 @@ static BOOL _setUp(void)
     for (i = 0; i < REG_COUNT; i++) s_regs[i] = (uint8_t)(i * 3 + 1);
     s_read_count = s_write_count = 0;
     s_i2c_answer = IR_COMPLETE;
+    s_i2c_write_answer = IR_COMPLETE;
     s_fail = FALSE;
     s_recover_count = 0;
     s_spi_busy = FALSE;
@@ -238,6 +240,7 @@ static void _testNullDevice(void)
     CHECK(!pifDeviceReg_ReadRegByte(NULL, 0, &byte) && pif_error == E_INVALID_PARAM);
     CHECK(!pifDeviceReg_WriteRegByte(NULL, 0, 0));
     CHECK(!pifDeviceReg_StartRead(NULL, 0, 1, &byte, 1));
+    CHECK(!pifDeviceReg_StartWrite(NULL, 0, 1, &byte, 1) && pif_error == E_INVALID_PARAM);
     CHECK(pifDeviceReg_CheckTransfer(NULL) == DRS_IDLE && !pifDeviceReg_IsBusy(NULL));
 }
 
@@ -294,6 +297,76 @@ static void _testI2cTimeout(void)
     pif_cumulative_timer1ms += p_device->timeout + 1;
     CHECK(pifDeviceReg_CheckTransfer(p_device) == DRS_ERROR && pif_error == E_TIMEOUT);
     CHECK(s_recover_count == 1 && s_i2c_port.error_count == 1 && !pifDeviceReg_IsBusy(p_device));
+}
+
+static void _testI2cBackgroundWrite(void)
+{
+    PifDeviceReg *p_device;
+    PifI2cDevice *p_other;
+    uint8_t data[2] = { 0x12, 0x34 };
+
+    CHECK(_setUp());
+    p_device = &s_p_i2c->parent;
+    p_other = pifI2cPort_AddDevice(&s_i2c_port, PIF_ID_AUTO, 0x51, NULL);
+    CHECK(p_other);
+    s_i2c_write_answer = IR_WAIT;
+
+    CHECK(pifDeviceReg_StartWriteRegBytes(p_device, 0x10, data, 2));
+    CHECK(s_write_count == 1 && s_writes[0].iaddr == 0x10 && s_writes[0].isize == 1 && s_writes[0].size == 2);
+    CHECK(pifDeviceReg_CheckTransfer(p_device) == DRS_RUN);
+    // The port is held for every device on it until the write is reported over.
+    CHECK(!pifDeviceReg_StartWrite(&p_other->parent, 0, 0, data, 2) && pif_error == E_INVALID_STATE);
+    CHECK(!pifDeviceReg_WriteRegByte(&p_other->parent, 0, 0) && pif_error == E_INVALID_STATE);
+    pifI2cPort_sigEndTransfer(&s_i2c_port, TRUE);
+    CHECK(pifDeviceReg_IsBusy(&p_other->parent));
+    CHECK(pifDeviceReg_CheckTransfer(p_device) == DRS_COMPLETE && !pifDeviceReg_IsBusy(p_device));
+
+    // Then the other device writes, and a failed end is reported once.
+    CHECK(pifDeviceReg_StartWrite(&p_other->parent, 0, 0, data, 2));
+    CHECK(s_write_count == 2 && s_writes[1].isize == 0 && s_writes[1].size == 2);
+    pifI2cPort_sigEndTransfer(&s_i2c_port, FALSE);
+    CHECK(pifDeviceReg_CheckTransfer(&p_other->parent) == DRS_ERROR && s_i2c_port.error_count == 1);
+    CHECK(pifDeviceReg_CheckTransfer(&p_other->parent) == DRS_IDLE);
+
+    // A write the port makes at once is still reported once. No data sends the internal address alone.
+    s_i2c_write_answer = IR_COMPLETE;
+    CHECK(pifDeviceReg_StartWrite(p_device, 0x20, 1, data, 0) && s_writes[2].size == 0);
+    CHECK(pifDeviceReg_CheckTransfer(p_device) == DRS_COMPLETE);
+
+    // A write the port refuses gives the port back at once.
+    s_fail = TRUE;
+    CHECK(!pifDeviceReg_StartWrite(p_device, 0x20, 1, data, 2) && !pifDeviceReg_IsBusy(p_device));
+    CHECK(s_i2c_port.error_count == 2);
+
+    // Larger than max_transfer_size, a background write is refused, as a read is.
+    p_device->max_transfer_size = 1;
+    CHECK(!pifDeviceReg_StartWrite(p_device, 0, 1, data, 2) && pif_error == E_INVALID_PARAM);
+}
+
+static void _testSpiBackgroundWrite(void)
+{
+    PifDeviceReg *p_device;
+    uint8_t data[2] = { 0x56, 0x78 };
+
+    CHECK(_setUp());
+    p_device = &s_p_spi->parent;
+
+    // Without act_start_write the write is made at once, and still reported once.
+    CHECK(pifDeviceReg_StartWriteRegBytes(p_device, 0x30, data, 2) && !memcmp(s_regs + 0x30, data, 2));
+    CHECK(pifDeviceReg_IsBusy(p_device));
+    CHECK(pifDeviceReg_CheckTransfer(p_device) == DRS_COMPLETE && !pifDeviceReg_IsBusy(p_device));
+
+    s_spi_port.act_start_write = _spiWrite;
+    s_spi_port.act_is_busy = _spiIsBusy;
+    s_spi_busy = TRUE;
+    CHECK(pifDeviceReg_StartWrite(p_device, 0x40, 1, data, 2));
+    CHECK(pifDeviceReg_CheckTransfer(p_device) == DRS_RUN);
+    s_spi_busy = FALSE;
+    CHECK(pifDeviceReg_CheckTransfer(p_device) == DRS_COMPLETE && !memcmp(s_regs + 0x40, data, 2));
+
+    s_fail = TRUE;
+    CHECK(!pifDeviceReg_StartWrite(p_device, 0x40, 1, data, 2) && pif_error == E_TRANSFER_FAILED);
+    CHECK(!pifDeviceReg_IsBusy(p_device) && s_spi_port.error_count == 1);
 }
 
 static void _testSpiBackgroundWithoutStartRead(void)
@@ -420,6 +493,8 @@ static const struct {
     { _testDefaults, "defaults" },
     { _testI2cBackground, "i2c background read" },
     { _testI2cTimeout, "i2c timeout" },
+    { _testI2cBackgroundWrite, "i2c background write" },
+    { _testSpiBackgroundWrite, "spi background write" },
     { _testSpiBackgroundWithoutStartRead, "spi background read made at once" },
     { _testSpiBackgroundSignal, "spi background read ended by signal" },
     { _testSpiBackgroundPolled, "spi background read polled" },

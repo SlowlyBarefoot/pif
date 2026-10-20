@@ -5,6 +5,8 @@
 #include "motor/pif_step_motor.h"
 
 
+#ifdef PIF_USE_STEP_MOTOR_2PHASE
+
 const uint16_t kOperation_2P_2W[] = {
 		0x02,		// 10 : B
 		0x03,		// 11 : B A
@@ -36,6 +38,10 @@ const uint16_t kOperation_2P_4W_1_2S[] = {
 		0x08,		// 10 00 : ~B
 		0x09		// 10 01 : ~B  A
 };
+
+#endif
+
+#ifdef PIF_USE_STEP_MOTOR_5PHASE
 
 // Each step moves one terminal, in the order C, D, E, A, B.
 const uint16_t kOperation_5P_PG[] = {
@@ -75,11 +81,20 @@ const uint16_t kOperation_5P_PG_HALF[] = {
 		0x14 | SM5P_OFF(SM5P_B)		// E   C -
 };
 
+#endif
+
+#ifdef PIF_USE_STEP_MOTOR_STEP_DIR
+
 // Index 1 raises STEP and index 0 lowers it, so a pulse ends with STEP low.
 const uint16_t kOperation_StepDir[] = {
 		SMSD_ENABLE,
 		SMSD_ENABLE | SMSD_STEP
 };
+
+	#define _IS_STEP_DIR(p_owner)	((p_owner)->_operation == SMO_STEP_DIR)
+#else
+	#define _IS_STEP_DIR(p_owner)	FALSE
+#endif
 
 
 /**
@@ -90,7 +105,7 @@ static uint16_t _getPhase(PifStepMotor* p_owner)
 {
 	uint16_t phase = p_owner->__p_phase_operation[p_owner->__current_step];
 
-	if (p_owner->_operation == SMO_STEP_DIR && p_owner->_direction) phase |= SMSD_DIR;
+	if (_IS_STEP_DIR(p_owner) && p_owner->_direction) phase |= SMSD_DIR;
 	return phase;
 }
 
@@ -101,7 +116,7 @@ static uint16_t _getPhase(PifStepMotor* p_owner)
 static void _setStep(PifStepMotor* p_owner)
 {
 	// In SMO_STEP_DIR the direction is on the DIR line, so the STEP table always runs forward.
-    if (p_owner->_direction == 0 || p_owner->_operation == SMO_STEP_DIR) {
+    if (p_owner->_direction == 0 || _IS_STEP_DIR(p_owner)) {
 		p_owner->__current_step++;
 		if (p_owner->__current_step == p_owner->__step_size) {
 			p_owner->__current_step = 0;
@@ -137,9 +152,11 @@ static void _updateTicksPerPulse(PifStepMotor* p_owner)
 		ticks *= 2;
 		break;
 
+#ifdef PIF_USE_STEP_MOTOR_STEP_DIR
 	case SMO_STEP_DIR:
 		ticks *= 2UL * p_owner->_microstep;
 		break;
+#endif
 
 	default:
 		break;
@@ -324,7 +341,9 @@ BOOL pifStepMotor_SetOperation(PifStepMotor* p_owner, PifStepMotorOperation oper
 		return FALSE;
 	}
 
+	// An operation not put in the build falls to the default and is refused.
 	switch (operation) {
+#ifdef PIF_USE_STEP_MOTOR_2PHASE
 	case SMO_2P_2W:
 		p_owner->__step_size = 4;
 		p_owner->__p_phase_operation = kOperation_2P_2W;
@@ -344,7 +363,9 @@ BOOL pifStepMotor_SetOperation(PifStepMotor* p_owner, PifStepMotorOperation oper
 		p_owner->__step_size = 8;
 		p_owner->__p_phase_operation = kOperation_2P_4W_1_2S;
 		break;
+#endif
 
+#ifdef PIF_USE_STEP_MOTOR_5PHASE
 	case SMO_5P_PG:
 		p_owner->__step_size = 10;
 		p_owner->__p_phase_operation = kOperation_5P_PG;
@@ -354,11 +375,14 @@ BOOL pifStepMotor_SetOperation(PifStepMotor* p_owner, PifStepMotorOperation oper
 		p_owner->__step_size = 20;
 		p_owner->__p_phase_operation = kOperation_5P_PG_HALF;
 		break;
+#endif
 
+#ifdef PIF_USE_STEP_MOTOR_STEP_DIR
 	case SMO_STEP_DIR:
 		p_owner->__step_size = 2;
 		p_owner->__p_phase_operation = kOperation_StepDir;
 		break;
+#endif
 
 	default:
         pif_error = E_INVALID_PARAM;
@@ -468,7 +492,7 @@ BOOL pifStepMotor_Start(PifStepMotor* p_owner, uint32_t target_pulse)
     p_owner->__target_pulse = target_pulse;
     p_owner->_current_pulse = 0;
     p_owner->__tick_count = 0;
-	if (p_owner->_operation == SMO_STEP_DIR) {
+	if (_IS_STEP_DIR(p_owner)) {
 		// Enable the driver and set DIR ahead of the first STEP edge.
 		p_owner->__current_step = 0;
 		(*p_owner->act_set_step)(p_owner, _getPhase(p_owner));

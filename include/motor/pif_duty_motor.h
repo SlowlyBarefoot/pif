@@ -12,8 +12,8 @@
 
 #include "core/pif_timer_manager.h"
 #include "motor/pif_motor.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_DUTY_MOTOR)
-	#define COLLECT_SIGNAL_DUTY_MOTOR	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_DUTY_MOTOR is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_DUTY_MOTOR)
+	#define COLLECT_SIGNAL_DUTY_MOTOR	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_DUTY_MOTOR is too
 	#include "core/pif_collect_signal.h"
 #endif
 

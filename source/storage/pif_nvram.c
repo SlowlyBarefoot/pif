@@ -3,10 +3,14 @@
 #include "storage/pif_nvram.h"
 
 
+#ifdef PIF_USE_NVRAM_RECORD
+
 #define RECORD_UNKNOWN		0xFE	// Neither copy has been looked at yet
 #define RECORD_NONE			0xFF	// Neither copy is intact
 
 #define OP_RECORD_NONE		0xFFFF	// The transfer is not a record write
+
+#define _IS_MODE(mode)		((mode) == NM_RAW || (mode) == NM_RECORD)
 
 
 typedef enum EnCopyCheck
@@ -15,6 +19,12 @@ typedef enum EnCopyCheck
 	CC_BROKEN,
 	CC_ACCESS_FAILED
 } CopyCheck;
+
+#else
+
+#define _IS_MODE(mode)		((mode) == NM_RAW)
+
+#endif
 
 
 /**
@@ -116,11 +126,14 @@ static BOOL _stepTransfer(PifNvram* p_owner)
 	uint8_t* p_data;
 	size_t len;
 
+#ifdef PIF_USE_NVRAM_RECORD
 	if (p_owner->__op_head_remain) {
 		p_data = p_owner->__op_head + (PIF_NVRAM_RECORD_HEADER - p_owner->__op_head_remain);
 		len = _clipStep(p_owner, p_owner->__op_pos, p_owner->__op_head_remain);
 	}
-	else {
+	else
+#endif
+	{
 		p_data = p_owner->__op_buffer;
 		len = _clipStep(p_owner, p_owner->__op_pos, p_owner->__op_remain);
 	}
@@ -133,10 +146,13 @@ static BOOL _stepTransfer(PifNvram* p_owner)
 	}
 
 	p_owner->__op_pos += len;
+#ifdef PIF_USE_NVRAM_RECORD
 	if (p_owner->__op_head_remain) {
 		p_owner->__op_head_remain -= len;
 	}
-	else {
+	else
+#endif
+	{
 		p_owner->__op_buffer += len;
 		p_owner->__op_remain -= len;
 	}
@@ -150,7 +166,10 @@ static BOOL _stepTransfer(PifNvram* p_owner)
  */
 static BOOL _isTransferLeft(PifNvram* p_owner)
 {
-	return p_owner->__op_head_remain || p_owner->__op_remain;
+#ifdef PIF_USE_NVRAM_RECORD
+	if (p_owner->__op_head_remain) return TRUE;
+#endif
+	return p_owner->__op_remain != 0;
 }
 
 /**
@@ -161,6 +180,10 @@ static BOOL _isTransferLeft(PifNvram* p_owner)
  */
 static void _endTransfer(PifNvram* p_owner, BOOL result)
 {
+#ifndef PIF_USE_NVRAM_RECORD
+	(void)p_owner;
+	(void)result;
+#else
 	PifNvramRecord* p_record;
 
 	if (p_owner->__op_record == OP_RECORD_NONE) return;
@@ -176,6 +199,7 @@ static void _endTransfer(PifNvram* p_owner, BOOL result)
 		p_record->slot = RECORD_UNKNOWN;
 	}
 	p_owner->__op_record = OP_RECORD_NONE;
+#endif
 }
 
 /**
@@ -345,6 +369,7 @@ static uint32_t _slotPos(PifNvram* p_owner, uint16_t id, uint8_t copy)
 static BOOL _setUp(PifNvram* p_owner, uint32_t capacity, uint16_t page_size, uint32_t slot_size, uint16_t slot_count,
 		uint32_t* p_offset, PifNvramMode mode)
 {
+#ifdef PIF_USE_NVRAM_RECORD
 	PifNvramRecord* p_record = NULL;
 	uint16_t i;
 
@@ -359,8 +384,9 @@ static BOOL _setUp(PifNvram* p_owner, uint32_t capacity, uint16_t page_size, uin
 	}
 
 	if (p_owner->__p_record) free(p_owner->__p_record);
-	if (p_owner->__p_offset) free(p_owner->__p_offset);
 	p_owner->__p_record = p_record;
+#endif
+	if (p_owner->__p_offset) free(p_owner->__p_offset);
 	p_owner->__p_offset = p_offset;
 	p_owner->_capacity = capacity;
 	p_owner->__page_size = page_size;
@@ -369,6 +395,8 @@ static BOOL _setUp(PifNvram* p_owner, uint32_t capacity, uint16_t page_size, uin
 	p_owner->_mode = mode;
 	return TRUE;
 }
+
+#ifdef PIF_USE_NVRAM_RECORD
 
 /**
  * @fn _writeNow
@@ -478,6 +506,8 @@ static BOOL _findRecord(PifNvram* p_owner, uint16_t id, uint16_t* p_size)
 	return TRUE;
 }
 
+#endif	// PIF_USE_NVRAM_RECORD
+
 /**
  * @fn _actNvramI2c_Read_1
  * @brief Reads bytes through I2C using a 1-byte internal address.
@@ -559,7 +589,9 @@ BOOL pifNvram_Init(PifNvram* p_owner, PifId id)
 
     if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;
+#ifdef PIF_USE_NVRAM_RECORD
     p_owner->__op_record = OP_RECORD_NONE;
+#endif
 	return TRUE;
 }
 
@@ -569,10 +601,12 @@ void pifNvram_Clear(PifNvram* p_owner)
 
 	pifNvram_DetachTimer(p_owner);
 	pifNvram_DetachI2c(p_owner);
+#ifdef PIF_USE_NVRAM_RECORD
 	if (p_owner->__p_record) {
 		free(p_owner->__p_record);
 		p_owner->__p_record = NULL;
 	}
+#endif
 	if (p_owner->__p_offset) {
 		free(p_owner->__p_offset);
 		p_owner->__p_offset = NULL;
@@ -584,9 +618,11 @@ BOOL pifNvram_SetMedia(PifNvram* p_owner, uint32_t capacity, uint16_t page_size,
 {
 	uint32_t count;
 
-	if (!p_owner || !slot_size || capacity < slot_size
-			|| (mode != NM_RAW && mode != NM_RECORD)
-			|| (mode == NM_RECORD && slot_size <= PIF_NVRAM_RECORD_HEADER)) {
+	if (!p_owner || !slot_size || capacity < slot_size || !_IS_MODE(mode)
+#ifdef PIF_USE_NVRAM_RECORD
+			|| (mode == NM_RECORD && slot_size <= PIF_NVRAM_RECORD_HEADER)
+#endif
+			) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -615,8 +651,7 @@ BOOL pifNvram_SetLayout(PifNvram* p_owner, uint32_t capacity, uint16_t page_size
 	uint32_t pos, slot;
 	uint16_t i;
 
-	if (!p_owner || !p_size || !count || (mode != NM_RAW && mode != NM_RECORD)
-			|| (mode == NM_RECORD && count > 0x7FFF)) {
+	if (!p_owner || !p_size || !count || !_IS_MODE(mode) || (mode == NM_RECORD && count > 0x7FFF)) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -636,7 +671,9 @@ BOOL pifNvram_SetLayout(PifNvram* p_owner, uint32_t capacity, uint16_t page_size
 	for (i = 0; i < count; i++) {
 		p_offset[i] = pos;
 		slot = p_size[i];
+#ifdef PIF_USE_NVRAM_RECORD
 		if (mode == NM_RECORD) slot = 2 * (slot + PIF_NVRAM_RECORD_HEADER);
+#endif
 		if (!slot || slot > capacity - pos) {
 			free(p_offset);
 			pif_error = slot ? E_OVERFLOW_BUFFER : E_INVALID_PARAM;
@@ -749,7 +786,9 @@ PifNvramStart pifNvram_Read(PifNvram* p_owner, uint16_t id, uint8_t* p_dst, size
 	p_owner->__op_pos = _slotPos(p_owner, id, 0);
 	p_owner->__op_buffer = p_dst;
 	p_owner->__op_remain = size;
+#ifdef PIF_USE_NVRAM_RECORD
 	p_owner->__op_head_remain = 0;
+#endif
 	return _startTransfer(p_owner);
 }
 
@@ -765,9 +804,13 @@ PifNvramStart pifNvram_Write(PifNvram* p_owner, uint16_t id, uint8_t* p_src, siz
 	p_owner->__op_pos = _slotPos(p_owner, id, 0);
 	p_owner->__op_buffer = p_src;
 	p_owner->__op_remain = size;
+#ifdef PIF_USE_NVRAM_RECORD
 	p_owner->__op_head_remain = 0;
+#endif
 	return _startTransfer(p_owner);
 }
+
+#ifdef PIF_USE_NVRAM_RECORD
 
 BOOL pifNvram_ReadRecord(PifNvram* p_owner, uint16_t id, uint8_t* p_dst, size_t size, uint16_t* p_size)
 {
@@ -879,3 +922,5 @@ BOOL pifNvram_DeleteRecord(PifNvram* p_owner, uint16_t id)
 	p_owner->__p_record[id].slot = RECORD_NONE;
 	return TRUE;
 }
+
+#endif

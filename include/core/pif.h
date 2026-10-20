@@ -380,7 +380,8 @@ int pif_FloatToString(char* p_buffer, double value, uint16_t point);
 /**
  * @brief Formats a string like vsnprintf with the conversions %d, %u, %x, %X, %b, %f, %s, %c and %%. A width
  *        sets the zero padded digits, or the digits after the point for %f, and l takes a long. The result always ends
- *        with NUL.
+ *        with NUL. %f is written only with PIF_USE_PRINTF_FLOAT; without it %f takes its argument and writes
+ *        nothing.
  * @param p_buffer Destination.
  * @param buffer_size Size of p_buffer in bytes, the NUL included. What does not fit is dropped.
  * @param p_data Arguments of the format.

@@ -23,8 +23,8 @@
 
 
 #include "core/pif.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_PID_CONTROL)
-	#define COLLECT_SIGNAL_PID_CONTROL	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_PID_CONTROL is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_PID_CONTROL)
+	#define COLLECT_SIGNAL_PID_CONTROL	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_PID_CONTROL is too
 	#include "core/pif_collect_signal.h"
 #endif
 

@@ -11,8 +11,8 @@
 
 
 #include "core/pif_task.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_PULSE)
-	#define COLLECT_SIGNAL_PULSE	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_PULSE is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_PULSE)
+	#define COLLECT_SIGNAL_PULSE	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_PULSE is too
 	#include "core/pif_collect_signal.h"
 #endif
 

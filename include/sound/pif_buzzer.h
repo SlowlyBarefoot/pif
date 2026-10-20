@@ -22,8 +22,8 @@
 
 
 #include "core/pif_task_manager.h"
-#if defined(PIF_COLLECT_SIGNAL) && !defined(PIF_COLLECT_SIGNAL_NO_BUZZER)
-	#define COLLECT_SIGNAL_BUZZER	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_NO_BUZZER is not
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_BUZZER)
+	#define COLLECT_SIGNAL_BUZZER	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_BUZZER is too
 	#include "core/pif_collect_signal.h"
 #endif
 

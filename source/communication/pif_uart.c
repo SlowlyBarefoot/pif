@@ -11,7 +11,7 @@ static void _setTxState(PifUart* p_owner, PifUartTxState state)
 #endif
 }
 
-#ifndef PIF_UART_NO_DIRECTION
+#ifdef PIF_USE_UART_DIRECTION
 
 // Called before bytes go to the hardware or the TX buffer, so that the line is driven before they leave.
 // A line already driven, by the UART or from outside, is left as it is.
@@ -58,9 +58,9 @@ static uint32_t _checkTurnaround(PifUart* p_owner)
 
 #define _beginTransfer(p_owner)
 
-#endif	// PIF_UART_NO_DIRECTION
+#endif	// PIF_USE_UART_DIRECTION
 
-#ifndef PIF_UART_NO_FLOW_CONTROL
+#ifdef PIF_USE_UART_FLOW_CONTROL
 
 static void _setFcState(PifUart* p_owner, SWITCH state)
 {
@@ -126,7 +126,7 @@ static SWITCH _evtTransportGetFlowState(PifTransport *p_transport)
 
 #define _isTxBlocked(p_owner)	FALSE
 
-#endif	// PIF_UART_NO_FLOW_CONTROL
+#endif	// PIF_USE_UART_FLOW_CONTROL
 
 static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
@@ -147,7 +147,7 @@ static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t leng
 			return 0;
 		}
 
-#ifndef PIF_UART_NO_FLOW_CONTROL
+#ifdef PIF_USE_UART_FLOW_CONTROL
 		if (p_owner->_flow_control == UFC_HOST_SOFTWARE) len = _filterXonXoff(p_owner, p_data, len);
 #endif
 	} while (!len);
@@ -241,7 +241,7 @@ static const PifTransportOps c_transport_ops = {
 	_evtTransportAttachClient,
 	_evtTransportDetachClient,
 	_evtTransportTriggerSend,
-#ifndef PIF_UART_NO_FLOW_CONTROL
+#ifdef PIF_USE_UART_FLOW_CONTROL
 	_evtTransportGetFlowState,
 #else
 	NULL,		// Always ON
@@ -266,11 +266,11 @@ BOOL pifUart_Init(PifUart* p_owner, PifId id, uint32_t baudrate)
     p_owner->_baudrate = baudrate;
     p_owner->_transfer_time = 1000000L * 10 / baudrate;
     p_owner->_frame_size = 1;
-#ifndef PIF_UART_NO_FLOW_CONTROL
+#ifdef PIF_USE_UART_FLOW_CONTROL
 	p_owner->fc_limit = 50;					// default: 50%
 	_setFcState(p_owner, ON);
 #endif
-#ifndef PIF_UART_NO_DIRECTION
+#ifdef PIF_USE_UART_DIRECTION
 	p_owner->dir_delay = 2;					// default: 2 bytes
 #endif
     return TRUE;
@@ -368,7 +368,7 @@ BOOL pifUart_ChangeBaudrate(PifUart* p_owner, uint32_t baudrate)
 	return TRUE;
 }
 
-#ifndef PIF_UART_NO_DIRECTION
+#ifdef PIF_USE_UART_DIRECTION
 
 void pifUart_AttachActDirection(PifUart* p_owner, PifActUartDirection act_direction, PifUartDirection init_state)
 {
@@ -390,9 +390,9 @@ void pifUart_SetDirection(PifUart* p_owner, PifUartDirection direction)
 #endif
 }
 
-#endif	// PIF_UART_NO_DIRECTION
+#endif	// PIF_USE_UART_DIRECTION
 
-#ifndef PIF_UART_NO_FLOW_CONTROL
+#ifdef PIF_USE_UART_FLOW_CONTROL
 
 void pifUart_ResetFlowControl(PifUart* p_owner)
 {
@@ -443,7 +443,7 @@ void pifUart_SigTxFlowState(PifUart* p_owner, SWITCH state)
 	}
 }
 
-#endif	// PIF_UART_NO_FLOW_CONTROL
+#endif	// PIF_USE_UART_FLOW_CONTROL
 
 uint16_t pifUart_GetFillSizeOfRxBuffer(PifUart* p_owner)
 {
@@ -571,7 +571,7 @@ static uint32_t _doRxTask(PifTask* p_task)
 {
 	PifUart *p_owner = p_task->_p_client;
 	uint8_t data;
-#ifndef PIF_UART_NO_FLOW_CONTROL
+#ifdef PIF_USE_UART_FLOW_CONTROL
 	uint8_t rate;
 #endif
 	BOOL rtn = FALSE;
@@ -583,7 +583,7 @@ static uint32_t _doRxTask(PifTask* p_task)
 	}
 #endif
 
-#ifndef PIF_UART_NO_FLOW_CONTROL
+#ifdef PIF_USE_UART_FLOW_CONTROL
 	if (p_owner->_flow_control & UFC_DEVICE_MASK) {
 		if (p_owner->act_get_rx_rate) {
 			rate = (*p_owner->act_get_rx_rate)(p_owner);
@@ -634,7 +634,7 @@ static uint32_t _doRxTask(PifTask* p_task)
 	}
 
 next1:
-#endif	// PIF_UART_NO_FLOW_CONTROL
+#endif	// PIF_USE_UART_FLOW_CONTROL
 	if (p_owner->__evt_parsing) {
 		rtn = (*p_owner->__evt_parsing)(p_owner->__p_client, _actTransportReceive);
 	}
@@ -672,7 +672,7 @@ static uint32_t _doTxTask(PifTask* p_task)
 {
 	PifUart *p_owner = p_task->_p_client;
 	uint32_t bytes = 0, period;
-#ifndef PIF_UART_NO_DIRECTION
+#ifdef PIF_USE_UART_DIRECTION
 	uint32_t turnaround;
 #endif
 
@@ -704,7 +704,7 @@ static uint32_t _doTxTask(PifTask* p_task)
 		}
 	}
 	period = bytes * p_owner->_transfer_time;
-#ifndef PIF_UART_NO_DIRECTION
+#ifdef PIF_USE_UART_DIRECTION
 	turnaround = _checkTurnaround(p_owner);
 	if (turnaround && (!period || turnaround < period)) period = turnaround;
 #endif
@@ -755,7 +755,7 @@ PifTask *pifUart_AttachTxTask(PifUart *p_owner, PifId id, PifTaskMode mode, uint
 
 BOOL pifUart_SetCsFlag(PifUart* p_owner, PifUartCsFlag flag)
 {
-#ifndef PIF_UART_NO_FLOW_CONTROL
+#ifdef PIF_USE_UART_FLOW_CONTROL
 	if (flag & UA_CSF_FC_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[UA_CSF_FC_IDX], "UFC", p_owner->_id, CSVT_WIRE, 1,
 				p_owner->_fc_state)) return FALSE;
@@ -765,7 +765,7 @@ BOOL pifUart_SetCsFlag(PifUart* p_owner, PifUartCsFlag flag)
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[UA_CSF_TX_IDX], "UTX", p_owner->_id, CSVT_WIRE, 1,
 				p_owner->__tx_state)) return FALSE;
 	}
-#ifndef PIF_UART_NO_DIRECTION
+#ifdef PIF_USE_UART_DIRECTION
 	if (flag & UA_CSF_DIR_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[UA_CSF_DIR_IDX], "UDR", p_owner->_id, CSVT_WIRE, 1,
 				p_owner->_direction)) return FALSE;

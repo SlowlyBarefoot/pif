@@ -7,6 +7,8 @@
 
 // Central task scheduler and runtime execution loop management.
 
+#ifdef PIF_USE_TASK_REALTIME
+
 // Margin a run has to leave free before the realtime release, on top of its own length. It stands
 // for what the scheduler spends between deciding that a run fits and dispatching the release that
 // follows it, which no block time can measure. The minimum is only a starting point: a release
@@ -35,6 +37,14 @@
 // PifTask::max_skip and PifTaskTimer::max_skip override it per owner.
 #ifndef PIF_TASK_MAX_SKIP
 #define PIF_TASK_MAX_SKIP		10
+#endif
+
+#endif	// PIF_USE_TASK_REALTIME
+
+// How late a release is, against its period or its trigger, is only of use to the realtime task and
+// to the statistics.
+#if defined(PIF_USE_TASK_REALTIME) || defined(PIF_USE_TASK_STATISTICS)
+#define TASK_RELEASE_DELAY
 #endif
 
 // The three measurements are only carried when PIF_USE_BLOCK_TIME is defined. Reading them
@@ -75,16 +85,20 @@ static struct {
 #ifdef PIF_USE_BLOCK_TIME
 static PifBlockTime s_idle_block_time;			// Longest run of the idle callback
 
+#ifdef PIF_USE_TASK_REALTIME
 // Margin a run has to leave free before the realtime release, and how many runs were let through
 // without it. Both belong to the scheduling rule in this file and nothing outside it reads them,
 // so pifTaskManager_Print() is where they are reported.
 static uint32_t s_task_guard = PIF_TASK_GUARD_MIN_US;
 static uint32_t s_guard_lapse_count = 0UL;
 #endif
+#endif
 
 PifTask *g_task_cutin = NULL;
 
+#ifdef PIF_USE_TASK_REALTIME
 PifTask *g_realtime_task = NULL;
+#endif
 
 #ifdef PIF_DEBUG
 
@@ -92,6 +106,8 @@ PifActTaskSignal pif_act_task_signal = NULL;
 
 #endif
 
+
+#ifdef PIF_USE_TASK_REALTIME
 
 // Whether the realtime task is due, judged against a timer reading the caller already has. A
 // release comes from a trigger as well as from the period, and either one gives the task priority
@@ -264,10 +280,22 @@ static void _updateTaskGuard(uint32_t delay)
 
 #endif
 
+#else	// PIF_USE_TASK_REALTIME
+
+// With no realtime release to keep time free for, every run fits. The slack is still named, so a
+// caller that only passes it on has a use for it.
+#define _realtimeSlack(current)										(0xFFFFFFFFUL)
+#define _fitsInSlack(max_block_time, slack, p_skip_count, max_skip)	((void)(slack), TRUE)
+#define _fitsInRealtimeSlack(p_owner, slack)						((void)(slack), TRUE)
+
+#endif	// PIF_USE_TASK_REALTIME
+
 static void _processingTrigger(PifTask *p_owner)
 {
 	switch (p_owner->_mode) {
+#ifdef PIF_USE_TASK_REALTIME
 	case TM_REALTIME:
+#endif
 	case TM_PERIOD:
 	case TM_EXTERNAL:
 		p_owner->_delta_time = pif_timer1us - p_owner->__pretime;
@@ -285,9 +313,11 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	uint32_t start_time;
 	uint32_t end_time;
 	uint32_t block_time;
+#ifdef TASK_RELEASE_DELAY
 	uint32_t diff;
 	uint32_t delay;
 	uint32_t trigger_diff;
+#endif
 #ifdef PIF_USE_TASK_STATISTICS
 	uint32_t execute_time;
 #endif
@@ -295,6 +325,8 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	// One reading serves both the release measurements below and the start of the run, so the
 	// dispatch is timed where it happens rather than where it was decided.
 	start_time = (*pif_act_timer1us)();
+
+#ifdef TASK_RELEASE_DELAY
 
 	// How long the release waited after the trigger that caused it. An interrupt can set a new
 	// trigger between the reading above and here, which puts the trigger time later than the
@@ -316,7 +348,11 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 #ifdef PIF_USE_TASK_STATISTICS
 	if (delay > p_owner->_max_delay) p_owner->_max_delay = delay;
 #endif
+#else
+	(void)trigger;
+#endif
 
+#ifdef PIF_USE_TASK_REALTIME
 	if (p_owner == g_realtime_task) {
 #ifdef PIF_USE_BLOCK_TIME
 		// Only the lateness against the period feeds the margin, and it is read before the trigger
@@ -332,6 +368,7 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 		if (delay > pif_performance._max_delay) pif_performance._max_delay = delay;
 		if (p_owner->__period && delay >= p_owner->__period) pif_performance._miss_count++;
 	}
+#endif
 
 	p_owner->__pretime = p_owner->__current_time;
 
@@ -358,7 +395,9 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	// The bound counts refusals since the last run, and a cut in dispatches without asking the
 	// slack rule at all, so the count is cleared where every release ends up rather than only on
 	// the path that tests it.
+#ifdef PIF_USE_TASK_REALTIME
 	p_owner->__skip_count = 0;
+#endif
 
 	s_current_task = p_owner;
 	p_owner->_last_execute_time = start_time;
@@ -404,7 +443,9 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 #endif
 
 	switch (p_owner->_mode) {
+#ifdef PIF_USE_TASK_REALTIME
 	case TM_REALTIME:
+#endif
 	case TM_PERIOD:
 		if (period > 0) {
 			p_owner->__period = period;
@@ -585,7 +626,9 @@ BOOL pifTaskManager_Init(int max_count, int timer_count)
 
 	if (!pifObjArray_Init(&s_tasks, sizeof(PifTask), max_count, NULL)) return FALSE;
 	s_it_current = NULL;
+#ifdef PIF_USE_TASK_REALTIME
 	g_realtime_task = NULL;
+#endif
 	pifTaskManager_ResetRealtime();
 	_initCpuLoad();
 
@@ -604,7 +647,9 @@ fail:
 
 void pifTaskManager_Clear()
 {
+#ifdef PIF_USE_TASK_REALTIME
 	g_realtime_task = NULL;
+#endif
 	pifTaskManager_ResetRealtime();
 	_initCpuLoad();
 #ifdef PIF_USE_BLOCK_TIME
@@ -624,7 +669,7 @@ void pifTaskManager_ResetRealtime()
 {
 	pif_performance._max_delay = 0UL;
 	pif_performance._miss_count = 0UL;
-#ifdef PIF_USE_BLOCK_TIME
+#if defined(PIF_USE_BLOCK_TIME) && defined(PIF_USE_TASK_REALTIME)
 	// The margin starts at its lower bound and finds its own level from the releases that follow.
 	s_task_guard = PIF_TASK_GUARD_MIN_US;
 	s_guard_lapse_count = 0UL;
@@ -688,10 +733,12 @@ fail:
 
 void pifTaskManager_Remove(PifTask *p_task)
 {
+#ifdef PIF_USE_TASK_REALTIME
 	if (p_task->_mode == TM_REALTIME) {
 		g_realtime_task = NULL;
 		pifTaskManager_ResetRealtime();
 	}
+#endif
 
 	if (s_it_current && p_task == (PifTask *)s_it_current->data) s_it_current = NULL;
 
@@ -809,17 +856,21 @@ void pifTaskManager_Loop()
 		// The realtime task takes priority at its release. The check does not depend on the ring,
 		// so it runs once per loop rather than once per task, and the ring keeps its position.
 		// When it is not due yet, the slack taken above is what limits which task may start.
+#ifdef PIF_USE_TASK_REALTIME
 		if (g_realtime_task) {
 			p_select = _processingRealTime(pif_timer1us, &trigger);
 		}
+#endif
 
 		for (i = 0; i < count && !p_select; i++) {
 			p_owner = (PifTask *)s_it_current->data;
 
+#ifdef PIF_USE_TASK_REALTIME
 			// Released by _processingRealTime() above and nowhere else. Visiting it here would
 			// only repeat the same tests against the same reading, and its slack is measured
 			// against itself, so the ring holds no dispatch path for it.
 			if (p_owner == g_realtime_task) goto next;
+#endif
 
 			if (p_owner->__trigger) {
 				if (p_owner->__trigger_delay) {
@@ -933,7 +984,9 @@ void pifTaskManager_Print()
 			pifLog_Print(LT_NONE, "  ---");
 		}
 		switch (p_owner->_mode) {
+#ifdef PIF_USE_TASK_REALTIME
 			case TM_REALTIME: mode = "RealTime"; break;
+#endif
 			case TM_PERIOD: mode = "Period"; break;
 			case TM_EXTERNAL: mode = "External"; break;
 	        default: mode = "---"; break;
@@ -942,7 +995,9 @@ void pifTaskManager_Print()
 			pifLog_Printf(LT_NONE, " (%u): %s-%luus Pause=%d\n", p_owner->_id, mode, p_owner->_default_period, p_owner->_pause);
 		}
 		else {
-			pifLog_Printf(LT_NONE, " (%u): %s-%1fms Pause=%d\n", p_owner->_id, mode, p_owner->_default_period / 1000.0, p_owner->_pause);
+			// In whole numbers, so that the report does not need PIF_USE_PRINTF_FLOAT.
+			pifLog_Printf(LT_NONE, " (%u): %s-%lu.%1lums Pause=%d\n", p_owner->_id, mode, p_owner->_default_period / 1000,
+					(p_owner->_default_period % 1000) / 100, p_owner->_pause);
 		}
 #ifdef PIF_USE_BLOCK_TIME
 		pifLog_Printf(LT_NONE, "    Block: M=%luus\n", p_owner->_block_time._max);
@@ -977,6 +1032,7 @@ void pifTaskManager_Print()
 		it = pifObjArray_Next(it);
 	}
 
+#ifdef PIF_USE_TASK_REALTIME
 	if (g_realtime_task) {
 		pifLog_Printf(LT_NONE, "RealTime: MaxDelay=%luus Miss=%lu\n", pif_performance._max_delay,
 				pif_performance._miss_count);
@@ -991,6 +1047,7 @@ void pifTaskManager_Print()
 				s_guard_lapse_count);
 #endif
 	}
+#endif
 
 #ifdef PIF_USE_BLOCK_TIME
 	// Timer and idle callbacks run outside the task ring, so their block time is not in the list
