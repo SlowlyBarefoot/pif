@@ -35,7 +35,7 @@ endif
 
 NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_encoder test_pif_sensor test_pif_sensor_modulated test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
-           test_pif_nvram test_pif_nor_flash test_pif_motor \
+           test_pif_nvram test_pif_nor_flash test_pif_motor test_pif_duty_motor_speed_enc \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
            test_pif_task_manager_nort test_pif_motor_min test_pif_nvram_raw
 
@@ -181,6 +181,14 @@ MOTOR_SRC := motor/test_pif_motor.c $(addprefix $(ROOT)/source/motor/, pif_motor
              $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c pif_timer.c \
                  pif_timer_manager.c)
 MOTOR_DEP := $(addprefix $(ROOT)/include/motor/, pif_motor.h pif_duty_motor.h pif_step_motor.h)
+# PifDutyMotorSpeedEnc on a simulated motor, in count and in period control.
+DMSE_SRC := motor/test_pif_duty_motor_speed_enc.c \
+            $(addprefix $(ROOT)/source/motor/, pif_motor.c pif_duty_motor.c pif_duty_motor_speed_enc.c) \
+            $(ROOT)/source/sensor/pif_pulse.c $(ROOT)/source/sensor/pif_sensor.c \
+            $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_pid_control.c pif_task.c pif_task_manager.c \
+                pif_timer.c pif_timer_manager.c)
+DMSE_DEP := $(addprefix $(ROOT)/include/motor/, pif_motor.h pif_duty_motor.h pif_duty_motor_speed_enc.h) \
+            $(ROOT)/include/sensor/pif_pulse.h $(ROOT)/include/core/pif_pid_control.h
 
 # pif_PrintFormat() through pif_Printf(), with and without %f.
 PRINTF_SRC := core/test_pif_printf.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
@@ -230,7 +238,8 @@ run-test_pif_rc_serial: run-test_pif_modbus_nolog
 run-test_pif_nvram: run-test_pif_rc_serial
 run-test_pif_nor_flash: run-test_pif_nvram
 run-test_pif_motor: run-test_pif_nor_flash
-run-test_pif_printf: run-test_pif_motor
+run-test_pif_duty_motor_speed_enc: run-test_pif_motor
+run-test_pif_printf: run-test_pif_duty_motor_speed_enc
 run-test_pif_printf_nofloat: run-test_pif_printf
 run-test_pif_ring_buffer_nolock: run-test_pif_printf_nofloat
 run-test_pif_modbus_slave_min: run-test_pif_ring_buffer_nolock
@@ -361,6 +370,9 @@ $(BUILD)/test_pif_nor_flash$(EXE): $(NOR_FLASH_SRC) $(NOR_FLASH_DEP) | $(BUILD)
 $(BUILD)/test_pif_motor$(EXE): $(MOTOR_SRC) $(MOTOR_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_USE_STEP_MOTOR_2PHASE -DPIF_USE_STEP_MOTOR_5PHASE -DPIF_USE_STEP_MOTOR_STEP_DIR \
 		$(INC) $(MOTOR_SRC) -o $@
+
+$(BUILD)/test_pif_duty_motor_speed_enc$(EXE): $(DMSE_SRC) $(DMSE_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(DMSE_SRC) -o $@
 
 # A module built with its least features, or with only some of the PIF_USE_ options, against the tests of the
 # full one.
