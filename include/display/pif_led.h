@@ -41,12 +41,12 @@ typedef struct StPifLed
 
 	// Read-only Member Variable
     PifId _id;						///< Instance ID
+	PifTask* _p_task;				///< Blink task, paused while no LED blinks
 
 	// Private Member Variable
 	uint32_t __state;
 	uint8_t __blink_count;
 	PifLedBlink* __p_blinks;
-	PifTask* __p_task;				///< Blink task, paused while no LED blinks
 
 	// Private Action Function
 	PifActLedState __act_state;

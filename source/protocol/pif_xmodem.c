@@ -509,11 +509,10 @@ BOOL pifXmodem_Init(PifXmodem* p_owner, PifId id, PifXmodemType type)
     }
 
     // Runs only when a timeout is due, triggered by the timeouts themselves.
-    p_owner->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_EXTERNAL, 0, _doTask, p_owner, FALSE);
-    if (!p_owner->__p_task) goto fail;
-    p_owner->__p_task->name = "Xmodem";
-    pifTaskTimeout_Init(&p_owner->__tx.timeout, p_owner->__p_task);
-    pifTaskTimeout_Init(&p_owner->__rx.timeout, p_owner->__p_task);
+    p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_EXTERNAL, 0, _doTask, p_owner, FALSE);
+    if (!p_owner->_p_task) goto fail;
+    pifTaskTimeout_Init(&p_owner->__tx.timeout, p_owner->_p_task);
+    pifTaskTimeout_Init(&p_owner->__rx.timeout, p_owner->_p_task);
 
     p_owner->__type = type;
     p_owner->__tx.timeout_ms = PIF_XMODEM_RESPONSE_TIMEOUT;
@@ -539,9 +538,9 @@ void pifXmodem_Clear(PifXmodem* p_owner)
 		free(p_owner->__p_data);
 		p_owner->__p_data = NULL;
 	}
-	if (p_owner->__p_task) {
-		pifTaskManager_Remove(p_owner->__p_task);
-		p_owner->__p_task = NULL;
+	if (p_owner->_p_task) {
+		pifTaskManager_Remove(p_owner->_p_task);
+		p_owner->_p_task = NULL;
 	}
 }
 
@@ -576,7 +575,7 @@ void pifXmodem_DetachTransport(PifXmodem *p_owner)
 
 	pifTaskTimeout_Stop(&p_owner->__tx.timeout);
 	pifTaskTimeout_Stop(&p_owner->__rx.timeout);
-	if (p_owner->__p_task) pifTask_CancelTrigger(p_owner->__p_task);
+	if (p_owner->_p_task) pifTask_CancelTrigger(p_owner->_p_task);
 	p_owner->__tx.state = XTS_IDLE;
 	p_owner->__rx.state = XRS_IDLE;
 	p_owner->__finish = FALSE;

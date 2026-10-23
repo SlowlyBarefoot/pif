@@ -114,7 +114,6 @@ PifTask* pifSensorThreshold_AttachTaskAcquire(PifSensorThreshold* p_owner, PifId
 	PifTask* p_task;
 
 	p_task = pifTaskManager_Add(id, mode, period, _doTaskAcquire, p_owner, start);
-	if (p_task) p_task->name = "SensorThreshold";
 	return p_task;
 }
 

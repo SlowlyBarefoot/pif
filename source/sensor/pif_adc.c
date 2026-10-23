@@ -198,7 +198,6 @@ BOOL pifAdc_AttachTask(PifAdc* p_owner, uint32_t period1us, BOOL start)
 
 	p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1us, _doTask, p_owner, start);
 	if (!p_owner->_p_task) return FALSE;
-	p_owner->_p_task->name = "ADC";
 	return TRUE;
 }
 

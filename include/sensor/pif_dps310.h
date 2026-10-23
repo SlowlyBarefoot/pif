@@ -372,9 +372,11 @@ BOOL pifDps310_ReadBarometric(PifDps310* p_owner, float* p_pressure, float* p_te
  * @param read_period Period of the readings in ms.
  * @param evt_read Gets each pressure in hPa and temperature in degrees C.
  * @param start Set to TRUE to start the task immediately.
+ * @param name Name of the task. If NULL, "DPS310" is used.
  * @return TRUE on success, FALSE on failure.
  */
-BOOL pifDps310_AttachTaskForReading(PifDps310* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
+BOOL pifDps310_AttachTaskForReading(PifDps310* p_owner, PifId id, uint16_t read_period,
+	PifEvtBaroRead evt_read, BOOL start, const char *name);
 
 #ifdef __cplusplus
 }

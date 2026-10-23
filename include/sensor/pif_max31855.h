@@ -126,9 +126,11 @@ BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_
  * @param period1ms Task period in units of 1 ms.
  * @param evt_measure Gets each temperature. May be NULL.
  * @param p_issuer Pointer handed to evt_measure.
+ * @param name Name of the task. If NULL, "MAX31855" is used.
  * @return TRUE on success, FALSE on failure.
  */
-BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifEvtMax31855Measure evt_measure, PifIssuerP p_issuer);
+BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms,
+	PifEvtMax31855Measure evt_measure, PifIssuerP p_issuer, const char *name);
 
 /**
  * @brief Removes the measurement task.

@@ -141,9 +141,9 @@ typedef struct StPifXmodem
 
 	// Read-only Member Variable
 	PifId _id;						///< Instance ID
+	PifTask* _p_task;				///< Checks the timeouts
 
 	// Private Member Variable
-	PifTask* __p_task;				///< Checks the timeouts
 	PifTransport *__p_transport;
 	PifXmodemType __type;
 	uint16_t __packet_size;

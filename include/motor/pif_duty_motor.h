@@ -94,6 +94,7 @@ struct StPifDutyMotor
 
     // Read-only Member Variable
     PifId _id;						///< Instance ID
+    PifTask* _p_task;
     PifTimerManager* _p_timer_manager;	///< Timer manager of the control timers
 	uint16_t _max_duty;				///< Duty that means full power
 	uint16_t _current_duty;			///< Duty given last to act_set_duty
@@ -107,7 +108,6 @@ struct StPifDutyMotor
 	PifTimer* __p_timer_delay;
 	PifTimer* __p_timer_brake;
 
-    PifTask* __p_task;
 #ifdef COLLECT_SIGNAL_DUTY_MOTOR
 	PifCollectSignalChannel __cs[DM_CSF_COUNT];
 #endif

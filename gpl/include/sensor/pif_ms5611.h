@@ -178,9 +178,11 @@ void pifMs5611_DetachTimer(PifMs5611* p_owner);
  * @param read_period Period of the readings in ms.
  * @param evt_read Gets each pressure in hPa and temperature in degrees C.
  * @param start Set to TRUE to start the task immediately.
+ * @param name Name of the task. If NULL, "MS5611" is used.
  * @return TRUE on success, FALSE on failure.
  */
-BOOL pifMs5611_AttachTaskForReading(PifMs5611* p_owner, PifId id, uint16_t read_period, PifEvtBaroRead evt_read, BOOL start);
+BOOL pifMs5611_AttachTaskForReading(PifMs5611* p_owner, PifId id, uint16_t read_period, 
+	PifEvtBaroRead evt_read, BOOL start, const char *name);
 
 #ifdef __cplusplus
 }

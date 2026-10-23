@@ -153,7 +153,6 @@ PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifId id, PifTaskMode mode, uint
 	p_owner->__read_state = p_owner->__act_in(p_owner->_id) & _mask(p_owner);
 
 	p_task = pifTaskManager_Add(id, mode, period, _doTask, p_owner, start);
-	if (p_task) p_task->name = "Gpio";
 	return p_task;
 }
 

@@ -203,6 +203,10 @@ void pifTask_Pause(PifTask *p_owner)
 
 void pifTask_Resume(PifTask *p_owner)
 {
+#ifdef PIF_USE_TASK_STATISTICS
+	// The first release after a pause is late by the pause, which says nothing about the scheduler.
+	if (p_owner->_pause) p_owner->__skip_delay = TRUE;
+#endif
 	p_owner->_pause = FALSE;
 }
 
@@ -312,6 +316,17 @@ void pifTask_IgnoreBlockTime(PifTask *p_owner)
 }
 
 #endif
+
+void pifTask_IgnoreStatistics(PifTask *p_owner)
+{
+#ifdef PIF_USE_BLOCK_TIME
+	p_owner->__ignore_block = TRUE;
+#endif
+#ifdef PIF_USE_TASK_STATISTICS
+	p_owner->__ignore_stats = TRUE;
+#endif
+	(void)p_owner;
+}
 
 
 void pifTaskTimeout_Init(PifTaskTimeout *p_owner, PifTask *p_task)

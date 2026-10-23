@@ -96,6 +96,16 @@ static uint32_t s_guard_lapse_count = 0UL;
 
 PifTask *g_task_cutin = NULL;
 
+#ifdef PIF_USE_TASK_STATISTICS
+// End of the last run left out by pifTask_IgnoreStatistics(). The releases that fell due before it
+// were held up by that run, so their lateness is not measured. The end is dropped a second later,
+// when every such release has run and before the time can wrap around it.
+#define TASK_IGNORE_HOLD_US		1000000UL
+
+static BOOL s_ignore_active = FALSE;
+static uint32_t s_ignore_end;
+#endif
+
 #ifdef PIF_USE_TASK_REALTIME
 PifTask *g_realtime_task = NULL;
 #endif
@@ -125,6 +135,7 @@ static PifTask *_processingRealTime(uint32_t current, BOOL *p_trigger)
 			// after the delay asked for, so the wrapped case is rejected by its sign.
 			diff = current - g_realtime_task->__trigger_time;
 			if ((int32_t)diff >= 0 && diff >= g_realtime_task->__trigger_delay) {
+				g_realtime_task->__trigger_time += g_realtime_task->__trigger_delay;
 				g_realtime_task->__trigger_delay = 0;
 			}
 		}
@@ -320,6 +331,9 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 #endif
 #ifdef PIF_USE_TASK_STATISTICS
 	uint32_t execute_time;
+	uint32_t due;
+	BOOL skip;
+	BOOL resumed;
 #endif
 
 	// One reading serves both the release measurements below and the start of the run, so the
@@ -346,7 +360,21 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 		if (diff > p_owner->__period) delay = diff - p_owner->__period;
 	}
 #ifdef PIF_USE_TASK_STATISTICS
-	if (delay > p_owner->_max_delay) p_owner->_max_delay = delay;
+	// Neither the first release after a resume nor one that fell due before an ignored run ended
+	// is measured: both are late for reasons outside the load.
+	skip = p_owner->__skip_delay;
+	resumed = p_owner->__skip_delay;
+	p_owner->__skip_delay = FALSE;
+	if (s_ignore_active) {
+		if (start_time - s_ignore_end >= TASK_IGNORE_HOLD_US) {
+			s_ignore_active = FALSE;
+		}
+		else {
+			due = trigger ? p_owner->__trigger_time : p_owner->__pretime + p_owner->__period;
+			if ((int32_t)(due - s_ignore_end) < 0) skip = TRUE;
+		}
+	}
+	if (!skip && delay > p_owner->_max_delay) p_owner->_max_delay = delay;
 #endif
 #else
 	(void)trigger;
@@ -377,7 +405,7 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 #endif
 
 #ifdef PIF_USE_TASK_STATISTICS
-	if (trigger) {
+	if (trigger && !skip) {
 		if (trigger_diff > p_owner->_max_trigger_delay) p_owner->_max_trigger_delay = trigger_diff;
 		p_owner->__total_trigger_delay[p_owner->__trigger_index] += trigger_diff;
 		p_owner->__trigger_count++;
@@ -420,10 +448,18 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	p_owner->__ignore_block = FALSE;
 #endif
 #ifdef PIF_USE_TASK_STATISTICS
+	if (p_owner->__ignore_stats) {
+		p_owner->__ignore_stats = FALSE;
+		s_ignore_end = end_time;
+		s_ignore_active = TRUE;
+		goto stats_done;
+	}
 	execute_time = block_time;
 	p_owner->_total_execution_time += execute_time;
 	if (execute_time > p_owner->_max_execution_time) p_owner->_max_execution_time = execute_time;
-	p_owner->__total_delta_time[p_owner->__execute_index] += p_owner->_delta_time;
+	// The first run after a resume follows the pause, so it counts as one period apart instead.
+	p_owner->__total_delta_time[p_owner->__execute_index] +=
+			(resumed && p_owner->__period) ? p_owner->__period : p_owner->_delta_time;
 	p_owner->__sum_execution_time[p_owner->__execute_index] += execute_time;
 	p_owner->__execution_count++;
 	if (p_owner->__execution_count == 200) {
@@ -435,6 +471,7 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	else if (p_owner->__execution_count == 100) {
 		p_owner->__execute_index ^= 1;
 	}
+stats_done:
 #endif
 	s_current_task = NULL;
 
@@ -879,6 +916,9 @@ void pifTaskManager_Loop()
 					// Left unsigned it would wrap and read as long expired.
 					diff = pif_timer1us - p_owner->__trigger_time;
 					if ((int32_t)diff >= 0 && diff >= p_owner->__trigger_delay) {
+						// The trigger is due from the end of its delay, so its lateness is counted
+						// from there and not from when it was set.
+						p_owner->__trigger_time += p_owner->__trigger_delay;
 						p_owner->__trigger_delay = 0;
 					}
 				}
@@ -961,74 +1001,102 @@ void pifTaskManager_ResetIdleMaxExecutionTime()
 
 #if !defined(PIF_NO_LOG) || defined(PIF_LOG_COMMAND)
 
+// The digits of value right-aligned in width columns, or a '-' in their place for 0. p_text has room
+// for 12 characters, and width is at most 10.
+static const char* _dashText(char* p_text, uint32_t value, int width)
+{
+	int len;
+
+	if (value) {
+		pif_Printf(p_text, 12, "%lu", (unsigned long)value);
+	}
+	else {
+		p_text[0] = '-';
+		p_text[1] = 0;
+	}
+	len = strlen(p_text);
+	if (len < width) {
+		memmove(p_text + width - len, p_text, len + 1);
+		memset(p_text, ' ', width - len);
+	}
+	return p_text;
+}
+
+// One line a task, times in microseconds:
+//   M      P: TM_PERIOD, E: TM_EXTERNAL, R: TM_REALTIME
+//   Pa     1 while paused
+//   Period default period
+//   Blk    longest run over the window that the realtime task can be delayed by
+//   PrcM   longest run since the statistics were reset, PrcA its moving average
+//   Delta  average time between two runs
+//   TrgM   longest wait of a release by trigger, Dly longest lateness against the period
+// A '-' is a value that has not been measured.
 void pifTaskManager_Print()
 {
 	PifObjArrayIterator it;
-	char *mode;
+	// Longer than PIF_LOG_LINE_SIZE, so the lines are made here and given to pifLog_Print().
+	char line[96];
+	char period[12];
+	char mode;
+	int n;
 #ifdef PIF_USE_BLOCK_TIME
 	uint32_t block_time;
 #endif
 #ifdef PIF_USE_TASK_STATISTICS
 	uint32_t value;
+	char delta[12], trigger[12], delay[12];
 	PifTaskIdleStatistics stat;
 #endif
 
-   	pifLog_Printf(LT_NONE, "Task count: %d\n", pifObjArray_Count(&s_tasks));
+	// The load comes first, so that it is not the line lost when the log buffer runs out.
+	pifLog_Printf(LT_NONE, "Task count: %d, Load: %u%% (us)\n", pifObjArray_Count(&s_tasks), pif_performance._task_load);
+	// The headings are laid out to the widths of the columns below.
+	pifLog_Print(LT_NONE, "  ID Name       M Pa  Period"
+#ifdef PIF_USE_BLOCK_TIME
+			"    Blk"
+#endif
+#ifdef PIF_USE_TASK_STATISTICS
+			"   PrcM  PrcA   Delta   TrgM     Dly"
+#endif
+			"\n");
+
 	it = pifObjArray_Begin(&s_tasks);
 	while (it) {
 		PifTask *p_owner = (PifTask *)it->data;
-		if (p_owner->name) {
-			pifLog_Printf(LT_NONE, "  %s", p_owner->name);
-		}
-		else {
-			pifLog_Print(LT_NONE, "  ---");
-		}
+
 		switch (p_owner->_mode) {
 #ifdef PIF_USE_TASK_REALTIME
-			case TM_REALTIME: mode = "RealTime"; break;
+			case TM_REALTIME: mode = 'R'; break;
 #endif
-			case TM_PERIOD: mode = "Period"; break;
-			case TM_EXTERNAL: mode = "External"; break;
-	        default: mode = "---"; break;
+			case TM_PERIOD: mode = 'P'; break;
+			case TM_EXTERNAL: mode = 'E'; break;
+	        default: mode = '-'; break;
 		}
-		if (p_owner->_default_period < 1000) {
-			pifLog_Printf(LT_NONE, " (%u): %s-%luus Pause=%d\n", p_owner->_id, mode, p_owner->_default_period, p_owner->_pause);
-		}
-		else {
-			// In whole numbers, so that the report does not need PIF_USE_PRINTF_FLOAT.
-			pifLog_Printf(LT_NONE, " (%u): %s-%lu.%1lums Pause=%d\n", p_owner->_id, mode, p_owner->_default_period / 1000,
-					(p_owner->_default_period % 1000) / 100, p_owner->_pause);
-		}
+		// A value wider than its column takes the room it needs, which only shifts the rest of the line.
+		pif_Printf(line, sizeof(line), " %3u %10.10s %c %2u %s", (unsigned int)p_owner->_id,
+				p_owner->name ? p_owner->name : "---", mode, (unsigned int)p_owner->_pause,
+				_dashText(period, p_owner->_default_period, 7));
+		n = strlen(line);
 #ifdef PIF_USE_BLOCK_TIME
-		pifLog_Printf(LT_NONE, "    Block: M=%luus\n", p_owner->_block_time._max);
+		pif_Printf(line + n, sizeof(line) - n, " %6lu", (unsigned long)p_owner->_block_time._max);
+		n += strlen(line + n);
 #endif
 #ifdef PIF_USE_TASK_STATISTICS
-		// A is the moving average over the last n executions, not an average since boot.
+		// PrcA is the moving average over the last 100 to 200 runs, not an average since boot.
 		value = p_owner->__sum_execution_time[0] + p_owner->__sum_execution_time[1];
-		pifLog_Printf(LT_NONE, "    Proc: M=%luus A=%luus(n=%u)\n", p_owner->_max_execution_time,
-				(p_owner->__execution_count ? value / p_owner->__execution_count : 0),
-				p_owner->__execution_count);
-
+		pif_Printf(line + n, sizeof(line) - n, " %6lu %5lu", (unsigned long)p_owner->_max_execution_time,
+				(unsigned long)(p_owner->__execution_count ? value / p_owner->__execution_count : 0));
+		n += strlen(line + n);
 		value = p_owner->__total_delta_time[0] + p_owner->__total_delta_time[1];
-		if (value) {
-			pifLog_Printf(LT_NONE, "    Delta: %luus\n", value / p_owner->__execution_count);
-		}
-
-		value = p_owner->__total_trigger_delay[0] + p_owner->__total_trigger_delay[1];
-		if (value) {
-			pifLog_Printf(LT_NONE, "    Trigger: M=%luus A=%luus\n", p_owner->_max_trigger_delay,
-					(p_owner->__trigger_count ? value / p_owner->__trigger_count : 0));
-		}
-
-		// How late this task started against its own period. A trigger release is reported on the
-		// line above instead, because it is not measured against the period.
-		if (p_owner->_max_delay) {
-			pifLog_Printf(LT_NONE, "    Delay: M=%luus\n", p_owner->_max_delay);
-		}
+		// A release by trigger is not measured against the period, so it has a column of its own.
+		pif_Printf(line + n, sizeof(line) - n, " %s %s %s",
+				_dashText(delta, p_owner->__execution_count ? value / p_owner->__execution_count : 0, 7),
+				_dashText(trigger, p_owner->_max_trigger_delay, 6), _dashText(delay, p_owner->_max_delay, 7));
+		n += strlen(line + n);
 #endif
-#ifdef PIF_USE_BLOCK_TIME
-		pifLog_Print(LT_NONE, "\n");
-#endif
+		line[n++] = '\n';
+		line[n] = 0;
+		pifLog_Print(LT_NONE, line);
 		it = pifObjArray_Next(it);
 	}
 
@@ -1072,7 +1140,6 @@ void pifTaskManager_Print()
 	}
 #endif
 
-	pifLog_Printf(LT_NONE, "Task Load: %u%%\n", pif_performance._task_load);
 }
 
 #endif	// PIF_NO_LOG

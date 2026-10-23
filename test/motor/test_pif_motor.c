@@ -189,8 +189,8 @@ static void testStepGearRatioKeepsSpeed(void)
 static void testStepErrorOnce(void)
 {
     CHECK(_setUpStep(SMO_2P_4W_1S));
-    s_step.__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, 1000000, _doNothing, NULL, FALSE);
-    CHECK(s_step.__p_task);
+    s_step._p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, 1000000, _doNothing, NULL, FALSE);
+    CHECK(s_step._p_task);
     CHECK(pifStepMotor_StartControl(&s_step));
 
     pifStepMotor_SetState(&s_step, MS_CONST);
@@ -206,14 +206,14 @@ static void testStepErrorOnce(void)
     pifStepMotor_Control(&s_step);
     CHECK(s_error_count == 2);
 
-    pifTaskManager_Remove(s_step.__p_task);
+    pifTaskManager_Remove(s_step._p_task);
 }
 
 static void testStepOperatingTimeCancelled(void)
 {
     CHECK(_setUpStep(SMO_2P_4W_1S));
-    s_step.__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, 1000000, _doNothing, NULL, FALSE);
-    CHECK(s_step.__p_task);
+    s_step._p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, 1000000, _doNothing, NULL, FALSE);
+    CHECK(s_step._p_task);
 
     CHECK(pifStepMotor_SetOperatingTime(&s_step, 10));
     pifStepMotor_SetState(&s_step, MS_CONST);
@@ -228,7 +228,7 @@ static void testStepOperatingTimeCancelled(void)
     _tick(20);
     CHECK(s_step._state == MS_CONST);
 
-    pifTaskManager_Remove(s_step.__p_task);
+    pifTaskManager_Remove(s_step._p_task);
 }
 
 #ifdef PIF_USE_STEP_MOTOR_5PHASE
@@ -413,8 +413,8 @@ static void testDutyErrorOnce(void)
     CHECK(pifDutyMotor_Init(&s_duty, PIF_ID_AUTO, &s_manager, 100));
     s_duty.act_set_duty = _actSetDuty;
     s_duty.evt_error = _evtDutyError;
-    s_duty.__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, 1000000, _doNothing, NULL, FALSE);
-    CHECK(s_duty.__p_task);
+    s_duty._p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, 1000000, _doNothing, NULL, FALSE);
+    CHECK(s_duty._p_task);
     CHECK(pifDutyMotor_StartControl(&s_duty));
 
     pifDutyMotor_SetState(&s_duty, MS_CONST);
@@ -425,7 +425,7 @@ static void testDutyErrorOnce(void)
     CHECK(s_last_duty == 0);
     CHECK(s_error_count == 1);
 
-    pifTaskManager_Remove(s_duty.__p_task);
+    pifTaskManager_Remove(s_duty._p_task);
 }
 
 

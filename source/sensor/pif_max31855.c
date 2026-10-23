@@ -155,7 +155,8 @@ BOOL pifMax31855_Measure(PifMax31855* p_owner, double* p_temperature, double* p_
 	return TRUE;
 }
 
-BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifEvtMax31855Measure evt_measure, PifIssuerP p_issuer)
+BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms,
+	PifEvtMax31855Measure evt_measure, PifIssuerP p_issuer, const char *name)
 {
 	if (!p_owner || !period1ms) {
 		pif_error = E_INVALID_PARAM;
@@ -168,7 +169,7 @@ BOOL pifMax31855_StartMeasurement(PifMax31855* p_owner, uint16_t period1ms, PifE
 
 	p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000UL, _doTask, p_owner, TRUE);
 	if (!p_owner->_p_task) return FALSE;
-	p_owner->_p_task->name = "MAX31855";
+	p_owner->_p_task->name = name ? name : "MAX31855";
 
 	p_owner->__evt_measure = evt_measure;
 	p_owner->__p_issuer = p_issuer;

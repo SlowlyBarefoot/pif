@@ -269,9 +269,8 @@ BOOL pifDutyMotorPos_Init(PifDutyMotorPos* p_owner, PifId id, PifTimerManager* p
     if (!p_parent->__p_timer_delay) goto fail;
     pifTimer_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent, FALSE);
 
-    p_parent->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000UL, _doTask, p_owner, FALSE);
-	if (!p_parent->__p_task) goto fail;
-	p_parent->__p_task->name = "DutyMotorPos";
+    p_parent->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000UL, _doTask, p_owner, FALSE);
+	if (!p_parent->_p_task) goto fail;
 
 	p_owner->__p_encoder = p_encoder;
 #ifndef PIF_NO_LOG
@@ -291,9 +290,9 @@ void pifDutyMotorPos_Clear(PifDutyMotorPos* p_owner)
 {
     PifDutyMotor* p_parent = &p_owner->parent;
 
-    if (p_parent->__p_task) {
-		pifTaskManager_Remove(p_parent->__p_task);
-		p_parent->__p_task = NULL;
+    if (p_parent->_p_task) {
+		pifTaskManager_Remove(p_parent->_p_task);
+		p_parent->_p_task = NULL;
 	}
 	pifDutyMotor_Clear(p_parent);
 }

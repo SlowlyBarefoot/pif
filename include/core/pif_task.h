@@ -152,6 +152,8 @@ struct StPifTask
 	uint16_t __trigger_count;
 	uint8_t __execute_index;
 	uint8_t __trigger_index;
+	BOOL __ignore_stats;			///< The current run is left out, see pifTask_IgnoreStatistics()
+	BOOL __skip_delay;				///< The next release is not measured: the first after a resume
 #endif
 
 	// Private Event Function
@@ -401,6 +403,16 @@ void pifTask_SetNextBlockTime(PifTask *p_owner, uint32_t block_time);
 void pifTask_IgnoreBlockTime(PifTask *p_owner);
 
 #endif
+
+/**
+ * @brief Leaves the current run out of the statistics: its block time, its run time and the
+ *        lateness of the releases of other tasks that fall due before it ends. Call it from inside
+ *        the task for a run that is not part of the load being measured, such as a command typed
+ *        on a terminal. The time still counts towards the CPU load, because the CPU was held
+ *        either way. Without PIF_USE_BLOCK_TIME and PIF_USE_TASK_STATISTICS it does nothing.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifTask_IgnoreStatistics(PifTask *p_owner);
 
 
 /**

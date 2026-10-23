@@ -53,7 +53,7 @@ static uint32_t _doTask(PifTask* p_task)
 	return 0;
 }
 
-BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id)
+BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id, const char *name)
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -64,7 +64,7 @@ BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id)
 
 	p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, 50000, _doTask, p_owner, FALSE);		// 50ms
 	if (!p_owner->_p_task) return FALSE;
-	p_owner->_p_task->name = "HC_SR04";
+	p_owner->_p_task->name = name ? name : "HC_SR04";
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
     p_owner->_id = id;

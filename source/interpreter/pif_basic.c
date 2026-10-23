@@ -1201,7 +1201,7 @@ static uint32_t _doTask(PifTask* p_task)
 	return 1;
 }
 
-BOOL pifBasic_Init(PifBasicProcess* p_process, PifEvtBasicResult evt_result)
+BOOL pifBasic_Init(PifBasicProcess* p_process, PifEvtBasicResult evt_result, const char *name)
 {
 	memset(&s_basic, 0, sizeof(PifBasic));
 	if (p_process) {
@@ -1212,7 +1212,7 @@ BOOL pifBasic_Init(PifBasicProcess* p_process, PifEvtBasicResult evt_result)
 
 	s_basic._p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_EXTERNAL, 0, _doTask, &s_basic, FALSE);
 	if (!s_basic._p_task) return FALSE;
-	s_basic._p_task->name = "Basic";
+	s_basic._p_task->name = name ? name : "Basic";
 	s_basic.__evt_result = evt_result;
 	return TRUE;
 }

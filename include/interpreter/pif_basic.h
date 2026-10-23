@@ -56,7 +56,7 @@ The license is the same as MIT with the paragraph removed:
  *     // _result, _parsing_time, _process_time, ... tell how the program ended
  * }
  *
- * pifBasic_Init(s_process, _evt_result);
+ * pifBasic_Init(s_process, _evt_result, NULL);
  * pifBasic_Execute(program_text, 32);                     // 32 opcodes per release
  * @endcode
  *
@@ -292,9 +292,10 @@ extern "C" {
  * @brief Initializes the BASIC interpreter and creates its task context.
  * @param p_process Optional external process function table, terminated by NULL.
  * @param evt_result Optional completion callback invoked after execution stops.
+ * @param name Name of the task. If NULL, "Basic" is used.
  * @return TRUE if initialization succeeds; otherwise FALSE.
  */
-BOOL pifBasic_Init(PifBasicProcess* p_process, PifEvtBasicResult evt_result);
+BOOL pifBasic_Init(PifBasicProcess* p_process, PifEvtBasicResult evt_result, const char *name);
 
 /**
  * @brief Schedules parsing, compilation, and execution of a BASIC program string. A program

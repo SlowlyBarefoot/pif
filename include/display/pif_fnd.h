@@ -3,9 +3,11 @@
  * @file pif_fnd.h
  * @brief Multiplexed seven-segment (FND) display showing numbers and text.
  *
- * A task lights one digit at a time through act_display. Several displays can share one scanning task as a
- * group. A display shows a number or a string through the font, or segments given as they are with
- * pifFnd_SetSegments().
+ * Each scan step lights one digit through act_display. The steps run on a task of the display's own, or on an
+ * external task of the application, given to pifFnd_Init(), that calls pifFnd_ProcessScan(). The latter suits
+ * displays behind one bus, where one task can scan them all and order their writes. Several displays that
+ * share the segment and digit lines can also share one scan as a group. A display shows a number or a string
+ * through the font, or segments given as they are with pifFnd_SetSegments().
  */
 #ifndef PIF_FND_H
 #define PIF_FND_H
@@ -20,10 +22,11 @@
 /**
  * @brief Lights one digit with the given segments.
  *
+ * id is the instance ID given to pifFnd_Init, so one callback can serve several displays.
  * Bits 0 to 6 of segment are the segments a to g and bit 7 is the decimal point. A segment of 0 turns the digit
  * off.
  */
-typedef void (*PifActFndDisplay)(uint8_t segment, uint8_t digit);
+typedef void (*PifActFndDisplay)(PifId id, uint8_t segment, uint8_t digit);
 
 /**
  * @class StPifFnd
@@ -38,9 +41,10 @@ typedef struct StPifFnd
 	PifId _id;							///< Instance ID
     uint8_t _count;						///< Reserved, not used
     uint8_t _digit_size;				///< Number of digits
+    PifTask* _p_task;				///< Task of the display's own, NULL with an external task
 
 	// Private Member Variable
-    PifTask* __p_task;
+    PifTask* __p_ext_task;			///< External task given to pifFnd_Init(), owned by the application
     uint16_t __period_per_digit_1ms;	///< PIF_FND_PERIOD_PER_DIGIT
 	struct {
 		uint8_t blink		: 1;
@@ -71,19 +75,25 @@ extern "C" {
 
 /**
  * @brief Initializes an FND controller and display output callback.
+ *        Without p_task the display adds a task of its own, which runs at the frame period while the
+ *        display runs. With p_task, that task of the application calls pifFnd_ProcessScan(), so that
+ *        one task can scan several displays behind one bus and order their writes. The display neither
+ *        changes, pauses nor removes it, and the frame period is only kept for the application.
  * @param p_owner Pointer to the FND instance to initialize.
  * @param id Unique object identifier. Use `PIF_ID_AUTO` to assign one automatically.
  * @param digit_size Number of physical digits on the display.
  * @param act_display Callback invoked to output segment/digit selection signals.
+ * @param p_task External task that calls pifFnd_ProcessScan(), or NULL for a task of the display's own.
  * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
-BOOL pifFnd_Init(PifFnd* p_owner, PifId id, uint8_t digit_size, PifActFndDisplay act_display);
+BOOL pifFnd_Init(PifFnd* p_owner, PifId id, uint8_t digit_size, PifActFndDisplay act_display, PifTask* p_task);
 
 /**
  * @brief Releases runtime resources allocated by the FND controller.
  *        A cleared member leaves its scan group. When a leader is cleared, each of its members
- *        gets a task of its own again and goes back to scanning itself. A member that finds no
- *        free task slot stays dark until it joins another group or is initialized again.
+ *        goes back to scanning itself: on its external task, or with a task of its own again. A member
+ *        that finds no free task slot stays dark until it joins another group or is initialized again.
+ *        An external task is left to the application.
  * @param p_owner Pointer to the FND instance to clear.
  */
 void pifFnd_Clear(PifFnd* p_owner);
@@ -95,12 +105,32 @@ void pifFnd_Clear(PifFnd* p_owner);
  *        Each display keeps its own value, settings, blink, start and stop, and its digits are
  *        still output through its own callback.
  *        The frame period of the leader becomes the time to scan all digits of the group once.
- *        The task of p_owner is released, so a group of N displays takes one task slot, not N.
+ *        The task of p_owner, if it has one of its own, is released, so a group of N displays takes
+ *        one task slot, not N. A leader with an external task is scanned with its group by
+ *        pifFnd_ProcessScan().
  * @param p_owner Display to hand over. It must not be in a scan group yet.
  * @param p_leader Display whose task scans the group. A member stands for its leader.
  * @return `TRUE` if the display joins the group, otherwise `FALSE`.
  */
 BOOL pifFnd_ShareScan(PifFnd* p_owner, PifFnd* p_leader);
+
+/**
+ * @brief Outputs the next digit of the display, or of its group if it leads one, through act_display.
+ *        It does nothing for a member, which its leader scans, or while no display of the group runs.
+ *
+ * The task of the display's own calls it. An external task given to pifFnd_Init() calls it every frame
+ * period divided by the digits of the group, for instance for two displays on one I2C bus:
+ *
+ *     static uint32_t _taskFnd(PifTask* p_task)      // TM_PERIOD, period = frame / digits
+ *     {
+ *         for (int i = 0; i < FND_COUNT; i++) pifFnd_ProcessScan(&s_fnd[i]);
+ *         // Write the digits that act_display left, one display after the other.
+ *         return 0;
+ *     }
+ *
+ * @param p_owner Pointer to an initialized FND instance with an external task.
+ */
+void pifFnd_ProcessScan(PifFnd* p_owner);
 
 /**
  * @brief Registers user-defined segment patterns for custom characters.
@@ -111,6 +141,7 @@ void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count);
 
 /**
  * @brief Returns the time to scan all digits once (one frame). A member returns that of its leader.
+ *        With an external task it is only kept, for the application that runs that task.
  * @param p_owner Pointer to an initialized FND instance.
  * @return Frame period in milliseconds.
  */

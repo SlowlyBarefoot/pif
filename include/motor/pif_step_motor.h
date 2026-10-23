@@ -144,6 +144,7 @@ struct StPifStepMotor
 
 	// Read-only Member Variable
     PifId _id;						///< Instance ID
+	PifTask* _p_task;
     PifTimerManager* _p_timer_manager;	///< Timer manager of the step and control timers
     PifStepMotorOperation _operation;	///< How the motor is driven
     uint16_t _resolution;			///< Pulses per turn of the output shaft
@@ -161,8 +162,6 @@ struct StPifStepMotor
 	uint32_t __ticks_per_pulse;	///< Step timer ticks per pulse: gear ratio x half step or STEP/DIR edges x microstep
 	uint32_t __tick_count;
 	uint32_t __step_period1us;	///< Step timer tick period
-
-	PifTask* __p_task;
 
 	PifTimer* __p_timer_step;
 	PifTimer* __p_timer_delay;

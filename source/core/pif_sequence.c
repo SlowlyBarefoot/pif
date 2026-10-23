@@ -112,7 +112,6 @@ BOOL pifSequence_Init(PifSequence *p_owner, PifId id, void *p_param)
 	// uses the task after the run returns.
 	p_owner->_p_task = pifTaskManager_Add(id, TM_PERIOD, PIF_SEQUENCE_WAIT_POLL_US, _doTask, p_owner, FALSE);
 	if (!p_owner->_p_task) return FALSE;
-	p_owner->_p_task->name = "Sequence";
 	return TRUE;
 }
 

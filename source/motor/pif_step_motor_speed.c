@@ -217,9 +217,8 @@ BOOL pifStepMotorSpeed_Init(PifStepMotorSpeed* p_owner, PifId id, PifTimerManage
     if (!p_parent->__p_timer_delay) goto fail;
     pifTimer_AttachEvtFinish(p_parent->__p_timer_delay, _evtTimerDelayFinish, p_parent, FALSE);
 
-    p_parent->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000UL, _doTask, p_owner, FALSE);
-	if (!p_parent->__p_task) goto fail;
-	p_parent->__p_task->name = "StepMotorSpeed";
+    p_parent->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000UL, _doTask, p_owner, FALSE);
+	if (!p_parent->_p_task) goto fail;
     return TRUE;
 
 fail:
@@ -231,9 +230,9 @@ void pifStepMotorSpeed_Clear(PifStepMotorSpeed* p_owner)
 {
     PifStepMotor* p_parent = (PifStepMotor*)&p_owner->parent;
 
-    if (p_parent->__p_task) {
-		pifTaskManager_Remove(p_parent->__p_task);
-		p_parent->__p_task = NULL;
+    if (p_parent->_p_task) {
+		pifTaskManager_Remove(p_parent->_p_task);
+		p_parent->_p_task = NULL;
 	}
 	pifStepMotor_Clear(p_parent);
 }

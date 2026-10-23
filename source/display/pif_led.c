@@ -39,7 +39,7 @@ static uint32_t _doTask(PifTask* p_task)
 // phase and toggles after a full multiple of the period.
 static void _updatePause(PifLed* p_owner)
 {
-	PifTask* p_task = p_owner->__p_task;
+	PifTask* p_task = p_owner->_p_task;
 	PifLedBlink* p_blink;
 	BOOL pause = TRUE;
 	uint8_t b;
@@ -177,18 +177,17 @@ BOOL pifLed_AttachMBlink(PifLed* p_owner, uint16_t period1ms, uint8_t count, ...
 		return FALSE;
 	}
 
-	if (!p_owner->__p_task) {
+	if (!p_owner->_p_task) {
 		// Paused until an LED blinks.
-		p_owner->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000UL, _doTask, p_owner, FALSE);
-		if (!p_owner->__p_task) {
+		p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, period1ms * 1000UL, _doTask, p_owner, FALSE);
+		if (!p_owner->_p_task) {
 			free(p_blinks);
 			return FALSE;
 		}
-		p_owner->__p_task->name = "LED";
 	}
 	else {
 		// A non-zero period cannot fail.
-		pifTask_ChangePeriod(p_owner->__p_task, period1ms * 1000UL);
+		pifTask_ChangePeriod(p_owner->_p_task, period1ms * 1000UL);
 	}
 
     if (p_owner->__p_blinks) free(p_owner->__p_blinks);
@@ -200,9 +199,9 @@ BOOL pifLed_AttachMBlink(PifLed* p_owner, uint16_t period1ms, uint8_t count, ...
 
 void pifLed_DetachBlink(PifLed* p_owner)
 {
-	if (p_owner->__p_task) {
-		pifTaskManager_Remove(p_owner->__p_task);
-		p_owner->__p_task = NULL;
+	if (p_owner->_p_task) {
+		pifTaskManager_Remove(p_owner->_p_task);
+		p_owner->_p_task = NULL;
 	}
 
     if (p_owner->__p_blinks) {
@@ -219,12 +218,12 @@ BOOL pifLed_ChangeBlinkPeriod(PifLed* p_owner, uint16_t period1ms)
 		return FALSE;
     }
 
-	if (!p_owner->__p_task) {
+	if (!p_owner->_p_task) {
         pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
 
-	return pifTask_ChangePeriod(p_owner->__p_task, period1ms * 1000UL);
+	return pifTask_ChangePeriod(p_owner->_p_task, period1ms * 1000UL);
 }
 
 void pifLed_SBlinkOn(PifLed* p_owner, uint32_t bits)

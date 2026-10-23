@@ -387,7 +387,9 @@ static uint32_t _doTask(PifTask* p_task)
     int i, status = PIF_LOG_CMD_NO_ERROR;
     char msg[40];
 
-    (void)p_task;
+	// A command typed on the terminal, such as the task statistics, is not part of the load being
+	// measured, and neither is the lateness it causes the other tasks.
+	pifTask_IgnoreStatistics(p_task);
 
 	status = _processDebugCmd(&s_log);
 

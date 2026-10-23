@@ -205,7 +205,7 @@ void pifStepMotor_Control(PifStepMotor* p_owner)
 	if (p_owner->_state == MS_STOP) {
 		// Cancel a pending operating time so it does not cut into the next run.
 		if (p_owner->__p_timer_brake) pifTimer_Stop(p_owner->__p_timer_brake);
-		pifTask_Pause(p_owner->__p_task);
+		pifTask_Pause(p_owner->_p_task);
 #ifndef PIF_NO_LOG
 		pifStepMotor_SetState(p_owner, MS_IDLE, "SM");
 #else
@@ -529,24 +529,24 @@ void pifStepMotor_BrakeRelease(PifStepMotor* p_owner, uint16_t brake_time)
 
 BOOL pifStepMotor_StartControl(PifStepMotor* p_owner)
 {
-	if (!p_owner->__p_task) {
+	if (!p_owner->_p_task) {
         pif_error = E_NOT_SET_TASK;
 	    return FALSE;
     }
 
     p_owner->__error_notified = FALSE;
-    pifTask_Resume(p_owner->__p_task);
+    pifTask_Resume(p_owner->_p_task);
     return TRUE;
 }
 
 BOOL pifStepMotor_StopControl(PifStepMotor* p_owner)
 {
-	if (!p_owner->__p_task) {
+	if (!p_owner->_p_task) {
         pif_error = E_NOT_SET_TASK;
 	    return FALSE;
     }
 
-    pifTask_Pause(p_owner->__p_task);
+    pifTask_Pause(p_owner->_p_task);
     return TRUE;
 }
 

@@ -25,7 +25,25 @@ static void testInteger(void)
     pif_Printf(buffer, sizeof(buffer), "%d,%u,%x,%X,%s,%c", -12, 34u, 0xabu, 0xCDu, "ok", 'z');
     CHECK(!strcmp(buffer, "-12,34,ab,CD,ok,z"));
     pif_Printf(buffer, sizeof(buffer), "%4d|%%", 7);
-    CHECK(!strcmp(buffer, "0007|%"));
+    CHECK(!strcmp(buffer, "   7|%"));
+    pif_Printf(buffer, sizeof(buffer), "%5d|%3u|%4x|%4X|%4b", -12, 5u, 0xabu, 0xCDu, 5u);
+    CHECK(!strcmp(buffer, "  -12|  5|00ab|00CD| 101"));
+    pif_Printf(buffer, sizeof(buffer), "%2d|%2b", 1234, 5u);
+    CHECK(!strcmp(buffer, "1234|101"));
+}
+
+static void testString(void)
+{
+    char buffer[16];
+
+    // A string is left-aligned in its width.
+    pif_Printf(buffer, sizeof(buffer), "%4s|%s|%s", "ab", "cd", (char*)NULL);
+    CHECK(!strcmp(buffer, "ab  |cd|"));
+    pif_Printf(buffer, sizeof(buffer), "%4.2s|%.3s|", "abcdef", "ghijkl");
+    CHECK(!strcmp(buffer, "ab  |ghi|"));
+    // A string is cut where the buffer ends, its padding included.
+    pif_Printf(buffer, sizeof(buffer), "0123456789%8s", "ab");
+    CHECK(!strcmp(buffer, "0123456789ab   "));
 }
 
 static void testFloat(void)
@@ -60,6 +78,7 @@ int main(void)
         void (*fn)(void);
     } tests[] = {
         { "integer", testInteger },
+        { "string", testString },
         { "float", testFloat },
         { "float dropped", testFloatDropped },
     };

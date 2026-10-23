@@ -19,7 +19,7 @@ static void _outputDigit(PifFnd* p_owner, uint8_t digit)
 
 	// A stopped display in a scan group keeps its turn dark, so that the others are not brightened.
 	if (!p_owner->__bt.run) {
-		(*p_owner->__act_display)(0, digit);
+		(*p_owner->__act_display)(p_owner->_id, 0, digit);
 		return;
 	}
 
@@ -50,21 +50,24 @@ static void _outputDigit(PifFnd* p_owner, uint8_t digit)
 		}
 		if (point) seg |= 0x80;
 	}
-	(*p_owner->__act_display)(seg, digit);
+	(*p_owner->__act_display)(p_owner->_id, seg, digit);
 }
 
 static uint32_t _doTask(PifTask* p_task)
 {
-	PifFnd* p_owner = p_task->_p_client;
-	PifFnd* p_scan = p_owner->__p_scan;
-
-	_outputDigit(p_scan, p_owner->__digit_index);
-	p_owner->__digit_index++;
-	if (p_owner->__digit_index >= p_scan->_digit_size) {
-		p_owner->__digit_index = 0;
-		p_owner->__p_scan = p_scan->__p_next ? p_scan->__p_next : p_owner;
-	}
+	pifFnd_ProcessScan(p_task->_p_client);
 	return 0;
+}
+
+// TRUE while any display of the group of a leader runs.
+static BOOL _isRunning(PifFnd* p_leader)
+{
+	PifFnd* p_fnd;
+
+	for (p_fnd = p_leader; p_fnd; p_fnd = p_fnd->__p_next) {
+		if (p_fnd->__bt.run) return TRUE;
+	}
+	return FALSE;
 }
 
 static PifFnd* _getScanner(PifFnd* p_owner)
@@ -78,27 +81,20 @@ static BOOL _updatePeriod(PifFnd* p_leader)
 	uint16_t digits = 0;
 	PifFnd* p_fnd;
 
-	// A member left without a task by a failed _addTask() keeps the period for nothing.
-	if (!p_leader->__p_task) return TRUE;
+	// With an external task the period is kept for the application, which runs that task.
+	if (!p_leader->_p_task) return TRUE;
 
 	for (p_fnd = p_leader; p_fnd; p_fnd = p_fnd->__p_next) digits += p_fnd->_digit_size;
-	return pifTask_ChangePeriod(p_leader->__p_task, p_leader->__period_per_digit_1ms * 1000UL / digits);
+	return pifTask_ChangePeriod(p_leader->_p_task, p_leader->__period_per_digit_1ms * 1000UL / digits);
 }
 
 // The task of a leader runs while any display of its group runs.
 static void _updatePause(PifFnd* p_leader)
 {
-	PifFnd* p_fnd;
+	if (!p_leader->_p_task) return;
 
-	if (!p_leader->__p_task) return;
-
-	for (p_fnd = p_leader; p_fnd; p_fnd = p_fnd->__p_next) {
-		if (p_fnd->__bt.run) {
-			pifTask_Resume(p_leader->__p_task);
-			return;
-		}
-	}
-	pifTask_Pause(p_leader->__p_task);
+	if (_isRunning(p_leader)) pifTask_Resume(p_leader->_p_task);
+	else pifTask_Pause(p_leader->_p_task);
 }
 
 // Starts a new frame of a leader, after its group has changed.
@@ -113,10 +109,9 @@ static void _restartScan(PifFnd* p_leader)
 // Gives a display a scan task of its own, paused until it runs.
 static BOOL _addTask(PifFnd* p_owner)
 {
-	p_owner->__p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, p_owner->__period_per_digit_1ms * 1000UL / p_owner->_digit_size,
+	p_owner->_p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, p_owner->__period_per_digit_1ms * 1000UL / p_owner->_digit_size,
 			_doTask, p_owner, FALSE);
-	if (!p_owner->__p_task) return FALSE;
-	p_owner->__p_task->name = "FND";
+	if (!p_owner->_p_task) return FALSE;
 	return TRUE;
 }
 
@@ -165,7 +160,7 @@ void pifFnd_SetUserChar(const uint8_t* p_user_char, uint8_t count)
 	s_user_char_count = count;
 }
 
-BOOL pifFnd_Init(PifFnd* p_owner, PifId id, uint8_t digit_size, PifActFndDisplay act_display)
+BOOL pifFnd_Init(PifFnd* p_owner, PifId id, uint8_t digit_size, PifActFndDisplay act_display, PifTask* p_task)
 {
     int i;
 
@@ -190,8 +185,9 @@ BOOL pifFnd_Init(PifFnd* p_owner, PifId id, uint8_t digit_size, PifActFndDisplay
     p_owner->__act_display = act_display;
     p_owner->__period_per_digit_1ms = PIF_FND_PERIOD_PER_DIGIT;
     p_owner->__p_scan = p_owner;
+    p_owner->__p_ext_task = p_task;
 
-    if (!_addTask(p_owner)) goto fail;
+    if (!p_task && !_addTask(p_owner)) goto fail;
     return TRUE;
 
 fail:
@@ -212,28 +208,32 @@ void pifFnd_Clear(PifFnd* p_owner)
 		_restartScan(p_owner->__p_leader);
 	}
 	else if (p_owner->__p_next) {
-		// The members of a leader go back to scanning themselves, each with a task of its own again.
-		// The task of the leader is released first, so that there is room for one of them.
-		if (p_owner->__p_task) {
-			pifTaskManager_Remove(p_owner->__p_task);
-			p_owner->__p_task = NULL;
+		// The members of a leader go back to scanning themselves: on their external task, or each with
+		// a task of its own again. The task of the leader is released first, so that there is room for
+		// one of them.
+		if (p_owner->_p_task) {
+			pifTaskManager_Remove(p_owner->_p_task);
+			p_owner->_p_task = NULL;
 		}
 		for (p_fnd = p_owner->__p_next; p_fnd; p_fnd = p_next) {
 			p_next = p_fnd->__p_next;
 			p_fnd->__p_leader = NULL;
 			p_fnd->__p_next = NULL;
-			// Without a task the member stays dark until it is cleared and initialized again.
-			if (_addTask(p_fnd)) _restartScan(p_fnd);
+			// Without a task the member stays dark until it joins a group or is initialized again.
+			if (!p_fnd->__p_ext_task) _addTask(p_fnd);
+			_restartScan(p_fnd);
 		}
 	}
 	p_owner->__p_leader = NULL;
 	p_owner->__p_next = NULL;
 	p_owner->__p_scan = p_owner;
 
-	if (p_owner->__p_task) {
-		pifTaskManager_Remove(p_owner->__p_task);
-		p_owner->__p_task = NULL;
+	if (p_owner->_p_task) {
+		pifTaskManager_Remove(p_owner->_p_task);
+		p_owner->_p_task = NULL;
 	}
+	// The external task belongs to the application.
+	p_owner->__p_ext_task = NULL;
 	if (p_owner->__p_string) {
 		free(p_owner->__p_string);
 		p_owner->__p_string = NULL;
@@ -252,7 +252,8 @@ BOOL pifFnd_ShareScan(PifFnd* p_owner, PifFnd* p_leader)
 	}
 
 	p_leader = _getScanner(p_leader);
-	if (p_owner == p_leader || p_owner->__p_leader || p_owner->__p_next || !p_leader->__p_task) {
+	if (p_owner == p_leader || p_owner->__p_leader || p_owner->__p_next ||
+			(!p_leader->_p_task && !p_leader->__p_ext_task)) {
         pif_error = E_INVALID_STATE;
         return FALSE;
 	}
@@ -260,14 +261,29 @@ BOOL pifFnd_ShareScan(PifFnd* p_owner, PifFnd* p_leader)
 	for (p_fnd = p_leader; p_fnd->__p_next; p_fnd = p_fnd->__p_next);
 	p_fnd->__p_next = p_owner;
 	p_owner->__p_leader = p_leader;
-	// The leader scans it from now on, so its own task is released. A member left without a task
-	// by the clear of its leader has none to release.
-	if (p_owner->__p_task) {
-		pifTaskManager_Remove(p_owner->__p_task);
-		p_owner->__p_task = NULL;
+	// The leader scans it from now on, so its own task, if it has one, is released.
+	if (p_owner->_p_task) {
+		pifTaskManager_Remove(p_owner->_p_task);
+		p_owner->_p_task = NULL;
 	}
 	_restartScan(p_leader);
 	return TRUE;
+}
+
+void pifFnd_ProcessScan(PifFnd* p_owner)
+{
+	PifFnd* p_scan;
+
+	// A member is scanned by its leader, and a group with no display running stays dark.
+	if (p_owner->__p_leader || !_isRunning(p_owner)) return;
+
+	p_scan = p_owner->__p_scan;
+	_outputDigit(p_scan, p_owner->__digit_index);
+	p_owner->__digit_index++;
+	if (p_owner->__digit_index >= p_scan->_digit_size) {
+		p_owner->__digit_index = 0;
+		p_owner->__p_scan = p_scan->__p_next ? p_scan->__p_next : p_owner;
+	}
 }
 
 uint16_t pifFnd_GetPeriodPerDigit(PifFnd* p_owner)
@@ -299,7 +315,7 @@ void pifFnd_Stop(PifFnd* p_owner)
 	int i;
 
 	for (i = 0; i < p_owner->_digit_size; i++) {
-		(*p_owner->__act_display)(0, i);
+		(*p_owner->__act_display)(p_owner->_id, 0, i);
 	}
 	p_owner->__bt.run = FALSE;
 	_updatePause(_getScanner(p_owner));

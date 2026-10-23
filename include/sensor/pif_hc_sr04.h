@@ -100,9 +100,10 @@ extern "C" {
  * @brief Sets up the sensor with a measurement task of 50 ms, paused, and the speed of sound at 20 degrees C.
  * @param p_owner Pointer to the owner instance.
  * @param id Instance ID, or PIF_ID_AUTO.
+ * @param name Name of the task. If NULL, "HC_SR04" is used.
  * @return TRUE on success, FALSE on failure.
  */
-BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id);
+BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id, const char *name);
 
 /**
  * @brief Removes the measurement task.

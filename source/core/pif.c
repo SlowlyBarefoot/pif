@@ -50,6 +50,21 @@ const char* kPifHexLowerChar = "0123456789abcdef";
 const uint8_t kDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
 
+// Writes the len characters of p_num right-aligned in a field of width, filling the front with spaces.
+// Nothing is written if it does not fit.
+static size_t _PutSpacePadded(char* p_buffer, size_t buffer_size, size_t offset, const char* p_num, size_t len, uint16_t width)
+{
+	size_t pad = len < width ? width - len : 0;
+
+	if (offset + pad + len < buffer_size - 1) {
+		memset(p_buffer + offset, ' ', pad);
+		memcpy(p_buffer + offset + pad, p_num, len);
+		offset += pad + len;
+	}
+	return offset;
+}
+
+
 BOOL pif_Init(PifActTimer1us act_timer1us)
 {
 	if (!act_timer1us) {
@@ -292,15 +307,21 @@ void pif_PrintFormat(char* p_buffer, size_t buffer_size, va_list* p_data, const 
 	int int_val;
 	long long_val;
 	uint16_t num_str_cnt;
+	uint16_t max_str_cnt;
 	BOOL is_long;
+	BOOL is_max;
 	char *p_var_str;
 	size_t offset = 0;
 	size_t size;
+	size_t pad;
+	char num_buf[33];
 
 	while (*p_format && offset < buffer_size - 1) {
         if (*p_format == '%') {
             num_str_cnt = 0;
+            max_str_cnt = 0;
         	is_long = FALSE;
+        	is_max = FALSE;
 NEXT_STR:
 			p_format = p_format + 1;
             switch(*p_format) {
@@ -314,61 +335,65 @@ NEXT_STR:
                 case '7':
                 case '8':
                 case '9':
-                    num_str_cnt *= 10;
-                    num_str_cnt += *p_format - '0';
+                	if (is_max) {
+                		max_str_cnt *= 10;
+                		max_str_cnt += *p_format - '0';
+                	}
+                	else {
+                		num_str_cnt *= 10;
+                		num_str_cnt += *p_format - '0';
+                	}
                     goto NEXT_STR;
+
+                // The number after it is the most characters of 's' that are written.
+                case '.':
+					is_max = TRUE;
+					goto NEXT_STR;
 
                 case 'l':
 					is_long = TRUE;
 					goto NEXT_STR;
 
+                // Only the hex formats fill the width with '0'; 'b', 'd' and 'u' fill it with spaces.
                 case 'b':
-					if (offset + (num_str_cnt ? num_str_cnt : 32) < buffer_size - 1) {
-                    	if (is_long) {
-    						offset += pif_BinToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt);
-                    	}
-                    	else {
-    						offset += pif_BinToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt);
-                    	}
-                    }
+                	if (is_long) {
+						size = pif_BinToString(num_buf, va_arg(*p_data, unsigned long), 0);
+                	}
+                	else {
+						size = pif_BinToString(num_buf, va_arg(*p_data, unsigned int), 0);
+                	}
+					offset = _PutSpacePadded(p_buffer, buffer_size, offset, num_buf, size, num_str_cnt);
                     break;
 
                 case 'd':
+					size = 0;
                 	if (is_long) {
             			long_val = va_arg(*p_data, long);
             			if (long_val < 0) {
-            				p_buffer[offset++] = '-';
+            				num_buf[size++] = '-';
             				long_val *= -1;
-            				if (num_str_cnt) num_str_cnt--;
             			}
-    					if (offset + (num_str_cnt ? num_str_cnt : 11) < buffer_size - 1) {
-                			offset += pif_DecToString(p_buffer + offset, long_val, num_str_cnt);
-                        }
+            			size += pif_DecToString(num_buf + size, long_val, 0);
                 	}
                 	else {
             			int_val = va_arg(*p_data, int);
             			if (int_val < 0) {
-            				p_buffer[offset++] = '-';
+            				num_buf[size++] = '-';
                 			int_val *= -1;
-                			if (num_str_cnt) num_str_cnt--;
             			}
-    					if (offset + (num_str_cnt ? num_str_cnt : 6) < buffer_size - 1) {
-                			offset += pif_DecToString(p_buffer + offset, int_val, num_str_cnt);
-                        }
+            			size += pif_DecToString(num_buf + size, int_val, 0);
                 	}
+					offset = _PutSpacePadded(p_buffer, buffer_size, offset, num_buf, size, num_str_cnt);
                     break;
 
                 case 'u':
                 	if (is_long) {
-    					if (offset + (num_str_cnt ? num_str_cnt : 10) < buffer_size - 1) {
-    						offset += pif_DecToString(p_buffer + offset, va_arg(*p_data, unsigned long), num_str_cnt);
-                        }
+						size = pif_DecToString(num_buf, va_arg(*p_data, unsigned long), 0);
                 	}
                 	else {
-    					if (offset + (num_str_cnt ? num_str_cnt : 5) < buffer_size - 1) {
-    						offset += pif_DecToString(p_buffer + offset, va_arg(*p_data, unsigned int), num_str_cnt);
-                        }
+						size = pif_DecToString(num_buf, va_arg(*p_data, unsigned int), 0);
                 	}
+					offset = _PutSpacePadded(p_buffer, buffer_size, offset, num_buf, size, num_str_cnt);
                     break;
 
                 case 'x':
@@ -414,17 +439,17 @@ NEXT_STR:
 
                 case 's':
                     p_var_str = va_arg(*p_data, char *);
-                    if (p_var_str) {
-						size = strlen(p_var_str);
-						if (offset + size < buffer_size - 1) {
-							strcpy(p_buffer + offset, p_var_str);
-						}
-						else {
-							size = buffer_size - 1 - offset;
-							strncpy(p_buffer + offset, p_var_str, size);
-						}
-						offset += size;
-                    }
+                    if (!p_var_str) p_var_str = "";
+					size = strlen(p_var_str);
+					if (is_max && size > max_str_cnt) size = max_str_cnt;
+					pad = size < num_str_cnt ? num_str_cnt - size : 0;
+					// A string is left-aligned in its width and, unlike a number, cut where the buffer ends.
+					if (size > buffer_size - 1 - offset) size = buffer_size - 1 - offset;
+					memcpy(p_buffer + offset, p_var_str, size);
+					offset += size;
+					if (pad > buffer_size - 1 - offset) pad = buffer_size - 1 - offset;
+					memset(p_buffer + offset, ' ', pad);
+					offset += pad;
                     break;
 
                 case 'c':

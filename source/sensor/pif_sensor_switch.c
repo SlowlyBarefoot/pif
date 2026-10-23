@@ -96,7 +96,6 @@ PifTask* pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifId id, P
 	PifTask* p_task;
 
 	p_task = pifTaskManager_Add(id, mode, period, _doTaskAcquire, p_owner, start);
-	if (p_task) p_task->name = "SensorSwitch";
 	return p_task;
 }
 

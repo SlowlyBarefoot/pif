@@ -228,7 +228,6 @@ BOOL pifSolenoid_Init(PifSolenoid* p_owner, PifId id, uint8_t count, PifSolenoid
 		p_owner->__p_channel = NULL;
 		return FALSE;
     }
-    p_owner->_p_task->name = "Solenoid";
 
     p_owner->__act_control = act_control;
     p_owner->_type = type;

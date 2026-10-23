@@ -80,9 +80,9 @@ typedef struct StPifDotMatrix
 
 	// Read-only Member Variable
     PifId _id;						///< Instance ID
+	PifTask* _p_task;				///< Scan task, paused while the display is off
 
 	// Private Member Variable
-	PifTask* __p_task;
     uint16_t __col_size;
     uint16_t __row_size;
     uint16_t __frame_period_1ms;	///< PIF_DOT_MATRIX_FRAME_PERIOD

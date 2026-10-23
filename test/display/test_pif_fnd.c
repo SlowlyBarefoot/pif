@@ -63,16 +63,16 @@ static void _log(PifId id, uint8_t digit)
     }
 }
 
-static void _actDisplay(uint8_t segment, uint8_t digit)
+static void _actDisplay(PifId id, uint8_t segment, uint8_t digit)
 {
     if (digit < MAX_DIGITS) s_segment[digit] = segment;
-    _log(s_fnd._id, digit);
+    _log(id, digit);
 }
 
-static void _actDisplay2(uint8_t segment, uint8_t digit)
+static void _actDisplay2(PifId id, uint8_t segment, uint8_t digit)
 {
     if (digit < MAX_DIGITS) s_segment2[digit] = segment;
-    _log(s_fnd2._id, digit);
+    _log(id, digit);
 }
 
 // Moves the clock on by ms, running the main loop at every step.
@@ -132,7 +132,7 @@ static BOOL _setUp(uint8_t digit_size)
     s_log_count = 0;
     pif_error = E_SUCCESS;
 
-    if (!pifFnd_Init(&s_fnd, PIF_ID_AUTO, digit_size, _actDisplay)) return FALSE;
+    if (!pifFnd_Init(&s_fnd, PIF_ID_AUTO, digit_size, _actDisplay, NULL)) return FALSE;
     // One digit every 1ms, so that blink is checked every 1ms.
     return pifFnd_SetPeriodPerDigit(&s_fnd, digit_size);
 }
@@ -319,11 +319,11 @@ static void testShareScan(void)
     int i, start;
 
     CHECK(_setUp(4));
-    CHECK(pifFnd_Init(&s_fnd2, PIF_ID_AUTO, 2, _actDisplay2));
+    CHECK(pifFnd_Init(&s_fnd2, PIF_ID_AUTO, 2, _actDisplay2, NULL));
     CHECK(!pifFnd_ShareScan(&s_fnd, NULL) && pif_error == E_INVALID_PARAM);
     CHECK(!pifFnd_ShareScan(&s_fnd, &s_fnd) && pif_error == E_INVALID_STATE);
     CHECK(pifFnd_ShareScan(&s_fnd2, &s_fnd));
-    CHECK(!s_fnd2.__p_task && pifTaskManager_Count() == 1);
+    CHECK(!s_fnd2._p_task && pifTaskManager_Count() == 1);
 
     // A display can join one group only, and a member stands for its leader.
     CHECK(!pifFnd_ShareScan(&s_fnd2, &s_fnd) && pif_error == E_INVALID_STATE);
@@ -338,7 +338,7 @@ static void testShareScan(void)
     pifFnd_SetInteger(&s_fnd, 1234);
     pifFnd_SetInteger(&s_fnd2, 56);
     pifFnd_Start(&s_fnd2);
-    CHECK(!s_fnd.__p_task->_pause);
+    CHECK(!s_fnd._p_task->_pause);
     _advance(12);
     CHECK(s_segment2[0] == 0x6D && s_segment2[1] == 0x7D);
     CHECK(s_segment[0] == 0 && s_segment[3] == 0);
@@ -371,7 +371,7 @@ static void testShareScan(void)
     CHECK(s_segment[0] == 0 && s_segment[3] == 0);
     CHECK(s_segment2[0] == 0x6D && s_segment2[1] == 0x7D);
     pifFnd_Stop(&s_fnd2);
-    CHECK(s_fnd.__p_task->_pause);
+    CHECK(s_fnd._p_task->_pause);
 
     // A cleared member leaves the group.
     pifFnd_Start(&s_fnd);
@@ -382,12 +382,12 @@ static void testShareScan(void)
     for (i = 0; i < s_log_count; i++) CHECK(s_log_id[i] == s_fnd._id);
 
     // When the leader is cleared, a member goes back to scanning itself.
-    CHECK(pifFnd_Init(&s_fnd2, PIF_ID_AUTO, 2, _actDisplay2));
+    CHECK(pifFnd_Init(&s_fnd2, PIF_ID_AUTO, 2, _actDisplay2, NULL));
     CHECK(pifFnd_ShareScan(&s_fnd2, &s_fnd));
     pifFnd_SetInteger(&s_fnd2, 56);
     pifFnd_Start(&s_fnd2);
     pifFnd_Clear(&s_fnd);
-    CHECK(!s_fnd2.__p_leader && s_fnd2.__p_task && !s_fnd2.__p_task->_pause);
+    CHECK(!s_fnd2.__p_leader && s_fnd2._p_task && !s_fnd2._p_task->_pause);
     CHECK(pifTaskManager_Count() == 1);
     memset(s_segment2, 0xFF, sizeof(s_segment2));
     _advance(2 * PIF_FND_PERIOD_PER_DIGIT);
@@ -399,8 +399,8 @@ static void testShareScanNoSlot(void)
     int i;
 
     CHECK(_setUp(4));
-    CHECK(pifFnd_Init(&s_fnd2, PIF_ID_AUTO, 2, _actDisplay2));
-    CHECK(pifFnd_Init(&s_fnd3, PIF_ID_AUTO, 2, _actDisplay2));
+    CHECK(pifFnd_Init(&s_fnd2, PIF_ID_AUTO, 2, _actDisplay2, NULL));
+    CHECK(pifFnd_Init(&s_fnd3, PIF_ID_AUTO, 2, _actDisplay2, NULL));
     CHECK(pifFnd_ShareScan(&s_fnd2, &s_fnd));
     CHECK(pifFnd_ShareScan(&s_fnd3, &s_fnd2));		// Joins the group of s_fnd
     CHECK(s_fnd3.__p_leader == &s_fnd && pifTaskManager_Count() == 1);
@@ -411,8 +411,8 @@ static void testShareScanNoSlot(void)
         CHECK(s_dummy[i]);
     }
     pifFnd_Clear(&s_fnd);
-    CHECK(s_fnd2.__p_task && !s_fnd2.__p_leader);
-    CHECK(!s_fnd3.__p_task && !s_fnd3.__p_leader);
+    CHECK(s_fnd2._p_task && !s_fnd2.__p_leader);
+    CHECK(!s_fnd3._p_task && !s_fnd3.__p_leader);
 
     // A member without a task is harmless to use and can join a group again.
     pifFnd_Start(&s_fnd3);
@@ -422,6 +422,59 @@ static void testShareScanNoSlot(void)
     CHECK(pifFnd_ShareScan(&s_fnd3, &s_fnd2));
     CHECK(s_fnd3.__p_leader == &s_fnd2 && pifTaskManager_Count() == TASK_SIZE);
     _clearDummies();
+}
+
+static void testProcessScan(void)
+{
+    PifTask* p_task;
+    int i;
+
+    CHECK(_setUp(4));
+    p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_EXTERNAL, 0, _doDummy, NULL, FALSE);
+    CHECK(p_task);
+    s_dummy[0] = p_task;
+    CHECK(pifFnd_Init(&s_fnd2, PIF_ID_AUTO, 2, _actDisplay2, p_task));
+    CHECK(pifFnd_Init(&s_fnd3, PIF_ID_AUTO, 2, _actDisplay2, p_task));
+    CHECK(!s_fnd2._p_task && pifTaskManager_Count() == 2);
+
+    // With an external task a display is scanned by pifFnd_ProcessScan(), one digit a call, while it runs.
+    pifFnd_SetInteger(&s_fnd2, 56);
+    pifFnd_ProcessScan(&s_fnd2);
+    CHECK(s_log_count == 0);
+    pifFnd_Start(&s_fnd2);
+    for (i = 0; i < 4; i++) pifFnd_ProcessScan(&s_fnd2);
+    CHECK(s_log_count == 4);
+    for (i = 0; i < 4; i++) CHECK(s_log_id[i] == s_fnd2._id && s_log_digit[i] == i % 2);
+    CHECK(s_segment2[0] == 0x6D && s_segment2[1] == 0x7D);
+
+    // A leader with an external task scans its group the same way, and a member is skipped.
+    CHECK(pifFnd_ShareScan(&s_fnd3, &s_fnd2));
+    CHECK(pifTaskManager_Count() == 2);
+    pifFnd_Start(&s_fnd3);
+    s_log_count = 0;
+    pifFnd_ProcessScan(&s_fnd3);
+    CHECK(s_log_count == 0);
+    for (i = 0; i < 4; i++) pifFnd_ProcessScan(&s_fnd2);
+    CHECK(s_log_count == 4);
+    for (i = 0; i < 4; i++) {
+        CHECK(s_log_id[i] == (i < 2 ? s_fnd2._id : s_fnd3._id) && s_log_digit[i] == i % 2);
+    }
+
+    // When the leader is cleared, the member goes back to the external task, and neither removes it.
+    pifFnd_Clear(&s_fnd2);
+    CHECK(!s_fnd3.__p_leader && !s_fnd3._p_task && pifTaskManager_Count() == 2);
+    s_log_count = 0;
+    pifFnd_ProcessScan(&s_fnd3);
+    CHECK(s_log_count == 1 && s_log_id[0] == s_fnd3._id);
+    pifFnd_Clear(&s_fnd3);
+    CHECK(pifTaskManager_Count() == 2);
+
+    // A display with a task of its own hands it over when it joins a leader with an external task.
+    CHECK(pifFnd_Init(&s_fnd2, PIF_ID_AUTO, 2, _actDisplay2, p_task));
+    CHECK(pifFnd_Init(&s_fnd3, PIF_ID_AUTO, 2, _actDisplay2, NULL));
+    CHECK(pifTaskManager_Count() == 3);
+    CHECK(pifFnd_ShareScan(&s_fnd3, &s_fnd2));
+    CHECK(!s_fnd3._p_task && pifTaskManager_Count() == 2);
 }
 
 int main(void)
@@ -439,6 +492,7 @@ int main(void)
         { "blink", testBlink },
         { "share scan", testShareScan },
         { "share scan without a slot", testShareScanNoSlot },
+        { "process scan", testProcessScan },
     };
 
     if (!pif_Init(_timer1us) || !pifTaskManager_Init(TASK_SIZE, 1)) {
