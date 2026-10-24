@@ -73,6 +73,79 @@ typedef struct StPifTaskIdleStatistics
 
 #endif
 
+#ifdef PIF_USE_TASK_REALTIME
+
+/**
+ * @struct StPifTaskRealtimeStatistics
+ * @brief How well the realtime task was served, filled in by pifTaskManager_GetRealtimeStatistics().
+ */
+typedef struct StPifTaskRealtimeStatistics
+{
+	uint32_t max_delay;		///< Longest delay from the release to the dispatch (us)
+	uint32_t miss_count;	///< Releases delayed by a period or more
+	uint32_t guard;			///< Margin kept free before the release (us), 0 without PIF_USE_BLOCK_TIME
+	uint32_t lapse_count;	///< Runs let through without that margin, 0 without PIF_USE_BLOCK_TIME
+} PifTaskRealtimeStatistics;
+
+#endif
+
+#ifdef PIF_USE_TASK_STATISTICS_VCD
+
+/// Room a line of pifTaskManager_GetVcdLine() needs, the terminating NUL included.
+#define PIF_TASK_VCD_LINE_SIZE		64
+
+/**
+ * @struct StPifTaskStatisticsRecord
+ * @brief One set of statistics taken together, as the application keeps it. The record only
+ *        points at the copies, so the application lays its storage out as it likes and fills this
+ *        in when pifTaskManager_GetVcdLine() asks for a record. A pointer left NULL is a value
+ *        that was not taken, which the VCD shows as x.
+ */
+typedef struct StPifTaskStatisticsRecord
+{
+	uint32_t time;									///< When it was taken, in the unit of the timescale
+	uint8_t load;									///< pif_performance._task_load
+	uint8_t task_count;								///< Entries in p_task
+	const PifTaskStatistics *p_task;				///< From pifTask_GetStatistics(), the same tasks in the same order in every record
+#ifdef PIF_USE_TASK_REALTIME
+	const PifTaskRealtimeStatistics *p_realtime;	///< From pifTaskManager_GetRealtimeStatistics()
+#endif
+	const PifTaskIdleStatistics *p_idle;			///< From pifTaskManager_GetIdleStatistics()
+} PifTaskStatisticsRecord;
+
+/**
+ * @brief Fills in a record of the VCD file.
+ * @param index Record, from 0 for the oldest to the count given to pifTaskManager_StartVcd().
+ * @param p_record Filled in with the record.
+ * @param p_client Given to pifTaskManager_StartVcd().
+ * @return FALSE when the record is gone, which ends the file there.
+ */
+typedef BOOL (*PifTaskVcdGetRecord)(uint16_t index, PifTaskStatisticsRecord *p_record, void *p_client);
+
+/**
+ * @struct StPifTaskVcd
+ * @brief Where the making of a VCD file stands. The caller owns it, and nothing else is kept, so
+ *        a file can be made while another one is.
+ */
+typedef struct StPifTaskVcd
+{
+	// Private Member Variable
+	PifTaskVcdGetRecord __get_record;
+	void *__p_client;
+	const char *__p_version;
+	const char *__p_timescale;
+	uint16_t __count;
+	uint16_t __record;
+	uint16_t __signal;
+	int16_t __scope;
+	uint8_t __stage;
+	PifTaskStatisticsRecord __first;			///< Gives the tasks the header declares
+	PifTaskStatisticsRecord __current;
+	PifTaskStatisticsRecord __previous;			///< Only the values that changed from it are written
+} PifTaskVcd;
+
+#endif
+
 #ifdef PIF_DEBUG
 
 extern PifActTaskSignal pif_act_task_signal;
@@ -98,9 +171,25 @@ BOOL pifTaskManager_Init(int max_count, int timer_count);
 void pifTaskManager_Clear();
 
 /**
- * @brief Clears the monitoring result accumulated in pif_task_realtime.
+ * @brief Clears what was measured of the realtime task, pif_performance._max_delay and _miss_count,
+ *        and with PIF_USE_BLOCK_TIME also the margin the scheduler learned to keep free before the
+ *        release, which then starts again from its lower bound. To clear only the figures, as a
+ *        periodic report does, use pifTaskManager_GetRealtimeStatistics() with reset.
  */
 void pifTaskManager_ResetRealtime();
+
+#ifdef PIF_USE_TASK_REALTIME
+
+/**
+ * @brief Copies how well the realtime task was served, for a report or a periodic backup.
+ * @param p_stat Filled in with the figures.
+ * @param reset TRUE to clear the longest delay, the miss count and the lapse count once they are
+ *              copied, so that each backup holds its own interval. The margin is left alone, as
+ *              the scheduler keeps using it.
+ */
+void pifTaskManager_GetRealtimeStatistics(PifTaskRealtimeStatistics *p_stat, BOOL reset);
+
+#endif
 
 #ifdef PIF_USE_BLOCK_TIME
 
@@ -208,6 +297,38 @@ BOOL pifTaskManager_GetIdleStatistics(PifTaskIdleStatistics *p_stat);
  *        for a task.
  */
 void pifTaskManager_ResetIdleMaxExecutionTime();
+
+#endif
+
+#ifdef PIF_USE_TASK_STATISTICS_VCD
+
+/**
+ * @brief Starts a VCD file of statistics records the application keeps, such as a periodic backup.
+ *        The file has a scope for the system figures (load, realtime and idle) and one for each
+ *        task of the first record, named after the task with that ID that runs now. Each record
+ *        is one time step, and after the first only the values that changed are written.
+ *        The lines are taken with pifTaskManager_GetVcdLine(), so the caller decides where they
+ *        go and how fast. The records must stay as they are until the file is done.
+ * @param p_owner The making of the file, owned by the caller.
+ * @param count Records, 1 or more.
+ * @param get_record Fills in a record when its turn comes.
+ * @param p_client Passed to get_record unchanged.
+ * @param p_version Text of the $version line.
+ * @param p_timescale Text of the $timescale line, the unit of PifTaskStatisticsRecord::time, such as "1 s".
+ * @return FALSE with pif_error set when there is no first record.
+ */
+BOOL pifTaskManager_StartVcd(PifTaskVcd *p_owner, uint16_t count, PifTaskVcdGetRecord get_record, void *p_client,
+		const char *p_version, const char *p_timescale);
+
+/**
+ * @brief Makes the next line of the VCD file, its newline included. The last one is a $comment
+ *        that says the file is complete, so a file cut short can be told from a whole one.
+ * @param p_owner The making of the file.
+ * @param p_line Filled in with the line.
+ * @param size Room in p_line, PIF_TASK_VCD_LINE_SIZE or more.
+ * @return Length of the line, 0 once the file is done, or with pif_error set when size is too small.
+ */
+uint16_t pifTaskManager_GetVcdLine(PifTaskVcd *p_owner, char *p_line, uint16_t size);
 
 #endif
 

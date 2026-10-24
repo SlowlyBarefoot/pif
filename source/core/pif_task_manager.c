@@ -87,8 +87,8 @@ static PifBlockTime s_idle_block_time;			// Longest run of the idle callback
 
 #ifdef PIF_USE_TASK_REALTIME
 // Margin a run has to leave free before the realtime release, and how many runs were let through
-// without it. Both belong to the scheduling rule in this file and nothing outside it reads them,
-// so pifTaskManager_Print() is where they are reported.
+// without it. Both belong to the scheduling rule in this file, and are reported only by
+// pifTaskManager_Print() and pifTaskManager_GetRealtimeStatistics().
 static uint32_t s_task_guard = PIF_TASK_GUARD_MIN_US;
 static uint32_t s_guard_lapse_count = 0UL;
 #endif
@@ -440,6 +440,10 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	// held.
 	block_time = end_time - start_time;
 	pif_performance._task_time1us += block_time;
+#ifdef PIF_USE_TASK_STATISTICS
+	// Counted ahead of pifTask_IgnoreStatistics(): the run took place whatever its length.
+	p_owner->__window_count++;
+#endif
 #ifdef PIF_USE_BLOCK_TIME
 	// The longest such run is the delay this task can impose on the realtime task. A run the task
 	// itself declared unrepresentative is kept out of that estimate, but it was still added to the
@@ -457,19 +461,32 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	execute_time = block_time;
 	p_owner->_total_execution_time += execute_time;
 	if (execute_time > p_owner->_max_execution_time) p_owner->_max_execution_time = execute_time;
-	// The first run after a resume follows the pause, so it counts as one period apart instead.
-	p_owner->__total_delta_time[p_owner->__execute_index] +=
-			(resumed && p_owner->__period) ? p_owner->__period : p_owner->_delta_time;
 	p_owner->__sum_execution_time[p_owner->__execute_index] += execute_time;
 	p_owner->__execution_count++;
 	if (p_owner->__execution_count == 200) {
 		p_owner->__execution_count -= 100;
 		p_owner->__execute_index ^= 1;
-		p_owner->__total_delta_time[p_owner->__execute_index] = 0;
 		p_owner->__sum_execution_time[p_owner->__execute_index] = 0;
 	}
 	else if (p_owner->__execution_count == 100) {
 		p_owner->__execute_index ^= 1;
+	}
+	// Only the time apart of releases by the default period is kept. An external task and a release
+	// by trigger run when they are triggered, a period the task returned holds for one release only,
+	// and the first release after a resume or a period change follows the pause or the old period:
+	// none of these says anything about how well the default period is kept. __period still holds
+	// the period that caused this release here, as the one the task returned is taken in below.
+	if (p_owner->_mode != TM_EXTERNAL && !trigger && !resumed && p_owner->__period == p_owner->_default_period) {
+		p_owner->__total_delta_time[p_owner->__delta_index] += p_owner->_delta_time;
+		p_owner->__delta_count++;
+		if (p_owner->__delta_count == 200) {
+			p_owner->__delta_count -= 100;
+			p_owner->__delta_index ^= 1;
+			p_owner->__total_delta_time[p_owner->__delta_index] = 0;
+		}
+		else if (p_owner->__delta_count == 100) {
+			p_owner->__delta_index ^= 1;
+		}
 	}
 stats_done:
 #endif
@@ -563,11 +580,27 @@ static void _updateCpuLoad()
 	uint32_t elapsed_time = current_time - s_task_load_start_time;
 	uint32_t task_time = pif_performance._task_time1us;
 	uint32_t excess = 0UL;
+#ifdef PIF_USE_TASK_STATISTICS
+	PifObjArrayIterator it;
+	PifTask *p_task;
+#endif
 
 	// The window is closed at a scheduling point once at least a second has passed, so it is
 	// never a partially filled window. A single long run makes it longer than a second, which is
 	// why the ratio is taken against the measured length and not against a fixed second.
 	if (elapsed_time < 1000000UL) return;
+
+#ifdef PIF_USE_TASK_STATISTICS
+	// The window is at least 1000 ms long, so dividing it into milliseconds loses at most 0.1%.
+	// The product would overflow only past four million runs in the window.
+	it = pifObjArray_Begin(&s_tasks);
+	while (it) {
+		p_task = (PifTask *)it->data;
+		p_task->_execution_rate = (p_task->__window_count * 1000UL) / (elapsed_time / 1000UL);
+		p_task->__window_count = 0UL;
+		it = pifObjArray_Next(it);
+	}
+#endif
 
 	if (task_time > elapsed_time) {
 		// A single run longer than the window it is accounted in leaves the window nothing to
@@ -712,6 +745,31 @@ void pifTaskManager_ResetRealtime()
 	s_guard_lapse_count = 0UL;
 #endif
 }
+
+#ifdef PIF_USE_TASK_REALTIME
+
+void pifTaskManager_GetRealtimeStatistics(PifTaskRealtimeStatistics *p_stat, BOOL reset)
+{
+	p_stat->max_delay = pif_performance._max_delay;
+	p_stat->miss_count = pif_performance._miss_count;
+#ifdef PIF_USE_BLOCK_TIME
+	p_stat->guard = s_task_guard;
+	p_stat->lapse_count = s_guard_lapse_count;
+#else
+	p_stat->guard = 0UL;
+	p_stat->lapse_count = 0UL;
+#endif
+
+	if (reset) {
+		pif_performance._max_delay = 0UL;
+		pif_performance._miss_count = 0UL;
+#ifdef PIF_USE_BLOCK_TIME
+		s_guard_lapse_count = 0UL;
+#endif
+	}
+}
+
+#endif
 
 #ifdef PIF_USE_BLOCK_TIME
 
@@ -999,6 +1057,277 @@ void pifTaskManager_ResetIdleMaxExecutionTime()
 
 #endif
 
+#ifdef PIF_USE_TASK_STATISTICS_VCD
+
+enum {
+	TV_VERSION,
+	TV_TIMESCALE,
+	TV_SCOPE,
+	TV_TIME,
+	TV_DUMPVARS,
+	TV_VALUE,
+	TV_DUMPVARS_END,
+	TV_FOOTER,
+	TV_DONE
+};
+
+// The system scope first, then one scope of the same signals for each task.
+static const char * const c_vcd_system[] = {
+	"load",
+#ifdef PIF_USE_TASK_REALTIME
+	"rt_max_delay", "rt_miss", "rt_guard", "rt_lapse",
+#endif
+	"idle_max", "idle_average", "idle_delta"
+};
+
+static const char * const c_vcd_task[] = {
+	"PrcM", "PrcA", "Delta", "Dly", "TrgM", "Rate", "Blk"
+};
+
+#define TV_SYSTEM_SIGNALS	(sizeof(c_vcd_system) / sizeof(c_vcd_system[0]))
+#define TV_TASK_SIGNALS		(sizeof(c_vcd_task) / sizeof(c_vcd_task[0]))
+
+// The value of a signal in a record. FALSE for one that was not taken or not measured yet, which
+// the file shows as x.
+static BOOL _vcdValue(const PifTaskStatisticsRecord *p_record, uint16_t signal, uint32_t *p_value)
+{
+	const PifTaskStatistics *p_stat;
+	uint32_t value;
+
+	if (signal == 0) {
+		value = p_record->load;
+	}
+#ifdef PIF_USE_TASK_REALTIME
+	else if (signal < 5) {
+		if (!p_record->p_realtime) return FALSE;
+		switch (signal) {
+		case 1: value = p_record->p_realtime->max_delay; break;
+		case 2: value = p_record->p_realtime->miss_count; break;
+		case 3: value = p_record->p_realtime->guard; break;
+		default: value = p_record->p_realtime->lapse_count; break;
+		}
+	}
+#endif
+	else if (signal < TV_SYSTEM_SIGNALS) {
+		if (!p_record->p_idle) return FALSE;
+		switch (TV_SYSTEM_SIGNALS - signal) {
+		case 3: value = p_record->p_idle->max_execution_time; break;
+		case 2: value = p_record->p_idle->average_execution_time; break;
+		default: value = p_record->p_idle->average_delta_time; break;
+		}
+	}
+	else {
+		signal -= TV_SYSTEM_SIGNALS;
+		if (signal / TV_TASK_SIGNALS >= p_record->task_count) return FALSE;
+		p_stat = &p_record->p_task[signal / TV_TASK_SIGNALS];
+		switch (signal % TV_TASK_SIGNALS) {
+		case 0: value = p_stat->max_execution_time; break;
+		case 1: value = p_stat->average_execution_time; break;
+		case 2: value = p_stat->average_delta_time; break;
+		case 3: value = p_stat->max_delay; break;
+		case 4: value = p_stat->max_trigger_delay; break;
+		case 5: value = p_stat->execution_rate; break;
+		default: value = p_stat->block_time; break;
+		}
+	}
+	if (value == PIF_TASK_AVERAGE_NONE) return FALSE;
+	*p_value = value;
+	return TRUE;
+}
+
+// The identifier of a signal, of letters and digits only: '$' and '#' are allowed by the format
+// but read as a keyword or a time by some viewers. One character covers 62 signals, two the rest.
+static const char *_vcdCode(uint16_t signal, char *p_code)
+{
+	static const char c_code[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+	const uint16_t size = sizeof(c_code) - 1;
+
+	if (signal < size) {
+		p_code[0] = c_code[signal];
+		p_code[1] = 0;
+	}
+	else {
+		p_code[0] = c_code[signal / size - 1];
+		p_code[1] = c_code[signal % size];
+		p_code[2] = 0;
+	}
+	return p_code;
+}
+
+// The name of the task with the ID that runs now, as the records keep only the ID.
+static const char *_vcdTaskName(PifId id)
+{
+	PifObjArrayIterator it;
+
+	it = pifObjArray_Begin(&s_tasks);
+	while (it) {
+		if (((PifTask *)it->data)->_id == id) return ((PifTask *)it->data)->name;
+		it = pifObjArray_Next(it);
+	}
+	return NULL;
+}
+
+BOOL pifTaskManager_StartVcd(PifTaskVcd *p_owner, uint16_t count, PifTaskVcdGetRecord get_record, void *p_client,
+		const char *p_version, const char *p_timescale)
+{
+	if (!count || !get_record || !p_version || !p_timescale) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	memset(p_owner, 0, sizeof(PifTaskVcd));
+	p_owner->__get_record = get_record;
+	p_owner->__p_client = p_client;
+	p_owner->__p_version = p_version;
+	p_owner->__p_timescale = p_timescale;
+	p_owner->__count = count;
+	if (!(*get_record)(0, &p_owner->__first, p_client)) {
+		p_owner->__stage = TV_DONE;
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
+	p_owner->__stage = TV_VERSION;
+	return TRUE;
+}
+
+uint16_t pifTaskManager_GetVcdLine(PifTaskVcd *p_owner, char *p_line, uint16_t size)
+{
+	uint16_t signal_count = TV_SYSTEM_SIGNALS + p_owner->__first.task_count * TV_TASK_SIGNALS;
+	uint16_t count, signal;
+	uint32_t value, previous;
+	BOOL known, was_known;
+	const char *p_name;
+	char code[3];
+
+	if (size < PIF_TASK_VCD_LINE_SIZE) {
+		pif_error = E_INVALID_PARAM;
+		return 0;
+	}
+
+	p_line[0] = 0;
+	while (!p_line[0]) {
+		switch (p_owner->__stage) {
+		case TV_VERSION:
+			pif_Printf(p_line, size, "$version %s $end\n", p_owner->__p_version);
+			p_owner->__stage = TV_TIMESCALE;
+			break;
+
+		case TV_TIMESCALE:
+			pif_Printf(p_line, size, "$timescale %s $end\n", p_owner->__p_timescale);
+			p_owner->__stage = TV_SCOPE;
+			p_owner->__scope = -1;
+			p_owner->__signal = 0;
+			break;
+
+		// __signal counts the lines of a scope: the $scope line, its signals, then $upscope.
+		case TV_SCOPE:
+			if (p_owner->__scope >= p_owner->__first.task_count) {
+				pif_Printf(p_line, size, "$enddefinitions $end\n");
+				p_owner->__stage = TV_TIME;
+				p_owner->__record = 0;
+				break;
+			}
+			count = (p_owner->__scope < 0) ? TV_SYSTEM_SIGNALS : TV_TASK_SIGNALS;
+			if (p_owner->__signal == 0) {
+				if (p_owner->__scope < 0) {
+					pif_Printf(p_line, size, "$scope module system $end\n");
+				}
+				else {
+					p_name = _vcdTaskName(p_owner->__first.p_task[p_owner->__scope].id);
+					if (p_name) {
+						pif_Printf(p_line, size, "$scope module %s $end\n", p_name);
+					}
+					else {
+						pif_Printf(p_line, size, "$scope module task%u $end\n",
+								(unsigned int)p_owner->__first.p_task[p_owner->__scope].id);
+					}
+				}
+				p_owner->__signal++;
+			}
+			else if (p_owner->__signal <= count) {
+				signal = p_owner->__signal - 1;
+				if (p_owner->__scope >= 0) {
+					pif_Printf(p_line, size, "$var integer 32 %s %s $end\n",
+							_vcdCode(TV_SYSTEM_SIGNALS + p_owner->__scope * TV_TASK_SIGNALS + signal, code),
+							c_vcd_task[signal]);
+				}
+				else {
+					pif_Printf(p_line, size, "$var integer 32 %s %s $end\n", _vcdCode(signal, code),
+							c_vcd_system[signal]);
+				}
+				p_owner->__signal++;
+			}
+			else {
+				pif_Printf(p_line, size, "$upscope $end\n");
+				p_owner->__scope++;
+				p_owner->__signal = 0;
+			}
+			break;
+
+		case TV_TIME:
+			if (p_owner->__record >= p_owner->__count) {
+				p_owner->__stage = TV_FOOTER;
+				break;
+			}
+			if (p_owner->__record) p_owner->__previous = p_owner->__current;
+			if (!(*p_owner->__get_record)(p_owner->__record, &p_owner->__current, p_owner->__p_client)) {
+				// The rest is gone, so the file ends with what it has.
+				p_owner->__count = p_owner->__record;
+				p_owner->__stage = TV_FOOTER;
+				break;
+			}
+			pif_Printf(p_line, size, "#%lu\n", (unsigned long)p_owner->__current.time);
+			p_owner->__stage = p_owner->__record ? TV_VALUE : TV_DUMPVARS;
+			p_owner->__signal = 0;
+			break;
+
+		case TV_DUMPVARS:
+			pif_Printf(p_line, size, "$dumpvars\n");
+			p_owner->__stage = TV_VALUE;
+			break;
+
+		case TV_VALUE:
+			if (p_owner->__signal >= signal_count) {
+				p_owner->__stage = p_owner->__record ? TV_TIME : TV_DUMPVARS_END;
+				p_owner->__record++;
+				break;
+			}
+			signal = p_owner->__signal++;
+			value = previous = 0UL;
+			known = _vcdValue(&p_owner->__current, signal, &value);
+			// $dumpvars gives every value, and after it only a change is written.
+			if (p_owner->__record) {
+				was_known = _vcdValue(&p_owner->__previous, signal, &previous);
+				if (known == was_known && value == previous) break;
+			}
+			if (known) {
+				pif_Printf(p_line, size, "b%lb %s\n", (unsigned long)value, _vcdCode(signal, code));
+			}
+			else {
+				pif_Printf(p_line, size, "bx %s\n", _vcdCode(signal, code));
+			}
+			break;
+
+		case TV_DUMPVARS_END:
+			pif_Printf(p_line, size, "$end\n");
+			p_owner->__stage = TV_TIME;
+			break;
+
+		case TV_FOOTER:
+			// A comment is allowed among the value changes, and tells a whole file from a cut one.
+			pif_Printf(p_line, size, "$comment end of %u records $end\n", (unsigned int)p_owner->__count);
+			p_owner->__stage = TV_DONE;
+			break;
+
+		default:
+			return 0;
+		}
+	}
+	return (uint16_t)strlen(p_line);
+}
+
+#endif
+
 #if !defined(PIF_NO_LOG) || defined(PIF_LOG_COMMAND)
 
 // The digits of value right-aligned in width columns, or a '-' in their place for 0. p_text has room
@@ -1028,8 +1357,9 @@ static const char* _dashText(char* p_text, uint32_t value, int width)
 //   Period default period
 //   Blk    longest run over the window that the realtime task can be delayed by
 //   PrcM   longest run since the statistics were reset, PrcA its moving average
-//   Delta  average time between two runs
+//   Delta  average time between two releases by the default period, not kept for TM_EXTERNAL
 //   TrgM   longest wait of a release by trigger, Dly longest lateness against the period
+//   Rate   runs per second over the last CPU load window
 // A '-' is a value that has not been measured.
 void pifTaskManager_Print()
 {
@@ -1044,7 +1374,7 @@ void pifTaskManager_Print()
 #endif
 #ifdef PIF_USE_TASK_STATISTICS
 	uint32_t value;
-	char delta[12], trigger[12], delay[12];
+	char delta[12], trigger[12], delay[12], rate[12];
 	PifTaskIdleStatistics stat;
 #endif
 
@@ -1056,7 +1386,7 @@ void pifTaskManager_Print()
 			"    Blk"
 #endif
 #ifdef PIF_USE_TASK_STATISTICS
-			"   PrcM  PrcA   Delta   TrgM     Dly"
+			"   PrcM  PrcA   Delta   TrgM     Dly   Rate"
 #endif
 			"\n");
 
@@ -1089,9 +1419,10 @@ void pifTaskManager_Print()
 		n += strlen(line + n);
 		value = p_owner->__total_delta_time[0] + p_owner->__total_delta_time[1];
 		// A release by trigger is not measured against the period, so it has a column of its own.
-		pif_Printf(line + n, sizeof(line) - n, " %s %s %s",
-				_dashText(delta, p_owner->__execution_count ? value / p_owner->__execution_count : 0, 7),
-				_dashText(trigger, p_owner->_max_trigger_delay, 6), _dashText(delay, p_owner->_max_delay, 7));
+		pif_Printf(line + n, sizeof(line) - n, " %s %s %s %s",
+				_dashText(delta, p_owner->__delta_count ? value / p_owner->__delta_count : 0, 7),
+				_dashText(trigger, p_owner->_max_trigger_delay, 6), _dashText(delay, p_owner->_max_delay, 7),
+				_dashText(rate, p_owner->_execution_rate, 6));
 		n += strlen(line + n);
 #endif
 		line[n++] = '\n';

@@ -13,6 +13,11 @@
 #include "core/pif.h"
 
 
+// The VCD file is made of the statistics, so it takes them along.
+#if defined(PIF_USE_TASK_STATISTICS_VCD) && !defined(PIF_USE_TASK_STATISTICS)
+#define PIF_USE_TASK_STATISTICS
+#endif
+
 // Measures the longest run of each task, timer callback and idle callback. The full statistics
 // include it.
 #if defined(PIF_USE_TASK_STATISTICS) && !defined(PIF_USE_BLOCK_TIME)
@@ -68,6 +73,35 @@ typedef struct StPifBlockTime
 #endif
 
 
+#ifdef PIF_USE_TASK_STATISTICS
+
+/**
+ * @struct StPifTaskStatistics
+ * @brief Copy of the statistics of one task, filled in by pifTask_GetStatistics(). It is laid out
+ *        for a report or a backup, apart from the members of PifTask, which change as the
+ *        measurements do. Times are in microseconds. An average is PIF_TASK_AVERAGE_NONE until
+ *        PIF_TASK_AVERAGE_MIN_COUNT samples are collected, and a maximum is the longest since the
+ *        last reset of it.
+ */
+typedef struct StPifTaskStatistics
+{
+	PifId id;							///< Task ID
+	uint8_t mode;						///< PifTaskMode of the task
+	BOOL pause;							///< TRUE while paused
+	uint32_t period;					///< Default period
+	uint32_t total_execution_time;		///< Sum of the run times
+	uint32_t max_execution_time;		///< Longest run
+	uint32_t average_execution_time;	///< Average run over the last 100 to 200 runs
+	uint32_t average_delta_time;		///< Average time between two releases by the default period
+	uint32_t max_delay;					///< Longest start past the period
+	uint32_t max_trigger_delay;			///< Longest wait of a release by trigger
+	uint32_t average_trigger_delay;		///< Average wait of a release by trigger
+	uint32_t execution_rate;			///< Runs per second over the last CPU load window
+	uint32_t block_time;				///< Longest run over the block time window
+} PifTaskStatistics;
+
+#endif
+
 struct StPifTask;
 typedef struct StPifTask PifTask;
 
@@ -120,6 +154,8 @@ struct StPifTask
 	uint32_t _max_trigger_delay;		///< Longest delay of a release by trigger (us)
 	uint32_t _max_delay;				///< Longest start past the period of this task. A release by
 										///< a trigger is measured by _max_trigger_delay instead.
+	uint32_t _execution_rate;			///< Runs per second over the last CPU load window, by any
+										///< release. 0 until the first window closes.
 #endif
 #ifdef PIF_USE_BLOCK_TIME
 	PifBlockTime _block_time;			///< longest single run, the delay this task can cause
@@ -148,12 +184,16 @@ struct StPifTask
 	uint32_t __total_delta_time[2];
     uint32_t __sum_execution_time[2];
 	uint32_t __total_trigger_delay[2];
+	uint32_t __window_count;		///< Runs in the current CPU load window, for _execution_rate
+	uint16_t __delta_count;			///< Samples in __total_delta_time, which leaves some runs out
 	uint16_t __execution_count;
 	uint16_t __trigger_count;
 	uint8_t __execute_index;
+	uint8_t __delta_index;
 	uint8_t __trigger_index;
 	BOOL __ignore_stats;			///< The current run is left out, see pifTask_IgnoreStatistics()
 	BOOL __skip_delay;				///< The next release is not measured: the first after a resume
+									///< or a change of the period
 #endif
 
 	// Private Event Function
@@ -222,6 +262,9 @@ BOOL pifTask_ChangeMode(PifTask* p_owner, PifTaskMode mode, uint32_t period);
 
 /**
  * @brief Changes the period of a TM_PERIOD or TM_REALTIME task.
+ *        With PIF_USE_TASK_STATISTICS, a new default period starts the average delta time and the
+ *        longest delay over, and the release pending at the change is not measured. The execution
+ *        time, trigger delay and block time are not touched.
  * @param p_owner Pointer to the target object instance.
  * @param period New period in microseconds.
  * @return TRUE on success, FALSE with pif_error set otherwise.
@@ -315,15 +358,32 @@ void pifTask_ResetStatistics(PifTask* p_owner);
 void pifTask_ResetMaxExecutionTime(PifTask* p_owner);
 
 /**
- * @brief Retrieves the average time between the executions of the task.
+ * @brief Copies the statistics of the task, for a report or a periodic backup. Read it from a task,
+ *        not from an interrupt: the scheduler updates the values between runs, so a task always
+ *        reads a consistent set.
+ * @param p_owner Pointer to the target object instance.
+ * @param p_stat Filled in with the statistics.
+ * @param reset_max TRUE to clear the longest run, delay and trigger delay once they are copied, so
+ *                  that each backup holds the maxima of its own interval. The averages, the rate and
+ *                  the block time are left alone: the block time is what the scheduler judges the
+ *                  task by.
+ */
+void pifTask_GetStatistics(PifTask* p_owner, PifTaskStatistics* p_stat, BOOL reset_max);
+
+/**
+ * @brief Retrieves the average time between the executions of the task. Only releases by the
+ *        default period are counted: one by a trigger, one by a period the task returned from its
+ *        loop, and the first after a resume or a change of the period, are left out.
  * @param p_owner Pointer to the target object instance.
  * @return Average in microseconds, or PIF_TASK_AVERAGE_NONE until PIF_TASK_AVERAGE_MIN_COUNT
- *         samples are collected.
+ *         samples are collected. Always PIF_TASK_AVERAGE_NONE for a TM_EXTERNAL task, which
+ *         does not keep it.
  */
 PIF_STATIC_INLINE uint32_t pifTask_GetAverageDeltaTime(PifTask* p_owner)
 {
-	if (p_owner->__execution_count < PIF_TASK_AVERAGE_MIN_COUNT) return PIF_TASK_AVERAGE_NONE;
-	return (p_owner->__total_delta_time[0] + p_owner->__total_delta_time[1]) / p_owner->__execution_count;
+	if (p_owner->_mode == TM_EXTERNAL) return PIF_TASK_AVERAGE_NONE;
+	if (p_owner->__delta_count < PIF_TASK_AVERAGE_MIN_COUNT) return PIF_TASK_AVERAGE_NONE;
+	return (p_owner->__total_delta_time[0] + p_owner->__total_delta_time[1]) / p_owner->__delta_count;
 }
 
 /**

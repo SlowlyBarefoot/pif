@@ -152,6 +152,19 @@ BOOL pifTask_ChangePeriod(PifTask* p_owner, uint32_t period)
 		return FALSE;
 	}
 
+#ifdef PIF_USE_TASK_STATISTICS
+	// The release pending now was started under the old period, so its lateness against the new
+	// one and its time apart from the last run say nothing about either.
+	if (period != p_owner->__period) p_owner->__skip_delay = TRUE;
+	// Many callers set the same period again, which leaves the statistics alone.
+	if (period != p_owner->_default_period) {
+		p_owner->_max_delay = 0UL;
+		p_owner->__total_delta_time[0] = 0UL;
+		p_owner->__total_delta_time[1] = 0UL;
+		p_owner->__delta_count = 0;
+		p_owner->__delta_index = 0;
+	}
+#endif
 	p_owner->_default_period = period;
 	p_owner->__period = period;
 	return TRUE;
@@ -256,9 +269,34 @@ void pifTask_ResetStatistics(PifTask* p_owner)
 	p_owner->__total_trigger_delay[0] = 0UL;
 	p_owner->__total_trigger_delay[1] = 0UL;
 	p_owner->__execution_count = 0;
+	p_owner->__delta_count = 0;
 	p_owner->__trigger_count = 0;
 	p_owner->__execute_index = 0;
+	p_owner->__delta_index = 0;
 	p_owner->__trigger_index = 0;
+}
+
+void pifTask_GetStatistics(PifTask* p_owner, PifTaskStatistics* p_stat, BOOL reset_max)
+{
+	p_stat->id = p_owner->_id;
+	p_stat->mode = (uint8_t)p_owner->_mode;
+	p_stat->pause = p_owner->_pause;
+	p_stat->period = p_owner->_default_period;
+	p_stat->total_execution_time = p_owner->_total_execution_time;
+	p_stat->max_execution_time = p_owner->_max_execution_time;
+	p_stat->average_execution_time = pifTask_GetAverageExecuteTime(p_owner);
+	p_stat->average_delta_time = pifTask_GetAverageDeltaTime(p_owner);
+	p_stat->max_delay = p_owner->_max_delay;
+	p_stat->max_trigger_delay = p_owner->_max_trigger_delay;
+	p_stat->average_trigger_delay = pifTask_GetAverageTriggerTime(p_owner);
+	p_stat->execution_rate = p_owner->_execution_rate;
+	p_stat->block_time = p_owner->_block_time._max;
+
+	if (reset_max) {
+		p_owner->_max_execution_time = 0UL;
+		p_owner->_max_delay = 0UL;
+		p_owner->_max_trigger_delay = 0UL;
+	}
 }
 
 void pifTask_ResetMaxExecutionTime(PifTask* p_owner)

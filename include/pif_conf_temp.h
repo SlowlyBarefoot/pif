@@ -329,6 +329,11 @@
 
 //#define PIF_USE_TASK_STATISTICS
 
+// Turns statistics records the application keeps, of pifTask_GetStatistics() and the like, into a
+// VCD file for a waveform viewer, one line at a time with pifTaskManager_StartVcd() and
+// pifTaskManager_GetVcdLine(). PIF_USE_TASK_STATISTICS is enabled with it.
+//#define PIF_USE_TASK_STATISTICS_VCD
+
 // Measures the longest single run of each task, over a moving window of the last 100 to 200 runs.
 // That is what the realtime task can be delayed by, and TM_REALTIME uses it to skip a task that
 // would not finish before the release. The timer and idle callbacks are measured and held back by
