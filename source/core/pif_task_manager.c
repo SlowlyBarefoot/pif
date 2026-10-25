@@ -26,18 +26,16 @@
 #define PIF_TASK_GUARD_UP_US	4UL
 #define PIF_TASK_GUARD_DOWN_US	1UL
 
-// How many times in a row the margin above may hold a release back before it is let through
-// anyway. The margin alone gives no bound: a run shorter than the realtime period but longer
-// than the slack it happens to be offered can be refused on every visit, and nothing in the rule
-// makes the next visit any more likely to succeed. With this, the wait a task can suffer is
-// stated instead: at most this many passes of the ring while the task is already due, after
-// which it runs and the release it delays is counted as a guard lapse.
-// It is a bound, not a target. Set it low and the guarantee tightens while realtime jitter
-// grows, because more runs are let through against the margin; set it high and the opposite.
-// PifTask::max_skip and PifTaskTimer::max_skip override it per owner.
-#ifndef PIF_TASK_MAX_SKIP
-#define PIF_TASK_MAX_SKIP		10
-#endif
+// How long the margin above may hold a release back before it is let through anyway. The margin
+// alone gives no bound: a run shorter than the realtime period but longer than the slack it
+// happens to be offered can be refused on every visit, and nothing in the rule makes the next
+// visit any more likely to succeed. By default the bound is one realtime period from the first
+// refusal. In that time the realtime task has run once and left the widest slack there is, so a
+// run that still did not fit never will. It is then let through and the release it delays is
+// counted as a guard lapse.
+// A count of passes, PifTask::max_skip and PifTaskTimer::max_skip or PIF_TASK_MAX_SKIP for all
+// of them, takes its place. A pass lasts a few microseconds on one CPU and tens on another, so
+// the same count bounds a different wait on each.
 
 #endif	// PIF_USE_TASK_REALTIME
 
@@ -91,6 +89,11 @@ static PifBlockTime s_idle_block_time;			// Longest run of the idle callback
 // pifTaskManager_Print() and pifTaskManager_GetRealtimeStatistics().
 static uint32_t s_task_guard = PIF_TASK_GUARD_MIN_US;
 static uint32_t s_guard_lapse_count = 0UL;
+// End of the last run other than the realtime task, a task, a timer callback or the idle callback,
+// and whether it came after the previous realtime release. A release is late through the margin
+// only when such a run was still going at the time the release fell due.
+static uint32_t s_run_end;
+static BOOL s_run_since_release = FALSE;
 #endif
 #endif
 
@@ -108,6 +111,9 @@ static uint32_t s_ignore_end;
 
 #ifdef PIF_USE_TASK_REALTIME
 PifTask *g_realtime_task = NULL;
+// How late the previous release of the realtime task was against its grid, 0 when the grid was
+// started over. The grid point and this give back the time of that release.
+uint32_t g_realtime_late = 0UL;
 #endif
 
 #ifdef PIF_DEBUG
@@ -165,12 +171,14 @@ static PifTask *_processingRealTime(uint32_t current, BOOL *p_trigger)
 
 // Whether a run of max_block_time may start now. Timer and idle callbacks are not tasks, but
 // they hold the CPU the same way, so they are judged by the same rule.
-// p_skip_count is where the consecutive refusals of this owner are kept, and NULL asks for no
-// bound at all: the idle callback is the work to be done with the time left over, so having none
-// left is the answer rather than a wait to be cut short.
+// p_skip_count and p_skip_time are where the consecutive refusals of this owner and the time of
+// the first one are kept, and a NULL p_skip_count asks for no bound at all: the idle callback is
+// the work to be done with the time left over, so having none left is the answer rather than a
+// wait to be cut short.
 // The caller must only ask about a run it would actually start, because a refusal is counted:
 // asking on behalf of a task that is not due yet would spend the bound on nothing.
-static BOOL _fitsInSlack(uint32_t max_block_time, uint32_t slack, uint16_t *p_skip_count, uint16_t max_skip)
+static BOOL _fitsInSlack(uint32_t max_block_time, uint32_t slack, uint16_t *p_skip_count, uint32_t *p_skip_time,
+		uint16_t max_skip)
 {
 #ifdef PIF_USE_BLOCK_TIME
 	uint32_t guard;
@@ -197,13 +205,26 @@ static BOOL _fitsInSlack(uint32_t max_block_time, uint32_t slack, uint16_t *p_sk
 	if (!g_realtime_task->__period) return FALSE;
 
 	// A run longer than the whole period fits in no slack at all, and one that has been refused
-	// max_skip times in a row has waited as long as this rule promises. Either way it is let
-	// through and counted: the guarantee does not hold for that release, and _guard_lapse_count
-	// is the only place that says so.
+	// for as long as the bound allows has waited as long as this rule promises. Either way it is
+	// let through and counted: the guarantee does not hold for that release, and
+	// _guard_lapse_count is the only place that says so.
 	if (max_block_time < g_realtime_task->__period) {
 		if (!p_skip_count) return FALSE;
+#ifdef PIF_TASK_MAX_SKIP
 		if (!max_skip) max_skip = PIF_TASK_MAX_SKIP;
-		if (++(*p_skip_count) < max_skip) return FALSE;
+#endif
+		if (max_skip) {
+			if (++(*p_skip_count) < max_skip) return FALSE;
+		}
+		else {
+			// The pass reading of pifTaskManager_Loop() is the time of this refusal.
+			if (!*p_skip_count) {
+				*p_skip_count = 1;
+				*p_skip_time = pif_timer1us;
+				return FALSE;
+			}
+			if (pif_timer1us - *p_skip_time < g_realtime_task->__period) return FALSE;
+		}
 		*p_skip_count = 0;
 	}
 
@@ -212,6 +233,7 @@ static BOOL _fitsInSlack(uint32_t max_block_time, uint32_t slack, uint16_t *p_sk
 #else
 	(void)max_block_time;
 	(void)slack;
+	(void)p_skip_time;
 	(void)max_skip;
 	if (p_skip_count) *p_skip_count = 0;
 	return TRUE;
@@ -232,7 +254,7 @@ static BOOL _fitsInRealtimeSlack(PifTask *p_owner, uint32_t slack)
 	if (p_owner->__next_block_time) block_time = p_owner->__next_block_time;
 #endif
 
-	return _fitsInSlack(block_time, slack, &p_owner->__skip_count, p_owner->max_skip);
+	return _fitsInSlack(block_time, slack, &p_owner->__skip_count, &p_owner->__skip_time, p_owner->max_skip);
 }
 
 // Time left before the next release of the realtime task, taken from a timer reading that the
@@ -268,12 +290,22 @@ static uint32_t _realtimeSlack(uint32_t current)
 
 #ifdef PIF_USE_BLOCK_TIME
 
-// Fed with how late the realtime release actually turned out to be. A late release means the
-// margin did not cover what the scheduler spends, so it grows; on time releases let it shrink
-// back, which keeps a margin that grew during a busy phase from costing throughput for good.
-static void _updateTaskGuard(uint32_t delay)
+static void _markRunEnd(uint32_t end_time)
 {
-	if (delay) {
+	s_run_end = end_time;
+	s_run_since_release = TRUE;
+}
+
+// Fed with whether a run was let start that was still going when the realtime release fell due.
+// That means the margin did not cover what the scheduler spends between judging the run and
+// starting it, so it grows. Any other release lets it shrink back, which keeps a margin that grew
+// during a busy phase from costing throughput for good. A release that is late only by the time
+// the loop takes to come round to it is not counted against the margin: a larger margin keeps
+// runs from starting but cannot bring the loop round any sooner, and on a slow CPU every release
+// is late by that much, which would hold the margin at its maximum for nothing.
+static void _updateTaskGuard(BOOL overran)
+{
+	if (overran) {
 		if (s_task_guard >= PIF_TASK_GUARD_MAX_US - PIF_TASK_GUARD_UP_US) {
 			s_task_guard = PIF_TASK_GUARD_MAX_US;
 		}
@@ -291,12 +323,36 @@ static void _updateTaskGuard(uint32_t delay)
 
 #endif
 
+// The realtime task keeps a grid of its period. The next release is counted from when this one was
+// due rather than from when the loop got to it, so the lateness of one release is not added to
+// every period after it and the task runs period apart on average. A release late by a whole period
+// or more starts the grid over from now instead of catching up with a burst, and a release by
+// trigger starts it from now as it always has.
+static void _advanceRealtimeGrid(BOOL trigger)
+{
+	PifTask *p_task = g_realtime_task;
+	uint32_t late;
+
+	// The grid point is no longer the time of the previous release, which is added back here.
+	p_task->_delta_time = p_task->__current_time - (p_task->__pretime + g_realtime_late);
+
+	late = p_task->__current_time - p_task->__pretime - p_task->__period;
+	if (!trigger && p_task->__period && late < p_task->__period) {
+		p_task->__pretime += p_task->__period;
+		g_realtime_late = late;
+	}
+	else {
+		p_task->__pretime = p_task->__current_time;
+		g_realtime_late = 0UL;
+	}
+}
+
 #else	// PIF_USE_TASK_REALTIME
 
 // With no realtime release to keep time free for, every run fits. The slack is still named, so a
 // caller that only passes it on has a use for it.
 #define _realtimeSlack(current)										(0xFFFFFFFFUL)
-#define _fitsInSlack(max_block_time, slack, p_skip_count, max_skip)	((void)(slack), TRUE)
+#define _fitsInSlack(max_block_time, slack, p_skip_count, p_skip_time, max_skip)	((void)(slack), TRUE)
 #define _fitsInRealtimeSlack(p_owner, slack)						((void)(slack), TRUE)
 
 #endif	// PIF_USE_TASK_REALTIME
@@ -383,12 +439,13 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 #ifdef PIF_USE_TASK_REALTIME
 	if (p_owner == g_realtime_task) {
 #ifdef PIF_USE_BLOCK_TIME
-		// Only the lateness against the period feeds the margin, and it is read before the trigger
-		// is folded in below. A trigger with no delay is not a release the scheduler could have
-		// reserved time for, so the lateness it produces says nothing about whether the margin is
-		// large enough and would only ratchet it to the maximum. A task released by trigger alone
-		// therefore keeps the margin it was configured with.
-		_updateTaskGuard(delay);
+		// Only a release by the period feeds the margin. A trigger with no delay is not a release
+		// the scheduler could have reserved time for, so a run still going at it says nothing
+		// about whether the margin is large enough and would only ratchet it to the maximum. A
+		// task released by trigger alone therefore keeps the margin it was configured with.
+		_updateTaskGuard(!trigger && p_owner->__period && s_run_since_release &&
+				(int32_t)(s_run_end - (p_owner->__pretime + p_owner->__period)) > 0);
+		s_run_since_release = FALSE;
 #endif
 		// A release by a trigger is late by the time since the trigger rather than by the time
 		// past the period, so what is reported is whichever of the two is larger.
@@ -398,7 +455,12 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	}
 #endif
 
+#ifdef PIF_USE_TASK_REALTIME
+	if (p_owner == g_realtime_task) _advanceRealtimeGrid(trigger);
+	else p_owner->__pretime = p_owner->__current_time;
+#else
 	p_owner->__pretime = p_owner->__current_time;
+#endif
 
 #ifdef PIF_DEBUG
     if (pif_act_task_signal) (*pif_act_task_signal)(TRUE);
@@ -440,6 +502,9 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	// held.
 	block_time = end_time - start_time;
 	pif_performance._task_time1us += block_time;
+#if defined(PIF_USE_TASK_REALTIME) && defined(PIF_USE_BLOCK_TIME)
+	if (p_owner != g_realtime_task) _markRunEnd(end_time);
+#endif
 #ifdef PIF_USE_TASK_STATISTICS
 	// Counted ahead of pifTask_IgnoreStatistics(): the run took place whatever its length.
 	p_owner->__window_count++;
@@ -535,7 +600,7 @@ static void _processingIdle(uint32_t slack)
 	// The idle callback is work the user wants done in the time left over, so it counts as load.
 	// It cannot be preempted either, so it may only start while it fits in the slack. No bound is
 	// asked for: having no time left over is the answer for idle work, not a wait to cut short.
-	if (!_fitsInSlack(PIF_IDLE_BLOCK_TIME, slack, NULL, 0)) return;
+	if (!_fitsInSlack(PIF_IDLE_BLOCK_TIME, slack, NULL, NULL, 0)) return;
 
 	s_idle_pretime = current;
 	(*evt_task_idle)();
@@ -544,6 +609,9 @@ static void _processingIdle(uint32_t slack)
 	block_time = (*pif_act_timer1us)() - current;
 #ifdef PIF_USE_BLOCK_TIME
 	pifTask_UpdateBlockTime(&s_idle_block_time, block_time);
+#ifdef PIF_USE_TASK_REALTIME
+	_markRunEnd(current + block_time);
+#endif
 #endif
 	pif_performance._task_time1us += block_time;
 #ifdef PIF_USE_TASK_STATISTICS
@@ -583,6 +651,7 @@ static void _updateCpuLoad()
 #ifdef PIF_USE_TASK_STATISTICS
 	PifObjArrayIterator it;
 	PifTask *p_task;
+	uint32_t elapsed_ms;
 #endif
 
 	// The window is closed at a scheduling point once at least a second has passed, so it is
@@ -592,11 +661,13 @@ static void _updateCpuLoad()
 
 #ifdef PIF_USE_TASK_STATISTICS
 	// The window is at least 1000 ms long, so dividing it into milliseconds loses at most 0.1%.
-	// The product would overflow only past four million runs in the window.
+	// The product would overflow only past four million runs in the window. One division per
+	// task is left, which on a CPU without a divider is most of what closing the window costs.
+	elapsed_ms = elapsed_time / 1000UL;
 	it = pifObjArray_Begin(&s_tasks);
 	while (it) {
 		p_task = (PifTask *)it->data;
-		p_task->_execution_rate = (p_task->__window_count * 1000UL) / (elapsed_time / 1000UL);
+		p_task->_execution_rate = (p_task->__window_count * 1000UL) / elapsed_ms;
 		p_task->__window_count = 0UL;
 		it = pifObjArray_Next(it);
 	}
@@ -743,6 +814,7 @@ void pifTaskManager_ResetRealtime()
 	// The margin starts at its lower bound and finds its own level from the releases that follow.
 	s_task_guard = PIF_TASK_GUARD_MIN_US;
 	s_guard_lapse_count = 0UL;
+	s_run_since_release = FALSE;
 #endif
 }
 
@@ -913,7 +985,8 @@ void pifTaskManager_Loop()
 		p_timer = (PifTaskTimer *)it_timer->data;
 		it_timer_next = pifObjArray_Next(it_timer);
 		if (p_timer->_evt_timer &&
-				_fitsInSlack(PIF_TIMER_BLOCK_TIME(p_timer), slack, &p_timer->__skip_count, p_timer->max_skip)) {
+				_fitsInSlack(PIF_TIMER_BLOCK_TIME(p_timer), slack, &p_timer->__skip_count, &p_timer->__skip_time,
+					p_timer->max_skip)) {
 			(*p_timer->_evt_timer)(p_timer->_p_client);
 			// The end of one callback is the start of the next, which keeps this to a single
 			// timer reading per callback.
@@ -922,6 +995,9 @@ void pifTaskManager_Loop()
 			block_start = now;
 #ifdef PIF_USE_BLOCK_TIME
 			pifTask_UpdateBlockTime(&p_timer->_block_time, block_time);
+#ifdef PIF_USE_TASK_REALTIME
+			_markRunEnd(now);
+#endif
 #endif
 			pif_performance._task_time1us += block_time;
 			// What this callback consumed is no longer available to the next one, and the ring
@@ -1015,7 +1091,18 @@ next:
 	else {
 		_processingIdle(slack);
 	}
+#ifdef PIF_USE_TASK_REALTIME
+	// Closing the window is not a task and is not judged against the slack, and on a slow CPU it
+	// takes hundreds of microseconds. Right after the realtime run the whole period is ahead, so
+	// with a periodic realtime task the window is closed there and nowhere else. It closes up to a
+	// period late, which the measured length of the window takes into account.
+	if (!g_realtime_task || g_realtime_task->_pause || !g_realtime_task->__period ||
+			p_select == g_realtime_task) {
+		_updateCpuLoad();
+	}
+#else
 	_updateCpuLoad();
+#endif
 }
 
 void pifTaskManager_AllTask(void (*callback)(PifTask *p_task, void *p_arg), void *p_arg)
@@ -1375,7 +1462,8 @@ void pifTaskManager_Print()
 #ifdef PIF_USE_TASK_STATISTICS
 	uint32_t value;
 	char delta[12], trigger[12], delay[12], rate[12];
-	PifTaskIdleStatistics stat;
+	// Filled in whenever it is printed, but GCC cannot always tell through the inlined call.
+	PifTaskIdleStatistics stat = { 0 };
 #endif
 
 	// The load comes first, so that it is not the line lost when the log buffer runs out.
@@ -1439,9 +1527,10 @@ void pifTaskManager_Print()
 		// A lapse is a run that was let through although it does not fit before the release, so
 		// the guarantee did not hold for it. Either the run is longer than the whole period, in
 		// which case it is the task whose block time above exceeds the period printed for the
-		// realtime task, or a release had been held back max_skip times in a row and was let
-		// through to bound its wait. Lapses climbing with no oversized task points at the
-		// latter, and raising PIF_TASK_MAX_SKIP trades that jitter back for a longer wait.
+		// realtime task, or a release had been held back as long as its bound allows and was let
+		// through. With the default bound of one period only a run that never fits gets there,
+		// while a count of passes in max_skip or PIF_TASK_MAX_SKIP can run out sooner on a slow
+		// CPU, and raising it trades that jitter back for a longer wait.
 		pifLog_Printf(LT_NONE, "          Guard=%luus Lapse=%lu\n", s_task_guard,
 				s_guard_lapse_count);
 #endif

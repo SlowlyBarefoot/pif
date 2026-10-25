@@ -477,6 +477,28 @@ uint8_t pifCrc8_Update(uint8_t crc, const uint8_t* p_data, uint16_t length, uint
 uint8_t pifCrc8(const uint8_t* p_data, uint16_t length, uint8_t poly);
 
 /**
+ * @brief Adds a block of bytes to a CRC-32 (IEEE 802.3: reflected polynomial 0xEDB88320, initial value and
+ *        final XOR 0xFFFFFFFF), the CRC of Ethernet, zlib, PNG and ZIP.
+ *
+ * As with zlib's crc32(), crc is a finished CRC: start with 0 and pass each result on to continue, so
+ * pifCrc32_Update(pifCrc32_Update(0, a, n), b, m) is the CRC of a followed by b. It is weak, so a platform
+ * with a CRC unit can replace it.
+ * @param crc CRC of the bytes before, or 0.
+ * @param p_data Pointer to the data buffer used by this operation.
+ * @param length Number of bytes to process.
+ * @return CRC of everything so far.
+ */
+uint32_t pifCrc32_Update(uint32_t crc, const uint8_t* p_data, uint32_t length);
+
+/**
+ * @brief Calculates the CRC-32 (IEEE 802.3) of a block of bytes.
+ * @param p_data Pointer to the data buffer used by this operation.
+ * @param length Number of bytes to process.
+ * @return CRC of the block.
+ */
+uint32_t pifCrc32(const uint8_t* p_data, uint32_t length);
+
+/**
  * @brief Adds a block of bytes to an XOR checksum.
  * @param val Current XOR accumulator value.
  * @param p_data Pointer to the data buffer used by this operation.

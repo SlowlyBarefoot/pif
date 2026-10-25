@@ -305,26 +305,29 @@
 // Margin in microseconds that a run has to leave free before the realtime release, on top of its
 // own measured length. It stands for what the scheduler itself spends between deciding that the
 // run fits and dispatching the release, which no measurement of the run can see.
-// The margin is not fixed at the minimum: a release that turns out to have been late raises it and
-// on time releases lower it again, between these two bounds. Raise the minimum only if the very
-// first releases have to be on time as well, since the margin needs a few late ones to find its
-// level. pifTaskManager_Print() reports where it settled, next to the number of runs that were let
-// through although they do not fit.
+// The margin is not fixed at the minimum: a release that found a run still going when it fell due
+// raises it, and every other release lowers it again, between these two bounds. A release that is
+// late only by the time the loop takes to come round to it does not raise it, since no margin
+// shortens that. Raise the minimum only if the very first releases have to be on time as well,
+// since the margin needs a few overruns to find its level. pifTaskManager_Print() reports where it
+// settled, next to the number of runs that were let through although they do not fit.
 //#define PIF_TASK_GUARD_MIN_US		        2
 //#define PIF_TASK_GUARD_MAX_US		        100
 
-// How many times in a row the margin above may hold a release back before it is let through
-// anyway. The margin alone gives no bound: a run shorter than the realtime period but longer than
-// the slack it happens to be offered can be refused on every visit, and nothing in the rule makes
-// the next visit any more likely to succeed. With this, the wait a release can suffer is stated
-// instead: at most this many passes of the ring while it is already due.
-// It is a bound, not a target. Lower it and the wait tightens while realtime jitter grows, because
-// more runs are let through against the margin; raise it and the opposite. Runs let through this
-// way are counted with the ones that do not fit at all, which pifTaskManager_Print() reports as
-// lapses, so raise it if lapses climb with no task whose measured run exceeds the whole period.
-// PifTask::max_skip and PifTaskTimer::max_skip override it for one owner, where 0 means this
-// value and 1 means never held back. The idle callback is not bounded: having no time left over
-// is the answer for idle work, not a wait to cut short.
+// How long the margin above may hold a release back before it is let through anyway. The margin
+// alone gives no bound: a run shorter than the realtime period but longer than the slack it
+// happens to be offered can be refused on every visit, and nothing in the rule makes the next
+// visit any more likely to succeed. Left undefined, the bound is one realtime period from the
+// first refusal: by then the realtime task has run and left the widest slack there is, so only a
+// run that never fits is let through, and the bound means the same wait on every CPU.
+// Defined, it is a count of passes of the ring while the release is already due instead. A pass
+// takes a few microseconds on one CPU and tens on another, so the same count is a different wait
+// on each. Lower it and the wait tightens while realtime jitter grows, because more runs are let
+// through against the margin; raise it and the opposite. Runs let through either way are counted
+// with the ones that do not fit at all, which pifTaskManager_Print() reports as lapses.
+// PifTask::max_skip and PifTaskTimer::max_skip set a count for one owner, where 0 means the
+// default above and 1 means never held back. The idle callback is not bounded: having no time
+// left over is the answer for idle work, not a wait to cut short.
 //#define PIF_TASK_MAX_SKIP			        10
 
 //#define PIF_USE_TASK_STATISTICS

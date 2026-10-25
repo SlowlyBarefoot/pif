@@ -571,6 +571,29 @@ uint8_t pifCrc8(const uint8_t* p_data, uint16_t length, uint8_t poly)
 	return pifCrc8_Update(0, p_data, length, poly);
 }
 
+// CRC-32 of each 4-bit value: a 64 byte table and two lookups per byte, between the bitwise loop and the
+// 1 KB byte table in speed and size.
+static const uint32_t kCrc32Nibble[16] = {
+	0x00000000UL, 0x1DB71064UL, 0x3B6E20C8UL, 0x26D930ACUL, 0x76DC4190UL, 0x6B6B51F4UL, 0x4DB26158UL, 0x5005713CUL,
+	0xEDB88320UL, 0xF00F9344UL, 0xD6D6A3E8UL, 0xCB61B38CUL, 0x9B64C2B0UL, 0x86D3D2D4UL, 0xA00AE278UL, 0xBDBDF21CUL
+};
+
+uint32_t PIF_WEAK pifCrc32_Update(uint32_t crc, const uint8_t* p_data, uint32_t length)
+{
+	crc = ~crc;
+	while (length--) {
+		crc ^= *p_data++;
+		crc = (crc >> 4) ^ kCrc32Nibble[crc & 0x0F];
+		crc = (crc >> 4) ^ kCrc32Nibble[crc & 0x0F];
+	}
+	return ~crc;
+}
+
+uint32_t pifCrc32(const uint8_t* p_data, uint32_t length)
+{
+	return pifCrc32_Update(0, p_data, length);
+}
+
 uint32_t pifCheckSum(uint8_t* p_data, uint16_t length)
 {
 	uint16_t i;

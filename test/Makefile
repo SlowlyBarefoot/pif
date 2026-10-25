@@ -37,7 +37,7 @@ NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_dat
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
            test_pif_nvram test_pif_nor_flash test_pif_motor test_pif_duty_motor_speed_enc \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
-           test_pif_task_manager_nort test_pif_motor_min test_pif_nvram_raw
+           test_pif_task_manager_nort test_pif_motor_min test_pif_nvram_raw test_pif_crc
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
 LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
@@ -192,6 +192,7 @@ DMSE_DEP := $(addprefix $(ROOT)/include/motor/, pif_motor.h pif_duty_motor.h pif
 
 # pif_PrintFormat() through pif_Printf(), with and without %f.
 PRINTF_SRC := core/test_pif_printf.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+CRC_SRC := core/test_pif_crc.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 
 LINK_DEP :=$(ROOT)/source/protocol/pif_link.c $(ROOT)/include/protocol/pif_link.h \
             $(ROOT)/include/protocol/pif_link_fragment.h
@@ -246,6 +247,7 @@ run-test_pif_modbus_slave_min: run-test_pif_ring_buffer_nolock
 run-test_pif_task_manager_nort: run-test_pif_modbus_slave_min
 run-test_pif_motor_min: run-test_pif_task_manager_nort
 run-test_pif_nvram_raw: run-test_pif_motor_min
+run-test_pif_crc: run-test_pif_nvram_raw
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
 	$(call RUN,$<)
@@ -412,3 +414,6 @@ $(BUILD):
 
 clean:
 	$(call RMDIR,$(BUILD))
+
+$(BUILD)/test_pif_crc$(EXE): $(CRC_SRC) $(ROOT)/include/core/pif.h | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(CRC_SRC) -o $@

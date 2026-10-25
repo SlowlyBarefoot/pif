@@ -45,6 +45,9 @@ typedef enum EnPifTaskMode
 	/// from pifTask_SetTrigger(), or from both, so a period of zero means released by trigger
 	/// alone. A non zero period is also the window kept free before the release, which is why a
 	/// task released by trigger alone is protected only while a delayed trigger is pending.
+	/// The period releases keep to a grid: a late release does not push the ones after it back, so
+	/// the task runs period apart on average, and one late by a whole period or more starts the
+	/// grid over from then. A TM_PERIOD task counts its next period from when it actually ran.
 	/// Only with PIF_USE_TASK_REALTIME. Without it pifTaskManager_Add() refuses it with E_INVALID_PARAM.
 	TM_REALTIME			= 0x40
 } PifTaskMode;
@@ -132,11 +135,13 @@ struct StPifTask
 	// Public Member Variable
 	const char* name;	///< Name shown in the task statistics. May be NULL.
 #ifdef PIF_USE_TASK_REALTIME
-	/// How many times in a row a release of this task may be held back because its measured run
-	/// does not fit before the next realtime release. On the next visit after that it is let
-	/// through and counted as a guard lapse, which turns an unbounded wait into a stated one: at
-	/// most this many passes of the ring while the task is already due.
-	/// 0 takes PIF_TASK_MAX_SKIP, which is what a task registered without an opinion gets.
+	/// How long a release of this task may be held back because its measured run does not fit
+	/// before the next realtime release. After that it is let through and counted as a guard
+	/// lapse, which turns an unbounded wait into a stated one.
+	/// 0, what a task registered without an opinion gets, waits up to one realtime period: by then
+	/// the realtime task has run and left the widest slack there is. Any other value is a count of
+	/// passes of the ring while the task is already due, and 1 means never held back.
+	/// PIF_TASK_MAX_SKIP, when it is defined, is the count that 0 takes instead.
 	uint16_t max_skip;
 #endif
 
@@ -172,6 +177,7 @@ struct StPifTask
 	uint32_t __trigger_delay;
 #ifdef PIF_USE_TASK_REALTIME
 	uint16_t __skip_count;			///< Releases held back in a row, against max_skip
+	uint32_t __skip_time;			///< When the first of them was held back, for the bound of one period
 #endif
 #ifdef PIF_USE_BLOCK_TIME
 	BOOL __ignore_block;

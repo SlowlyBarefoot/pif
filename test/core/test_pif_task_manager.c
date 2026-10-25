@@ -68,8 +68,9 @@ static uint32_t _doOther(PifTask *p_task)
 // WORK_RUN_US is declared up front, so that the very first trigger is already judged by it.
 static void _setUp(BOOL realtime)
 {
-    pifTaskManager_Clear();
+    // The clock goes back first, so the CPU load window Clear() starts begins at 0 as well.
     s_now = 0;
+    pifTaskManager_Clear();
     s_rt_runs = 0;
     s_work_runs = 0;
     s_other_runs = 0;
@@ -174,6 +175,102 @@ static void testTriggerBounded(void)
     CHECK(s_work_runs == 1 && s_rt_runs == 0);
 }
 
+static void testDefaultBoundIsPeriod(void)
+{
+    _setUp(TRUE);
+    CHECK(!s_failed);
+
+    // 995us fits in no slack, not even the one right after the realtime run. Without max_skip the
+    // wait is bounded by one realtime period from the first refusal, however many passes that is.
+    s_now = 100;
+    pifTask_SetNextBlockTime(s_p_work, 995);
+    CHECK(pifTask_SetTrigger(s_p_work, 0));
+    _loop(50);
+    CHECK(s_work_runs == 0);
+    s_now = RT_PERIOD_US;
+    _loop(1);
+    CHECK(s_rt_runs == 1 && s_work_runs == 0);
+    s_now = RT_PERIOD_US + 99;
+    _loop(50);
+    CHECK(s_work_runs == 0);
+    s_now = RT_PERIOD_US + 100;
+    _loop(1);
+    CHECK(s_work_runs == 1 && s_work_start == RT_PERIOD_US + 100);
+}
+
+static uint32_t _guard(void)
+{
+    PifTaskRealtimeStatistics stat;
+
+    pifTaskManager_GetRealtimeStatistics(&stat, FALSE);
+    return stat.guard;
+}
+
+static void testGuardIgnoresLoopLateness(void)
+{
+    uint32_t guard;
+    int i;
+
+    _setUp(TRUE);
+    CHECK(!s_failed);
+    pifTaskManager_ResetRealtime();
+    guard = _guard();
+
+    // Every release is 50us late with nothing else running, as when the loop is slow to come
+    // round. No margin shortens that, so the margin does not grow.
+    for (i = 1; i <= 5; i++) {
+        s_now = i * RT_PERIOD_US + 50;
+        _loop(1);
+        CHECK(s_rt_runs == i);
+    }
+    CHECK(_guard() == guard);
+}
+
+static void testGuardGrowsOnOverrun(void)
+{
+    uint32_t guard;
+
+    _setUp(TRUE);
+    CHECK(!s_failed);
+    pifTaskManager_ResetRealtime();
+    guard = _guard();
+
+    // Let through 100us before the release, the 300us run is still going when the release falls due.
+    s_p_work->max_skip = 1;
+    s_now = RT_PERIOD_US - 100;
+    pifTask_SetNextBlockTime(s_p_work, WORK_RUN_US);
+    CHECK(pifTask_SetTrigger(s_p_work, 0));
+    _loop(1);
+    CHECK(s_work_runs == 1 && s_rt_runs == 0);
+    _loop(1);
+    CHECK(s_rt_runs == 1);
+    CHECK(_guard() > guard);
+}
+
+static void testLoadWindowAfterRealtime(void)
+{
+    _setUp(TRUE);
+    CHECK(!s_failed);
+
+    // Short of a second: the window stays open, and the release this late starts the grid over,
+    // so the next one is due at 1000500.
+    s_now = 999500;
+    _loop(1);
+    CHECK(s_rt_runs == 1);
+
+    // Past a second, but a worker run is not where the window closes: its time is still counted.
+    s_now = 1000100;
+    pifTask_SetNextBlockTime(s_p_work, WORK_RUN_US);
+    CHECK(pifTask_SetTrigger(s_p_work, 0));
+    _loop(1);
+    CHECK(s_work_runs == 1 && pif_performance._task_time1us == RT_RUN_US + WORK_RUN_US);
+
+    // Right after the realtime run it closes, and the count starts over.
+    s_now = 1000500;
+    _loop(1);
+    CHECK(s_rt_runs == 2 && pif_performance._task_time1us == 0);
+}
+
 static void testMaxSkipOne(void)
 {
     _setUp(TRUE);
@@ -250,6 +347,38 @@ static void testTriggerOnRealtime(void)
     CHECK(s_rt_runs == 1);
 }
 
+static void testRealtimeGrid(void)
+{
+    _setUp(TRUE);
+    CHECK(!s_failed);
+
+    // Late by 40us: the next release stays on the grid instead of moving to 2040.
+    s_now = RT_PERIOD_US + 40;
+    _loop(1);
+    CHECK(s_rt_runs == 1);
+    s_now = 2 * RT_PERIOD_US - 1;
+    _loop(1);
+    CHECK(s_rt_runs == 1);
+    s_now = 2 * RT_PERIOD_US;
+    _loop(1);
+    CHECK(s_rt_runs == 2);
+    // The time since the previous release, not since its grid point.
+    CHECK(s_p_rt->_delta_time == RT_PERIOD_US - 40);
+
+    // Late by more than a period: no burst, the grid starts over from this release.
+    s_now = 5 * RT_PERIOD_US + 100;
+    _loop(1);
+    CHECK(s_rt_runs == 3);
+    _loop(1);
+    CHECK(s_rt_runs == 3);
+    s_now = 6 * RT_PERIOD_US + 99;
+    _loop(1);
+    CHECK(s_rt_runs == 3);
+    s_now = 6 * RT_PERIOD_US + 100;
+    _loop(1);
+    CHECK(s_rt_runs == 4);
+}
+
 #else
 
 static void testRealtimeLeftOut(void)
@@ -312,6 +441,27 @@ static void testRestart(void)
     s_now = 6000;
     _loop(4);
     CHECK(s_other_runs == 1);
+}
+
+static void testPeriodFromRun(void)
+{
+    PifTask *p_task;
+
+    _setUp(FALSE);
+    CHECK(!s_failed);
+    p_task = pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, 1000, _doOther, NULL, TRUE);
+    CHECK(p_task);
+
+    // Unlike the realtime task, the next period counts from when the task actually ran.
+    s_now = 1040;
+    _loop(4);
+    CHECK(s_other_runs == 1);
+    s_now = 2039;
+    _loop(4);
+    CHECK(s_other_runs == 1);
+    s_now = 2040;
+    _loop(4);
+    CHECK(s_other_runs == 2);
 }
 
 static void testSubPeriod(void)
@@ -442,6 +592,10 @@ int main(void)
         { "trigger delay", testTriggerDelay },
         { "returned delay waits for slack", testReturnedDelayWaitsForSlack },
         { "trigger bounded", testTriggerBounded },
+        { "default bound is a period", testDefaultBoundIsPeriod },
+        { "guard ignores loop lateness", testGuardIgnoresLoopLateness },
+        { "guard grows on overrun", testGuardGrowsOnOverrun },
+        { "load window after realtime", testLoadWindowAfterRealtime },
         { "max skip one", testMaxSkipOne },
         { "cut in ahead of realtime", testCutinAheadOfRealtime },
         { "cut in taken waits for slack", testCutinTakenWaitsForSlack },
@@ -449,11 +603,13 @@ int main(void)
         { "trigger without realtime", testTriggerWithoutRealtime },
 #ifdef PIF_USE_TASK_REALTIME
         { "trigger on realtime", testTriggerOnRealtime },
+        { "realtime grid", testRealtimeGrid },
 #else
         { "realtime left out", testRealtimeLeftOut },
 #endif
         { "cancel trigger", testCancelTrigger },
         { "restart", testRestart },
+        { "period from run", testPeriodFromRun },
         { "sub period", testSubPeriod },
         { "task timeout", testTaskTimeout },
         { "polled timeout", testPolledTimeout },

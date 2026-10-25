@@ -7,6 +7,7 @@ extern PifTask *g_task_cutin;
 
 #ifdef PIF_USE_TASK_REALTIME
 extern PifTask *g_realtime_task;
+extern uint32_t g_realtime_late;
 #endif
 
 
@@ -85,6 +86,7 @@ BOOL pifTask_SetParam(PifTask* p_owner, PifTaskMode mode, uint32_t period)
 #ifdef PIF_USE_TASK_REALTIME
 	case TM_REALTIME:
     	p_owner->__pretime = (*pif_act_timer1us)();
+    	g_realtime_late = 0UL;
     	// With no period there is no release to poll for, only triggers. _processingPeriod would
     	// report every pass as due.
     	p_owner->__processing = period ? _processingPeriod : NULL;
@@ -232,6 +234,10 @@ void pifTask_Restart(PifTask *p_owner)
 	case TM_PERIOD:
 		p_owner->__pretime = (*pif_act_timer1us)();
 		p_owner->__period = p_owner->_default_period;
+#ifdef PIF_USE_TASK_REALTIME
+		// The grid of the realtime task starts over from now as well.
+		if (p_owner == g_realtime_task) g_realtime_late = 0UL;
+#endif
 		break;
 
 	default:

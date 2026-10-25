@@ -210,6 +210,7 @@ struct StPifUart
     void* __p_client;
     volatile PifUartTxState __tx_state;
     volatile PifUartRxState __rx_state;
+    BOOL __rx_taken;							///< Bytes were read in the current run of the RX task
 #ifdef PIF_USE_UART_DIRECTION
     BOOL __dir_auto;							///< The UART drove the line for a transfer and gives it back
     BOOL __dir_wait;							///< The transfer is done and the line waits for dir_delay

@@ -56,7 +56,8 @@ static uint32_t _checkTurnaround(PifUart* p_owner)
 
 #else
 
-#define _beginTransfer(p_owner)
+// A statement rather than nothing, so "if (size) _beginTransfer(p_owner);" does not leave an empty body.
+#define _beginTransfer(p_owner)	((void)(p_owner))
 
 #endif	// PIF_USE_UART_DIRECTION
 
@@ -152,6 +153,7 @@ static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t leng
 #endif
 	} while (!len);
 
+	p_owner->__rx_taken = TRUE;
 	return len;
 }
 
@@ -574,7 +576,6 @@ static uint32_t _doRxTask(PifTask* p_task)
 #ifdef PIF_USE_UART_FLOW_CONTROL
 	uint8_t rate;
 #endif
-	BOOL rtn = FALSE;
 	uint32_t period = 0;
 
 #ifdef PIF_DEBUG
@@ -635,20 +636,26 @@ static uint32_t _doRxTask(PifTask* p_task)
 
 next1:
 #endif	// PIF_USE_UART_FLOW_CONTROL
+	// The state follows whether bytes were read, not what the client returns. A client may answer
+	// something else, such as the log answering whether a command line is complete, and a state
+	// that waits for TRUE would then poll every two byte times for as long as no line is complete.
+	p_owner->__rx_taken = FALSE;
 	if (p_owner->__evt_parsing) {
-		rtn = (*p_owner->__evt_parsing)(p_owner->__p_client, _actTransportReceive);
+		(*p_owner->__evt_parsing)(p_owner->__p_client, _actTransportReceive);
 	}
 	else {
-		rtn = _actReceiveData(p_owner, &data, 1) > 0;
+		_actReceiveData(p_owner, &data, 1);
 	}
 	switch (p_owner->__rx_state) {
 	case URS_FIRST:
-		if (rtn) p_owner->__rx_state = URS_NEXT;
-		period = 2 * p_owner->_transfer_time;
-		break;
-
 	case URS_NEXT:
-		if (!rtn) {
+		if (p_owner->__rx_taken) {
+			period = (p_owner->__rx_state == URS_FIRST ? 2 : 5) * p_owner->_transfer_time;
+			p_owner->__rx_state = URS_NEXT;
+		}
+		else {
+			// Nothing was read, either because nothing came or because the client left the bytes
+			// for later, so the task goes back to its own period.
 			p_owner->__rx_state = URS_IDLE;
 			// A byte put by the interrupt just before URS_IDLE was set did not trigger the task, since
 			// the state was still URS_NEXT. Check the buffer after the change so such a byte is not left behind.
@@ -656,9 +663,6 @@ next1:
 				p_owner->__rx_state = URS_FIRST;
 				period = 2 * p_owner->_transfer_time;
 			}
-		}
-		else {
-			period = 5 * p_owner->_transfer_time;
 		}
 		break;
 

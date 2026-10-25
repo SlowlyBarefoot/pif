@@ -28,7 +28,7 @@ typedef struct StPifTaskTimer
 {
 	// Public Member Variable
 #ifdef PIF_USE_TASK_REALTIME
-	/// As PifTask::max_skip, for the loops this callback may be held back in a row. A timer
+	/// As PifTask::max_skip, for how long this callback may be held back in a row. A timer
 	/// callback is meant to run at the start of every loop, so being held back without a bound
 	/// would break that contract rather than merely delay it.
 	uint16_t max_skip;
@@ -46,6 +46,7 @@ typedef struct StPifTaskTimer
 #ifdef PIF_USE_TASK_REALTIME
 	// Private Member Variable
 	uint16_t __skip_count;		///< Runs held back in a row, against max_skip
+	uint32_t __skip_time;		///< When the first of them was held back, for the bound of one period
 #endif
 } PifTaskTimer;
 
