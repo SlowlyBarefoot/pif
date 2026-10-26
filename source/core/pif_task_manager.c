@@ -69,6 +69,14 @@ static PifEvtTaskIdle evt_task_idle = NULL;
 static uint32_t s_idle_period;		// Default idle period in microseconds
 static uint32_t s_idle_pretime;		// Idle timer in microseconds
 #ifdef PIF_USE_TASK_STATISTICS
+// The timer callbacks together, over the CPU load window: they run at every pass of the main loop,
+// so how often and how long they run is what tells their share of the load.
+static uint32_t s_timer_window_count;	// Calls that did work in the current window
+static uint32_t s_timer_window_time;	// Their time in microseconds
+static uint32_t s_timer_rate;			// Calls per second over the last window
+static uint32_t s_timer_average10;		// Average call in tenths of a microsecond
+static uint8_t s_timer_load;			// Share of the last window in percent
+
 // What a PifTask keeps for itself, kept here for the idle callback. The two buckets take turns
 // exactly as the ones of a task do.
 static struct {
@@ -98,6 +106,11 @@ static BOOL s_run_since_release = FALSE;
 #endif
 
 PifTask *g_task_cutin = NULL;
+
+#ifdef PIF_USE_ISR_STATISTICS
+static PifTaskIsr *s_p_isr_first = NULL;
+static uint16_t s_isr_load10 = 0;		// All of them, in tenths of a percent of the last window
+#endif
 
 #ifdef PIF_USE_TASK_STATISTICS
 // End of the last run left out by pifTask_IgnoreStatistics(). The releases that fell due before it
@@ -651,7 +664,13 @@ static void _updateCpuLoad()
 #ifdef PIF_USE_TASK_STATISTICS
 	PifObjArrayIterator it;
 	PifTask *p_task;
+#endif
+#if defined(PIF_USE_TASK_STATISTICS) || defined(PIF_USE_ISR_STATISTICS)
 	uint32_t elapsed_ms;
+#endif
+#ifdef PIF_USE_ISR_STATISTICS
+	PifTaskIsr *p_isr;
+	uint32_t state, count, sample_count, sample_ticks, max_ticks, isr_us10 = 0UL;
 #endif
 
 	// The window is closed at a scheduling point once at least a second has passed, so it is
@@ -659,11 +678,37 @@ static void _updateCpuLoad()
 	// why the ratio is taken against the measured length and not against a fixed second.
 	if (elapsed_time < 1000000UL) return;
 
-#ifdef PIF_USE_TASK_STATISTICS
+#if defined(PIF_USE_TASK_STATISTICS) || defined(PIF_USE_ISR_STATISTICS)
 	// The window is at least 1000 ms long, so dividing it into milliseconds loses at most 0.1%.
+	elapsed_ms = elapsed_time / 1000UL;
+#endif
+#ifdef PIF_USE_ISR_STATISTICS
+	// The counts are taken and cleared together, since the interrupts go on adding to them. The
+	// share is every call at the average of the sample, in tenths of a microsecond: 10 ms of interrupts
+	// in a window come to 100000, against the 1000 ms of the window.
+	for (p_isr = s_p_isr_first; p_isr; p_isr = p_isr->__p_next) {
+		state = pif_IrqDisable();
+		count = p_isr->__count;
+		sample_count = p_isr->__sample_count;
+		sample_ticks = p_isr->__sample_ticks;
+		max_ticks = p_isr->__max_ticks;
+		p_isr->__count = 0UL;
+		p_isr->__sample_count = 0UL;
+		p_isr->__sample_ticks = 0UL;
+		p_isr->__max_ticks = 0UL;
+		pif_IrqRestore(state);
+
+		p_isr->_rate = (count * 1000UL) / elapsed_ms;
+		p_isr->_average10 = sample_count ? (sample_ticks * 10UL / PIF_ISR_TICKS_PER_US) / sample_count : 0UL;
+		p_isr->_max = max_ticks / PIF_ISR_TICKS_PER_US;
+		p_isr->_load10 = (uint16_t)((count * p_isr->_average10) / (10UL * elapsed_ms));
+		isr_us10 += count * p_isr->_average10;
+	}
+	s_isr_load10 = (uint16_t)(isr_us10 / (10UL * elapsed_ms));
+#endif
+#ifdef PIF_USE_TASK_STATISTICS
 	// The product would overflow only past four million runs in the window. One division per
 	// task is left, which on a CPU without a divider is most of what closing the window costs.
-	elapsed_ms = elapsed_time / 1000UL;
 	it = pifObjArray_Begin(&s_tasks);
 	while (it) {
 		p_task = (PifTask *)it->data;
@@ -671,6 +716,11 @@ static void _updateCpuLoad()
 		p_task->__window_count = 0UL;
 		it = pifObjArray_Next(it);
 	}
+	s_timer_rate = (s_timer_window_count * 1000UL) / elapsed_ms;
+	s_timer_average10 = s_timer_window_count ? (s_timer_window_time * 10UL) / s_timer_window_count : 0UL;
+	s_timer_load = (uint8_t)(s_timer_window_time / (elapsed_time / 100UL));
+	s_timer_window_count = 0UL;
+	s_timer_window_time = 0UL;
 #endif
 
 	if (task_time > elapsed_time) {
@@ -793,6 +843,11 @@ void pifTaskManager_Clear()
 #endif
 	pifTaskManager_ResetRealtime();
 	_initCpuLoad();
+#ifdef PIF_USE_ISR_STATISTICS
+	// The interrupts go on counting into their own objects, which are only no longer reported.
+	s_p_isr_first = NULL;
+	s_isr_load10 = 0;
+#endif
 #ifdef PIF_USE_BLOCK_TIME
 	pifTaskManager_ResetBlockTime();
 #endif
@@ -925,6 +980,47 @@ PifTask *pifTaskManager_CurrentTask()
 	return s_current_task;
 }
 
+#ifdef PIF_USE_ISR_STATISTICS
+
+BOOL pifTaskManager_AddIsr(PifTaskIsr *p_isr, const char *name, uint16_t sample)
+{
+	PifTaskIsr **pp_last;
+	uint32_t state;
+
+	if (!sample) sample = PIF_ISR_SAMPLE;
+	if (!p_isr) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+	for (pp_last = &s_p_isr_first; *pp_last; pp_last = &(*pp_last)->__p_next) {
+		if (*pp_last == p_isr) {
+			pif_error = E_INVALID_STATE;
+			return FALSE;
+		}
+	}
+
+	p_isr->name = name;
+	p_isr->_rate = 0UL;
+	p_isr->_average10 = 0UL;
+	p_isr->_max = 0UL;
+	p_isr->_load10 = 0;
+	p_isr->__p_next = NULL;
+	// The interrupt may be running already.
+	state = pif_IrqDisable();
+	p_isr->__sample = sample;
+	p_isr->__skip = 0;
+	p_isr->__count = 0UL;
+	p_isr->__sample_count = 0UL;
+	p_isr->__sample_ticks = 0UL;
+	p_isr->__max_ticks = 0UL;
+	pif_IrqRestore(state);
+	// Last in the order they are added, which is the order of the report.
+	*pp_last = p_isr;
+	return TRUE;
+}
+
+#endif
+
 PifTaskTimer *pifTaskManager_AddTimer(PifEvtTaskTimer evt_timer, void *p_client)
 {
 	PifObjArrayIterator it = pifObjArray_Add(&s_timers);
@@ -968,6 +1064,7 @@ void pifTaskManager_Loop()
 	uint32_t diff, now, block_start, block_time;
 	uint32_t slack;
 	BOOL trigger = FALSE;
+	BOOL worked;
 
 	// Before pif_Init() there is no timer to read.
 	if (!pif_ready) return;
@@ -987,7 +1084,7 @@ void pifTaskManager_Loop()
 		if (p_timer->_evt_timer &&
 				_fitsInSlack(PIF_TIMER_BLOCK_TIME(p_timer), slack, &p_timer->__skip_count, &p_timer->__skip_time,
 					p_timer->max_skip)) {
-			(*p_timer->_evt_timer)(p_timer->_p_client);
+			worked = (*p_timer->_evt_timer)(p_timer->_p_client);
 			// The end of one callback is the start of the next, which keeps this to a single
 			// timer reading per callback.
 			now = (*pif_act_timer1us)();
@@ -999,7 +1096,15 @@ void pifTaskManager_Loop()
 			_markRunEnd(now);
 #endif
 #endif
-			pif_performance._task_time1us += block_time;
+			// A call that found nothing to do is the loop waiting, not load. Its time still goes into
+			// the block time above, which only keeps the longest call.
+			if (worked) {
+				pif_performance._task_time1us += block_time;
+#ifdef PIF_USE_TASK_STATISTICS
+				s_timer_window_count++;
+				s_timer_window_time += block_time;
+#endif
+			}
 			// What this callback consumed is no longer available to the next one, and the ring
 			// below is judged against the same reading.
 			pif_timer1us = now;
@@ -1460,14 +1565,31 @@ void pifTaskManager_Print()
 	uint32_t block_time;
 #endif
 #ifdef PIF_USE_TASK_STATISTICS
-	uint32_t value;
+	uint32_t value, average;
 	char delta[12], trigger[12], delay[12], rate[12];
 	// Filled in whenever it is printed, but GCC cannot always tell through the inlined call.
 	PifTaskIdleStatistics stat = { 0 };
 #endif
 
 	// The load comes first, so that it is not the line lost when the log buffer runs out.
+#ifdef PIF_USE_ISR_STATISTICS
+	// The interrupts taken during the tasks are in both values. With the share of all the interrupts go
+	// how many there are a second and the longest one, the longest any of them holds everything else up.
+	{
+		PifTaskIsr *p_isr;
+		uint32_t isr_rate = 0UL, isr_max = 0UL;
+
+		for (p_isr = s_p_isr_first; p_isr; p_isr = p_isr->__p_next) {
+			isr_rate += p_isr->_rate;
+			if (p_isr->_max > isr_max) isr_max = p_isr->_max;
+		}
+		pifLog_Printf(LT_NONE, "Task count: %d, Load: %u%%, ISR: %u.%u%% %lu/s M=%luus (us)\n",
+				pifObjArray_Count(&s_tasks), pif_performance._task_load, s_isr_load10 / 10, s_isr_load10 % 10,
+				(unsigned long)isr_rate, (unsigned long)isr_max);
+	}
+#else
 	pifLog_Printf(LT_NONE, "Task count: %d, Load: %u%% (us)\n", pifObjArray_Count(&s_tasks), pif_performance._task_load);
+#endif
 	// The headings are laid out to the widths of the columns below.
 	pifLog_Print(LT_NONE, "  ID Name       M Pa  Period"
 #ifdef PIF_USE_BLOCK_TIME
@@ -1502,8 +1624,9 @@ void pifTaskManager_Print()
 #ifdef PIF_USE_TASK_STATISTICS
 		// PrcA is the moving average over the last 100 to 200 runs, not an average since boot.
 		value = p_owner->__sum_execution_time[0] + p_owner->__sum_execution_time[1];
+		average = p_owner->__execution_count ? value / p_owner->__execution_count : 0;
 		pif_Printf(line + n, sizeof(line) - n, " %6lu %5lu", (unsigned long)p_owner->_max_execution_time,
-				(unsigned long)(p_owner->__execution_count ? value / p_owner->__execution_count : 0));
+				(unsigned long)average);
 		n += strlen(line + n);
 		value = p_owner->__total_delta_time[0] + p_owner->__total_delta_time[1];
 		// A release by trigger is not measured against the period, so it has a column of its own.
@@ -1537,6 +1660,23 @@ void pifTaskManager_Print()
 	}
 #endif
 
+#ifdef PIF_USE_ISR_STATISTICS
+	// One line an interrupt handler over the last CPU load window: calls per second, average and
+	// longest call of the sample, and share of the window.
+	if (s_p_isr_first) {
+		PifTaskIsr *p_isr;
+
+		pifLog_Print(LT_NONE, " ISR             Rate      A      M   Load\n");
+		for (p_isr = s_p_isr_first; p_isr; p_isr = p_isr->__p_next) {
+			pif_Printf(line, sizeof(line), " %10.10s %9lu %4lu.%lu %6lu %3u.%u%%\n",
+					p_isr->name ? p_isr->name : "---", (unsigned long)p_isr->_rate,
+					(unsigned long)(p_isr->_average10 / 10), (unsigned long)(p_isr->_average10 % 10),
+					(unsigned long)p_isr->_max, p_isr->_load10 / 10, p_isr->_load10 % 10);
+			pifLog_Print(LT_NONE, line);
+		}
+	}
+#endif
+
 #ifdef PIF_USE_BLOCK_TIME
 	// Timer and idle callbacks run outside the task ring, so their block time is not in the list
 	// above even though it delays the realtime task just as a task does.
@@ -1548,8 +1688,16 @@ void pifTaskManager_Print()
 		it = pifObjArray_Next(it);
 	}
 	if (block_time || s_idle_block_time._max) {
+#ifdef PIF_USE_TASK_STATISTICS
+		// The timer callbacks together over the last CPU load window, counting only the calls that
+		// did work: average call, calls per second and share of the load.
+		pifLog_Printf(LT_NONE, "Callback block: Timer=%luus Idle=%luus, Timer A=%lu.%luus Rate=%lu (%u%%)\n",
+				block_time, s_idle_block_time._max, s_timer_average10 / 10, s_timer_average10 % 10,
+				s_timer_rate, s_timer_load);
+#else
 		pifLog_Printf(LT_NONE, "Callback block: Timer=%luus Idle=%luus\n", block_time,
 				s_idle_block_time._max);
+#endif
 	}
 #endif
 #ifdef PIF_USE_TASK_STATISTICS

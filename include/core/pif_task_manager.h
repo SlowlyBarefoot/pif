@@ -17,8 +17,12 @@
 
 /**
  * @brief Callback run at the start of every pass of the main loop.
+ *
+ * Returns TRUE when it did some work. Most passes find nothing to do, and the time of such a call is
+ * the main loop waiting rather than load, so only the calls that return TRUE count towards
+ * pif_performance._task_load and the timer statistics.
  */
-typedef void (*PifEvtTaskTimer)(void *p_client);
+typedef BOOL (*PifEvtTaskTimer)(void *p_client);
 
 /**
  * @struct StPifTaskTimer
@@ -54,6 +58,74 @@ typedef struct StPifTaskTimer
  * @brief Callback run when no task is due, set with pifTaskManager_SetIdle().
  */
 typedef void (*PifEvtTaskIdle)(void);
+
+/**
+ * @brief Body of an interrupt handler, run by pifTaskManager_sigInterrupt().
+ */
+typedef void (*PifEvtTaskIsr)(void *p_arg);
+
+#ifdef PIF_USE_ISR_STATISTICS
+
+// The counter that times the interrupts, read inside them. A platform gives a fast one in pif_conf.h,
+// all three together: a register read, how two readings make a time in its counts, and how many counts
+// make a microsecond. A down counter or one that reloads works as long as no interrupt outlasts its
+// period. Without them the 1 us timer of pif_Init() is used, which is coarse and costs a call.
+#ifndef PIF_ISR_TICKS
+#define PIF_ISR_TICKS()						(pif_act_timer1us ? (*pif_act_timer1us)() : 0UL)
+#define PIF_ISR_TICKS_ELAPSED(START, END)	((uint32_t)((END) - (START)))
+#define PIF_ISR_TICKS_PER_US				1
+#endif
+
+// One call in this many is timed, and every call is counted. A prime keeps the sample from locking
+// onto a handler that does more every Nth call, as one with a slower step inside or two alternating
+// groups does: with 16 a handler that alternates is only ever timed on one of its two kinds of call.
+#ifndef PIF_ISR_SAMPLE
+#define PIF_ISR_SAMPLE						17
+#endif
+
+#endif
+
+#ifdef PIF_USE_ISR_STATISTICS
+
+/**
+ * @struct StPifTaskIsr
+ * @brief One interrupt handler, or a group of them sharing it, counted and timed by
+ *        pifTaskManager_sigInterrupt() with PIF_USE_ISR_STATISTICS. Added with pifTaskManager_AddIsr().
+ *        Every call is counted and a sample of them is timed, so the average and the share are
+ *        estimates and the longest call is the longest of the sample. The values are those of the last
+ *        CPU load window. An interrupt nested in this one is counted in its time.
+ */
+typedef struct StPifTaskIsr
+{
+	// Public Member Variable
+	const char *name;			///< Name shown in the statistics
+
+	// Read-only Member Variable
+	uint32_t _rate;				///< Calls per second
+	uint32_t _average10;		///< Average call in tenths of a microsecond
+	uint32_t _max;				///< Longest call of the sample in microseconds
+	uint16_t _load10;			///< Share of the window in tenths of a percent
+
+	// Private Member Variable, written by the interrupt
+	struct StPifTaskIsr *__p_next;
+	uint16_t __sample;			///< One call in this many is timed
+	volatile uint16_t __skip;	///< Calls left before the next timed one
+	volatile uint32_t __count;	///< Calls in the current window
+	volatile uint32_t __sample_count;
+	volatile uint32_t __sample_ticks;
+	volatile uint32_t __max_ticks;
+} PifTaskIsr;
+
+#else
+
+/// Without the statistics a place holder, so that the handlers are declared and given as they are, and
+/// pifTaskManager_AddIsr() and pifTaskManager_sigInterrupt() cost nothing.
+typedef struct StPifTaskIsr
+{
+	uint8_t __unused;
+} PifTaskIsr;
+
+#endif
 
 #ifdef PIF_USE_TASK_STATISTICS
 
@@ -235,7 +307,8 @@ PifTask *pifTaskManager_CurrentTask();
 
 /**
  * @brief Adds a timer process to the task manager. It runs at the start of every loop, before
- *        any task, and its execution time counts towards pif_performance._task_load.
+ *        any task, and the execution time of the calls that did work counts towards
+ *        pif_performance._task_load.
  *        With PIF_USE_BLOCK_TIME a TM_REALTIME task delays a timer whose measured run does not
  *        fit in the time left before its next release.
  * @param evt_timer The timer process callback function.
@@ -243,6 +316,50 @@ PifTask *pifTaskManager_CurrentTask();
  * @return Pointer to the resulting timer object or data, or NULL if unavailable.
  */
 PifTaskTimer *pifTaskManager_AddTimer(PifEvtTaskTimer evt_timer, void *p_client);
+
+#ifdef PIF_USE_ISR_STATISTICS
+
+/**
+ * @brief Adds an interrupt handler, or a group of them sharing p_isr, to the statistics. The interrupt
+ *        may already run through pifTaskManager_sigInterrupt(): what it counted before is dropped.
+ * @param p_isr Statistics of the handler, kept by the caller.
+ * @param name Name shown in the statistics.
+ * @param sample One call in this many is timed, best a prime. 1 times every call, for an exact
+ *        longest call, and 0 takes PIF_ISR_SAMPLE.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifTaskManager_AddIsr(PifTaskIsr *p_isr, const char *name, uint16_t sample);
+
+/**
+ * @brief Runs the body of an interrupt handler, counts the call and times one in the sample of p_isr.
+ *        Called from the interrupt. The time of the interrupts stays in the run of the task or timer
+ *        callback it falls in, as without the statistics. The handler code the driver runs before and
+ *        after the body is not timed.
+ * @param p_isr Statistics given to pifTaskManager_AddIsr().
+ * @param evt_isr Body of the handler.
+ * @param p_arg Argument given to evt_isr.
+ */
+PIF_STATIC_INLINE void pifTaskManager_sigInterrupt(PifTaskIsr *p_isr, PifEvtTaskIsr evt_isr, void *p_arg)
+{
+	uint32_t start, end, ticks;
+
+	p_isr->__count++;
+	if (p_isr->__skip) {
+		p_isr->__skip--;
+		(*evt_isr)(p_arg);
+		return;
+	}
+	p_isr->__skip = p_isr->__sample - 1;
+	start = PIF_ISR_TICKS();
+	(*evt_isr)(p_arg);
+	end = PIF_ISR_TICKS();
+	ticks = PIF_ISR_TICKS_ELAPSED(start, end);
+	p_isr->__sample_count++;
+	p_isr->__sample_ticks += ticks;
+	if (ticks > p_isr->__max_ticks) p_isr->__max_ticks = ticks;
+}
+
+#endif
 
 /**
  * @brief Removes a timer process from the task manager.
@@ -345,6 +462,12 @@ void pifTaskManager_Print();
 
 #ifdef __cplusplus
 }
+#endif
+
+#ifndef PIF_USE_ISR_STATISTICS
+/// Without the statistics nothing is added and the body runs as it is, at no cost.
+#define pifTaskManager_AddIsr(P_ISR, NAME, SAMPLE)			((void)(P_ISR), (void)(NAME), (void)(SAMPLE), TRUE)
+#define pifTaskManager_sigInterrupt(P_ISR, EVT_ISR, P_ARG)	((void)(P_ISR), (*(EVT_ISR))(P_ARG))
 #endif
 
 

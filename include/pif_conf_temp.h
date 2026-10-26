@@ -17,7 +17,7 @@
 
 //#define PIF_DEBUG
 
-//#define PIF_STATIC_INLINE			static inline
+//#define PIF_STATIC_INLINE			        static inline
 
 //#define PIF_WEAK							__attribute__ ((weak))
 
@@ -342,6 +342,56 @@
 // would not finish before the release. The timer and idle callbacks are measured and held back by
 // the same rule. PIF_USE_TASK_STATISTICS enables it as well.
 //#define PIF_USE_BLOCK_TIME
+
+// Counts the calls of the interrupt handlers that run their body through pifTaskManager_sigInterrupt(),
+// and times one in PIF_ISR_SAMPLE of them: calls per second, average and longest call and share of the
+// CPU, in the task statistics. An interrupt taken during a task stays in the time of the task. Without it
+// pifTaskManager_sigInterrupt() only runs the body.
+//#define PIF_USE_ISR_STATISTICS
+
+// The counter that times the interrupts, all three or none: a fast read of a hardware counter, the time
+// between two readings in its counts, and its counts in a microsecond (a whole number of at least 1). It
+// is read inside every timed interrupt, so it should be a register read with no division. A down counter
+// or one that reloads works when no interrupt outlasts its period. Without them the 1 us timer of
+// pif_Init() is used, which is coarse and costs a call.
+//
+// Cortex-M3/M4/M7 (STM32F1/F4/F7/H7, nRF52, SAMD51 ...): the cycle counter of DWT, 32 bits counting up.
+// It is off after reset: CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+//#define PIF_ISR_TICKS()					(DWT->CYCCNT)
+//#define PIF_ISR_TICKS_ELAPSED(START, END)	((uint32_t)((END) - (START)))
+//#define PIF_ISR_TICKS_PER_US				(SystemCoreClock / 1000000UL)
+//
+// Cortex-M0/M0+ (STM32F0/G0/L0, SAMD21, LPC8xx ...): no DWT, but SysTick counts down 24 bits from LOAD at
+// the core clock. With the usual 1 ms tick no interrupt comes near a reload.
+//#define PIF_ISR_TICKS()					(SysTick->VAL)
+//#define PIF_ISR_TICKS_ELAPSED(START, END)	((START) >= (END) ? (START) - (END) : (START) + SysTick->LOAD + 1UL - (END))
+//#define PIF_ISR_TICKS_PER_US				(SystemCoreClock / 1000000UL)
+//
+// Kinetis KE06 (Cortex-M0+), PIT channel 0 counting down at the 24 MHz bus clock and reloading every
+// 50 us (LDVAL 1199), as in LS1_KE06_FND. The address saves the device header here.
+//#define PIF_ISR_TICKS()					(*(volatile uint32_t *)0x40037104UL)	// PIT_CVAL0
+//#define PIF_ISR_TICKS_ELAPSED(START, END)	((START) >= (END) ? (START) - (END) : (START) + 1200UL - (END))
+//#define PIF_ISR_TICKS_PER_US				24
+//
+// RP2040 (Raspberry Pi Pico): the 1 MHz timer, its low 32 bits read without latching the high ones.
+//#define PIF_ISR_TICKS()					(timer_hw->timerawl)
+//#define PIF_ISR_TICKS_ELAPSED(START, END)	((uint32_t)((END) - (START)))
+//#define PIF_ISR_TICKS_PER_US				1
+//
+// ESP32 (Xtensa): the cycle counter of the core at the CPU clock, such as 240 MHz.
+//#define PIF_ISR_TICKS()					((uint32_t)esp_cpu_get_cycle_count())
+//#define PIF_ISR_TICKS_ELAPSED(START, END)	((uint32_t)((END) - (START)))
+//#define PIF_ISR_TICKS_PER_US				240
+//
+// AVR (ATmega328P at 16 MHz): Timer1 left free running in normal mode with a prescaler of 8, 16 bits
+// counting up at 2 MHz. Timer0 of the Arduino core is too coarse at 4 us a count.
+//#define PIF_ISR_TICKS()					(TCNT1)
+//#define PIF_ISR_TICKS_ELAPSED(START, END)	((uint16_t)((END) - (START)))
+//#define PIF_ISR_TICKS_PER_US				2
+
+// One call in this many is timed unless pifTaskManager_AddIsr() is given its own. A prime keeps it
+// from locking onto a handler that does more every Nth call.
+//#define PIF_ISR_SAMPLE					17
 
 
 // -------- pifTftLcd ----------------------------

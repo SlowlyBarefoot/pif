@@ -131,7 +131,7 @@ int pifLog_CmdSetStatus(int argc, char* argv[])
 		}
 		i = 0;
 		while (c_log_flags[i].p_name) {
-			if (!strcasecmp(argv[0], c_log_flags[i].p_command)) {
+			if (!pif_StrCaseCmp(argv[0], c_log_flags[i].p_command)) {
 				if (value) {
 					pif_log_flag.all |= 1L << i;
 				}
@@ -208,7 +208,7 @@ static void _completeCommand(PifLog* p_owner)
 	if (memchr(p_owner->p_rx_buffer, ' ', typed)) return;
 
 	for (p_entry = p_owner->p_cmd_table; p_entry->p_name; p_entry++) {
-		if (strncasecmp(p_entry->p_name, p_owner->p_rx_buffer, typed)) continue;
+		if (pif_StrNCaseCmp(p_entry->p_name, p_owner->p_rx_buffer, typed)) continue;
 
 		if (!p_first) {
 			p_first = p_entry->p_name;
@@ -242,7 +242,7 @@ static void _completeCommand(PifLog* p_owner)
 
 	pifRingBuffer_PutString(p_owner->p_tx_buffer, "\r\n");
 	for (p_entry = p_owner->p_cmd_table; p_entry->p_name; p_entry++) {
-		if (strncasecmp(p_entry->p_name, p_owner->p_rx_buffer, p_owner->char_idx)) continue;
+		if (pif_StrNCaseCmp(p_entry->p_name, p_owner->p_rx_buffer, p_owner->char_idx)) continue;
 		pifRingBuffer_PutString(p_owner->p_tx_buffer, (char *)p_entry->p_name);
 		pifRingBuffer_PutString(p_owner->p_tx_buffer, "  ");
 	}
@@ -358,7 +358,7 @@ static int _processDebugCmd(PifLog* p_owner)
     if (argc) {
 		p_cmd_entry = p_owner->p_cmd_table;
 		while (p_cmd_entry->p_name) {
-			if (!strcasecmp(p_owner->p_argv[0], p_cmd_entry->p_name)) {
+			if (!pif_StrCaseCmp(p_owner->p_argv[0], p_cmd_entry->p_name)) {
 				return p_cmd_entry->processor(argc - 1, &p_owner->p_argv[1]);
             }
 

@@ -19,12 +19,12 @@ static void _finish(PifTimerManager *p_manager, PifTimer *p_timer)
 	}
 }
 
-static void _doTask(void *p_client)
+static BOOL _doTask(void *p_client)
 {
 	PifTimerManager *p_manager = (PifTimerManager *)p_client;
 	PifObjArrayIterator it, it_next;
 
-	if (!p_manager->__pending) return;
+	if (!p_manager->__pending) return FALSE;
 	p_manager->__pending = FALSE;
 
 	it = pifObjArray_Begin(&p_manager->__timers);
@@ -48,6 +48,7 @@ static void _doTask(void *p_client)
 
 		it = it_next;
 	}
+	return TRUE;
 }
 
 BOOL pifTimerManager_Init(PifTimerManager *p_manager, PifId id, uint32_t period1us, int max_count)

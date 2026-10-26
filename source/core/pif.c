@@ -52,7 +52,7 @@ const uint8_t kDaysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 
 
 // Writes the len characters of p_num right-aligned in a field of width, filling the front with spaces.
 // Nothing is written if it does not fit.
-static size_t _PutSpacePadded(char* p_buffer, size_t buffer_size, size_t offset, const char* p_num, size_t len, uint16_t width)
+static size_t _putSpacePadded(char* p_buffer, size_t buffer_size, size_t offset, const char* p_num, size_t len, uint16_t width)
 {
 	size_t pad = len < width ? width - len : 0;
 
@@ -62,6 +62,12 @@ static size_t _PutSpacePadded(char* p_buffer, size_t buffer_size, size_t offset,
 		offset += pad + len;
 	}
 	return offset;
+}
+
+// ASCII only, so that it does not depend on the locale of the C library.
+static int _toLower(int ch)
+{
+	return (ch >= 'A' && ch <= 'Z') ? ch - 'A' + 'a' : ch;
 }
 
 
@@ -302,6 +308,23 @@ int pif_FloatToString(char* p_buffer, double value, uint16_t point)
     return idx;
 }
 
+int pif_StrNCaseCmp(const char* p_str1, const char* p_str2, size_t n)
+{
+	int ch1, ch2;
+
+	for (; n; n--, p_str1++, p_str2++) {
+		ch1 = _toLower((unsigned char)*p_str1);
+		ch2 = _toLower((unsigned char)*p_str2);
+		if (ch1 != ch2 || !ch1) return ch1 - ch2;
+	}
+	return 0;
+}
+
+int pif_StrCaseCmp(const char* p_str1, const char* p_str2)
+{
+	return pif_StrNCaseCmp(p_str1, p_str2, (size_t)-1);
+}
+
 void pif_PrintFormat(char* p_buffer, size_t buffer_size, va_list* p_data, const char* p_format)
 {
 	int int_val;
@@ -362,7 +385,7 @@ NEXT_STR:
                 	else {
 						size = pif_BinToString(num_buf, va_arg(*p_data, unsigned int), 0);
                 	}
-					offset = _PutSpacePadded(p_buffer, buffer_size, offset, num_buf, size, num_str_cnt);
+					offset = _putSpacePadded(p_buffer, buffer_size, offset, num_buf, size, num_str_cnt);
                     break;
 
                 case 'd':
@@ -383,7 +406,7 @@ NEXT_STR:
             			}
             			size += pif_DecToString(num_buf + size, int_val, 0);
                 	}
-					offset = _PutSpacePadded(p_buffer, buffer_size, offset, num_buf, size, num_str_cnt);
+					offset = _putSpacePadded(p_buffer, buffer_size, offset, num_buf, size, num_str_cnt);
                     break;
 
                 case 'u':
@@ -393,7 +416,7 @@ NEXT_STR:
                 	else {
 						size = pif_DecToString(num_buf, va_arg(*p_data, unsigned int), 0);
                 	}
-					offset = _PutSpacePadded(p_buffer, buffer_size, offset, num_buf, size, num_str_cnt);
+					offset = _putSpacePadded(p_buffer, buffer_size, offset, num_buf, size, num_str_cnt);
                     break;
 
                 case 'x':

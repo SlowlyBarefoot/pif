@@ -378,6 +378,25 @@ int pif_HexToString(char* p_buffer, uint32_t value, uint16_t str_cnt, BOOL upper
 int pif_FloatToString(char* p_buffer, double value, uint16_t point);
 
 /**
+ * @brief Compares two strings without regard to the case of the ASCII letters, as the POSIX strcasecmp()
+ *        does, which not every C library has.
+ * @param p_str1 First string.
+ * @param p_str2 Second string.
+ * @return 0 if they match, otherwise a value whose sign is that of the first difference.
+ */
+int pif_StrCaseCmp(const char* p_str1, const char* p_str2);
+
+/**
+ * @brief Compares at most n characters of two strings without regard to the case of the ASCII letters,
+ *        as the POSIX strncasecmp() does.
+ * @param p_str1 First string.
+ * @param p_str2 Second string.
+ * @param n Most characters to compare.
+ * @return 0 if they match, otherwise a value whose sign is that of the first difference.
+ */
+int pif_StrNCaseCmp(const char* p_str1, const char* p_str2, size_t n);
+
+/**
  * @brief Formats a string like vsnprintf with the conversions %d, %u, %x, %X, %b, %f, %s, %c and %%. A width
  *        sets the zero padded digits, or the digits after the point for %f, and l takes a long. The result always ends
  *        with NUL. %f is written only with PIF_USE_PRINTF_FLOAT; without it %f takes its argument and writes
