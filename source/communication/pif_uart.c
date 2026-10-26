@@ -11,6 +11,14 @@ static void _setTxState(PifUart* p_owner, PifUartTxState state)
 #endif
 }
 
+// The state is SENDING before the transfer starts: a short transfer can end in the interrupt, which sets it
+// back to IDLE, before act_start_transfer() returns.
+static void _startTransfer(PifUart* p_owner)
+{
+	_setTxState(p_owner, UTS_SENDING);
+	if (!(*p_owner->act_start_transfer)(p_owner)) _setTxState(p_owner, UTS_IDLE);
+}
+
 #ifdef PIF_USE_UART_DIRECTION
 
 // Called before bytes go to the hardware or the TX buffer, so that the line is driven before they leave.
@@ -112,7 +120,7 @@ static void _sendXonXoff(PifUart* p_owner, uint8_t data)
 	else if (p_owner->_p_tx_buffer) {
 		if (p_owner->act_start_transfer) {
 			pifRingBuffer_PutData(p_owner->_p_tx_buffer, &data, 1);
-			if ((*p_owner->act_start_transfer)(p_owner)) _setTxState(p_owner, UTS_SENDING);
+			_startTransfer(p_owner);
 		}
 	}
 }
@@ -675,7 +683,7 @@ next1:
 static uint32_t _doTxTask(PifTask* p_task)
 {
 	PifUart *p_owner = p_task->_p_client;
-	uint32_t bytes = 0, period;
+	uint32_t bytes = 0, fill, period;
 #ifdef PIF_USE_UART_DIRECTION
 	uint32_t turnaround;
 #endif
@@ -698,13 +706,11 @@ static uint32_t _doTxTask(PifTask* p_task)
 		if (p_owner->__evt_sending) {
 			bytes = (*p_owner->__evt_sending)(p_owner->__p_client, _actTransportSendBuffer);
 		}
-		else {
-			bytes = pifRingBuffer_GetFillSize(p_owner->_p_tx_buffer);
-		}
+		// pifUart_SendTxData() may have put bytes beside the client's, so the buffer decides, not the client.
+		fill = pifRingBuffer_GetFillSize(p_owner->_p_tx_buffer);
+		if (fill > bytes) bytes = fill;
 		if (bytes && p_owner->__tx_state == UTS_IDLE) {
-			if (p_owner->act_start_transfer) {
-				if ((*p_owner->act_start_transfer)(p_owner)) _setTxState(p_owner, UTS_SENDING);
-			}
+			if (p_owner->act_start_transfer) _startTransfer(p_owner);
 		}
 	}
 	period = bytes * p_owner->_transfer_time;

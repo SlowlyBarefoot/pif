@@ -122,7 +122,7 @@ typedef struct StPifTaskIsr
 /// pifTaskManager_AddIsr() and pifTaskManager_sigInterrupt() cost nothing.
 typedef struct StPifTaskIsr
 {
-	uint8_t __unused;
+	uint8_t __placeholder;	// not __unused: newlib defines that as an attribute macro
 } PifTaskIsr;
 
 #endif

@@ -343,6 +343,62 @@ static void _testUartTransport(void)
     _tearDownMedium();
 }
 
+static int s_starts;
+static BOOL s_send_at_once;
+
+static uint16_t _evtSendingNone(void *p_client, PifActTransportSend act_send_data)
+{
+    (void)p_client;
+    (void)act_send_data;
+    return 0;
+}
+
+// Starts a transfer; with s_send_at_once the transfer also ends before this returns, the way a short one can
+// end in the interrupt.
+static BOOL _actStartTransferCount(PifUart *p_uart)
+{
+    uint8_t *p_data;
+    uint16_t length = 0;
+
+    if (!(pifUart_StartGetTxData(p_uart, &p_data, &length) & PIF_UART_SEND_DATA_STATE_DATA)) return FALSE;
+    s_starts++;
+    if (s_send_at_once) pifUart_EndGetTxData(p_uart, length);
+    return TRUE;
+}
+
+static void _testUartTxBufferShared(void)
+{
+    static uint8_t frame[] = { 1, 2, 3 };
+    PifUart uart;
+    PifTask *p_task;
+
+    CHECK(pifUart_Init(&uart, PIF_ID_AUTO, 115200) && pifUart_AllocTxBuffer(&uart, 64));
+    uart.act_start_transfer = _actStartTransferCount;
+    p_task = pifUart_AttachTxTask(&uart, PIF_ID_AUTO, TM_EXTERNAL, 0, NULL);
+    CHECK(p_task);
+    pifTransport_AttachClient(&uart.parent, NULL, NULL, _evtSendingNone, NULL);
+
+    // Bytes put beside a client that has nothing to send still start the transfer.
+    s_starts = 0;
+    s_send_at_once = FALSE;
+    CHECK(pifUart_SendTxData(&uart, frame, sizeof(frame)) == sizeof(frame));
+    CHECK((*p_task->__evt_loop)(p_task) == sizeof(frame) * uart._transfer_time);
+    CHECK(s_starts == 1 && uart.__tx_state == UTS_SENDING);
+    CHECK(pifUart_EndGetTxData(&uart, sizeof(frame)) & PIF_UART_SEND_DATA_STATE_EMPTY);
+    CHECK(uart.__tx_state == UTS_IDLE);
+
+    // A transfer that ends before act_start_transfer() returns leaves the UART idle, so the next bytes go out.
+    s_send_at_once = TRUE;
+    CHECK(pifUart_SendTxData(&uart, frame, sizeof(frame)) == sizeof(frame));
+    (*p_task->__evt_loop)(p_task);
+    CHECK(s_starts == 2 && uart.__tx_state == UTS_IDLE);
+    CHECK(pifUart_SendTxData(&uart, frame, sizeof(frame)) == sizeof(frame));
+    (*p_task->__evt_loop)(p_task);
+    CHECK(s_starts == 3 && uart.__tx_state == UTS_IDLE);
+
+    pifUart_Clear(&uart);
+}
+
 #ifdef PIF_USE_UART_DIRECTION
 
 static uint32_t s_fake_time;
@@ -449,6 +505,7 @@ static const struct {
     { "xmodem over can", _testXmodemCan },
     { "xmodem over can fd", _testXmodemCanFd },
     { "uart transport", _testUartTransport },
+    { "uart tx buffer shared with a client", _testUartTxBufferShared },
 #ifdef PIF_USE_UART_DIRECTION
     { "uart rs-485 direction", _testUartDirection },
 #endif
