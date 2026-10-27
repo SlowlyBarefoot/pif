@@ -477,6 +477,11 @@ static void testProcessScan(void)
     CHECK(!s_fnd3._p_task && pifTaskManager_Count() == 2);
 }
 
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(TASK_SIZE, 1);
+}
+
 int main(void)
 {
     int failed = 0;
@@ -495,7 +500,7 @@ int main(void)
         { "process scan", testProcessScan },
     };
 
-    if (!pif_Init(_timer1us) || !pifTaskManager_Init(TASK_SIZE, 1)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_fnd: setup failed (%d)\n", pif_error);
         return 1;
     }

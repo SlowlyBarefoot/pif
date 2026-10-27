@@ -517,6 +517,11 @@ static void testCollectSignal(void)
 
 #endif
 
+static BOOL _portSetup(void)
+{
+    return TRUE;
+}
+
 int main(void)
 {
     int failed = 0;
@@ -545,7 +550,7 @@ int main(void)
 #endif
     };
 
-    if (!pif_Init(_timer1us)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_solenoid: setup failed (%d)\n", pif_error);
         return 1;
     }

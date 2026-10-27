@@ -21,10 +21,12 @@ one more in, so a feature the target does not use costs neither code nor RAM.
 
 ## Initialize the core
 
-Call pif_Init() once during startup, before the main loop, with a function that returns a 1 us tick.
+Call pif_Init() once during startup, before the main loop, with a function that returns a 1 us tick and the
+setups of the port and of the application. The port setup is required and runs first; the application setup
+may be NULL. When a setup returns FALSE, pif_Init() ends PIF again with pif_Exit() and returns FALSE.
 
 @code{.c}
-#include "core/pif.h"
+#include "core/pif_task_manager.h"
 
 static uint32_t platform_timer1us(void)
 {
@@ -32,9 +34,21 @@ static uint32_t platform_timer1us(void)
     return 0;
 }
 
+static BOOL port_setup(void)
+{
+    // The task manager and the drivers of the platform.
+    return pifTaskManager_Init(8, 0);
+}
+
+static BOOL app_setup(void)
+{
+    // The tasks of the application.
+    return TRUE;
+}
+
 void app_init(void)
 {
-    if (!pif_Init(platform_timer1us)) {
+    if (!pif_Init(platform_timer1us, port_setup, app_setup)) {
         while (1) {}
     }
 }
@@ -45,5 +59,7 @@ void app_init(void)
 - Call pif_sigTimer1ms() every 1 ms, from a timer interrupt for example.
 - Call pifTaskManager_Loop() from the main loop.
 
-Both do nothing until pif_Init() succeeds, which sets pif_ready. The timer interrupt and the main loop may
-therefore start before the setup is finished, with no flag of their own.
+pif_Init() moves pif_state through two stages. From PST_TIMER, set before the setups run, pif_sigTimer1ms()
+advances the time base, so a setup can wait with pif_Delay1ms(). From PST_RUNNING, set once both setups
+succeeded, pifTaskManager_Loop() runs the tasks. The timer interrupt and the main loop may therefore start
+before the setup is finished, with no flag of their own.

@@ -421,10 +421,122 @@ static void testCode()
 }
 
 
+// What a backend was told, in order.
+static char s_events[256];
+static size_t s_events_len;
+static BOOL s_backend_refuse;
+
+static void _event(const char *p_text)
+{
+    size_t len = strlen(p_text);
+
+    if (s_events_len + len < sizeof(s_events)) {
+        memcpy(s_events + s_events_len, p_text, len + 1);
+        s_events_len += len;
+    }
+}
+
+static BOOL _evtStart(void *p_client)
+{
+    const PifCollectSignalChannel *p_channel;
+    char text[32];
+
+    _event(p_client == &s_events ? "start" : "start?");
+    // The channels of the capture and their values at the start.
+    for (p_channel = pifCollectSignal_GetFirstChannel(); p_channel; p_channel = pifCollectSignal_GetNextChannel(p_channel)) {
+        if (!pifCollectSignal_IsCapturing(p_channel)) continue;
+        snprintf(text, sizeof(text), " %s=%lx", p_channel->_name, (unsigned long)p_channel->_value);
+        _event(text);
+    }
+    _event(";");
+    return !s_backend_refuse;
+}
+
+static void _evtChange(void *p_client, const PifCollectSignalChannel *p_channel, uint32_t value)
+{
+    char text[32];
+
+    (void)p_client;
+    snprintf(text, sizeof(text), "%lu:%s=%lx;", (unsigned long)pif_cumulative_timer1ms, p_channel->_name,
+            (unsigned long)value);
+    _event(text);
+}
+
+static void _evtStop(void *p_client)
+{
+    (void)p_client;
+    _event("stop;");
+}
+
+static const PifCollectSignalBackend kBackend = { _evtStart, _evtChange, _evtStop };
+
+static void testBackend()
+{
+    static const PifCollectSignalBackend kIncomplete = { _evtStart, NULL, _evtStop };
+    float real = 1.5f;
+    uint32_t raw;
+    char expect[128];
+
+    pifCollectSignal_InitStatic("top", sizeof(s_buffer), s_buffer);
+    CHECK(_addChannels());
+    CHECK(!pifCollectSignal_AttachBackend(&kIncomplete, &s_events) && pif_error == E_INVALID_PARAM);
+    CHECK(pifCollectSignal_AttachBackend(&kBackend, &s_events));
+
+    // The channels in the order they were added.
+    CHECK(pifCollectSignal_GetFirstChannel() == &s_clk);
+    CHECK(pifCollectSignal_GetNextChannel(&s_clk) == &s_bus);
+    CHECK(pifCollectSignal_GetNextChannel(&s_temp) == NULL);
+    CHECK(!pifCollectSignal_IsCapturing(&s_clk));
+
+    // The same capture as the other methods, to the backend and none of it to the log.
+    _resetLog();
+    s_events_len = 0;
+    _runCapture();
+    memcpy(&raw, &real, sizeof(raw));
+    snprintf(expect, sizeof(expect), "start clk=1 bus=5 temp=0;100:clk=0;103:bus=a;103:temp=%lx;107:clk=1;stop;",
+            (unsigned long)raw);
+    CHECK(strcmp(s_events, expect) == 0);
+    CHECK(s_log_len == 0 && s_log_enable);
+    CHECK(!pifCollectSignal_PrintLog() && pif_error == E_CANNOT_USE);
+
+    // Not while capturing.
+    CHECK(pifCollectSignal_Start());
+    CHECK(pifCollectSignal_IsCapturing(&s_bus));
+    CHECK(!pifCollectSignal_AttachBackend(NULL, NULL) && pif_error == E_INVALID_STATE);
+    pifCollectSignal_Stop();
+
+    // A refused start leaves the collector idle, and changes go nowhere.
+    s_backend_refuse = TRUE;
+    s_events_len = 0;
+    CHECK(!pifCollectSignal_Start() && !pifCollectSignal_IsCollecting());
+    s_backend_refuse = FALSE;
+    pifCollectSignal_Put(&s_clk, 0);
+    CHECK(strcmp(s_events, "start clk=1 bus=a temp=3fc00000;") == 0);
+
+    // Clear stops the capture through the backend and detaches it.
+    CHECK(pifCollectSignal_Start());
+    s_events_len = 0;
+    pifCollectSignal_Clear();
+    CHECK(strcmp(s_events, "stop;") == 0);
+    CHECK(!pifCollectSignal_GetFirstChannel());
+
+    // Detached, the VCD output is back.
+    pifCollectSignal_Init("top");
+    CHECK(_addChannels());
+    _resetLog();
+    s_events_len = 0;
+    s_events[0] = 0;
+    _runCapture();
+    CHECK(s_events_len == 0);
+    CHECK(strcmp(_afterDate(s_log), kExpect) == 0);
+    pifCollectSignal_Clear();
+}
+
 static const struct {
     const char *p_name;
     void (*run)(void);
 } s_tests[] = {
+    { "backend", testBackend },
     { "log", testLog },
     { "buffer", testBuffer },
     { "buffer retry", testBufferRetry },
@@ -437,12 +549,17 @@ static const struct {
     { "code", testCode }
 };
 
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(4, 2);
+}
+
 int main(void)
 {
     int failed = 0;
     size_t t;
 
-    if (!pif_Init(_timer1us) || !pifTaskManager_Init(4, 2)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_collect_signal: setup failed (%d)\n", pif_error);
         return 1;
     }

@@ -351,6 +351,11 @@ static void testMax31855Threshold(void)
     pifSpiPort_Clear(&s_port);
 }
 
+static BOOL _portSetup(void)
+{
+    return TRUE;
+}
+
 int main(void)
 {
     int failed = 0;
@@ -371,7 +376,7 @@ int main(void)
         { "max31855 threshold", testMax31855Threshold },
     };
 
-    if (!pif_Init(_timer1us)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_sensor: setup failed (%d)\n", pif_error);
         return 1;
     }

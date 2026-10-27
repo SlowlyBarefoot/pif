@@ -326,6 +326,11 @@ static void testChangePeriod(void)
     CHECK_STATE(0x1);
 }
 
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(TASK_SIZE, 1);
+}
+
 int main(void)
 {
     int failed = 0;
@@ -346,7 +351,7 @@ int main(void)
         { "multi blink off in another profile", testMBlinkOffOther },
     };
 
-    if (!pif_Init(_timer1us) || !pifTaskManager_Init(TASK_SIZE, 1)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_led: setup failed (%d)\n", pif_error);
         return 1;
     }

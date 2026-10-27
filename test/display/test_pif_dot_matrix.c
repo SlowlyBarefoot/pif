@@ -255,6 +255,11 @@ static void testShiftEnd(void)
     CHECK(s_dm.__shift_direction == DMSD_NONE && s_dm.__position_x == 0 && s_finish_count == 2);
 }
 
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(2, 1);
+}
+
 int main(void)
 {
     int failed = 0;
@@ -273,7 +278,7 @@ int main(void)
         { "shift end", testShiftEnd },
     };
 
-    if (!pif_Init(_timer1us) || !pifTaskManager_Init(2, 1)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_dot_matrix: setup failed (%d)\n", pif_error);
         return 1;
     }

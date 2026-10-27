@@ -242,6 +242,11 @@ static void testWrapAround(void)
     CHECK(NEAR(pifEncoder_GetSpeed(&encoder), 10000.0f));
 }
 
+static BOOL _portSetup(void)
+{
+    return TRUE;
+}
+
 int main(void)
 {
     int failed = 0;
@@ -262,7 +267,7 @@ int main(void)
         { "wrap around", testWrapAround },
     };
 
-    if (!pif_Init(_timer1us)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_encoder: setup failed (%d)\n", pif_error);
         return 1;
     }

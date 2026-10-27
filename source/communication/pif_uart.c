@@ -12,11 +12,19 @@ static void _setTxState(PifUart* p_owner, PifUartTxState state)
 }
 
 // The state is SENDING before the transfer starts: a short transfer can end in the interrupt, which sets it
-// back to IDLE, before act_start_transfer() returns.
+// back to IDLE, before act_start_transfer() returns. The signal follows only a transfer that started, from the
+// state as it is then, so a start that was refused, as every one of a UART that sends from its task is, does
+// not show as a pulse.
 static void _startTransfer(PifUart* p_owner)
 {
-	_setTxState(p_owner, UTS_SENDING);
-	if (!(*p_owner->act_start_transfer)(p_owner)) _setTxState(p_owner, UTS_IDLE);
+	p_owner->__tx_state = UTS_SENDING;
+	if (!(*p_owner->act_start_transfer)(p_owner)) {
+		p_owner->__tx_state = UTS_IDLE;
+		return;
+	}
+#ifdef COLLECT_SIGNAL_UART
+	pifCollectSignal_Put(&p_owner->__cs[UA_CSF_TX_IDX], p_owner->__tx_state);
+#endif
 }
 
 #ifdef PIF_USE_UART_DIRECTION

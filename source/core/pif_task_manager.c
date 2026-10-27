@@ -810,7 +810,7 @@ BOOL pifTaskManager_Init(int max_count, int timer_count)
 	    return FALSE;
 	}
 	// The task manager reads the 1us timer from here on.
-	if (!pif_ready) {
+	if (pif_state < PST_TIMER) {
 		pif_error = E_INVALID_STATE;
 	    return FALSE;
 	}
@@ -1066,8 +1066,8 @@ void pifTaskManager_Loop()
 	BOOL trigger = FALSE;
 	BOOL worked;
 
-	// Before pif_Init() there is no timer to read.
-	if (!pif_ready) return;
+	// Before pif_Init() there is no timer to read, and while its setups run the tasks are not all there yet.
+	if (pif_state < PST_RUNNING) return;
 
 	pif_timer1us = (*pif_act_timer1us)();
 

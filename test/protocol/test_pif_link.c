@@ -629,15 +629,20 @@ static const TestCase s_tests[] = {
     { "fragment parameters", testFragmentParameters }
 };
 
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(4, 2) &&
+            pifTimerManager_Init(&s_timer_manager, PIF_ID_AUTO, 1000, 8) &&
+            pifRingBuffer_InitHeap(&s_wire_ab, PIF_ID_AUTO, WIRE_SIZE) &&
+            pifRingBuffer_InitHeap(&s_wire_ba, PIF_ID_AUTO, WIRE_SIZE);
+}
+
 int main(void)
 {
     int failed = 0, i;
     size_t t;
 
-    if (!pif_Init(_timer1us) || !pifTaskManager_Init(4, 2) ||
-            !pifTimerManager_Init(&s_timer_manager, PIF_ID_AUTO, 1000, 8) ||
-            !pifRingBuffer_InitHeap(&s_wire_ab, PIF_ID_AUTO, WIRE_SIZE) ||
-            !pifRingBuffer_InitHeap(&s_wire_ba, PIF_ID_AUTO, WIRE_SIZE)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_link: setup failed (%d)\n", pif_error);
         return 1;
     }

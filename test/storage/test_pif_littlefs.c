@@ -172,12 +172,17 @@ static const struct {
     { testPowerCut, "power cut while rewriting" },
 };
 
+static BOOL _portSetup(void)
+{
+    return TRUE;
+}
+
 int main(void)
 {
     int failed = 0;
     size_t t;
 
-    if (!pif_Init(_timer1us)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_littlefs: setup failed (%d)\n", pif_error);
         return 1;
     }

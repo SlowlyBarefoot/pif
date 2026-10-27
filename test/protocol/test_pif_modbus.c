@@ -699,13 +699,19 @@ static const struct
     { "ascii helpers", _testAsciiHelpers },
 };
 
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(8, 2) &&
+            _initUart(&s_uart_m) &&
+            _initUart(&s_uart_s);
+}
+
 int main(void)
 {
     int failed = 0;
     size_t t;
 
-    if (!pif_Init(_timer1us) || !pifTaskManager_Init(8, 2) ||
-            !_initUart(&s_uart_m) || !_initUart(&s_uart_s)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_modbus: setup failed (%d)\n", pif_error);
         return 1;
     }

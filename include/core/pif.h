@@ -167,6 +167,18 @@ typedef enum EnPifPulseState
 } PifPulseState;
 
 /**
+ * @brief Stage of PIF, from pif_Init() to pif_Exit(). Each stage includes the ones before it, so compare
+ *        with >=.
+ */
+typedef enum EnPifState
+{
+    PST_NONE		= 0,	///< Before pif_Init() or after pif_Exit(). Nothing runs.
+    PST_TIMER		= 1,	///< The 1 us timer is attached and the setups of pif_Init() run. The time base
+    						///< advances and pif_Delay1ms() works, but pifTaskManager_Loop() runs no task.
+    PST_RUNNING		= 2		///< The setups succeeded. pifTaskManager_Loop() runs the tasks.
+} PifState;
+
+/**
  * @struct StPifDateTime
  * @brief Date and time kept by pif_sigTimer1ms().
  */
@@ -211,6 +223,12 @@ typedef struct StPifPerformance
 typedef uint32_t (*PifActTimer1us)();
 
 /**
+ * @brief Sets up the port or the application during pif_Init().
+ * @return TRUE on success, FALSE with pif_error set otherwise.
+ */
+typedef BOOL (*PifActSetup)();
+
+/**
  * @brief Reads the state of a GPIO port.
  */
 typedef SWITCH (*PifActGpioRead)(uint16_t port);
@@ -233,9 +251,9 @@ typedef void (*PifActIrqRestore)(uint32_t state);
 
 extern PifError pif_error;	///< Error of the last function that failed
 
-/// TRUE from pif_Init() until pif_Exit(). Until then pif_sigTimer1ms() and pifTaskManager_Loop() return at once,
-/// so a timer interrupt or a main loop that starts before the setup is done needs no guard of its own.
-extern volatile BOOL pif_ready;
+/// Stage set by pif_Init() and pif_Exit(). pif_sigTimer1ms() runs from PST_TIMER and pifTaskManager_Loop() from
+/// PST_RUNNING, so a timer interrupt or a main loop that starts before the setup is done needs no guard of its own.
+extern volatile PifState pif_state;
 
 extern uint32_t pif_timer1us;	///< Time in us at the start of the current task run, from pif_act_timer1us
 extern volatile uint16_t pif_timer1ms;	///< Millisecond in the current second, 0 to 999
@@ -269,20 +287,29 @@ extern "C" {
 #endif
 
 /**
- * @brief Starts PIF with the 1 us timer of the platform. Call it once at startup, before any other module.
+ * @brief Starts PIF with the 1 us timer of the platform, then runs the setups. Call it once at startup, before
+ *        any other module.
+ *
+ * pif_state is PST_TIMER while the setups run: they may wait with pif_Delay1ms() and add tasks, but no task
+ * runs before both are done. Then it becomes PST_RUNNING. When a setup fails, pif_Exit() undoes what was set up
+ * and pif_error keeps the error of the setup.
  * @param act_timer1us Callback that returns the current 1us tick count.
- * @return TRUE on success, FALSE with E_INVALID_PARAM when act_timer1us is NULL.
+ * @param act_port_setup Sets up the port: the task manager and the drivers of the platform. Runs first.
+ * @param act_app_setup Sets up the application after the port. NULL when there is none.
+ * @return TRUE on success. FALSE with E_INVALID_PARAM when act_timer1us or act_port_setup is NULL, or with the
+ *         error of the setup that failed.
  */
-BOOL pif_Init(PifActTimer1us act_timer1us);
+BOOL pif_Init(PifActTimer1us act_timer1us, PifActSetup act_port_setup, PifActSetup act_app_setup);
 
 /**
- * @brief Ends PIF: clears pif_ready, then removes every task, timer and idle callback from the task manager.
+ * @brief Ends PIF: sets pif_state to PST_NONE, then removes every task, timer and idle callback from the task
+ *        manager.
  */
 void pif_Exit();
 
 /**
  * @brief Advances the time base by 1 ms: pif_cumulative_timer1ms, pif_timer1ms, pif_timer1sec and pif_datetime.
- *        Call it every millisecond, from a timer interrupt for example. Does nothing while pif_ready is FALSE.
+ *        Call it every millisecond, from a timer interrupt for example. Does nothing before PST_TIMER.
  */
 void pif_sigTimer1ms();
 

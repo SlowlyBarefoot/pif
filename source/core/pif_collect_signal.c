@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_collect_signal.h"
-#include "core/pif_log.h"
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
+	#include "core/pif_log.h"
+#endif
 
 #include <string.h>
 
-// Signal collection as a VCD file for debugging and monitoring.
+// Signal collection as a VCD file for debugging and monitoring. With PIF_COLLECT_SIGNAL_NO_VCD only the
+// backend is left.
 
 #ifdef PIF_COLLECT_SIGNAL
+
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 
 #define PIF_COLLECT_SIGNAL_TRANSFER_PERIOD_1MS	20
 
@@ -16,6 +21,8 @@
 
 // Longest line but a $var line, whose name is cut to fit: "#<time>\n" followed by a 32 bit vector.
 #define CS_LINE_SIZE		64
+
+#endif	// PIF_COLLECT_SIGNAL_NO_VCD
 
 
 typedef enum EnPifCollectSignalStep
@@ -31,6 +38,8 @@ typedef enum EnPifCollectSignalChannelState
 	CS_CH_ATTACHED		= 1,
 	CS_CH_CAPTURE		= 2		// Added before the last start, so it is in the header
 } PifCollectSignalChannelState;
+
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 
 // Lines of the header in order. CS_HS_VAR and CS_HS_DUMPVALUE take one line per channel.
 typedef enum EnPifCollectSignalHeaderStage
@@ -50,18 +59,23 @@ typedef enum EnPifCollectSignalHeaderStage
 	CS_HS_DONE
 } PifCollectSignalHeaderStage;
 
+#endif	// PIF_COLLECT_SIGNAL_NO_VCD
+
 
 typedef struct StPifCollectSignal
 {
 	const char *p_module_name;
+	PifCollectSignalStep step;
+	PifCollectSignalChannel *p_head;
+	const PifCollectSignalBackend *p_backend;	// Takes the captures instead of the VCD output when set
+	void *p_backend_client;
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	PifCollectSignalScale scale;
 	PifCollectSignalMethod method;
 	PifCollectSignalOverflow overflow;
-	PifCollectSignalStep step;
 	PifTask *p_task;
 	uint32_t transfer_period_1us;
 	PifRingBuffer buffer;
-	PifCollectSignalChannel *p_head;
 	PifDateTime start_datetime;
 	uint32_t start_time;
 	uint32_t base_time;				// Time the values of $dumpvars hold from
@@ -72,11 +86,22 @@ typedef struct StPifCollectSignal
 	uint8_t stage;					// PifCollectSignalHeaderStage
 	BOOL retry;
 	PifCollectSignalChannel *p_cursor;
+#endif
 } PifCollectSignal;
 
 
 static PifCollectSignal s_collect_signal;
 
+
+static uint32_t _maskValue(const PifCollectSignalChannel *p_channel, uint32_t value)
+{
+	if (p_channel->_var_type != CSVT_REAL && p_channel->_width && p_channel->_width < 32) {
+		value &= (1UL << p_channel->_width) - 1;
+	}
+	return value;
+}
+
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 
 static uint32_t _getTime()
 {
@@ -90,14 +115,6 @@ static uint32_t _getTime()
 	default:
 		return pif_cumulative_timer1ms;
 	}
-}
-
-static uint32_t _maskValue(const PifCollectSignalChannel *p_channel, uint32_t value)
-{
-	if (p_channel->_var_type != CSVT_REAL && p_channel->_width && p_channel->_width < 32) {
-		value &= (1UL << p_channel->_width) - 1;
-	}
-	return value;
 }
 
 // VCD identifier of a channel: base 94 digits of the printable characters '!' to '~'.
@@ -388,6 +405,8 @@ static uint32_t _doTask(PifTask *p_task)
 	return 0;
 }
 
+#endif	// PIF_COLLECT_SIGNAL_NO_VCD
+
 static void _detachAll()
 {
 	PifCollectSignalChannel *p_channel = s_collect_signal.p_head;
@@ -400,8 +419,12 @@ static void _detachAll()
 		p_channel = p_next;
 	}
 	s_collect_signal.p_head = NULL;
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	s_collect_signal.p_cursor = NULL;
+#endif
 }
+
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 
 static BOOL _initBuffer(const char *p_task_name)
 {
@@ -422,15 +445,21 @@ static BOOL _initBuffer(const char *p_task_name)
 	return TRUE;
 }
 
+#endif	// PIF_COLLECT_SIGNAL_NO_VCD
+
 void pifCollectSignal_Init(const char *p_module_name)
 {
 	_detachAll();
 	memset(&s_collect_signal, 0, sizeof(PifCollectSignal));
 
 	s_collect_signal.p_module_name = p_module_name;
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	s_collect_signal.scale = CSS_1MS;
 	s_collect_signal.method = CSM_LOG;
+#endif
 }
+
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 
 BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size)
 {
@@ -458,23 +487,36 @@ fail:
 	return FALSE;
 }
 
+#endif	// PIF_COLLECT_SIGNAL_NO_VCD
+
 void pifCollectSignal_Clear()
 {
+	if (s_collect_signal.step == CS_STEP_COLLECT && s_collect_signal.p_backend) {
+		(*s_collect_signal.p_backend->evt_stop)(s_collect_signal.p_backend_client);
+	}
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	// Only these two hold the other log output back.
-	if (s_collect_signal.step == CS_STEP_PRINT ||
+	else if (s_collect_signal.step == CS_STEP_PRINT ||
 			(s_collect_signal.step == CS_STEP_COLLECT && s_collect_signal.method == CSM_LOG)) {
 		pifLog_Enable();
 	}
+#endif
 	s_collect_signal.step = CS_STEP_IDLE;
 
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	if (s_collect_signal.p_task) {
 		pifTaskManager_Remove(s_collect_signal.p_task);
 		s_collect_signal.p_task = NULL;
 	}
 	pifRingBuffer_Clear(&s_collect_signal.buffer);
 	s_collect_signal.method = CSM_LOG;
+#endif
+	s_collect_signal.p_backend = NULL;
+	s_collect_signal.p_backend_client = NULL;
 	_detachAll();
 }
+
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 
 uint32_t pifCollectSignal_GetTransferPeriod()
 {
@@ -546,6 +588,8 @@ BOOL pifCollectSignal_ChangeOverflow(PifCollectSignalOverflow overflow)
 	return TRUE;
 }
 
+#endif	// PIF_COLLECT_SIGNAL_NO_VCD
+
 BOOL pifCollectSignal_AddChannel(PifCollectSignalChannel *p_channel, const char *p_name, PifId id,
 		PifCollectSignalVarType var_type, uint8_t width, uint32_t initial_value)
 {
@@ -584,8 +628,10 @@ void pifCollectSignal_RemoveChannel(PifCollectSignalChannel *p_channel)
 	while (*pp_link && *pp_link != p_channel) pp_link = &(*pp_link)->__p_next;
 	if (*pp_link) *pp_link = p_channel->__p_next;
 
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	// The transfer task may be in the middle of the header.
 	if (s_collect_signal.p_cursor == p_channel) s_collect_signal.p_cursor = p_channel->__p_next;
+#endif
 
 	p_channel->__state = CS_CH_DETACHED;
 	p_channel->__p_next = NULL;
@@ -596,25 +642,53 @@ BOOL pifCollectSignal_Start()
 	PifCollectSignal *p_cs = &s_collect_signal;
 	PifCollectSignalChannel *p_channel;
 	uint16_t index = 0;
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	char text[PIF_COLLECT_SIGNAL_TEXT_SIZE + CS_LINE_SIZE];
 	uint8_t stage;
+#endif
 
 	if (p_cs->step != CS_STEP_IDLE) {
 		pif_error = E_INVALID_STATE;
 		return FALSE;
 	}
+#ifdef PIF_COLLECT_SIGNAL_NO_VCD
+	// The backend is the only output there is.
+	if (!p_cs->p_backend) {
+		pif_error = E_CANNOT_USE;
+		return FALSE;
+	}
+#endif
 
 	for (p_channel = p_cs->p_head; p_channel; p_channel = p_channel->__p_next) {
 		p_channel->__state = CS_CH_CAPTURE;
 		p_channel->__index = index++;
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 		p_channel->__start_value = p_channel->_value;
+#endif
 	}
 
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	p_cs->start_datetime = *(PifDateTime *)&pif_datetime;
 	p_cs->drop_count = 0;
 	p_cs->base_time = 0;
 	p_cs->last_time = 0;
+#endif
 
+	if (p_cs->p_backend) {
+		// Running before the backend is told, so the channels it looks at are in the capture and a
+		// change put from an interrupt meanwhile reaches it.
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
+		p_cs->start_time = _getTime();
+#endif
+		p_cs->step = CS_STEP_COLLECT;
+		if (!(*p_cs->p_backend->evt_start)(p_cs->p_backend_client)) {
+			p_cs->step = CS_STEP_IDLE;
+			return FALSE;
+		}
+		return TRUE;
+	}
+
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	if (p_cs->method == CSM_LOG) {
 		pifLog_Disable();
 
@@ -630,23 +704,31 @@ BOOL pifCollectSignal_Start()
 
 	p_cs->start_time = _getTime();
 	p_cs->step = CS_STEP_COLLECT;
+#endif
 	return TRUE;
 }
 
 void pifCollectSignal_Stop()
 {
 	PifCollectSignal *p_cs = &s_collect_signal;
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	char text[CS_LINE_SIZE];
+#endif
 
 	if (p_cs->step != CS_STEP_COLLECT) return;
 
-	if (p_cs->method == CSM_LOG) {
+	if (p_cs->p_backend) {
+		(*p_cs->p_backend->evt_stop)(p_cs->p_backend_client);
+	}
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
+	else if (p_cs->method == CSM_LOG) {
 		if (_formatTime(text, _getTime() - p_cs->start_time, &p_cs->last_time)) pifLog_Print(LT_VCD, text);
 		pifLog_Enable();
 	}
 	else {
 		_putRecord(CS_INDEX_END, 0);
 	}
+#endif
 	p_cs->step = CS_STEP_IDLE;
 }
 
@@ -658,8 +740,10 @@ BOOL pifCollectSignal_IsCollecting()
 void pifCollectSignal_Put(PifCollectSignalChannel *p_channel, uint32_t value)
 {
 	PifCollectSignal *p_cs = &s_collect_signal;
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	char text[CS_LINE_SIZE];
 	int len;
+#endif
 
 	value = _maskValue(p_channel, value);
 	if (value == p_channel->_value) return;
@@ -667,7 +751,11 @@ void pifCollectSignal_Put(PifCollectSignalChannel *p_channel, uint32_t value)
 
 	if (p_cs->step != CS_STEP_COLLECT || p_channel->__state != CS_CH_CAPTURE) return;
 
-	if (p_cs->method == CSM_LOG) {
+	if (p_cs->p_backend) {
+		(*p_cs->p_backend->evt_change)(p_cs->p_backend_client, p_channel, value);
+	}
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
+	else if (p_cs->method == CSM_LOG) {
 		len = _formatTime(text, _getTime() - p_cs->start_time, &p_cs->last_time);
 		_formatValue(text + len, p_channel, value);
 		pifLog_Print(LT_VCD, text);
@@ -675,6 +763,7 @@ void pifCollectSignal_Put(PifCollectSignalChannel *p_channel, uint32_t value)
 	else {
 		_putRecord(p_channel->__index, value);
 	}
+#endif
 }
 
 void pifCollectSignal_PutReal(PifCollectSignalChannel *p_channel, float value)
@@ -685,11 +774,14 @@ void pifCollectSignal_PutReal(PifCollectSignalChannel *p_channel, float value)
 	pifCollectSignal_Put(p_channel, raw);
 }
 
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
+
 BOOL pifCollectSignal_PrintLog()
 {
 	PifCollectSignal *p_cs = &s_collect_signal;
 
-	if (p_cs->method != CSM_BUFFER) {
+	// A capture that went to a backend left nothing here.
+	if (p_cs->method != CSM_BUFFER || p_cs->p_backend) {
 		pif_error = E_CANNOT_USE;
 		return FALSE;
 	}
@@ -718,6 +810,45 @@ BOOL pifCollectSignal_IsPrinting()
 uint32_t pifCollectSignal_GetDropCount()
 {
 	return s_collect_signal.drop_count;
+}
+
+#endif	// PIF_COLLECT_SIGNAL_NO_VCD
+
+BOOL pifCollectSignal_AttachBackend(const PifCollectSignalBackend *p_backend, void *p_client)
+{
+	if (p_backend && (!p_backend->evt_start || !p_backend->evt_change || !p_backend->evt_stop)) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	if (s_collect_signal.step != CS_STEP_IDLE) {
+		pif_error = E_INVALID_STATE;
+		return FALSE;
+	}
+
+	s_collect_signal.p_backend = p_backend;
+	s_collect_signal.p_backend_client = p_backend ? p_client : NULL;
+	return TRUE;
+}
+
+const PifCollectSignalChannel *pifCollectSignal_GetFirstChannel()
+{
+	return s_collect_signal.p_head;
+}
+
+const PifCollectSignalChannel *pifCollectSignal_GetNextChannel(const PifCollectSignalChannel *p_channel)
+{
+	return p_channel ? p_channel->__p_next : NULL;
+}
+
+BOOL pifCollectSignal_IsCapturing(const PifCollectSignalChannel *p_channel)
+{
+	return p_channel && s_collect_signal.step == CS_STEP_COLLECT && p_channel->__state == CS_CH_CAPTURE;
+}
+
+uint16_t pifCollectSignal_GetIndex(const PifCollectSignalChannel *p_channel)
+{
+	return p_channel->__index;
 }
 
 #endif	// PIF_COLLECT_SIGNAL

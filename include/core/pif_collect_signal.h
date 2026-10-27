@@ -25,6 +25,14 @@
  * pifCollectSignal_PrintLog(), so a capture costs no formatting and no UART time. What a capture
  * that fills the buffer keeps is chosen with pifCollectSignal_ChangeOverflow(), and the dump says
  * how many changes were dropped.
+ *
+ * A backend, such as a recorder, can take the changes instead of the VCD output. Attached with
+ * pifCollectSignal_AttachBackend(), it is told when a capture starts and stops, and gets every change
+ * recorded during it. It finds the channels with pifCollectSignal_GetFirstChannel() and
+ * pifCollectSignal_GetNextChannel().
+ *
+ * PIF_COLLECT_SIGNAL_NO_VCD leaves the VCD output out, CSM_LOG and CSM_BUFFER with their functions, for an
+ * application whose captures all go to a backend. pifCollectSignal_Start() then needs a backend.
  */
 #ifndef PIF_COLLECT_SIGNAL_H
 #define PIF_COLLECT_SIGNAL_H
@@ -112,6 +120,22 @@ typedef struct StPifCollectSignalChannel
 	struct StPifCollectSignalChannel *__p_next;
 } PifCollectSignalChannel;
 
+/**
+ * @struct StPifCollectSignalBackend
+ * @brief Takes the changes of a capture in place of the VCD output.
+ */
+typedef struct StPifCollectSignalBackend
+{
+	/// Called by pifCollectSignal_Start() once the channels of the capture are fixed. Returning FALSE
+	/// refuses the start.
+	BOOL (*evt_start)(void *p_client);
+	/// A change of a channel of the capture. Called from where pifCollectSignal_Put() is, which may be
+	/// an interrupt.
+	void (*evt_change)(void *p_client, const PifCollectSignalChannel *p_channel, uint32_t value);
+	/// Called by pifCollectSignal_Stop().
+	void (*evt_stop)(void *p_client);
+} PifCollectSignalBackend;
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -122,6 +146,8 @@ extern "C" {
  * @param p_module_name Scope name of the dump. It must stay valid while the collector is used.
  */
 void pifCollectSignal_Init(const char *p_module_name);
+
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 
 /**
  * @brief Initializes the collector for CSM_BUFFER with a buffer allocated from the heap.
@@ -140,10 +166,14 @@ BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size);
  */
 BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8_t *p_buffer);
 
+#endif	// PIF_COLLECT_SIGNAL_NO_VCD
+
 /**
  * @brief Removes every channel, stops a capture or a transfer and releases the buffer.
  */
 void pifCollectSignal_Clear();
+
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
 
 /**
  * @brief Gets the period of the transfer task of CSM_BUFFER.
@@ -181,6 +211,8 @@ BOOL pifCollectSignal_ChangeMethod(PifCollectSignalMethod method);
  */
 BOOL pifCollectSignal_ChangeOverflow(PifCollectSignalOverflow overflow);
 
+#endif	// PIF_COLLECT_SIGNAL_NO_VCD
+
 /**
  * @brief Adds a channel to the dump. A channel added during a capture joins the next one, and
  *        adding a channel that is already added changes nothing.
@@ -205,8 +237,9 @@ void pifCollectSignal_RemoveChannel(PifCollectSignalChannel *p_channel);
 
 /**
  * @brief Starts a capture of the channels added so far, from time 0. A capture that was not
- *        printed yet is discarded.
- * @return TRUE on success, otherwise FALSE.
+ *        printed yet is discarded. The channels are numbered from 0 in the order they were added,
+ *        see pifCollectSignal_GetIndex().
+ * @return TRUE on success, otherwise FALSE (E_CANNOT_USE without a backend under PIF_COLLECT_SIGNAL_NO_VCD).
  */
 BOOL pifCollectSignal_Start();
 
@@ -236,6 +269,8 @@ void pifCollectSignal_Put(PifCollectSignalChannel *p_channel, uint32_t value);
  */
 void pifCollectSignal_PutReal(PifCollectSignalChannel *p_channel, float value);
 
+#ifndef PIF_COLLECT_SIGNAL_NO_VCD
+
 /**
  * @brief Prints the stopped capture of CSM_BUFFER through pifLog from the transfer task.
  *        Other log output is held back until it is done.
@@ -254,6 +289,45 @@ BOOL pifCollectSignal_IsPrinting();
  * @return Dropped changes.
  */
 uint32_t pifCollectSignal_GetDropCount();
+
+#endif	// PIF_COLLECT_SIGNAL_NO_VCD
+
+/**
+ * @brief Sends the captures to a backend instead of the VCD output, or back to it. Not allowed during
+ *        a capture or a transfer. pifCollectSignal_Init() and pifCollectSignal_Clear() detach it.
+ * @param p_backend Backend that stays valid while it is attached, or NULL to detach it.
+ * @param p_client Passed to the functions of the backend.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifCollectSignal_AttachBackend(const PifCollectSignalBackend *p_backend, void *p_client);
+
+/**
+ * @brief Gets the first channel added, to walk them all with pifCollectSignal_GetNextChannel().
+ * @return First channel in the order they were added, or NULL when there is none.
+ */
+const PifCollectSignalChannel *pifCollectSignal_GetFirstChannel();
+
+/**
+ * @brief Gets the channel added after the given one.
+ * @param p_channel A channel that is added.
+ * @return Next channel, or NULL after the last.
+ */
+const PifCollectSignalChannel *pifCollectSignal_GetNextChannel(const PifCollectSignalChannel *p_channel);
+
+/**
+ * @brief Tells whether a channel is in the running capture, that is, was added before it started.
+ * @param p_channel Channel to check.
+ * @return TRUE when its changes are recorded now.
+ */
+BOOL pifCollectSignal_IsCapturing(const PifCollectSignalChannel *p_channel);
+
+/**
+ * @brief Gets the number pifCollectSignal_Start() gave a channel: 0 for the first channel added, then
+ *        one more for each. A backend can use it as a compact channel ID.
+ * @param p_channel A channel that is in the running capture.
+ * @return Number of the channel in the capture.
+ */
+uint16_t pifCollectSignal_GetIndex(const PifCollectSignalChannel *p_channel);
 
 #ifdef __cplusplus
 }

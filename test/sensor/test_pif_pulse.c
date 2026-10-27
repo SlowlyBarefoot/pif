@@ -242,6 +242,11 @@ static void testReset(void)
     CHECK(pifPulse_GetPeriod(&pulse) == 0 && pifPulse_GetHighWidth(&pulse) == 100);
 }
 
+static BOOL _portSetup(void)
+{
+    return TRUE;
+}
+
 int main(void)
 {
     int failed = 0;
@@ -262,7 +267,7 @@ int main(void)
         { "reset", testReset },
     };
 
-    if (!pif_Init(_timer1us)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_pulse: setup failed (%d)\n", pif_error);
         return 1;
     }

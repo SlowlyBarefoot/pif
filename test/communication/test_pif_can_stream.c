@@ -352,12 +352,17 @@ static const struct {
     { "stream init", _testStreamInit },
 };
 
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(4, 1);
+}
+
 int main(void)
 {
     int failed = 0, i;
     size_t t;
 
-    if (!pif_Init(_timer1us) || !pifTaskManager_Init(4, 1)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_can_stream: setup failed (%d)\n", pif_error);
         return 1;
     }

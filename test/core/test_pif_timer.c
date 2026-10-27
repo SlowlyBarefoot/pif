@@ -261,12 +261,17 @@ static const TestCase s_tests[] = {
     { "remove from callback", testRemoveFromCallback }
 };
 
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(1, 2);
+}
+
 int main(void)
 {
     int failed = 0;
     size_t t;
 
-    if (!pif_Init(_timer1us) || !pifTaskManager_Init(1, 2)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_timer: setup failed (%d)\n", pif_error);
         return 1;
     }

@@ -579,6 +579,34 @@ static void testInvalid(void)
     CHECK(!pifTask_SetCutinTrigger(NULL) && pif_error == E_INVALID_PARAM);
 }
 
+static BOOL s_setup_ok;
+
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(4, 0);
+}
+
+// While the setups run the time base advances, but a task added there does not run yet.
+static BOOL _appSetup(void)
+{
+    uint32_t ms = pif_cumulative_timer1ms;
+
+    s_other_runs = 0;
+    s_setup_ok = pif_state == PST_TIMER &&
+            pifTaskManager_Add(PIF_ID_AUTO, TM_PERIOD, 1000, _doOther, NULL, TRUE) != NULL;
+    pif_sigTimer1ms();
+    s_now += 2000;
+    pifTaskManager_Loop();
+    s_setup_ok = s_setup_ok && pif_cumulative_timer1ms == ms + 1 && !s_other_runs;
+    return TRUE;
+}
+
+static BOOL _failSetup(void)
+{
+    pif_error = E_ACCESS_FAILED;
+    return FALSE;
+}
+
 int main(void)
 {
     int failed = 0;
@@ -619,7 +647,7 @@ int main(void)
     // Before pif_Init() the time base stays still and the loop does not reach the missing timer.
     pif_sigTimer1ms();
     pifTaskManager_Loop();
-    if (pif_ready || pif_cumulative_timer1ms) {
+    if (pif_state != PST_NONE || pif_cumulative_timer1ms) {
         printf("pif_task_manager: ran before pif_Init\n");
         return 1;
     }
@@ -634,12 +662,32 @@ int main(void)
     }
     pif_Exit();
 
-    if (!pif_Init(_timer1us)) {
+    // The port setup is required, the application setup is not.
+    pif_error = E_SUCCESS;
+    if (pif_Init(_timer1us, NULL, NULL) || pif_error != E_INVALID_PARAM || pif_state != PST_NONE) {
+        printf("pif_task_manager: init without port setup\n");
+        return 1;
+    }
+    // A failed setup ends PIF again, and pif_error keeps its error.
+    if (pif_Init(_timer1us, _portSetup, _failSetup) || pif_error != E_ACCESS_FAILED || pif_state != PST_NONE) {
+        printf("pif_task_manager: failed setup not undone\n");
+        return 1;
+    }
+    if (pif_Init(_timer1us, _failSetup, _appSetup) || s_setup_ok || pif_state != PST_NONE) {
+        printf("pif_task_manager: app setup after failed port setup\n");
+        return 1;
+    }
+
+    if (!pif_Init(_timer1us, _portSetup, _appSetup)) {
         printf("pif_task_manager: setup failed (%d)\n", pif_error);
         return 1;
     }
-    if (!pif_ready) {
-        printf("pif_task_manager: pif_ready not set\n");
+    if (pif_state != PST_RUNNING) {
+        printf("pif_task_manager: pif_state not PST_RUNNING\n");
+        return 1;
+    }
+    if (!s_setup_ok) {
+        printf("pif_task_manager: ran a task during the setup\n");
         return 1;
     }
 
@@ -654,7 +702,7 @@ int main(void)
     pif_Exit();
     pif_sigTimer1ms();
     pifTaskManager_Loop();
-    if (pif_ready || pif_cumulative_timer1ms != ms_at_exit) {
+    if (pif_state != PST_NONE || pif_cumulative_timer1ms != ms_at_exit) {
         printf("  FAIL ran after pif_Exit\n");
         failed++;
     }

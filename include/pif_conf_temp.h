@@ -104,6 +104,10 @@
 // pifSolenoid needs 7 for its names up to "SNA254".
 //#define PIF_COLLECT_SIGNAL_NAME_SIZE		8
 
+// Leaves the VCD output out (CSM_LOG, CSM_BUFFER and their functions), when every capture goes to a backend
+// attached with pifCollectSignal_AttachBackend(). It saves the formatting code and what it links in.
+//#define PIF_COLLECT_SIGNAL_NO_VCD
+
 // -------- pifDshot -----------------------------
 
 //#define PIF_DSHOT_MAX_MOTORS				8

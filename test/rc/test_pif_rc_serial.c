@@ -463,15 +463,20 @@ static const struct
     { "sumd cut frame", test_sumd_cut_frame },
 };
 
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(4, 2) &&
+            pifUart_Init(&s_uart, PIF_ID_AUTO, 115200) &&
+            pifUart_AttachRxTask(&s_uart, PIF_ID_AUTO, TM_EXTERNAL, 0, NULL) &&
+            pifUart_AttachTxTask(&s_uart, PIF_ID_AUTO, TM_EXTERNAL, 0, NULL);
+}
+
 int main(void)
 {
     int failed = 0;
     size_t t;
 
-    if (!pif_Init(_timer1us) || !pifTaskManager_Init(4, 2) ||
-            !pifUart_Init(&s_uart, PIF_ID_AUTO, 115200) ||
-            !pifUart_AttachRxTask(&s_uart, PIF_ID_AUTO, TM_EXTERNAL, 0, NULL) ||
-            !pifUart_AttachTxTask(&s_uart, PIF_ID_AUTO, TM_EXTERNAL, 0, NULL)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_rc_serial: setup failed (%d)\n", pif_error);
         return 1;
     }

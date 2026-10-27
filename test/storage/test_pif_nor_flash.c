@@ -167,12 +167,17 @@ static const struct {
     { testEraseLeftAlone, "erase left alone" },
 };
 
+static BOOL _portSetup(void)
+{
+    return TRUE;
+}
+
 int main(void)
 {
     int failed = 0;
     size_t t;
 
-    if (!pif_Init(_timer1us)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_nor_flash: setup failed (%d)\n", pif_error);
         return 1;
     }

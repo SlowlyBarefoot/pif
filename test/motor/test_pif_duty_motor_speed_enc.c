@@ -240,6 +240,11 @@ static void testStartChecks(void)
 }
 
 
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(4, 2);
+}
+
 int main(void)
 {
     int failed = 0;
@@ -256,7 +261,7 @@ int main(void)
         { "start checks", testStartChecks },
     };
 
-    if (!pif_Init(_timer1us) || !pifTaskManager_Init(4, 2)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_duty_motor_speed_enc: setup failed (%d)\n", pif_error);
         return 1;
     }

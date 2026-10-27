@@ -67,6 +67,8 @@ Split the startup into two parts, as the examples in [pif-example](https://githu
 
 extern PifLed g_led_l;
 
+uint32_t actTimer1us();
+
 BOOL portSetup();
 BOOL appSetup();
 
@@ -80,7 +82,7 @@ BOOL appSetup();
 
 PifLed g_led_l;
 
-static uint32_t actTimer1us()
+uint32_t actTimer1us()
 {
     return platform_micros();                       // Free-running 1 us counter of the board
 }
@@ -93,7 +95,6 @@ static void actLedLState(PifId id, uint32_t state)
 
 BOOL portSetup()
 {
-    if (!pif_Init(actTimer1us)) return FALSE;
     if (!pifTaskManager_Init(TASK_SIZE, 0)) return FALSE;
 
     if (!pifLed_Init(&g_led_l, PIF_ID_AUTO, 1, actLedLState)) return FALSE;
@@ -116,7 +117,8 @@ BOOL appSetup()
 
 ### 5. Drive periodic signals and tasks
 
-`main()` sets up the port and the application, then runs the tasks forever:
+`main()` starts PIF, which runs `portSetup()` and then `appSetup()`, then runs the tasks forever. When either
+setup fails, `pif_Init()` ends PIF again and returns FALSE:
 
 ```c
 #include "app_port.h"
@@ -125,8 +127,7 @@ int main(void)
 {
     // Board and clock initialization of the platform
 
-    if (!portSetup()) return -1;
-    if (!appSetup()) return -1;
+    if (!pif_Init(actTimer1us, portSetup, appSetup)) return -1;
 
     while (1) {
         pifTaskManager_Loop();

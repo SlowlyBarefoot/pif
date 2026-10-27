@@ -220,6 +220,11 @@ static void testSigData(void)
     CHECK(s_event_count == 2 && pif_error == E_INVALID_PARAM && gpio.__read_state == 0);
 }
 
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(2, 0);
+}
+
 int main(void)
 {
     int failed = 0;
@@ -239,7 +244,7 @@ int main(void)
 #endif
     };
 
-    if (!pif_Init(_timer1us) || !pifTaskManager_Init(2, 0)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_gpio: setup failed (%d)\n", pif_error);
         return 1;
     }

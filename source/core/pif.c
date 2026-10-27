@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif.h"
+#include "core/pif_marker.h"
 #ifndef	PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
@@ -11,7 +12,7 @@
 
 PifError pif_error = E_SUCCESS;
 
-volatile BOOL pif_ready = FALSE;
+volatile PifState pif_state = PST_NONE;
 
 uint32_t pif_timer1us = 0L;
 volatile uint16_t pif_timer1ms = 0;
@@ -42,6 +43,8 @@ PifActGpioWrite pif_act_gpio_write = NULL;
 PifActIrqDisable pif_act_irq_disable = NULL;
 PifActIrqRestore pif_act_irq_restore = NULL;
 
+PifActMarker pif_act_marker = NULL;
+
 const char* kPifMonth3[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
 const char* kPifHexUpperChar = "0123456789ABCDEF";
@@ -71,9 +74,9 @@ static int _toLower(int ch)
 }
 
 
-BOOL pif_Init(PifActTimer1us act_timer1us)
+BOOL pif_Init(PifActTimer1us act_timer1us, PifActSetup act_port_setup, PifActSetup act_app_setup)
 {
-	if (!act_timer1us) {
+	if (!act_timer1us || !act_port_setup) {
 		pif_error = E_INVALID_PARAM;
 	    return FALSE;
 	}
@@ -83,13 +86,22 @@ BOOL pif_Init(PifActTimer1us act_timer1us)
 	pif_datetime.month = 1;
 	pif_datetime.day = 1;
 
-	pif_ready = TRUE;
+	// The time base runs from here, so that the setups can wait with pif_Delay1ms().
+	pif_state = PST_TIMER;
+	if (!(*act_port_setup)()) goto fail;
+	if (act_app_setup && !(*act_app_setup)()) goto fail;
+
+	pif_state = PST_RUNNING;
     return TRUE;
+
+fail:
+	pif_Exit();
+	return FALSE;
 }
 
 void pif_Exit()
 {
-	pif_ready = FALSE;
+	pif_state = PST_NONE;
 	pifTaskManager_Clear();
 }
 
@@ -98,7 +110,7 @@ void pif_sigTimer1ms()
 	uint8_t days;
 	uint16_t year;
 
-	if (!pif_ready) return;
+	if (pif_state < PST_TIMER) return;
 
 	pif_cumulative_timer1ms++;
     pif_timer1ms++;

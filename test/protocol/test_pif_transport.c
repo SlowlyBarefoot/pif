@@ -511,13 +511,18 @@ static const struct {
 #endif
 };
 
+static BOOL _portSetup(void)
+{
+    return pifTaskManager_Init(16, 2) &&
+            pifTimerManager_Init(&s_timer_manager, PIF_ID_AUTO, 1000, 16);
+}
+
 int main(void)
 {
     int failed = 0, i;
     size_t t;
 
-    if (!pif_Init(_timer1us) || !pifTaskManager_Init(16, 2) ||
-            !pifTimerManager_Init(&s_timer_manager, PIF_ID_AUTO, 1000, 16)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_transport: setup failed (%d)\n", pif_error);
         return 1;
     }

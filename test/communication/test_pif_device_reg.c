@@ -502,12 +502,17 @@ static const struct {
     { _testI2cTemporaryDevice, "i2c temporary device" },
 };
 
+static BOOL _portSetup(void)
+{
+    return TRUE;
+}
+
 int main(void)
 {
     int failed = 0;
     size_t t;
 
-    if (!pif_Init(_timer1us)) {
+    if (!pif_Init(_timer1us, _portSetup, NULL)) {
         printf("pif_device_reg: setup failed (%d)\n", pif_error);
         return 1;
     }
