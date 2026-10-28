@@ -279,21 +279,25 @@ BOOL pifSolenoid_IsOn(PifSolenoid* p_owner, uint8_t index);
 #ifdef COLLECT_SIGNAL_SOLENOID
 
 /**
- * @brief Adds the selected signals of every channel to pifCollectSignal. Channel n gets
+ * @brief Adds the selected signals of a channel, or of every channel, to pifCollectSignal. Channel n gets
  *        SNA\<n\>_\<id\>, its state in 1 bit, and SND\<n\>_\<id\>, its direction in 2 bits, where \<id\> is
  *        the instance ID in hex. On failure none of the selected signals is left added.
  * @param p_owner Pointer to the owner instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifSolenoid_SetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
+BOOL pifSolenoid_SetCsFlag(PifSolenoid* p_owner, uint8_t index, PifSolenoidCsFlag flag);
 
 /**
  * @brief Removes the selected signals of the instance from pifCollectSignal.
  * @param p_owner Pointer to the owner instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifSolenoid_ResetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag);
+void pifSolenoid_ResetCsFlag(PifSolenoid* p_owner, uint8_t index, PifSolenoidCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_SOLENOID
 

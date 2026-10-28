@@ -37,7 +37,8 @@ NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_dat
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
            test_pif_nvram test_pif_nor_flash test_pif_motor test_pif_duty_motor_speed_enc \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
-           test_pif_task_manager_nort test_pif_motor_min test_pif_nvram_raw test_pif_crc
+           test_pif_task_manager_nort test_pif_motor_min test_pif_nvram_raw test_pif_crc test_pif_pid_control_cs \
+           test_pif_crc_table
 
 # test_pif_link.c includes pif_link.c itself to reach its static functions.
 LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
@@ -248,6 +249,8 @@ run-test_pif_task_manager_nort: run-test_pif_modbus_slave_min
 run-test_pif_motor_min: run-test_pif_task_manager_nort
 run-test_pif_nvram_raw: run-test_pif_motor_min
 run-test_pif_crc: run-test_pif_nvram_raw
+run-test_pif_pid_control_cs: run-test_pif_crc
+run-test_pif_crc_table: run-test_pif_pid_control_cs
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
 	$(call RUN,$<)
@@ -345,6 +348,11 @@ $(BUILD)/test_pif_solenoid_cs$(EXE): $(SOLENOID_SRC) $(GPIO_CS_SRC) $(ROOT)/incl
 	$(CC) $(CFLAGS) -DPIF_COLLECT_SIGNAL -DPIF_COLLECT_SIGNAL_SOLENOID -DPIF_COLLECT_SIGNAL_UART -DPIF_SOLENOID_MAX_COUNT=255 \
 		$(INC) $(SOLENOID_SRC) $(GPIO_CS_SRC) -o $@
 
+# The channels of a controller on the collect signal without its VCD output, as a backend uses it.
+PID_CS_SRC := core/test_pif_pid_control_cs.c               $(addprefix $(ROOT)/source/core/, pif.c pif_collect_signal.c pif_obj_array.c pif_pid_control.c pif_task.c               pif_task_manager.c)
+$(BUILD)/test_pif_pid_control_cs$(EXE): $(PID_CS_SRC) $(ROOT)/include/core/pif_pid_control.h 		$(ROOT)/include/core/pif_collect_signal.h | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_COLLECT_SIGNAL -DPIF_COLLECT_SIGNAL_NO_VCD -DPIF_COLLECT_SIGNAL_PID_CONTROL 		$(INC) $(PID_CS_SRC) -o $@
+
 $(BUILD)/test_pif_dot_matrix$(EXE): $(DOT_MATRIX_SRC) $(ROOT)/include/display/pif_dot_matrix.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(DOT_MATRIX_SRC) -o $@
 
@@ -417,3 +425,6 @@ clean:
 
 $(BUILD)/test_pif_crc$(EXE): $(CRC_SRC) $(ROOT)/include/core/pif.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(CRC_SRC) -o $@
+
+$(BUILD)/test_pif_crc_table$(EXE): $(CRC_SRC) $(ROOT)/include/core/pif.h | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_USE_CRC8_SMBUS_TABLE $(INC) $(CRC_SRC) -o $@

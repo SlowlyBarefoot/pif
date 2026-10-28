@@ -247,7 +247,7 @@ void pifSolenoid_Clear(PifSolenoid* p_owner)
 		pifRingData_Destroy(&p_channel->__p_buffer);
 	}
 #ifdef COLLECT_SIGNAL_SOLENOID
-	pifSolenoid_ResetCsFlag(p_owner, SN_CSF_ALL_BIT);
+	pifSolenoid_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, SN_CSF_ALL_BIT);
 #endif
 	if (p_owner->_p_task) {
 		pifTaskManager_Remove(p_owner->_p_task);
@@ -379,40 +379,51 @@ BOOL pifSolenoid_IsOn(PifSolenoid* p_owner, uint8_t index)
 
 #ifdef COLLECT_SIGNAL_SOLENOID
 
-BOOL pifSolenoid_SetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag)
+static BOOL _setCsFlag(PifSolenoid* p_owner, uint8_t index, PifSolenoidCsFlag flag)
 {
-	PifSolenoidChannel* p_channel;
+	PifSolenoidChannel* p_channel = &p_owner->__p_channel[index];
 	char name[PIF_COLLECT_SIGNAL_NAME_SIZE];
-	uint8_t i;
 
 	// The channel copies the name, so one buffer serves them all.
-	for (i = 0; i < p_owner->_count; i++) {
-		p_channel = &p_owner->__p_channel[i];
-		if (flag & SN_CSF_ACTION_BIT) {
-			_formatName(name, 'A', i);
-			if (!pifCollectSignal_AddChannel(&p_channel->__cs[SN_CSF_ACTION_IDX], name, p_owner->_id, CSVT_WIRE, 1,
-					p_channel->__state)) goto fail;
-		}
-		if (flag & SN_CSF_DIR_BIT) {
-			_formatName(name, 'D', i);
-			if (!pifCollectSignal_AddChannel(&p_channel->__cs[SN_CSF_DIR_IDX], name, p_owner->_id, CSVT_WIRE, 2,
-					p_channel->__state ? p_channel->__current_dir : SD_INVALID)) goto fail;
-		}
+	if (flag & SN_CSF_ACTION_BIT) {
+		_formatName(name, 'A', index);
+		if (!pifCollectSignal_AddChannel(&p_channel->__cs[SN_CSF_ACTION_IDX], name, p_owner->_id, CSVT_WIRE, 1,
+				p_channel->__state)) return FALSE;
+	}
+	if (flag & SN_CSF_DIR_BIT) {
+		_formatName(name, 'D', index);
+		if (!pifCollectSignal_AddChannel(&p_channel->__cs[SN_CSF_DIR_IDX], name, p_owner->_id, CSVT_WIRE, 2,
+				p_channel->__state ? p_channel->__current_dir : SD_INVALID)) return FALSE;
 	}
 	return TRUE;
+}
 
-fail:
+BOOL pifSolenoid_SetCsFlag(PifSolenoid* p_owner, uint8_t index, PifSolenoidCsFlag flag)
+{
+	uint8_t i;
+
+	if (index < p_owner->_count) {
+		if (_setCsFlag(p_owner, index, flag)) return TRUE;
+	}
+	else {
+		for (i = 0; i < p_owner->_count; i++) {
+			if (!_setCsFlag(p_owner, i, flag)) break;
+		}
+		if (i >= p_owner->_count) return TRUE;
+	}
+
 	// Leaves none of the requested signals half added.
-	pifSolenoid_ResetCsFlag(p_owner, flag);
+	pifSolenoid_ResetCsFlag(p_owner, index, flag);
 	return FALSE;
 }
 
-void pifSolenoid_ResetCsFlag(PifSolenoid* p_owner, PifSolenoidCsFlag flag)
+void pifSolenoid_ResetCsFlag(PifSolenoid* p_owner, uint8_t index, PifSolenoidCsFlag flag)
 {
 	PifSolenoidChannel* p_channel;
 	uint8_t i;
 
 	for (i = 0; i < p_owner->_count; i++) {
+		if (index < p_owner->_count && i != index) continue;
 		p_channel = &p_owner->__p_channel[i];
 		if (flag & SN_CSF_ACTION_BIT) pifCollectSignal_RemoveChannel(&p_channel->__cs[SN_CSF_ACTION_IDX]);
 		if (flag & SN_CSF_DIR_BIT) pifCollectSignal_RemoveChannel(&p_channel->__cs[SN_CSF_DIR_IDX]);

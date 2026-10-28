@@ -160,11 +160,11 @@ static void testCollectSignal(void)
 
     _setUp();
     CHECK(pifGpio_Init(&gpio, PIF_ID_AUTO, PIF_GPIO_WIDTH < 32 ? PIF_GPIO_WIDTH : 32));
-    CHECK(pifGpio_SetCsFlag(&gpio, GP_CSF_ALL_BIT));
+    CHECK(pifGpio_SetCsFlag(&gpio, PIF_CS_INDEX_ALL, GP_CSF_ALL_BIT));
     pifGpio_Clear(&gpio);
 #if PIF_GPIO_WIDTH > 32
     CHECK(pifGpio_Init(&gpio, PIF_ID_AUTO, 33));
-    CHECK(!pifGpio_SetCsFlag(&gpio, GP_CSF_ALL_BIT) && pif_error == E_INVALID_PARAM);
+    CHECK(!pifGpio_SetCsFlag(&gpio, PIF_CS_INDEX_ALL, GP_CSF_ALL_BIT) && pif_error == E_INVALID_PARAM);
 #endif
 }
 

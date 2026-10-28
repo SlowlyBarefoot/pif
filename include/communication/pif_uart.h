@@ -478,17 +478,21 @@ PifTask* pifUart_AttachTxTask(PifUart* p_owner, PifId id, PifTaskMode mode, uint
 /**
  * @brief Adds the selected signals of the UART to pifCollectSignal as channels.
  * @param p_owner Pointer to the UART object.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return `TRUE` on success, otherwise `FALSE`.
  */
-BOOL pifUart_SetCsFlag(PifUart* p_owner, PifUartCsFlag flag);
+BOOL pifUart_SetCsFlag(PifUart* p_owner, uint8_t index, PifUartCsFlag flag);
 
 /**
  * @brief Removes the selected signals of the UART from pifCollectSignal.
  * @param p_owner Pointer to the UART object.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifUart_ResetCsFlag(PifUart* p_owner, PifUartCsFlag flag);
+void pifUart_ResetCsFlag(PifUart* p_owner, uint8_t index, PifUartCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_UART
 

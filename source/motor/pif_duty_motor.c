@@ -81,7 +81,7 @@ BOOL pifDutyMotor_Init(PifDutyMotor* p_owner, PifId id, PifTimerManager* p_timer
 void pifDutyMotor_Clear(PifDutyMotor* p_owner)
 {
 #ifdef COLLECT_SIGNAL_DUTY_MOTOR
-	pifDutyMotor_ResetCsFlag(p_owner, DM_CSF_ALL_BIT);
+	pifDutyMotor_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, DM_CSF_ALL_BIT);
 #endif
 	if (p_owner->__p_timer_delay) {
 		pifTimerManager_Remove(p_owner->__p_timer_delay);
@@ -217,8 +217,9 @@ void pifDutyMotor_ApplyDuty(PifDutyMotor* p_owner, uint16_t duty)
 
 #ifdef COLLECT_SIGNAL_DUTY_MOTOR
 
-BOOL pifDutyMotor_SetCsFlag(PifDutyMotor* p_owner, PifDutyMotorCsFlag flag)
+BOOL pifDutyMotor_SetCsFlag(PifDutyMotor* p_owner, uint8_t index, PifDutyMotorCsFlag flag)
 {
+	(void)index;
 	if (flag & DM_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[DM_CSF_STATE_IDX], "DMS", p_owner->_id, CSVT_REG, 4,
 				p_owner->_state)) return FALSE;
@@ -230,8 +231,9 @@ BOOL pifDutyMotor_SetCsFlag(PifDutyMotor* p_owner, PifDutyMotorCsFlag flag)
 	return TRUE;
 }
 
-void pifDutyMotor_ResetCsFlag(PifDutyMotor* p_owner, PifDutyMotorCsFlag flag)
+void pifDutyMotor_ResetCsFlag(PifDutyMotor* p_owner, uint8_t index, PifDutyMotorCsFlag flag)
 {
+	(void)index;
 	if (flag & DM_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[DM_CSF_STATE_IDX]);
 	if (flag & DM_CSF_DUTY_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[DM_CSF_DUTY_IDX]);
 }

@@ -119,7 +119,7 @@ void pifSequence_Clear(PifSequence *p_owner)
 {
 	p_owner->__state = SQS_IDLE;
 #ifdef COLLECT_SIGNAL_SEQUENCE
-	pifSequence_ResetCsFlag(p_owner, SQ_CSF_ALL_BIT);
+	pifSequence_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, SQ_CSF_ALL_BIT);
 #endif
 	if (p_owner->_p_task) {
 		pifTaskManager_Remove(p_owner->_p_task);
@@ -196,8 +196,9 @@ void pifSequence_Signal(PifSequence *p_owner)
 
 #ifdef COLLECT_SIGNAL_SEQUENCE
 
-BOOL pifSequence_SetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag)
+BOOL pifSequence_SetCsFlag(PifSequence *p_owner, uint8_t index, PifSequenceCsFlag flag)
 {
+	(void)index;
 	if (flag & SQ_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[SQ_CSF_STATE_IDX], "SQS",
 				p_owner->_p_task ? p_owner->_p_task->_id : PIF_ID_AUTO, CSVT_REG, 2, p_owner->__state)) return FALSE;
@@ -209,8 +210,9 @@ BOOL pifSequence_SetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag)
 	return TRUE;
 }
 
-void pifSequence_ResetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag)
+void pifSequence_ResetCsFlag(PifSequence *p_owner, uint8_t index, PifSequenceCsFlag flag)
 {
+	(void)index;
 	if (flag & SQ_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SQ_CSF_STATE_IDX]);
 	if (flag & SQ_CSF_STEP_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SQ_CSF_STEP_IDX]);
 }

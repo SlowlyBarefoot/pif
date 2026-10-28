@@ -176,7 +176,7 @@ void pifKeypad_Clear(PifKeypad* p_owner)
 	}
 	if (p_owner->__p_key) {
 #ifdef COLLECT_SIGNAL_KEYPAD
-		pifKeypad_ResetCsFlag(p_owner, KP_CSF_ALL_BIT);
+		pifKeypad_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, KP_CSF_ALL_BIT);
 #endif
 		free(p_owner->__p_key);
 		p_owner->__p_key = NULL;
@@ -212,7 +212,7 @@ BOOL pifKeypad_SetKeymap(PifKeypad* p_owner, uint8_t num, const char* p_user_key
     if (p_owner->__p_key) {
 #ifdef COLLECT_SIGNAL_KEYPAD
         // While __num_key still counts the keys being freed.
-        pifKeypad_ResetCsFlag(p_owner, KP_CSF_ALL_BIT);
+        pifKeypad_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, KP_CSF_ALL_BIT);
 #endif
         free(p_owner->__p_key);
         p_owner->__p_key = NULL;
@@ -301,9 +301,11 @@ void pifKeypad_Stop(PifKeypad* p_owner)
 
 #ifdef COLLECT_SIGNAL_KEYPAD
 
-BOOL pifKeypad_SetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag)
+BOOL pifKeypad_SetCsFlag(PifKeypad* p_owner, uint8_t index, PifKeypadCsFlag flag)
 {
 	int i;
+
+	(void)index;
 
 	if (!p_owner->__p_key) {
 		pif_error = E_CANNOT_USE;
@@ -319,9 +321,11 @@ BOOL pifKeypad_SetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag)
 	return TRUE;
 }
 
-void pifKeypad_ResetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag)
+void pifKeypad_ResetCsFlag(PifKeypad* p_owner, uint8_t index, PifKeypadCsFlag flag)
 {
 	int i;
+
+	(void)index;
 
 	if (!p_owner->__p_key) return;
 

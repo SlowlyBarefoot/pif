@@ -145,7 +145,7 @@ static int _printAll()
 static void testLog()
 {
     _resetLog();
-    pifCollectSignal_Init("top");
+    pifCollectSignal_Init("top", NULL, 0);
     CHECK(_addChannels());
 
     _runCapture();
@@ -160,7 +160,7 @@ static void testBuffer()
     int passes;
 
     _resetLog();
-    CHECK(pifCollectSignal_InitStatic("top", sizeof(s_buffer), s_buffer));
+    CHECK(pifCollectSignal_InitStatic("top", NULL, 0, sizeof(s_buffer), s_buffer));
     CHECK(_addChannels());
 
     _runCapture();
@@ -183,7 +183,7 @@ static void testBuffer()
 static void testBufferRetry()
 {
     _resetLog();
-    CHECK(pifCollectSignal_InitStatic("top", sizeof(s_buffer), s_buffer));
+    CHECK(pifCollectSignal_InitStatic("top", NULL, 0, sizeof(s_buffer), s_buffer));
     CHECK(_addChannels());
 
     _runCapture();
@@ -202,7 +202,7 @@ static BOOL _captureOverflow(PifCollectSignalOverflow overflow)
     int i;
 
     _resetLog();
-    if (!pifCollectSignal_InitStatic("top", 4 * CS_RECORD_SIZE + 1, s_buffer)) return FALSE;
+    if (!pifCollectSignal_InitStatic("top", NULL, 0, 4 * CS_RECORD_SIZE + 1, s_buffer)) return FALSE;
     if (!pifCollectSignal_ChangeOverflow(overflow)) return FALSE;
     memset(&s_clk, 0, sizeof(s_clk));
     if (!pifCollectSignal_AddChannel(&s_clk, "clk", PIF_ID_AUTO, CSVT_WIRE, 1, 0)) return FALSE;
@@ -246,7 +246,7 @@ static void testOverflowKeepLast()
     pifCollectSignal_Clear();
 
     // The next capture begins at 0 again.
-    CHECK(pifCollectSignal_InitStatic("top", sizeof(s_buffer), s_buffer));
+    CHECK(pifCollectSignal_InitStatic("top", NULL, 0, sizeof(s_buffer), s_buffer));
     CHECK(pifCollectSignal_ChangeOverflow(CSO_KEEP_LAST));
     CHECK(pifCollectSignal_AddChannel(&s_clk, "clk", PIF_ID_AUTO, CSVT_WIRE, 1, 0));
     _resetLog();
@@ -261,8 +261,8 @@ static void testOverflowKeepLast()
 
 static void testBufferSize()
 {
-    CHECK(!pifCollectSignal_InitStatic("top", 2 * CS_RECORD_SIZE, s_buffer));
-    CHECK(pifCollectSignal_InitStatic("top", 2 * CS_RECORD_SIZE + 1, s_buffer));
+    CHECK(!pifCollectSignal_InitStatic("top", NULL, 0, 2 * CS_RECORD_SIZE, s_buffer));
+    CHECK(pifCollectSignal_InitStatic("top", NULL, 0, 2 * CS_RECORD_SIZE + 1, s_buffer));
     CHECK(!pifCollectSignal_ChangeOverflow((PifCollectSignalOverflow)2));
     pifCollectSignal_Clear();
 }
@@ -272,7 +272,7 @@ static void testBufferSize()
 static void testChannelChanges()
 {
     _resetLog();
-    CHECK(pifCollectSignal_InitStatic("top", sizeof(s_buffer), s_buffer));
+    CHECK(pifCollectSignal_InitStatic("top", NULL, 0, sizeof(s_buffer), s_buffer));
     CHECK(_addChannels());
 
     pif_cumulative_timer1ms = 0;
@@ -307,7 +307,7 @@ static void testChannelChanges()
 
 static void testStateChecks()
 {
-    pifCollectSignal_Init("top");
+    pifCollectSignal_Init("top", NULL, 0);
     memset(&s_clk, 0, sizeof(s_clk));
     CHECK(!pifCollectSignal_AddChannel(&s_clk, "clk", PIF_ID_AUTO, CSVT_WIRE, 0, 0));
     CHECK(!pifCollectSignal_AddChannel(&s_clk, "clk", PIF_ID_AUTO, CSVT_WIRE, 33, 0));
@@ -348,7 +348,7 @@ static void testStateChecks()
     pifCollectSignal_Clear();
     CHECK(s_clk.__state == CS_CH_DETACHED);
     CHECK(s_collect_signal.p_head == NULL);
-    pifCollectSignal_Init("top");
+    pifCollectSignal_Init("top", NULL, 0);
     CHECK(pifCollectSignal_AddChannel(&s_clk, "clk", PIF_ID_AUTO, CSVT_WIRE, 1, 0));
     pifCollectSignal_Clear();
 }
@@ -390,9 +390,9 @@ static void testSequence()
     PifSequence sequence;
 
     _resetLog();
-    pifCollectSignal_Init("top");
+    pifCollectSignal_Init("top", NULL, 0);
     CHECK(pifSequence_Init(&sequence, 0x30, NULL));
-    CHECK(pifSequence_SetCsFlag(&sequence, SQ_CSF_ALL_BIT));
+    CHECK(pifSequence_SetCsFlag(&sequence, PIF_CS_INDEX_ALL, SQ_CSF_ALL_BIT));
 
     pif_cumulative_timer1ms = 0;
     CHECK(pifCollectSignal_Start());
@@ -470,6 +470,52 @@ static void _evtStop(void *p_client)
 
 static const PifCollectSignalBackend kBackend = { _evtStart, _evtChange, _evtStop };
 
+// act_enable of the sources: p_object is the channel, added under the name of the module.
+static BOOL _actSource(const PifCollectSignalSource *p_source, BOOL enable)
+{
+    PifCollectSignalChannel *p_channel = (PifCollectSignalChannel *)p_source->p_object;
+
+    if (!enable) {
+        pifCollectSignal_RemoveChannel(p_channel);
+        return TRUE;
+    }
+    return pifCollectSignal_AddChannel(p_channel, "MOD", 0x12, CSVT_WIRE, 1, 0);
+}
+
+static void testSource()
+{
+    static PifCollectSignalChannel s_a, s_b, s_c;
+    static const PifCollectSignalSource kSource[] = {
+        { _actSource, &s_a, "Alpha", 1, 0, TRUE },
+        { _actSource, &s_b, "Beta", 1, 0, FALSE },
+        { _actSource, &s_c, "Gamma", 1, 0, TRUE }
+    };
+
+    // Only the sources with enable, each with its name.
+    CHECK(pifCollectSignal_Init("top", kSource, 3));
+    CHECK(pifCollectSignal_IsSourceEnabled(0) && !pifCollectSignal_IsSourceEnabled(1) &&
+            pifCollectSignal_IsSourceEnabled(2));
+    CHECK(pifCollectSignal_GetSource(&s_a) == &kSource[0] && pifCollectSignal_GetSource(&s_c) == &kSource[2]);
+
+    // Added later, it comes last and keeps its name.
+    CHECK(pifCollectSignal_EnableSource(1, TRUE));
+    CHECK(s_collect_signal.p_head == &s_a && s_a.__p_next == &s_c && s_c.__p_next == &s_b);
+    CHECK(pifCollectSignal_GetSource(&s_b) == &kSource[1]);
+    CHECK(pifCollectSignal_EnableSource(0, FALSE) && !pifCollectSignal_IsSourceEnabled(0));
+    CHECK(!pifCollectSignal_EnableSource(3, TRUE) && pif_error == E_INVALID_PARAM);
+
+    // A channel added before its source is named by it all the same.
+    CHECK(pifCollectSignal_AddChannel(&s_a, "MOD", 0x12, CSVT_WIRE, 1, 0));
+    CHECK(pifCollectSignal_GetSource(&s_a) == NULL);
+    CHECK(pifCollectSignal_EnableSource(0, TRUE) && pifCollectSignal_GetSource(&s_a) == &kSource[0]);
+
+    // A channel added outside the table has none.
+    pifCollectSignal_Init("top", NULL, 0);
+    CHECK(pifCollectSignal_AddChannel(&s_b, "MOD", 0x12, CSVT_WIRE, 1, 0));
+    CHECK(pifCollectSignal_GetSource(&s_b) == NULL);
+    pifCollectSignal_Clear();
+}
+
 static void testBackend()
 {
     static const PifCollectSignalBackend kIncomplete = { _evtStart, NULL, _evtStop };
@@ -477,7 +523,7 @@ static void testBackend()
     uint32_t raw;
     char expect[128];
 
-    pifCollectSignal_InitStatic("top", sizeof(s_buffer), s_buffer);
+    pifCollectSignal_InitStatic("top", NULL, 0, sizeof(s_buffer), s_buffer);
     CHECK(_addChannels());
     CHECK(!pifCollectSignal_AttachBackend(&kIncomplete, &s_events) && pif_error == E_INVALID_PARAM);
     CHECK(pifCollectSignal_AttachBackend(&kBackend, &s_events));
@@ -521,7 +567,7 @@ static void testBackend()
     CHECK(!pifCollectSignal_GetFirstChannel());
 
     // Detached, the VCD output is back.
-    pifCollectSignal_Init("top");
+    pifCollectSignal_Init("top", NULL, 0);
     CHECK(_addChannels());
     _resetLog();
     s_events_len = 0;
@@ -546,6 +592,7 @@ static const struct {
     { "channel changes", testChannelChanges },
     { "state checks", testStateChecks },
     { "sequence", testSequence },
+    { "source", testSource },
     { "code", testCode }
 };
 

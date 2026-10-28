@@ -171,17 +171,21 @@ BOOL pifBuzzer_State(PifBuzzer* p_owner);
 /**
  * @brief Adds the selected signals of the buzzer to pifCollectSignal as channels.
  * @param p_owner Pointer to the buzzer instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifBuzzer_SetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag);
+BOOL pifBuzzer_SetCsFlag(PifBuzzer* p_owner, uint8_t index, PifBuzzerCsFlag flag);
 
 /**
  * @brief Removes the selected signals of the buzzer from pifCollectSignal.
  * @param p_owner Pointer to the buzzer instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifBuzzer_ResetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag);
+void pifBuzzer_ResetCsFlag(PifBuzzer* p_owner, uint8_t index, PifBuzzerCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_BUZZER
 

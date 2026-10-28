@@ -469,17 +469,21 @@ BOOL pifDshot_PutGcr(PifDshot* p_owner, uint8_t index, uint32_t gcr);
 /**
  * @brief Adds the selected signals of the command queue to pifCollectSignal as channels.
  * @param p_owner Pointer to the instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifDshot_SetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag);
+BOOL pifDshot_SetCsFlag(PifDshot* p_owner, uint8_t index, PifDshotCsFlag flag);
 
 /**
  * @brief Removes the selected signals of the command queue from pifCollectSignal.
  * @param p_owner Pointer to the instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifDshot_ResetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag);
+void pifDshot_ResetCsFlag(PifDshot* p_owner, uint8_t index, PifDshotCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_DSHOT
 

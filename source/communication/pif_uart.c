@@ -297,7 +297,7 @@ BOOL pifUart_Init(PifUart* p_owner, PifId id, uint32_t baudrate)
 void pifUart_Clear(PifUart* p_owner)
 {
 #ifdef COLLECT_SIGNAL_UART
-	pifUart_ResetCsFlag(p_owner, UA_CSF_ALL_BIT);
+	pifUart_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, UA_CSF_ALL_BIT);
 #endif
 	if (p_owner->_p_tx_task) {
 		pifTaskManager_Remove(p_owner->_p_tx_task);
@@ -769,8 +769,9 @@ PifTask *pifUart_AttachTxTask(PifUart *p_owner, PifId id, PifTaskMode mode, uint
 
 #ifdef COLLECT_SIGNAL_UART
 
-BOOL pifUart_SetCsFlag(PifUart* p_owner, PifUartCsFlag flag)
+BOOL pifUart_SetCsFlag(PifUart* p_owner, uint8_t index, PifUartCsFlag flag)
 {
+	(void)index;
 #ifdef PIF_USE_UART_FLOW_CONTROL
 	if (flag & UA_CSF_FC_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[UA_CSF_FC_IDX], "UFC", p_owner->_id, CSVT_WIRE, 1,
@@ -790,8 +791,9 @@ BOOL pifUart_SetCsFlag(PifUart* p_owner, PifUartCsFlag flag)
 	return TRUE;
 }
 
-void pifUart_ResetCsFlag(PifUart* p_owner, PifUartCsFlag flag)
+void pifUart_ResetCsFlag(PifUart* p_owner, uint8_t index, PifUartCsFlag flag)
 {
+	(void)index;
 	if (flag & UA_CSF_FC_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[UA_CSF_FC_IDX]);
 	if (flag & UA_CSF_TX_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[UA_CSF_TX_IDX]);
 	if (flag & UA_CSF_DIR_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[UA_CSF_DIR_IDX]);

@@ -474,7 +474,7 @@ static void testCollectSignal(void)
 
     _setUpN(&solenoid, 12, ST_2POINT, 30);
     CHECK(!s_failed);
-    CHECK(pifSolenoid_SetCsFlag(&solenoid, SN_CSF_ALL_BIT));
+    CHECK(pifSolenoid_SetCsFlag(&solenoid, PIF_CS_INDEX_ALL, SN_CSF_ALL_BIT));
     p_ch = solenoid.__p_channel;
 
     // Every channel has its own pair, named after its index and tagged with the instance.
@@ -497,16 +497,29 @@ static void testCollectSignal(void)
     CHECK(p_ch[1].__cs[SN_CSF_ACTION_IDX]._value == 0 && p_ch[1].__cs[SN_CSF_DIR_IDX]._value == SD_INVALID);
 
     // Removed from every channel, and Clear removes them as well.
-    pifSolenoid_ResetCsFlag(&solenoid, SN_CSF_DIR_BIT);
+    pifSolenoid_ResetCsFlag(&solenoid, PIF_CS_INDEX_ALL, SN_CSF_DIR_BIT);
     CHECK(p_ch[0].__cs[SN_CSF_DIR_IDX].__state == 0 && p_ch[2].__cs[SN_CSF_DIR_IDX].__state == 0);
     CHECK(p_ch[0].__cs[SN_CSF_ACTION_IDX].__state != 0 && p_ch[2].__cs[SN_CSF_ACTION_IDX].__state != 0);
+    pifSolenoid_Clear(&solenoid);
+
+    // An index below the count adds and removes that channel only.
+    _setUpN(&solenoid, 3, ST_2POINT, 30);
+    CHECK(!s_failed);
+    p_ch = solenoid.__p_channel;
+    CHECK(pifSolenoid_SetCsFlag(&solenoid, 1, SN_CSF_ACTION_BIT));
+    CHECK(p_ch[1].__cs[SN_CSF_ACTION_IDX].__state != 0 && p_ch[1].__cs[SN_CSF_DIR_IDX].__state == 0);
+    CHECK(p_ch[0].__cs[SN_CSF_ACTION_IDX].__state == 0 && p_ch[2].__cs[SN_CSF_ACTION_IDX].__state == 0);
+    CHECK(pifSolenoid_SetCsFlag(&solenoid, 3, SN_CSF_ACTION_BIT));
+    pifSolenoid_ResetCsFlag(&solenoid, 0, SN_CSF_ACTION_BIT);
+    CHECK(p_ch[0].__cs[SN_CSF_ACTION_IDX].__state == 0);
+    CHECK(p_ch[1].__cs[SN_CSF_ACTION_IDX].__state != 0 && p_ch[2].__cs[SN_CSF_ACTION_IDX].__state != 0);
     pifSolenoid_Clear(&solenoid);
 
 #if PIF_SOLENOID_MAX_COUNT >= 255
     // Three digits at the last index there can be.
     _setUpN(&solenoid, 255, ST_1POINT, 30);
     CHECK(!s_failed);
-    CHECK(pifSolenoid_SetCsFlag(&solenoid, SN_CSF_ALL_BIT));
+    CHECK(pifSolenoid_SetCsFlag(&solenoid, PIF_CS_INDEX_ALL, SN_CSF_ALL_BIT));
     p_ch = solenoid.__p_channel;
     CHECK(strcmp(p_ch[254].__cs[SN_CSF_ACTION_IDX]._name, "SNA254") == 0);
     CHECK(strcmp(p_ch[254].__cs[SN_CSF_DIR_IDX]._name, "SND254") == 0);

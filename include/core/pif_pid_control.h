@@ -122,7 +122,8 @@ extern "C" {
 #endif
 
 /**
- * @brief Sets the gains of a controller and clears its state.
+ * @brief Sets the gains of a controller and clears its state. Collect signal channels it has added are kept,
+ *        so it may be called again while they are recorded.
  * @param p_owner Controller to set up.
  * @param kp Proportional gain.
  * @param ki Integral gain.
@@ -227,18 +228,22 @@ float pifPidControl_Update(PifPidControl *p_owner, float setpoint, float measure
  * @details A controller runs every control period, so a capture fills fast. Keep it short, or
  *          use CSO_KEEP_LAST to keep the end of it.
  * @param p_owner Pointer to the controller.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @param id Appended to the names to tell controllers apart, or PIF_ID_AUTO for none.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifPidControl_SetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag, PifId id);
+BOOL pifPidControl_SetCsFlag(PifPidControl *p_owner, uint8_t index, PifPidControlCsFlag flag, PifId id);
 
 /**
  * @brief Removes the selected signals of the controller from pifCollectSignal.
  * @param p_owner Pointer to the controller.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifPidControl_ResetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag);
+void pifPidControl_ResetCsFlag(PifPidControl *p_owner, uint8_t index, PifPidControlCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_PID_CONTROL
 

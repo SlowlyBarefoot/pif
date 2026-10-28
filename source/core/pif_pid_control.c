@@ -39,9 +39,33 @@ static float _limit(PifPidControl *p_owner, float value)
 	return value;
 }
 
+#ifdef COLLECT_SIGNAL_PID_CONTROL
+
+// TRUE when the channel is in the list of the collect signal, whatever the memory around it holds.
+static BOOL _isAdded(const PifCollectSignalChannel *p_channel)
+{
+	const PifCollectSignalChannel *p_added = pifCollectSignal_GetFirstChannel();
+
+	while (p_added && p_added != p_channel) p_added = pifCollectSignal_GetNextChannel(p_added);
+	return p_added != NULL;
+}
+
+#endif
+
 void pifPidControl_Init(PifPidControl *p_owner, float kp, float ki, float kd, float max_integration)
 {
+#ifdef COLLECT_SIGNAL_PID_CONTROL
+	int i;
+
+	// A channel added to the collect signal stays as it is: clearing it would cut the list it is linked in, and
+	// an application may set a controller up again while its signals are recorded. The others are cleared.
+	memset(p_owner, 0, offsetof(PifPidControl, __cs));
+	for (i = 0; i < PID_CSF_COUNT; i++) {
+		if (!_isAdded(&p_owner->__cs[i])) memset(&p_owner->__cs[i], 0, sizeof(PifCollectSignalChannel));
+	}
+#else
 	memset(p_owner, 0, sizeof(PifPidControl));
+#endif
 	p_owner->kp = kp;
 	p_owner->ki = ki;
 	p_owner->kd = kd;
@@ -54,7 +78,7 @@ void pifPidControl_Init(PifPidControl *p_owner, float kp, float ki, float kd, fl
 void pifPidControl_Clear(PifPidControl *p_owner)
 {
 #ifdef COLLECT_SIGNAL_PID_CONTROL
-	pifPidControl_ResetCsFlag(p_owner, PID_CSF_ALL_BIT);
+	pifPidControl_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, PID_CSF_ALL_BIT);
 #else
 	(void)p_owner;
 #endif
@@ -251,11 +275,13 @@ float pifPidControl_Update(PifPidControl *p_owner, float setpoint, float measure
 
 #ifdef COLLECT_SIGNAL_PID_CONTROL
 
-BOOL pifPidControl_SetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag, PifId id)
+BOOL pifPidControl_SetCsFlag(PifPidControl *p_owner, uint8_t index, PifPidControlCsFlag flag, PifId id)
 {
 	static const char *c_name[PID_CSF_COUNT] = { "PIDSP", "PIDMV", "PIDE", "PIDO", "PIDP", "PIDI", "PIDD" };
 	PifCollectSignalChannel *p_channel;
 	int i;
+
+	(void)index;
 
 	for (i = 0; i < PID_CSF_COUNT; i++) {
 		if (!(flag & (1 << i))) continue;
@@ -266,9 +292,11 @@ BOOL pifPidControl_SetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag, P
 	return TRUE;
 }
 
-void pifPidControl_ResetCsFlag(PifPidControl *p_owner, PifPidControlCsFlag flag)
+void pifPidControl_ResetCsFlag(PifPidControl *p_owner, uint8_t index, PifPidControlCsFlag flag)
 {
 	int i;
+
+	(void)index;
 
 	for (i = 0; i < PID_CSF_COUNT; i++) {
 		if (flag & (1 << i)) pifCollectSignal_RemoveChannel(&p_owner->__cs[i]);

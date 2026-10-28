@@ -77,7 +77,7 @@ BOOL pifHcSr04_Init(PifHcSr04* p_owner, PifId id, const char *name)
 void pifHcSr04_Clear(PifHcSr04* p_owner)
 {
 #ifdef COLLECT_SIGNAL_HC_SR04
-	pifHcSr04_ResetCsFlag(p_owner, HS_CSF_ALL_BIT);
+	pifHcSr04_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, HS_CSF_ALL_BIT);
 #endif
 	if (p_owner->_p_task) {
 		pifTaskManager_Remove(p_owner->_p_task);
@@ -148,8 +148,9 @@ void pifHcSr04_sigReceiveEcho(PifHcSr04* p_owner, SWITCH state)
 
 #ifdef COLLECT_SIGNAL_HC_SR04
 
-BOOL pifHcSr04_SetCsFlag(PifHcSr04* p_owner, PifHcSr04CsFlag flag)
+BOOL pifHcSr04_SetCsFlag(PifHcSr04* p_owner, uint8_t index, PifHcSr04CsFlag flag)
 {
+	(void)index;
 	if (flag & HS_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[HS_CSF_STATE_IDX], "HSS", p_owner->_id, CSVT_REG, 2,
 				p_owner->__state)) return FALSE;
@@ -161,8 +162,9 @@ BOOL pifHcSr04_SetCsFlag(PifHcSr04* p_owner, PifHcSr04CsFlag flag)
 	return TRUE;
 }
 
-void pifHcSr04_ResetCsFlag(PifHcSr04* p_owner, PifHcSr04CsFlag flag)
+void pifHcSr04_ResetCsFlag(PifHcSr04* p_owner, uint8_t index, PifHcSr04CsFlag flag)
 {
+	(void)index;
 	if (flag & HS_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[HS_CSF_STATE_IDX]);
 	if (flag & HS_CSF_DISTANCE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[HS_CSF_DISTANCE_IDX]);
 }

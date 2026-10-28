@@ -25,6 +25,11 @@
 // %f takes its argument and writes nothing.
 //#define PIF_USE_PRINTF_FLOAT
 
+// pifCrc8(), pifCrc8_Update() and pifCrc8_Add() with PIF_CRC8_POLY_SMBUS from a table of 256 bytes instead of bit
+// by bit: the same CRC, about ten times as fast. Other polynomials stay bit by bit. For a slow MCU, or where it
+// runs often or with the interrupts masked, as pifTrace does for every frame.
+//#define PIF_USE_CRC8_SMBUS_TABLE
+
 
 // -------- pifAdc -------------------------------
 

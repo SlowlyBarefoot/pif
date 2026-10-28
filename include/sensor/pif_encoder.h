@@ -238,17 +238,21 @@ void pifEncoder_AttachEvtStep(PifEncoder* p_owner, PifEvtEncoderStep evt_step, P
 /**
  * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
  * @param p_owner Pointer to the owner instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifEncoder_SetCsFlag(PifEncoder* p_owner, PifEncoderCsFlag flag);
+BOOL pifEncoder_SetCsFlag(PifEncoder* p_owner, uint8_t index, PifEncoderCsFlag flag);
 
 /**
  * @brief Removes the selected signals of the instance from pifCollectSignal.
  * @param p_owner Pointer to the owner instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifEncoder_ResetCsFlag(PifEncoder* p_owner, PifEncoderCsFlag flag);
+void pifEncoder_ResetCsFlag(PifEncoder* p_owner, uint8_t index, PifEncoderCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_ENCODER
 

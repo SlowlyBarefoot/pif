@@ -31,6 +31,25 @@
  * recorded during it. It finds the channels with pifCollectSignal_GetFirstChannel() and
  * pifCollectSignal_GetNextChannel().
  *
+ * The signals of PIF modules are added with the SetCsFlag of each module. An application can list them instead
+ * in a table of PifCollectSignalSource and give it to pifCollectSignal_Init(): each entry is a signal of an
+ * object with the name the dump shows, and whether Init adds it. pifCollectSignal_EnableSource() adds or removes
+ * one later, and the name stays with its channel, whatever order the channels come in:
+ *
+ *     static BOOL _gate(const PifCollectSignalSource *p_source, BOOL enable)
+ *     {
+ *         if (enable) return pifSolenoid_SetCsFlag(p_source->p_object, p_source->index, p_source->flag);
+ *         pifSolenoid_ResetCsFlag(p_source->p_object, p_source->index, p_source->flag);
+ *         return TRUE;
+ *     }
+ *
+ *     static const PifCollectSignalSource c_source[] = {
+ *         { _gate, &g_gate, "Gate1Act", SN_CSF_ACTION_BIT, 0, TRUE },
+ *         { _gate, &g_gate, "Gate2Act", SN_CSF_ACTION_BIT, 1, FALSE }
+ *     };
+ *
+ *     pifCollectSignal_Init("top", c_source, 2);
+ *
  * PIF_COLLECT_SIGNAL_NO_VCD leaves the VCD output out, CSM_LOG and CSM_BUFFER with their functions, for an
  * application whose captures all go to a backend. pifCollectSignal_Start() then needs a backend.
  */
@@ -49,6 +68,9 @@
 #define PIF_COLLECT_SIGNAL_TEXT_SIZE	96
 #endif
 
+/// index of the SetCsFlag/ResetCsFlag of the modules for every device of the instance
+#define PIF_CS_INDEX_ALL				0xFF
+
 /// Bytes a channel keeps for its name, the terminating NUL included.
 #ifndef PIF_COLLECT_SIGNAL_NAME_SIZE
 #define PIF_COLLECT_SIGNAL_NAME_SIZE	8
@@ -62,7 +84,7 @@ typedef enum EnPifCollectSignalScale
 {
 	CSS_1S				= 0,	///< Seconds
 	CSS_1MS				= 1,	///< Default
-	CSS_1US				= 2	///< Microseconds
+	CSS_1US				= 2		///< Microseconds
 } PifCollectSignalScale;
 
 /**
@@ -71,7 +93,7 @@ typedef enum EnPifCollectSignalScale
 typedef enum EnPifCollectSignalMethod
 {
 	CSM_LOG				= 0,	///< Printed through pifLog at once
-	CSM_BUFFER			= 1	///< Stored in a buffer and printed later with pifCollectSignal_PrintLog()
+	CSM_BUFFER			= 1		///< Stored in a buffer and printed later with pifCollectSignal_PrintLog()
 } PifCollectSignalMethod;
 
 /// What CSM_BUFFER keeps when a capture fills the buffer. The end time of the capture is kept
@@ -95,9 +117,8 @@ typedef enum EnPifCollectSignalVarType
 	CSVT_INTEGER		= 0,	///< integer
 	CSVT_REAL			= 1,	///< Put with pifCollectSignal_PutReal(). The width is ignored.
 	CSVT_REG			= 2,	///< reg, a value of the given width in bits
-	CSVT_WIRE			= 3	///< wire, a value of the given width in bits
+	CSVT_WIRE			= 3		///< wire, a value of the given width in bits
 } PifCollectSignalVarType;
-
 
 /**
  * @struct StPifCollectSignalChannel
@@ -108,17 +129,43 @@ typedef struct StPifCollectSignalChannel
 {
 	// Read-only Member Variable
 	char _name[PIF_COLLECT_SIGNAL_NAME_SIZE];	///< Name of the signal in the dump
-	uint32_t _value;				///< Last value, raw bits of a float for CSVT_REAL
-	PifId _id;	///< ID of the object, added to the name
-	uint8_t _var_type;				///< PifCollectSignalVarType
-	uint8_t _width;	///< Width in bits
+	uint32_t _value;							///< Last value, raw bits of a float for CSVT_REAL
+	PifId _id;									///< ID of the object, added to the name
+	uint8_t _var_type;							///< PifCollectSignalVarType
+	uint8_t _width;								///< Width in bits
 
 	// Private Member Variable
 	uint8_t __state;
+	uint8_t __source;				///< Its PifCollectSignalSource, numbered from 1, or 0 for none
 	uint16_t __index;
 	uint32_t __start_value;
 	struct StPifCollectSignalChannel *__p_next;
 } PifCollectSignalChannel;
+
+typedef struct StPifCollectSignalSource PifCollectSignalSource;
+
+/**
+ * @brief Adds the signal of a source, usually with the SetCsFlag of its module, or removes it with ResetCsFlag.
+ * @param p_source The source.
+ * @param enable TRUE to add the signal, FALSE to remove it.
+ * @return TRUE on success, otherwise FALSE.
+ */
+typedef BOOL (*PifActCollectSignalSource)(const PifCollectSignalSource *p_source, BOOL enable);
+
+/**
+ * @struct StPifCollectSignalSource
+ * @brief A signal of an object and the name the dump shows for it, an entry of the table of
+ *        pifCollectSignal_Init(). The table is usually const and must stay valid while the collector is used.
+ */
+struct StPifCollectSignalSource
+{
+	PifActCollectSignalSource act_enable;	///< Adds or removes the signal
+	void *p_object;			///< Object of the signal, for act_enable
+	const char *p_name;		///< Name of the signal in the dump, without spaces
+	uint16_t flag;			///< Signal of the object, a _BIT value of its module: one, so that one channel gets the name
+	uint8_t index;			///< index of the SetCsFlag of the module: the device of an object that has several
+	BOOL enable;			///< Added by pifCollectSignal_Init()
+};
 
 /**
  * @struct StPifCollectSignalBackend
@@ -144,32 +191,43 @@ extern "C" {
 /**
  * @brief Initializes the collector for CSM_LOG, which prints each change at once.
  * @param p_module_name Scope name of the dump. It must stay valid while the collector is used.
+ * @param p_source Signals to add by name, those with enable in the order of the table, or NULL for none. The
+ *        objects of the table must be initialized already.
+ * @param count Entries of p_source, up to 255.
+ * @return TRUE on success. FALSE when a source could not be added: the others are added all the same.
  */
-void pifCollectSignal_Init(const char *p_module_name);
+BOOL pifCollectSignal_Init(const char *p_module_name, const PifCollectSignalSource *p_source, uint8_t count);
 
 #ifndef PIF_COLLECT_SIGNAL_NO_VCD
 
 /**
  * @brief Initializes the collector for CSM_BUFFER with a buffer allocated from the heap.
  * @param p_module_name Scope name of the dump. It must stay valid while the collector is used.
+ * @param p_source Signals to add by name, or NULL for none. See pifCollectSignal_Init().
+ * @param count Entries of p_source.
  * @param size Buffer size in bytes. Each change takes 10 bytes, and 21 bytes is the least.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size);
+BOOL pifCollectSignal_InitHeap(const char *p_module_name, const PifCollectSignalSource *p_source, uint8_t count,
+		uint16_t size);
 
 /**
  * @brief Initializes the collector for CSM_BUFFER with a buffer the caller provides.
  * @param p_module_name Scope name of the dump. It must stay valid while the collector is used.
+ * @param p_source Signals to add by name, or NULL for none. See pifCollectSignal_Init().
+ * @param count Entries of p_source.
  * @param size Buffer size in bytes. Each change takes 10 bytes, and 21 bytes is the least.
  * @param p_buffer Buffer of size bytes.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8_t *p_buffer);
+BOOL pifCollectSignal_InitStatic(const char *p_module_name, const PifCollectSignalSource *p_source, uint8_t count,
+		uint16_t size, uint8_t *p_buffer);
 
 #endif	// PIF_COLLECT_SIGNAL_NO_VCD
 
 /**
- * @brief Removes every channel, stops a capture or a transfer and releases the buffer.
+ * @brief Removes every channel, stops a capture or a transfer and releases the buffer. The sources of
+ *        pifCollectSignal_Init() are forgotten.
  */
 void pifCollectSignal_Clear();
 
@@ -215,7 +273,8 @@ BOOL pifCollectSignal_ChangeOverflow(PifCollectSignalOverflow overflow);
 
 /**
  * @brief Adds a channel to the dump. A channel added during a capture joins the next one, and
- *        adding a channel that is already added changes nothing.
+ *        adding a channel that is already added changes nothing but the source of
+ *        pifCollectSignal_EnableSource() it is added for, which names it.
  * @param p_channel Channel the caller owns.
  * @param p_name Signal name without spaces, shorter than PIF_COLLECT_SIGNAL_NAME_SIZE. It is copied
  *        into the channel, so it may be built in a temporary buffer. A longer name is refused rather
@@ -234,6 +293,30 @@ BOOL pifCollectSignal_AddChannel(PifCollectSignalChannel *p_channel, const char 
  * @param p_channel Channel to remove.
  */
 void pifCollectSignal_RemoveChannel(PifCollectSignalChannel *p_channel);
+
+/**
+ * @brief Adds or removes the signal of a source of pifCollectSignal_Init(), with its name. Allowed at any time,
+ *        as pifCollectSignal_AddChannel() and pifCollectSignal_RemoveChannel() are. A signal added again comes
+ *        after the channels there are.
+ * @param index Entry of the table of pifCollectSignal_Init().
+ * @param enable TRUE to add, FALSE to remove.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifCollectSignal_EnableSource(uint8_t index, BOOL enable);
+
+/**
+ * @brief Tells whether the signal of a source of pifCollectSignal_Init() is added.
+ * @param index Entry of the table of pifCollectSignal_Init().
+ * @return TRUE when a channel of it is added.
+ */
+BOOL pifCollectSignal_IsSourceEnabled(uint8_t index);
+
+/**
+ * @brief Gets the source a channel was added for, whose p_name names it in the dump.
+ * @param p_channel A channel.
+ * @return The entry of the table of pifCollectSignal_Init(), or NULL for a channel added otherwise.
+ */
+const PifCollectSignalSource *pifCollectSignal_GetSource(const PifCollectSignalChannel *p_channel);
 
 /**
  * @brief Starts a capture of the channels added so far, from time 0. A capture that was not
@@ -332,7 +415,6 @@ uint16_t pifCollectSignal_GetIndex(const PifCollectSignalChannel *p_channel);
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif	// PIF_COLLECT_SIGNAL
 

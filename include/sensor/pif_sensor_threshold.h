@@ -168,17 +168,21 @@ PifTask* pifSensorThreshold_AttachTaskAcquire(PifSensorThreshold* p_owner, PifId
 /**
  * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
  * @param p_owner Pointer to the owner instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifSensorThreshold_SetCsFlag(PifSensorThreshold* p_owner, PifSensorThresholdCsFlag flag);
+BOOL pifSensorThreshold_SetCsFlag(PifSensorThreshold* p_owner, uint8_t index, PifSensorThresholdCsFlag flag);
 
 /**
  * @brief Removes the selected signals of the instance from pifCollectSignal.
  * @param p_owner Pointer to the owner instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifSensorThreshold_ResetCsFlag(PifSensorThreshold* p_owner, PifSensorThresholdCsFlag flag);
+void pifSensorThreshold_ResetCsFlag(PifSensorThreshold* p_owner, uint8_t index, PifSensorThresholdCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_SENSOR_THRESHOLD
 

@@ -185,17 +185,21 @@ void pifSequence_Signal(PifSequence *p_owner);
 /**
  * @brief Adds the selected signals of the sequence to pifCollectSignal as channels.
  * @param p_owner Pointer to the target object instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifSequence_SetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag);
+BOOL pifSequence_SetCsFlag(PifSequence *p_owner, uint8_t index, PifSequenceCsFlag flag);
 
 /**
  * @brief Removes the selected signals of the sequence from pifCollectSignal.
  * @param p_owner Pointer to the target object instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifSequence_ResetCsFlag(PifSequence *p_owner, PifSequenceCsFlag flag);
+void pifSequence_ResetCsFlag(PifSequence *p_owner, uint8_t index, PifSequenceCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_SEQUENCE
 

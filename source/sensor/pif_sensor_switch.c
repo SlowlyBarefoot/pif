@@ -37,7 +37,7 @@ BOOL pifSensorSwitch_Init(PifSensorSwitch* p_owner, PifId id, SWITCH init_state,
 void pifSensorSwitch_Clear(PifSensorSwitch* p_owner)
 {
 #ifdef COLLECT_SIGNAL_SENSOR_SWITCH
-	pifSensorSwitch_ResetCsFlag(p_owner, SS_CSF_ALL_BIT);
+	pifSensorSwitch_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, SS_CSF_ALL_BIT);
 #else
 	(void)p_owner;
 #endif
@@ -102,8 +102,9 @@ PifTask* pifSensorSwitch_AttachTaskAcquire(PifSensorSwitch* p_owner, PifId id, P
 
 #ifdef COLLECT_SIGNAL_SENSOR_SWITCH
 
-BOOL pifSensorSwitch_SetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag)
+BOOL pifSensorSwitch_SetCsFlag(PifSensorSwitch* p_owner, uint8_t index, PifSensorSwitchCsFlag flag)
 {
+	(void)index;
 	if (flag & SS_CSF_RAW_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[SS_CSF_RAW_IDX], "SSR", p_owner->parent._id, CSVT_WIRE, 1,
 				p_owner->parent._curr_state)) return FALSE;
@@ -115,8 +116,9 @@ BOOL pifSensorSwitch_SetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag f
 	return TRUE;
 }
 
-void pifSensorSwitch_ResetCsFlag(PifSensorSwitch* p_owner, PifSensorSwitchCsFlag flag)
+void pifSensorSwitch_ResetCsFlag(PifSensorSwitch* p_owner, uint8_t index, PifSensorSwitchCsFlag flag)
 {
+	(void)index;
 	if (flag & SS_CSF_RAW_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SS_CSF_RAW_IDX]);
 	if (flag & SS_CSF_FILTER_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SS_CSF_FILTER_IDX]);
 }

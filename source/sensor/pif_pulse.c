@@ -117,7 +117,7 @@ BOOL pifPulse_Init(PifPulse* p_owner, PifId id)
 void pifPulse_Clear(PifPulse* p_owner)
 {
 #ifdef COLLECT_SIGNAL_PULSE
-	pifPulse_ResetCsFlag(p_owner, PULSE_CSF_ALL_BIT);
+	pifPulse_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, PULSE_CSF_ALL_BIT);
 #else
 	(void)p_owner;
 #endif
@@ -299,8 +299,9 @@ void pifPulse_AttachEvtEdge(PifPulse* p_owner, PifEvtPulseEdge evt_edge, PifIssu
 
 #ifdef COLLECT_SIGNAL_PULSE
 
-BOOL pifPulse_SetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag)
+BOOL pifPulse_SetCsFlag(PifPulse* p_owner, uint8_t index, PifPulseCsFlag flag)
 {
+	(void)index;
 	if (flag & PULSE_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[PULSE_CSF_STATE_IDX], "PL", p_owner->_id, CSVT_WIRE, 1,
 				PS_LOW_LEVEL)) return FALSE;
@@ -308,8 +309,9 @@ BOOL pifPulse_SetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag)
 	return TRUE;
 }
 
-void pifPulse_ResetCsFlag(PifPulse* p_owner, PifPulseCsFlag flag)
+void pifPulse_ResetCsFlag(PifPulse* p_owner, uint8_t index, PifPulseCsFlag flag)
 {
+	(void)index;
 	if (flag & PULSE_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[PULSE_CSF_STATE_IDX]);
 }
 

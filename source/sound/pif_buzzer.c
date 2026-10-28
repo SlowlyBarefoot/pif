@@ -135,7 +135,7 @@ BOOL pifBuzzer_Init(PifBuzzer* p_owner, PifId id, uint16_t period1ms, PifActBuzz
 void pifBuzzer_Clear(PifBuzzer* p_owner)
 {
 #ifdef COLLECT_SIGNAL_BUZZER
-	pifBuzzer_ResetCsFlag(p_owner, BZ_CSF_ALL_BIT);
+	pifBuzzer_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, BZ_CSF_ALL_BIT);
 #endif
 	if (p_owner->_p_task) {
 		pifTaskManager_Remove(p_owner->_p_task);
@@ -185,8 +185,9 @@ BOOL pifBuzzer_State(PifBuzzer* p_owner)
 
 #ifdef COLLECT_SIGNAL_BUZZER
 
-BOOL pifBuzzer_SetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag)
+BOOL pifBuzzer_SetCsFlag(PifBuzzer* p_owner, uint8_t index, PifBuzzerCsFlag flag)
 {
+	(void)index;
 	if (flag & BZ_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[BZ_CSF_STATE_IDX], "BZS", p_owner->_id, CSVT_REG, 3,
 				p_owner->_state)) return FALSE;
@@ -198,8 +199,9 @@ BOOL pifBuzzer_SetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag)
 	return TRUE;
 }
 
-void pifBuzzer_ResetCsFlag(PifBuzzer* p_owner, PifBuzzerCsFlag flag)
+void pifBuzzer_ResetCsFlag(PifBuzzer* p_owner, uint8_t index, PifBuzzerCsFlag flag)
 {
+	(void)index;
 	if (flag & BZ_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[BZ_CSF_STATE_IDX]);
 	if (flag & BZ_CSF_OUTPUT_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[BZ_CSF_OUTPUT_IDX]);
 }

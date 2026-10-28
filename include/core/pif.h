@@ -109,6 +109,7 @@
 /// CRC-8 polynomials for pifCrc8_Add() (MSB first, no reflection).
 #define PIF_CRC8_POLY_DVB_S2	0xD5	///< MSPv2, CRSF, GHST
 #define PIF_CRC8_POLY_BA		0xBA	///< CRSF command frames
+#define PIF_CRC8_POLY_SMBUS		0x07	///< SMBus PEC, ATM HEC, pifTrace: from a table with PIF_USE_CRC8_SMBUS_TABLE
 
 
 /**
@@ -314,6 +315,14 @@ void pif_Exit();
 void pif_sigTimer1ms();
 
 /**
+ * @brief Sets pif_datetime, which pif_sigTimer1ms() keeps from then on. millisecond goes to pif_timer1ms, so the
+ *        next second starts when it reaches 1000. Guarded by pif_IrqDisable() against pif_sigTimer1ms().
+ * @param p_datetime Date and time to set. year counts from 2000, and day must exist in its month.
+ * @return TRUE on success. FALSE with E_INVALID_PARAM when p_datetime is NULL or a field is out of range.
+ */
+BOOL pif_SetDateTime(const PifDateTime* p_datetime);
+
+/**
  * @brief Waits for the requested time with the CPU held. Nothing else runs meanwhile, so the whole
  *        wait is added to the block time of whichever task is executing and delays a TM_REALTIME
  *        release by that much. Keep it to initialization and to waits a device cannot be asked
@@ -493,6 +502,17 @@ uint16_t pifCrc16(uint8_t* p_data, uint16_t length);
  * @return Updated CRC accumulator value.
  */
 uint16_t pifCrc16_Update(uint16_t crc, const uint8_t* p_data, uint16_t length);
+
+#ifdef PIF_USE_CRC8_SMBUS_TABLE
+
+/**
+ * @brief CRC-8 of PIF_CRC8_POLY_SMBUS for each byte, with PIF_USE_CRC8_SMBUS_TABLE: the CRC after a byte is
+ *        pif_crc8_smbus_table[crc ^ data]. pifCrc8_Add(), pifCrc8_Update() and pifCrc8() use it for that
+ *        polynomial, about ten times as fast as bit by bit, and go bit by bit for the others.
+ */
+extern const uint8_t pif_crc8_smbus_table[256];
+
+#endif
 
 /**
  * @brief Adds one byte to a CRC-8 with the given polynomial (MSB first, no reflection, no final XOR).

@@ -153,17 +153,21 @@ BOOL pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double
 /**
  * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
  * @param p_owner Pointer to the owner instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifMax31855_SetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag);
+BOOL pifMax31855_SetCsFlag(PifMax31855* p_owner, uint8_t index, PifMax31855CsFlag flag);
 
 /**
  * @brief Removes the selected signals of the instance from pifCollectSignal.
  * @param p_owner Pointer to the owner instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifMax31855_ResetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag);
+void pifMax31855_ResetCsFlag(PifMax31855* p_owner, uint8_t index, PifMax31855CsFlag flag);
 
 #endif	// COLLECT_SIGNAL_MAX31855
 

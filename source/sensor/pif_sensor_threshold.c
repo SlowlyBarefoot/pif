@@ -37,7 +37,7 @@ BOOL pifSensorThreshold_Init(PifSensorThreshold* p_owner, PifId id, SWITCH init_
 void pifSensorThreshold_Clear(PifSensorThreshold* p_owner)
 {
 #ifdef COLLECT_SIGNAL_SENSOR_THRESHOLD
-	pifSensorThreshold_ResetCsFlag(p_owner, ST_CSF_ALL_BIT);
+	pifSensorThreshold_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, ST_CSF_ALL_BIT);
 #else
 	(void)p_owner;
 #endif
@@ -120,8 +120,9 @@ PifTask* pifSensorThreshold_AttachTaskAcquire(PifSensorThreshold* p_owner, PifId
 
 #ifdef COLLECT_SIGNAL_SENSOR_THRESHOLD
 
-BOOL pifSensorThreshold_SetCsFlag(PifSensorThreshold* p_owner, PifSensorThresholdCsFlag flag)
+BOOL pifSensorThreshold_SetCsFlag(PifSensorThreshold* p_owner, uint8_t index, PifSensorThresholdCsFlag flag)
 {
+	(void)index;
 	if (flag & ST_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[ST_CSF_STATE_IDX], "ST", p_owner->parent._id, CSVT_WIRE, 1,
 				p_owner->parent._curr_state)) return FALSE;
@@ -133,8 +134,9 @@ BOOL pifSensorThreshold_SetCsFlag(PifSensorThreshold* p_owner, PifSensorThreshol
 	return TRUE;
 }
 
-void pifSensorThreshold_ResetCsFlag(PifSensorThreshold* p_owner, PifSensorThresholdCsFlag flag)
+void pifSensorThreshold_ResetCsFlag(PifSensorThreshold* p_owner, uint8_t index, PifSensorThresholdCsFlag flag)
 {
+	(void)index;
 	if (flag & ST_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[ST_CSF_STATE_IDX]);
 	if (flag & ST_CSF_LEVEL_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[ST_CSF_LEVEL_IDX]);
 }

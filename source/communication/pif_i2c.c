@@ -282,7 +282,7 @@ fail:
 void pifI2cPort_Clear(PifI2cPort* p_owner)
 {
 #ifdef COLLECT_SIGNAL_I2C
-	pifI2cPort_ResetCsFlag(p_owner, I2_CSF_ALL_BIT);
+	pifI2cPort_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, I2_CSF_ALL_BIT);
 #endif
 	pifObjArray_Clear(&p_owner->__devices);
 }
@@ -349,8 +349,9 @@ void pifI2cPort_sigEndTransfer(PifI2cPort* p_owner, BOOL result)
 
 #ifdef COLLECT_SIGNAL_I2C
 
-BOOL pifI2cPort_SetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag)
+BOOL pifI2cPort_SetCsFlag(PifI2cPort* p_owner, uint8_t index, PifI2cCsFlag flag)
 {
+	(void)index;
 	if (flag & I2_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[I2_CSF_STATE_IDX], "I2S", p_owner->_id, CSVT_REG, 2,
 				DRS_IDLE)) return FALSE;
@@ -362,8 +363,9 @@ BOOL pifI2cPort_SetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag)
 	return TRUE;
 }
 
-void pifI2cPort_ResetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag)
+void pifI2cPort_ResetCsFlag(PifI2cPort* p_owner, uint8_t index, PifI2cCsFlag flag)
 {
+	(void)index;
 	if (flag & I2_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[I2_CSF_STATE_IDX]);
 	if (flag & I2_CSF_ADDR_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[I2_CSF_ADDR_IDX]);
 }

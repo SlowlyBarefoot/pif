@@ -232,17 +232,21 @@ void pifKeypad_Stop(PifKeypad* p_owner);
  * @brief Adds the selected signals of every key to pifCollectSignal as channels. Call it after
  *        pifKeypad_SetKeymap(), which removes them again when it changes the keys.
  * @param p_owner Pointer to the keypad instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifKeypad_SetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag);
+BOOL pifKeypad_SetCsFlag(PifKeypad* p_owner, uint8_t index, PifKeypadCsFlag flag);
 
 /**
  * @brief Removes the selected signals of every key from pifCollectSignal.
  * @param p_owner Pointer to the keypad instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifKeypad_ResetCsFlag(PifKeypad* p_owner, PifKeypadCsFlag flag);
+void pifKeypad_ResetCsFlag(PifKeypad* p_owner, uint8_t index, PifKeypadCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_KEYPAD
 

@@ -393,7 +393,7 @@ BOOL pifDshot_Init(PifDshot* p_owner, PifId id, uint8_t motor_count, BOOL bidire
 void pifDshot_Clear(PifDshot* p_owner)
 {
 #ifdef COLLECT_SIGNAL_DSHOT
-	pifDshot_ResetCsFlag(p_owner, DS_CSF_ALL_BIT);
+	pifDshot_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, DS_CSF_ALL_BIT);
 #else
 	(void)p_owner;
 #endif
@@ -622,8 +622,9 @@ BOOL pifDshot_PutGcr(PifDshot* p_owner, uint8_t index, uint32_t gcr)
 
 #ifdef COLLECT_SIGNAL_DSHOT
 
-BOOL pifDshot_SetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag)
+BOOL pifDshot_SetCsFlag(PifDshot* p_owner, uint8_t index, PifDshotCsFlag flag)
 {
+	(void)index;
 	if (flag & DS_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[DS_CSF_STATE_IDX], "DSS", p_owner->_id, CSVT_REG, 3,
 				_isQueueEmpty(p_owner) ? PIF_DSHOT_CS_NO_COMMAND : p_owner->__queue[p_owner->__queue_tail].state)) return FALSE;
@@ -635,8 +636,9 @@ BOOL pifDshot_SetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag)
 	return TRUE;
 }
 
-void pifDshot_ResetCsFlag(PifDshot* p_owner, PifDshotCsFlag flag)
+void pifDshot_ResetCsFlag(PifDshot* p_owner, uint8_t index, PifDshotCsFlag flag)
 {
+	(void)index;
 	if (flag & DS_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[DS_CSF_STATE_IDX]);
 	if (flag & DS_CSF_COMMAND_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[DS_CSF_COMMAND_IDX]);
 }

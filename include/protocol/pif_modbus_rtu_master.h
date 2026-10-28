@@ -257,17 +257,21 @@ BOOL pifModbusRtuMaster_ReadWriteMultipleRegisters(PifModbusRtuMaster *p_owner, 
 /**
  * @brief Adds the selected signals of the instance to pifCollectSignal as channels.
  * @param p_owner Pointer to the protocol instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success; otherwise FALSE.
  */
-BOOL pifModbusRtuMaster_SetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMasterCsFlag flag);
+BOOL pifModbusRtuMaster_SetCsFlag(PifModbusRtuMaster *p_owner, uint8_t index, PifModbusRtuMasterCsFlag flag);
 
 /**
  * @brief Removes the selected signals of the instance from pifCollectSignal.
  * @param p_owner Pointer to the protocol instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifModbusRtuMaster_ResetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMasterCsFlag flag);
+void pifModbusRtuMaster_ResetCsFlag(PifModbusRtuMaster *p_owner, uint8_t index, PifModbusRtuMasterCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_MODBUS_RTU_MASTER
 

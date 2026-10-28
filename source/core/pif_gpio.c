@@ -30,7 +30,7 @@ BOOL pifGpio_Init(PifGpio* p_owner, PifId id, uint8_t count)
 void pifGpio_Clear(PifGpio* p_owner)
 {
 #ifdef COLLECT_SIGNAL_GPIO
-	pifGpio_ResetCsFlag(p_owner, GP_CSF_ALL_BIT);
+	pifGpio_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, GP_CSF_ALL_BIT);
 #else
 	(void)p_owner;
 #endif
@@ -158,8 +158,9 @@ PifTask* pifGpio_AttachTaskIn(PifGpio* p_owner, PifId id, PifTaskMode mode, uint
 
 #ifdef COLLECT_SIGNAL_GPIO
 
-BOOL pifGpio_SetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag)
+BOOL pifGpio_SetCsFlag(PifGpio* p_owner, uint8_t index, PifGpioCsFlag flag)
 {
+	(void)index;
 	if (flag & GP_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[GP_CSF_STATE_IDX], "GP", p_owner->_id, CSVT_REG,
 				p_owner->count, p_owner->__write_state)) return FALSE;
@@ -167,8 +168,9 @@ BOOL pifGpio_SetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag)
 	return TRUE;
 }
 
-void pifGpio_ResetCsFlag(PifGpio* p_owner, PifGpioCsFlag flag)
+void pifGpio_ResetCsFlag(PifGpio* p_owner, uint8_t index, PifGpioCsFlag flag)
 {
+	(void)index;
 	if (flag & GP_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[GP_CSF_STATE_IDX]);
 }
 

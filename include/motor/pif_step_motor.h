@@ -351,17 +351,21 @@ void pifStepMotor_Control(PifStepMotor* p_owner);
 /**
  * @brief Adds the selected signals of the motor to pifCollectSignal as channels.
  * @param p_owner Pointer to the motor instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifStepMotor_SetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag);
+BOOL pifStepMotor_SetCsFlag(PifStepMotor* p_owner, uint8_t index, PifStepMotorCsFlag flag);
 
 /**
  * @brief Removes the selected signals of the motor from pifCollectSignal.
  * @param p_owner Pointer to the motor instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifStepMotor_ResetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag);
+void pifStepMotor_ResetCsFlag(PifStepMotor* p_owner, uint8_t index, PifStepMotorCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_STEP_MOTOR
 

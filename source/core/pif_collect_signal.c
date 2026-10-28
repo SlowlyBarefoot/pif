@@ -69,6 +69,9 @@ typedef struct StPifCollectSignal
 	PifCollectSignalChannel *p_head;
 	const PifCollectSignalBackend *p_backend;	// Takes the captures instead of the VCD output when set
 	void *p_backend_client;
+	const PifCollectSignalSource *p_source;		// Table of pifCollectSignal_Init()
+	uint8_t source_count;
+	uint8_t adding;								// Source whose signal is being added, numbered from 1, or 0
 #ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	PifCollectSignalScale scale;
 	PifCollectSignalMethod method;
@@ -242,7 +245,11 @@ static int _formatHeader(char *p_buffer, size_t size, uint8_t *p_stage, PifColle
 			strcpy(tail, " $end\n");
 		}
 		_formatCode(code, p_channel->__index);
-		if (p_channel->_id == PIF_ID_AUTO) {
+		if (p_channel->__source) {
+			pif_Printf(p_buffer, size - strlen(tail), "$var %s %u %s %s", kVarType[p_channel->_var_type],
+					p_channel->_width, code, p_cs->p_source[p_channel->__source - 1].p_name);
+		}
+		else if (p_channel->_id == PIF_ID_AUTO) {
 			pif_Printf(p_buffer, size - strlen(tail), "$var %s %u %s %s", kVarType[p_channel->_var_type],
 					p_channel->_width, code, p_channel->_name);
 		}
@@ -415,6 +422,7 @@ static void _detachAll()
 	while (p_channel) {
 		p_next = p_channel->__p_next;
 		p_channel->__state = CS_CH_DETACHED;
+		p_channel->__source = 0;
 		p_channel->__p_next = NULL;
 		p_channel = p_next;
 	}
@@ -447,40 +455,64 @@ static BOOL _initBuffer(const char *p_task_name)
 
 #endif	// PIF_COLLECT_SIGNAL_NO_VCD
 
-void pifCollectSignal_Init(const char *p_module_name)
+static void _init(const char *p_module_name, const PifCollectSignalSource *p_source, uint8_t count)
 {
 	_detachAll();
 	memset(&s_collect_signal, 0, sizeof(PifCollectSignal));
 
 	s_collect_signal.p_module_name = p_module_name;
+	if (p_source) {
+		s_collect_signal.p_source = p_source;
+		s_collect_signal.source_count = count;
+	}
 #ifndef PIF_COLLECT_SIGNAL_NO_VCD
 	s_collect_signal.scale = CSS_1MS;
 	s_collect_signal.method = CSM_LOG;
 #endif
 }
 
+// The sources with enable, in the order of the table. One that fails leaves the others added.
+static BOOL _addSources()
+{
+	BOOL ok = TRUE;
+	uint8_t i;
+
+	for (i = 0; i < s_collect_signal.source_count; i++) {
+		if (s_collect_signal.p_source[i].enable && !pifCollectSignal_EnableSource(i, TRUE)) ok = FALSE;
+	}
+	return ok;
+}
+
+BOOL pifCollectSignal_Init(const char *p_module_name, const PifCollectSignalSource *p_source, uint8_t count)
+{
+	_init(p_module_name, p_source, count);
+	return _addSources();
+}
+
 #ifndef PIF_COLLECT_SIGNAL_NO_VCD
 
-BOOL pifCollectSignal_InitHeap(const char *p_module_name, uint16_t size)
+BOOL pifCollectSignal_InitHeap(const char *p_module_name, const PifCollectSignalSource *p_source, uint8_t count,
+		uint16_t size)
 {
-	pifCollectSignal_Init(p_module_name);
+	_init(p_module_name, p_source, count);
 
 	if (!pifRingBuffer_InitHeap(&s_collect_signal.buffer, PIF_ID_AUTO, size)) goto fail;
 	if (!_initBuffer("CollectSignalHeap")) goto fail;
-	return TRUE;
+	return _addSources();
 
 fail:
 	pifCollectSignal_Clear();
 	return FALSE;
 }
 
-BOOL pifCollectSignal_InitStatic(const char *p_module_name, uint16_t size, uint8_t *p_buffer)
+BOOL pifCollectSignal_InitStatic(const char *p_module_name, const PifCollectSignalSource *p_source, uint8_t count,
+		uint16_t size, uint8_t *p_buffer)
 {
-	pifCollectSignal_Init(p_module_name);
+	_init(p_module_name, p_source, count);
 
 	if (!pifRingBuffer_InitStatic(&s_collect_signal.buffer, PIF_ID_AUTO, size, p_buffer)) goto fail;
 	if (!_initBuffer("CollectSignalStatic")) goto fail;
-	return TRUE;
+	return _addSources();
 
 fail:
 	pifCollectSignal_Clear();
@@ -514,6 +546,8 @@ void pifCollectSignal_Clear()
 	s_collect_signal.p_backend = NULL;
 	s_collect_signal.p_backend_client = NULL;
 	_detachAll();
+	s_collect_signal.p_source = NULL;
+	s_collect_signal.source_count = 0;
 }
 
 #ifndef PIF_COLLECT_SIGNAL_NO_VCD
@@ -601,7 +635,11 @@ BOOL pifCollectSignal_AddChannel(PifCollectSignalChannel *p_channel, const char 
 		return FALSE;
 	}
 
-	if (p_channel->__state != CS_CH_DETACHED) return TRUE;
+	if (p_channel->__state != CS_CH_DETACHED) {
+		// A source names a channel added before it too.
+		if (s_collect_signal.adding) p_channel->__source = s_collect_signal.adding;
+		return TRUE;
+	}
 
 	strcpy(p_channel->_name, p_name);
 	p_channel->_id = id;
@@ -609,6 +647,7 @@ BOOL pifCollectSignal_AddChannel(PifCollectSignalChannel *p_channel, const char 
 	p_channel->_width = var_type == CSVT_REAL ? 64 : width;
 	p_channel->_value = _maskValue(p_channel, initial_value);
 	p_channel->__state = CS_CH_ATTACHED;
+	p_channel->__source = s_collect_signal.adding;
 	p_channel->__p_next = NULL;
 
 	// At the end, so the dump lists the channels in the order they were added.
@@ -635,6 +674,40 @@ void pifCollectSignal_RemoveChannel(PifCollectSignalChannel *p_channel)
 
 	p_channel->__state = CS_CH_DETACHED;
 	p_channel->__p_next = NULL;
+}
+
+BOOL pifCollectSignal_EnableSource(uint8_t index, BOOL enable)
+{
+	const PifCollectSignalSource *p_source;
+	BOOL ok;
+
+	if (index >= s_collect_signal.source_count || !s_collect_signal.p_source[index].act_enable) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+	p_source = &s_collect_signal.p_source[index];
+
+	// The channels act_enable adds take the number of the source from pifCollectSignal_AddChannel().
+	s_collect_signal.adding = index + 1;
+	ok = (*p_source->act_enable)(p_source, enable);
+	s_collect_signal.adding = 0;
+	return ok;
+}
+
+BOOL pifCollectSignal_IsSourceEnabled(uint8_t index)
+{
+	const PifCollectSignalChannel *p_channel;
+
+	for (p_channel = s_collect_signal.p_head; p_channel; p_channel = p_channel->__p_next) {
+		if (p_channel->__source == index + 1) return TRUE;
+	}
+	return FALSE;
+}
+
+const PifCollectSignalSource *pifCollectSignal_GetSource(const PifCollectSignalChannel *p_channel)
+{
+	if (!p_channel || !p_channel->__source) return NULL;
+	return &s_collect_signal.p_source[p_channel->__source - 1];
 }
 
 BOOL pifCollectSignal_Start()

@@ -267,7 +267,7 @@ fail:
 void pifStepMotor_Clear(PifStepMotor* p_owner)
 {
 #ifdef COLLECT_SIGNAL_STEP_MOTOR
-	pifStepMotor_ResetCsFlag(p_owner, SM_CSF_ALL_BIT);
+	pifStepMotor_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, SM_CSF_ALL_BIT);
 #endif
 	if (p_owner->__p_timer_step) {
 		pifTimerManager_Remove(p_owner->__p_timer_step);
@@ -552,8 +552,9 @@ BOOL pifStepMotor_StopControl(PifStepMotor* p_owner)
 
 #ifdef COLLECT_SIGNAL_STEP_MOTOR
 
-BOOL pifStepMotor_SetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag)
+BOOL pifStepMotor_SetCsFlag(PifStepMotor* p_owner, uint8_t index, PifStepMotorCsFlag flag)
 {
+	(void)index;
 	if (flag & SM_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[SM_CSF_STATE_IDX], "SMS", p_owner->_id, CSVT_REG, 4,
 				p_owner->_state)) return FALSE;
@@ -565,8 +566,9 @@ BOOL pifStepMotor_SetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag)
 	return TRUE;
 }
 
-void pifStepMotor_ResetCsFlag(PifStepMotor* p_owner, PifStepMotorCsFlag flag)
+void pifStepMotor_ResetCsFlag(PifStepMotor* p_owner, uint8_t index, PifStepMotorCsFlag flag)
 {
+	(void)index;
 	if (flag & SM_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SM_CSF_STATE_IDX]);
 	if (flag & SM_CSF_PPS_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[SM_CSF_PPS_IDX]);
 }

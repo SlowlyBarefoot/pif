@@ -196,17 +196,21 @@ void pifI2cPort_sigEndTransfer(PifI2cPort* p_owner, BOOL result);
  * @brief Adds the selected signals of the port to pifCollectSignal as channels. They follow the
  *        transfers of every device on the port.
  * @param p_owner Pointer to the port.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifI2cPort_SetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag);
+BOOL pifI2cPort_SetCsFlag(PifI2cPort* p_owner, uint8_t index, PifI2cCsFlag flag);
 
 /**
  * @brief Removes the selected signals of the port from pifCollectSignal.
  * @param p_owner Pointer to the port.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifI2cPort_ResetCsFlag(PifI2cPort* p_owner, PifI2cCsFlag flag);
+void pifI2cPort_ResetCsFlag(PifI2cPort* p_owner, uint8_t index, PifI2cCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_I2C
 

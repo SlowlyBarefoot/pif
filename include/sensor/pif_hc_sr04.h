@@ -152,17 +152,21 @@ void pifHcSr04_sigReceiveEcho(PifHcSr04* p_owner, SWITCH state);
 /**
  * @brief Adds the selected signals of the sensor to pifCollectSignal as channels.
  * @param p_owner Pointer to the sensor instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifHcSr04_SetCsFlag(PifHcSr04* p_owner, PifHcSr04CsFlag flag);
+BOOL pifHcSr04_SetCsFlag(PifHcSr04* p_owner, uint8_t index, PifHcSr04CsFlag flag);
 
 /**
  * @brief Removes the selected signals of the sensor from pifCollectSignal.
  * @param p_owner Pointer to the sensor instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifHcSr04_ResetCsFlag(PifHcSr04* p_owner, PifHcSr04CsFlag flag);
+void pifHcSr04_ResetCsFlag(PifHcSr04* p_owner, uint8_t index, PifHcSr04CsFlag flag);
 
 #endif	// COLLECT_SIGNAL_HC_SR04
 

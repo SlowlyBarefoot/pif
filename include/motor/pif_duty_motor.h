@@ -221,17 +221,21 @@ void pifDutyMotor_ApplyDuty(PifDutyMotor* p_owner, uint16_t duty);
 /**
  * @brief Adds the selected signals of the motor to pifCollectSignal as channels.
  * @param p_owner Pointer to the motor instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to add.
  * @return TRUE on success, otherwise FALSE.
  */
-BOOL pifDutyMotor_SetCsFlag(PifDutyMotor* p_owner, PifDutyMotorCsFlag flag);
+BOOL pifDutyMotor_SetCsFlag(PifDutyMotor* p_owner, uint8_t index, PifDutyMotorCsFlag flag);
 
 /**
  * @brief Removes the selected signals of the motor from pifCollectSignal.
  * @param p_owner Pointer to the motor instance.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
  * @param flag Bit mask of the signals to remove.
  */
-void pifDutyMotor_ResetCsFlag(PifDutyMotor* p_owner, PifDutyMotorCsFlag flag);
+void pifDutyMotor_ResetCsFlag(PifDutyMotor* p_owner, uint8_t index, PifDutyMotorCsFlag flag);
 
 #endif	// COLLECT_SIGNAL_DUTY_MOTOR
 

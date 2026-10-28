@@ -377,7 +377,7 @@ BOOL pifModbusRtuMaster_Init(PifModbusRtuMaster *p_owner, PifId id)
 void pifModbusRtuMaster_Clear(PifModbusRtuMaster *p_owner)
 {
 #ifdef COLLECT_SIGNAL_MODBUS_RTU_MASTER
-	pifModbusRtuMaster_ResetCsFlag(p_owner, MBRM_CSF_ALL_BIT);
+	pifModbusRtuMaster_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, MBRM_CSF_ALL_BIT);
 #else
 	(void)p_owner;
 #endif
@@ -558,8 +558,9 @@ BOOL pifModbusRtuMaster_ReadWriteMultipleRegisters(PifModbusRtuMaster *p_owner, 
 
 #ifdef COLLECT_SIGNAL_MODBUS_RTU_MASTER
 
-BOOL pifModbusRtuMaster_SetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMasterCsFlag flag)
+BOOL pifModbusRtuMaster_SetCsFlag(PifModbusRtuMaster *p_owner, uint8_t index, PifModbusRtuMasterCsFlag flag)
 {
+	(void)index;
 	if (flag & MBRM_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[MBRM_CSF_STATE_IDX], "MRS", p_owner->_id, CSVT_REG, 3,
 				p_owner->__state)) return FALSE;
@@ -567,8 +568,9 @@ BOOL pifModbusRtuMaster_SetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMaste
 	return TRUE;
 }
 
-void pifModbusRtuMaster_ResetCsFlag(PifModbusRtuMaster *p_owner, PifModbusRtuMasterCsFlag flag)
+void pifModbusRtuMaster_ResetCsFlag(PifModbusRtuMaster *p_owner, uint8_t index, PifModbusRtuMasterCsFlag flag)
 {
+	(void)index;
 	if (flag & MBRM_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[MBRM_CSF_STATE_IDX]);
 }
 

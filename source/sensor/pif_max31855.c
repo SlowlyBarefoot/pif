@@ -119,7 +119,7 @@ BOOL pifMax31855_Init(PifMax31855* p_owner, PifId id, PifSpiPort* p_port, void *
 void pifMax31855_Clear(PifMax31855* p_owner)
 {
 #ifdef COLLECT_SIGNAL_MAX31855
-	pifMax31855_ResetCsFlag(p_owner, M3_CSF_ALL_BIT);
+	pifMax31855_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, M3_CSF_ALL_BIT);
 #endif
 
 	if (p_owner->_p_device) {
@@ -199,8 +199,9 @@ BOOL pifMax31855_SetThreshold(PifMax31855* p_owner, double low_threshold, double
 
 #ifdef COLLECT_SIGNAL_MAX31855
 
-BOOL pifMax31855_SetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag)
+BOOL pifMax31855_SetCsFlag(PifMax31855* p_owner, uint8_t index, PifMax31855CsFlag flag)
 {
+	(void)index;
 	if (flag & M3_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[M3_CSF_STATE_IDX], "M3", p_owner->parent._id, CSVT_WIRE, 1,
 				p_owner->parent._curr_state)) return FALSE;
@@ -208,8 +209,9 @@ BOOL pifMax31855_SetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag)
 	return TRUE;
 }
 
-void pifMax31855_ResetCsFlag(PifMax31855* p_owner, PifMax31855CsFlag flag)
+void pifMax31855_ResetCsFlag(PifMax31855* p_owner, uint8_t index, PifMax31855CsFlag flag)
 {
+	(void)index;
 	if (flag & M3_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[M3_CSF_STATE_IDX]);
 }
 

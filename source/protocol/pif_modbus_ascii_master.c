@@ -371,7 +371,7 @@ BOOL pifModbusAsciiMaster_Init(PifModbusAsciiMaster *p_owner, PifId id)
 void pifModbusAsciiMaster_Clear(PifModbusAsciiMaster *p_owner)
 {
 #ifdef COLLECT_SIGNAL_MODBUS_ASCII_MASTER
-	pifModbusAsciiMaster_ResetCsFlag(p_owner, MBAM_CSF_ALL_BIT);
+	pifModbusAsciiMaster_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, MBAM_CSF_ALL_BIT);
 #else
 	(void)p_owner;
 #endif
@@ -550,8 +550,9 @@ BOOL pifModbusAsciiMaster_ReadWriteMultipleRegisters(PifModbusAsciiMaster *p_own
 
 #ifdef COLLECT_SIGNAL_MODBUS_ASCII_MASTER
 
-BOOL pifModbusAsciiMaster_SetCsFlag(PifModbusAsciiMaster *p_owner, PifModbusAsciiMasterCsFlag flag)
+BOOL pifModbusAsciiMaster_SetCsFlag(PifModbusAsciiMaster *p_owner, uint8_t index, PifModbusAsciiMasterCsFlag flag)
 {
+	(void)index;
 	if (flag & MBAM_CSF_STATE_BIT) {
 		if (!pifCollectSignal_AddChannel(&p_owner->__cs[MBAM_CSF_STATE_IDX], "MAS", p_owner->_id, CSVT_REG, 3,
 				p_owner->__state)) return FALSE;
@@ -559,8 +560,9 @@ BOOL pifModbusAsciiMaster_SetCsFlag(PifModbusAsciiMaster *p_owner, PifModbusAsci
 	return TRUE;
 }
 
-void pifModbusAsciiMaster_ResetCsFlag(PifModbusAsciiMaster *p_owner, PifModbusAsciiMasterCsFlag flag)
+void pifModbusAsciiMaster_ResetCsFlag(PifModbusAsciiMaster *p_owner, uint8_t index, PifModbusAsciiMasterCsFlag flag)
 {
+	(void)index;
 	if (flag & MBAM_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[MBAM_CSF_STATE_IDX]);
 }
 
