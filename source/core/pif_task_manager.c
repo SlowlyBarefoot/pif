@@ -905,6 +905,7 @@ void pifTaskManager_GetRealtimeStatistics(PifTaskRealtimeStatistics *p_stat, BOO
 void pifTaskManager_ResetBlockTime()
 {
 	PifObjArrayIterator it;
+	PifTaskTimer *p_timer;
 
 	it = pifObjArray_Begin(&s_tasks);
 	while (it) {
@@ -914,7 +915,8 @@ void pifTaskManager_ResetBlockTime()
 
 	it = pifObjArray_Begin(&s_timers);
 	while (it) {
-		pifTask_ResetBlockTime(&((PifTaskTimer *)it->data)->_block_time);
+		p_timer = (PifTaskTimer *)it->data;
+		pifTask_ResetBlockTime(&p_timer->_block_time);
 		it = pifObjArray_Next(it);
 	}
 
@@ -1245,6 +1247,56 @@ BOOL pifTaskManager_GetIdleStatistics(PifTaskIdleStatistics *p_stat)
 void pifTaskManager_ResetIdleMaxExecutionTime()
 {
 	s_idle_stat.max_execution_time = 0UL;
+}
+
+void pifTaskManager_GetMaxStatistics(PifTaskMaxStatistics *p_stat, const PifTask *p_exclude)
+{
+	PifObjArrayIterator it;
+	PifTask *p_task;
+	PifTaskTimer *p_timer;
+	uint32_t delay;
+
+	p_stat->max_execution_time = 0UL;
+	p_stat->max_execution_id = 0;
+	p_stat->max_delay = 0UL;
+	p_stat->max_delay_id = 0;
+	it = pifObjArray_Begin(&s_tasks);
+	while (it) {
+		p_task = (PifTask *)it->data;
+		if (p_task != p_exclude) {
+			if (p_task->_max_execution_time > p_stat->max_execution_time) {
+				p_stat->max_execution_time = p_task->_max_execution_time;
+				p_stat->max_execution_id = p_task->_id;
+			}
+			delay = pifTask_GetMaxDelay(p_task);
+			if (delay > p_stat->max_delay) {
+				p_stat->max_delay = delay;
+				p_stat->max_delay_id = p_task->_id;
+			}
+		}
+		it = pifObjArray_Next(it);
+	}
+
+	p_stat->max_timer_time = 0UL;
+	it = pifObjArray_Begin(&s_timers);
+	while (it) {
+		p_timer = (PifTaskTimer *)it->data;
+		if (p_timer->_block_time._max > p_stat->max_timer_time) {
+			p_stat->max_timer_time = p_timer->_block_time._max;
+		}
+		it = pifObjArray_Next(it);
+	}
+}
+
+void pifTaskManager_ResetMaxStatistics()
+{
+	PifObjArrayIterator it;
+
+	it = pifObjArray_Begin(&s_tasks);
+	while (it) {
+		pifTask_ResetMaxStatistics((PifTask *)it->data);
+		it = pifObjArray_Next(it);
+	}
 }
 
 #endif

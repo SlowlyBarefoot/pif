@@ -40,7 +40,7 @@ static void _testInitKeepsTheAddedChannels(void)
     const PifCollectSignalChannel *list[8];
     uint8_t zero[sizeof(PifCollectSignalChannel)];
 
-    pifCollectSignal_Init("pid");
+    pifCollectSignal_Init("pid", NULL, 0);
     pifPidControl_Init(&s_pid, 1.0f, 0.0f, 0.0f, 0.0f);
     CHECK(pifPidControl_SetCsFlag(&s_pid, PIF_CS_INDEX_ALL, PID_CSF_SETPOINT_BIT | PID_CSF_OUTPUT_BIT, 7));
     CHECK(pifCollectSignal_AddChannel(&s_after, "after", PIF_ID_AUTO, CSVT_WIRE, 1, 0));

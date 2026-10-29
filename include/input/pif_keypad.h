@@ -1,10 +1,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /**
  * @file pif_keypad.h
- * @brief Keypad of up to 16 keys per row word, with press, release, long press and double press events.
+ * @brief Keypad of up to 16 keys per row word, with press, release, long press, double press and repeat events.
  *
  * The platform reads the state of all keys through act_acquire, and a task debounces them and raises the events
  * with the character of each key.
+ *
+ * With evt_repeated a held key repeats, as a key of a PC keyboard does: from _repeat_delay1ms after its press,
+ * every _repeat_period1ms, with a count from 1 on. It is raised next to the other events of the key, so a
+ * menu takes evt_pressed as the first step and evt_repeated as those after it, and ignores evt_long_pressed
+ * for the keys it repeats. A repeat is raised once a scan at most: a period shorter than the scan period is
+ * that of the scan.
  */
 #ifndef PIF_KEYPAD_H
 #define PIF_KEYPAD_H
@@ -18,15 +24,23 @@
 
 
 #ifndef PIF_KEYPAD_DEFAULT_HOLD_TIME
-#define PIF_KEYPAD_DEFAULT_HOLD_TIME	100	///< Default time in ms a press has to last to count
+#define PIF_KEYPAD_DEFAULT_HOLD_TIME		100	///< Default time in ms a press has to last to count
 #endif
 
 #ifndef PIF_KEYPAD_DEFAULT_LONG_TIME
-#define PIF_KEYPAD_DEFAULT_LONG_TIME	1000	///< Default time in ms of holding that makes a long press
+#define PIF_KEYPAD_DEFAULT_LONG_TIME		1000	///< Default time in ms of holding that makes a long press
 #endif
 
 #ifndef PIF_KEYPAD_DEFAULT_DOUBLE_TIME
-#define PIF_KEYPAD_DEFAULT_DOUBLE_TIME	300	///< Default time in ms within which a second press makes a double press
+#define PIF_KEYPAD_DEFAULT_DOUBLE_TIME		300	///< Default time in ms within which a second press makes a double press
+#endif
+
+#ifndef PIF_KEYPAD_DEFAULT_REPEAT_DELAY
+#define PIF_KEYPAD_DEFAULT_REPEAT_DELAY		500	///< Default time in ms of holding before the first repeat
+#endif
+
+#ifndef PIF_KEYPAD_DEFAULT_REPEAT_PERIOD
+#define PIF_KEYPAD_DEFAULT_REPEAT_PERIOD	100	///< Default time in ms between the repeats
 #endif
 
 #define PIF_KEYPAD_CONTROL_PERIOD		20	///< Period in ms of the scanning task
@@ -76,18 +90,28 @@ typedef void (*PifActKeypadAcquire)(uint16_t* p_state);
  * @brief Reports a press of the key ch.
  */
 typedef void (*PifEvtKeypadPressed)(char ch);
+
 /**
  * @brief Reports a double press of the key ch.
  */
 typedef void (*PifEvtKeypadDoublePressed)(char ch);
+
 /**
  * @brief Reports the release of the key ch held for on_time ms.
  */
 typedef void (*PifEvtKeypadReleased)(char ch, uint32_t on_time);
+
 /**
  * @brief Reports a long press of the key ch held for on_time ms so far.
  */
 typedef void (*PifEvtKeypadLongPressed)(char ch, uint32_t on_time);
+
+/**
+ * @brief Reports a repeat of the key ch while it is held.
+ * @param ch The key.
+ * @param count 1 for the first repeat, then 2, 3 and so on. It stops at 65535.
+ */
+typedef void (*PifEvtKeypadRepeated)(char ch, uint16_t count);
 
 
 /**
@@ -103,6 +127,7 @@ typedef struct StPifKey
 	BOOL long_pressed;	///< evt_long_pressed was raised for this press
 	uint32_t pressed_time;	///< Time of the press, from pif_cumulative_timer1ms
 	uint32_t first_time;	///< Time of the first press of a possible double press
+	uint16_t repeat_count;	///< Repeats raised for this press
 #ifdef COLLECT_SIGNAL_KEYPAD
 	PifCollectSignalChannel __cs[KP_CSF_COUNT];
 #endif
@@ -123,12 +148,15 @@ typedef struct StPifKeypad
 	PifEvtKeypadLongPressed evt_long_pressed;		///< Once, while still held, at _long_time1ms
 	PifEvtKeypadDoublePressed evt_double_pressed;	///< When a second press within _double_time1ms passes _hold_time1ms.
 													///< If set, a short click is reported only after that window closes.
+	PifEvtKeypadRepeated evt_repeated;				///< While held, from _repeat_delay1ms every _repeat_period1ms, or NULL
 
 	// Read-only Member Variable
 	PifId _id;										///< Instance ID
 	uint16_t _hold_time1ms;							///< Default: PIF_KEYPAD_DEFAULT_HOLD_TIME
 	uint16_t _long_time1ms;							///< Default: PIF_KEYPAD_DEFAULT_LONG_TIME
 	uint16_t _double_time1ms;						///< Default: PIF_KEYPAD_DEFAULT_DOUBLE_TIME
+	uint16_t _repeat_delay1ms;						///< Default: PIF_KEYPAD_DEFAULT_REPEAT_DELAY
+	uint16_t _repeat_period1ms;						///< Default: PIF_KEYPAD_DEFAULT_REPEAT_PERIOD
 
 	// Private Member Variable
     PifTask* __p_task;
@@ -211,6 +239,16 @@ BOOL pifKeypad_SetLongTime(PifKeypad* p_owner, uint16_t long_time1ms);
  * @return `TRUE` if the value is valid, otherwise `FALSE`.
  */
 BOOL pifKeypad_SetDoubleTime(PifKeypad* p_owner, uint16_t double_time1ms);
+
+/**
+ * @brief Sets when a held key repeats, for evt_repeated.
+ * @param p_owner Pointer to the keypad instance.
+ * @param delay1ms Time in ms of holding before the first repeat, not less than _double_time1ms, so a key
+ *        that repeats has had its evt_pressed.
+ * @param period1ms Time in ms between the repeats, more than 0.
+ * @return `TRUE` if the values are valid, otherwise `FALSE` with E_INVALID_PARAM.
+ */
+BOOL pifKeypad_SetRepeatTime(PifKeypad* p_owner, uint16_t delay1ms, uint16_t period1ms);
 
 /**
  * @brief Starts or resumes periodic keypad scanning.

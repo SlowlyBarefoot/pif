@@ -364,6 +364,21 @@ void pifTask_ResetStatistics(PifTask* p_owner);
 void pifTask_ResetMaxExecutionTime(PifTask* p_owner);
 
 /**
+ * @brief Clears the longest run, delay and trigger delay of the task, the maxima that
+ *        pifTask_GetStatistics() clears with reset_max, without the copy and the divisions of
+ *        the averages it makes. Use it where the maxima are read from the task as they are.
+ * @param p_owner Pointer to the target object instance.
+ */
+void pifTask_ResetMaxStatistics(PifTask* p_owner);
+
+/**
+ * @brief The longer of the two maximum delays of the task: past its period, or after its trigger.
+ * @param p_owner Pointer to the target object instance.
+ * @return The delay (us).
+ */
+uint32_t pifTask_GetMaxDelay(const PifTask* p_owner);
+
+/**
  * @brief Copies the statistics of the task, for a report or a periodic backup. Read it from a task,
  *        not from an interrupt: the scheduler updates the values between runs, so a task always
  *        reads a consistent set.

@@ -107,7 +107,7 @@
 #define SET_BIT_FILED(V, M, D)	(V) = ((V) & ~(M)) | (D)	///< Replaces the bits M of V with D, which must be in place
 
 /// CRC-8 polynomials for pifCrc8_Add() (MSB first, no reflection).
-#define PIF_CRC8_POLY_DVB_S2	0xD5	///< MSPv2, CRSF, GHST
+#define PIF_CRC8_POLY_DVB_S2	0xD5	///< MSPv2, CRSF, GHST: from a table with PIF_USE_CRC8_DVB_S2_TABLE
 #define PIF_CRC8_POLY_BA		0xBA	///< CRSF command frames
 #define PIF_CRC8_POLY_SMBUS		0x07	///< SMBus PEC, ATM HEC, pifTrace: from a table with PIF_USE_CRC8_SMBUS_TABLE
 
@@ -502,6 +502,17 @@ uint16_t pifCrc16(uint8_t* p_data, uint16_t length);
  * @return Updated CRC accumulator value.
  */
 uint16_t pifCrc16_Update(uint16_t crc, const uint8_t* p_data, uint16_t length);
+
+#ifdef PIF_USE_CRC8_DVB_S2_TABLE
+
+/**
+ * @brief CRC-8 of PIF_CRC8_POLY_DVB_S2 for each byte, with PIF_USE_CRC8_DVB_S2_TABLE: the CRC after a byte is
+ *        pif_crc8_dvbs2_table[crc ^ data]. pifCrc8_Add(), pifCrc8_Update() and pifCrc8() use it for that
+ *        polynomial, about ten times as fast as bit by bit, and go bit by bit for those without a table.
+ */
+extern const uint8_t pif_crc8_dvbs2_table[256];
+
+#endif
 
 #ifdef PIF_USE_CRC8_SMBUS_TABLE
 

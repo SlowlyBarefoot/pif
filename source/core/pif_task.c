@@ -298,16 +298,24 @@ void pifTask_GetStatistics(PifTask* p_owner, PifTaskStatistics* p_stat, BOOL res
 	p_stat->execution_rate = p_owner->_execution_rate;
 	p_stat->block_time = p_owner->_block_time._max;
 
-	if (reset_max) {
-		p_owner->_max_execution_time = 0UL;
-		p_owner->_max_delay = 0UL;
-		p_owner->_max_trigger_delay = 0UL;
-	}
+	if (reset_max) pifTask_ResetMaxStatistics(p_owner);
 }
 
 void pifTask_ResetMaxExecutionTime(PifTask* p_owner)
 {
     p_owner->_max_execution_time = 0L;
+}
+
+void pifTask_ResetMaxStatistics(PifTask* p_owner)
+{
+	p_owner->_max_execution_time = 0UL;
+	p_owner->_max_delay = 0UL;
+	p_owner->_max_trigger_delay = 0UL;
+}
+
+uint32_t pifTask_GetMaxDelay(const PifTask* p_owner)
+{
+	return p_owner->_max_delay > p_owner->_max_trigger_delay ? p_owner->_max_delay : p_owner->_max_trigger_delay;
 }
 
 #endif

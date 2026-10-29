@@ -30,6 +30,9 @@
 // runs often or with the interrupts masked, as pifTrace does for every frame.
 //#define PIF_USE_CRC8_SMBUS_TABLE
 
+// The same with PIF_CRC8_POLY_DVB_S2, for the CRC of every frame of CRSF and of every byte MSPv2 receives.
+//#define PIF_USE_CRC8_DVB_S2_TABLE
+
 
 // -------- pifAdc -------------------------------
 
@@ -174,6 +177,8 @@
 //#define PIF_KEYPAD_DEFAULT_HOLD_TIME		100
 //#define PIF_KEYPAD_DEFAULT_LONG_TIME		1000
 //#define PIF_KEYPAD_DEFAULT_DOUBLE_TIME	300
+//#define PIF_KEYPAD_DEFAULT_REPEAT_DELAY	500
+//#define PIF_KEYPAD_DEFAULT_REPEAT_PERIOD	100
 
 
 // -------- pifLink ------------------------------

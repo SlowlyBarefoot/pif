@@ -144,6 +144,22 @@ typedef struct StPifTaskIdleStatistics
 	uint32_t average_delta_time;		///< Average time between the starts of two runs (us), likewise
 } PifTaskIdleStatistics;
 
+/**
+ * @struct StPifTaskMaxStatistics
+ * @brief The worst run and the worst delay over all the tasks, filled in by
+ *        pifTaskManager_GetMaxStatistics().
+ */
+typedef struct StPifTaskMaxStatistics
+{
+	uint32_t max_execution_time;		///< Longest run of a task since the last reset (us)
+	PifId max_execution_id;				///< Its task, 0 for none
+	uint32_t max_delay;					///< Longest delay of a task, pifTask_GetMaxDelay() (us)
+	PifId max_delay_id;					///< Its task, 0 for none
+	uint32_t max_timer_time;			///< Longest run of a timer callback over the moving window of
+										///< PifBlockTime (us). Not cleared by pifTaskManager_ResetMaxStatistics(),
+										///< the realtime guard keeps using it.
+} PifTaskMaxStatistics;
+
 #endif
 
 #ifdef PIF_USE_TASK_REALTIME
@@ -415,6 +431,18 @@ BOOL pifTaskManager_GetIdleStatistics(PifTaskIdleStatistics *p_stat);
  *        for a task.
  */
 void pifTaskManager_ResetIdleMaxExecutionTime();
+
+/**
+ * @brief Finds the worst run and the worst delay over all the tasks, from the maxima they keep.
+ * @param p_stat Filled in with the maxima and their tasks.
+ * @param p_exclude A task left out, such as the one that reports, which would show itself. NULL for none.
+ */
+void pifTaskManager_GetMaxStatistics(PifTaskMaxStatistics *p_stat, const PifTask *p_exclude);
+
+/**
+ * @brief Clears the maxima of every task with pifTask_ResetMaxStatistics().
+ */
+void pifTaskManager_ResetMaxStatistics();
 
 #endif
 

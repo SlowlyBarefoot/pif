@@ -32,6 +32,7 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 		if (button == ON) {
 			p_key->pressed = FALSE;
 			p_key->long_pressed = FALSE;
+			p_key->repeat_count = 0;
 			p_key->pressed_time = pif_cumulative_timer1ms;
 			p_key->state = KS_PRESSED;
 		}
@@ -81,6 +82,12 @@ static void _checkKeyState(PifKeypad* p_owner, int idx, BOOL button)
 					}
 					p_key->pressed = TRUE;
 				}
+			}
+			// One repeat a scan at most: a key held through a late scan goes on from there, without a burst.
+			if (p_owner->evt_repeated && button == ON && p_key->repeat_count < 0xFFFF &&
+					time >= p_owner->_repeat_delay1ms + (uint32_t)p_owner->_repeat_period1ms * p_key->repeat_count) {
+				p_key->repeat_count++;
+				(*p_owner->evt_repeated)(p_owner->__p_user_keymap[idx], p_key->repeat_count);
 			}
 			if (button == OFF) {
 				if (!p_key->pressed) {
@@ -159,6 +166,8 @@ BOOL pifKeypad_Init(PifKeypad* p_owner, PifId id, PifActKeypadAcquire act_acquir
     p_owner->_hold_time1ms = PIF_KEYPAD_DEFAULT_HOLD_TIME;
     p_owner->_long_time1ms = PIF_KEYPAD_DEFAULT_LONG_TIME;
     p_owner->_double_time1ms = PIF_KEYPAD_DEFAULT_DOUBLE_TIME;
+    p_owner->_repeat_delay1ms = PIF_KEYPAD_DEFAULT_REPEAT_DELAY;
+    p_owner->_repeat_period1ms = PIF_KEYPAD_DEFAULT_REPEAT_PERIOD;
     p_owner->__control_period_1ms = PIF_KEYPAD_CONTROL_PERIOD;
 	p_owner->__act_acquire = act_acquire;
     return TRUE;
@@ -269,12 +278,25 @@ BOOL pifKeypad_SetLongTime(PifKeypad* p_owner, uint16_t long_time1ms)
 
 BOOL pifKeypad_SetDoubleTime(PifKeypad* p_owner, uint16_t double_time1ms)
 {
-	if (double_time1ms <= p_owner->_hold_time1ms || double_time1ms >= p_owner->_long_time1ms) {
+	if (double_time1ms <= p_owner->_hold_time1ms || double_time1ms >= p_owner->_long_time1ms ||
+			double_time1ms > p_owner->_repeat_delay1ms) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
 	p_owner->_double_time1ms = double_time1ms;
+	return TRUE;
+}
+
+BOOL pifKeypad_SetRepeatTime(PifKeypad* p_owner, uint16_t delay1ms, uint16_t period1ms)
+{
+	if (delay1ms < p_owner->_double_time1ms || !period1ms) {
+		pif_error = E_INVALID_PARAM;
+		return FALSE;
+	}
+
+	p_owner->_repeat_delay1ms = delay1ms;
+	p_owner->_repeat_period1ms = period1ms;
 	return TRUE;
 }
 
