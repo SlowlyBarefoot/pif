@@ -123,6 +123,18 @@ typedef uint16_t PifId;
  */
 typedef void* PifIssuerP;
 
+#ifdef PIF_USE_COMM_TAP
+/**
+ * @brief Direction of the data a communication module hands to its tap, evt_tap of PifUart and PifCan.
+ */
+typedef enum EnPifTapDir
+{
+	TD_RX		= 0,	///< Received and taken by the module
+	TD_TX		= 1,	///< Handed to the hardware
+	TD_RX_LOST	= 2		///< Received, but the module had no room for it
+} PifTapDir;
+#endif
+
 
 /**
  * @brief Error codes. The functions that fail set pif_error to one of them.

@@ -3,6 +3,7 @@
 	#include "core/pif_log.h"
 #endif
 #include "protocol/pif_link.h"
+#include "codec/pif_encoding.h"
 
 
 // Each entry of the request buffer is [frame length (2)][CRC position (2)][PifLinkRequest *][frame].
@@ -1091,17 +1092,13 @@ BOOL pifLink_MakeError(PifLink *p_owner, PifLinkPacket *p_question, uint8_t flag
 
 uint8_t *pifLink_PutU16(uint8_t *p_buffer, uint16_t value)
 {
-	p_buffer[0] = value & 0xFF;
-	p_buffer[1] = (value >> 8) & 0xFF;
+	pifEncoding_PutU16(p_buffer, value);
 	return p_buffer + 2;
 }
 
 uint8_t *pifLink_PutU32(uint8_t *p_buffer, uint32_t value)
 {
-	p_buffer[0] = value & 0xFF;
-	p_buffer[1] = (value >> 8) & 0xFF;
-	p_buffer[2] = (value >> 16) & 0xFF;
-	p_buffer[3] = (value >> 24) & 0xFF;
+	pifEncoding_PutU32(p_buffer, value);
 	return p_buffer + 4;
 }
 
@@ -1115,12 +1112,12 @@ uint8_t *pifLink_PutFloat(uint8_t *p_buffer, float value)
 
 uint16_t pifLink_GetU16(const uint8_t *p_buffer)
 {
-	return p_buffer[0] | ((uint16_t)p_buffer[1] << 8);
+	return pifEncoding_GetU16(p_buffer);
 }
 
 uint32_t pifLink_GetU32(const uint8_t *p_buffer)
 {
-	return p_buffer[0] | ((uint32_t)p_buffer[1] << 8) | ((uint32_t)p_buffer[2] << 16) | ((uint32_t)p_buffer[3] << 24);
+	return pifEncoding_GetU32(p_buffer);
 }
 
 float pifLink_GetFloat(const uint8_t *p_buffer)

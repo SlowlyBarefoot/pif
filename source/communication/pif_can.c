@@ -108,6 +108,9 @@ static uint32_t _doTxTask(PifTask *p_task)
 			period = pifCan_GetFrameTime(p_owner, p_frame->flags, p_frame->length);
 			break;
 		}
+#ifdef PIF_USE_COMM_TAP
+		if (p_owner->evt_tap) (*p_owner->evt_tap)(p_owner, TD_TX, p_frame);
+#endif
 		pifRingData_Remove(&p_owner->__tx_queue);
 	}
 	return period;
@@ -230,8 +233,14 @@ BOOL pifCan_PutRxFrame(PifCan *p_owner, const PifCanFrame *p_frame)
 
 	if (!_putQueue(&p_owner->__rx_queue, p_frame)) {
 		p_owner->_rx_lost++;
+#ifdef PIF_USE_COMM_TAP
+		if (p_owner->evt_tap) (*p_owner->evt_tap)(p_owner, TD_RX_LOST, p_frame);
+#endif
 		return FALSE;
 	}
+#ifdef PIF_USE_COMM_TAP
+	if (p_owner->evt_tap) (*p_owner->evt_tap)(p_owner, TD_RX, p_frame);
+#endif
 	if (p_owner->_p_rx_task) pifTask_SetTrigger(p_owner->_p_rx_task, 0);
 	return TRUE;
 }

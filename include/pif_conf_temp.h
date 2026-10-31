@@ -449,6 +449,10 @@
 // pifUart_AttachActDirection/SetDirection. Without it nothing switches the line between transfers.
 //#define PIF_USE_UART_DIRECTION
 
+// Puts in evt_tap and p_tap_issuer of PifUart and PifCan: every byte or frame they receive or hand to the
+// hardware goes to the tap too, a packet capture for example. Without it the modules have no tap at all.
+//#define PIF_USE_COMM_TAP
+
 
 // -------- pifXmodem ----------------------------
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "rc/pif_rc_crsf.h"
+#include "codec/pif_encoding.h"
 
 
 // Frames come back to back at 420000 baud, so a pause of this many milliseconds inside a frame
@@ -12,20 +13,6 @@
 #define CRSF_CHANNELS_PAYLOAD		22		// 16 channels of 11 bits
 #define CRSF_LINK_PAYLOAD			10
 
-
-static void _putU16(uint8_t* p, uint16_t value)
-{
-	p[0] = (uint8_t)(value >> 8);
-	p[1] = (uint8_t)value;
-}
-
-static void _putU32(uint8_t* p, uint32_t value)
-{
-	p[0] = (uint8_t)(value >> 24);
-	p[1] = (uint8_t)(value >> 16);
-	p[2] = (uint8_t)(value >> 8);
-	p[3] = (uint8_t)value;
-}
 
 /**
  * @brief Tells whether a byte can start a frame: the address of a device that frames are sent to.
@@ -291,8 +278,8 @@ BOOL pifRcCrsf_SendBattery(PifRcCrsf* p_owner, uint16_t voltage_dv, uint16_t cur
 	uint8_t payload[8];
 
 	if (consumed_mah > 0xFFFFFF) consumed_mah = 0xFFFFFF;
-	_putU16(payload, voltage_dv);
-	_putU16(payload + 2, current_da);
+	pifEncoding_PutU16Be(payload, voltage_dv);
+	pifEncoding_PutU16Be(payload + 2, current_da);
 	payload[4] = (uint8_t)(consumed_mah >> 16);
 	payload[5] = (uint8_t)(consumed_mah >> 8);
 	payload[6] = (uint8_t)consumed_mah;
@@ -310,11 +297,11 @@ BOOL pifRcCrsf_SendGps(PifRcCrsf* p_owner, int32_t latitude, int32_t longitude, 
 	if (altitude_m < 0) altitude_m = 0;
 	else if (altitude_m > 0xFFFF) altitude_m = 0xFFFF;
 
-	_putU32(payload, (uint32_t)latitude);
-	_putU32(payload + 4, (uint32_t)longitude);
-	_putU16(payload + 8, groundspeed);
-	_putU16(payload + 10, heading);
-	_putU16(payload + 12, (uint16_t)altitude_m);
+	pifEncoding_PutU32Be(payload, (uint32_t)latitude);
+	pifEncoding_PutU32Be(payload + 4, (uint32_t)longitude);
+	pifEncoding_PutU16Be(payload + 8, groundspeed);
+	pifEncoding_PutU16Be(payload + 10, heading);
+	pifEncoding_PutU16Be(payload + 12, (uint16_t)altitude_m);
 	payload[14] = satellites;
 	return pifRcCrsf_SendFrame(p_owner, PIF_CRSF_FRAME_GPS, payload, sizeof(payload));
 }
@@ -323,9 +310,9 @@ BOOL pifRcCrsf_SendAttitude(PifRcCrsf* p_owner, int16_t pitch, int16_t roll, int
 {
 	uint8_t payload[6];
 
-	_putU16(payload, (uint16_t)pitch);
-	_putU16(payload + 2, (uint16_t)roll);
-	_putU16(payload + 4, (uint16_t)yaw);
+	pifEncoding_PutU16Be(payload, (uint16_t)pitch);
+	pifEncoding_PutU16Be(payload + 2, (uint16_t)roll);
+	pifEncoding_PutU16Be(payload + 4, (uint16_t)yaw);
 	return pifRcCrsf_SendFrame(p_owner, PIF_CRSF_FRAME_ATTITUDE, payload, sizeof(payload));
 }
 
@@ -345,6 +332,6 @@ BOOL pifRcCrsf_SendVario(PifRcCrsf* p_owner, int16_t vertical_speed)
 {
 	uint8_t payload[2];
 
-	_putU16(payload, (uint16_t)vertical_speed);
+	pifEncoding_PutU16Be(payload, (uint16_t)vertical_speed);
 	return pifRcCrsf_SendFrame(p_owner, PIF_CRSF_FRAME_VARIO, payload, sizeof(payload));
 }

@@ -3,6 +3,28 @@
 #include "communication/pif_uart.h"
 
 
+#ifdef PIF_USE_COMM_TAP
+
+static void _tap(PifUart *p_owner, PifTapDir dir, const uint8_t *p_data, uint16_t length)
+{
+	if (p_owner->evt_tap && length) (*p_owner->evt_tap)(p_owner, dir, p_data, length);
+}
+
+#else
+
+#define _tap(OWNER, DIR, DATA, LENGTH)
+
+#endif
+
+// Sends with act_send_data and taps what it took.
+static uint16_t _sendDirect(PifUart *p_owner, uint8_t *p_data, uint16_t size)
+{
+	uint16_t len = (*p_owner->act_send_data)(p_owner, p_data, size);
+
+	_tap(p_owner, TD_TX, p_data, len);
+	return len;
+}
+
 static void _setTxState(PifUart* p_owner, PifUartTxState state)
 {
 	p_owner->__tx_state = state;
@@ -123,7 +145,7 @@ static void _sendXonXoff(PifUart* p_owner, uint8_t data)
 {
 	_beginTransfer(p_owner);
 	if (p_owner->act_send_data) {
-		(*p_owner->act_send_data)(p_owner, &data, 1);
+		_sendDirect(p_owner, &data, 1);
 	}
 	else if (p_owner->_p_tx_buffer) {
 		if (p_owner->act_start_transfer) {
@@ -155,6 +177,7 @@ static uint16_t _actReceiveData(PifUart* p_owner, uint8_t* p_data, uint16_t leng
 			len = (*p_owner->act_receive_data)(p_owner, p_data, length);
 			if (!len) return 0;
 			else if (p_owner->__rx_state == URS_IDLE) p_owner->__rx_state = URS_FIRST;
+			_tap(p_owner, TD_RX, p_data, len);		// before XON / XOFF are filtered out
 		}
 		else if (p_owner->_p_rx_buffer) {
 			len = pifRingBuffer_GetBytes(p_owner->_p_rx_buffer, p_data, length);
@@ -184,7 +207,7 @@ static uint16_t _actTransportSendDirect(PifTransport *p_transport, uint8_t *p_da
 	PifUart *p_owner = (PifUart *)p_transport;
 
 	if (size) _beginTransfer(p_owner);
-	return (*p_owner->act_send_data)(p_owner, p_data, size);
+	return _sendDirect(p_owner, p_data, size);
 }
 
 // For a UART that sends from its TX buffer.
@@ -477,7 +500,11 @@ BOOL pifUart_PutRxByte(PifUart* p_owner, uint8_t data)
 {
 	if (!p_owner->_p_rx_buffer) return FALSE;
 
-	if (!pifRingBuffer_PutByte(p_owner->_p_rx_buffer, data)) return FALSE;
+	if (!pifRingBuffer_PutByte(p_owner->_p_rx_buffer, data)) {
+		_tap(p_owner, TD_RX_LOST, &data, 1);
+		return FALSE;
+	}
+	_tap(p_owner, TD_RX, &data, 1);
 	if (p_owner->__rx_state == URS_IDLE && p_owner->_p_rx_task) {
 		p_owner->__rx_state = URS_FIRST;
 		pifTask_SetTrigger(p_owner->_p_rx_task, 0);
@@ -489,7 +516,11 @@ BOOL pifUart_PutRxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 {
 	if (!p_owner->_p_rx_buffer) return FALSE;
 
-	if (!pifRingBuffer_PutData(p_owner->_p_rx_buffer, p_data, length)) return FALSE;
+	if (!pifRingBuffer_PutData(p_owner->_p_rx_buffer, p_data, length)) {
+		_tap(p_owner, TD_RX_LOST, p_data, length);
+		return FALSE;
+	}
+	_tap(p_owner, TD_RX, p_data, length);
 	if (p_owner->__rx_state == URS_IDLE && p_owner->_p_rx_task) {
 		p_owner->__rx_state = URS_FIRST;
 		pifTask_SetTrigger(p_owner->_p_rx_task, 0);
@@ -510,6 +541,7 @@ uint8_t pifUart_GetTxByte(PifUart* p_owner, uint8_t* p_data)
 
     ucState = pifRingBuffer_GetByte(p_owner->_p_tx_buffer, p_data);
 	if (ucState) {
+		_tap(p_owner, TD_TX, p_data, 1);
 		if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) {
 			_setTxState(p_owner, UTS_IDLE);
 			ucState |= PIF_UART_SEND_DATA_STATE_EMPTY;
@@ -539,6 +571,8 @@ uint8_t pifUart_StartGetTxData(PifUart* p_owner, uint8_t** pp_data, uint16_t* p_
 
 uint8_t pifUart_EndGetTxData(PifUart* p_owner, uint16_t length)
 {
+	// The bytes sent lie in one piece at the tail: pifUart_StartGetTxData() handed out no more.
+	_tap(p_owner, TD_TX, pifRingBuffer_GetTailPointer(p_owner->_p_tx_buffer, 0), length);
     pifRingBuffer_Remove(p_owner->_p_tx_buffer, length);
     if (pifRingBuffer_IsEmpty(p_owner->_p_tx_buffer)) {
 		_setTxState(p_owner, UTS_IDLE);
@@ -558,7 +592,7 @@ uint16_t pifUart_SendTxData(PifUart* p_owner, uint8_t* p_data, uint16_t length)
 
 	if (length) _beginTransfer(p_owner);
 	if (p_owner->act_send_data) {
-		len = (*p_owner->act_send_data)(p_owner, p_data, length);
+		len = _sendDirect(p_owner, p_data, length);
 	}
 	else if (p_owner->_p_tx_buffer) {
 		len = pifRingBuffer_PutData(p_owner->_p_tx_buffer, p_data, length) ? length : 0;

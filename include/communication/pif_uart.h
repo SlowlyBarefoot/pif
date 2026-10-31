@@ -153,6 +153,14 @@ typedef void (*PifActUartDeviceFlowState)(PifUart* p_uart, SWITCH state);
 typedef void (*PifEvtUartHostFlowState)(void* p_client, SWITCH state);
 #endif
 
+#ifdef PIF_USE_COMM_TAP
+/**
+ * @brief Gets the bytes the UART received or handed to the hardware, in the context that moved them, an
+ *        interrupt included. It must return quickly.
+ */
+typedef void (*PifEvtUartTap)(PifUart *p_uart, PifTapDir dir, const uint8_t *p_data, uint16_t length);
+#endif
+
 
 /**
  * @class StPifUart
@@ -185,6 +193,16 @@ struct StPifUart
 #ifdef PIF_USE_UART_FLOW_CONTROL
     PifActUartGetRate act_get_rx_rate;	///< Fill level of the hardware RX buffer, against fc_limit. NULL uses the RX buffer.
     PifActUartDeviceFlowState act_device_flow_state;	///< Signals the flow state to the other side in UFC_DEVICE_HARDWARE. May be NULL.
+#endif
+
+#ifdef PIF_USE_COMM_TAP
+	// Public Event Function
+	/// Gets every byte received (TD_RX, or TD_RX_LOST when the RX buffer had no room) and every byte handed to
+	/// the hardware (TD_TX). Received bytes are tapped where they come in: pifUart_PutRxByte(),
+	/// pifUart_PutRxData() or act_receive_data. Sent bytes where they leave: pifUart_GetTxByte(),
+	/// pifUart_EndGetTxData() or act_send_data. May be NULL.
+	PifEvtUartTap evt_tap;
+	PifIssuerP p_tap_issuer;			///< For the owner of evt_tap
 #endif
 
 	// Read-only Member Variable

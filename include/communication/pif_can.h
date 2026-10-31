@@ -84,6 +84,14 @@ typedef void (*PifEvtCanReceive)(PifCan *p_can, const PifCanFrame *p_frame);
  */
 typedef void (*PifEvtCanBusState)(PifCan *p_can, PifCanBusState state);
 
+#ifdef PIF_USE_COMM_TAP
+/**
+ * @brief Gets a frame the controller received or handed to the hardware, in the context that moved it, an
+ *        interrupt included. It must return quickly.
+ */
+typedef void (*PifEvtCanTap)(PifCan *p_can, PifTapDir dir, const PifCanFrame *p_frame);
+#endif
+
 /**
  * @brief Offers a received frame to a client in the RX task.
  *
@@ -128,6 +136,12 @@ struct StPifCan
 	// Public Event Function
 	PifEvtCanReceive evt_receive;		///< A received frame that no client takes.
 	PifEvtCanBusState evt_bus_state;	///< Called from pifCan_SigBusState(), in its context.
+#ifdef PIF_USE_COMM_TAP
+	/// Gets every frame given to pifCan_PutRxFrame() (TD_RX, or TD_RX_LOST when the receive queue had no
+	/// room) and every frame act_send_frame took (TD_TX). May be NULL.
+	PifEvtCanTap evt_tap;
+	PifIssuerP p_tap_issuer;			///< For the owner of evt_tap
+#endif
 
 	// Read-only Member Variable
 	PifId _id;	///< Instance ID

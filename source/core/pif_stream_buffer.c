@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif_stream_buffer.h"
+#include "codec/pif_encoding.h"
 
 #include <string.h>
 
@@ -58,40 +59,28 @@ void pifStreamBuffer_WriteU16(PifStreamBuffer* p_owner, uint16_t value)
 {
 	uint8_t* p = _take(p_owner, 2);
 
-	if (!p) return;
-	p[0] = (uint8_t)value;
-	p[1] = (uint8_t)(value >> 8);
+	if (p) pifEncoding_PutU16(p, value);
 }
 
 void pifStreamBuffer_WriteU32(PifStreamBuffer* p_owner, uint32_t value)
 {
 	uint8_t* p = _take(p_owner, 4);
 
-	if (!p) return;
-	p[0] = (uint8_t)value;
-	p[1] = (uint8_t)(value >> 8);
-	p[2] = (uint8_t)(value >> 16);
-	p[3] = (uint8_t)(value >> 24);
+	if (p) pifEncoding_PutU32(p, value);
 }
 
 void pifStreamBuffer_WriteU16Be(PifStreamBuffer* p_owner, uint16_t value)
 {
 	uint8_t* p = _take(p_owner, 2);
 
-	if (!p) return;
-	p[0] = (uint8_t)(value >> 8);
-	p[1] = (uint8_t)value;
+	if (p) pifEncoding_PutU16Be(p, value);
 }
 
 void pifStreamBuffer_WriteU32Be(PifStreamBuffer* p_owner, uint32_t value)
 {
 	uint8_t* p = _take(p_owner, 4);
 
-	if (!p) return;
-	p[0] = (uint8_t)(value >> 24);
-	p[1] = (uint8_t)(value >> 16);
-	p[2] = (uint8_t)(value >> 8);
-	p[3] = (uint8_t)value;
+	if (p) pifEncoding_PutU32Be(p, value);
 }
 
 void pifStreamBuffer_Fill(PifStreamBuffer* p_owner, uint8_t value, uint16_t size)
@@ -130,32 +119,28 @@ uint16_t pifStreamBuffer_ReadU16(PifStreamBuffer* p_owner)
 {
 	uint8_t* p = _take(p_owner, 2);
 
-	if (!p) return 0;
-	return (uint16_t)(p[0] | (p[1] << 8));
+	return p ? pifEncoding_GetU16(p) : 0;
 }
 
 uint32_t pifStreamBuffer_ReadU32(PifStreamBuffer* p_owner)
 {
 	uint8_t* p = _take(p_owner, 4);
 
-	if (!p) return 0;
-	return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+	return p ? pifEncoding_GetU32(p) : 0;
 }
 
 uint16_t pifStreamBuffer_ReadU16Be(PifStreamBuffer* p_owner)
 {
 	uint8_t* p = _take(p_owner, 2);
 
-	if (!p) return 0;
-	return (uint16_t)((p[0] << 8) | p[1]);
+	return p ? pifEncoding_GetU16Be(p) : 0;
 }
 
 uint32_t pifStreamBuffer_ReadU32Be(PifStreamBuffer* p_owner)
 {
 	uint8_t* p = _take(p_owner, 4);
 
-	if (!p) return 0;
-	return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) | ((uint32_t)p[2] << 8) | (uint32_t)p[3];
+	return p ? pifEncoding_GetU32Be(p) : 0;
 }
 
 BOOL pifStreamBuffer_ReadData(PifStreamBuffer* p_owner, void* p_data, uint16_t size)
