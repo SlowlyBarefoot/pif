@@ -33,18 +33,13 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_link test_pif_link_nolog test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_encoder test_pif_sensor test_pif_sensor_modulated test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_encoder test_pif_sensor test_pif_sensor_modulated test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
-           test_pif_nvram test_pif_nor_flash test_pif_motor test_pif_duty_motor_speed_enc \
+           test_pif_nor_flash \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
-           test_pif_task_manager_nort test_pif_motor_min test_pif_nvram_raw test_pif_crc test_pif_pid_control_cs \
+           test_pif_task_manager_nort test_pif_crc test_pif_pid_control_cs \
            test_pif_crc_table test_pif_keypad test_pif_log test_pif_log_cmd test_pif_encoding
 
-# test_pif_link.c includes pif_link.c itself to reach its static functions.
-LINK_SRC := protocol/test_pif_link.c $(ROOT)/source/protocol/pif_link_fragment.c \
-            $(ROOT)/source/communication/pif_uart.c $(ROOT)/source/communication/pif_transport.c \
-            $(addprefix $(ROOT)/source/core/, pif.c pif_log.c pif_obj_array.c pif_ring_buffer.c pif_task.c \
-                pif_task_manager.c pif_timer.c pif_timer_manager.c)
 # test_pif_collect_signal.c includes pif_collect_signal.c itself and stands in for pif_log.c. It also checks the
 # channels of pif_sequence.c.
 CS_SRC  := core/test_pif_collect_signal.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_buffer.c pif_sequence.c \
@@ -144,14 +139,13 @@ DEVICE_REG_SRC := communication/test_pif_device_reg.c \
               $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_i2c.c pif_spi.c) \
               $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 DEVICE_REG_DEP := $(addprefix $(ROOT)/include/communication/, pif_device_reg.h pif_i2c.h pif_spi.h)
-# pif_link and pif_xmodem over PifUart and PifCanStream.
+# pif_xmodem over PifUart and PifCanStream.
 TRANSPORT_SRC := protocol/test_pif_transport.c \
                  $(addprefix $(ROOT)/source/communication/, pif_can.c pif_can_stream.c pif_transport.c pif_uart.c) \
-                 $(addprefix $(ROOT)/source/protocol/, pif_link.c pif_xmodem.c) \
+                 $(ROOT)/source/protocol/pif_xmodem.c \
                  $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_buffer.c pif_ring_data.c pif_task.c \
                      pif_task_manager.c pif_timer.c pif_timer_manager.c)
-TRANSPORT_DEP := $(wildcard $(ROOT)/include/communication/*.h) $(ROOT)/include/protocol/pif_link.h \
-                 $(ROOT)/include/protocol/pif_xmodem.h
+TRANSPORT_DEP := $(wildcard $(ROOT)/include/communication/*.h) $(ROOT)/include/protocol/pif_xmodem.h
 
 # The S.BUS, Spektrum and SUMD receivers over an in-memory wire, with their parsers called directly.
 RC_SERIAL_SRC := rc/test_pif_rc_serial.c $(ROOT)/source/communication/pif_uart.c $(ROOT)/source/communication/pif_transport.c \
@@ -159,12 +153,6 @@ RC_SERIAL_SRC := rc/test_pif_rc_serial.c $(ROOT)/source/communication/pif_uart.c
                  $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_buffer.c pif_task.c pif_task_manager.c)
 RC_SERIAL_DEP := $(addprefix $(ROOT)/include/rc/, pif_rc.h pif_rc_sbus.h pif_rc_spektrum.h pif_rc_sumd.h)
 
-# pif_nvram over media in memory, with the timer that carries its transfers.
-NVRAM_SRC := storage/test_pif_nvram.c $(ROOT)/source/storage/pif_nvram.c \
-               $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_i2c.c) \
-               $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c pif_timer.c \
-                   pif_timer_manager.c)
-NVRAM_DEP := $(ROOT)/include/storage/pif_nvram.h
 # pif_nor_flash over an SPI NOR flash in memory.
 NOR_FLASH_SRC := storage/test_pif_nor_flash.c $(ROOT)/source/storage/pif_nor_flash.c \
                  $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_spi.c) \
@@ -178,19 +166,6 @@ LITTLEFS_SRC := storage/test_pif_littlefs.c $(addprefix $(ROOT)/source/storage/,
                 $(if $(LFS_DIR),$(LFS_DIR)/lfs.c $(LFS_DIR)/lfs_util.c)
 LITTLEFS_DEP := $(NOR_FLASH_DEP) $(ROOT)/include/storage/pif_littlefs.h
 
-MOTOR_SRC := motor/test_pif_motor.c $(addprefix $(ROOT)/source/motor/, pif_motor.c pif_duty_motor.c pif_step_motor.c) \
-             $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c pif_timer.c \
-                 pif_timer_manager.c)
-MOTOR_DEP := $(addprefix $(ROOT)/include/motor/, pif_motor.h pif_duty_motor.h pif_step_motor.h)
-# PifDutyMotorSpeedEnc on a simulated motor, in count and in period control.
-DMSE_SRC := motor/test_pif_duty_motor_speed_enc.c \
-            $(addprefix $(ROOT)/source/motor/, pif_motor.c pif_duty_motor.c pif_duty_motor_speed_enc.c) \
-            $(ROOT)/source/sensor/pif_pulse.c $(ROOT)/source/sensor/pif_sensor.c \
-            $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_pid_control.c pif_task.c pif_task_manager.c \
-                pif_timer.c pif_timer_manager.c)
-DMSE_DEP := $(addprefix $(ROOT)/include/motor/, pif_motor.h pif_duty_motor.h pif_duty_motor_speed_enc.h) \
-            $(ROOT)/include/sensor/pif_pulse.h $(ROOT)/include/core/pif_pid_control.h
-
 # pif_PrintFormat() through pif_Printf(), with and without %f.
 PRINTF_SRC := core/test_pif_printf.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 LOG_SRC := core/test_pif_log.c $(ROOT)/source/communication/pif_uart.c $(ROOT)/source/communication/pif_transport.c \
@@ -200,9 +175,6 @@ CRC_SRC := core/test_pif_crc.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_a
 # test_pif_keypad.c includes pif_keypad.c itself to run the state machine of a key without the scheduler.
 KEYPAD_SRC := input/test_pif_keypad.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 KEYPAD_DEP := $(ROOT)/source/input/pif_keypad.c $(ROOT)/include/input/pif_keypad.h
-
-LINK_DEP :=$(ROOT)/source/protocol/pif_link.c $(ROOT)/include/protocol/pif_link.h \
-            $(ROOT)/include/protocol/pif_link_fragment.h
 
 .PHONY: all run clean $(addprefix run-, $(NAMES))
 
@@ -220,9 +192,8 @@ run-test_pif_pwm_gen: run-test_pif_timer
 run-test_pif_collect_signal: run-test_pif_pwm_gen
 run-test_pif_gpio: run-test_pif_collect_signal
 run-test_pif_gpio_cs: run-test_pif_gpio
-run-test_pif_link: run-test_pif_gpio_cs
-run-test_pif_link_nolog: run-test_pif_link
-run-test_pif_can: run-test_pif_link_nolog
+run-test_pif_gpio_cs_off: run-test_pif_gpio_cs
+run-test_pif_can: run-test_pif_gpio_cs_off
 run-test_pif_can_stream: run-test_pif_can
 run-test_pif_device_reg: run-test_pif_can_stream
 run-test_pif_ubx_ddc_stream: run-test_pif_device_reg
@@ -243,18 +214,13 @@ run-test_pif_led: run-test_pif_fnd
 run-test_pif_modbus: run-test_pif_led
 run-test_pif_modbus_nolog: run-test_pif_modbus
 run-test_pif_rc_serial: run-test_pif_modbus_nolog
-run-test_pif_nvram: run-test_pif_rc_serial
-run-test_pif_nor_flash: run-test_pif_nvram
-run-test_pif_motor: run-test_pif_nor_flash
-run-test_pif_duty_motor_speed_enc: run-test_pif_motor
-run-test_pif_printf: run-test_pif_duty_motor_speed_enc
+run-test_pif_nor_flash: run-test_pif_rc_serial
+run-test_pif_printf: run-test_pif_nor_flash
 run-test_pif_printf_nofloat: run-test_pif_printf
 run-test_pif_ring_buffer_nolock: run-test_pif_printf_nofloat
 run-test_pif_modbus_slave_min: run-test_pif_ring_buffer_nolock
 run-test_pif_task_manager_nort: run-test_pif_modbus_slave_min
-run-test_pif_motor_min: run-test_pif_task_manager_nort
-run-test_pif_nvram_raw: run-test_pif_motor_min
-run-test_pif_crc: run-test_pif_nvram_raw
+run-test_pif_crc: run-test_pif_task_manager_nort
 run-test_pif_pid_control_cs: run-test_pif_crc
 run-test_pif_crc_table: run-test_pif_pid_control_cs
 run-test_pif_keypad: run-test_pif_crc_table
@@ -302,12 +268,6 @@ $(BUILD)/test_pif_gpio_cs$(EXE): $(GPIO_SRC) $(GPIO_DEP) | $(BUILD)
 # Without PIF_COLLECT_SIGNAL_GPIO the gpio stays out of the collector while the collector itself is built.
 $(BUILD)/test_pif_gpio_cs_off$(EXE): $(GPIO_SRC) $(GPIO_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_COLLECT_SIGNAL $(INC) $(GPIO_SRC) $(GPIO_CS_SRC) -o $@
-
-$(BUILD)/test_pif_link$(EXE): $(LINK_SRC) $(LINK_DEP) | $(BUILD)
-	$(CC) $(CFLAGS) $(INC) $(LINK_SRC) -o $@
-
-$(BUILD)/test_pif_link_nolog$(EXE): $(LINK_SRC) $(LINK_DEP) | $(BUILD)
-	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(LINK_SRC) -o $@
 
 $(BUILD)/test_pif_can$(EXE): $(CAN_SRC) $(CAN_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(CAN_SRC) -o $@
@@ -381,18 +341,8 @@ $(BUILD)/test_pif_modbus_nolog$(EXE): $(MODBUS_SRC) $(MODBUS_DEP) | $(BUILD)
 $(BUILD)/test_pif_rc_serial$(EXE): $(RC_SERIAL_SRC) $(RC_SERIAL_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(RC_SERIAL_SRC) -o $@
 
-$(BUILD)/test_pif_nvram$(EXE): $(NVRAM_SRC) $(NVRAM_DEP) | $(BUILD)
-	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_USE_NVRAM_RECORD $(INC) $(NVRAM_SRC) -o $@
-
 $(BUILD)/test_pif_nor_flash$(EXE): $(NOR_FLASH_SRC) $(NOR_FLASH_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(NOR_FLASH_SRC) -o $@
-
-$(BUILD)/test_pif_motor$(EXE): $(MOTOR_SRC) $(MOTOR_DEP) | $(BUILD)
-	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_USE_STEP_MOTOR_2PHASE -DPIF_USE_STEP_MOTOR_5PHASE -DPIF_USE_STEP_MOTOR_STEP_DIR \
-		$(INC) $(MOTOR_SRC) -o $@
-
-$(BUILD)/test_pif_duty_motor_speed_enc$(EXE): $(DMSE_SRC) $(DMSE_DEP) | $(BUILD)
-	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(DMSE_SRC) -o $@
 
 # A module built with its least features, or with only some of the PIF_USE_ options, against the tests of the
 # full one.
@@ -412,12 +362,6 @@ $(BUILD)/test_pif_modbus_slave_min$(EXE): $(MODBUS_SRC) $(MODBUS_DEP) | $(BUILD)
 
 $(BUILD)/test_pif_task_manager_nort$(EXE): $(TASK_SRC) $(TASK_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_USE_BLOCK_TIME $(INC) $(TASK_SRC) -o $@
-
-$(BUILD)/test_pif_motor_min$(EXE): $(MOTOR_SRC) $(MOTOR_DEP) | $(BUILD)
-	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_USE_STEP_MOTOR_2PHASE $(INC) $(MOTOR_SRC) -o $@
-
-$(BUILD)/test_pif_nvram_raw$(EXE): $(NVRAM_SRC) $(NVRAM_DEP) | $(BUILD)
-	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(NVRAM_SRC) -o $@
 
 .PHONY: run-test_pif_littlefs
 run-test_pif_littlefs: $(BUILD)/test_pif_littlefs$(EXE)

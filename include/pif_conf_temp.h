@@ -87,7 +87,6 @@
 // channels, its Put calls and its SetCsFlag/ResetCsFlag in the build.
 //#define PIF_COLLECT_SIGNAL_BUZZER
 //#define PIF_COLLECT_SIGNAL_DSHOT
-//#define PIF_COLLECT_SIGNAL_DUTY_MOTOR
 //#define PIF_COLLECT_SIGNAL_ENCODER
 //#define PIF_COLLECT_SIGNAL_GPIO
 //#define PIF_COLLECT_SIGNAL_HC_SR04
@@ -102,7 +101,6 @@
 //#define PIF_COLLECT_SIGNAL_SENSOR_THRESHOLD
 //#define PIF_COLLECT_SIGNAL_SEQUENCE
 //#define PIF_COLLECT_SIGNAL_SOLENOID
-//#define PIF_COLLECT_SIGNAL_STEP_MOTOR		// pifStepMotorPos and pifStepMotorSpeed too
 //#define PIF_COLLECT_SIGNAL_UART
 
 // Characters of text a transfer task pass hands to pifLog at most, beyond the line it is on.
@@ -181,30 +179,6 @@
 //#define PIF_KEYPAD_DEFAULT_REPEAT_PERIOD	100
 
 
-// -------- pifLink ------------------------------
-
-// Largest data size of one received packet, without the header and CRC.
-//#define PIF_LINK_RX_PACKET_SIZE			32
-
-// Size of the ring buffer that holds the requests waiting to be sent or answered.
-//#define PIF_LINK_TX_REQUEST_SIZE			64
-
-// Size of the ring buffer that holds the answers and NAKs waiting to be sent.
-//#define PIF_LINK_TX_ANSWER_SIZE			32
-
-// Timeout used to receive one complete packet, in timer units. 0: no timeout limit.
-//#define PIF_LINK_RECEIVE_TIMEOUT			50
-
-// Delay before a request is sent again after a NAK or a broken response, in timer units. 0: at once.
-//#define PIF_LINK_RETRY_DELAY				10
-
-
-// -------- pifLinkFragment ----------------------
-
-// Default largest data size of one fragment sent by pifLink_MakeLargeRequest(), without its fragment byte.
-//#define PIF_LINK_TX_FRAGMENT_SIZE			(PIF_LINK_RX_PACKET_SIZE - 1)
-
-
 // -------- pifLittlefs --------------------------
 
 // Builds pif_littlefs, which needs littlefs (lfs.c, lfs_util.c and lfs.h) in the build.
@@ -252,12 +226,6 @@
 //#define PIF_MSP_RECEIVE_TIMEOUT			200
 
 
-// -------- pifNvram -----------------------------
-
-// Puts NM_RECORD in, the records kept safe from a write cut short. Without it only raw slots are read and written.
-//#define PIF_USE_NVRAM_RECORD
-
-
 // -------- pifPmlcdI2c --------------------------
 
 // Size of the buffer pifPmlcdI2c_Printf() formats into, with the terminating null.
@@ -295,19 +263,6 @@
 // Channels one PifSolenoid takes at most. Their state is allocated by pifSolenoid_Init for the count
 // asked for, so this is only a bound, at most 255.
 //#define PIF_SOLENOID_MAX_COUNT			16
-
-
-// -------- pifStepMotor -------------------------
-
-// The operations a target drives. A step motor needs at least one of them, and refuses the others.
-//#define PIF_USE_STEP_MOTOR_2PHASE			// SMO_2P_*
-//#define PIF_USE_STEP_MOTOR_5PHASE			// SMO_5P_*
-//#define PIF_USE_STEP_MOTOR_STEP_DIR		// SMO_STEP_DIR
-
-
-// -------- pifSrml ------------------------------
-
-//#define PIF_SRML_MAX_BUFFER_SIZE     		64
 
 
 // -------- pifTask ------------------------------

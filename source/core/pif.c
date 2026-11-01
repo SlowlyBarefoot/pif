@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "core/pif.h"
-#include "core/pif_marker.h"
 #ifndef	PIF_NO_LOG
 	#include "core/pif_log.h"
 #endif
@@ -42,8 +41,6 @@ PifActGpioWrite pif_act_gpio_write = NULL;
 
 PifActIrqDisable pif_act_irq_disable = NULL;
 PifActIrqRestore pif_act_irq_restore = NULL;
-
-PifActMarker pif_act_marker = NULL;
 
 const char* kPifMonth3[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 

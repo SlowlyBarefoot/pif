@@ -61,8 +61,7 @@ warnings show up as annotations of the run. In the repository settings, Pages > 
 
 A page that describes what a module parses, such as a language or a template syntax, is written in the
 header of that module instead, as a `/** @page id Title ... */` block, so it is changed together with the
-code. The BASIC language (`basic_language` in interpreter/pif_basic.h) and the SRML syntax (`srml_syntax`
-in markup/pif_srml.h) are done this way.
+code. The BASIC language (`basic_language` in interpreter/pif_basic.h) is done this way.
 
 Inside a page:
 

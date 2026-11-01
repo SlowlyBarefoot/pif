@@ -9,7 +9,6 @@ It keeps business logic and reusable modules independent from MCU and board-spec
 - @subpage getting_started
 - @subpage integration_model
 - @subpage basic_language
-- @subpage srml_syntax
 
 ## API reference
 

@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
-// pif_link and pif_xmodem over each PifTransport: a pair of PifUart and a pair of PifCanStream.
+// pif_xmodem over each PifTransport: a pair of PifUart and a pair of PifCanStream.
 // The tasks of the transports are run directly, the way the task manager would.
 #include "communication/pif_can_stream.h"
 #include "communication/pif_uart.h"
-#include "protocol/pif_link.h"
 #include "protocol/pif_xmodem.h"
 
 #include <stdio.h>
@@ -11,10 +10,8 @@
 #include <time.h>
 
 
-#define DATA_SIZE		400
 #define X_PACKETS		3
 #define X_DATA_SIZE		128	// Data of an XMODEM packet.
-#define CMD_ECHO		0x41	// Answered with the data it carries.
 
 // Works regardless of NDEBUG, and reports where the failure happened.
 #define CHECK(COND) \
@@ -35,7 +32,6 @@ typedef enum
 
 static BOOL s_failed;
 
-static PifTimerManager s_timer_manager;
 
 // The transports. a and b are joined: what one sends the other receives.
 static PifUart s_uart_a, s_uart_b;
@@ -45,13 +41,7 @@ static PifTransport *s_p_a, *s_p_b;
 static PifTask *s_tasks[4];
 static int s_task_count;
 
-static uint8_t s_data[DATA_SIZE + 16];	// Requests start a few bytes in, each at another offset.
-
-// pif_link
-static PifLink s_link_a, s_link_b;
-static int s_resp_calls, s_err_calls;
-static uint8_t s_resp_data[DATA_SIZE];
-static uint16_t s_resp_size;
+static uint8_t s_data[X_PACKETS * X_DATA_SIZE];
 
 // pif_xmodem
 static PifXmodem s_x_tx, s_x_rx;
@@ -146,77 +136,13 @@ static BOOL _setUpMedium(Medium medium)
     }
 
     if (!_setUpCan(&s_can_a, _canSendA) || !_setUpCan(&s_can_b, _canSendB)) return FALSE;
-    // The receive buffer holds a whole XMODEM packet and a link frame of DATA_SIZE bytes with room to spare.
+    // The receive buffer holds a whole XMODEM packet with room to spare.
     if (!pifCanStream_Init(&s_stream_a, PIF_ID_AUTO, &s_can_a, 0x100, 0x101, flags, frame_size, 1024)) return FALSE;
     if (!pifCanStream_Init(&s_stream_b, PIF_ID_AUTO, &s_can_b, 0x101, 0x100, flags, frame_size, 1024)) return FALSE;
     s_p_a = &s_stream_a.parent;
     s_p_b = &s_stream_b.parent;
     return TRUE;
 }
-
-
-static void _evtQuestion(PifLink *p_link, PifLinkPacket *p_packet)
-{
-    pifLink_MakeAnswer(p_link, p_packet, LINK_F_DEFAULT, p_packet->p_data, p_packet->data_count);
-}
-
-static void _evtResponse(PifLink *p_link, PifLinkPacket *p_packet)
-{
-    (void)p_link;
-    s_resp_calls++;
-    s_resp_size = 0;
-    if (p_packet && p_packet->data_count <= DATA_SIZE) {
-        memcpy(s_resp_data, p_packet->p_data, p_packet->data_count);
-        s_resp_size = p_packet->data_count;
-    }
-}
-
-static void _evtLinkError(PifLink *p_link, const PifLinkRequest *p_request, PifLinkError error)
-{
-    (void)p_link;
-    (void)p_request;
-    (void)error;
-    s_err_calls++;
-}
-
-static const PifLinkQuestion s_questions_a[] = { { 0 } };
-static const PifLinkQuestion s_questions_b[] = { { CMD_ECHO, 0, _evtQuestion }, { 0 } };
-static const PifLinkRequest s_req_echo = { CMD_ECHO, LINK_F_DEFAULT, 3, 100, _evtResponse };
-
-static void _testLink(Medium medium)
-{
-    static const uint16_t sizes[] = { 1, 7, 8, 9, 63, 64, 65, DATA_SIZE };
-    unsigned i;
-    int n;
-
-    CHECK(_setUpMedium(medium));
-    CHECK(pifLink_Init(&s_link_a, PIF_ID_AUTO, &s_timer_manager, LINK_T_SINGLE, 0, s_questions_a));
-    CHECK(pifLink_Init(&s_link_b, PIF_ID_AUTO, &s_timer_manager, LINK_T_SINGLE, 0, s_questions_b));
-    s_link_a.evt_error = _evtLinkError;
-    CHECK(pifLink_ResizeTxRequest(&s_link_a, 2048) && pifLink_ResizeRxPacket(&s_link_a, DATA_SIZE) &&
-            pifLink_ResizeTxResponse(&s_link_b, 2048) && pifLink_ResizeRxPacket(&s_link_b, DATA_SIZE));
-    pifLink_AttachTransport(&s_link_a, s_p_a);
-    pifLink_AttachTransport(&s_link_b, s_p_b);
-    s_resp_calls = s_err_calls = 0;
-
-    // Sizes around the CAN frame sizes, each echoed back.
-    for (i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++) {
-        CHECK(pifLink_MakeRequest(&s_link_a, 0, &s_req_echo, s_data + i, sizes[i]));
-        for (n = 0; n < 10000 && s_resp_calls <= (int)i && !s_err_calls; n++) _runTasks();
-        CHECK(s_resp_calls == (int)i + 1 && !s_err_calls);
-        CHECK(s_resp_size == sizes[i] && !memcmp(s_resp_data, s_data + i, sizes[i]));
-    }
-
-    pifLink_DetachTransport(&s_link_a);
-    pifLink_DetachTransport(&s_link_b);
-    pifLink_Clear(&s_link_a);
-    pifLink_Clear(&s_link_b);
-    _tearDownMedium();
-}
-
-static void _testLinkUart(void) { _testLink(MEDIUM_UART); }
-static void _testLinkCan(void) { _testLink(MEDIUM_CAN); }
-static void _testLinkCanFd(void) { _testLink(MEDIUM_CAN_FD); }
 
 
 static void _evtXTxReceive(uint8_t code, uint8_t packet_no)
@@ -316,23 +242,17 @@ static void _evtAbortRxNone(void *p_client)
 static void _testUartTransport(void)
 {
     CHECK(_setUpMedium(MEDIUM_UART));
-    CHECK(pifLink_Init(&s_link_a, PIF_ID_AUTO, &s_timer_manager, LINK_T_SINGLE, 0, s_questions_a));
 
     // A client attached later replaces the one before it, together with its evt_abort_rx, and detaching
     // it leaves the UART without a client.
-    pifTransport_AttachClient(&s_uart_a.parent, &s_x_tx, NULL, NULL, _evtAbortRxNone);
-    pifLink_AttachTransport(&s_link_a, &s_uart_a.parent);
-    CHECK(s_link_a.__p_transport == &s_uart_a.parent && s_uart_a.__p_client == &s_link_a);
-    CHECK(s_uart_a.__evt_parsing && !s_uart_a.__evt_abort_rx);
-    pifLink_DetachTransport(&s_link_a);
-    CHECK(!s_link_a.__p_transport && !s_uart_a.__p_client && !s_uart_a.__evt_parsing);
-    pifLink_Clear(&s_link_a);
-
+    pifTransport_AttachClient(&s_uart_a.parent, &s_x_rx, NULL, NULL, _evtAbortRxNone);
     CHECK(pifXmodem_Init(&s_x_tx, PIF_ID_AUTO, XT_CRC));
     CHECK(!pifXmodem_AttachTransport(&s_x_tx, NULL) && pif_error == E_INVALID_PARAM);
-    CHECK(pifXmodem_AttachTransport(&s_x_tx, &s_uart_a.parent) && s_uart_a.__evt_sending);
+    CHECK(pifXmodem_AttachTransport(&s_x_tx, &s_uart_a.parent));
+    CHECK(s_x_tx.__p_transport == &s_uart_a.parent && s_uart_a.__p_client == &s_x_tx);
+    CHECK(s_uart_a.__evt_parsing && s_uart_a.__evt_sending && !s_uart_a.__evt_abort_rx);
     pifXmodem_DetachTransport(&s_x_tx);
-    CHECK(!s_x_tx.__p_transport && !s_uart_a.__evt_sending);
+    CHECK(!s_x_tx.__p_transport && !s_uart_a.__p_client && !s_uart_a.__evt_parsing && !s_uart_a.__evt_sending);
     pifXmodem_Clear(&s_x_tx);
 
     // The UART reports its own state through the transport.
@@ -498,9 +418,6 @@ static const struct {
     const char *p_name;
     void (*run)(void);
 } s_tests[] = {
-    { "link over uart", _testLinkUart },
-    { "link over can", _testLinkCan },
-    { "link over can fd", _testLinkCanFd },
     { "xmodem over uart", _testXmodemUart },
     { "xmodem over can", _testXmodemCan },
     { "xmodem over can fd", _testXmodemCanFd },
@@ -513,8 +430,7 @@ static const struct {
 
 static BOOL _portSetup(void)
 {
-    return pifTaskManager_Init(16, 2) &&
-            pifTimerManager_Init(&s_timer_manager, PIF_ID_AUTO, 1000, 16);
+    return pifTaskManager_Init(16, 2);
 }
 
 int main(void)

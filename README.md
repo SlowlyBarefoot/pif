@@ -165,7 +165,7 @@ To compile with more modules, add additional source files from `source/`:
 gcc -std=c11 -Iinclude \
   -c source/core/pif.c \
   -c source/core/pif_task.c \
-  -c source/storage/pif_nvram.c
+  -c source/storage/pif_nor_flash.c
 ```
 
 ### CMake integration example
@@ -202,7 +202,6 @@ Which storage module fits which media:
 
 | Media | Module |
 | --- | --- |
-| I2C/SPI EEPROM, FRAM (written in place) | `pif_nvram` (raw slots, or records kept safe from a write cut short) |
 | MCU internal flash | `pif_flash` |
 | SPI NOR flash, files | `pif_nor_flash` + `pif_littlefs` |
 
@@ -230,8 +229,9 @@ Callback naming conventions:
 Representative domains:
 
 - `core`, `codec`, `communication`, `protocol`, `sensor`, `input`, `storage`
-- `display`, `motor`, `sound`, `gps`, `filter`, `interpreter`
-- `markup`, `rc`, `osd`, `actuator`
+- `display`, `sound`, `gps`, `filter`, `interpreter`
+- `rc`, `osd`, `actuator`
+- `motor` (`pif_dshot`, under `gpl/`)
 
 ## Coding Conventions Used in PIF
 
