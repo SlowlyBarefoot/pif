@@ -38,7 +38,7 @@ NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_dat
            test_pif_nor_flash \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
            test_pif_task_manager_nort test_pif_crc test_pif_pid_control_cs \
-           test_pif_crc_table test_pif_keypad test_pif_log test_pif_log_cmd test_pif_encoding
+           test_pif_crc_table test_pif_keypad test_pif_log test_pif_log_cmd test_pif_encoding \n           test_pif_rtc
 
 # test_pif_collect_signal.c includes pif_collect_signal.c itself and stands in for pif_log.c. It also checks the
 # channels of pif_sequence.c.
@@ -175,6 +175,9 @@ CRC_SRC := core/test_pif_crc.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_a
 # test_pif_keypad.c includes pif_keypad.c itself to run the state machine of a key without the scheduler.
 KEYPAD_SRC := input/test_pif_keypad.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 KEYPAD_DEP := $(ROOT)/source/input/pif_keypad.c $(ROOT)/include/input/pif_keypad.h
+# test_pif_rtc.c includes pif_rtc.c itself to run the sync task directly, and plays the DS1302 at its pins.
+RTC_SRC := rtc/test_pif_rtc.c $(ROOT)/source/rtc/pif_ds1302.c            $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+RTC_DEP := $(ROOT)/source/rtc/pif_rtc.c $(addprefix $(ROOT)/include/rtc/, pif_rtc.h pif_ds1302.h)
 
 .PHONY: all run clean $(addprefix run-, $(NAMES))
 
@@ -227,6 +230,7 @@ run-test_pif_keypad: run-test_pif_crc_table
 run-test_pif_log: run-test_pif_keypad
 run-test_pif_log_cmd: run-test_pif_log
 run-test_pif_encoding: run-test_pif_log_cmd
+run-test_pif_rtc: run-test_pif_encoding
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
 	$(call RUN,$<)
@@ -385,6 +389,9 @@ $(BUILD)/test_pif_crc_table$(EXE): $(CRC_SRC) $(ROOT)/include/core/pif.h | $(BUI
 
 $(BUILD)/test_pif_keypad$(EXE): $(KEYPAD_SRC) $(KEYPAD_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(KEYPAD_SRC) -o $@
+
+$(BUILD)/test_pif_rtc$(EXE): $(RTC_SRC) $(RTC_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(RTC_SRC) -o $@
 
 $(BUILD)/test_pif_log$(EXE): $(LOG_SRC) $(ROOT)/include/core/pif_log.h | $(BUILD)
 	$(CC) $(CFLAGS) $(INC) $(LOG_SRC) -o $@

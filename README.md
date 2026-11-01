@@ -228,7 +228,7 @@ Callback naming conventions:
 
 Representative domains:
 
-- `core`, `codec`, `communication`, `protocol`, `sensor`, `input`, `storage`
+- `core`, `codec`, `communication`, `protocol`, `sensor`, `input`, `storage`, `rtc`
 - `display`, `sound`, `gps`, `filter`, `interpreter`
 - `rc`, `osd`, `actuator`
 - `motor` (`pif_dshot`, under `gpl/`)

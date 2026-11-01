@@ -1643,7 +1643,7 @@ void pifTaskManager_Print()
 	pifLog_Printf(LT_NONE, "Task count: %d, Load: %u%% (us)\n", pifObjArray_Count(&s_tasks), pif_performance._task_load);
 #endif
 	// The headings are laid out to the widths of the columns below.
-	pifLog_Print(LT_NONE, "  ID Name       M Pa  Period"
+	pifLog_Print(LT_NONE, "  ID Name       M Pa     Period"
 #ifdef PIF_USE_BLOCK_TIME
 			"    Blk"
 #endif
@@ -1664,10 +1664,11 @@ void pifTaskManager_Print()
 			case TM_EXTERNAL: mode = 'E'; break;
 	        default: mode = '-'; break;
 		}
-		// A value wider than its column takes the room it needs, which only shifts the rest of the line.
+		// A value wider than its column takes the room it needs, which only shifts the rest of the line. Period
+		// has the 10 digits of any uint32_t, as a task of a minute or more is common.
 		pif_Printf(line, sizeof(line), " %3u %10.10s %c %2u %s", (unsigned int)p_owner->_id,
 				p_owner->name ? p_owner->name : "---", mode, (unsigned int)p_owner->_pause,
-				_dashText(period, p_owner->_default_period, 7));
+				_dashText(period, p_owner->_default_period, 10));
 		n = strlen(line);
 #ifdef PIF_USE_BLOCK_TIME
 		pif_Printf(line + n, sizeof(line) - n, " %6lu", (unsigned long)p_owner->_block_time._max);
