@@ -100,6 +100,7 @@
 //#define PIF_COLLECT_SIGNAL_SENSOR_SWITCH
 //#define PIF_COLLECT_SIGNAL_SENSOR_THRESHOLD
 //#define PIF_COLLECT_SIGNAL_SEQUENCE
+//#define PIF_COLLECT_SIGNAL_SERVO
 //#define PIF_COLLECT_SIGNAL_SOLENOID
 //#define PIF_COLLECT_SIGNAL_UART
 
@@ -256,6 +257,21 @@
 
 // How often (us) a wait looks for its signal, which is the latency between the signal and the next step.
 //#define PIF_SEQUENCE_WAIT_POLL_US			1000UL
+
+
+// -------- pifServo -----------------------------
+
+// Channels one PifServo takes at most. Their state is allocated by pifServo_Init for the count asked for, so this
+// is only a bound, at most 255.
+//#define PIF_SERVO_MAX_COUNT				16
+
+// Range every channel starts with: pulses in microseconds at the lowest and the highest angle, in 0.1 degrees.
+// The default pulses are inside what any RC servo takes, so that a servo is not driven against its stop before
+// pifServo_SetRange() widens them.
+//#define PIF_SERVO_DEFAULT_MIN_PULSE		1000
+//#define PIF_SERVO_DEFAULT_MAX_PULSE		2000
+//#define PIF_SERVO_DEFAULT_MIN_ANGLE		0
+//#define PIF_SERVO_DEFAULT_MAX_ANGLE		1800
 
 
 // -------- pifSolenoid --------------------------

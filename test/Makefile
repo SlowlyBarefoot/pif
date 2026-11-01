@@ -33,12 +33,13 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_encoder test_pif_sensor test_pif_sensor_modulated test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs \
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_encoder test_pif_sensor test_pif_sensor_modulated test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs test_pif_servo test_pif_servo_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
            test_pif_nor_flash \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
            test_pif_task_manager_nort test_pif_crc test_pif_pid_control_cs \
-           test_pif_crc_table test_pif_keypad test_pif_log test_pif_log_cmd test_pif_encoding \n           test_pif_rtc
+           test_pif_crc_table test_pif_keypad test_pif_log test_pif_log_cmd test_pif_encoding \
+           test_pif_rtc
 
 # test_pif_collect_signal.c includes pif_collect_signal.c itself and stands in for pif_log.c. It also checks the
 # channels of pif_sequence.c.
@@ -93,6 +94,8 @@ TASK_SRC := core/test_pif_task_manager.c $(addprefix $(ROOT)/source/core/, pif.c
 TASK_DEP := $(ROOT)/include/core/pif_task.h $(ROOT)/include/core/pif_task_manager.h
 SOLENOID_SRC := actuator/test_pif_solenoid.c $(ROOT)/source/actuator/pif_solenoid.c \
                 $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_data.c pif_task.c pif_task_manager.c)
+SERVO_SRC := actuator/test_pif_servo.c $(ROOT)/source/actuator/pif_servo.c \
+             $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 DOT_MATRIX_SRC := display/test_pif_dot_matrix.c $(ROOT)/source/display/pif_dot_matrix.c \
                   $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 FND_SRC := display/test_pif_fnd.c $(ROOT)/source/display/pif_fnd.c \
@@ -211,7 +214,9 @@ run-test_pif_noise_filter: run-test_pif_sensor_modulated
 run-test_pif_task_manager: run-test_pif_noise_filter
 run-test_pif_solenoid: run-test_pif_task_manager
 run-test_pif_solenoid_cs: run-test_pif_solenoid
-run-test_pif_dot_matrix: run-test_pif_solenoid_cs
+run-test_pif_servo: run-test_pif_solenoid_cs
+run-test_pif_servo_cs: run-test_pif_servo
+run-test_pif_dot_matrix: run-test_pif_servo_cs
 run-test_pif_fnd: run-test_pif_dot_matrix
 run-test_pif_led: run-test_pif_fnd
 run-test_pif_modbus: run-test_pif_led
@@ -321,6 +326,14 @@ $(BUILD)/test_pif_solenoid$(EXE): $(SOLENOID_SRC) $(ROOT)/include/actuator/pif_s
 $(BUILD)/test_pif_solenoid_cs$(EXE): $(SOLENOID_SRC) $(GPIO_CS_SRC) $(ROOT)/include/actuator/pif_solenoid.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_COLLECT_SIGNAL -DPIF_COLLECT_SIGNAL_SOLENOID -DPIF_COLLECT_SIGNAL_UART -DPIF_SOLENOID_MAX_COUNT=255 \
 		$(INC) $(SOLENOID_SRC) $(GPIO_CS_SRC) -o $@
+
+$(BUILD)/test_pif_servo$(EXE): $(SERVO_SRC) $(ROOT)/include/actuator/pif_servo.h | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(SERVO_SRC) -o $@
+
+# The signals pull in pif_log.c and what it needs, as for test_pif_solenoid_cs.
+$(BUILD)/test_pif_servo_cs$(EXE): $(SERVO_SRC) $(GPIO_CS_SRC) $(ROOT)/include/actuator/pif_servo.h | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_COLLECT_SIGNAL -DPIF_COLLECT_SIGNAL_SERVO -DPIF_COLLECT_SIGNAL_UART \
+		$(INC) $(SERVO_SRC) $(GPIO_CS_SRC) -o $@
 
 # The channels of a controller on the collect signal without its VCD output, as a backend uses it.
 PID_CS_SRC := core/test_pif_pid_control_cs.c               $(addprefix $(ROOT)/source/core/, pif.c pif_collect_signal.c pif_obj_array.c pif_pid_control.c pif_task.c               pif_task_manager.c)
