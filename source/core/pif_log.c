@@ -84,6 +84,7 @@ typedef struct StPifLog
 	const PifLogCmdEntry* p_cmd_table;
 	const char* p_prompt;
 	PifEvtLogControlChar evt_control_char;
+	BOOL no_echo;				// The terminal shows what is typed itself
 	PifLogDump dump;
 	BOOL prompt_pending;		// The prompt waits for the dump to end
 #endif
@@ -395,7 +396,7 @@ static void _insertChar(PifLog* p_owner, char ch)
 	if (p_owner->char_idx >= p_owner->rx_buffer_size - 3) return;
 
 	p_owner->p_rx_buffer[p_owner->char_idx++] = ch;
-	pifRingBuffer_PutByte(p_owner->p_tx_buffer, ch);
+	if (!p_owner->no_echo) pifRingBuffer_PutByte(p_owner->p_tx_buffer, ch);
 }
 
 static void _eraseChar(PifLog* p_owner)
@@ -1107,6 +1108,11 @@ BOOL pifLog_UseCommand(uint8_t size, const PifLogCmdEntry* p_cmd_table, const ch
 void pifLog_AttachEvent(PifEvtLogControlChar evt_control_char)
 {
 	s_log.evt_control_char = evt_control_char;
+}
+
+void pifLog_SetEcho(BOOL echo)
+{
+	s_log.no_echo = !echo;
 }
 
 #endif

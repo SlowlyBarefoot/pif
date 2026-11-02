@@ -38,8 +38,8 @@ NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_dat
            test_pif_nor_flash \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
            test_pif_task_manager_nort test_pif_crc test_pif_pid_control_cs \
-           test_pif_crc_table test_pif_keypad test_pif_log test_pif_log_cmd test_pif_encoding \
-           test_pif_rtc
+           test_pif_crc_table test_pif_keypad test_pif_joystick test_pif_log test_pif_log_cmd test_pif_encoding \
+           test_pif_rtc test_pif_rtt test_pif_usb_cdc test_pif_usb_cdc_tinyusb
 
 # test_pif_collect_signal.c includes pif_collect_signal.c itself and stands in for pif_log.c. It also checks the
 # channels of pif_sequence.c.
@@ -178,6 +178,17 @@ CRC_SRC := core/test_pif_crc.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_a
 # test_pif_keypad.c includes pif_keypad.c itself to run the state machine of a key without the scheduler.
 KEYPAD_SRC := input/test_pif_keypad.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 KEYPAD_DEP := $(ROOT)/source/input/pif_keypad.c $(ROOT)/include/input/pif_keypad.h
+JOYSTICK_SRC := input/test_pif_joystick.c $(ROOT)/source/input/pif_joystick.c $(addprefix $(ROOT)/source/filter/, pif_noise_filter.c \
+                    pif_noise_filter_int16.c) \
+                $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+JOYSTICK_DEP := $(ROOT)/include/input/pif_joystick.h
+# pif_rtt and the TinyUSB binding of pif_usb_cdc on stand-ins of SEGGER_RTT.h and tusb.h in communication/fake,
+# which the tests implement.
+UART_PORT_SRC := $(ROOT)/source/communication/pif_uart.c $(ROOT)/source/communication/pif_transport.c                  $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_buffer.c pif_task.c pif_task_manager.c)
+RTT_SRC       := communication/test_pif_rtt.c $(ROOT)/source/communication/pif_rtt.c $(UART_PORT_SRC)
+RTT_DEP       := $(ROOT)/include/communication/pif_rtt.h $(ROOT)/include/communication/pif_uart.h                  communication/fake/SEGGER_RTT.h
+USB_CDC_SRC   := communication/test_pif_usb_cdc.c $(ROOT)/source/communication/pif_usb_cdc.c $(UART_PORT_SRC)
+USB_CDC_DEP   := $(ROOT)/include/communication/pif_usb_cdc.h $(ROOT)/include/communication/pif_uart.h                  communication/fake/tusb.h
 # test_pif_rtc.c includes pif_rtc.c itself to run the sync task directly, and plays the DS1302 at its pins.
 RTC_SRC := rtc/test_pif_rtc.c $(ROOT)/source/rtc/pif_ds1302.c            $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 RTC_DEP := $(ROOT)/source/rtc/pif_rtc.c $(addprefix $(ROOT)/include/rtc/, pif_rtc.h pif_ds1302.h)
@@ -232,10 +243,14 @@ run-test_pif_crc: run-test_pif_task_manager_nort
 run-test_pif_pid_control_cs: run-test_pif_crc
 run-test_pif_crc_table: run-test_pif_pid_control_cs
 run-test_pif_keypad: run-test_pif_crc_table
-run-test_pif_log: run-test_pif_keypad
+run-test_pif_joystick: run-test_pif_keypad
+run-test_pif_log: run-test_pif_joystick
 run-test_pif_log_cmd: run-test_pif_log
 run-test_pif_encoding: run-test_pif_log_cmd
 run-test_pif_rtc: run-test_pif_encoding
+run-test_pif_rtt: run-test_pif_rtc
+run-test_pif_usb_cdc: run-test_pif_rtt
+run-test_pif_usb_cdc_tinyusb: run-test_pif_usb_cdc
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
 	$(call RUN,$<)
@@ -403,6 +418,9 @@ $(BUILD)/test_pif_crc_table$(EXE): $(CRC_SRC) $(ROOT)/include/core/pif.h | $(BUI
 $(BUILD)/test_pif_keypad$(EXE): $(KEYPAD_SRC) $(KEYPAD_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(KEYPAD_SRC) -o $@
 
+$(BUILD)/test_pif_joystick$(EXE): $(JOYSTICK_SRC) $(JOYSTICK_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(JOYSTICK_SRC) -o $@
+
 $(BUILD)/test_pif_rtc$(EXE): $(RTC_SRC) $(RTC_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(RTC_SRC) -o $@
 
@@ -414,3 +432,12 @@ $(BUILD)/test_pif_log_cmd$(EXE): $(LOG_SRC) $(ROOT)/include/core/pif_log.h | $(B
 
 $(BUILD)/test_pif_encoding$(EXE): codec/test_pif_encoding.c $(ROOT)/source/codec/pif_encoding.c $(ROOT)/include/codec/pif_encoding.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) codec/test_pif_encoding.c $(ROOT)/source/codec/pif_encoding.c -o $@
+
+$(BUILD)/test_pif_rtt$(EXE): $(RTT_SRC) $(RTT_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_USE_SEGGER_RTT $(INC) -Icommunication/fake $(RTT_SRC) -o $@
+
+$(BUILD)/test_pif_usb_cdc$(EXE): $(USB_CDC_SRC) $(USB_CDC_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(USB_CDC_SRC) -o $@
+
+$(BUILD)/test_pif_usb_cdc_tinyusb$(EXE): $(USB_CDC_SRC) $(USB_CDC_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_USE_TINYUSB $(INC) -Icommunication/fake $(USB_CDC_SRC) -o $@

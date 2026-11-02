@@ -221,6 +221,14 @@ BOOL pifLog_UseCommand(uint8_t size, const PifLogCmdEntry* p_cmd_table, const ch
  */
 void pifLog_AttachEvent(PifEvtLogControlChar evt_control_char);
 
+/**
+ * @brief Turns the echo of the typed characters on or off. It starts on. Turn it off for a terminal that shows
+ *        what is typed itself, as most RTT viewers do. The new line, erasing, completion and the redrawn line
+ *        still go out, since such a terminal does not do them.
+ * @param echo TRUE to echo the typed characters, FALSE not to.
+ */
+void pifLog_SetEcho(BOOL echo);
+
 #endif
 
 /**

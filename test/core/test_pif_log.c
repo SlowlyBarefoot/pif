@@ -513,6 +513,38 @@ static void _testCommandOrder(void)
     _detachUart();
 }
 
+static void _testCommandNoEcho(void)
+{
+    CHECK(pifLog_InitHeap(1024));
+    CHECK(pifLog_UseCommand(32, kCommands, "\n> "));
+    pifLog_SetEcho(FALSE);
+    CHECK(_attachUart());
+    _loop(10);
+    _wireClear();
+
+    // The typed characters are not sent back, but erasing and completion still are.
+    _type("helx\b");
+    CHECK(strcmp(s_wire, "\b \b") == 0);
+    _wireClear();
+    _type("\t");
+    CHECK(strcmp(s_wire, "lo ") == 0);
+    _wireClear();
+    _type("\r");
+    CHECK(strstr(s_wire, "\n\nhello\n> ") == s_wire);
+
+    // The echo is back on after a new start.
+    _detachUart();
+    CHECK(pifLog_InitHeap(1024));
+    CHECK(pifLog_UseCommand(32, kCommands, "\n> "));
+    CHECK(_attachUart());
+    _loop(10);
+    _wireClear();
+    _type("hello\r");
+    CHECK(strstr(s_wire, "hello\n\nhello\n> ") != NULL);
+
+    _detachUart();
+}
+
 static void _testCommandLong(void)
 {
     CollectSink sink;
@@ -676,6 +708,7 @@ int main(void)
         { "uart full", _testUartFull },
 #ifdef PIF_LOG_COMMAND
         { "command order", _testCommandOrder },
+        { "command no echo", _testCommandNoEcho },
         { "command long", _testCommandLong },
         { "command show", _testCommandShow },
         { "dump stop", _testDumpStop },

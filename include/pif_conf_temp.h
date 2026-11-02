@@ -171,6 +171,16 @@
 //#define PIF_HC_SR04_ECHO_TIMEOUT_US		60000UL
 
 
+// -------- pifJoystick --------------------------
+
+//#define PIF_JOYSTICK_CONTROL_PERIOD		20
+//#define PIF_JOYSTICK_RANGE				1000
+
+// Position an axis has to reach for the direction to point that way, and to fall below to let go of it.
+//#define PIF_JOYSTICK_DIRECTION_ON		    500
+//#define PIF_JOYSTICK_DIRECTION_OFF		300
+
+
 // -------- pifKeypad ----------------------------
 
 //#define PIF_KEYPAD_DEFAULT_HOLD_TIME		100
@@ -251,6 +261,16 @@
 // pifRingBuffer_SetHead() or pifRingBuffer_MoveHeadForLinear() runs against a reader in an interrupt.
 // With PIF_NO_LOG the name a ring buffer is given is not kept.
 //#define PIF_USE_RING_BUFFER_LOCK
+
+
+// -------- pifRtt -------------------------------
+
+// Builds pif_rtt, a PifUart on a SEGGER RTT channel, which needs SEGGER_RTT.c, SEGGER_RTT.h and
+// SEGGER_RTT_Conf.h of SEGGER in the build.
+//#define PIF_USE_SEGGER_RTT
+
+// Baud rate of the UART of pif_rtt, which only the periods of its tasks follow.
+//#define PIF_RTT_BAUDRATE					1000000UL
 
 
 // -------- pifSequence --------------------------
@@ -423,6 +443,19 @@
 // Puts in evt_tap and p_tap_issuer of PifUart and PifCan: every byte or frame they receive or hand to the
 // hardware goes to the tap too, a packet capture for example. Without it the modules have no tap at all.
 //#define PIF_USE_COMM_TAP
+
+
+// -------- pifUsbCdc ----------------------------
+
+// Builds pifUsbCdc_InitTinyUsb(), the act functions of pif_usb_cdc for TinyUSB, which needs tusb.h on the
+// include path. pif_usb_cdc itself builds without it, for any stack.
+//#define PIF_USE_TINYUSB
+
+// Most bytes handed to the stack at once: 64 for a full speed device, 512 for high speed.
+//#define PIF_USB_CDC_PACKET_SIZE			64
+
+// Baud rate of the UART of pif_usb_cdc, which only the periods of its tasks follow.
+//#define PIF_USB_CDC_BAUDRATE				10000000UL
 
 
 // -------- pifXmodem ----------------------------
