@@ -282,6 +282,7 @@ These modules are written from published formulas, not from other code:
 - pif_sdft: E. Jacobsen and R. Lyons, "The Sliding DFT", IEEE Signal Processing Magazine, 2003
 - pif_ahrs: R. Mahony, T. Hamel and J.-M. Pflimlin, "Nonlinear Complementary Filters on the Special Orthogonal Group", IEEE Transactions on Automatic Control, 2008
 - pif_pid_control (derivative on measurement, anti-windup by clamping and back-calculation, feedforward): K. J. Åström and T. Hägglund, "Advanced PID Control", ISA, 2006
+- pif_motion_profile (trapezoidal profile, replanned from a moving state): L. Biagiotti and C. Melchiorri, "Trajectory Planning for Automatic Machines and Robots", Springer, 2008
 
 ## Tools
 

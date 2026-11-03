@@ -37,7 +37,7 @@ NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_dat
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
            test_pif_nor_flash \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
-           test_pif_task_manager_nort test_pif_crc test_pif_pid_control_cs \
+           test_pif_task_manager_nort test_pif_crc test_pif_pid_control_cs test_pif_motion_profile \
            test_pif_crc_table test_pif_keypad test_pif_joystick test_pif_log test_pif_log_cmd test_pif_encoding \
            test_pif_rtc test_pif_rtt test_pif_usb_cdc test_pif_usb_cdc_tinyusb
 
@@ -241,7 +241,8 @@ run-test_pif_modbus_slave_min: run-test_pif_ring_buffer_nolock
 run-test_pif_task_manager_nort: run-test_pif_modbus_slave_min
 run-test_pif_crc: run-test_pif_task_manager_nort
 run-test_pif_pid_control_cs: run-test_pif_crc
-run-test_pif_crc_table: run-test_pif_pid_control_cs
+run-test_pif_motion_profile: run-test_pif_pid_control_cs
+run-test_pif_crc_table: run-test_pif_motion_profile
 run-test_pif_keypad: run-test_pif_crc_table
 run-test_pif_joystick: run-test_pif_keypad
 run-test_pif_log: run-test_pif_joystick
@@ -354,6 +355,11 @@ $(BUILD)/test_pif_servo_cs$(EXE): $(SERVO_SRC) $(GPIO_CS_SRC) $(ROOT)/include/ac
 PID_CS_SRC := core/test_pif_pid_control_cs.c               $(addprefix $(ROOT)/source/core/, pif.c pif_collect_signal.c pif_obj_array.c pif_pid_control.c pif_task.c               pif_task_manager.c)
 $(BUILD)/test_pif_pid_control_cs$(EXE): $(PID_CS_SRC) $(ROOT)/include/core/pif_pid_control.h 		$(ROOT)/include/core/pif_collect_signal.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_COLLECT_SIGNAL -DPIF_COLLECT_SIGNAL_NO_VCD -DPIF_COLLECT_SIGNAL_PID_CONTROL 		$(INC) $(PID_CS_SRC) -o $@
+
+MOTION_PROFILE_SRC := core/test_pif_motion_profile.c $(addprefix $(ROOT)/source/core/, pif.c pif_motion_profile.c \
+                      pif_obj_array.c pif_task.c pif_task_manager.c)
+$(BUILD)/test_pif_motion_profile$(EXE): $(MOTION_PROFILE_SRC) $(ROOT)/include/core/pif_motion_profile.h | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(MOTION_PROFILE_SRC) -o $@
 
 $(BUILD)/test_pif_dot_matrix$(EXE): $(DOT_MATRIX_SRC) $(ROOT)/include/display/pif_dot_matrix.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(DOT_MATRIX_SRC) -o $@
