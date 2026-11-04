@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-#include "sensor/pif_encoder.h"
+#include "sensor/pif_quad_encoder.h"
 
 // Quadrature encoder input with X1/X2/X4 position, speed and lost-step detection.
 
@@ -22,7 +22,7 @@ static const int8_t kStep[16] = {
  * @param raw Quarter steps.
  * @return Counts.
  */
-static int32_t _toCounts(PifEncoder* p_owner, int32_t raw)
+static int32_t _toCounts(PifQuadEncoder *p_owner, int32_t raw)
 {
 	int32_t div = 4 >> p_owner->_resolution;
 
@@ -35,7 +35,7 @@ static int32_t _toCounts(PifEncoder* p_owner, int32_t raw)
  * @param p_owner Pointer to the encoder instance.
  * @return Quarter steps.
  */
-static int32_t _readRaw(PifEncoder* p_owner)
+static int32_t _readRaw(PifQuadEncoder *p_owner)
 {
 	int32_t raw;
 	uint8_t seq;
@@ -47,14 +47,14 @@ static int32_t _readRaw(PifEncoder* p_owner)
 	return raw;
 }
 
-BOOL pifEncoder_Init(PifEncoder* p_owner, PifId id, PifEncoderResolution resolution)
+BOOL pifQuadEncoder_Init(PifQuadEncoder *p_owner, PifId id, PifQuadEncoderResolution resolution)
 {
-	if (!p_owner || resolution > ENCODER_RES_X4) {
+	if (!p_owner || resolution > QUAD_ENCODER_RES_X4) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
 
-	memset(p_owner, 0, sizeof(PifEncoder));
+	memset(p_owner, 0, sizeof(PifQuadEncoder));
 
 	if (id == PIF_ID_AUTO) id = pif_id++;
 	p_owner->_id = id;
@@ -62,41 +62,41 @@ BOOL pifEncoder_Init(PifEncoder* p_owner, PifId id, PifEncoderResolution resolut
 	return TRUE;
 }
 
-void pifEncoder_Clear(PifEncoder* p_owner)
+void pifQuadEncoder_Clear(PifQuadEncoder *p_owner)
 {
-#ifdef COLLECT_SIGNAL_ENCODER
-	pifEncoder_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, ENCODER_CSF_ALL_BIT);
+#ifdef COLLECT_SIGNAL_QUAD_ENCODER
+	pifQuadEncoder_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, QUAD_ENCODER_CSF_ALL_BIT);
 #else
 	(void)p_owner;
 #endif
 }
 
-void pifEncoder_SetReverse(PifEncoder* p_owner, BOOL reverse)
+void pifQuadEncoder_SetReverse(PifQuadEncoder *p_owner, BOOL reverse)
 {
 	p_owner->__reverse = reverse;
 }
 
-void pifEncoder_SetTimeout(PifEncoder* p_owner, uint32_t timeout_us)
+void pifQuadEncoder_SetTimeout(PifQuadEncoder *p_owner, uint32_t timeout_us)
 {
 	p_owner->__timeout = timeout_us;
 }
 
-void pifEncoder_SetPosition(PifEncoder* p_owner, int32_t position)
+void pifQuadEncoder_SetPosition(PifQuadEncoder *p_owner, int32_t position)
 {
 	p_owner->__offset = position - _toCounts(p_owner, _readRaw(p_owner));
 }
 
-int32_t pifEncoder_GetPosition(PifEncoder* p_owner)
+int32_t pifQuadEncoder_GetPosition(PifQuadEncoder *p_owner)
 {
 	return _toCounts(p_owner, _readRaw(p_owner)) + p_owner->__offset;
 }
 
-int8_t pifEncoder_GetDirection(PifEncoder* p_owner)
+int8_t pifQuadEncoder_GetDirection(PifQuadEncoder *p_owner)
 {
 	return p_owner->__direction;
 }
 
-uint32_t pifEncoder_GetErrorCount(PifEncoder* p_owner)
+uint32_t pifQuadEncoder_GetErrorCount(PifQuadEncoder *p_owner)
 {
 	uint32_t count;
 	uint8_t seq;
@@ -108,7 +108,7 @@ uint32_t pifEncoder_GetErrorCount(PifEncoder* p_owner)
 	return count;
 }
 
-PifEncoderResult pifEncoder_ReadSpeed(PifEncoder* p_owner, float* p_speed)
+PifQuadEncoderResult pifQuadEncoder_ReadSpeed(PifQuadEncoder *p_owner, float *p_speed)
 {
 	uint32_t first, last, elapsed;
 	uint8_t seq, count, intervals, ptr;
@@ -125,14 +125,14 @@ PifEncoderResult pifEncoder_ReadSpeed(PifEncoder* p_owner, float* p_speed)
 		// Whole encoder cycles once there are enough, since the quarter steps of one are seldom even.
 		intervals = count > 1 ? count - 1 : 0;
 		if (intervals >= 4) intervals &= ~3;
-		last = p_owner->__time[(ptr + PIF_ENCODER_DATA_MASK) & PIF_ENCODER_DATA_MASK];
-		first = p_owner->__time[(ptr + PIF_ENCODER_DATA_MASK - intervals) & PIF_ENCODER_DATA_MASK];
+		last = p_owner->__time[(ptr + PIF_QUAD_ENCODER_DATA_MASK) & PIF_QUAD_ENCODER_DATA_MASK];
+		first = p_owner->__time[(ptr + PIF_QUAD_ENCODER_DATA_MASK - intervals) & PIF_QUAD_ENCODER_DATA_MASK];
 	} while (seq != p_owner->__seq);
 
-	if (!count) return ENCODER_R_NO_DATA;
+	if (!count) return QUAD_ENCODER_R_NO_DATA;
 	elapsed = (*pif_act_timer1us)() - last;
-	if (p_owner->__timeout && elapsed > p_owner->__timeout) return ENCODER_R_TIMEOUT;
-	if (!intervals) return ENCODER_R_NO_DATA;
+	if (p_owner->__timeout && elapsed > p_owner->__timeout) return QUAD_ENCODER_R_TIMEOUT;
+	if (!intervals) return QUAD_ENCODER_R_NO_DATA;
 
 	// A step later than the measured period shows that the encoder has slowed down to at most this.
 	period = (float)(last - first) / intervals;
@@ -140,24 +140,24 @@ PifEncoderResult pifEncoder_ReadSpeed(PifEncoder* p_owner, float* p_speed)
 	if (period < 1.0f) period = 1.0f;
 
 	if (p_speed) *p_speed = direction * 1000000.0f / period / (4 >> p_owner->_resolution);
-	return ENCODER_R_OK;
+	return QUAD_ENCODER_R_OK;
 }
 
-float pifEncoder_GetSpeed(PifEncoder* p_owner)
+float pifQuadEncoder_GetSpeed(PifQuadEncoder *p_owner)
 {
 	float speed;
 
-	pifEncoder_ReadSpeed(p_owner, &speed);
+	pifQuadEncoder_ReadSpeed(p_owner, &speed);
 	return speed;
 }
 
-BOOL pifEncoder_sigState(PifEncoder* p_owner, uint8_t state, uint32_t time_us)
+BOOL pifQuadEncoder_sigState(PifQuadEncoder *p_owner, uint8_t state, uint32_t time_us)
 {
 	int8_t step;
 	int32_t counts;
 	BOOL changed = FALSE;
 
-	state &= ENCODER_PHASE_A | ENCODER_PHASE_B;
+	state &= QUAD_ENCODER_PHASE_A | QUAD_ENCODER_PHASE_B;
 	if (!p_owner->__has_state) {
 		p_owner->__has_state = TRUE;
 		step = 0;
@@ -180,14 +180,14 @@ BOOL pifEncoder_sigState(PifEncoder* p_owner, uint8_t state, uint32_t time_us)
 
 		// The times of the other direction or from before a stop do not belong to this speed.
 		if (step != p_owner->__direction || (p_owner->__timeout && p_owner->__count &&
-				time_us - p_owner->__time[(p_owner->__ptr + PIF_ENCODER_DATA_MASK) & PIF_ENCODER_DATA_MASK] >
+				time_us - p_owner->__time[(p_owner->__ptr + PIF_QUAD_ENCODER_DATA_MASK) & PIF_QUAD_ENCODER_DATA_MASK] >
 				p_owner->__timeout)) {
 			p_owner->__count = 0;
 		}
 		p_owner->__direction = step;
 		p_owner->__time[p_owner->__ptr] = time_us;
-		p_owner->__ptr = (p_owner->__ptr + 1) & PIF_ENCODER_DATA_MASK;
-		if (p_owner->__count < PIF_ENCODER_DATA_SIZE) p_owner->__count++;
+		p_owner->__ptr = (p_owner->__ptr + 1) & PIF_QUAD_ENCODER_DATA_MASK;
+		if (p_owner->__count < PIF_QUAD_ENCODER_DATA_SIZE) p_owner->__count++;
 	}
 	p_owner->__seq++;
 
@@ -195,10 +195,10 @@ BOOL pifEncoder_sigState(PifEncoder* p_owner, uint8_t state, uint32_t time_us)
 		(*p_owner->__evt_step)(step, p_owner->__p_issuer);
 	}
 
-#ifdef COLLECT_SIGNAL_ENCODER
-	pifCollectSignal_Put(&p_owner->__cs[ENCODER_CSF_STATE_IDX], state);
+#ifdef COLLECT_SIGNAL_QUAD_ENCODER
+	pifCollectSignal_Put(&p_owner->__cs[QUAD_ENCODER_CSF_STATE_IDX], state);
 	if (changed) {
-		pifCollectSignal_Put(&p_owner->__cs[ENCODER_CSF_POSITION_IDX],
+		pifCollectSignal_Put(&p_owner->__cs[QUAD_ENCODER_CSF_POSITION_IDX],
 				(uint32_t)(_toCounts(p_owner, p_owner->__raw) + p_owner->__offset));
 	}
 #endif
@@ -206,33 +206,33 @@ BOOL pifEncoder_sigState(PifEncoder* p_owner, uint8_t state, uint32_t time_us)
 	return step != 0 && step != INVALID;
 }
 
-void pifEncoder_AttachEvtStep(PifEncoder* p_owner, PifEvtEncoderStep evt_step, PifIssuerP p_issuer)
+void pifQuadEncoder_AttachEvtStep(PifQuadEncoder *p_owner, PifEvtQuadEncoderStep evt_step, PifIssuerP p_issuer)
 {
 	p_owner->__evt_step = evt_step;
 	p_owner->__p_issuer = p_issuer;
 }
 
-#ifdef COLLECT_SIGNAL_ENCODER
+#ifdef COLLECT_SIGNAL_QUAD_ENCODER
 
-BOOL pifEncoder_SetCsFlag(PifEncoder* p_owner, uint8_t index, PifEncoderCsFlag flag)
+BOOL pifQuadEncoder_SetCsFlag(PifQuadEncoder *p_owner, uint8_t index, PifQuadEncoderCsFlag flag)
 {
 	(void)index;
-	if (flag & ENCODER_CSF_STATE_BIT) {
-		if (!pifCollectSignal_AddChannel(&p_owner->__cs[ENCODER_CSF_STATE_IDX], "EC", p_owner->_id, CSVT_WIRE, 2,
+	if (flag & QUAD_ENCODER_CSF_STATE_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[QUAD_ENCODER_CSF_STATE_IDX], "EC", p_owner->_id, CSVT_WIRE, 2,
 				p_owner->__state)) return FALSE;
 	}
-	if (flag & ENCODER_CSF_POSITION_BIT) {
-		if (!pifCollectSignal_AddChannel(&p_owner->__cs[ENCODER_CSF_POSITION_IDX], "ECPos", p_owner->_id,
-				CSVT_INTEGER, 32, (uint32_t)pifEncoder_GetPosition(p_owner))) return FALSE;
+	if (flag & QUAD_ENCODER_CSF_POSITION_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[QUAD_ENCODER_CSF_POSITION_IDX], "ECPos", p_owner->_id,
+				CSVT_INTEGER, 32, (uint32_t)pifQuadEncoder_GetPosition(p_owner))) return FALSE;
 	}
 	return TRUE;
 }
 
-void pifEncoder_ResetCsFlag(PifEncoder* p_owner, uint8_t index, PifEncoderCsFlag flag)
+void pifQuadEncoder_ResetCsFlag(PifQuadEncoder *p_owner, uint8_t index, PifQuadEncoderCsFlag flag)
 {
 	(void)index;
-	if (flag & ENCODER_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[ENCODER_CSF_STATE_IDX]);
-	if (flag & ENCODER_CSF_POSITION_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[ENCODER_CSF_POSITION_IDX]);
+	if (flag & QUAD_ENCODER_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[QUAD_ENCODER_CSF_STATE_IDX]);
+	if (flag & QUAD_ENCODER_CSF_POSITION_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[QUAD_ENCODER_CSF_POSITION_IDX]);
 }
 
-#endif	// COLLECT_SIGNAL_ENCODER
+#endif	// COLLECT_SIGNAL_QUAD_ENCODER

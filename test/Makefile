@@ -33,7 +33,7 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_encoder test_pif_sensor test_pif_sensor_modulated test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs test_pif_servo test_pif_servo_cs \
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_quad_encoder test_pif_sensor test_pif_sensor_modulated test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs test_pif_servo test_pif_servo_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
            test_pif_nor_flash \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
@@ -62,7 +62,7 @@ GPIO_CS_SRC := $(ROOT)/source/communication/pif_uart.c $(ROOT)/source/communicat
 GPIO_DEP  := $(ROOT)/source/core/pif_gpio.c $(ROOT)/include/core/pif_gpio.h
 PULSE_SRC := sensor/test_pif_pulse.c $(ROOT)/source/sensor/pif_pulse.c \
              $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
-ENCODER_SRC := sensor/test_pif_encoder.c $(ROOT)/source/sensor/pif_encoder.c \
+QUAD_ENCODER_SRC := sensor/test_pif_quad_encoder.c $(ROOT)/source/sensor/pif_quad_encoder.c \
                $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 # test_pif_sensor.c includes pif_max31855.c itself to run its task directly.
 SENSOR_SRC := sensor/test_pif_sensor.c \
@@ -218,8 +218,8 @@ run-test_pif_spi_fd_stream: run-test_pif_ubx_ddc_stream
 run-test_pif_transport: run-test_pif_spi_fd_stream
 run-test_pif_transport_min: run-test_pif_transport
 run-test_pif_pulse: run-test_pif_transport_min
-run-test_pif_encoder: run-test_pif_pulse
-run-test_pif_sensor: run-test_pif_encoder
+run-test_pif_quad_encoder: run-test_pif_pulse
+run-test_pif_sensor: run-test_pif_quad_encoder
 run-test_pif_sensor_modulated: run-test_pif_sensor
 run-test_pif_noise_filter: run-test_pif_sensor_modulated
 run-test_pif_task_manager: run-test_pif_noise_filter
@@ -319,8 +319,8 @@ $(BUILD)/test_pif_transport_min$(EXE): $(TRANSPORT_SRC) $(TRANSPORT_DEP) | $(BUI
 $(BUILD)/test_pif_pulse$(EXE): $(PULSE_SRC) $(ROOT)/include/sensor/pif_pulse.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(PULSE_SRC) -o $@
 
-$(BUILD)/test_pif_encoder$(EXE): $(ENCODER_SRC) $(ROOT)/include/sensor/pif_encoder.h | $(BUILD)
-	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(ENCODER_SRC) -o $@
+$(BUILD)/test_pif_quad_encoder$(EXE): $(QUAD_ENCODER_SRC) $(ROOT)/include/sensor/pif_quad_encoder.h | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(QUAD_ENCODER_SRC) -o $@
 
 $(BUILD)/test_pif_sensor$(EXE): $(SENSOR_SRC) $(SENSOR_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(SENSOR_SRC) -o $@

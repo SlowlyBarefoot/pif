@@ -87,7 +87,7 @@
 // channels, its Put calls and its SetCsFlag/ResetCsFlag in the build.
 //#define PIF_COLLECT_SIGNAL_BUZZER
 //#define PIF_COLLECT_SIGNAL_DSHOT
-//#define PIF_COLLECT_SIGNAL_ENCODER
+//#define PIF_COLLECT_SIGNAL_QUAD_ENCODER
 //#define PIF_COLLECT_SIGNAL_GPIO
 //#define PIF_COLLECT_SIGNAL_HC_SR04
 //#define PIF_COLLECT_SIGNAL_I2C
@@ -128,11 +128,11 @@
 //#define PIF_DYN_NOTCH_MAX_NOTCHES			7
 
 
-// -------- pifEncoder ---------------------------
+// -------- pifQuadEncoder -----------------------
 
-// Quarter steps whose times are kept per PifEncoder for the speed, a power of two of at least 2. The speed
+// Quarter steps whose times are kept per PifQuadEncoder for the speed, a power of two of at least 2. The speed
 // averages over whole encoder cycles (4 quarter steps) once 5 are kept. Each one takes 4 bytes.
-//#define PIF_ENCODER_DATA_SIZE				8
+//#define PIF_QUAD_ENCODER_DATA_SIZE		8
 
 
 // -------- pifFlash -----------------------------
