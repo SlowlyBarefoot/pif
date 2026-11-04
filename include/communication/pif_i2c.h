@@ -17,7 +17,7 @@
 #include "core/pif_obj_array.h"
 #if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_I2C)
 	#define COLLECT_SIGNAL_I2C	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_I2C is too
-	#include "core/pif_collect_signal.h"
+	#include "monitor/pif_collect_signal.h"
 #endif
 
 

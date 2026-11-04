@@ -4,7 +4,7 @@
  * @brief PWM receiver decoded from one input pin per channel.
  *
  * The platform gives each edge of each channel with pifRcPwm_sigEdge(), usually from an edge interrupt. Not to
- * be confused with core/pif_pwm_gen, which makes a PWM output.
+ * be confused with control/pif_pwm_gen, which makes a PWM output.
  */
 #ifndef PIF_RC_PWM_H
 #define PIF_RC_PWM_H

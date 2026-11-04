@@ -15,12 +15,12 @@ projects. They live under `gpl/` and are distributed under GPL-3.0-or-later.
 | `gpl/source/gps/pif_gps.c` | Betaflight / Cleanflight `gps.c`, `gps_conversion.c`; Baseflight `gps.c` (MultiWii lineage) |
 | `gpl/include/gps/pif_gps.h` | Baseflight `mw.c` (GPS state fields) |
 | `gpl/source/gps/pif_gps_ublox.c`, `gpl/include/gps/pif_gps_ublox.h` | Betaflight / Cleanflight / Baseflight `gps.c` (u-blox NAV decoding); Baseflight `mw.c` |
-| `gpl/source/motor/pif_dshot.c` | Betaflight `dshot.c`, `dshot_command.c`, `dshot_dpwm.c`, `dshot_bitbang_decode.c` |
-| `gpl/source/osd/pif_max7456.c` | Betaflight `max7456.c` |
+| `gpl/source/actuator/motor/pif_dshot.c` | Betaflight `dshot.c`, `dshot_command.c`, `dshot_dpwm.c`, `dshot_bitbang_decode.c` |
+| `gpl/source/display/osd/pif_max7456.c` | Betaflight `max7456.c` |
 | `gpl/source/protocol/pif_msp_v2.c` | Betaflight `msp_serial.c` |
-| `gpl/source/sensor/pif_hmc5883.c` | Baseflight `drv_hmc5883l.c` (also in Cleanflight `compass_hmc5883l.c`; MultiWii lineage) |
-| `gpl/source/sensor/pif_ms5611.c` | Baseflight `drv_ms5611.c` (PROM CRC check and compensation) |
-| `gpl/source/sensor/pif_gy86.c` | Baseflight `drv_mpu.c` (MPU setup comments) |
+| `gpl/source/sensor/mag/pif_hmc5883.c` | Baseflight `drv_hmc5883l.c` (also in Cleanflight `compass_hmc5883l.c`; MultiWii lineage) |
+| `gpl/source/sensor/baro/pif_ms5611.c` | Baseflight `drv_ms5611.c` (PROM CRC check and compensation) |
+| `gpl/source/sensor/imu/pif_gy86.c` | Baseflight `drv_mpu.c` (MPU setup comments) |
 
 `pif_gps_nmea` is also placed under `gpl/` because it depends on `pif_gps`, and
 `pif_gy86` because it depends on `pif_hmc5883` and `pif_ms5611`.
@@ -40,7 +40,7 @@ Upstream projects and copyright holders:
 
 ### BMI270 configuration file
 
-- File: `source/sensor/pif_bmi270.c` (`maximum_fifo_config_file`)
+- File: `source/sensor/imu/pif_bmi270.c` (`maximum_fifo_config_file`)
 - Origin: Bosch Sensortec BMI270 Sensor API,
   https://github.com/boschsensortec/BMI270_SensorAPI
 - License: BSD-3-Clause
@@ -80,7 +80,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 ### DPS310 driver
 
-- Files: `include/sensor/pif_dps310.h`, `source/sensor/pif_dps310.c`
+- Files: `include/sensor/baro/pif_dps310.h`, `source/sensor/baro/pif_dps310.c`
 - Origin: Infineon DPS310 Pressure Sensor Arduino library,
   https://github.com/Infineon/DPS310-Pressure-Sensor
 - License: MIT (`LICENSES/MIT.txt`)

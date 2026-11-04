@@ -15,7 +15,7 @@
 #include "sensor/pif_sensor.h"
 #if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_SENSOR_THRESHOLD)
 	#define COLLECT_SIGNAL_SENSOR_THRESHOLD	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_SENSOR_THRESHOLD is too
-	#include "core/pif_collect_signal.h"
+	#include "monitor/pif_collect_signal.h"
 #endif
 
 

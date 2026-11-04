@@ -14,7 +14,7 @@
 #include "protocol/pif_modbus_ascii.h"
 #if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_MODBUS_ASCII_MASTER)
 	#define COLLECT_SIGNAL_MODBUS_ASCII_MASTER	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_MODBUS_ASCII_MASTER is too
-	#include "core/pif_collect_signal.h"
+	#include "monitor/pif_collect_signal.h"
 #endif
 
 #ifdef COLLECT_SIGNAL_MODBUS_ASCII_MASTER

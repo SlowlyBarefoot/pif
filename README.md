@@ -228,10 +228,10 @@ Callback naming conventions:
 
 Representative domains:
 
-- `core`, `codec`, `communication`, `protocol`, `sensor`, `input`, `storage`, `rtc`
+- `core`, `control`, `monitor`, `codec`, `communication`, `protocol`, `sensor`, `input`, `storage`, `rtc`
 - `display`, `sound`, `gps`, `filter`, `interpreter`
-- `rc`, `osd`, `actuator`
-- `motor` (`pif_dshot`, under `gpl/`)
+- `rc`, `actuator`
+- `actuator/motor` (`pif_dshot`, under `gpl/`)
 
 ## Coding Conventions Used in PIF
 
@@ -308,7 +308,7 @@ Every source file starts with an `SPDX-License-Identifier` line. Files under `in
 - To keep your firmware under BSD-3-Clause terms only, leave `gpl/include` and `gpl/source` out of your build.
 - If you build any file from `gpl/`, the resulting firmware must be distributed under the GPL-3.0.
 
-Because `gpl/include` mirrors the domain folders of `include/`, the include strings stay the same (for example `#include "osd/pif_max7456.h"`); only the include path `-Igpl/include` has to be added.
+Because `gpl/include` mirrors the domain folders of `include/`, the include strings stay the same (for example `#include "display/osd/pif_max7456.h"`); only the include path `-Igpl/include` has to be added.
 
 Third-party code and its notices are listed in `THIRD_PARTY_NOTICES.md`.
 

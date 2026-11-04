@@ -43,22 +43,22 @@ NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_dat
 
 # test_pif_collect_signal.c includes pif_collect_signal.c itself and stands in for pif_log.c. It also checks the
 # channels of pif_sequence.c.
-CS_SRC  := core/test_pif_collect_signal.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_buffer.c pif_sequence.c \
+CS_SRC  := monitor/test_pif_collect_signal.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_buffer.c pif_sequence.c \
                pif_task.c pif_task_manager.c pif_timer.c pif_timer_manager.c)
-CS_DEP  := $(ROOT)/source/core/pif_collect_signal.c $(ROOT)/include/core/pif_collect_signal.h \
+CS_DEP  := $(ROOT)/source/monitor/pif_collect_signal.c $(ROOT)/include/monitor/pif_collect_signal.h \
             $(ROOT)/source/core/pif_sequence.c $(ROOT)/include/core/pif_sequence.h
 TIMER_SRC := core/test_pif_timer.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c \
                  pif_task_manager.c pif_timer.c pif_timer_manager.c)
 TIMER_DEP := $(ROOT)/include/core/pif_timer.h $(ROOT)/include/core/pif_timer_manager.h
-PWM_GEN_SRC := core/test_pif_pwm_gen.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_pwm_gen.c pif_task.c \
-               pif_task_manager.c pif_timer.c pif_timer_manager.c)
-PWM_GEN_DEP := $(TIMER_DEP) $(ROOT)/include/core/pif_pwm_gen.h
+PWM_GEN_SRC := control/test_pif_pwm_gen.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c \
+               pif_task_manager.c pif_timer.c pif_timer_manager.c) $(ROOT)/source/control/pif_pwm_gen.c
+PWM_GEN_DEP := $(TIMER_DEP) $(ROOT)/include/control/pif_pwm_gen.h
 # test_pif_gpio.c includes pif_gpio.c itself to reach its polling task.
 GPIO_SRC  := core/test_pif_gpio.c $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 # With PIF_COLLECT_SIGNAL the channels pull in pif_log.c and what it needs.
 GPIO_CS_SRC := $(ROOT)/source/communication/pif_uart.c $(ROOT)/source/communication/pif_transport.c \
-               $(addprefix $(ROOT)/source/core/, pif_collect_signal.c pif_log.c pif_ring_buffer.c pif_timer.c \
-                   pif_timer_manager.c)
+               $(addprefix $(ROOT)/source/core/, pif_log.c pif_ring_buffer.c pif_timer.c \
+                   pif_timer_manager.c) $(ROOT)/source/monitor/pif_collect_signal.c
 GPIO_DEP  := $(ROOT)/source/core/pif_gpio.c $(ROOT)/include/core/pif_gpio.h
 PULSE_SRC := sensor/test_pif_pulse.c $(ROOT)/source/sensor/pif_pulse.c \
              $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
@@ -72,8 +72,8 @@ SENSOR_SRC := sensor/test_pif_sensor.c \
               $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_spi.c) \
               $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ptr_array.c pif_task.c \
                   pif_task_manager.c)
-SENSOR_DEP := $(addprefix $(ROOT)/include/sensor/, pif_sensor.h pif_sensor_switch.h pif_sensor_threshold.h pif_max31855.h) \
-              $(ROOT)/source/sensor/pif_max31855.c
+SENSOR_DEP := $(addprefix $(ROOT)/include/sensor/, pif_sensor.h pif_sensor_switch.h pif_sensor_threshold.h) $(ROOT)/include/sensor/temp/pif_max31855.h \
+              $(ROOT)/source/sensor/temp/pif_max31855.c
 # test_pif_sensor_modulated.c plays the ADC interrupt between the passes of the main loop.
 SENSOR_MODULATED_SRC := sensor/test_pif_sensor_modulated.c \
                         $(addprefix $(ROOT)/source/sensor/, pif_sensor.c pif_sensor_modulated.c pif_sensor_threshold.c) \
@@ -352,13 +352,13 @@ $(BUILD)/test_pif_servo_cs$(EXE): $(SERVO_SRC) $(GPIO_CS_SRC) $(ROOT)/include/ac
 		$(INC) $(SERVO_SRC) $(GPIO_CS_SRC) -o $@
 
 # The channels of a controller on the collect signal without its VCD output, as a backend uses it.
-PID_CS_SRC := core/test_pif_pid_control_cs.c               $(addprefix $(ROOT)/source/core/, pif.c pif_collect_signal.c pif_obj_array.c pif_pid_control.c pif_task.c               pif_task_manager.c)
-$(BUILD)/test_pif_pid_control_cs$(EXE): $(PID_CS_SRC) $(ROOT)/include/core/pif_pid_control.h 		$(ROOT)/include/core/pif_collect_signal.h | $(BUILD)
+PID_CS_SRC := control/test_pif_pid_control_cs.c               $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c               pif_task_manager.c) $(ROOT)/source/monitor/pif_collect_signal.c $(ROOT)/source/control/pif_pid_control.c
+$(BUILD)/test_pif_pid_control_cs$(EXE): $(PID_CS_SRC) $(ROOT)/include/control/pif_pid_control.h 		$(ROOT)/include/monitor/pif_collect_signal.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_COLLECT_SIGNAL -DPIF_COLLECT_SIGNAL_NO_VCD -DPIF_COLLECT_SIGNAL_PID_CONTROL 		$(INC) $(PID_CS_SRC) -o $@
 
-MOTION_PROFILE_SRC := core/test_pif_motion_profile.c $(addprefix $(ROOT)/source/core/, pif.c pif_motion_profile.c \
-                      pif_obj_array.c pif_task.c pif_task_manager.c)
-$(BUILD)/test_pif_motion_profile$(EXE): $(MOTION_PROFILE_SRC) $(ROOT)/include/core/pif_motion_profile.h | $(BUILD)
+MOTION_PROFILE_SRC := control/test_pif_motion_profile.c $(addprefix $(ROOT)/source/core/, pif.c \
+                      pif_obj_array.c pif_task.c pif_task_manager.c) $(ROOT)/source/control/pif_motion_profile.c
+$(BUILD)/test_pif_motion_profile$(EXE): $(MOTION_PROFILE_SRC) $(ROOT)/include/control/pif_motion_profile.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(MOTION_PROFILE_SRC) -o $@
 
 $(BUILD)/test_pif_dot_matrix$(EXE): $(DOT_MATRIX_SRC) $(ROOT)/include/display/pif_dot_matrix.h | $(BUILD)

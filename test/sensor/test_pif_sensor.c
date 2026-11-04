@@ -6,7 +6,7 @@
 #include "filter/pif_noise_filter_int32.h"
 
 // Included to run the measuring task directly.
-#include "../source/sensor/pif_max31855.c"
+#include "../source/sensor/temp/pif_max31855.c"
 
 #include <stdio.h>
 
