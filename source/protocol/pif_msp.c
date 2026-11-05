@@ -43,6 +43,17 @@ static void _evtTimerRxTimeout(PifIssuerP p_issuer)
 #define PKT_ERR_WRONG_CRC    	2
 #define PKT_ERR_NONE	    	3
 
+#ifdef PIF_USE_MSP_V2
+
+// Bytes of an MSPv2 frame from the flags to the size: flags, command (2) and size (2).
+#define V2_HEADER_SIZE			5
+
+// Offsets in an MSPv2 answer frame: '$', 'X', type, then the header above.
+#define V2_ANSWER_HEADER		3
+#define V2_ANSWER_SIZE_POS		6
+
+#endif
+
 #ifndef PIF_NO_LOG
 
 static const char *kPktErr[] = {
@@ -106,7 +117,15 @@ static PifMspFrame _parsingPacket(void* p_parser, uint8_t data)
 		break;
 
 	case MRS_HEADER_CHAR:
-		if (data != 'M') {
+		if (data == 'M') {
+			p_packet->version = MV_V1;
+		}
+#ifdef PIF_USE_MSP_V2
+		else if (data == 'X') {
+			p_packet->version = MV_V2_NATIVE;
+		}
+#endif
+		else {
 			_failPacket(p_owner, PKT_ERR_INVALID_DATA, __LINE__, data);
 			return MF_NONE;
 		}
@@ -118,8 +137,53 @@ static PifMspFrame _parsingPacket(void* p_parser, uint8_t data)
 			_failPacket(p_owner, PKT_ERR_INVALID_DATA, __LINE__, data);
 			return MF_NONE;
 		}
+#ifdef PIF_USE_MSP_V2
+		if (p_packet->version == MV_V2_NATIVE) {
+			p_owner->__rx.packet_count = 0;
+			p_owner->__rx.state = MRS_V2_HEADER;
+			break;
+		}
+#endif
 		p_owner->__rx.state = MRS_LENGTH;
 		break;
+
+#ifdef PIF_USE_MSP_V2
+	case MRS_V2_HEADER:
+		// flags, command (2 bytes) and size (2 bytes), low byte first. The CRC starts with the flags.
+		p_owner->__rx.p_packet[p_owner->__rx.packet_count] = data;
+		p_owner->__rx.packet_count++;
+		if (p_owner->__rx.packet_count >= V2_HEADER_SIZE) {
+			uint8_t *p_header = p_owner->__rx.p_packet;
+
+			p_packet->flags = p_header[0];
+			p_packet->command = p_header[1] | (p_header[2] << 8);
+			p_packet->data_count = p_header[3] | (p_header[4] << 8);
+			if ((uint32_t)p_packet->data_count + V2_HEADER_SIZE + 1 > p_owner->__rx.packet_size) {
+				_failPacket(p_owner, PKT_ERR_BIG_LENGTH, __LINE__, data);
+				return MF_NONE;
+			}
+			p_owner->__rx.state = MRS_V2_DATA;
+		}
+		break;
+
+	case MRS_V2_DATA:
+		p_owner->__rx.p_packet[p_owner->__rx.packet_count] = data;
+		p_owner->__rx.packet_count++;
+		if (p_owner->__rx.packet_count >= V2_HEADER_SIZE + 1 + p_packet->data_count) {
+			if (data != pifCrc8(p_owner->__rx.p_packet, V2_HEADER_SIZE + p_packet->data_count, PIF_CRC8_POLY_DVB_S2)) {
+				_failPacket(p_owner, PKT_ERR_WRONG_CRC, __LINE__, data);
+				return MF_NONE;
+			}
+#if PIF_MSP_RECEIVE_TIMEOUT
+			pifTimer_Stop(p_owner->__rx.p_timer);
+#endif
+			p_packet->p_data = p_owner->__rx.p_packet + V2_HEADER_SIZE;
+			p_packet->type = MPT_COMMAND;
+			p_owner->__rx.state = MRS_IDLE;
+			return MF_PACKET;
+		}
+		break;
+#endif
 
 	case MRS_LENGTH:
 		if (data + 3 > p_owner->__rx.packet_size) {
@@ -426,20 +490,57 @@ void pifMsp_ReadData(PifMspPacket* p_packet, uint8_t* p_data, uint16_t size)
 	p_packet->p_pointer += size;
 }
 
-BOOL pifMsp_MakeAnswer(PifMsp* p_owner, PifMspPacket* p_question)
+/**
+ * @brief Starts an answer frame in the answer buffer, in the frame of the question.
+ * @param p_owner Pointer to the protocol instance.
+ * @param p_question Question packet that should be answered.
+ * @param type '>' for an answer, '!' for an error.
+ * @return TRUE on success; otherwise FALSE with the put session rolled back.
+ */
+static BOOL _makeHeader(PifMsp *p_owner, PifMspPacket *p_question, uint8_t type)
 {
-	uint8_t header[5];
+	uint8_t header[8];
+	uint16_t size;
 
 	pifRingBuffer_BeginPutting(&p_owner->__tx.answer_buffer);
 
 	header[0] = '$';
-	header[1] = 'M';
-	header[2] = '>';
-	header[3] = 0;
-	header[4] = p_question->command;
-	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, header, 5)) goto fail;
+	header[2] = type;
+#ifdef PIF_USE_MSP_V2
+	if (p_question->version == MV_V2_NATIVE) {
+		header[1] = 'X';
+		header[3] = 0;										// flags
+		header[4] = p_question->command & 0xFF;
+		header[5] = p_question->command >> 8;
+		header[6] = 0;										// size, set by pifMsp_SendAnswer()
+		header[7] = 0;
+		size = 8;
+		p_owner->__answer_version = MV_V2_NATIVE;
+	}
+	else
+#endif
+	{
+		header[1] = 'M';
+		header[3] = 0;										// size, set by pifMsp_SendAnswer()
+		header[4] = p_question->command;
+		size = 5;
+#ifdef PIF_USE_MSP_V2
+		p_owner->__answer_version = MV_V1;
+#endif
+	}
+	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, header, size)) {
+		pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
+		if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
+		return FALSE;
+	}
 	p_owner->__check_xor = header[4];
 	p_owner->__data_size = 0;
+	return TRUE;
+}
+
+BOOL pifMsp_MakeAnswer(PifMsp* p_owner, PifMspPacket* p_question)
+{
+	if (!_makeHeader(p_owner, p_question, '>')) goto fail;
 	return TRUE;
 
 fail:
@@ -519,23 +620,10 @@ fail:
 
 BOOL pifMsp_MakeError(PifMsp* p_owner, PifMspPacket* p_question)
 {
-	uint8_t header[5];
-
-	pifRingBuffer_BeginPutting(&p_owner->__tx.answer_buffer);
-
-	header[0] = '$';
-	header[1] = 'M';
-	header[2] = '!';
-	header[3] = 0;
-	header[4] = p_question->command;
-	if (!pifRingBuffer_PutData(&p_owner->__tx.answer_buffer, header, 5)) goto fail;
-	p_owner->__check_xor = header[4];
-	p_owner->__data_size = 0;
+	if (!_makeHeader(p_owner, p_question, '!')) goto fail;
 	return TRUE;
 
 fail:
-	pifRingBuffer_RollbackPutting(&p_owner->__tx.answer_buffer);
-	if (!pif_error) pif_error = E_OVERFLOW_BUFFER;
 #ifndef PIF_NO_LOG
 	pifLog_Printf(LT_ERROR, "MWP:%u(%u) C:%u EC:%d", __LINE__, p_owner->_id, p_question->command, pif_error);
 #endif
@@ -544,9 +632,33 @@ fail:
 
 BOOL pifMsp_SendAnswer(PifMsp* p_owner)
 {
-	*pifRingBuffer_GetPointerPutting(&p_owner->__tx.answer_buffer, 3) = p_owner->__data_size;
-	p_owner->__check_xor ^= p_owner->__data_size;
-	if (!pifRingBuffer_PutByte(&p_owner->__tx.answer_buffer, p_owner->__check_xor)) goto fail;
+	PifRingBuffer *p_buffer = &p_owner->__tx.answer_buffer;
+
+#ifdef PIF_USE_MSP_V2
+	if (p_owner->__answer_version == MV_V2_NATIVE) {
+		uint16_t pos, end;
+		uint8_t crc = 0;
+
+		*pifRingBuffer_GetPointerPutting(p_buffer, V2_ANSWER_SIZE_POS) = p_owner->__data_size & 0xFF;
+		*pifRingBuffer_GetPointerPutting(p_buffer, V2_ANSWER_SIZE_POS + 1) = p_owner->__data_size >> 8;
+		// The CRC covers the flags to the end of the payload. The frame may wrap around the ring buffer.
+		end = V2_ANSWER_HEADER + V2_HEADER_SIZE + p_owner->__data_size;
+		for (pos = V2_ANSWER_HEADER; pos < end; pos++) {
+			crc = pifCrc8_Add(crc, *pifRingBuffer_GetPointerPutting(p_buffer, pos), PIF_CRC8_POLY_DVB_S2);
+		}
+		if (!pifRingBuffer_PutByte(p_buffer, crc)) goto fail;
+	}
+	else
+#endif
+	{
+		if (p_owner->__data_size > 255) {
+			pif_error = E_OVERFLOW_BUFFER;
+			goto fail;
+		}
+		*pifRingBuffer_GetPointerPutting(p_buffer, 3) = p_owner->__data_size;
+		p_owner->__check_xor ^= p_owner->__data_size;
+		if (!pifRingBuffer_PutByte(p_buffer, p_owner->__check_xor)) goto fail;
+	}
 
 	pifRingBuffer_CommitPutting(&p_owner->__tx.answer_buffer);
 

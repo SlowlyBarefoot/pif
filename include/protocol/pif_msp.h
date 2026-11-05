@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /**
  * @file pif_msp.h
- * @brief MultiWii Serial Protocol (MSPv1) over a PifTransport.
+ * @brief MultiWii Serial Protocol (MSPv1, and native MSPv2 with PIF_USE_MSP_V2) over a PifTransport.
  *
  * Parses $M frames, hands each complete packet to evt_receive and sends the answers made with the
  * pifMsp_MakeAnswer functions. Bytes that are not part of a frame go to evt_other_packet, so MSP can share a
- * port with a command line or another protocol. pif_msp_v2 adds MSPv2 on top of it.
+ * port with a command line or another protocol.
+ *
+ * With PIF_USE_MSP_V2 it also parses native MSPv2 frames ($X) and answers each question in the frame it came in,
+ * so the client code is the same for both. MSPv2 over MSPv1 ($M with command 255) is not handled.
+ * Do not define PIF_USE_MSP_V2 together with the GPL-3.0 pif_msp_v2 module, which has an MSPv2 of its own.
  */
 #ifndef PIF_MSP_H
 #define PIF_MSP_H
@@ -17,7 +21,8 @@
 
 
 /// Size of the receive buffer of one packet. The MSPv1 parser of pif_msp keeps the length, command and
-/// checksum bytes in it too, so its payload can be 3 bytes shorter than this.
+/// checksum bytes in it too, so its payload can be 3 bytes shorter than this. An MSPv2 payload can be 6 bytes
+/// shorter (flags, command, size and CRC).
 /// 0: nothing is allocated in pifMsp_Init(); the client gives a buffer with pifMsp_AssignRxBuffer().
 #ifndef PIF_MSP_RX_PACKET_SIZE
 #define PIF_MSP_RX_PACKET_SIZE		128
@@ -51,7 +56,9 @@ typedef enum EnPifMspRxState
 	MRS_LENGTH			= 3,	///< Waiting for the size
 	MRS_MESSAGE_TYPE	= 4,	///< Waiting for the command
 	MRS_DATA        	= 5,	///< Receiving the payload and the checksum
-	MRS_DONE			= 6	///< A packet is complete
+	MRS_DONE			= 6,	///< A packet is complete
+	MRS_V2_HEADER		= 7,	///< MSPv2: receiving the flags, command and size
+	MRS_V2_DATA			= 8		///< MSPv2: receiving the payload and the CRC
 } PifMspRxState;
 
 /**
@@ -173,6 +180,9 @@ struct StPifMsp
     PifMspTx __tx;
 	uint8_t __check_xor;
 	uint16_t __data_size;
+#ifdef PIF_USE_MSP_V2
+	PifMspVersion __answer_version;	///< Frame of the answer being made
+#endif
 	PifIssuerP __p_issuer;
 	void* __p_parser;
 
@@ -288,8 +298,9 @@ uint32_t pifMsp_ReadData32(PifMspPacket* p_packet);
 void pifMsp_ReadData(PifMspPacket* p_packet, uint8_t* p_data, uint16_t size);
 
 /**
- * @brief Starts the MSPv1 answer to a question in the answer buffer. Add its payload with the pifMsp_AddAnswer
- *        functions and send it with pifMsp_SendAnswer().
+ * @brief Starts the answer to a question in the answer buffer. Add its payload with the pifMsp_AddAnswer
+ *        functions and send it with pifMsp_SendAnswer(). With PIF_USE_MSP_V2 an MSPv2 question gets an MSPv2
+ *        answer; otherwise the answer is MSPv1, whose payload is at most 255 bytes.
  * @param p_owner Pointer to the protocol instance.
  * @param p_question Question packet that should be answered.
  * @return TRUE on success; otherwise FALSE.
@@ -332,7 +343,8 @@ BOOL pifMsp_AddAnswer32(PifMsp* p_owner, uint32_t data);
 BOOL pifMsp_AddAnswer(PifMsp* p_owner, uint8_t* p_data, uint16_t size);
 
 /**
- * @brief Builds a protocol frame from the provided input.
+ * @brief Starts an error answer ('!') to a question, in the frame of the question as pifMsp_MakeAnswer() does.
+ *        Add a payload if any and send it with pifMsp_SendAnswer().
  * @param p_owner Pointer to the protocol instance.
  * @param p_question Question packet that should be answered.
  * @return TRUE on success; otherwise FALSE.
@@ -340,7 +352,8 @@ BOOL pifMsp_AddAnswer(PifMsp* p_owner, uint8_t* p_data, uint16_t size);
 BOOL pifMsp_MakeError(PifMsp* p_owner, PifMspPacket* p_question);
 
 /**
- * @brief Finishes the answer being made with its size and checksum and queues it to be sent.
+ * @brief Finishes the answer being made with its size and checksum (XOR for MSPv1, CRC-8 DVB-S2 for MSPv2) and
+ *        queues it to be sent.
  * @param p_owner Pointer to the protocol instance.
  * @return TRUE on success, FALSE when the answer buffer is full. The answer is then dropped.
  */

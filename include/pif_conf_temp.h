@@ -236,6 +236,10 @@
 // Timeout used to receive one complete packet, in timer units. 0: no timeout limit.
 //#define PIF_MSP_RECEIVE_TIMEOUT			200
 
+// Native MSPv2 ($X) next to MSPv1: each question is answered in its own frame. Not with the GPL pif_msp_v2.
+// PIF_USE_CRC8_DVB_S2_TABLE makes its CRC faster.
+//#define PIF_USE_MSP_V2
+
 
 // -------- pifPmlcdI2c --------------------------
 

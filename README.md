@@ -22,12 +22,15 @@ Include these directories in your project:
 - `include/`
 - `source/`
 
-Optionally, for the GPL-3.0 modules (GPS, DShot, MAX7456, MSPv2, HMC5883, MS5611, GY-86):
+Optionally, for the GPL-3.0 modules (GPS, DShot, MAX7456, MSPv2 over MSPv1, HMC5883, MS5611, GY-86):
 
 - `gpl/include/`
 - `gpl/source/`
 
 Using any file under `gpl/` makes your firmware subject to the GPL-3.0. See [License](#license).
+
+Native MSPv2 (`$X` frames) needs no GPL module: `PIF_USE_MSP_V2` adds it to the BSD-3-Clause `pif_msp`. Use
+`gpl/` `pif_msp_v2` only for MSPv2 over MSPv1, and never together with `PIF_USE_MSP_V2`.
 
 ### 2. Create your config header
 
@@ -259,6 +262,7 @@ Some modules were influenced by these projects.
 - crsf: TBS CRSF protocol specification, https://github.com/tbs-fpv/tbs-crsf-spec (written from the specification)
 - ibus: https://github.com/bmelink/IBusBM
 - msp: https://github.com/multiwii/baseflight
+- msp v2 (`PIF_USE_MSP_V2` of `pif_msp`): MSPv2 protocol specification, https://github.com/iNavFlight/inav/wiki/MSP-V2 (written from the specification)
 - sbus: https://github.com/zendes/SBUS
 - sumd: https://github.com/Benoit3/Sumd-for-Arduino
 - spektrum: https://github.com/SpektrumRC/SRXL2

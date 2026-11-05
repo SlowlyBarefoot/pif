@@ -39,7 +39,8 @@ NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_dat
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
            test_pif_task_manager_nort test_pif_crc test_pif_pid_control_cs test_pif_motion_profile \
            test_pif_crc_table test_pif_keypad test_pif_joystick test_pif_log test_pif_log_cmd test_pif_encoding \
-           test_pif_rtc test_pif_rtt test_pif_usb_cdc test_pif_usb_cdc_tinyusb
+           test_pif_rtc test_pif_rtt test_pif_usb_cdc test_pif_usb_cdc_tinyusb \
+           test_pif_msp test_pif_msp_v2 test_pif_msp_v2_table
 
 # test_pif_collect_signal.c includes pif_collect_signal.c itself and stands in for pif_log.c. It also checks the
 # channels of pif_sequence.c.
@@ -252,6 +253,9 @@ run-test_pif_rtc: run-test_pif_encoding
 run-test_pif_rtt: run-test_pif_rtc
 run-test_pif_usb_cdc: run-test_pif_rtt
 run-test_pif_usb_cdc_tinyusb: run-test_pif_usb_cdc
+run-test_pif_msp: run-test_pif_usb_cdc_tinyusb
+run-test_pif_msp_v2: run-test_pif_msp
+run-test_pif_msp_v2_table: run-test_pif_msp_v2
 
 $(addprefix run-, $(NAMES)): run-%: $(BUILD)/%$(EXE)
 	$(call RUN,$<)
@@ -420,6 +424,21 @@ $(BUILD)/test_pif_crc$(EXE): $(CRC_SRC) $(ROOT)/include/core/pif.h | $(BUILD)
 
 $(BUILD)/test_pif_crc_table$(EXE): $(CRC_SRC) $(ROOT)/include/core/pif.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_USE_CRC8_SMBUS_TABLE -DPIF_USE_CRC8_DVB_S2_TABLE $(INC) $(CRC_SRC) -o $@
+
+# pif_msp without a transport or a timer: MSPv1 only, then with PIF_USE_MSP_V2, then with the CRC table.
+MSP_SRC := protocol/test_pif_msp.c $(ROOT)/source/protocol/pif_msp.c $(ROOT)/source/communication/pif_transport.c $(addprefix $(ROOT)/source/core/, pif.c \
+               pif_obj_array.c pif_ring_buffer.c pif_task.c pif_task_manager.c)
+MSP_DEP := $(ROOT)/include/protocol/pif_msp.h
+MSP_FLAGS := -DPIF_NO_LOG -DPIF_MSP_RECEIVE_TIMEOUT=0
+
+$(BUILD)/test_pif_msp$(EXE): $(MSP_SRC) $(MSP_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) $(MSP_FLAGS) $(INC) $(MSP_SRC) -o $@
+
+$(BUILD)/test_pif_msp_v2$(EXE): $(MSP_SRC) $(MSP_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) $(MSP_FLAGS) -DPIF_USE_MSP_V2 $(INC) $(MSP_SRC) -o $@
+
+$(BUILD)/test_pif_msp_v2_table$(EXE): $(MSP_SRC) $(MSP_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) $(MSP_FLAGS) -DPIF_USE_MSP_V2 -DPIF_USE_CRC8_DVB_S2_TABLE $(INC) $(MSP_SRC) -o $@
 
 $(BUILD)/test_pif_keypad$(EXE): $(KEYPAD_SRC) $(KEYPAD_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(KEYPAD_SRC) -o $@
