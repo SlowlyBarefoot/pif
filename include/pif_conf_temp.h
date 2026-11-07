@@ -218,10 +218,10 @@
 
 // The data areas a slave handles, with the functions on them. A request for any other function is answered
 // with exception 1 (Illegal Function).
-//#define PIF_USE_MODBUS_SLAVE_COILS					// Functions 1, 5 and 15
+//#define PIF_USE_MODBUS_SLAVE_COILS				// Functions 1, 5 and 15
 //#define PIF_USE_MODBUS_SLAVE_DISCRETE_INPUTS		// Function 2
 //#define PIF_USE_MODBUS_SLAVE_INPUT_REGISTERS		// Function 4
-//#define PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS		// Functions 3, 6 and 16
+//#define PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS	// Functions 3, 6 and 16
 //#define PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE	// Function 23, with the holding registers
 
 

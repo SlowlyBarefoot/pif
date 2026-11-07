@@ -285,51 +285,56 @@ static const struct {
 		{ NULL, NULL }
 };
 
-int pifLog_CmdHelp(int argc, char *argv[])
+int pifLog_CmdHelp(int argc, char *argv[], const struct StPifLogCmdEntry *p_entry)
 {
     int i;
-    const PifLogCmdEntry* p_entry;
+    const PifLogCmdEntry *p_entry_item;
 
     (void)argc;
     (void)argv;
+	(void)p_entry;
 
     pifLog_Print(LT_NONE, "Available commands:\n");
     i = 0;
     while (1) {
-        p_entry = &s_log.p_cmd_table[i];
-        if (!p_entry->p_name) break;
+    	p_entry_item = &s_log.p_cmd_table[i];
+        if (!p_entry_item->p_name) break;
 
-        pifLog_Printf(LT_NONE, "  %s - %s\n", p_entry->p_name, p_entry->p_help);
-    	if (p_entry->p_args) {
-            pifLog_Printf(LT_NONE, "\t%s\n", p_entry->p_args);
+        pifLog_Printf(LT_NONE, "  %s - %s\n", p_entry_item->p_name, p_entry_item->p_help);
+    	if (p_entry_item->p_args) {
+            pifLog_Printf(LT_NONE, "\t%s\n", p_entry_item->p_args);
     	}
         i++;
     }
 	return PIF_LOG_CMD_NO_ERROR;
 }
 
-int pifLog_CmdPrintVersion(int argc, char* argv[])
+int pifLog_CmdPrintVersion(int argc, char *argv[], const struct StPifLogCmdEntry *p_entry)
 {
 	(void)argc;
 	(void)argv;
+	(void)p_entry;
 
 	pifLog_Printf(LT_NONE, "PIF Version: %d.%d.%d %s\n", PIF_VERSION_MAJOR, PIF_VERSION_MINOR, PIF_VERSION_PATCH, __DATE__);
 	return PIF_LOG_CMD_NO_ERROR;
 }
 
-int pifLog_CmdPrintTask(int argc, char* argv[])
+int pifLog_CmdPrintTask(int argc, char *argv[], const struct StPifLogCmdEntry *p_entry)
 {
 	(void)argc;
 	(void)argv;
+	(void)p_entry;
 
 	pifTaskManager_Print();
 	return PIF_LOG_CMD_NO_ERROR;
 }
 
-int pifLog_CmdSetStatus(int argc, char* argv[])
+int pifLog_CmdSetStatus(int argc, char *argv[], const struct StPifLogCmdEntry *p_entry)
 {
 	BOOL value;
 	int i;
+
+	(void)p_entry;
 
 	if (argc == 0) {
 		pifLog_Printf(LT_NONE, "Task Load: %u%%\n", pif_performance._task_load);
@@ -589,7 +594,8 @@ static int _processDebugCmd(PifLog* p_owner)
 		p_cmd_entry = p_owner->p_cmd_table;
 		while (p_cmd_entry->p_name) {
 			if (!pif_StrCaseCmp(p_owner->p_argv[0], p_cmd_entry->p_name)) {
-				return p_cmd_entry->processor(argc - 1, &p_owner->p_argv[1]);
+				if (p_cmd_entry->processor) return p_cmd_entry->processor(argc - 1, &p_owner->p_argv[1], p_cmd_entry);
+				return PIF_LOG_CMD_BAD_CMD;
             }
 
 			p_cmd_entry++;
@@ -742,12 +748,14 @@ static void _startBufferDump(uint32_t lines)
 	pif_IrqRestore(state);
 }
 
-int pifLog_CmdLog(int argc, char *argv[])
+int pifLog_CmdLog(int argc, char *argv[], const struct StPifLogCmdEntry *p_entry)
 {
 	PifLogSink *p_sink;
 	uint32_t lines = SHOW_LINES;
 	BOOL cat;
 	char *p_end;
+
+	(void)p_entry;
 
 	if (argc == 0 || !pif_StrCaseCmp(argv[0], "list")) {
 		if (s_log.p_buffer) {

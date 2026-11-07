@@ -135,20 +135,43 @@ typedef void (*PifEvtLogControlChar)(char ch);
 /**
  * @class StPifLogCmdEntry
  * @brief One command of the command line, in the table given to pifLog_UseCommand().
+ *
+ * A command is done by processor. It gets its entry, so one function serves several objects, each under its own name
+ * with its own p_context, and needs no global to find its object. act_cmd is what the application does for such a
+ * command, the values of act given by the module of the command (pifRecorder starts and stops its sessions through
+ * it). p_context and act_cmd come last, so a table that gives only the first four still builds:
+ *
+ *     { "help", pifLog_CmdHelp, "This command", NULL },
+ *     { "trace", pifTrace_CmdTrace, "Trace", "start | stop | status", &s_trace, NULL },
+ *     { "rec", pifRecorder_CmdRec, "Recorder", "start | stop | status | mark <text>", &g_recorder, _cmdRec },
  */
+struct StPifLogCmdEntry;
+
+/**
+ * @brief What the application does for a command on an object. act is a value the module of the command gives,
+ *        p_context the one of the entry. TRUE when it is done.
+ */
+typedef BOOL (*PifActLogCmd)(void* p_context, int act);
+
 typedef struct StPifLogCmdEntry
 {
     //! A pointer to a string containing the name of the command.
     const char* p_name;
 
-    //! A function pointer to the implementation of the command.
-    int (*processor)(int argc, char* argv[]);
+    //! A function pointer to the implementation of the command. It gets its entry as p_entry.
+    int (*processor)(int argc, char *argv[], const struct StPifLogCmdEntry *p_entry);
 
     //! A pointer to a string of brief help text for the command.
     const char* p_help;
 
     //! A pointer to a string of brief help text for the arguments.
     const char* p_args;
+
+    //! The object the command acts on.
+    void* p_context;
+
+    //! What the application does for the command, or NULL. The module of the command tells when it is called.
+    PifActLogCmd act_cmd;
 } PifLogCmdEntry;
 
 /**
@@ -332,30 +355,34 @@ void pifLog_RemoveSink(PifLogSink *p_sink);
  * @brief Built-in command that lists the commands with their help text.
  * @param argc Number of arguments.
  * @param argv Arguments.
+ * @param p_entry The entry of the command.
  * @return PIF_LOG_CMD_NO_ERROR.
  */
-int pifLog_CmdHelp(int argc, char *argv[]);
+int pifLog_CmdHelp(int argc, char *argv[], const struct StPifLogCmdEntry *p_entry);
 
 /**
  * @param argc Number of command arguments.
  * @param argv Array of command argument strings.
+ * @param p_entry The entry of the command.
  * @return PIF_LOG_CMD_NO_ERROR.
  */
-int pifLog_CmdPrintVersion(int argc, char* argv[]);
+int pifLog_CmdPrintVersion(int argc, char *argv[], const struct StPifLogCmdEntry *p_entry);
 
 /**
  * @param argc Number of command arguments.
  * @param argv Array of command argument strings.
+ * @param p_entry The entry of the command.
  * @return PIF_LOG_CMD_NO_ERROR.
  */
-int pifLog_CmdPrintTask(int argc, char* argv[]);
+int pifLog_CmdPrintTask(int argc, char *argv[], const struct StPifLogCmdEntry *p_entry);
 
 /**
  * @param argc Number of command arguments.
  * @param argv Array of command argument strings.
+ * @param p_entry The entry of the command.
  * @return PIF_LOG_CMD_NO_ERROR, or an error code for a bad argument.
  */
-int pifLog_CmdSetStatus(int argc, char* argv[]);
+int pifLog_CmdSetStatus(int argc, char *argv[], const struct StPifLogCmdEntry *p_entry);
 
 #ifdef PIF_LOG_COMMAND
 
@@ -368,9 +395,10 @@ int pifLog_CmdSetStatus(int argc, char* argv[]);
  *        show and cat go on in the task of the log as the UART takes them, and a key stops them.
  * @param argc Number of command arguments.
  * @param argv Array of command argument strings.
+ * @param p_entry The entry of the command.
  * @return PIF_LOG_CMD_NO_ERROR, or an error code for a bad argument.
  */
-int pifLog_CmdLog(int argc, char *argv[]);
+int pifLog_CmdLog(int argc, char *argv[], const struct StPifLogCmdEntry *p_entry);
 
 #endif
 

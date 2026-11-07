@@ -4,6 +4,7 @@
 #include "core/pif_task_manager.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 
@@ -460,22 +461,24 @@ static uint16_t _actFileRead(PifLogSink *p_sink, uint32_t offset, uint8_t *p_buf
     return size;
 }
 
-static int _cmdHello(int argc, char *argv[])
+static int _cmdHello(int argc, char *argv[], const PifLogCmdEntry *p_entry)
 {
     (void)argc;
     (void)argv;
+    (void)p_entry;
     pifLog_Print(LT_NONE, "\nhello");
     return PIF_LOG_CMD_NO_ERROR;
 }
 
 // More than the transmit buffer of 128 bytes in one go, as the task list of pifLog_CmdPrintTask() is.
-static int _cmdLines(int argc, char *argv[])
+static int _cmdLines(int argc, char *argv[], const PifLogCmdEntry *p_entry)
 {
     char text[40];
     int i;
 
     (void)argc;
     (void)argv;
+    (void)p_entry;
     for (i = 0; i < 12; i++) {
         pif_Printf(text, sizeof(text), "\nline %d of the long output", i + 10);
         pifLog_Print(LT_NONE, text);
@@ -483,11 +486,26 @@ static int _cmdLines(int argc, char *argv[])
     return PIF_LOG_CMD_NO_ERROR;
 }
 
+// A command on an object: each name of the table counts on its own counter.
+static int s_count_a, s_count_b;
+
+static int _cmdCount(int argc, char *argv[], const PifLogCmdEntry *p_entry)
+{
+    int *p_count = (int *)p_entry->p_context;
+
+    *p_count += argc ? atoi(argv[0]) : 1;
+    pifLog_Printf(LT_NONE, "\ncount %d", *p_count);
+    return PIF_LOG_CMD_NO_ERROR;
+}
+
 static const PifLogCmdEntry kCommands[] = {
-    { "log", pifLog_CmdLog, "Log outputs", "list | show <name> [lines] | cat <name>" },
-    { "hello", _cmdHello, "Says hello", NULL },
-    { "lines", _cmdLines, "Prints more than the transmit buffer", NULL },
-    { NULL, NULL, NULL, NULL }
+    { "log", pifLog_CmdLog, "Log outputs", "list | show <name> [lines] | cat <name>", NULL, NULL },
+    { "hello", _cmdHello, "Says hello", NULL, NULL, NULL },
+    { "lines", _cmdLines, "Prints more than the transmit buffer", NULL, NULL, NULL },
+    { "acount", _cmdCount, "Counts on a", "[step]", &s_count_a, NULL },
+    { "bcount", _cmdCount, "Counts on b", "[step]", &s_count_b, NULL },
+    { "nothing", NULL, "Has no function", NULL, NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static void _type(const char *p_text)
@@ -509,6 +527,29 @@ static void _testCommandOrder(void)
     _type("hello\r");
     CHECK(strstr(s_wire, "hello\n\nhello\n> ") != NULL);
     CHECK(strstr(s_wire, "\nqueued") != NULL);
+
+    _detachUart();
+}
+
+static void _testCommandContext(void)
+{
+    CHECK(pifLog_InitHeap(1024));
+    CHECK(pifLog_UseCommand(32, kCommands, "\n> "));
+    CHECK(_attachUart());
+    _loop(10);
+    s_count_a = s_count_b = 0;
+    _wireClear();
+
+    // One function, two objects: each name acts on its own.
+    _type("acount\r");
+    _type("bcount 5\r");
+    _type("acount 2\r");
+    CHECK(s_count_a == 3 && s_count_b == 5);
+    CHECK(strstr(s_wire, "\ncount 5") != NULL && strstr(s_wire, "\ncount 3") != NULL);
+    // A table entry without a function is not run.
+    _wireClear();
+    _type("nothing\r");
+    CHECK(strstr(s_wire, "count") == NULL);
 
     _detachUart();
 }
@@ -708,6 +749,7 @@ int main(void)
         { "uart full", _testUartFull },
 #ifdef PIF_LOG_COMMAND
         { "command order", _testCommandOrder },
+        { "command context", _testCommandContext },
         { "command no echo", _testCommandNoEcho },
         { "command long", _testCommandLong },
         { "command show", _testCommandShow },
