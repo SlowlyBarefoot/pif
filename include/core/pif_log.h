@@ -137,21 +137,14 @@ typedef void (*PifEvtLogControlChar)(char ch);
  * @brief One command of the command line, in the table given to pifLog_UseCommand().
  *
  * A command is done by processor. It gets its entry, so one function serves several objects, each under its own name
- * with its own p_context, and needs no global to find its object. act_cmd is what the application does for such a
- * command, the values of act given by the module of the command (pifRecorder starts and stops its sessions through
- * it). p_context and act_cmd come last, so a table that gives only the first four still builds:
+ * with its own p_issuer, and needs no global to find its object. p_issuer comes last, so a table that gives only the
+ * first four still builds:
  *
  *     { "help", pifLog_CmdHelp, "This command", NULL },
- *     { "trace", pifTrace_CmdTrace, "Trace", "start | stop | status", &s_trace, NULL },
- *     { "rec", pifRecorder_CmdRec, "Recorder", "start | stop | status | mark <text>", &g_recorder, _cmdRec },
+ *     { "trace", pifTrace_CmdTrace, "Trace", "start | stop | status", &s_trace },
+ *     { "rec", pifRecorder_CmdRec, "Recorder", "start | stop | status | mark <text>", &g_recorder },
  */
 struct StPifLogCmdEntry;
-
-/**
- * @brief What the application does for a command on an object. act is a value the module of the command gives,
- *        p_context the one of the entry. TRUE when it is done.
- */
-typedef BOOL (*PifActLogCmd)(void* p_context, int act);
 
 typedef struct StPifLogCmdEntry
 {
@@ -168,10 +161,7 @@ typedef struct StPifLogCmdEntry
     const char* p_args;
 
     //! The object the command acts on.
-    void* p_context;
-
-    //! What the application does for the command, or NULL. The module of the command tells when it is called.
-    PifActLogCmd act_cmd;
+    PifIssuerP p_issuer;
 } PifLogCmdEntry;
 
 /**

@@ -491,7 +491,7 @@ static int s_count_a, s_count_b;
 
 static int _cmdCount(int argc, char *argv[], const PifLogCmdEntry *p_entry)
 {
-    int *p_count = (int *)p_entry->p_context;
+    int *p_count = (int *)p_entry->p_issuer;
 
     *p_count += argc ? atoi(argv[0]) : 1;
     pifLog_Printf(LT_NONE, "\ncount %d", *p_count);
@@ -499,13 +499,13 @@ static int _cmdCount(int argc, char *argv[], const PifLogCmdEntry *p_entry)
 }
 
 static const PifLogCmdEntry kCommands[] = {
-    { "log", pifLog_CmdLog, "Log outputs", "list | show <name> [lines] | cat <name>", NULL, NULL },
-    { "hello", _cmdHello, "Says hello", NULL, NULL, NULL },
-    { "lines", _cmdLines, "Prints more than the transmit buffer", NULL, NULL, NULL },
-    { "acount", _cmdCount, "Counts on a", "[step]", &s_count_a, NULL },
-    { "bcount", _cmdCount, "Counts on b", "[step]", &s_count_b, NULL },
-    { "nothing", NULL, "Has no function", NULL, NULL, NULL },
-    { NULL, NULL, NULL, NULL, NULL, NULL }
+    { "log", pifLog_CmdLog, "Log outputs", "list | show <name> [lines] | cat <name>", NULL },
+    { "hello", _cmdHello, "Says hello", NULL, NULL },
+    { "lines", _cmdLines, "Prints more than the transmit buffer", NULL, NULL },
+    { "acount", _cmdCount, "Counts on a", "[step]", &s_count_a },
+    { "bcount", _cmdCount, "Counts on b", "[step]", &s_count_b },
+    { "nothing", NULL, "Has no function", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL }
 };
 
 static void _type(const char *p_text)
