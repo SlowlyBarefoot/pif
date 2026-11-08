@@ -468,7 +468,7 @@ static void _evtStop(void *p_client)
     _event("stop;");
 }
 
-static const PifCollectSignalBackend kBackend = { _evtStart, _evtChange, _evtStop };
+static const PifCollectSignalBackend kBackend = { _evtStart, _evtChange, _evtStop, NULL };
 
 // act_enable of the sources: p_object is the channel, added under the name of the module.
 static BOOL _actSource(const PifCollectSignalSource *p_source, BOOL enable)
@@ -518,7 +518,7 @@ static void testSource()
 
 static void testBackend()
 {
-    static const PifCollectSignalBackend kIncomplete = { _evtStart, NULL, _evtStop };
+    static const PifCollectSignalBackend kIncomplete = { _evtStart, NULL, _evtStop, NULL };
     float real = 1.5f;
     uint32_t raw;
     char expect[128];

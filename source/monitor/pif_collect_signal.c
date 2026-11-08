@@ -847,6 +847,32 @@ void pifCollectSignal_PutReal(PifCollectSignalChannel *p_channel, float value)
 	pifCollectSignal_Put(p_channel, raw);
 }
 
+#ifdef PIF_USE_TAG
+
+void pifCollectSignal_SetTagSet(PifCollectSignalChannel *p_channel, const struct StPifTagSet *p_set)
+{
+	p_channel->_p_tag_set = p_set;
+}
+
+void pifCollectSignal_PutTagged(PifCollectSignalChannel *p_channel, uint32_t value, const uint32_t *p_tags,
+		uint8_t count)
+{
+	PifCollectSignal *p_cs = &s_collect_signal;
+
+	if (!p_cs->p_backend || !p_cs->p_backend->evt_change_tagged || !p_channel->_p_tag_set) {
+		pifCollectSignal_Put(p_channel, value);			// the VCD output and a backend without tags: the value only
+		return;
+	}
+	value = _maskValue(p_channel, value);
+	if (value == p_channel->_value) return;
+	p_channel->_value = value;
+
+	if (p_cs->step != CS_STEP_COLLECT || p_channel->__state != CS_CH_CAPTURE) return;
+	(*p_cs->p_backend->evt_change_tagged)(p_cs->p_backend_client, p_channel, value, p_tags, count);
+}
+
+#endif	// PIF_USE_TAG
+
 #ifndef PIF_COLLECT_SIGNAL_NO_VCD
 
 BOOL pifCollectSignal_PrintLog()

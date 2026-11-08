@@ -313,6 +313,17 @@ void pifTask_ResetMaxStatistics(PifTask* p_owner)
 	p_owner->_max_trigger_delay = 0UL;
 }
 
+#ifdef PIF_TASK_SESSION_MAX
+
+void pifTask_ResetSessionMax(PifTask* p_owner)
+{
+	p_owner->_session_max_execution_time = 0UL;
+	p_owner->_session_max_delay = 0UL;
+	p_owner->_session_max_trigger_delay = 0UL;
+}
+
+#endif
+
 uint32_t pifTask_GetMaxDelay(const PifTask* p_owner)
 {
 	return p_owner->_max_delay > p_owner->_max_trigger_delay ? p_owner->_max_delay : p_owner->_max_trigger_delay;

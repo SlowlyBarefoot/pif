@@ -14,6 +14,13 @@
 
 
 // The VCD file is made of the statistics, so it takes them along.
+// PIF_TASK_SESSION_MAX: a second set of maxima of every task, for a summary of a session, apart from the maxima the
+// statistics clear every period. Cleared only by pifTaskManager_ResetSessionMax(), which a recorder calls at the
+// start of a session. Undefined, there is no second set.
+#if defined(PIF_TASK_SESSION_MAX) && !defined(PIF_USE_TASK_STATISTICS)
+#define PIF_USE_TASK_STATISTICS
+#endif
+
 #if defined(PIF_USE_TASK_STATISTICS_VCD) && !defined(PIF_USE_TASK_STATISTICS)
 #define PIF_USE_TASK_STATISTICS
 #endif
@@ -161,6 +168,12 @@ struct StPifTask
 										///< a trigger is measured by _max_trigger_delay instead.
 	uint32_t _execution_rate;			///< Runs per second over the last CPU load window, by any
 										///< release. 0 until the first window closes.
+#endif
+#ifdef PIF_TASK_SESSION_MAX
+	// The same maxima, cleared only by pifTask_ResetSessionMax()
+	uint32_t _session_max_execution_time;	///< Longest run (us)
+	uint32_t _session_max_delay;			///< Longest start past the period (us)
+	uint32_t _session_max_trigger_delay;	///< Longest delay of a release by trigger (us)
 #endif
 #ifdef PIF_USE_BLOCK_TIME
 	PifBlockTime _block_time;			///< longest single run, the delay this task can cause
@@ -370,6 +383,13 @@ void pifTask_ResetMaxExecutionTime(PifTask* p_owner);
  * @param p_owner Pointer to the target object instance.
  */
 void pifTask_ResetMaxStatistics(PifTask* p_owner);
+
+#ifdef PIF_TASK_SESSION_MAX
+/**
+ * @brief Clears the session maxima of the task (PIF_TASK_SESSION_MAX), not the maxima of the statistics.
+ */
+void pifTask_ResetSessionMax(PifTask* p_owner);
+#endif
 
 /**
  * @brief The longer of the two maximum delays of the task: past its period, or after its trigger.

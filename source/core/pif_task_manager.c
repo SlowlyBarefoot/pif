@@ -444,6 +444,9 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 		}
 	}
 	if (!skip && delay > p_owner->_max_delay) p_owner->_max_delay = delay;
+#ifdef PIF_TASK_SESSION_MAX
+	if (!skip && delay > p_owner->_session_max_delay) p_owner->_session_max_delay = delay;
+#endif
 #endif
 #else
 	(void)trigger;
@@ -482,6 +485,9 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 #ifdef PIF_USE_TASK_STATISTICS
 	if (trigger && !skip) {
 		if (trigger_diff > p_owner->_max_trigger_delay) p_owner->_max_trigger_delay = trigger_diff;
+#ifdef PIF_TASK_SESSION_MAX
+		if (trigger_diff > p_owner->_session_max_trigger_delay) p_owner->_session_max_trigger_delay = trigger_diff;
+#endif
 		p_owner->__total_trigger_delay[p_owner->__trigger_index] += trigger_diff;
 		p_owner->__trigger_count++;
 		if (p_owner->__trigger_count == 200) {
@@ -539,6 +545,9 @@ static void _processingTask(PifTask *p_owner, BOOL trigger)
 	execute_time = block_time;
 	p_owner->_total_execution_time += execute_time;
 	if (execute_time > p_owner->_max_execution_time) p_owner->_max_execution_time = execute_time;
+#ifdef PIF_TASK_SESSION_MAX
+	if (execute_time > p_owner->_session_max_execution_time) p_owner->_session_max_execution_time = execute_time;
+#endif
 	p_owner->__sum_execution_time[p_owner->__execute_index] += execute_time;
 	p_owner->__execution_count++;
 	if (p_owner->__execution_count == 200) {
@@ -1298,6 +1307,21 @@ void pifTaskManager_ResetMaxStatistics()
 		it = pifObjArray_Next(it);
 	}
 }
+
+#ifdef PIF_TASK_SESSION_MAX
+
+void pifTaskManager_ResetSessionMax()
+{
+	PifObjArrayIterator it;
+
+	it = pifObjArray_Begin(&s_tasks);
+	while (it) {
+		pifTask_ResetSessionMax((PifTask *)it->data);
+		it = pifObjArray_Next(it);
+	}
+}
+
+#endif
 
 #endif
 

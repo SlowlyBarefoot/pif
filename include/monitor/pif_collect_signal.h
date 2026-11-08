@@ -59,6 +59,11 @@
 
 #include "core/pif_ring_buffer.h"
 #include "core/pif_task_manager.h"
+#ifdef PIF_USE_TAG
+	// The tag sets are of pif-pro (monitor/pif_tag.h), whose backends write them: here a channel only holds one
+	// and passes the values on, so the type need not be known.
+	struct StPifTagSet;
+#endif
 
 
 #ifdef PIF_COLLECT_SIGNAL
@@ -140,6 +145,9 @@ typedef struct StPifCollectSignalChannel
 	uint16_t __index;
 	uint32_t __start_value;
 	struct StPifCollectSignalChannel *__p_next;
+#ifdef PIF_USE_TAG
+	const struct StPifTagSet *_p_tag_set;	///< Tags its changes may carry (pifCollectSignal_SetTagSet()), NULL for none
+#endif
 } PifCollectSignalChannel;
 
 typedef struct StPifCollectSignalSource PifCollectSignalSource;
@@ -181,6 +189,10 @@ typedef struct StPifCollectSignalBackend
 	void (*evt_change)(void *p_client, const PifCollectSignalChannel *p_channel, uint32_t value);
 	/// Called by pifCollectSignal_Stop().
 	void (*evt_stop)(void *p_client);
+	/// A change with tags (pifCollectSignal_PutTagged(), PIF_USE_TAG). NULL: the value goes to evt_change and the
+	/// tags are dropped. Called from where pifCollectSignal_PutTagged() is, which may be an interrupt.
+	void (*evt_change_tagged)(void *p_client, const PifCollectSignalChannel *p_channel, uint32_t value,
+			const uint32_t *p_tags, uint8_t count);
 } PifCollectSignalBackend;
 
 
@@ -351,6 +363,29 @@ void pifCollectSignal_Put(PifCollectSignalChannel *p_channel, uint32_t value);
  * @param value New value.
  */
 void pifCollectSignal_PutReal(PifCollectSignalChannel *p_channel, float value);
+
+#ifdef PIF_USE_TAG
+
+/**
+ * @fn pifCollectSignal_SetTagSet
+ * @brief Sets the tags the changes of the channel may carry. Set it before a capture starts: the set goes out
+ *        with the list of channels.
+ * @param p_set A set kept in flash, or NULL for none (the default).
+ */
+void pifCollectSignal_SetTagSet(PifCollectSignalChannel *p_channel, const struct StPifTagSet *p_set);
+
+/**
+ * @fn pifCollectSignal_PutTagged
+ * @brief A change of the channel with its tags. As pifCollectSignal_Put(), nothing is recorded when the value is
+ *        the same as before: tags go with a change. The VCD output keeps the value only. May be called from an
+ *        interrupt.
+ * @param p_tags Values in the order of the set of the channel, as uint32_t (an int32_t cast, the bits of a float).
+ * @param count Tags given; those after it are unknown.
+ */
+void pifCollectSignal_PutTagged(PifCollectSignalChannel *p_channel, uint32_t value, const uint32_t *p_tags,
+		uint8_t count);
+
+#endif	// PIF_USE_TAG
 
 #ifndef PIF_COLLECT_SIGNAL_NO_VCD
 

@@ -444,6 +444,13 @@ void pifTaskManager_GetMaxStatistics(PifTaskMaxStatistics *p_stat, const PifTask
  */
 void pifTaskManager_ResetMaxStatistics();
 
+#ifdef PIF_TASK_SESSION_MAX
+/**
+ * @brief Clears the session maxima of every task with pifTask_ResetSessionMax().
+ */
+void pifTaskManager_ResetSessionMax();
+#endif
+
 #endif
 
 #ifdef PIF_USE_TASK_STATISTICS_VCD
