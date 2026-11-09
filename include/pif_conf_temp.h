@@ -86,6 +86,7 @@
 // With PIF_COLLECT_SIGNAL the modules selected below record their signals: a module's macro puts its
 // channels, its Put calls and its SetCsFlag/ResetCsFlag in the build.
 //#define PIF_COLLECT_SIGNAL_BUZZER
+//#define PIF_COLLECT_SIGNAL_CAN
 //#define PIF_COLLECT_SIGNAL_DSHOT
 //#define PIF_COLLECT_SIGNAL_QUAD_ENCODER
 //#define PIF_COLLECT_SIGNAL_GPIO
@@ -114,6 +115,18 @@
 // Leaves the VCD output out (CSM_LOG, CSM_BUFFER and their functions), when every capture goes to a backend
 // attached with pifCollectSignal_AttachBackend(). It saves the formatting code and what it links in.
 //#define PIF_COLLECT_SIGNAL_NO_VCD
+
+// Tags: values the application gives with a change (pifCollectSignal_SetTagSet(), pifCollectSignal_PutTagged()),
+// passed to a backend that writes them, the trace or the recorder of PIF Pro, whose monitor/pif_tag.h defines the
+// sets and PIF_TAG_MAX. The VCD output keeps the values only.
+//#define PIF_USE_TAG
+
+
+// -------- pifComm ------------------------------
+
+// Puts in evt_tap and p_tap_issuer of PifUart and PifCan: every byte or frame they receive or hand to the
+// hardware goes to the tap too, a packet capture for example. Without it the modules have no tap at all.
+//#define PIF_USE_COMM_TAP
 
 // -------- pifDshot -----------------------------
 
@@ -339,6 +352,11 @@
 // left over is the answer for idle work, not a wait to cut short.
 //#define PIF_TASK_MAX_SKIP			        10
 
+// A second set of maxima of every task (run, delay, trigger delay), cleared only at the start of a session of a
+// recorder, apart from those the statistics clear every period: the summary of a session the recorder writes at its
+// end. 12 bytes a task. PIF_USE_TASK_STATISTICS is enabled with it.
+//#define PIF_TASK_SESSION_MAX
+
 //#define PIF_USE_TASK_STATISTICS
 
 // Turns statistics records the application keeps, of pifTask_GetStatistics() and the like, into a
@@ -443,10 +461,6 @@
 // Puts in the direction control of a half-duplex line such as RS-485: dir_delay and
 // pifUart_AttachActDirection/SetDirection. Without it nothing switches the line between transfers.
 //#define PIF_USE_UART_DIRECTION
-
-// Puts in evt_tap and p_tap_issuer of PifUart and PifCan: every byte or frame they receive or hand to the
-// hardware goes to the tap too, a packet capture for example. Without it the modules have no tap at all.
-//#define PIF_USE_COMM_TAP
 
 
 // -------- pifUsbCdc ----------------------------

@@ -55,6 +55,28 @@ static PifCanFrame *_peekQueue(PifRingData *p_queue)
 }
 
 
+#ifdef COLLECT_SIGNAL_CAN
+
+// Turns a queue signal on for a frame, with the tags evt_cs_tag gives it when the signal has a tag set.
+static void _putQueueOn(PifCan *p_owner, PifCanCsFlag flag, uint8_t index, const PifCanFrame *p_frame)
+{
+#ifdef PIF_USE_TAG
+	PifCollectSignalChannel *p_channel = &p_owner->__cs[index];
+	uint32_t tags[PIF_CAN_CS_TAG_MAX];
+
+	if (p_owner->evt_cs_tag && p_channel->_p_tag_set && !p_channel->_value) {
+		pifCollectSignal_PutTagged(p_channel, ON, tags, (*p_owner->evt_cs_tag)(p_owner, flag, p_frame, tags));
+		return;
+	}
+#else
+	(void)flag;
+	(void)p_frame;
+#endif
+	pifCollectSignal_Put(&p_owner->__cs[index], ON);
+}
+
+#endif	// COLLECT_SIGNAL_CAN
+
 // Earlier of two delays, where 0 means none.
 static uint32_t _minDelay(uint32_t delay, uint32_t other)
 {
@@ -84,6 +106,9 @@ static uint32_t _doRxTask(PifTask *p_task)
 		if (p_client->evt_rx_done) period = _minDelay(period, (*p_client->evt_rx_done)(p_client));
 	}
 	if (!pifRingData_IsEmpty(&p_owner->__rx_queue)) period = 1;
+#ifdef COLLECT_SIGNAL_CAN
+	else pifCollectSignal_Put(&p_owner->__cs[CN_CSF_RX_IDX], OFF);
+#endif
 	return period;
 }
 
@@ -113,6 +138,9 @@ static uint32_t _doTxTask(PifTask *p_task)
 #endif
 		pifRingData_Remove(&p_owner->__tx_queue);
 	}
+#ifdef COLLECT_SIGNAL_CAN
+	if (pifRingData_IsEmpty(&p_owner->__tx_queue)) pifCollectSignal_Put(&p_owner->__cs[CN_CSF_TX_IDX], OFF);
+#endif
 	return period;
 }
 
@@ -144,6 +172,9 @@ fail:
 
 void pifCan_Clear(PifCan *p_owner)
 {
+#ifdef COLLECT_SIGNAL_CAN
+	pifCan_ResetCsFlag(p_owner, PIF_CS_INDEX_ALL, CN_CSF_ALL_BIT);
+#endif
 	if (p_owner->_p_tx_task) {
 		pifTaskManager_Remove(p_owner->_p_tx_task);
 		p_owner->_p_tx_task = NULL;
@@ -213,6 +244,9 @@ BOOL pifCan_SendFrame(PifCan *p_owner, const PifCanFrame *p_frame)
 		pif_error = E_OVERFLOW_BUFFER;
 		return FALSE;
 	}
+#ifdef COLLECT_SIGNAL_CAN
+	_putQueueOn(p_owner, CN_CSF_TX_BIT, CN_CSF_TX_IDX, p_frame);
+#endif
 	pifCan_TriggerTx(p_owner);
 	return TRUE;
 }
@@ -241,6 +275,9 @@ BOOL pifCan_PutRxFrame(PifCan *p_owner, const PifCanFrame *p_frame)
 #ifdef PIF_USE_COMM_TAP
 	if (p_owner->evt_tap) (*p_owner->evt_tap)(p_owner, TD_RX, p_frame);
 #endif
+#ifdef COLLECT_SIGNAL_CAN
+	_putQueueOn(p_owner, CN_CSF_RX_BIT, CN_CSF_RX_IDX, p_frame);
+#endif
 	if (p_owner->_p_rx_task) pifTask_SetTrigger(p_owner->_p_rx_task, 0);
 	return TRUE;
 }
@@ -255,6 +292,9 @@ void pifCan_SigBusState(PifCan *p_owner, PifCanBusState state)
 	if (state == p_owner->_bus_state) return;
 
 	p_owner->_bus_state = state;
+#ifdef COLLECT_SIGNAL_CAN
+	pifCollectSignal_Put(&p_owner->__cs[CN_CSF_STATE_IDX], state);
+#endif
 	if (state != CBS_BUS_OFF) pifCan_TriggerTx(p_owner);
 	if (p_owner->evt_bus_state) (*p_owner->evt_bus_state)(p_owner, state);
 }
@@ -320,3 +360,44 @@ void pifCan_RemoveClient(PifCan *p_owner, PifCanClient *p_client)
 		}
 	}
 }
+
+
+#ifdef COLLECT_SIGNAL_CAN
+
+BOOL pifCan_SetCsFlag(PifCan *p_owner, uint8_t index, PifCanCsFlag flag)
+{
+	(void)index;
+	if (flag & CN_CSF_STATE_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[CN_CSF_STATE_IDX], "CBS", p_owner->_id, CSVT_REG, 2,
+				p_owner->_bus_state)) return FALSE;
+	}
+	if (flag & CN_CSF_TX_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[CN_CSF_TX_IDX], "CTX", p_owner->_id, CSVT_WIRE, 1,
+				!pifRingData_IsEmpty(&p_owner->__tx_queue))) return FALSE;
+	}
+	if (flag & CN_CSF_RX_BIT) {
+		if (!pifCollectSignal_AddChannel(&p_owner->__cs[CN_CSF_RX_IDX], "CRX", p_owner->_id, CSVT_WIRE, 1,
+				!pifRingData_IsEmpty(&p_owner->__rx_queue))) return FALSE;
+	}
+	return TRUE;
+}
+
+void pifCan_ResetCsFlag(PifCan *p_owner, uint8_t index, PifCanCsFlag flag)
+{
+	(void)index;
+	if (flag & CN_CSF_STATE_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[CN_CSF_STATE_IDX]);
+	if (flag & CN_CSF_TX_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[CN_CSF_TX_IDX]);
+	if (flag & CN_CSF_RX_BIT) pifCollectSignal_RemoveChannel(&p_owner->__cs[CN_CSF_RX_IDX]);
+}
+
+#ifdef PIF_USE_TAG
+
+void pifCan_SetCsTagSet(PifCan *p_owner, PifCanCsFlag flag, const struct StPifTagSet *p_set)
+{
+	if (flag & CN_CSF_TX_BIT) pifCollectSignal_SetTagSet(&p_owner->__cs[CN_CSF_TX_IDX], p_set);
+	if (flag & CN_CSF_RX_BIT) pifCollectSignal_SetTagSet(&p_owner->__cs[CN_CSF_RX_IDX], p_set);
+}
+
+#endif	// PIF_USE_TAG
+
+#endif	// COLLECT_SIGNAL_CAN

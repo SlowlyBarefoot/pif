@@ -16,6 +16,10 @@
 
 #include "core/pif_ring_data.h"
 #include "core/pif_task_manager.h"
+#if defined(PIF_COLLECT_SIGNAL) && defined(PIF_COLLECT_SIGNAL_CAN)
+	#define COLLECT_SIGNAL_CAN	///< Defined when PIF_COLLECT_SIGNAL is on and PIF_COLLECT_SIGNAL_CAN is too
+	#include "monitor/pif_collect_signal.h"
+#endif
 
 
 /// Largest data of a frame. 8 is enough when only Classic CAN is used, and saves memory in every queue.
@@ -48,6 +52,38 @@ typedef enum EnPifCanBusState
 	CBS_ERROR_PASSIVE	= 1,	///< Many errors: the controller still works but sends passive error flags
 	CBS_BUS_OFF			= 2	///< Too many errors: the controller has left the bus
 } PifCanBusState;
+
+#ifdef COLLECT_SIGNAL_CAN
+
+/**
+ * @brief Signals of a CAN controller for pifCan_SetCsFlag() and pifCan_ResetCsFlag().
+ *
+ * The _IDX values index the signals, the _BIT values select them.
+ */
+typedef enum EnPifCanCsFlag
+{
+	CN_CSF_OFF			= 0,
+
+	CN_CSF_STATE_IDX	= 0,	///< _bus_state, PifCanBusState
+	CN_CSF_TX_IDX		= 1,	///< ON while the send queue holds frames
+	CN_CSF_RX_IDX		= 2,	///< ON while the receive queue holds frames
+
+	CN_CSF_STATE_BIT	= 1,
+	CN_CSF_TX_BIT		= 2,
+	CN_CSF_RX_BIT		= 4,
+	CN_CSF_ALL_BIT		= 7,
+
+	CN_CSF_COUNT		= 3
+} PifCanCsFlag;
+
+#ifdef PIF_USE_TAG
+/// Tags evt_cs_tag may give at most.
+#ifndef PIF_CAN_CS_TAG_MAX
+#define PIF_CAN_CS_TAG_MAX			4
+#endif
+#endif
+
+#endif	// COLLECT_SIGNAL_CAN
 
 /**
  * @class StPifCanFrame
@@ -90,6 +126,18 @@ typedef void (*PifEvtCanBusState)(PifCan *p_can, PifCanBusState state);
  *        interrupt included. It must return quickly.
  */
 typedef void (*PifEvtCanTap)(PifCan *p_can, PifTapDir dir, const PifCanFrame *p_frame);
+#endif
+
+#if defined(COLLECT_SIGNAL_CAN) && defined(PIF_USE_TAG)
+/**
+ * @brief Gives the tags of the frame that turns CN_CSF_TX or CN_CSF_RX on, in the order of the tag set of the
+ *        signal (pifCan_SetCsTagSet()). Called from pifCan_SendFrame(), or from pifCan_PutRxFrame() and so maybe
+ *        an interrupt. It must return quickly.
+ * @param flag CN_CSF_TX_BIT or CN_CSF_RX_BIT.
+ * @param p_tags Room for PIF_CAN_CS_TAG_MAX values.
+ * @return Tags given.
+ */
+typedef uint8_t (*PifEvtCanCsTag)(PifCan *p_can, PifCanCsFlag flag, const PifCanFrame *p_frame, uint32_t *p_tags);
 #endif
 
 /**
@@ -142,6 +190,10 @@ struct StPifCan
 	PifEvtCanTap evt_tap;
 	PifIssuerP p_tap_issuer;			///< For the owner of evt_tap
 #endif
+#if defined(COLLECT_SIGNAL_CAN) && defined(PIF_USE_TAG)
+	/// Tags of the frame that turns CN_CSF_TX or CN_CSF_RX on, for a signal with a tag set. NULL: no tags.
+	PifEvtCanCsTag evt_cs_tag;
+#endif
 
 	// Read-only Member Variable
 	PifId _id;	///< Instance ID
@@ -156,6 +208,9 @@ struct StPifCan
 	PifRingData __rx_queue;				///< Of PifCanFrame. Written by pifCan_PutRxFrame(), read by the RX task.
 	PifRingData __tx_queue;				///< Of PifCanFrame. Written and read in task context.
 	PifCanClient *__p_clients;
+#ifdef COLLECT_SIGNAL_CAN
+	PifCollectSignalChannel __cs[CN_CSF_COUNT];
+#endif
 };
 
 
@@ -298,6 +353,42 @@ BOOL pifCan_AddClient(PifCan *p_owner, PifCanClient *p_client);
  * @param p_client Client to remove.
  */
 void pifCan_RemoveClient(PifCan *p_owner, PifCanClient *p_client);
+
+#ifdef COLLECT_SIGNAL_CAN
+
+/**
+ * @brief Adds the selected signals of the CAN controller to pifCollectSignal as channels.
+ * @param p_owner Pointer to the CAN object.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
+ * @param flag Bit mask of the signals to add.
+ * @return TRUE on success, otherwise FALSE.
+ */
+BOOL pifCan_SetCsFlag(PifCan *p_owner, uint8_t index, PifCanCsFlag flag);
+
+/**
+ * @brief Removes the selected signals of the CAN controller from pifCollectSignal.
+ * @param p_owner Pointer to the CAN object.
+ * @param index Device of the instance for a module that controls several, as PifSolenoid; PIF_CS_INDEX_ALL
+ *        or any value from its count on for all. Ignored by a module of one device.
+ * @param flag Bit mask of the signals to remove.
+ */
+void pifCan_ResetCsFlag(PifCan *p_owner, uint8_t index, PifCanCsFlag flag);
+
+#ifdef PIF_USE_TAG
+
+/**
+ * @brief Gives CN_CSF_TX or CN_CSF_RX a tag set. The frame that turns the signal on then carries the tags
+ *        evt_cs_tag gives. Set it before a capture starts.
+ * @param p_owner Pointer to the CAN object.
+ * @param flag Bit mask of the signals: CN_CSF_TX_BIT and CN_CSF_RX_BIT, others are ignored.
+ * @param p_set A set kept in flash (PifTagSet of pif-pro), or NULL for none.
+ */
+void pifCan_SetCsTagSet(PifCan *p_owner, PifCanCsFlag flag, const struct StPifTagSet *p_set);
+
+#endif	// PIF_USE_TAG
+
+#endif	// COLLECT_SIGNAL_CAN
 
 #ifdef __cplusplus
 }
