@@ -35,7 +35,7 @@ endif
 
 NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_quad_encoder test_pif_sensor test_pif_sensor_modulated test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs test_pif_servo test_pif_servo_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
-           test_pif_nor_flash \
+           test_pif_nor_flash test_pif_sd_spi \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
            test_pif_task_manager_nort test_pif_crc test_pif_pid_control_cs test_pif_motion_profile \
            test_pif_crc_table test_pif_keypad test_pif_joystick test_pif_log test_pif_log_cmd test_pif_encoding \
@@ -162,6 +162,10 @@ NOR_FLASH_SRC := storage/test_pif_nor_flash.c $(ROOT)/source/storage/pif_nor_fla
                  $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_spi.c) \
                  $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 NOR_FLASH_DEP := $(ROOT)/include/storage/pif_nor_flash.h storage/nor_flash_emu.h
+# pif_sd_spi over an SD card in SPI mode in memory.
+SD_SPI_SRC := storage/test_pif_sd_spi.c $(ROOT)/source/storage/pif_sd_spi.c \
+              $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+SD_SPI_DEP := $(ROOT)/include/storage/pif_sd_spi.h storage/sd_spi_emu.h
 # littlefs on pif_nor_flash. littlefs is not part of pif, so this one is not in "run": give the directory it is in,
 #   make -C test LFS_DIR=path/to/littlefs run-test_pif_littlefs
 LITTLEFS_SRC := storage/test_pif_littlefs.c $(addprefix $(ROOT)/source/storage/, pif_littlefs.c pif_nor_flash.c) \
@@ -235,7 +239,8 @@ run-test_pif_modbus: run-test_pif_led
 run-test_pif_modbus_nolog: run-test_pif_modbus
 run-test_pif_rc_serial: run-test_pif_modbus_nolog
 run-test_pif_nor_flash: run-test_pif_rc_serial
-run-test_pif_printf: run-test_pif_nor_flash
+run-test_pif_sd_spi: run-test_pif_nor_flash
+run-test_pif_printf: run-test_pif_sd_spi
 run-test_pif_printf_nofloat: run-test_pif_printf
 run-test_pif_ring_buffer_nolock: run-test_pif_printf_nofloat
 run-test_pif_modbus_slave_min: run-test_pif_ring_buffer_nolock
@@ -385,6 +390,9 @@ $(BUILD)/test_pif_rc_serial$(EXE): $(RC_SERIAL_SRC) $(RC_SERIAL_DEP) | $(BUILD)
 
 $(BUILD)/test_pif_nor_flash$(EXE): $(NOR_FLASH_SRC) $(NOR_FLASH_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(NOR_FLASH_SRC) -o $@
+
+$(BUILD)/test_pif_sd_spi$(EXE): $(SD_SPI_SRC) $(SD_SPI_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(SD_SPI_SRC) -o $@
 
 # A module built with its least features, or with only some of the PIF_USE_ options, against the tests of the
 # full one.

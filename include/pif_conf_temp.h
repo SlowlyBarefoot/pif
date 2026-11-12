@@ -395,7 +395,7 @@
 //#define PIF_ISR_TICKS_PER_US				(SystemCoreClock / 1000000UL)
 //
 // Kinetis KE06 (Cortex-M0+), PIT channel 0 counting down at the 24 MHz bus clock and reloading every
-// 50 us (LDVAL 1199), as in LS1_KE06_FND. The address saves the device header here.
+// 50 us (LDVAL 1199). The address saves the device header here.
 //#define PIF_ISR_TICKS()					(*(volatile uint32_t *)0x40037104UL)	// PIT_CVAL0
 //#define PIF_ISR_TICKS_ELAPSED(START, END)	((START) >= (END) ? (START) - (END) : (START) + 1200UL - (END))
 //#define PIF_ISR_TICKS_PER_US				24

@@ -228,7 +228,8 @@ BOOL pifImuSensor_ReadAccel(PifImuSensor* p_owner, float* p_accel)
 	if (!(p_owner->_measure & IMU_MEASURE_ACCELERO)) return FALSE;
 	if (!_readSensor(&p_owner->__accel_info, accel)) return FALSE;
 
-	for (i = 0; i < AXIS_COUNT; i++) accel[i] = 9.80665f * accel[i] / p_owner->_accel_gain;	// g to m/s^2
+	// _accel_gain is LSB/g, so this is g, the unit pif_ahrs takes.
+	for (i = 0; i < AXIS_COUNT; i++) accel[i] /= p_owner->_accel_gain;
 
 	_orient(p_owner, accel, p_accel, p_owner->__accel_info.align);
 	return TRUE;
