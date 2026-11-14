@@ -225,6 +225,20 @@ static BOOL _parsingPacket(PifGpsUblox *p_owner, uint8_t data)
                 	p_parent->_utc.minute = p_packet->payload.pvt.min;
                 	p_parent->_utc.second = p_packet->payload.pvt.sec;
                 	p_parent->_utc.millisecond = p_packet->payload.pvt.nano / 1000000UL;
+                	// NAV-PVT holds the whole solution: a receiver set to send it alone (no POSLLH, SOL,
+                	// VELNED, no NMEA) still gives the position, the fix and the speed.
+                	p_parent->_fix = p_packet->payload.pvt.fix_type == FIX_3D && (p_packet->payload.pvt.flags & 0x01);
+                	p_parent->_num_sat = p_packet->payload.pvt.num_sv;
+                	p_parent->_coord_deg[PIF_GPS_LON] = p_packet->payload.pvt.lon / 10000000.0;
+                	p_parent->_coord_deg[PIF_GPS_LAT] = p_packet->payload.pvt.lat / 10000000.0;
+                	p_parent->_altitude = p_packet->payload.pvt.h_msl / 1000.0;
+                	p_parent->_horizontal_acc = p_packet->payload.pvt.h_acc;
+                	p_parent->_vertical_acc = p_packet->payload.pvt.v_acc;
+                	p_parent->_ground_speed = p_packet->payload.pvt.g_speed / 10.0;		// mm/s to cm/s
+                	p_parent->_ground_course = p_packet->payload.pvt.head_mot / 100000.0;
+                	p_parent->_hdop = p_packet->payload.pvt.p_dop;		// position DOP: NAV-PVT has no horizontal one
+                    p_parent->_update_rate[0] = p_parent->_update_rate[1];
+                    p_parent->_update_rate[1] = pif_cumulative_timer1ms;
                     break;
 
                 case GUMI_NAV_SOL:
