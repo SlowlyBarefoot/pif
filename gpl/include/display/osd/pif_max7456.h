@@ -88,6 +88,21 @@ typedef enum EnPifMax7456Reg
 
 #define MAX7456_CHAR_DATA_SIZE	54		///< Bytes of one character pattern in character memory.
 
+#define MAX7456_COLUMNS			30		///< Characters of a row on the picture
+#define MAX7456_PAL_ROWS		16		///< Rows of characters on a PAL picture
+#define MAX7456_NTSC_ROWS		13		///< Rows on an NTSC one
+#define MAX7456_ESCAPE			0xFF	///< Written to DMDI, it ends an auto-increment run: no character of its own
+
+/**
+ * @brief Video signal the chip sees on its input (STAT).
+ */
+typedef enum EnPifMax7456Video
+{
+	MAX7456_VIDEO_NONE	= 0,	///< Nothing the chip locked on to
+	MAX7456_VIDEO_PAL	= 1,
+	MAX7456_VIDEO_NTSC	= 2
+} PifMax7456Video;
+
 
 // Register : Video Mode 0 (VM0)
 /** @name VM0 register
@@ -480,6 +495,7 @@ typedef struct StPifMax7456
 	// Read-only Function
 
 	// Private Member Variable
+	uint8_t __vm0;					///< What the driver has in VM0: the standard, the sync and the OSD enable
 	uint8_t __previous_invert;
 	uint8_t __previous_brightness;
 
@@ -541,6 +557,69 @@ BOOL pifMax7456_WriteNvm(PifMax7456* p_owner, uint8_t char_address, const uint8_
  * @return `TRUE` if the device holds the requested mode, otherwise `FALSE` with pif_error set.
  */
 BOOL pifMax7456_Invert(PifMax7456* p_owner, BOOL invert);
+
+/**
+ * @brief Resets the chip with the software reset bit of VM0 and waits for it to come back.
+ * @details Every register goes back to its power-on value, the display memory included, so the screen is blank
+ *          afterwards and pifMax7456_Start() has to be called again.
+ * @param p_owner Pointer to an initialized MAX7456 instance.
+ * @return `TRUE` when the chip answered again, otherwise `FALSE` with pif_error set to `E_TIMEOUT`.
+ */
+BOOL pifMax7456_Reset(PifMax7456* p_owner);
+
+/**
+ * @brief The video signal on the input, read from STAT.
+ * @details The chip needs about a field (20 ms) after power-up or a reset to lock on to a signal.
+ * @param p_owner Pointer to an initialized MAX7456 instance.
+ * @return Which signal it sees, MAX7456_VIDEO_NONE when the read failed or there is none.
+ */
+PifMax7456Video pifMax7456_VideoSignal(PifMax7456* p_owner);
+
+/**
+ * @brief Sets the video standard of the OSD and turns the picture on (VM0).
+ * @details A standard that is not the one of the signal rolls the characters, so give the one
+ *          pifMax7456_VideoSignal() reports when there is a signal.
+ * @param p_owner Pointer to an initialized MAX7456 instance.
+ * @param standard MAX7456_VIDEO_STANDARD_SELECT_PAL or _NTSC.
+ * @return `TRUE` on success, otherwise `FALSE` with pif_error set.
+ */
+BOOL pifMax7456_Start(PifMax7456* p_owner, PifMax7456VideoStandardSelect standard);
+
+/**
+ * @brief Shows or hides the characters, keeping everything else of VM0 (pifMax7456_Start).
+ * @param p_owner Pointer to an initialized MAX7456 instance.
+ * @param on `TRUE` to show them.
+ * @return `TRUE` on success, otherwise `FALSE` with pif_error set.
+ */
+BOOL pifMax7456_Enable(PifMax7456* p_owner, BOOL on);
+
+/**
+ * @brief Blanks the display memory and waits for the chip to be done with it (about 20 us).
+ * @param p_owner Pointer to an initialized MAX7456 instance.
+ * @return `TRUE` on success, otherwise `FALSE` with pif_error set to `E_TIMEOUT`.
+ */
+BOOL pifMax7456_ClearDisplay(PifMax7456* p_owner);
+
+/**
+ * @brief Writes one character of the display memory, in 8 bit mode.
+ * @param p_owner Pointer to an initialized MAX7456 instance.
+ * @param address Place on the picture: row * MAX7456_COLUMNS + column, below 480.
+ * @param character Index in character memory. What it looks like is the font the chip holds.
+ * @return `TRUE` on success, otherwise `FALSE` with pif_error set.
+ */
+BOOL pifMax7456_WriteChar(PifMax7456* p_owner, uint16_t address, uint8_t character);
+
+/**
+ * @brief Writes characters that follow one another, in one transfer (auto-increment mode).
+ * @details MAX7456_ESCAPE is what ends the run on the wire, so it cannot be one of the characters; a run that
+ *          holds it is written character by character instead.
+ * @param p_owner Pointer to an initialized MAX7456 instance.
+ * @param address Place of the first one: row * MAX7456_COLUMNS + column.
+ * @param p_characters The characters.
+ * @param count How many, 1 or more. The transfer takes 2 * (count + 5) bytes.
+ * @return `TRUE` on success, otherwise `FALSE` with pif_error set.
+ */
+BOOL pifMax7456_WriteChars(PifMax7456* p_owner, uint16_t address, const uint8_t* p_characters, uint16_t count);
 
 /**
  * @brief Resets the cached brightness state.
