@@ -128,10 +128,10 @@ BOOL pifSsd1963_Init(PifSsd1963* p_owner, PifId id)
 	p_parent = (PifTftLcd*)p_owner;
 	pifTftLcd_Init(&p_owner->parent, id, SSD1963_WIDTH, SSD1963_HEIGHT, TLR_0_DEGREE);
 	p_parent->_fn_set_rotation = pifSsd1963_SetRotation;
-	p_parent->_fn_draw_pixel = pifSsd1963_DrawPixel;
-	p_parent->_fn_draw_hor_line = pifSsd1963_DrawHorLine;
-	p_parent->_fn_draw_ver_line = pifSsd1963_DrawVerLine;
-	p_parent->_fn_draw_fill_rect = pifSsd1963_DrawFillRect;
+	p_parent->parent._fn_draw_pixel = pifSsd1963_DrawPixel;
+	p_parent->parent._fn_draw_hor_line = pifSsd1963_DrawHorLine;
+	p_parent->parent._fn_draw_ver_line = pifSsd1963_DrawVerLine;
+	p_parent->parent._fn_draw_fill_rect = pifSsd1963_DrawFillRect;
 
 	p_owner->__fn_convert_color = _convertColor8bit;
     return TRUE;
@@ -276,12 +276,10 @@ BOOL pifSsd1963_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 	}
 
 	if (rotation & 1) {
-		p_parent->_width = SSD1963_HEIGHT;
-		p_parent->_height = SSD1963_WIDTH;
+		pifGraphics_SetSize(&p_parent->parent, SSD1963_HEIGHT, SSD1963_WIDTH);
 	}
 	else {
-		p_parent->_width = SSD1963_WIDTH;
-		p_parent->_height = SSD1963_HEIGHT;
+		pifGraphics_SetSize(&p_parent->parent, SSD1963_WIDTH, SSD1963_HEIGHT);
 	}
 	p_parent->_rotation = rotation;
 
@@ -296,9 +294,10 @@ BOOL pifSsd1963_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 	return TRUE;
 }
 
-void pifSsd1963_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor color)
+void pifSsd1963_DrawPixel(PifGraphics* p_parent, uint16_t x, uint16_t y, PifColor color)
 {
 	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
+	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
 	uint8_t size;
 	uint32_t data[MAX_COLOR_WORDS];
 
@@ -306,15 +305,16 @@ void pifSsd1963_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor 
 
 	size = (*p_owner->__fn_convert_color)(color, data);
 
-	(*p_parent->__act_chip_select)(TRUE);
+	(*p_lcd->__act_chip_select)(TRUE);
 	_setAddress(p_owner, x, y, x, y);
-	(*p_parent->__act_write_data)(data, size);
-	(*p_parent->__act_chip_select)(FALSE);
+	(*p_lcd->__act_write_data)(data, size);
+	(*p_lcd->__act_chip_select)(FALSE);
 }
 
-void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color)
+void pifSsd1963_DrawHorLine(PifGraphics* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color)
 {
 	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
+	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
 	uint8_t size;
 	uint32_t data[MAX_COLOR_WORDS];
 
@@ -324,15 +324,16 @@ void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 
 	size = (*p_owner->__fn_convert_color)(color, data);
 
-	(*p_parent->__act_chip_select)(TRUE);
+	(*p_lcd->__act_chip_select)(TRUE);
 	_setAddress(p_owner, x, y, x + len - 1, y);
-	(*p_parent->__act_write_repeat)(data, size, len);
-	(*p_parent->__act_chip_select)(FALSE);
+	(*p_lcd->__act_write_repeat)(data, size, len);
+	(*p_lcd->__act_chip_select)(FALSE);
 }
 
-void pifSsd1963_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color)
+void pifSsd1963_DrawVerLine(PifGraphics* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color)
 {
 	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
+	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
 	uint8_t size;
 	uint32_t data[MAX_COLOR_WORDS];
 
@@ -342,33 +343,35 @@ void pifSsd1963_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_
 
 	size = (*p_owner->__fn_convert_color)(color, data);
 
-	(*p_parent->__act_chip_select)(TRUE);
+	(*p_lcd->__act_chip_select)(TRUE);
 	_setAddress(p_owner, x, y, x, y + len - 1);
-	(*p_parent->__act_write_repeat)(data, size, len);
-	(*p_parent->__act_chip_select)(FALSE);
+	(*p_lcd->__act_write_repeat)(data, size, len);
+	(*p_lcd->__act_chip_select)(FALSE);
 }
 
-void pifSsd1963_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color)
+void pifSsd1963_DrawFillRect(PifGraphics* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color)
 {
 	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
+	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
 	uint8_t size;
 	uint32_t data[MAX_COLOR_WORDS];
 
-	if (!pifTftLcd_ClipArea(p_parent, &x1, &y1, &x2, &y2)) return;
+	if (!pifGraphics_ClipArea(p_parent, &x1, &y1, &x2, &y2)) return;
 
 	size = (*p_owner->__fn_convert_color)(color, data);
 
 	// One address window and one repeat for the whole rectangle; the controller wraps to the next
 	// line by itself.
-	(*p_parent->__act_chip_select)(TRUE);
+	(*p_lcd->__act_chip_select)(TRUE);
 	_setAddress(p_owner, x1, y1, x2, y2);
-	(*p_parent->__act_write_repeat)(data, size, (uint32_t)(x2 - x1 + 1) * (y2 - y1 + 1));
-	(*p_parent->__act_chip_select)(FALSE);
+	(*p_lcd->__act_write_repeat)(data, size, (uint32_t)(x2 - x1 + 1) * (y2 - y1 + 1));
+	(*p_lcd->__act_chip_select)(FALSE);
 }
 
-void pifSsd1963_DrawArea(PifTftLcd *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map)
+void pifSsd1963_DrawArea(PifGraphics *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map)
 {
 	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
+	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
 	uint32_t i, count, size;
 	uint32_t data[DRAW_AREA_CHUNK * MAX_COLOR_WORDS];
 
@@ -377,14 +380,14 @@ void pifSsd1963_DrawArea(PifTftLcd *p_parent, uint16_t x1, uint16_t y1, uint16_t
 
 	count = (uint32_t)(x2 - x1 + 1) * (y2 - y1 + 1);
 
-	(*p_parent->__act_chip_select)(TRUE);
+	(*p_lcd->__act_chip_select)(TRUE);
 	_setAddress(p_owner, x1, y1, x2, y2);
 	while (count) {
 		size = 0;
 		for (i = 0; i < DRAW_AREA_CHUNK && count; i++, count--) {
 			size += (*p_owner->__fn_convert_color)(*p_color_map++, data + size);
 		}
-		(*p_parent->__act_write_data)(data, size);
+		(*p_lcd->__act_write_data)(data, size);
 	}
-	(*p_parent->__act_chip_select)(FALSE);
+	(*p_lcd->__act_chip_select)(FALSE);
 }

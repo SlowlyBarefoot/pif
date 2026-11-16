@@ -162,6 +162,13 @@ extern "C" {
 BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interface);
 
 /**
+ * @brief Hands over the drawing surface of the panel, which the pifGraphics functions draw on.
+ * @param p_owner Pointer to an initialized ILI9341 instance.
+ * @return The PifGraphics of the panel.
+ */
+PIF_STATIC_INLINE PifGraphics* pifIli9341_Graphics(PifIli9341* p_owner) { return &p_owner->parent.parent; }
+
+/**
  * @brief Attaches parallel bus callback handlers used for low-level LCD transactions.
  * @param p_owner Pointer to an initialized ILI9341 instance.
  * @param act_reset Callback that resets the LCD controller.
@@ -187,7 +194,7 @@ BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 
 /**
  * @brief Updates panel rotation and applies matching controller address mode settings.
- * @param p_parent Pointer to the base TFT LCD context.
+ * @param p_parent Pointer to the drawing surface of the panel.
  * @param rotation Target rotation value.
  * @return `TRUE` if the rotation is applied, otherwise `FALSE` (rotation out of range or no rotation table).
  */
@@ -195,55 +202,55 @@ BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 
 /**
  * @brief Draws one pixel at the specified coordinate.
- * @param p_parent Pointer to the base TFT LCD context.
+ * @param p_parent Pointer to the drawing surface of the panel.
  * @param x Horizontal pixel coordinate.
  * @param y Vertical pixel coordinate.
  * @param color Pixel color value in `PifColor` format.
  */
-void pifIli9341_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor color);
+void pifIli9341_DrawPixel(PifGraphics* p_parent, uint16_t x, uint16_t y, PifColor color);
 
 /**
  * @brief Draws a horizontal line starting at `(x, y)`.
- * @param p_parent Pointer to the base TFT LCD context.
+ * @param p_parent Pointer to the drawing surface of the panel.
  * @param x Start X coordinate.
  * @param y Fixed Y coordinate.
  * @param len Number of pixels to draw; the part beyond the panel is not drawn.
  * @param color Line color in `PifColor` format.
  */
-void pifIli9341_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
+void pifIli9341_DrawHorLine(PifGraphics* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @brief Draws a vertical line starting at `(x, y)`.
- * @param p_parent Pointer to the base TFT LCD context.
+ * @param p_parent Pointer to the drawing surface of the panel.
  * @param x Fixed X coordinate.
  * @param y Start Y coordinate.
  * @param len Number of pixels to draw; the part beyond the panel is not drawn.
  * @param color Line color in `PifColor` format.
  */
-void pifIli9341_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
+void pifIli9341_DrawVerLine(PifGraphics* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @brief Fills a rectangular region with a constant color, clipped to the panel.
- * @param p_parent Pointer to the base TFT LCD context.
+ * @param p_parent Pointer to the drawing surface of the panel.
  * @param x1 Left X coordinate of the rectangle.
  * @param y1 Top Y coordinate of the rectangle.
  * @param x2 Right X coordinate of the rectangle.
  * @param y2 Bottom Y coordinate of the rectangle.
  * @param color Fill color in `PifColor` format.
  */
-void pifIli9341_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color);
+void pifIli9341_DrawFillRect(PifGraphics* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color);
 
 /**
  * @brief Writes a rectangular pixel block from a source color map. Nothing is drawn if the area
  *        does not lie entirely on the panel.
- * @param p_parent Pointer to the base TFT LCD context.
+ * @param p_parent Pointer to the drawing surface of the panel.
  * @param x1 Left X coordinate of the destination area.
  * @param y1 Top Y coordinate of the destination area.
  * @param x2 Right X coordinate of the destination area.
  * @param y2 Bottom Y coordinate of the destination area.
  * @param p_color_map Pointer to source pixel data in row-major order.
  */
-void pifIli9341_DrawArea(PifTftLcd *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map);
+void pifIli9341_DrawArea(PifGraphics *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map);
 
 #ifdef __cplusplus
 }

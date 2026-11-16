@@ -177,6 +177,20 @@
 //#define PIF_GPS_UBLOX_RX_PAYLOAD_SIZE		1
 
 
+// -------- pifGraphics --------------------------
+
+// Bits of a PifColor, which the graphic displays are drawn with: 16 (RGB565) or 32 (XRGB8888). A monochrome
+// panel takes 0 for a pixel off and anything else for one on, whatever this is.
+#define PIF_COLOR_DEPTH 					16	///< Color depth of the graphic displays: 16 (RGB565) or 32 (XRGB8888)
+
+// Size of the buffer pifGraphics_Printf() formats into, with the terminating null.
+//#define PIF_GRAPHICS_PRINTF_SIZE			32
+
+// Leaves pif_font_5x8 out of the build, which saves its 475 bytes of glyphs for an application that draws with
+// a font of its own. pifGraphics_SetFont() then has to run before the text functions, which draw nothing until
+// it has.
+//#define PIF_GRAPHICS_NO_DEFAULT_FONT
+
 // -------- pifHcSr04 ----------------------------
 
 // How long (us) a measurement may wait for each edge of its echo before it is triggered again.
@@ -318,6 +332,13 @@
 //#define PIF_SOLENOID_MAX_COUNT			16
 
 
+// -------- pifSsd1306 ---------------------------
+
+// How long pifSsd1306_Begin() waits at its end for the charge pump of the panel to reach its voltage, as the
+// application note of the controller asks. 0 for a platform that waits for the panel somewhere else.
+//#define PIF_SSD1306_BEGIN_DELAY_MS		100
+
+
 // -------- pifTask ------------------------------
 
 // Puts TM_REALTIME in the scheduler, with the time kept free before its release and max_skip. Without it the
@@ -419,12 +440,6 @@
 // One call in this many is timed unless pifTaskManager_AddIsr() is given its own. A prime keeps it
 // from locking onto a handler that does more every Nth call.
 //#define PIF_ISR_SAMPLE					17
-
-
-// -------- pifTftLcd ----------------------------
-
-// Color depth: 16 (RGB565), 32 (XRGB8888)
-#define PIF_COLOR_DEPTH 					16	///< Color depth of the TFT LCD drivers: 16 (RGB565) or 32 (XRGB8888)
 
 
 // -------- pifTouchScreen -----------------------

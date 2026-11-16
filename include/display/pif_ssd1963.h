@@ -168,6 +168,13 @@ extern "C" {
 BOOL pifSsd1963_Init(PifSsd1963* p_owner, PifId id);
 
 /**
+ * @brief Hands over the drawing surface of the panel, which the pifGraphics functions draw on.
+ * @param p_owner Pointer to an initialized SSD1963 instance.
+ * @return The PifGraphics of the panel.
+ */
+PIF_STATIC_INLINE PifGraphics* pifSsd1963_Graphics(PifSsd1963* p_owner) { return &p_owner->parent.parent; }
+
+/**
  * @brief Attaches low-level parallel bus control callbacks required by the SSD1963 driver.
  * @param p_owner Pointer to an initialized SSD1963 instance.
  * @param act_reset Callback that resets the LCD controller hardware.
@@ -194,7 +201,7 @@ BOOL pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t
 
 /**
  * @brief Updates panel rotation and applies the matching set_address_mode value.
- * @param p_parent Pointer to the base TFT LCD context.
+ * @param p_parent Pointer to the drawing surface of the panel.
  * @param rotation Target rotation value.
  * @return `TRUE` if the rotation is applied, otherwise `FALSE` (rotation out of range or no rotation table).
  */
@@ -202,55 +209,55 @@ BOOL pifSsd1963_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
 
 /**
  * @brief Draws a single pixel at the specified coordinate.
- * @param p_parent Pointer to the base TFT LCD context.
+ * @param p_parent Pointer to the drawing surface of the panel.
  * @param x Horizontal pixel coordinate.
  * @param y Vertical pixel coordinate.
  * @param color Pixel color value in `PifColor` format.
  */
-void pifSsd1963_DrawPixel(PifTftLcd* p_parent, uint16_t x, uint16_t y, PifColor color);
+void pifSsd1963_DrawPixel(PifGraphics* p_parent, uint16_t x, uint16_t y, PifColor color);
 
 /**
  * @brief Draws a horizontal line using repeated pixel writes.
- * @param p_parent Pointer to the base TFT LCD context.
+ * @param p_parent Pointer to the drawing surface of the panel.
  * @param x Start X coordinate.
  * @param y Fixed Y coordinate.
  * @param len Number of pixels to draw; the part beyond the panel is not drawn.
  * @param color Line color in `PifColor` format.
  */
-void pifSsd1963_DrawHorLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
+void pifSsd1963_DrawHorLine(PifGraphics* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @brief Draws a vertical line using repeated pixel writes.
- * @param p_parent Pointer to the base TFT LCD context.
+ * @param p_parent Pointer to the drawing surface of the panel.
  * @param x Fixed X coordinate.
  * @param y Start Y coordinate.
  * @param len Number of pixels to draw; the part beyond the panel is not drawn.
  * @param color Line color in `PifColor` format.
  */
-void pifSsd1963_DrawVerLine(PifTftLcd* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
+void pifSsd1963_DrawVerLine(PifGraphics* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
 
 /**
  * @brief Fills a rectangular area with a single color, clipped to the panel.
- * @param p_parent Pointer to the base TFT LCD context.
+ * @param p_parent Pointer to the drawing surface of the panel.
  * @param x1 Left X coordinate of the rectangle.
  * @param y1 Top Y coordinate of the rectangle.
  * @param x2 Right X coordinate of the rectangle.
  * @param y2 Bottom Y coordinate of the rectangle.
  * @param color Fill color in `PifColor` format.
  */
-void pifSsd1963_DrawFillRect(PifTftLcd* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color);
+void pifSsd1963_DrawFillRect(PifGraphics* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color);
 
 /**
  * @brief Draws a rectangular bitmap area from a color buffer. Nothing is drawn if the area does not
  *        lie entirely on the panel.
- * @param p_parent Pointer to the base TFT LCD context.
+ * @param p_parent Pointer to the drawing surface of the panel.
  * @param x1 Left X coordinate of the destination area.
  * @param y1 Top Y coordinate of the destination area.
  * @param x2 Right X coordinate of the destination area.
  * @param y2 Bottom Y coordinate of the destination area.
  * @param p_color_map Pointer to source pixel data in row-major order.
  */
-void pifSsd1963_DrawArea(PifTftLcd *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map);
+void pifSsd1963_DrawArea(PifGraphics *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map);
 
 #ifdef __cplusplus
 }

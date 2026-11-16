@@ -12,10 +12,10 @@
  * @param y Vertical center coordinate.
  * @param color Drawing color for the crosshair.
  */
-static void _drawCrossHair(PifTftLcd* p_owner, uint16_t x, uint16_t y, PifColor color)
+static void _drawCrossHair(PifGraphics* p_owner, uint16_t x, uint16_t y, PifColor color)
 {
-	(*p_owner->_fn_draw_hor_line)(p_owner, x - 5, y, 11, color);
-	(*p_owner->_fn_draw_ver_line)(p_owner, x, y - 5, 11, color);
+	pifGraphics_DrawHorLine(p_owner, x - 5, y, 11, color);
+	pifGraphics_DrawVerLine(p_owner, x, y - 5, 11, color);
 }
 
 /**
@@ -33,8 +33,8 @@ static void _calibrationPoint(PifTouchScreen* p_owner, uint8_t index, uint16_t* 
 	// shifted past it.
 	uint8_t n = index >= 4 ? index + 1 : index;
 
-	*p_x = 10 + (n / 3) * ((p_lcd->_width - 20) / 2);
-	*p_y = 10 + (n % 3) * ((p_lcd->_height - 20) / 2);
+	*p_x = 10 + (n / 3) * ((p_lcd->parent._width - 20) / 2);
+	*p_y = 10 + (n % 3) * ((p_lcd->parent._height - 20) / 2);
 }
 
 /**
@@ -81,7 +81,7 @@ static void _restartSettling(PifTouchScreen* p_owner)
 static void _finishCalibration(PifTouchScreen* p_owner, BOOL result)
 {
 	PifTftLcd* p_lcd = p_owner->__p_lcd;
-	uint16_t dispx = p_lcd->_width, dispy = p_lcd->_height;
+	uint16_t dispx = p_lcd->parent._width, dispy = p_lcd->parent._height;
 	uint16_t* rx = p_owner->__cal_rx;
 	uint16_t* ry = p_owner->__cal_ry;
 #ifndef PIF_NO_LOG
@@ -142,7 +142,7 @@ static void _finishCalibration(PifTouchScreen* p_owner, BOOL result)
 	p_owner->_calibration = TRUE;
 
 quit:
-	(*p_lcd->_fn_draw_fill_rect)(p_lcd, 0, 0, dispx - 1, dispy - 1, PIF_COLOR_BLACK);
+	pifGraphics_DrawFillRect(&p_lcd->parent, 0, 0, dispx - 1, dispy - 1, PIF_COLOR_BLACK);
 	p_owner->_calibration_state = TCS_IDLE;
 	if (p_owner->__evt_calibration) (*p_owner->__evt_calibration)(p_owner, result);
 }
@@ -200,7 +200,7 @@ static void _processingCalibration(PifTouchScreen* p_owner)
 			p_owner->__cal_rx[p_owner->__cal_index] = p_owner->__cal_sum_x / p_owner->__cal_count;
 			p_owner->__cal_ry[p_owner->__cal_index] = p_owner->__cal_sum_y / p_owner->__cal_count;
 			_calibrationPoint(p_owner, p_owner->__cal_index, &x, &y);
-			_drawCrossHair(p_owner->__p_lcd, x, y, PIF_COLOR_RED);
+			_drawCrossHair(&p_owner->__p_lcd->parent, x, y, PIF_COLOR_RED);
 			_restartSettling(p_owner);
 			p_owner->_calibration_state = TCS_WAIT_RELEASE;
 		}
@@ -225,7 +225,7 @@ static void _processingCalibration(PifTouchScreen* p_owner)
 			break;
 		}
 		_calibrationPoint(p_owner, p_owner->__cal_index, &x, &y);
-		_drawCrossHair(p_owner->__p_lcd, x, y, PIF_COLOR_BLUE);
+		_drawCrossHair(&p_owner->__p_lcd->parent, x, y, PIF_COLOR_BLUE);
 		_restartSettling(p_owner);
 		p_owner->_calibration_state = TCS_WAIT_PRESS;
 		break;
@@ -289,11 +289,11 @@ static uint32_t _doTask(PifTask* p_task)
 
 	p_owner->_x = (tpx - p_owner->__clx) / p_owner->__px;
 	if (p_owner->_x < 0) p_owner->_x = 0;
-	else if (p_owner->_x >= p_lcd->_width) p_owner->_x = p_lcd->_width - 1;
+	else if (p_owner->_x >= p_lcd->parent._width) p_owner->_x = p_lcd->parent._width - 1;
 
 	p_owner->_y = (tpy - p_owner->__cty) / p_owner->__py;
 	if (p_owner->_y < 0) p_owner->_y = 0;
-	else if (p_owner->_y >= p_lcd->_height) p_owner->_y = p_lcd->_height - 1;
+	else if (p_owner->_y >= p_lcd->parent._height) p_owner->_y = p_lcd->parent._height - 1;
 
 	p_owner->_pressure = TRUE;
 
@@ -304,7 +304,7 @@ static uint32_t _doTask(PifTask* p_task)
 BOOL pifTouchScreen_Init(PifTouchScreen* p_owner, PifId id, PifTftLcd* p_lcd, int16_t left_x, int16_t right_x, int16_t top_y, int16_t bottom_y)
 {
 	// Equal edges would make the scale zero, and the task divides by it.
-	if (!p_owner || !p_lcd || !p_lcd->_width || !p_lcd->_height || left_x == right_x || top_y == bottom_y) {
+	if (!p_owner || !p_lcd || !p_lcd->parent._width || !p_lcd->parent._height || left_x == right_x || top_y == bottom_y) {
 		pif_error = E_INVALID_PARAM;
 		return FALSE;
 	}
@@ -321,8 +321,8 @@ BOOL pifTouchScreen_Init(PifTouchScreen* p_owner, PifId id, PifTftLcd* p_lcd, in
 	p_owner->__cty = top_y;
 	p_owner->__cby = bottom_y;
 
-	p_owner->__px = (float)(p_owner->__crx - p_owner->__clx) / p_lcd->_width;
-	p_owner->__py = (float)(p_owner->__cby - p_owner->__cty) / p_lcd->_height;
+	p_owner->__px = (float)(p_owner->__crx - p_owner->__clx) / p_lcd->parent._width;
+	p_owner->__py = (float)(p_owner->__cby - p_owner->__cty) / p_lcd->parent._height;
 	return TRUE;
 }
 
@@ -475,8 +475,8 @@ BOOL pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotat
 
 #ifndef PIF_NO_LOG
 	pifLog_Printf(LT_INFO, "px = %f, py = %f", p_owner->__px, p_owner->__py);
-	pifLog_Printf(LT_INFO, "x = map(p.x, LEFT=%d, RIGHT=%d, 0, %d)", p_owner->__clx, p_owner->__crx, p_lcd->_width);
-	pifLog_Printf(LT_INFO, "y = map(p.y, TOP=%d, BOTTOM=%d, 0, %d)", p_owner->__cty, p_owner->__cby, p_lcd->_height);
+	pifLog_Printf(LT_INFO, "x = map(p.x, LEFT=%d, RIGHT=%d, 0, %d)", p_owner->__clx, p_owner->__crx, p_lcd->parent._width);
+	pifLog_Printf(LT_INFO, "y = map(p.y, TOP=%d, BOTTOM=%d, 0, %d)", p_owner->__cty, p_owner->__cby, p_lcd->parent._height);
 #endif
 	return TRUE;
 }
@@ -505,19 +505,20 @@ BOOL pifTouchScreen_StartCalibration(PifTouchScreen* p_owner, PifEvtTouchCalibra
 	}
 
 	p_lcd = p_owner->__p_lcd;
-	(*p_lcd->_fn_draw_fill_rect)(p_lcd, 0, 0, p_lcd->_width - 1, p_lcd->_height - 1, PIF_COLOR_BLACK);
+	pifGraphics_DrawFillRect(&p_lcd->parent, 0, 0, p_lcd->parent._width - 1, p_lcd->parent._height - 1,
+			PIF_COLOR_BLACK);
 
 	// All of the crosshairs at once. They used to be drawn a tenth of a second apart, which only
 	// spaced out the drawing itself.
 	for (i = 0; i < PIF_TOUCH_CALIBRATION_POINTS; i++) {
 		_calibrationPoint(p_owner, i, &x, &y);
-		_drawCrossHair(p_lcd, x, y, PIF_COLOR_GRAY);
+		_drawCrossHair(&p_lcd->parent, x, y, PIF_COLOR_GRAY);
 	}
 
 	p_owner->__evt_calibration = evt_calibration;
 	p_owner->__cal_index = 0;
 	_calibrationPoint(p_owner, 0, &x, &y);
-	_drawCrossHair(p_lcd, x, y, PIF_COLOR_BLUE);
+	_drawCrossHair(&p_lcd->parent, x, y, PIF_COLOR_BLUE);
 	_restartSettling(p_owner);
 	p_owner->_calibration_state = TCS_WAIT_PRESS;
 	return TRUE;
