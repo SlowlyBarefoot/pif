@@ -4,67 +4,55 @@
 #include "display/pif_ssd1963.h"
 
 
-// Pixels converted and sent at once by pifSsd1963_DrawArea. The largest conversion is 3 words.
-#define DRAW_AREA_CHUNK		16
-#define MAX_COLOR_WORDS		3
-
-static void _setAddress(PifSsd1963* p_owner, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
-{
-	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
-	uint32_t data[4];
-
-	data[0] = x1 >> 8;
-	data[1] = x1 & 0xFF;
-	data[2] = x2 >> 8;
-	data[3] = x2 & 0xFF;
-	(*p_parent->__act_write_cmd)(SSD1963_CMD_SET_COL_ADDR, data, 4);
-
-	data[0] = y1 >> 8;
-	data[1] = y1 & 0xFF;
-	data[2] = y2 >> 8;
-	data[3] = y2 & 0xFF;
-	(*p_parent->__act_write_cmd)(SSD1963_CMD_SET_PAGE_ADDR, data, 4);
-
-	(*p_parent->__act_write_cmd)(SSD1963_CMD_WRITE_MEM_START, NULL, 0);
-}
-
 #if PIF_COLOR_DEPTH == 16
 
-static uint8_t _convertColor8bit(PifColor color, uint32_t* p_data)
+static uint8_t _convertColor8bit(PifTftLcd *p_owner, PifColor color, uint32_t *p_data)
 {
+	(void)p_owner;
+
 	p_data[0] = (color & 0xF800) >> 8;
 	p_data[1] = (color & 0x07E0) >> 3;
 	p_data[2] = (color & 0x001F) << 3;
 	return 3;
 }
 
-static uint8_t _convertColor12bit(PifColor color, uint32_t* p_data)
+static uint8_t _convertColor12bit(PifTftLcd *p_owner, PifColor color, uint32_t *p_data)
 {
+	(void)p_owner;
+
 	p_data[0] = ((color & 0xF800) >> 4) | ((color & 0x0780) >> 7);
 	p_data[1] = ((color & 0x0060) << 5) | ((color & 0x001F) << 3);
 	return 2;
 }
 
-static uint8_t _convertColor16bit565(PifColor color, uint32_t* p_data)
+static uint8_t _convertColor16bit565(PifTftLcd *p_owner, PifColor color, uint32_t *p_data)
 {
+	(void)p_owner;
+
 	p_data[0] = color;
 	return 1;
 }
 
-static uint8_t _convertColor18bit(PifColor color, uint32_t* p_data)
+static uint8_t _convertColor18bit(PifTftLcd *p_owner, PifColor color, uint32_t *p_data)
 {
+	(void)p_owner;
+
 	p_data[0] = ((color & 0xF800) << 2) | ((color & 0x07E0) << 1) | ((color & 0x001F) << 1);
 	return 1;
 }
 
-static uint8_t _convertColor24bit(PifColor color, uint32_t* p_data)
+static uint8_t _convertColor24bit(PifTftLcd *p_owner, PifColor color, uint32_t *p_data)
 {
+	(void)p_owner;
+
 	p_data[0] = ((color & 0xF800) << 8) | ((color & 0x07E0) << 5) | ((color & 0x001F) << 3);
 	return 1;
 }
 
-static uint8_t _convertColor9bit(PifColor color, uint32_t* p_data)
+static uint8_t _convertColor9bit(PifTftLcd *p_owner, PifColor color, uint32_t *p_data)
 {
+	(void)p_owner;
+
 	p_data[0] = ((color & 0xF800) >> 7) | ((color & 0x0700) >> 8);
 	p_data[1] = (color & 0x00FF) << 1;
 	return 2;
@@ -72,41 +60,53 @@ static uint8_t _convertColor9bit(PifColor color, uint32_t* p_data)
 
 #elif PIF_COLOR_DEPTH == 32
 
-static uint8_t _convertColor8bit(PifColor color, uint32_t* p_data)
+static uint8_t _convertColor8bit(PifTftLcd *p_owner, PifColor color, uint32_t *p_data)
 {
+	(void)p_owner;
+
 	p_data[0] = (color & 0xFF0000) >> 16;
 	p_data[1] = (color & 0x00FF00) >> 8;
 	p_data[2] = color & 0x0000FF;
 	return 3;
 }
 
-static uint8_t _convertColor12bit(PifColor color, uint32_t* p_data)
+static uint8_t _convertColor12bit(PifTftLcd *p_owner, PifColor color, uint32_t *p_data)
 {
+	(void)p_owner;
+
 	p_data[0] = (color & 0xFFF000) >> 12;
 	p_data[1] = color & 0x000FFF;
 	return 2;
 }
 
-static uint8_t _convertColor16bit565(PifColor color, uint32_t* p_data)
+static uint8_t _convertColor16bit565(PifTftLcd *p_owner, PifColor color, uint32_t *p_data)
 {
+	(void)p_owner;
+
 	p_data[0] = ((color & 0xF80000) >> 8) | ((color & 0x00FC00) >> 5) | ((color & 0x0000F8) >> 3);
 	return 1;
 }
 
-static uint8_t _convertColor18bit(PifColor color, uint32_t* p_data)
+static uint8_t _convertColor18bit(PifTftLcd *p_owner, PifColor color, uint32_t *p_data)
 {
+	(void)p_owner;
+
 	p_data[0] = ((color & 0xFC0000) >> 6) | ((color & 0x00FC00) >> 4) | ((color & 0x0000FC) >> 2);
 	return 1;
 }
 
-static uint8_t _convertColor24bit(PifColor color, uint32_t* p_data)
+static uint8_t _convertColor24bit(PifTftLcd *p_owner, PifColor color, uint32_t *p_data)
 {
+	(void)p_owner;
+
 	p_data[0] = color;
 	return 1;
 }
 
-static uint8_t _convertColor9bit(PifColor color, uint32_t* p_data)
+static uint8_t _convertColor9bit(PifTftLcd *p_owner, PifColor color, uint32_t *p_data)
 {
+	(void)p_owner;
+
 	p_data[0] = ((color & 0xFC0000) >> 15) | ((color & 0x00E000) >> 13);
 	p_data[1] = ((color & 0x001C00) >> 4) | ((color & 0x0000FC) >> 2);
 	return 2;
@@ -126,14 +126,10 @@ BOOL pifSsd1963_Init(PifSsd1963* p_owner, PifId id)
 	memset(p_owner, 0, sizeof(PifSsd1963));
 
 	p_parent = (PifTftLcd*)p_owner;
-	pifTftLcd_Init(&p_owner->parent, id, SSD1963_WIDTH, SSD1963_HEIGHT, TLR_0_DEGREE);
+	if (!pifTftLcd_Init(&p_owner->parent, id, SSD1963_WIDTH, SSD1963_HEIGHT, TLR_0_DEGREE)) return FALSE;
 	p_parent->_fn_set_rotation = pifSsd1963_SetRotation;
-	p_parent->parent._fn_draw_pixel = pifSsd1963_DrawPixel;
-	p_parent->parent._fn_draw_hor_line = pifSsd1963_DrawHorLine;
-	p_parent->parent._fn_draw_ver_line = pifSsd1963_DrawVerLine;
-	p_parent->parent._fn_draw_fill_rect = pifSsd1963_DrawFillRect;
-
-	p_owner->__fn_convert_color = _convertColor8bit;
+	p_parent->_fn_convert_color = _convertColor8bit;
+	p_parent->_fn_set_address = pifTftLcd_SetAddressDcs;
     return TRUE;
 }
 
@@ -157,12 +153,26 @@ BOOL pifSsd1963_AttachActParallel(PifSsd1963* p_owner, PifActLcdReset act_reset,
     return TRUE;
 }
 
+/**
+ * @fn _peekSetup
+ * @brief Reads the pixel format out of the setup stream, which the conversion of a color follows, before
+ *        anything is sent.
+ */
+static void _peekSetup(PifTftLcd *p_lcd, uint8_t cmd, const uint8_t *p_param, uint8_t len)
+{
+	PifSsd1963 *p_owner = (PifSsd1963 *)p_lcd;
+
+	switch (cmd) {
+	case SSD1963_CMD_SET_PIX_DATA_IF:
+		if (len >= 1) p_owner->__pixel_format = p_param[0] & 0x07;
+		break;
+	}
+}
+
 BOOL pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation)
 {
 	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
-	const uint8_t* p;
-	uint8_t cmd, len, i;
-	uint32_t data[10];
+	uint8_t i;
 
 	if (!p_owner || !p_setup) {
 		pif_error = E_INVALID_PARAM;
@@ -174,50 +184,35 @@ BOOL pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t
 		return FALSE;
 	}
 
-	p = p_setup;
-	while (*p) {
-		cmd = *p++;
-		len = *p++;
-		if (cmd != TFT_SETUP_DELAY_MS) {
-			if (len > sizeof(data) / sizeof(data[0])) {
-				pif_error = E_WRONG_DATA;
-				return FALSE;
-			}
-			switch (cmd) {
-			case SSD1963_CMD_SET_PIX_DATA_IF:
-				p_owner->__pixel_format = p[0] & 0x07;
-				break;
-			}
-			p += len;
-		}
-	}
+	if (!pifTftLcd_ScanSetup(p_parent, p_setup, _peekSetup)) return FALSE;
+
 #ifndef PIF_NO_LOG
 	pifLog_Printf(LT_INFO, "Pixel Format: %u", p_owner->__pixel_format);
 #endif
 
 	switch (p_owner->__pixel_format) {
 	case SSD1963_PF_8BIT:
-		p_owner->__fn_convert_color = _convertColor8bit;
+		p_parent->_fn_convert_color = _convertColor8bit;
 		break;
 
 	case SSD1963_PF_12BIT:
-		p_owner->__fn_convert_color = _convertColor12bit;
+		p_parent->_fn_convert_color = _convertColor12bit;
 		break;
 
 	case SSD1963_PF_16BIT_565:
-		p_owner->__fn_convert_color = _convertColor16bit565;
+		p_parent->_fn_convert_color = _convertColor16bit565;
 		break;
 
 	case SSD1963_PF_18BIT:
-		p_owner->__fn_convert_color = _convertColor18bit;
+		p_parent->_fn_convert_color = _convertColor18bit;
 		break;
 
 	case SSD1963_PF_24BIT:
-		p_owner->__fn_convert_color = _convertColor24bit;
+		p_parent->_fn_convert_color = _convertColor24bit;
 		break;
 
 	case SSD1963_PF_9BIT:
-		p_owner->__fn_convert_color = _convertColor9bit;
+		p_parent->_fn_convert_color = _convertColor9bit;
 		break;
 
 	default:
@@ -237,24 +232,12 @@ BOOL pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t
 
 	(*p_parent->__act_chip_select)(TRUE);
 
-	for (i = 0; i < 3; i++)	(*p_parent->__act_write_cmd)(SSD1963_CMD_NOP, NULL, 0);
+	for (i = 0; i < 3; i++) pifTftLcd_WriteCmd(p_parent, SSD1963_CMD_NOP, NULL, 0);
 
-	p = p_setup;
-	while (*p) {
-		cmd = *p++;
-		len = *p++;
-		if (cmd == TFT_SETUP_DELAY_MS) {
-			pif_Delay1ms(len);
-		}
-		else {
-			for (i = 0; i < len; i++) data[i] = p[i];
-			(*p_parent->__act_write_cmd)(cmd, data, len);
-			p += len;
-		}
-	}
+	pifTftLcd_RunSetup(p_parent, p_setup);
 
-    (*p_parent->__act_write_cmd)(SSD1963_CMD_SET_DISP_ON, NULL, 0);
-	(*p_parent->__act_write_cmd)(SSD1963_CMD_WRITE_MEM_START, NULL, 0);
+    pifTftLcd_WriteCmd(p_parent, SSD1963_CMD_SET_DISP_ON, NULL, 0);
+	pifTftLcd_WriteCmd(p_parent, SSD1963_CMD_WRITE_MEM_START, NULL, 0);
 
 	(*p_parent->__act_chip_select)(FALSE);
 	return TRUE;
@@ -263,7 +246,6 @@ BOOL pifSsd1963_Setup(PifSsd1963* p_owner, const uint8_t* p_setup, const uint8_t
 BOOL pifSsd1963_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 {
 	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
-	uint32_t data[1];
 
 	if (rotation > TLR_270_DEGREE) {
 		pif_error = E_INVALID_PARAM;
@@ -283,9 +265,8 @@ BOOL pifSsd1963_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 	}
 	p_parent->_rotation = rotation;
 
-	data[0] = p_owner->__p_rotation[rotation];
 	(*p_parent->__act_chip_select)(TRUE);
-    (*p_parent->__act_write_cmd)(SSD1963_CMD_SET_ADDR_MODE, data, 1);
+	pifTftLcd_WriteCmd(p_parent, SSD1963_CMD_SET_ADDR_MODE, p_owner->__p_rotation + rotation, 1);
 	(*p_parent->__act_chip_select)(FALSE);
 
 #ifndef PIF_NO_LOG
@@ -294,100 +275,3 @@ BOOL pifSsd1963_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 	return TRUE;
 }
 
-void pifSsd1963_DrawPixel(PifGraphics* p_parent, uint16_t x, uint16_t y, PifColor color)
-{
-	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
-	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
-	uint8_t size;
-	uint32_t data[MAX_COLOR_WORDS];
-
-	if (x >= p_parent->_width || y >= p_parent->_height) return;
-
-	size = (*p_owner->__fn_convert_color)(color, data);
-
-	(*p_lcd->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x, y, x, y);
-	(*p_lcd->__act_write_data)(data, size);
-	(*p_lcd->__act_chip_select)(FALSE);
-}
-
-void pifSsd1963_DrawHorLine(PifGraphics* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color)
-{
-	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
-	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
-	uint8_t size;
-	uint32_t data[MAX_COLOR_WORDS];
-
-	if (!len || x >= p_parent->_width || y >= p_parent->_height) return;
-
-	if (len > p_parent->_width - x) len = p_parent->_width - x;
-
-	size = (*p_owner->__fn_convert_color)(color, data);
-
-	(*p_lcd->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x, y, x + len - 1, y);
-	(*p_lcd->__act_write_repeat)(data, size, len);
-	(*p_lcd->__act_chip_select)(FALSE);
-}
-
-void pifSsd1963_DrawVerLine(PifGraphics* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color)
-{
-	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
-	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
-	uint8_t size;
-	uint32_t data[MAX_COLOR_WORDS];
-
-	if (!len || x >= p_parent->_width || y >= p_parent->_height) return;
-
-	if (len > p_parent->_height - y) len = p_parent->_height - y;
-
-	size = (*p_owner->__fn_convert_color)(color, data);
-
-	(*p_lcd->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x, y, x, y + len - 1);
-	(*p_lcd->__act_write_repeat)(data, size, len);
-	(*p_lcd->__act_chip_select)(FALSE);
-}
-
-void pifSsd1963_DrawFillRect(PifGraphics* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color)
-{
-	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
-	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
-	uint8_t size;
-	uint32_t data[MAX_COLOR_WORDS];
-
-	if (!pifGraphics_ClipArea(p_parent, &x1, &y1, &x2, &y2)) return;
-
-	size = (*p_owner->__fn_convert_color)(color, data);
-
-	// One address window and one repeat for the whole rectangle; the controller wraps to the next
-	// line by itself.
-	(*p_lcd->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x1, y1, x2, y2);
-	(*p_lcd->__act_write_repeat)(data, size, (uint32_t)(x2 - x1 + 1) * (y2 - y1 + 1));
-	(*p_lcd->__act_chip_select)(FALSE);
-}
-
-void pifSsd1963_DrawArea(PifGraphics *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map)
-{
-	PifSsd1963* p_owner = (PifSsd1963*)p_parent;
-	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
-	uint32_t i, count, size;
-	uint32_t data[DRAW_AREA_CHUNK * MAX_COLOR_WORDS];
-
-	// The color map has no stride of its own, so an area that does not fit is not drawn rather than clipped.
-	if (!p_color_map || x1 > x2 || y1 > y2 || x2 >= p_parent->_width || y2 >= p_parent->_height) return;
-
-	count = (uint32_t)(x2 - x1 + 1) * (y2 - y1 + 1);
-
-	(*p_lcd->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x1, y1, x2, y2);
-	while (count) {
-		size = 0;
-		for (i = 0; i < DRAW_AREA_CHUNK && count; i++, count--) {
-			size += (*p_owner->__fn_convert_color)(*p_color_map++, data + size);
-		}
-		(*p_lcd->__act_write_data)(data, size);
-	}
-	(*p_lcd->__act_chip_select)(FALSE);
-}

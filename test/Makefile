@@ -34,7 +34,7 @@ else
 endif
 
 NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_quad_encoder test_pif_sensor test_pif_sensor_modulated test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs test_pif_servo test_pif_servo_cs \
-           test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_graphics test_pif_graphics_nofont test_pif_ssd1306 test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
+           test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_graphics test_pif_graphics_nofont test_pif_ssd1306 test_pif_tft_lcd test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
            test_pif_nor_flash test_pif_sd_spi \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
            test_pif_task_manager_nort test_pif_crc test_pif_pid_control_cs test_pif_motion_profile \
@@ -103,6 +103,8 @@ FND_SRC := display/test_pif_fnd.c $(ROOT)/source/display/pif_fnd.c \
            $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 LED_SRC := display/test_pif_led.c $(ROOT)/source/display/pif_led.c \
            $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+TFT_LCD_SRC := display/test_pif_tft_lcd.c $(addprefix $(ROOT)/source/display/, pif_tft_lcd.c pif_graphics.c) \
+               $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 GRAPHICS_SRC := display/test_pif_graphics.c $(ROOT)/source/display/pif_graphics.c \
                 $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 SSD1306_SRC := display/test_pif_ssd1306.c $(addprefix $(ROOT)/source/display/, pif_ssd1306.c pif_graphics.c) \
@@ -243,7 +245,8 @@ run-test_pif_led: run-test_pif_fnd
 run-test_pif_graphics: run-test_pif_led
 run-test_pif_graphics_nofont: run-test_pif_graphics
 run-test_pif_ssd1306: run-test_pif_graphics_nofont
-run-test_pif_modbus: run-test_pif_ssd1306
+run-test_pif_tft_lcd: run-test_pif_ssd1306
+run-test_pif_modbus: run-test_pif_tft_lcd
 run-test_pif_modbus_nolog: run-test_pif_modbus
 run-test_pif_rc_serial: run-test_pif_modbus_nolog
 run-test_pif_nor_flash: run-test_pif_rc_serial
@@ -393,6 +396,9 @@ $(BUILD)/test_pif_ssd1306$(EXE): $(SSD1306_SRC) $(addprefix $(ROOT)/include/disp
 
 $(BUILD)/test_pif_graphics$(EXE): $(GRAPHICS_SRC) $(ROOT)/include/display/pif_graphics.h | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(GRAPHICS_SRC) -o $@
+
+$(BUILD)/test_pif_tft_lcd$(EXE): $(TFT_LCD_SRC) $(ROOT)/include/display/pif_tft_lcd.h | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(TFT_LCD_SRC) -o $@
 
 # The same tests with the font of the library left out, where only a font of the application draws text.
 $(BUILD)/test_pif_graphics_nofont$(EXE): $(GRAPHICS_SRC) $(ROOT)/include/display/pif_graphics.h | $(BUILD)

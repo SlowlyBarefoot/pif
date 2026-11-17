@@ -445,7 +445,7 @@ BOOL pifTouchScreen_SetRotation(PifTouchScreen* p_owner, PifTftLcdRotation rotat
 		break;
 	}
 
-	if (p_lcd->_fn_set_rotation) (*p_lcd->_fn_set_rotation)(p_lcd, rotation);
+	pifTftLcd_SetRotation(p_lcd, rotation);
 
 	clx = p_owner->__clx;	cty = p_owner->__cty;
 	crx = p_owner->__crx;	cby = p_owner->__cby;

@@ -115,13 +115,6 @@ struct StPifIli9341;
 typedef struct StPifIli9341 PifIli9341;
 
 /**
- * @brief Converts a color to the words the interface sends for one pixel.
- *
- * Writes them to p_data and returns their number.
- */
-typedef uint8_t (*PifIli9341ConvertColor)(PifIli9341* p_owner, PifColor color, uint32_t* p_data);
-
-/**
  * @class StPifIli9341
  * @brief ILI9341 controller driver state derived from the common TFT LCD base.
  */
@@ -144,7 +137,6 @@ struct StPifIli9341
     uint8_t __command_shift;
 
 	// Private Function
-    PifIli9341ConvertColor __fn_convert_color;
 };
 
 
@@ -199,58 +191,6 @@ BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
  * @return `TRUE` if the rotation is applied, otherwise `FALSE` (rotation out of range or no rotation table).
  */
 BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation);
-
-/**
- * @brief Draws one pixel at the specified coordinate.
- * @param p_parent Pointer to the drawing surface of the panel.
- * @param x Horizontal pixel coordinate.
- * @param y Vertical pixel coordinate.
- * @param color Pixel color value in `PifColor` format.
- */
-void pifIli9341_DrawPixel(PifGraphics* p_parent, uint16_t x, uint16_t y, PifColor color);
-
-/**
- * @brief Draws a horizontal line starting at `(x, y)`.
- * @param p_parent Pointer to the drawing surface of the panel.
- * @param x Start X coordinate.
- * @param y Fixed Y coordinate.
- * @param len Number of pixels to draw; the part beyond the panel is not drawn.
- * @param color Line color in `PifColor` format.
- */
-void pifIli9341_DrawHorLine(PifGraphics* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
-
-/**
- * @brief Draws a vertical line starting at `(x, y)`.
- * @param p_parent Pointer to the drawing surface of the panel.
- * @param x Fixed X coordinate.
- * @param y Start Y coordinate.
- * @param len Number of pixels to draw; the part beyond the panel is not drawn.
- * @param color Line color in `PifColor` format.
- */
-void pifIli9341_DrawVerLine(PifGraphics* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color);
-
-/**
- * @brief Fills a rectangular region with a constant color, clipped to the panel.
- * @param p_parent Pointer to the drawing surface of the panel.
- * @param x1 Left X coordinate of the rectangle.
- * @param y1 Top Y coordinate of the rectangle.
- * @param x2 Right X coordinate of the rectangle.
- * @param y2 Bottom Y coordinate of the rectangle.
- * @param color Fill color in `PifColor` format.
- */
-void pifIli9341_DrawFillRect(PifGraphics* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color);
-
-/**
- * @brief Writes a rectangular pixel block from a source color map. Nothing is drawn if the area
- *        does not lie entirely on the panel.
- * @param p_parent Pointer to the drawing surface of the panel.
- * @param x1 Left X coordinate of the destination area.
- * @param y1 Top Y coordinate of the destination area.
- * @param x2 Right X coordinate of the destination area.
- * @param y2 Bottom Y coordinate of the destination area.
- * @param p_color_map Pointer to source pixel data in row-major order.
- */
-void pifIli9341_DrawArea(PifGraphics *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map);
 
 #ifdef __cplusplus
 }

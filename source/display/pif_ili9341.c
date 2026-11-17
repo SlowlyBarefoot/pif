@@ -4,58 +4,12 @@
 #include "display/pif_ili9341.h"
 
 
-// Pixels converted and sent at once by pifIli9341_DrawArea. The largest conversion is 3 words.
-#define DRAW_AREA_CHUNK		16
-#define MAX_COLOR_WORDS		3
-
-static void _convertCmd(PifIli9341Interface interface, const uint8_t* p_src, uint32_t* p_dst, uint8_t len)
-{
-	uint8_t i;
-
-	switch (interface) {
-	case ILI9341_IF_MCU_8BIT_II:
-	case ILI9341_IF_MCU_9BIT_II:
-		for (i = 0; i < len; i++) p_dst[i] = (uint32_t)p_src[i] << 10;
-		break;
-
-	case ILI9341_IF_MCU_16BIT_II:
-	case ILI9341_IF_MCU_18BIT_II:
-		for (i = 0; i < len; i++) p_dst[i] = (uint32_t)p_src[i] << 1;
-		break;
-
-	default:
-		for (i = 0; i < len; i++) p_dst[i] = (uint32_t)p_src[i];
-		break;
-	}
-}
-
-static void _setAddress(PifIli9341* p_owner, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
-{
-	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
-	uint8_t src[4];
-	uint32_t dst[4];
-
-	src[0] = x1 >> 8;
-	src[1] = x1 & 0xFF;
-	src[2] = x2 >> 8;
-	src[3] = x2 & 0xFF;
-	_convertCmd(p_owner->__interface, src, dst, 4);
-	(*p_parent->__act_write_cmd)(ILI9341_CMD_COL_ADDR_SET << p_owner->__command_shift, dst, 4);
-
-	src[0] = y1 >> 8;
-	src[1] = y1 & 0xFF;
-	src[2] = y2 >> 8;
-	src[3] = y2 & 0xFF;
-	_convertCmd(p_owner->__interface, src, dst, 4);
-	(*p_parent->__act_write_cmd)(ILI9341_CMD_PAGE_ADDR_SET << p_owner->__command_shift, dst, 4);
-
-	(*p_parent->__act_write_cmd)(ILI9341_CMD_MEM_WRITE << p_owner->__command_shift, NULL, 0);
-}
-
 #if PIF_COLOR_DEPTH == 16
 
-static uint8_t _convertColorMcuI_8bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuI_8bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = color >> 8;
 		p_data[1] = color & 0xFF;
@@ -69,8 +23,10 @@ static uint8_t _convertColorMcuI_8bit(PifIli9341* p_owner, PifColor color, uint3
 	}
 }
 
-static uint8_t _convertColorMcuI_16bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuI_16bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = color;
 		return 1;
@@ -99,8 +55,10 @@ static uint8_t _convertColorMcuI_16bit(PifIli9341* p_owner, PifColor color, uint
 	return 0;
 }
 
-static uint8_t _convertColorMcuI_9bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuI_9bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = color >> 8;
 		p_data[1] = color & 0xFF;
@@ -123,8 +81,10 @@ static uint8_t _convertColorMcuI_9bit(PifIli9341* p_owner, PifColor color, uint3
 	return 0;
 }
 
-static uint8_t _convertColorMcuI_18bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuI_18bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = color;
 		return 1;
@@ -135,8 +95,10 @@ static uint8_t _convertColorMcuI_18bit(PifIli9341* p_owner, PifColor color, uint
 	}
 }
 
-static uint8_t _convertColorMcuII_8bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuII_8bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = (color & 0xFF00) << 2;
 		p_data[1] = (color & 0x00FF) << 10;
@@ -150,8 +112,10 @@ static uint8_t _convertColorMcuII_8bit(PifIli9341* p_owner, PifColor color, uint
 	}
 }
 
-static uint8_t _convertColorMcuII_16bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuII_16bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = ((color & 0xFF00) << 2) | ((color & 0x00FF) << 1);
 		return 1;
@@ -180,8 +144,10 @@ static uint8_t _convertColorMcuII_16bit(PifIli9341* p_owner, PifColor color, uin
 	return 0;
 }
 
-static uint8_t _convertColorMcuII_9bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuII_9bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = (color & 0xFF00) << 1;
 		p_data[1] = (color & 0x00FF) << 9;
@@ -204,8 +170,10 @@ static uint8_t _convertColorMcuII_9bit(PifIli9341* p_owner, PifColor color, uint
 	return 0;
 }
 
-static uint8_t _convertColorMcuII_18bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuII_18bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = color;
 		return 1;
@@ -218,8 +186,10 @@ static uint8_t _convertColorMcuII_18bit(PifIli9341* p_owner, PifColor color, uin
 
 #elif PIF_COLOR_DEPTH == 32
 
-static uint8_t _convertColorMcuI_8bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuI_8bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = ((color & 0xF80000) >> 16) | ((color & 0x00E000) >> 13);
 		p_data[1] = ((color & 0x001C00) >> 5) | ((color & 0x0000F8) >> 3);
@@ -233,8 +203,10 @@ static uint8_t _convertColorMcuI_8bit(PifIli9341* p_owner, PifColor color, uint3
 	}
 }
 
-static uint8_t _convertColorMcuI_16bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuI_16bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = ((color & 0xF80000) >> 8) | ((color & 0x00FC00) >> 5) | ((color & 0x0000F8) >> 3);
 		return 1;
@@ -263,8 +235,10 @@ static uint8_t _convertColorMcuI_16bit(PifIli9341* p_owner, PifColor color, uint
 	return 0;
 }
 
-static uint8_t _convertColorMcuI_9bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuI_9bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = ((color & 0xF80000) >> 16) | ((color & 0x00E000) >> 13);
 		p_data[1] = ((color & 0x001C00) >> 5) | ((color & 0x0000F8) >> 3);
@@ -287,8 +261,10 @@ static uint8_t _convertColorMcuI_9bit(PifIli9341* p_owner, PifColor color, uint3
 	return 0;
 }
 
-static uint8_t _convertColorMcuI_18bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuI_18bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = ((color & 0xF80000) >> 8) | ((color & 0x00FC00) >> 5) | ((color & 0x0000F8) >> 3);
 		return 1;
@@ -299,8 +275,10 @@ static uint8_t _convertColorMcuI_18bit(PifIli9341* p_owner, PifColor color, uint
 	}
 }
 
-static uint8_t _convertColorMcuII_8bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuII_8bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = ((color & 0xF80000) >> 6) | ((color & 0x00E000) >> 3);
 		p_data[1] = ((color & 0x001C00) << 5) | ((color & 0x0000F8) << 7);
@@ -314,8 +292,10 @@ static uint8_t _convertColorMcuII_8bit(PifIli9341* p_owner, PifColor color, uint
 	}
 }
 
-static uint8_t _convertColorMcuII_16bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuII_16bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = ((color & 0xF80000) >> 6) | ((color & 0x00E000) >> 3) | ((color & 0x001C00) >> 4) | ((color & 0x0000F8) >> 2);
 		return 1;
@@ -344,8 +324,10 @@ static uint8_t _convertColorMcuII_16bit(PifIli9341* p_owner, PifColor color, uin
 	return 0;
 }
 
-static uint8_t _convertColorMcuII_9bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuII_9bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = ((color & 0xF80000) >> 7) | ((color & 0x00E000) >> 4);
 		p_data[1] = ((color & 0x001C00) << 4) | ((color & 0x0000F8) << 6);
@@ -368,8 +350,10 @@ static uint8_t _convertColorMcuII_9bit(PifIli9341* p_owner, PifColor color, uint
 	return 0;
 }
 
-static uint8_t _convertColorMcuII_18bit(PifIli9341* p_owner, PifColor color, uint32_t* p_data)
+static uint8_t _convertColorMcuII_18bit(PifTftLcd *p_lcd, PifColor color, uint32_t *p_data)
 {
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
 	if (p_owner->__pixel_format == ILI9341_PF_16BIT) {
 		p_data[0] = ((color & 0xF80000) >> 8) | ((color & 0x00FC00) >> 5) | ((color & 0x0000F8) >> 3);
 		return 1;
@@ -385,6 +369,8 @@ static uint8_t _convertColorMcuII_18bit(PifIli9341* p_owner, PifColor color, uin
 BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interface)
 {
 	PifTftLcd* p_parent;
+	PifTftLcdConvertColor fn_convert_color;
+	uint8_t command_shift = 0;
 
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -395,39 +381,39 @@ BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interfac
 
 	switch (interface) {
 	case ILI9341_IF_MCU_8BIT_I:
-		p_owner->__fn_convert_color = _convertColorMcuI_8bit;
+		fn_convert_color = _convertColorMcuI_8bit;
 		break;
 
 	case ILI9341_IF_MCU_16BIT_I:
-		p_owner->__fn_convert_color = _convertColorMcuI_16bit;
+		fn_convert_color = _convertColorMcuI_16bit;
 		break;
 
 	case ILI9341_IF_MCU_9BIT_I:
-		p_owner->__fn_convert_color = _convertColorMcuI_9bit;
+		fn_convert_color = _convertColorMcuI_9bit;
 		break;
 
 	case ILI9341_IF_MCU_18BIT_I:
-		p_owner->__fn_convert_color = _convertColorMcuI_18bit;
+		fn_convert_color = _convertColorMcuI_18bit;
 		break;
 
 	case ILI9341_IF_MCU_8BIT_II:
-		p_owner->__fn_convert_color = _convertColorMcuII_8bit;
-		p_owner->__command_shift = 10;
+		fn_convert_color = _convertColorMcuII_8bit;
+		command_shift = 10;
 		break;
 
 	case ILI9341_IF_MCU_16BIT_II:
-		p_owner->__fn_convert_color = _convertColorMcuII_16bit;
-		p_owner->__command_shift = 1;
+		fn_convert_color = _convertColorMcuII_16bit;
+		command_shift = 1;
 		break;
 
 	case ILI9341_IF_MCU_9BIT_II:
-		p_owner->__fn_convert_color = _convertColorMcuII_9bit;
-		p_owner->__command_shift = 10;
+		fn_convert_color = _convertColorMcuII_9bit;
+		command_shift = 10;
 		break;
 
 	case ILI9341_IF_MCU_18BIT_II:
-		p_owner->__fn_convert_color = _convertColorMcuII_18bit;
-		p_owner->__command_shift = 1;
+		fn_convert_color = _convertColorMcuII_18bit;
+		command_shift = 1;
 		break;
 
 	default:
@@ -436,12 +422,11 @@ BOOL pifIli9341_Init(PifIli9341* p_owner, PifId id, PifIli9341Interface interfac
 	}
 
     p_parent = (PifTftLcd*)p_owner;
-	pifTftLcd_Init(&p_owner->parent, id, ILI9341_WIDTH, ILI9341_HEIGHT, TLR_0_DEGREE);
+	if (!pifTftLcd_Init(&p_owner->parent, id, ILI9341_WIDTH, ILI9341_HEIGHT, TLR_0_DEGREE)) return FALSE;
+	pifTftLcd_SetCommandShift(p_parent, command_shift);
 	p_parent->_fn_set_rotation = pifIli9341_SetRotation;
-	p_parent->parent._fn_draw_pixel = pifIli9341_DrawPixel;
-	p_parent->parent._fn_draw_hor_line = pifIli9341_DrawHorLine;
-	p_parent->parent._fn_draw_ver_line = pifIli9341_DrawVerLine;
-	p_parent->parent._fn_draw_fill_rect = pifIli9341_DrawFillRect;
+	p_parent->_fn_convert_color = fn_convert_color;
+	p_parent->_fn_set_address = pifTftLcd_SetAddressDcs;
 
 	p_owner->__interface = interface;
 	p_owner->__pixel_format = ILI9341_PF_18BIT;		// Reset default of 0x3A
@@ -468,13 +453,31 @@ BOOL pifIli9341_AttachActParallel(PifIli9341* p_owner, PifActLcdReset act_reset,
     return TRUE;
 }
 
+/**
+ * @fn _peekSetup
+ * @brief Reads out of the setup stream what the conversion of a color depends on, before anything is sent.
+ */
+static void _peekSetup(PifTftLcd *p_lcd, uint8_t cmd, const uint8_t *p_param, uint8_t len)
+{
+	PifIli9341 *p_owner = (PifIli9341 *)p_lcd;
+
+	switch (cmd) {
+	case ILI9341_CMD_PIXEL_FORMAT_SET:
+		// DBI[2:0] is the MCU interface format; DPI[6:4] only applies to the RGB interface.
+		if (len >= 1) p_owner->__pixel_format = p_param[0] & 0x07;
+		break;
+
+	case ILI9341_CMD_INTERFACE_CTRL:
+		if (len >= 2) p_owner->__mdt = p_param[1] & 3;
+		break;
+	}
+}
+
 BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t* p_rotation)
 {
 	PifTftLcd* p_parent = (PifTftLcd*)p_owner;
+	uint32_t data[4];
 	int i;
-	const uint8_t* p;
-	uint8_t cmd, len;
-	uint32_t data[16];
 
 	if (!p_owner || !p_setup) {
 		pif_error = E_INVALID_PARAM;
@@ -486,28 +489,7 @@ BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 		return FALSE;
 	}
 
-	p = p_setup;
-	while (*p) {
-		cmd = *p++;
-		len = *p++;
-		if (cmd != TFT_SETUP_DELAY_MS) {
-			if (len > sizeof(data) / sizeof(data[0])) {
-				pif_error = E_WRONG_DATA;
-				return FALSE;
-			}
-			switch (cmd) {
-			case ILI9341_CMD_PIXEL_FORMAT_SET:
-				// DBI[2:0] is the MCU interface format; DPI[6:4] only applies to the RGB interface.
-				p_owner->__pixel_format = p[0] & 0x07;
-				break;
-
-			case ILI9341_CMD_INTERFACE_CTRL:
-				p_owner->__mdt = p[1] & 3;
-				break;
-			}
-			p += len;
-		}
-	}
+	if (!pifTftLcd_ScanSetup(p_parent, p_setup, _peekSetup)) return FALSE;
 
 	// On a 16-bit bus MDT 0 packs two 18-bit pixels into three transfers, which a per-pixel
 	// conversion cannot produce. 16-bit pixels do not depend on MDT.
@@ -528,44 +510,28 @@ BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 
 	(*p_parent->__act_chip_select)(TRUE);
 
-	for (i = 0; i < 3; i++)	(*p_parent->__act_write_cmd)(ILI9341_CMD_NOP << p_owner->__command_shift, NULL, 0);
+	for (i = 0; i < 3; i++) pifTftLcd_WriteCmd(p_parent, ILI9341_CMD_NOP, NULL, 0);
 
-	if (p_parent->__act_read_cmd) {
-		// Read bytes come back on the same data lines as command parameters, so shift them back down.
-		(*p_parent->__act_read_cmd)(ILI9341_CMD_READ_DISP_ID_INFO << p_owner->__command_shift, data, 4);
-		for (i = 1; i < 4; i++) data[i] = (data[i] >> p_owner->__command_shift) & 0xFF;
+	if (pifTftLcd_ReadCmd(p_parent, ILI9341_CMD_READ_DISP_ID_INFO, data, 4)) {
 		p_owner->_ic_id_04 = (data[1] << 16) + (data[2] << 8) + data[3];
 #ifndef PIF_NO_LOG
 		pifLog_Printf(LT_INFO, "ID(%Xh): %Xh", ILI9341_CMD_READ_DISP_ID_INFO, p_owner->_ic_id_04);
 #endif
 
-		(*p_parent->__act_read_cmd)(ILI9341_CMD_READ_ID_4 << p_owner->__command_shift, data, 4);
-		for (i = 1; i < 4; i++) data[i] = (data[i] >> p_owner->__command_shift) & 0xFF;
+		pifTftLcd_ReadCmd(p_parent, ILI9341_CMD_READ_ID_4, data, 4);
 		p_owner->_ic_id_D3 = (data[1] << 16) + (data[2] << 8) + data[3];
 #ifndef PIF_NO_LOG
 		pifLog_Printf(LT_INFO, "ID(%Xh): %Xh", ILI9341_CMD_READ_ID_4, p_owner->_ic_id_D3);
 #endif
 	}
 
-	p = p_setup;
-	while (*p) {
-		cmd = *p++;
-		len = *p++;
-		if (cmd == TFT_SETUP_DELAY_MS) {
-			pif_Delay1ms(len);
-		}
-		else {
-			_convertCmd(p_owner->__interface, p, data, len);
-			(*p_parent->__act_write_cmd)(cmd << p_owner->__command_shift, data, len);
-			p += len;
-		}
-	}
+	pifTftLcd_RunSetup(p_parent, p_setup);
 
-    (*p_parent->__act_write_cmd)(ILI9341_CMD_SLEEP_OUT << p_owner->__command_shift, NULL, 0);
+    pifTftLcd_WriteCmd(p_parent, ILI9341_CMD_SLEEP_OUT, NULL, 0);
     pif_Delay1ms(120);
 
-    (*p_parent->__act_write_cmd)(ILI9341_CMD_DISP_ON << p_owner->__command_shift, NULL, 0);
-    (*p_parent->__act_write_cmd)(ILI9341_CMD_MEM_WRITE << p_owner->__command_shift, NULL, 0);
+    pifTftLcd_WriteCmd(p_parent, ILI9341_CMD_DISP_ON, NULL, 0);
+    pifTftLcd_WriteCmd(p_parent, ILI9341_CMD_MEM_WRITE, NULL, 0);
 
 	(*p_parent->__act_chip_select)(FALSE);
 	return TRUE;
@@ -574,7 +540,6 @@ BOOL pifIli9341_Setup(PifIli9341* p_owner, const uint8_t* p_setup, const uint8_t
 BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 {
 	PifIli9341* p_owner = (PifIli9341*)p_parent;
-	uint32_t data[1];
 
 	if (rotation > TLR_270_DEGREE) {
 		pif_error = E_INVALID_PARAM;
@@ -595,8 +560,7 @@ BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 	p_parent->_rotation = rotation;
 
 	(*p_parent->__act_chip_select)(TRUE);
-	_convertCmd(p_owner->__interface, p_owner->__p_rotation + rotation, data, 1);
-    (*p_parent->__act_write_cmd)(ILI9341_CMD_MEM_ACCESS_CTRL << p_owner->__command_shift, data, 1);
+	pifTftLcd_WriteCmd(p_parent, ILI9341_CMD_MEM_ACCESS_CTRL, p_owner->__p_rotation + rotation, 1);
 	(*p_parent->__act_chip_select)(FALSE);
 
 #ifndef PIF_NO_LOG
@@ -605,100 +569,3 @@ BOOL pifIli9341_SetRotation(PifTftLcd* p_parent, PifTftLcdRotation rotation)
 	return TRUE;
 }
 
-void pifIli9341_DrawPixel(PifGraphics* p_parent, uint16_t x, uint16_t y, PifColor color)
-{
-	PifIli9341* p_owner = (PifIli9341*)p_parent;
-	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
-	uint8_t size;
-	uint32_t data[MAX_COLOR_WORDS];
-
-	if (x >= p_parent->_width || y >= p_parent->_height) return;
-
-	size = (*p_owner->__fn_convert_color)(p_owner, color, data);
-
-	(*p_lcd->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x, y, x, y);
-	(*p_lcd->__act_write_data)(data, size);
-	(*p_lcd->__act_chip_select)(FALSE);
-}
-
-void pifIli9341_DrawHorLine(PifGraphics* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color)
-{
-	PifIli9341* p_owner = (PifIli9341*)p_parent;
-	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
-	uint8_t size;
-	uint32_t data[MAX_COLOR_WORDS];
-
-	if (!len || x >= p_parent->_width || y >= p_parent->_height) return;
-
-	if (len > p_parent->_width - x) len = p_parent->_width - x;
-
-	size = (*p_owner->__fn_convert_color)(p_owner, color, data);
-
-	(*p_lcd->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x, y, x + len - 1, y);
-	(*p_lcd->__act_write_repeat)(data, size, len);
-	(*p_lcd->__act_chip_select)(FALSE);
-}
-
-void pifIli9341_DrawVerLine(PifGraphics* p_parent, uint16_t x, uint16_t y, uint16_t len, PifColor color)
-{
-	PifIli9341* p_owner = (PifIli9341*)p_parent;
-	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
-	uint8_t size;
-	uint32_t data[MAX_COLOR_WORDS];
-
-	if (!len || x >= p_parent->_width || y >= p_parent->_height) return;
-
-	if (len > p_parent->_height - y) len = p_parent->_height - y;
-
-	size = (*p_owner->__fn_convert_color)(p_owner, color, data);
-
-	(*p_lcd->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x, y, x, y + len - 1);
-	(*p_lcd->__act_write_repeat)(data, size, len);
-	(*p_lcd->__act_chip_select)(FALSE);
-}
-
-void pifIli9341_DrawFillRect(PifGraphics* p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor color)
-{
-	PifIli9341* p_owner = (PifIli9341*)p_parent;
-	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
-	uint8_t size;
-	uint32_t data[MAX_COLOR_WORDS];
-
-	if (!pifGraphics_ClipArea(p_parent, &x1, &y1, &x2, &y2)) return;
-
-	size = (*p_owner->__fn_convert_color)(p_owner, color, data);
-
-	// One address window and one repeat for the whole rectangle; the controller wraps to the next
-	// line by itself.
-	(*p_lcd->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x1, y1, x2, y2);
-	(*p_lcd->__act_write_repeat)(data, size, (uint32_t)(x2 - x1 + 1) * (y2 - y1 + 1));
-	(*p_lcd->__act_chip_select)(FALSE);
-}
-
-void pifIli9341_DrawArea(PifGraphics *p_parent, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, PifColor *p_color_map)
-{
-	PifIli9341* p_owner = (PifIli9341*)p_parent;
-	PifTftLcd* p_lcd = (PifTftLcd*)p_parent;
-	uint32_t i, count, size;
-	uint32_t data[DRAW_AREA_CHUNK * MAX_COLOR_WORDS];
-
-	// The color map has no stride of its own, so an area that does not fit is not drawn rather than clipped.
-	if (!p_color_map || x1 > x2 || y1 > y2 || x2 >= p_parent->_width || y2 >= p_parent->_height) return;
-
-	count = (uint32_t)(x2 - x1 + 1) * (y2 - y1 + 1);
-
-	(*p_lcd->__act_chip_select)(TRUE);
-	_setAddress(p_owner, x1, y1, x2, y2);
-	while (count) {
-		size = 0;
-		for (i = 0; i < DRAW_AREA_CHUNK && count; i++, count--) {
-			size += (*p_owner->__fn_convert_color)(p_owner, *p_color_map++, data + size);
-		}
-		(*p_lcd->__act_write_data)(data, size);
-	}
-	(*p_lcd->__act_chip_select)(FALSE);
-}
