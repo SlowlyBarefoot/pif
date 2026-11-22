@@ -22,7 +22,7 @@ Include these directories in your project:
 - `include/`
 - `source/`
 
-Optionally, for the GPL-3.0 modules (GPS, DShot, MAX7456, MSPv2 over MSPv1, HMC5883, MS5611, GY-86):
+Optionally, for the GPL-3.0 modules (GPS, MAX7456, MSPv2 over MSPv1, HMC5883, MS5611, GY-86):
 
 - `gpl/include/`
 - `gpl/source/`
@@ -234,7 +234,7 @@ Representative domains:
 - `core`, `control`, `monitor`, `codec`, `communication`, `protocol`, `sensor`, `input`, `storage`, `rtc`
 - `display`, `sound`, `gps`, `filter`, `interpreter`
 - `rc`, `actuator`
-- `actuator/motor` (`pif_dshot`, under `gpl/`)
+- `actuator/motor` (`pif_dshot`)
 
 ## Coding Conventions Used in PIF
 

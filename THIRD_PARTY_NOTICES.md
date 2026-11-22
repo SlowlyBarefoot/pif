@@ -15,7 +15,6 @@ projects. They live under `gpl/` and are distributed under GPL-3.0-or-later.
 | `gpl/source/gps/pif_gps.c` | Betaflight / Cleanflight `gps.c`, `gps_conversion.c`; Baseflight `gps.c` (MultiWii lineage) |
 | `gpl/include/gps/pif_gps.h` | Baseflight `mw.c` (GPS state fields) |
 | `gpl/source/gps/pif_gps_ublox.c`, `gpl/include/gps/pif_gps_ublox.h` | Betaflight / Cleanflight / Baseflight `gps.c` (u-blox NAV decoding); Baseflight `mw.c` |
-| `gpl/source/actuator/motor/pif_dshot.c` | Betaflight `dshot.c`, `dshot_command.c`, `dshot_dpwm.c`, `dshot_bitbang_decode.c` |
 | `gpl/source/display/osd/pif_max7456.c` | Betaflight `max7456.c` |
 | `gpl/source/protocol/pif_msp_v2.c` | Betaflight `msp_serial.c` |
 | `gpl/source/sensor/mag/pif_hmc5883.c` | Baseflight `drv_hmc5883l.c` (also in Cleanflight `compass_hmc5883l.c`; MultiWii lineage) |
@@ -24,6 +23,14 @@ projects. They live under `gpl/` and are distributed under GPL-3.0-or-later.
 
 `pif_gps_nmea` is also placed under `gpl/` because it depends on `pif_gps`, and
 `pif_gy86` because it depends on `pif_hmc5883` and `pif_ms5611`.
+
+`pif_dshot` used to be in this list, as a module derived from Betaflight
+`dshot.c`, `dshot_command.c`, `dshot_dpwm.c` and `dshot_bitbang_decode.c`. It
+was dropped and written again from the DShot, bidirectional DShot and EDT
+protocol - the frame and its crc, the bit and pulse timings, the GCR symbols,
+the eRPM and EDT encodings and the pauses an ESC wants around a command are
+protocol, not code - and now lives under `include/actuator/motor/` and
+`source/actuator/motor/` as BSD-3-Clause.
 
 Upstream projects and copyright holders:
 
