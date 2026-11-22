@@ -22,7 +22,7 @@ Include these directories in your project:
 - `include/`
 - `source/`
 
-Optionally, for the GPL-3.0 modules (GPS, MSPv2 over MSPv1, HMC5883, MS5611, GY-86):
+Optionally, for the GPL-3.0 modules (GPS, MSPv2 over MSPv1):
 
 - `gpl/include/`
 - `gpl/source/`

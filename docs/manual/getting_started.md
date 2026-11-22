@@ -10,7 +10,7 @@ Add these directories to the include path, and the `.c` files under `source/` to
 - `include/`
 - `source/`
 
-The GPL-3.0 modules (GPS, MSPv2 over MSPv1, HMC5883, MS5611, GY-86) are kept apart in
+The GPL-3.0 modules (GPS, MSPv2 over MSPv1) are kept apart in
 `gpl/include/` and `gpl/source/`. Add them only when you accept the GPL-3.0 for your firmware.
 
 Native MSPv2 (`$X` frames) is not one of them: define `PIF_USE_MSP_V2` and the BSD-3-Clause `pif_msp` handles

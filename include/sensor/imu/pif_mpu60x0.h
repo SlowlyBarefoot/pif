@@ -19,6 +19,12 @@
 
 #define MPU60X0_WHO_AM_I_CONST		0x68		///< Value of the WHO_AM_I register
 
+#ifndef PIF_MPU60X0_RESET_DELAY_MS
+/// How long pifMpu60x0I2c_Init() and pifMpu60x0Spi_Init() leave the device after a reset before they read or
+/// write a register. 0 for a platform that waits for the device somewhere else.
+#define PIF_MPU60X0_RESET_DELAY_MS	100
+#endif
+
 
 /**
  * @brief Register addresses, named as in the register map document.

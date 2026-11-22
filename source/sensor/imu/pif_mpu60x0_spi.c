@@ -54,11 +54,11 @@ BOOL pifMpu60x0Spi_Init(PifMpu60x0* p_owner, PifId id, PifSpiPort* p_spi, void *
 	// Initialization runs before there is anything to schedule, so the waits hold the CPU and
 	// nothing is lost by them.
 	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU60X0_REG_PWR_MGMT_1, MPU60X0_DEVICE_RESET(1))) goto fail;
-	pif_Delay1ms(100);
+	pif_Delay1ms(PIF_MPU60X0_RESET_DELAY_MS);
 
 	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU60X0_REG_SIGNAL_PATH_RESET,
 			MPU60X0_GYRO_RESET(1) | MPU60X0_ACCEL_RESET(1) | MPU60X0_TEMP_RESET(1))) goto fail;
-	pif_Delay1ms(100);
+	pif_Delay1ms(PIF_MPU60X0_RESET_DELAY_MS);
 
 	// The reset turns the I2C interface back on. Left on, noise on the bus pins can switch the
 	// chip into I2C mode, so the datasheet asks to disable it when SPI is used.

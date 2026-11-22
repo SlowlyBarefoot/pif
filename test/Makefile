@@ -33,7 +33,7 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_quad_encoder test_pif_sensor test_pif_sensor_modulated test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs test_pif_servo test_pif_servo_cs test_pif_dshot test_pif_dshot_cs \
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_quad_encoder test_pif_sensor test_pif_sensor_modulated test_pif_ms5611 test_pif_hmc5883 test_pif_gy86 test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs test_pif_servo test_pif_servo_cs test_pif_dshot test_pif_dshot_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_graphics test_pif_graphics_nofont test_pif_ssd1306 test_pif_tft_lcd test_pif_max7456 test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
            test_pif_nor_flash test_pif_sd_spi \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
@@ -81,6 +81,27 @@ SENSOR_MODULATED_SRC := sensor/test_pif_sensor_modulated.c \
                         $(ROOT)/source/filter/pif_noise_filter.c \
                         $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
 SENSOR_MODULATED_DEP := $(addprefix $(ROOT)/include/sensor/, pif_sensor_modulated.h pif_sensor_threshold.h)
+# test_pif_ms5611.c includes pif_ms5611.c itself to step a reading along without the scheduler.
+MS5611_SRC := sensor/test_pif_ms5611.c \
+              $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_i2c.c) \
+              $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c \
+                  pif_timer.c pif_timer_manager.c)
+MS5611_DEP := $(ROOT)/source/sensor/baro/pif_ms5611.c $(ROOT)/include/sensor/baro/pif_ms5611.h \
+              sensor/ms5611_emu.h
+HMC5883_SRC := sensor/test_pif_hmc5883.c $(ROOT)/source/sensor/mag/pif_hmc5883.c \
+               $(ROOT)/source/sensor/imu/pif_imu_sensor.c \
+               $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_i2c.c) \
+               $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c)
+HMC5883_DEP := $(ROOT)/include/sensor/mag/pif_hmc5883.h sensor/hmc5883_emu.h
+# The three chips of a GY-86 in memory, the magnetometer behind the auxiliary bus of the MPU-6050.
+GY86_SRC := sensor/test_pif_gy86.c \
+            $(addprefix $(ROOT)/source/sensor/, imu/pif_gy86.c imu/pif_mpu60x0.c imu/pif_mpu60x0_i2c.c \
+                imu/pif_imu_sensor.c mag/pif_hmc5883.c baro/pif_ms5611.c) \
+            $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_i2c.c) \
+            $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_task.c pif_task_manager.c \
+                pif_timer.c pif_timer_manager.c)
+GY86_DEP := $(ROOT)/include/sensor/imu/pif_gy86.h sensor/hmc5883_emu.h sensor/ms5611_emu.h
+
 NOISE_FILTER_SRC := filter/test_pif_noise_filter.c \
                     $(addprefix $(ROOT)/source/filter/, pif_noise_filter.c pif_noise_filter_bit.c pif_noise_filter_int16.c \
                         pif_noise_filter_int32.c) \
@@ -241,7 +262,11 @@ run-test_pif_pulse: run-test_pif_transport_min
 run-test_pif_quad_encoder: run-test_pif_pulse
 run-test_pif_sensor: run-test_pif_quad_encoder
 run-test_pif_sensor_modulated: run-test_pif_sensor
-run-test_pif_noise_filter: run-test_pif_sensor_modulated
+run-test_pif_ms5611: run-test_pif_sensor_modulated
+run-test_pif_hmc5883: run-test_pif_ms5611
+run-test_pif_gy86: run-test_pif_hmc5883
+run-test_pif_noise_filter: run-test_pif_gy86
+
 run-test_pif_task_manager: run-test_pif_noise_filter
 run-test_pif_solenoid: run-test_pif_task_manager
 run-test_pif_solenoid_cs: run-test_pif_solenoid
@@ -357,6 +382,18 @@ $(BUILD)/test_pif_sensor$(EXE): $(SENSOR_SRC) $(SENSOR_DEP) | $(BUILD)
 
 $(BUILD)/test_pif_sensor_modulated$(EXE): $(SENSOR_MODULATED_SRC) $(SENSOR_MODULATED_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(SENSOR_MODULATED_SRC) -o $@
+
+# The wait after the reset of a device is taken out: nothing advances the clock while a host test blocks.
+$(BUILD)/test_pif_ms5611$(EXE): $(MS5611_SRC) $(MS5611_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_MS5611_RESET_DELAY_MS=0 $(INC) $(MS5611_SRC) -o $@
+
+$(BUILD)/test_pif_hmc5883$(EXE): $(HMC5883_SRC) $(HMC5883_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(HMC5883_SRC) -o $@
+
+$(BUILD)/test_pif_gy86$(EXE): $(GY86_SRC) $(GY86_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG -DPIF_MPU60X0_RESET_DELAY_MS=0 -DPIF_GY86_BYPASS_DELAY_MS=0 \
+		-DPIF_MS5611_RESET_DELAY_MS=0 $(INC) $(GY86_SRC) -o $@
+
 
 $(BUILD)/test_pif_noise_filter$(EXE): $(NOISE_FILTER_SRC) $(NOISE_FILTER_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(NOISE_FILTER_SRC) -o $@

@@ -1,12 +1,17 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-// Portions derived from Baseflight barometer_ms5611.c, GPL-3.0-or-later.
-// See THIRD_PARTY_NOTICES.md.
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @file pif_ms5611.h
- * @brief TE MS5611 barometric pressure and temperature sensor on I2C.
+ * @brief TE MS5611-01BA barometric pressure and temperature sensor on I2C.
  *
- * A reading is a temperature and a pressure conversion and the compensation from the PROM calibration. It is
- * carried by a task or a timer, and the pressure in hPa and the temperature in degrees C go to the read event.
+ * The device has no registers: it answers five commands, and a measurement is a conversion that is left to
+ * finish and then read out of the ADC. One reading is therefore the temperature conversion D2, the pressure
+ * conversion D1, and the compensation of the pair with the six coefficients the factory wrote into the PROM.
+ *
+ * The commands, the conversion times, the CRC of the PROM and the compensation are the ones in the datasheet.
+ *
+ * A reading is carried by a task (pifMs5611_AttachTaskForReading()) or by a timer (pifMs5611_AttachTimer() and
+ * pifMs5611_StartBarometric()); neither holds the CPU while the device converts. The pressure in hPa and the
+ * temperature in degrees C go to the read event.
  */
 #ifndef PIF_MS5611_H
 #define PIF_MS5611_H
@@ -19,6 +24,12 @@
 
 
 #define	MS5611_I2C_ADDR(N)		(0x76 + (N))	///< I2C address with CSB high (0) or low (1)
+
+#ifndef PIF_MS5611_RESET_DELAY_MS
+/// How long pifMs5611_Init() leaves the device after the reset for the PROM to be loaded into its internal
+/// register, which the datasheet gives as 2.8ms at most. 0 for a platform that waits for the device elsewhere.
+#define PIF_MS5611_RESET_DELAY_MS	10
+#endif
 
 
 /**
@@ -113,8 +124,9 @@ extern "C" {
 #endif
 
 /**
- * @brief Adds the MS5611 at addr to the I2C port, resets it and reads its calibration PROM, checking the CRC. It
- *        holds the CPU for 100 ms.
+ * @brief Adds the MS5611 at addr to the I2C port, resets it and reads its calibration PROM, checking the eight
+ *        words against the CRC the factory left in the low nibble of the last of them. It holds the CPU for
+ *        PIF_MS5611_RESET_DELAY_MS while the PROM is loaded.
  * @param p_owner Pointer to the owner instance.
  * @param id Instance ID, or PIF_ID_AUTO.
  * @param p_i2c I2C port the device is on.
@@ -150,7 +162,7 @@ BOOL pifMs5611_StartBarometric(PifMs5611* p_owner);
 /**
  * @brief Gives the instance the timer it needs to take a reading on demand without holding the
  *        CPU. The device has no register to ask whether a conversion is over, so the only thing
- *        to do is leave it for the conversion time, which is 2 to 11ms depending on the
+ *        to do is leave it for the conversion time, which is 2 to 10ms depending on the
  *        oversampling rate and happens twice per reading. That wait is left to a timer and the
  *        result arrives through the callback.
  *        The callback runs from the timer process of the task manager, which is the same context
@@ -181,7 +193,7 @@ void pifMs5611_DetachTimer(PifMs5611* p_owner);
  * @param name Name of the task. If NULL, "MS5611" is used.
  * @return TRUE on success, FALSE on failure.
  */
-BOOL pifMs5611_AttachTaskForReading(PifMs5611* p_owner, PifId id, uint16_t read_period, 
+BOOL pifMs5611_AttachTaskForReading(PifMs5611* p_owner, PifId id, uint16_t read_period,
 	PifEvtBaroRead evt_read, BOOL start, const char *name);
 
 #ifdef __cplusplus

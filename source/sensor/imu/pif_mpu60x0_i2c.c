@@ -40,7 +40,7 @@ BOOL pifMpu60x0I2c_Init(PifMpu60x0* p_owner, PifId id, PifI2cPort* p_i2c, uint8_
 	if (!pifDeviceReg_WriteRegByte(p_owner->_p_device, MPU60X0_REG_PWR_MGMT_1, MPU60X0_DEVICE_RESET(1))) goto fail;
 	// The reset needs this long before any register may be read. Initialization runs before there
 	// is anything to schedule, so the wait holds the CPU and nothing is lost by it.
-	pif_Delay1ms(100);
+	pif_Delay1ms(PIF_MPU60X0_RESET_DELAY_MS);
 
 	if (!pifMpu60x0_Config(p_owner, id, p_imu_sensor)) goto fail;
     return TRUE;

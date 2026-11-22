@@ -191,11 +191,25 @@
 // it has.
 //#define PIF_GRAPHICS_NO_DEFAULT_FONT
 
+// -------- pifGy86 ------------------------------
+
+// How long pifGy86_Init() leaves the auxiliary bus of the MPU-6050 after tying it to the host bus before it
+// looks for the magnetometer on it. 0 for a platform where the magnetometer answers at once.
+//#define PIF_GY86_BYPASS_DELAY_MS			10
+
+
 // -------- pifHcSr04 ----------------------------
 
 // How long (us) a measurement may wait for each edge of its echo before it is triggered again.
 // The echo lasts at most about 38ms, which is what the sensor gives when nothing is in range.
 //#define PIF_HC_SR04_ECHO_TIMEOUT_US		60000UL
+
+
+// -------- pifHmc5883 ---------------------------
+
+// How long one measurement of the self test in pifHmc5883_Init() is given to report itself ready before the
+// calibration of the axes gives up. A single measurement takes 6ms.
+//#define PIF_HMC5883_MEASURE_TIMEOUT_MS		50
 
 
 // -------- pifJoystick --------------------------
@@ -250,6 +264,20 @@
 //#define PIF_USE_MODBUS_SLAVE_INPUT_REGISTERS		// Function 4
 //#define PIF_USE_MODBUS_SLAVE_HOLDING_REGISTERS	// Functions 3, 6 and 16
 //#define PIF_USE_MODBUS_SLAVE_READ_WRITE_MULTIPLE	// Function 23, with the holding registers
+
+
+// -------- pifMpu60x0 ---------------------------
+
+// How long pifMpu60x0I2c_Init() and pifMpu60x0Spi_Init() leave the device after a reset before they read or
+// write a register. 0 for a platform that waits for the device somewhere else.
+//#define PIF_MPU60X0_RESET_DELAY_MS			100
+
+
+// -------- pifMs5611 ----------------------------
+
+// How long pifMs5611_Init() leaves the device after the reset for the PROM to be loaded into its internal
+// register, which takes 2.8ms at most. 0 for a platform that waits for the device somewhere else.
+//#define PIF_MS5611_RESET_DELAY_MS			10
 
 
 // -------- pifMsp -------------------------------

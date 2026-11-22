@@ -1,11 +1,11 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-// Portions derived from Baseflight/Cleanflight compass_hmc5883l.c (MultiWii lineage), GPL-3.0-or-later.
-// See THIRD_PARTY_NOTICES.md.
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @file pif_hmc5883.h
  * @brief Honeywell HMC5883L 3-axis magnetometer on I2C, as the magnetometer of a PifImuSensor.
  *
- * The register map below follows the datasheet.
+ * The register map, the bit fields, the gains in LSb per Gauss and the self test below are the ones in the
+ * datasheet. pifHmc5883_Init() runs that self test: it drives the three axes with the bias current the device
+ * has for the purpose and works out from what comes back how far each axis is off its nominal gain.
  */
 #ifndef PIF_HMC5883_H
 #define PIF_HMC5883_H
@@ -16,6 +16,13 @@
 
 
 #define HMC5883_I2C_ADDR			0x1E	///< I2C address
+
+#ifndef PIF_HMC5883_MEASURE_TIMEOUT_MS
+/// How long one measurement of the self test is given to report itself ready before the calibration of the axes
+/// gives up. The datasheet puts a single measurement at 6ms, and a device that takes longer than this is not
+/// measuring at all.
+#define PIF_HMC5883_MEASURE_TIMEOUT_MS	50
+#endif
 
 
 /**
@@ -141,6 +148,16 @@ typedef enum EnPifHmc5883Mode
 /** @} */
 
 
+// Register : STATUS
+
+/** @name HMC5883 STATUS register
+ *  @{
+ */
+#define HMC5883_RDY_MASK			0x01	///< Mask of the RDY field, set once a measurement is there to read
+#define HMC5883_LOCK_MASK			0x02	///< Mask of the LOCK field
+/** @} */
+
+
 /**
  * @class StPifHmc5883
  * @brief HMC5883L magnetometer.
@@ -164,8 +181,8 @@ extern "C" {
 #endif
 
 /**
- * @brief Tells whether an HMC5883L answers on the port, by reading its identification registers through a
- *        temporary device.
+ * @brief Tells whether an HMC5883L answers on the port, by reading "H43" out of its three identification
+ *        registers through a temporary device.
  * @param p_i2c I2C port the device is on.
  * @param p_client Client pointer handed to the port functions of the device.
  * @return TRUE on success, FALSE on failure.
@@ -174,13 +191,16 @@ BOOL pifHmc5883_Detect(PifI2cPort* p_i2c, void *p_client);
 
 /**
  * @brief Adds the HMC5883L to the I2C port, calibrates its axes with the self test bias and registers it as the
- *        magnetometer of an IMU sensor. It holds the CPU for some hundreds of ms.
+ *        magnetometer of an IMU sensor. The self test takes 20 measurements, so it holds the CPU for some
+ *        hundred ms, and it leaves the device measuring continuously.
+ *        A self test that cannot be carried out leaves the scales at 1 rather than failing: the readings are
+ *        then uncorrected, which is what they are on a device without a self test at all.
  * @param p_owner Pointer to the owner instance.
  * @param id Instance ID, or PIF_ID_AUTO.
  * @param p_i2c I2C port the device is on.
  * @param p_client Client pointer handed to the port functions of the device.
  * @param p_imu_sensor IMU sensor the driver registers its sensors with.
- * @return TRUE on success, FALSE on failure.
+ * @return TRUE on success, FALSE when a parameter is wrong or a transfer failed.
  */
 BOOL pifHmc5883_Init(PifHmc5883* p_owner, PifId id, PifI2cPort* p_i2c, void *p_client, PifImuSensor* p_imu_sensor);
 
@@ -192,6 +212,7 @@ void pifHmc5883_Clear(PifHmc5883* p_owner);
 
 /**
  * @brief Sets the gain of the HMC5883L and updates the magnetometer gain of the IMU sensor to it.
+ *        The device keeps the gain it had for one more measurement, as the datasheet says.
  * @param p_owner Pointer to the owner instance.
  * @param gain Gain configuration value.
  * @return TRUE on success, FALSE on failure.
@@ -202,7 +223,7 @@ BOOL pifHmc5883_SetGain(PifHmc5883* p_owner, PifHmc5883Gain gain);
  * @brief Reads the raw values of the 3 axes, scaled by the calibration of the axes.
  * @param p_owner Pointer to the owner instance.
  * @param p_mag Receives the values of the 3 axes.
- * @return TRUE on success, FALSE on failure.
+ * @return TRUE on success, FALSE when there is no measurement to read or the transfer failed.
  */
 BOOL pifHmc5883_ReadMag(PifHmc5883* p_owner, int16_t* p_mag);
 

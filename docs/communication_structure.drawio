@@ -9,7 +9,7 @@
         <mxCell id="c1" value="&lt;b&gt;바이트 스트림 클라이언트&lt;/b&gt;&lt;br&gt;pif_link · pif_xmodem&lt;br&gt;pif_gps_nmea · pif_gps_ublox (gpl)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="560" height="90" as="geometry"/>
         </mxCell>
-        <mxCell id="c2" value="&lt;b&gt;레지스터 클라이언트&lt;/b&gt;&lt;br&gt;센서: bmi270 · bmp280 · dps310 · mpu60x0 · mpu6500 · ads1x1x · qmc5883 · max31855&lt;br&gt;기타: pmlcd_i2c · tsc2046 · storage · (gpl) hmc5883 · ms5611 · gy86 · max7456" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="c2" value="&lt;b&gt;레지스터 클라이언트&lt;/b&gt;&lt;br&gt;센서: bmi270 · bmp280 · dps310 · mpu60x0 · mpu6500 · ads1x1x · qmc5883 · hmc5883 · max31855 · ms5611 · gy86&lt;br&gt;기타: pmlcd_i2c · tsc2046 · storage · max7456" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="660" y="20" width="540" height="90" as="geometry"/>
         </mxCell>
 

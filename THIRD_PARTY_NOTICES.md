@@ -16,12 +16,8 @@ projects. They live under `gpl/` and are distributed under GPL-3.0-or-later.
 | `gpl/include/gps/pif_gps.h` | Baseflight `mw.c` (GPS state fields) |
 | `gpl/source/gps/pif_gps_ublox.c`, `gpl/include/gps/pif_gps_ublox.h` | Betaflight / Cleanflight / Baseflight `gps.c` (u-blox NAV decoding); Baseflight `mw.c` |
 | `gpl/source/protocol/pif_msp_v2.c` | Betaflight `msp_serial.c` |
-| `gpl/source/sensor/mag/pif_hmc5883.c` | Baseflight `drv_hmc5883l.c` (also in Cleanflight `compass_hmc5883l.c`; MultiWii lineage) |
-| `gpl/source/sensor/baro/pif_ms5611.c` | Baseflight `drv_ms5611.c` (PROM CRC check and compensation) |
-| `gpl/source/sensor/imu/pif_gy86.c` | Baseflight `drv_mpu.c` (MPU setup comments) |
 
-`pif_gps_nmea` is also placed under `gpl/` because it depends on `pif_gps`, and
-`pif_gy86` because it depends on `pif_hmc5883` and `pif_ms5611`.
+`pif_gps_nmea` is also placed under `gpl/` because it depends on `pif_gps`.
 
 `pif_max7456` used to be in this list, as a module derived from Betaflight
 `max7456.c`. It was dropped and written again from the MAX7456 datasheet -
@@ -29,6 +25,18 @@ the register map, the bit fields, the addressing of the display and character
 memories, the auto-increment run and the escape that ends it, the brightness
 levels and the waits the chip asks for are the device, not code - and now
 lives under `include/display/osd/` and `source/display/osd/` as BSD-3-Clause.
+
+`pif_hmc5883`, `pif_ms5611` and `pif_gy86` used to be in this list, as modules
+derived from Baseflight `drv_hmc5883l.c`, `drv_ms5611.c` and `drv_mpu.c`. They
+were dropped and written again from the HMC5883L, MS5611-01BA and MPU-6050
+datasheets - the register maps and command sets, the gains in LSb per Gauss,
+the self test with its bias currents and its nominal levels, the CRC-4 of the
+calibration PROM with the example sequence of the datasheet, the conversion
+times, the first and second order compensation, and the auxiliary I2C bus of
+the MPU-6050 with its bypass and its slave registers are the devices, not code
+- and they now live under `include/sensor/` and `source/sensor/` as
+BSD-3-Clause. `pif_gy86` was under `gpl/` only because it depends on the other
+two.
 
 `pif_dshot` used to be in this list, as a module derived from Betaflight
 `dshot.c`, `dshot_command.c`, `dshot_dpwm.c` and `dshot_bitbang_decode.c`. It

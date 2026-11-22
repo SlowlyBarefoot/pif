@@ -1,10 +1,12 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @file pif_gy86.h
  * @brief GY-86 module: MPU-6050, HMC5883L and MS5611 on one I2C bus.
  *
- * Initializes the three sensors from one PifGy86Param. The HMC5883L is on the auxiliary I2C bus of the MPU-6050:
- * it is set up through the bypass, then read by the I2C master of the MPU-6050.
+ * Initializes the three sensors from one PifGy86Param. The HMC5883L sits on the auxiliary I2C bus of the
+ * MPU-6050, not on the bus of the host: the MPU-6050 is first told to tie the two buses together, so that the
+ * magnetometer can be set up as if it were on the host bus, and is then made master of its auxiliary bus and
+ * left reading the six measurement registers of the magnetometer into its own external sensor registers.
  */
 #ifndef PIF_GY86_H
 #define PIF_GY86_H
@@ -15,6 +17,13 @@
 #include "sensor/mag/pif_hmc5883.h"
 #include "sensor/imu/pif_mpu60x0_i2c.h"
 #include "sensor/baro/pif_ms5611.h"
+
+
+#ifndef PIF_GY86_BYPASS_DELAY_MS
+/// How long pifGy86_Init() leaves the auxiliary bus after tying it to the host bus before it looks for the
+/// magnetometer on it. 0 for a platform where the magnetometer is known to answer at once.
+#define PIF_GY86_BYPASS_DELAY_MS	10
+#endif
 
 
 /**
@@ -52,9 +61,6 @@ typedef struct StPifGy86
 	PifMpu60x0 _mpu6050;	///< MPU-6050 gyroscope and accelerometer
 	PifHmc5883 _hmc5883;	///< HMC5883L magnetometer
 	PifMs5611 _ms5611;	///< MS5611 barometer
-
-	// Private Member Variable
-	uint8_t __mag_start_reg;
 } PifGy86;
 
 
@@ -63,7 +69,8 @@ extern "C" {
 #endif
 
 /**
- * @brief Tells whether a GY-86 answers on the port, by detecting its MPU-6050 at the default address.
+ * @brief Tells whether a GY-86 answers on the port, by detecting its MPU-6050 at the default address. The
+ *        magnetometer behind it cannot be reached before the MPU-6050 is set up, so it is not part of this.
  * @param p_i2c I2C port the device is on.
  * @return TRUE on success, FALSE on failure.
  */
@@ -88,9 +95,10 @@ BOOL pifGy86_Init(PifGy86* p_owner, PifId id, PifI2cPort* p_i2c, PifGy86Param* p
 void pifGy86_Clear(PifGy86* p_owner);
 
 /**
- * @brief Reads the magnetometer of the HMC5883L through the auxiliary I2C master of the MPU-6050.
+ * @brief Reads the magnetometer out of the external sensor registers the MPU-6050 keeps it in, scaled by the
+ *        calibration of its axes. It is the read function the IMU sensor gets for the magnetometer.
  * @param p_owner Pointer to the owner instance.
- * @param p_mag Receives the raw values of the 3 axes.
+ * @param p_mag Receives the values of the 3 axes.
  * @return TRUE on success, FALSE on failure.
  */
 BOOL pifGy86_ReadMag(PifGy86* p_owner, int16_t* p_mag);
