@@ -15,7 +15,6 @@ projects. They live under `gpl/` and are distributed under GPL-3.0-or-later.
 | `gpl/source/gps/pif_gps.c` | Betaflight / Cleanflight `gps.c`, `gps_conversion.c`; Baseflight `gps.c` (MultiWii lineage) |
 | `gpl/include/gps/pif_gps.h` | Baseflight `mw.c` (GPS state fields) |
 | `gpl/source/gps/pif_gps_ublox.c`, `gpl/include/gps/pif_gps_ublox.h` | Betaflight / Cleanflight / Baseflight `gps.c` (u-blox NAV decoding); Baseflight `mw.c` |
-| `gpl/source/display/osd/pif_max7456.c` | Betaflight `max7456.c` |
 | `gpl/source/protocol/pif_msp_v2.c` | Betaflight `msp_serial.c` |
 | `gpl/source/sensor/mag/pif_hmc5883.c` | Baseflight `drv_hmc5883l.c` (also in Cleanflight `compass_hmc5883l.c`; MultiWii lineage) |
 | `gpl/source/sensor/baro/pif_ms5611.c` | Baseflight `drv_ms5611.c` (PROM CRC check and compensation) |
@@ -23,6 +22,13 @@ projects. They live under `gpl/` and are distributed under GPL-3.0-or-later.
 
 `pif_gps_nmea` is also placed under `gpl/` because it depends on `pif_gps`, and
 `pif_gy86` because it depends on `pif_hmc5883` and `pif_ms5611`.
+
+`pif_max7456` used to be in this list, as a module derived from Betaflight
+`max7456.c`. It was dropped and written again from the MAX7456 datasheet -
+the register map, the bit fields, the addressing of the display and character
+memories, the auto-increment run and the escape that ends it, the brightness
+levels and the waits the chip asks for are the device, not code - and now
+lives under `include/display/osd/` and `source/display/osd/` as BSD-3-Clause.
 
 `pif_dshot` used to be in this list, as a module derived from Betaflight
 `dshot.c`, `dshot_command.c`, `dshot_dpwm.c` and `dshot_bitbang_decode.c`. It
