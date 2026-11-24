@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @file pif_gps_nmea.h
  * @brief NMEA GPS receiver over a PifTransport, feeding a PifGps.
@@ -32,16 +32,16 @@ extern "C" {
 /**
  * @brief Initializes an NMEA GPS wrapper instance.
  * @param p_owner Pointer to the wrapper instance to initialize.
- * @param usPifId Requested object ID. Use `PIF_ID_AUTO` for automatic allocation.
+ * @param id Requested object ID. Use `PIF_ID_AUTO` for automatic allocation.
  * @return `TRUE` if initialization succeeds, otherwise `FALSE`.
  */
-BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId usPifId);
+BOOL pifGpsNmea_Init(PifGpsNmea *p_owner, PifId id);
 
 /**
  * @brief Detaches the transport and clears resources owned by the NMEA wrapper.
  * @param p_owner Pointer to the wrapper instance.
  */
-void pifGpsNmea_Clear(PifGpsNmea* p_owner);
+void pifGpsNmea_Clear(PifGpsNmea *p_owner);
 
 /**
  * @brief Attaches the wrapper to the transport the receiver sends through, as its only client, and starts

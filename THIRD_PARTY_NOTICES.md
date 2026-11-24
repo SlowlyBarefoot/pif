@@ -7,17 +7,25 @@ Full license texts are in `LICENSES/`.
 
 ## GPL-3.0-or-later code (`gpl/`)
 
-The following modules contain code derived from GPL-3.0 flight controller
-projects. They live under `gpl/` and are distributed under GPL-3.0-or-later.
+The module below contains code derived from a GPL-3.0 flight controller
+project. It lives under `gpl/` and is distributed under GPL-3.0-or-later.
 
 | File | Derived from |
 | --- | --- |
-| `gpl/source/gps/pif_gps.c` | Betaflight / Cleanflight `gps.c`, `gps_conversion.c`; Baseflight `gps.c` (MultiWii lineage) |
-| `gpl/include/gps/pif_gps.h` | Baseflight `mw.c` (GPS state fields) |
-| `gpl/source/gps/pif_gps_ublox.c`, `gpl/include/gps/pif_gps_ublox.h` | Betaflight / Cleanflight / Baseflight `gps.c` (u-blox NAV decoding); Baseflight `mw.c` |
 | `gpl/source/protocol/pif_msp_v2.c` | Betaflight `msp_serial.c` |
 
-`pif_gps_nmea` is also placed under `gpl/` because it depends on `pif_gps`.
+`pif_gps`, `pif_gps_nmea` and `pif_gps_ublox` used to be in this list, as modules
+derived from Betaflight / Cleanflight / Baseflight `gps.c` and
+`gps_conversion.c` and from Baseflight `mw.c`. They were dropped and written
+again from NMEA 0183 and from the u-blox UBX protocol specification - the
+layout of a sentence with its comma separated fields and its exclusive or
+checksum, the field tables of GGA, GLL, GNS, GSV, RMC, TXT, VTG and ZDA, the
+`ddmm.mmmm` of a coordinate and the 1852 m of a nautical mile, the UBX frame
+with its two sync characters and its 8 bit Fletcher checksum, the class and
+message IDs, and the field tables of NAV-POSLLH, NAV-PVT, NAV-SOL, NAV-STATUS,
+NAV-SVINFO, NAV-TIMEUTC and NAV-VELNED are the protocols, not code - and they
+now live under `include/gps/` and `source/gps/` as BSD-3-Clause. `pif_gps_nmea`
+was under `gpl/` only because it depends on `pif_gps`.
 
 `pif_max7456` used to be in this list, as a module derived from Betaflight
 `max7456.c`. It was dropped and written again from the MAX7456 datasheet -

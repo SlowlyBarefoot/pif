@@ -162,9 +162,13 @@
 
 // -------- pifGps -------------------------------
 
+// Longest field of an NMEA sentence. A field is kept up to three characters short of this, which
+// leaves room for the separator and the terminator that evt_frame hands over.
 //#define PIF_GPS_NMEA_VALUE_SIZE			64
 //#define PIF_GPS_NMEA_TEXT_SIZE			64
 
+// Most satellites kept in the satellite view, which the NMEA GSV sentences and UBX NAV-SVINFO
+// both fill.
 //#define PIF_GPS_SV_MAXSATS				16
 
 

@@ -1,4 +1,6 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
+#include <string.h>
+
 #include "gps/pif_gps_nmea.h"
 
 
@@ -21,7 +23,7 @@ static BOOL _evtParsing(void *p_client, PifActTransportReceive act_receive)
 	return rtn;
 }
 
-BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId id)
+BOOL pifGpsNmea_Init(PifGpsNmea *p_owner, PifId id)
 {
 	if (!p_owner) {
 		pif_error = E_INVALID_PARAM;
@@ -30,15 +32,10 @@ BOOL pifGpsNmea_Init(PifGpsNmea* p_owner, PifId id)
 
 	memset(p_owner, 0, sizeof(PifGpsNmea));
 
-    if (!pifGps_Init(&p_owner->_gps, id)) goto fail;
-    return TRUE;
-
-fail:
-	pifGpsNmea_Clear(p_owner);
-    return FALSE;
+    return pifGps_Init(&p_owner->_gps, id);
 }
 
-void pifGpsNmea_Clear(PifGpsNmea* p_owner)
+void pifGpsNmea_Clear(PifGpsNmea *p_owner)
 {
 	pifGpsNmea_DetachTransport(p_owner);
 	pifGps_Clear(&p_owner->_gps);

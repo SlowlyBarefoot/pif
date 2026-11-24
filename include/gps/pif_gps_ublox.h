@@ -1,12 +1,20 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-// Portions derived from Betaflight/Cleanflight gps.c (u-blox NAV decoding), GPL-3.0-or-later.
-// See THIRD_PARTY_NOTICES.md.
+// SPDX-License-Identifier: BSD-3-Clause
 /**
  * @file pif_gps_ublox.h
  * @brief u-blox GPS receiver over a PifTransport: UBX and NMEA input, UBX commands and configuration.
  *
- * Decodes the UBX NAV messages into the PifGps of _gps, passes NMEA to the PifGps parser, and sends UBX commands
- * with their ACK checked. Other bytes go to evt_other_packet.
+ * Decodes the UBX NAV messages into the PifGps of _gps, passes everything that is not UBX to the PifGps
+ * NMEA parser, and sends UBX commands with their ACK checked, so one driver takes a receiver however it
+ * is set to talk.
+ *
+ * A UBX packet is the two sync characters 0xB5 0x62, the class, the message ID, the payload length as two
+ * bytes least significant first, the payload, and the two checksum bytes. The checksum is the 8 bit
+ * Fletcher of RFC 1145 over the bytes from the class to the end of the payload: CK_A is the sum of them
+ * and CK_B the sum of every CK_A along the way, both modulo 256.
+ *
+ * The payload structures below are the field tables of the protocol laid out as C structures, so the
+ * payload is read in place. That holds on a little endian machine whose compiler packs them as the
+ * protocol does, which is every target PIF runs on; the parser itself makes no such assumption.
  */
 #ifndef PIF_GPS_UBLOX_H
 #define PIF_GPS_UBLOX_H
@@ -37,23 +45,23 @@
  */
 typedef enum EnPifGpsUbxClassId
 {
-	GUCI_ACK		= 0x05,
-	GUCI_AID		= 0x0B,
-	GUCI_CFG		= 0x06,
-	GUCI_ESF		= 0x10,
-	GUCI_HNR		= 0x28,
-	GUCI_INF		= 0x04,
-	GUCI_LOG		= 0x21,
-	GUCI_MGA		= 0x13,
-	GUCI_MON		= 0x0A,
 	GUCI_NAV		= 0x01,
 	GUCI_RXM		= 0x02,
-	GUCI_SEC		= 0x27,
-	GUCI_TIM		= 0x0F,
+	GUCI_INF		= 0x04,
+	GUCI_ACK		= 0x05,
+	GUCI_CFG		= 0x06,
 	GUCI_UPD		= 0x09,
+	GUCI_MON		= 0x0A,
+	GUCI_AID		= 0x0B,
+	GUCI_TIM		= 0x0D,
+	GUCI_ESF		= 0x10,
+	GUCI_MGA		= 0x13,
+	GUCI_LOG		= 0x21,
+	GUCI_SEC		= 0x27,
+	GUCI_HNR		= 0x28,
 
-	GUCI_NMEA_PUBX	= 0xF1,
 	GUCI_NMEA_STD	= 0xF0,
+	GUCI_NMEA_PUBX	= 0xF1,
 } PifGpsUbxClassId;
 
 /**
@@ -75,7 +83,6 @@ typedef enum EnPifGpsUbxMessageId
 	GUMI_CFG_CFG			= 0x09,
 	GUMI_CFG_DAT			= 0x06,
 	GUMI_CFG_DGNSS			= 0x70,
-	GUMI_CFG_DISC			= 0x61,
 	GUMI_CFG_ESFALG			= 0x56,
 	GUMI_CFG_ESFA			= 0x4C,
 	GUMI_CFG_ESFG			= 0x4D,
@@ -132,14 +139,14 @@ typedef enum EnPifGpsUbxMessageId
 	GUMI_LOG_ERASE			= 0x03,
 	GUMI_LOG_FINDTIME		= 0x0E,
 	GUMI_LOG_INFO			= 0x08,
-	GUMI_LOG_RETRIEVEBA_	= 0x10,
-	GUMI_LOG_RETRIEVEPO_	= 0x0F,
+	GUMI_LOG_RETRIEVEBATCH	= 0x10,
+	GUMI_LOG_RETRIEVEPOSEXTRA	= 0x0F,
 	GUMI_LOG_RETRIEVEPOS	= 0x0B,
-	GUMI_LOG_RETRIEVEST_	= 0x0D,
+	GUMI_LOG_RETRIEVESTRING	= 0x0D,
 	GUMI_LOG_RETRIEVE		= 0x09,
 	GUMI_LOG_STRING			= 0x04,
 
-	GUMI_MGA_ACK_DATAO		= 0x60,
+	GUMI_MGA_ACK_DATA0		= 0x60,
 	GUMI_MGA_ANO			= 0x76,
 	GUMI_MGA_BDS			= 0x03,
 	GUMI_MGA_DBD			= 0x80,
@@ -196,7 +203,7 @@ typedef enum EnPifGpsUbxMessageId
 	GUMI_NAV_TIMEGPS		= 0x20,
 	GUMI_NAV_TIMELS			= 0x26,
 	GUMI_NAV_TIMEUTC		= 0x21,
-	GUMI_NAV_VELEVEF		= 0x11,
+	GUMI_NAV_VELECEF		= 0x11,
 	GUMI_NAV_VELNED			= 0x12,
 
 	GUMI_RXM_IMES			= 0x61,
@@ -251,20 +258,19 @@ typedef enum EnPifGpsUbxMessageId
 } PifGpsUbxMessageId;
 
 /**
- * @brief Receive state of the UBX parser.
+ * @brief Receive state of the UBX parser, one field of the packet at a time.
  */
 typedef enum EnPifGpsUbxRxState
 {
-	GURS_SYNC_CHAR_1	= 0,	///< Waiting for 0xB5
-	GURS_SYNC_CHAR_2	= 1,	///< Waiting for 0x62
-	GURS_CLASS			= 2,	///< Class
-	GURS_ID				= 3,	///< Message ID
-	GURS_LENGTH_LOW		= 4,	///< Length, low byte
-	GURS_LENGTH_HIGH	= 5,	///< Length, high byte
-	GURS_PAYLOAD		= 6,	///< Payload
-	GURS_CK_A			= 7,	///< Checksum A
-	GURS_CK_B			= 8,	///< Checksum B
-	GURS_DONE			= 9	///< A packet is complete
+	GURX_SYNC_CHAR_1	= 0,	///< Waiting for 0xB5. Anything else goes to the NMEA parser.
+	GURX_SYNC_CHAR_2	= 1,	///< Waiting for 0x62
+	GURX_CLASS			= 2,	///< Class
+	GURX_ID				= 3,	///< Message ID
+	GURX_LENGTH_LOW		= 4,	///< Length, low byte
+	GURX_LENGTH_HIGH	= 5,	///< Length, high byte
+	GURX_PAYLOAD		= 6,	///< Payload
+	GURX_CK_A			= 7,	///< Checksum A
+	GURX_CK_B			= 8		///< Checksum B
 } PifGpsUbxRxState;
 
 /**
@@ -273,9 +279,7 @@ typedef enum EnPifGpsUbxRxState
 typedef enum EnPifGpsUbxTxState
 {
 	GUTS_IDLE			= 0,	///< Nothing being sent
-	GUTS_SENDING		= 1,	///< Handing the command to the transport
-	GUTS_WAIT_SENDED	= 2,	///< Handed over, then dropped or kept for its answer
-	GUTS_WAIT_RESPONSE	= 3	///< Waiting for ACK or NAK
+	GUTS_SENDING		= 1		///< Handing a message to the transport
 } PifGpsUbxTxState;
 
 /**
@@ -319,20 +323,20 @@ typedef struct {
  * @brief Payload of NAV-PVT: navigation position, velocity and time.
  */
 typedef struct {
-	uint32_t i_tow;			///< 1ms, GPS time of week of the navigation epoch
+	uint32_t i_tow;			///< ms, GPS time of week of the navigation epoch
 	uint16_t year;			///< Year (UTC)
 	uint8_t month;			///< Month, range 1..12 (UTC)
 	uint8_t day;			///< Day of month, range 1..31 (UTC)
 	uint8_t hour;			///< Hour of day, range 0..23 (UTC)
 	uint8_t min;			///< Minute of hour, range 0..59 (UTC)
 	uint8_t sec;			///< Seconds of minute, range 0..60 (UTC)
-	uint8_t valid;			///< Validity flags (see graphic below)
-	uint32_t t_acc;			///< ms, Time accuracy estimate (UTC)
+	uint8_t valid;			///< Validity flags
+	uint32_t t_acc;			///< ns, Time accuracy estimate (UTC)
 	int32_t nano;			///< ns, Fraction of second, range -1e9 .. 1e9 (UTC)
-	uint8_t fix_type;		///< GNSSfix Type:
+	uint8_t fix_type;		///< GNSS fix type: 0 none, 1 dead reckoning, 2 2D, 3 3D, 4 GNSS + dead reckoning, 5 time only
 	uint8_t flags;			///< Fix status flags
 	uint8_t flags2;			///< Additional flags
-	uint8_t num_sv;			///< Number of satellites used in Nav Solution
+	uint8_t num_sv;			///< Number of satellites used in the navigation solution
 	int32_t lon;			///< 1e-7 deg, Longitude
 	int32_t lat;			///< 1e-7 deg, Latitude
 	int32_t height;			///< mm, Height above ellipsoid
@@ -342,16 +346,16 @@ typedef struct {
 	int32_t val_n;			///< mm/s, NED north velocity
 	int32_t val_e;			///< mm/s, NED east velocity
 	int32_t val_d;			///< mm/s, NED down velocity
-	int32_t g_speed;		///< mm/s, Ground Speed (2-D)
+	int32_t g_speed;		///< mm/s, Ground speed (2-D)
 	int32_t head_mot;		///< 1e-5 deg, Heading of motion (2-D)
 	uint32_t s_acc;			///< mm/s, Speed accuracy estimate
 	uint32_t head_acc;		///< 1e-5 deg, Heading accuracy estimate (both motion and vehicle)
 	uint16_t p_dop;			///< 0.01, Position DOP
 	uint16_t flag3;			///< Additional flags
 	uint32_t reserved1;		///< Reserved
-	int32_t head_veh;		///< 1e-5 deg, Heading of vehicle (2-D), this is only valid when headVehValid is set, otherwise the output is set to the heading of motion
-	int16_t mag_dec;		///< 1e-2 deg, Magnetic declination. Only supported in ADR 4.10 and later.
-	uint16_t mag_acc;		///< 1e-2 deg, Magnetic declination accuracy. Only supported in ADR 4.10 and later.
+	int32_t head_veh;		///< 1e-5 deg, Heading of vehicle (2-D), valid only with headVehValid set, else the heading of motion
+	int16_t mag_dec;		///< 1e-2 deg, Magnetic declination. ADR 4.10 and later only.
+	uint16_t mag_acc;		///< 1e-2 deg, Magnetic declination accuracy. ADR 4.10 and later only.
 } PifGpsUbxNavPvt;
 
 /**
@@ -359,21 +363,21 @@ typedef struct {
  */
 typedef struct {
     uint32_t i_tow;			///< ms, GPS time of week of the navigation epoch
-    int32_t f_tow;			///< ns, Fractional part of iTOW (range: +/-500000).
+    int32_t f_tow;			///< ns, Fractional part of iTOW, range +/-500000
     int16_t week;			///< GPS week number of the navigation epoch
-    uint8_t gps_fix;		///< GPSfix Type, range 0..5
-    uint8_t flags;			///< Fix Status Flags
+    uint8_t gps_fix;		///< GPS fix type, range 0..5
+    uint8_t flags;			///< Fix status flags
     int32_t ecef_x;			///< cm, ECEF X coordinate
     int32_t ecef_y;			///< cm, ECEF Y coordinate
     int32_t ecef_z;			///< cm, ECEF Z coordinate
-    uint32_t p_acc;			///< cm, 3D Position Accuracy Estimate
+    uint32_t p_acc;			///< cm, 3D position accuracy estimate
     int32_t ecef_vx;		///< cm/s, ECEF X velocity
     int32_t ecef_vy;		///< cm/s, ECEF Y velocity
     int32_t ecef_vz;		///< cm/s, ECEF Z velocity
-    uint32_t s_acc;			///< cm/s, Speed Accuracy Estimate
+    uint32_t s_acc;			///< cm/s, Speed accuracy estimate
     uint16_t p_dop;			///< 0.01, Position DOP
     uint8_t reserved1;		///< Reserved
-    uint8_t num_sv;			///< Number of SVs used in Nav Solution
+    uint8_t num_sv;			///< Number of satellites used in the navigation solution
     uint32_t reserved2;		///< Reserved
 } PifGpsUbxNavSol;
 
@@ -382,26 +386,26 @@ typedef struct {
  */
 typedef struct {
     uint32_t i_tow;			///< ms, GPS time of week of the navigation epoch
-    uint8_t gps_fix;		///< GPSfix Type, this value does not qualify a fix as valid and within the limits.
-    uint8_t flags;			///< Navigation Status Flags
-    uint8_t fix_stat;		///< Fix Status Information
-    uint8_t flags2;			///< further information about navigation output
-    uint32_t ttff;			///< ms, Time to first fix (millisecond time tag)
-    uint32_t uptime;		///< ms, Milliseconds since Startup / Reset
+    uint8_t gps_fix;		///< GPS fix type. It does not say the fix is valid and within the limits.
+    uint8_t flags;			///< Navigation status flags
+    uint8_t fix_stat;		///< Fix status information
+    uint8_t flags2;			///< Further information about the navigation output
+    uint32_t ttff;			///< ms, Time to first fix
+    uint32_t uptime;		///< ms, Milliseconds since startup or reset
 } PifGpsUbxNavStatus;
 
 /**
  * @brief One channel of NAV-SVINFO.
  */
 typedef struct {
-    uint8_t chn;            ///< Channel number, 255 for SVx not assigned to channel
+    uint8_t chn;            ///< Channel number, 255 for a satellite not assigned to a channel
     uint8_t svid;           ///< Satellite ID
-    uint8_t flags;          ///< Bitmask
-    uint8_t quality;        ///< Bitfield
-    uint8_t cno;            ///< dBHz, Carrier to Noise Ratio (Signal Strength)
-    int8_t elev;            ///< deg, Elevation in integer degrees
-    int16_t azim;           ///< deg, Azimuth in integer degrees
-    int32_t pr_res;         ///< cm, Pseudo range residual in centimetres
+    uint8_t flags;          ///< Bit mask
+    uint8_t quality;        ///< Quality bit field
+    uint8_t cno;            ///< dBHz, Carrier to noise ratio (signal strength)
+    int8_t elev;            ///< deg, Elevation in whole degrees
+    int16_t azim;           ///< deg, Azimuth in whole degrees
+    int32_t pr_res;         ///< cm, Pseudo range residual
 } PifGpsUbxNavSvInfoChannel;
 
 /**
@@ -410,9 +414,9 @@ typedef struct {
 typedef struct {
     uint32_t i_tow;         ///< ms, GPS time of week of the navigation epoch
     uint8_t num_ch;         ///< Number of channels
-    uint8_t global_flags;   ///< Bitmask, Chip hardware generation 0:Antaris, 1:u-blox 5, 2:u-blox 6
+    uint8_t global_flags;   ///< Bit mask. Chip hardware generation: 0 Antaris, 1 u-blox 5, 2 u-blox 6
     uint16_t reserved1;		///< Reserved
-    PifGpsUbxNavSvInfoChannel channel[32];	///< 16 satellites * 12 byte
+    PifGpsUbxNavSvInfoChannel channel[32];	///< Every channel the receiver may report, 12 bytes each
 } PifGpsUbxNavSvInfo;
 
 /**
@@ -428,7 +432,7 @@ typedef struct {
     uint8_t hour;			///< Hour of day, range 0..23 (UTC)
     uint8_t min;			///< Minute of hour, range 0..59 (UTC)
     uint8_t sec;			///< Seconds of minute, range 0..60 (UTC)
-    uint8_t valid;			///< Validity Flags
+    uint8_t valid;			///< Validity flags. Bit 2 is the UTC date and time being valid.
 } PifGpsUbxNavTimeUtc;
 
 /**
@@ -441,30 +445,30 @@ typedef struct {
     int32_t val_d;			///< cm/s, Down velocity component
     uint32_t speed;			///< cm/s, Speed (3-D)
     uint32_t g_speed;		///< cm/s, Ground speed (2-D)
-    int32_t heading;		///< 1e-5 deg, Heading of motion 2-D
-    uint32_t s_acc;			///< cm/s, Speed accuracy Estimate
-    uint32_t c_acc;			///< 1e-5 deg, Course / Heading accuracy estimate
+    int32_t heading;		///< 1e-5 deg, Heading of motion (2-D)
+    uint32_t s_acc;			///< cm/s, Speed accuracy estimate
+    uint32_t c_acc;			///< 1e-5 deg, Course and heading accuracy estimate
 } PifGpsUbxNavVelned;
 
 /**
  * @class StPifGpsUbxPacket
- * @brief Generic UBX packet container used for parsed class/message payload access.
+ * @brief One UBX packet: its class, its message ID and its payload by message.
  */
 typedef struct StPifGpsUbxPacket
 {
-	uint8_t class_id;	///< Class of the message
-	uint8_t msg_id;	///< ID of the message
-	uint16_t length;	///< Payload length in bytes
+	uint8_t class_id;									///< Class of the message
+	uint8_t msg_id;										///< ID of the message
+	uint16_t length;									///< Payload length in bytes
 	union {
-	    PifGpsUbxNavPosllh posllh;	///< NAV-POSLLH
-	    PifGpsUbxNavPvt pvt;	///< NAV-PVT
-	    PifGpsUbxNavSol sol;	///< NAV-SOL
-	    PifGpsUbxNavStatus status;	///< NAV-STATUS
-	    PifGpsUbxNavSvInfo sv_info;	///< NAV-SVINFO
-	    PifGpsUbxNavTimeUtc time_utc;	///< NAV-TIMEUTC
-		PifGpsUbxNavVelned velned;	///< NAV-VELNED
+	    PifGpsUbxNavPosllh posllh;						///< NAV-POSLLH
+	    PifGpsUbxNavPvt pvt;							///< NAV-PVT
+	    PifGpsUbxNavSol sol;							///< NAV-SOL
+	    PifGpsUbxNavStatus status;						///< NAV-STATUS
+	    PifGpsUbxNavSvInfo sv_info;						///< NAV-SVINFO
+	    PifGpsUbxNavTimeUtc time_utc;					///< NAV-TIMEUTC
+		PifGpsUbxNavVelned velned;						///< NAV-VELNED
 	    uint8_t bytes[PIF_GPS_UBLOX_RX_PAYLOAD_SIZE];	///< Raw payload
-	} payload;	///< Payload, by message
+	} payload;											///< Payload, by message
 } PifGpsUbxPacket;
 
 
@@ -476,19 +480,12 @@ typedef struct StPifGpsUblox PifGpsUblox;
  *
  * Returns TRUE to have the evt_receive of the PifGps called for it.
  */
-typedef BOOL (*PifEvtGpsUbxReceive)(PifGpsUblox* p_owner, PifGpsUbxPacket* p_packet);
-/**
- * @brief Reports an error of the instance id. Not called by the driver itself.
- */
-typedef void (*PifEvtGpsUbloxError)(PifId id);
-/**
- * @brief Gets a byte that is neither UBX nor NMEA.
- */
-typedef void (*PifEvtGpsUbloxOtherPacket)(PifGpsUblox* p_owner, uint8_t data);
+typedef BOOL (*PifEvtGpsUbxReceive)(PifGpsUblox *p_owner, PifGpsUbxPacket *p_packet);
+
 /**
  * @brief Reports a UBX packet that was lost.
  */
-typedef void (*PifEvtGpsUbxError)(PifGpsUblox* p_owner, PifGpsUbxError error);
+typedef void (*PifEvtGpsUbxError)(PifGpsUblox *p_owner, PifGpsUbxError error);
 
 /**
  * @brief Receive side state of the UBX parser.
@@ -498,25 +495,19 @@ typedef struct StPifGpsUbxRx
 	PifGpsUbxRxState state;	///< Parser state
 	uint16_t payload_count;	///< Payload bytes received so far
 	PifGpsUbxPacket packet;	///< Packet being received
-	uint16_t checksum;	///< Checksum calculated so far
+	uint8_t ck_a, ck_b;		///< Checksum of the bytes taken in so far
 } PifGpsUbxRx;
 
 /**
- * @brief Transmit side state.
+ * @brief Transmit side state. The buffer holds every message waiting to be sent, each its length as a
+ *        uint16_t and then its bytes.
  */
 typedef struct StPifGpsUbloxTx
 {
-    PifRingBuffer buffer;	///< Commands waiting to be sent
+    PifRingBuffer buffer;				///< Messages waiting to be sent
     volatile PifGpsUbxTxState state;	///< Transmit state
-	union {
-		uint8_t info[4];	///< Entry header of the command being sent, as bytes
-		struct {
-			uint8_t length;	///< Bytes of the command after the 4 byte entry header
-			uint8_t response;	///< Whether the receiver answers it
-			uint16_t command;	///< Class and message ID of the command
-		} st;	///< Header of the command being sent
-	} ui;	///< Header of the command being sent
-	uint8_t pos;	///< Bytes of the command sent so far
+	uint16_t length;					///< Bytes of the message being sent
+	uint16_t pos;						///< Bytes of its entry handed to the transport so far, its length field included
 } PifGpsUbloxTx;
 
 /**
@@ -530,18 +521,11 @@ struct StPifGpsUblox
 
     // Public Event Function
 	PifEvtGpsUbxReceive evt_ubx_receive;	///< May be NULL
-	PifEvtGpsUbloxOtherPacket evt_other_packet;	///< May be NULL
 	PifEvtGpsUbxError evt_ubx_error;		///< A packet was lost: called for every framing or checksum error
 
 	// Read-only Member Variable
-    PifGps _gps;					///< GPS data. Use &_gps with the pifGps functions.
+    PifGps _gps;									///< GPS data, the satellite view of NAV-SVINFO included. Use &_gps with the pifGps functions.
     volatile PifGpsUbxRequestState _request_state;	///< Result of the last command sent with a response
-	uint8_t _num_ch;                ///< Number of channels
-	uint8_t _svinfo_chn[16];        ///< Channel number
-	uint8_t _svinfo_svid[16];       ///< Satellite ID
-	uint8_t _svinfo_quality[16];	///< Bitfield Qualtity
-	uint8_t _svinfo_cno[16];        ///< Carrier to Noise Ratio (Signal Strength)
-	uint32_t _svinfo_rate[2];       ///< GPS svinfo updating rate (column 0 = last update time, 1 = current update ms)
 
 	// Private Member Variable
 	PifTransport *__p_transport;
@@ -565,13 +549,13 @@ extern "C" {
  * @param id Requested object ID. Use `PIF_ID_AUTO` for automatic allocation.
  * @return `TRUE` on success, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_Init(PifGpsUblox* p_owner, PifId id);
+BOOL pifGpsUblox_Init(PifGpsUblox *p_owner, PifId id);
 
 /**
  * @brief Clears internal resources used by the u-blox wrapper.
  * @param p_owner Pointer to the wrapper instance.
  */
-void pifGpsUblox_Clear(PifGpsUblox* p_owner);
+void pifGpsUblox_Clear(PifGpsUblox *p_owner);
 
 /**
  * @brief Attaches the wrapper to the transport the receiver is on, as its only client, for UBX/NMEA
@@ -596,7 +580,7 @@ void pifGpsUblox_DetachTransport(PifGpsUblox *p_owner);
  * @param data One received byte.
  * @return `TRUE` when the byte completed a valid UBX packet, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_ParsingPacket(PifGpsUblox* p_owner, uint8_t data);
+BOOL pifGpsUblox_ParsingPacket(PifGpsUblox *p_owner, uint8_t data);
 
 /**
  * @brief Reports how far the request that is on its way has got. Every request function returns
@@ -609,7 +593,7 @@ BOOL pifGpsUblox_ParsingPacket(PifGpsUblox* p_owner, uint8_t data);
  * @param p_owner Pointer to the wrapper instance.
  * @return The state of the request: GURS_SEND while it is still on its way.
  */
-PifGpsUbxRequestState pifGpsUblox_CheckRequest(PifGpsUblox* p_owner);
+PifGpsUbxRequestState pifGpsUblox_CheckRequest(PifGpsUblox *p_owner);
 
 /**
  * @brief Sends an NMEA `$GBGBQ` poll request for a specific message ID.
@@ -618,7 +602,7 @@ PifGpsUbxRequestState pifGpsUblox_CheckRequest(PifGpsUblox* p_owner);
  * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the request is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox* p_owner, const char* p_mag_id, uint16_t waiting);
+BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox *p_owner, const char *p_mag_id, uint16_t waiting);
 
 /**
  * @brief Sends an NMEA `$GLGLQ` poll request for a specific message ID.
@@ -627,7 +611,7 @@ BOOL pifGpsUblox_PollRequestGBQ(PifGpsUblox* p_owner, const char* p_mag_id, uint
  * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the request is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox* p_owner, const char* p_mag_id, uint16_t waiting);
+BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox *p_owner, const char *p_mag_id, uint16_t waiting);
 
 /**
  * @brief Sends an NMEA `$GNGNQ` poll request for a specific message ID.
@@ -636,7 +620,7 @@ BOOL pifGpsUblox_PollRequestGLQ(PifGpsUblox* p_owner, const char* p_mag_id, uint
  * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the request is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox* p_owner, const char* p_mag_id, uint16_t waiting);
+BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox *p_owner, const char *p_mag_id, uint16_t waiting);
 
 /**
  * @brief Sends an NMEA `$GPGPQ` poll request for a specific message ID.
@@ -645,7 +629,7 @@ BOOL pifGpsUblox_PollRequestGNQ(PifGpsUblox* p_owner, const char* p_mag_id, uint
  * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the request is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, uint16_t waiting);
+BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox *p_owner, const char *p_mag_id, uint16_t waiting);
 
 /**
  * @brief Sends a `$PUBX,41` command to configure u-blox serial interface settings.
@@ -657,7 +641,7 @@ BOOL pifGpsUblox_PollRequestGPQ(PifGpsUblox* p_owner, const char* p_mag_id, uint
  * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the command is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t in_proto, uint16_t out_proto, uint32_t baudrate, uint16_t waiting);
+BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox *p_owner, uint8_t port_id, uint16_t in_proto, uint16_t out_proto, uint32_t baudrate, uint16_t waiting);
 
 /**
  * @brief Sends a `$PUBX,40` command to configure output rates for an NMEA message.
@@ -671,7 +655,7 @@ BOOL pifGpsUblox_SetPubxConfig(PifGpsUblox* p_owner, uint8_t port_id, uint16_t i
  * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the command is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t rddc, uint8_t rus1, uint8_t rus2, uint8_t rusb, uint8_t rspi, uint16_t waiting);
+BOOL pifGpsUblox_SetPubxRate(PifGpsUblox *p_owner, const char *p_mag_id, uint8_t rddc, uint8_t rus1, uint8_t rus2, uint8_t rusb, uint8_t rspi, uint16_t waiting);
 
 /**
  * @brief Builds and sends a raw UBX packet.
@@ -683,7 +667,7 @@ BOOL pifGpsUblox_SetPubxRate(PifGpsUblox* p_owner, const char* p_mag_id, uint8_t
  * @param waiting How long the request may take before it counts as timed out, in milliseconds.
  * @return `TRUE` if the packet is queued or sent successfully, otherwise `FALSE`.
  */
-BOOL pifGpsUblox_SendUbxMsg(PifGpsUblox* p_owner, uint8_t class_id, uint8_t msg_id, uint16_t length, uint8_t* payload, uint16_t waiting);
+BOOL pifGpsUblox_SendUbxMsg(PifGpsUblox *p_owner, uint8_t class_id, uint8_t msg_id, uint16_t length, uint8_t *payload, uint16_t waiting);
 
 #ifdef __cplusplus
 }

@@ -22,7 +22,7 @@ Include these directories in your project:
 - `include/`
 - `source/`
 
-Optionally, for the GPL-3.0 modules (GPS, MSPv2 over MSPv1):
+Optionally, for the GPL-3.0 module (MSPv2 over MSPv1):
 
 - `gpl/include/`
 - `gpl/source/`
@@ -312,7 +312,7 @@ Every source file starts with an `SPDX-License-Identifier` line. Files under `in
 - To keep your firmware under BSD-3-Clause terms only, leave `gpl/include` and `gpl/source` out of your build.
 - If you build any file from `gpl/`, the resulting firmware must be distributed under the GPL-3.0.
 
-Because `gpl/include` mirrors the domain folders of `include/`, the include strings stay the same (for example `#include "gps/pif_gps.h"`); only the include path `-Igpl/include` has to be added.
+Because `gpl/include` mirrors the domain folders of `include/`, the include strings stay the same (for example `#include "protocol/pif_msp_v2.h"`); only the include path `-Igpl/include` has to be added.
 
 Third-party code and its notices are listed in `THIRD_PARTY_NOTICES.md`.
 

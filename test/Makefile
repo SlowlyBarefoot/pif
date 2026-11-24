@@ -33,7 +33,7 @@ else
   RUN   = $1
 endif
 
-NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_quad_encoder test_pif_sensor test_pif_sensor_modulated test_pif_ms5611 test_pif_hmc5883 test_pif_gy86 test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs test_pif_servo test_pif_servo_cs test_pif_dshot test_pif_dshot_cs \
+NAMES   := test_pif_bst test_pif_bst_key8 test_pif_ring_buffer test_pif_ring_data test_pif_sequence test_pif_timer test_pif_pwm_gen test_pif_collect_signal test_pif_gpio test_pif_gpio_cs test_pif_gpio_cs_off test_pif_can test_pif_can_stream test_pif_device_reg test_pif_ubx_ddc_stream test_pif_gps test_pif_gps_ublox test_pif_spi_fd_stream test_pif_transport test_pif_transport_min test_pif_pulse test_pif_quad_encoder test_pif_sensor test_pif_sensor_modulated test_pif_ms5611 test_pif_hmc5883 test_pif_gy86 test_pif_noise_filter test_pif_task_manager test_pif_solenoid test_pif_solenoid_cs test_pif_servo test_pif_servo_cs test_pif_dshot test_pif_dshot_cs \
            test_pif_dot_matrix test_pif_fnd test_pif_led test_pif_graphics test_pif_graphics_nofont test_pif_ssd1306 test_pif_tft_lcd test_pif_max7456 test_pif_modbus test_pif_modbus_nolog test_pif_rc_serial \
            test_pif_nor_flash test_pif_sd_spi \
            test_pif_printf test_pif_printf_nofloat test_pif_ring_buffer_nolock test_pif_modbus_slave_min \
@@ -168,6 +168,17 @@ STREAM_DEP := $(addprefix $(ROOT)/source/communication/, pif_device_stream.c) \
               $(addprefix $(ROOT)/include/communication/, pif_device_reg.h pif_device_stream.h pif_transport.h)
 UBX_DDC_DEP := $(STREAM_DEP) $(ROOT)/source/gps/pif_ubx_ddc_stream.c $(ROOT)/include/gps/pif_ubx_ddc_stream.h \
                $(ROOT)/include/communication/pif_i2c.h
+# The NMEA parser of pif_gps, and pif_gps_nmea over an in-memory wire. The UART tasks are not run: the
+# parser and the transmit callback are called the way the tasks do.
+GPS_PORT_SRC := $(addprefix $(ROOT)/source/communication/, pif_uart.c pif_transport.c) \
+                $(addprefix $(ROOT)/source/core/, pif.c pif_obj_array.c pif_ring_buffer.c pif_task.c \
+                    pif_task_manager.c pif_timer.c pif_timer_manager.c)
+GPS_SRC := gps/test_pif_gps.c $(addprefix $(ROOT)/source/gps/, pif_gps.c pif_gps_nmea.c) $(GPS_PORT_SRC)
+GPS_DEP := $(addprefix $(ROOT)/include/gps/, pif_gps.h pif_gps_nmea.h)
+# The UBX side of pif_gps_ublox on the same wire: the NAV messages, the framing and the commands.
+UBLOX_SRC := gps/test_pif_gps_ublox.c $(addprefix $(ROOT)/source/gps/, pif_gps.c pif_gps_ublox.c) $(GPS_PORT_SRC)
+UBLOX_DEP := $(addprefix $(ROOT)/include/gps/, pif_gps.h pif_gps_ublox.h)
+
 # test_pif_spi_fd_stream.c includes pif_device_stream.c and pif_spi_fd_stream.c to run the task directly.
 SPI_FD_SRC := communication/test_pif_spi_fd_stream.c \
               $(addprefix $(ROOT)/source/communication/, pif_device_reg.c pif_spi.c pif_transport.c) \
@@ -255,7 +266,9 @@ run-test_pif_can: run-test_pif_gpio_cs_off
 run-test_pif_can_stream: run-test_pif_can
 run-test_pif_device_reg: run-test_pif_can_stream
 run-test_pif_ubx_ddc_stream: run-test_pif_device_reg
-run-test_pif_spi_fd_stream: run-test_pif_ubx_ddc_stream
+run-test_pif_gps: run-test_pif_ubx_ddc_stream
+run-test_pif_gps_ublox: run-test_pif_gps
+run-test_pif_spi_fd_stream: run-test_pif_gps_ublox
 run-test_pif_transport: run-test_pif_spi_fd_stream
 run-test_pif_transport_min: run-test_pif_transport
 run-test_pif_pulse: run-test_pif_transport_min
@@ -360,6 +373,12 @@ $(BUILD)/test_pif_device_reg$(EXE): $(DEVICE_REG_SRC) $(DEVICE_REG_DEP) | $(BUIL
 
 $(BUILD)/test_pif_ubx_ddc_stream$(EXE): $(UBX_DDC_SRC) $(UBX_DDC_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(UBX_DDC_SRC) -o $@
+
+$(BUILD)/test_pif_gps$(EXE): $(GPS_SRC) $(GPS_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(GPS_SRC) -o $@
+
+$(BUILD)/test_pif_gps_ublox$(EXE): $(UBLOX_SRC) $(UBLOX_DEP) | $(BUILD)
+	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(UBLOX_SRC) -o $@
 
 $(BUILD)/test_pif_spi_fd_stream$(EXE): $(SPI_FD_SRC) $(SPI_FD_DEP) | $(BUILD)
 	$(CC) $(CFLAGS) -DPIF_NO_LOG $(INC) $(SPI_FD_SRC) -o $@
